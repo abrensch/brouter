@@ -1,0 +1,317 @@
+---lookupversion:2
+
+---context:way
+
+highway;0001731794 track
+highway;0001457935 residential
+highway;0000968516 service
+highway;0000756237 footway
+highway;0000521566 path
+highway;0000261772 unclassified
+highway;0000220315 secondary
+highway;0000207585 tertiary
+highway;0000103445 steps
+highway;0000102114 primary
+highway;0000094484 cycleway
+highway;0000090388 living_street
+highway;0000035041 motorway
+highway;0000029965 pedestrian
+highway;0000026875 motorway_link
+highway;0000015054 trunk
+highway;0000014604 primary_link
+highway;0000012211 road
+highway;0000011822 trunk_link
+highway;0000005882 construction
+highway;0000005425 bridleway
+highway;0000005180 secondary_link
+highway;0000003360 platform
+highway;0000002616 proposed abandoned
+highway;0000001374 tertiary_link
+highway;0000000760 ferry
+highway;0000000541 raceway
+highway;0000000346 rest_area
+highway;0000000300 bus_stop
+highway;0000000184 services
+
+tracktype;0000356503 grade2
+tracktype;0000353482 grade3
+tracktype;0000281625 grade1
+tracktype;0000245193 grade4
+tracktype;0000179135 grade5
+
+surface;0000363915 asphalt
+surface;0000303589 paved
+surface;0000196783 gravel
+surface;0000137371 ground
+surface;0000128215 grass
+surface;0000092748 unpaved
+surface;0000086579 paving_stones
+surface;0000066111 cobblestone
+surface;0000042061 dirt
+surface;0000026551 concrete
+surface;0000025631 compacted
+surface;0000019861 sand
+surface;0000009400 pebblestone
+surface;0000003197 fine_gravel
+
+maxspeed;0000402224 30
+maxspeed;0000224685 50
+maxspeed;0000045177 100
+maxspeed;0000037529 70
+maxspeed;0000014237 none
+maxspeed;0000014022 60
+maxspeed;0000011530 80
+maxspeed;0000009951 10
+maxspeed;0000008056 20
+maxspeed;0000005772 120
+maxspeed;0000003165 40
+maxspeed;0000002987 7
+maxspeed;0000002826 signals
+maxspeed;0000001933 130
+
+service;0000221481 parking_aisle
+service;0000157110 driveway
+
+lit;0000132495 yes
+
+lanes;0000098207 2
+lanes;0000042192 1
+lanes;0000018533 3
+lanes;0000004577 4
+lanes;0000000448 5
+lanes;0000000318 1.5
+
+access;0000044859 yes permissive
+access;0000008452 designated official
+access;0000028727 destination customers
+access;0000076985 agricultural forestry
+access;0000116270 private
+access;0000028044 no
+
+foot;0000339384 yes allowed Yes
+foot;0000125339 designated official
+foot;0000018945 no
+foot;0000001562 private
+foot;0000000279 destination
+foot;0000008172 permissive
+
+bicycle;0000302789 yes allowed permissive 
+bicycle;0000108056 designated official
+bicycle;0000000265 destination
+bicycle;0000003593 dismount
+bicycle;0000001426 private
+bicycle;0000070179 no
+
+motorcar;0000010111 yes permissive
+motorcar;0000001537 designated official
+motorcar;0000007102 destination
+motorcar;0000016706 agricultural forestry agriculture
+motorcar;0000002178 private
+motorcar;0000077771 no
+
+motor_vehicle;0000013813 yes permissive
+motor_vehicle;0000002098 designated official
+motor_vehicle;0000009792 destination
+motor_vehicle;0000019301 agricultural forestry
+motor_vehicle;0000006563 private
+motor_vehicle;0000025491 no
+
+motorcycle;0000005750 yes permissive
+motorcycle;0000001158 designated official
+motorcycle;0000005805 destination
+motorcycle;0000012401 agricultural forestry
+motorcycle;0000001180 private
+motorcycle;0000053955 no
+
+vehicle;0000000505 yes permissive
+vehicle;0000000027 designated
+vehicle;0000007582 destination
+vehicle;0000004357 agricultural forestry
+vehicle;0000001155 private
+vehicle;0000006487 no
+
+cycleway;0000033575 track
+cycleway;0000012829 no
+cycleway;0000011604 lane
+cycleway;0000008938 opposite
+cycleway;0000001503 none
+cycleway;0000001146 right
+cycleway;0000001031 opposite_track
+cycleway;0000001029 yes
+cycleway;0000000856 opposite_lane
+cycleway;0000000675 both
+cycleway;0000000665 left
+cycleway;0000000521 shared
+cycleway;0000000383 street
+cycleway;0000000176 segregated
+
+mtb:scale;0000043968 0
+mtb:scale;0000019705 1
+mtb:scale;0000006436 2
+mtb:scale;0000002702 3
+mtb:scale;0000001083 4
+mtb:scale;0000000329 5
+
+sac_scale;0000049626 hiking
+sac_scale;0000007933 mountain_hiking
+sac_scale;0000001160 demanding_mountain_hiking
+sac_scale;0000000523 yes
+sac_scale;0000000364 alpine_hiking
+sac_scale;0000000117 demanding_alpine_hiking
+
+noexit;0000058492 yes
+
+motorroad;0000019250 yes
+
+oneway;0000330245 yes
+oneway;0000075148 no
+oneway;0000003679 -1
+oneway;0000000001 true
+oneway;0000000001 1
+
+junction;0000015929 roundabout
+
+bridge;0000182649 yes viaduct true suspension
+
+tunnel;0000031626 yes
+
+lcn;0000018999 yes
+
+longdistancecycleway;0000000001 yes
+
+reversedirection;0000000001 yes
+
+---context:node
+
+highway;0000100947 turning_circle
+highway;0000067645 traffic_signals
+highway;0000047209 crossing
+highway;0000037164 bus_stop
+highway;0000006577 motorway_junction
+highway;0000003811 stop
+highway;0000002331 mini_roundabout
+highway;0000001789 milestone
+highway;0000001692 passing_place
+highway;0000001289 give_way
+highway;0000001092 emergency_access_point
+highway;0000000683 speed_camera
+highway;0000000672 steps
+highway;0000000658 incline_steep
+highway;0000000620 elevator
+highway;0000000506 street_lamp
+highway;0000000490 ford
+highway;0000000458 incline
+highway;0000000135 rest_area
+highway;0000000105 path
+highway;0000000098 emergency_bay
+highway;0000000096 road
+highway;0000000087 platform
+highway;0000000074 services
+highway;0000000058 track
+highway;0000000055 service
+highway;0000000054 footway
+highway;0000000053 traffic_calming
+highway;0000000046 toll_bridge
+highway;0000000037 city_entry
+
+barrier;0000076979 gate
+barrier;0000069308 bollard
+barrier;0000028131 lift_gate
+barrier;0000017332 cycle_barrier
+barrier;0000005693 entrance
+barrier;0000002885 block
+barrier;0000001065 kissing_gate
+barrier;0000000828 cattle_grid
+barrier;0000000602 stile
+barrier;0000000561 turnstile
+barrier;0000000512 no
+barrier;0000000463 fence
+barrier;0000000417 bump_gate
+barrier;0000000324 sally_port
+barrier;0000000283 yes
+barrier;0000000283 hampshire_gate
+barrier;0000000236 swing_gate
+barrier;0000000203 chain
+barrier;0000000181 toll_booth
+barrier;0000000180 door
+barrier;0000000104 chicane
+barrier;0000000096 tree
+barrier;0000000087 border_control
+barrier;0000000077 log
+barrier;0000000076 traffic_crossing_pole
+barrier;0000000063 wall
+barrier;0000000060 fallen_tree
+barrier;0000000052 stone
+barrier;0000000048 ditch
+barrier;0000000031 spikes
+
+access;0000001309 yes permissive
+access;0000000118 designated official
+access;0000000405 destination customers
+access;0000000276 agricultural forestry
+access;0000008574 private
+access;0000002145 no
+
+foot;0000080681 yes permissive
+foot;0000000326 designated official
+foot;0000000023 destination
+foot;0000000156 private
+foot;0000009170 no
+
+bicycle;0000076717 yes permissive
+bicycle;0000000406 designated official
+bicycle;0000000018 destination
+bicycle;0000000081 dismount
+bicycle;0000000051 private
+bicycle;0000016121 no
+
+motorcar;0000005785 yes permissive
+motorcar;0000000026 designated official
+motorcar;0000000080 destination
+motorcar;0000000112 agricultural forestry
+motorcar;0000000171 private
+motorcar;0000001817 no
+
+motor_vehicle;0000000066 yes permissive
+motor_vehicle;0000000000 designated official
+motor_vehicle;0000000030 destination
+motor_vehicle;0000000073 agricultural forestry
+motor_vehicle;0000000136 private
+motor_vehicle;0000000469 no
+
+motorcycle;0000004515 yes permissive
+motorcycle;0000000007 designated official
+motorcycle;0000000054 destination
+motorcycle;0000000027 agricultural forestry
+motorcycle;0000000063 private
+motorcycle;0000001637 no
+
+vehicle;0000000058 yes permissive
+vehicle;0000000000 designated
+vehicle;0000000081 destination
+vehicle;0000000038 agricultural forestry
+vehicle;0000000041 private
+vehicle;0000000271 no
+
+crossing;0000032485 traffic_signals
+crossing;0000014300 uncontrolled
+crossing;0000005086 island
+crossing;0000001565 unmarked
+crossing;0000001066 no
+crossing;0000000333 zebra
+
+railway;0000034039 level_crossing
+railway;0000010175 crossing
+
+noexit;0000043010 yes
+
+entrance;0000015094 yes
+entrance;0000007079 main
+entrance;0000000554 service
+entrance;0000000169 emergency
+entrance;0000000063 exit
+entrance;0000000008 private
+
+lcn;0000018999 yes
+
+longdistancecycleway;0000000001 yes
