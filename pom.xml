@@ -8,7 +8,7 @@
     <packaging>pom</packaging>
     <url>http://brensche.de/brouter/</url>
     <name>brouter</name>
-    <description>The brouter project provides bike routing for OpenStreetMap.</description>
+    <description>configurable OSM offline router with elevation awareness, Java + Android</description>
 
     <modules>
         <module>brouter-util</module>
@@ -19,13 +19,6 @@
         <module>brouter-server</module>
         <module>brouter-routing-app</module>
     </modules>
-
-    <scm>
-        <connection>scm:svn:http://www.routeconverter.de/subversion/BRouter/</connection>
-        <developerConnection>scm:svn:http://www.routeconverter.de/subversion/BRouter/</developerConnection>
-        <url>http://www.routeconverter.de/subversion/BRouter/</url>
-        <tag>HEAD</tag>
-    </scm>
 
     <developers>
         <developer>
@@ -144,10 +137,9 @@
 			<dependency>
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
-				<version>4.11</version>
+				<version>4.12</version>
 				<scope>test</scope>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-
 </project>
