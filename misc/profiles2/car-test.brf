@@ -1,0 +1,108 @@
+#
+# Car-Routing is experimantal !!!
+#
+# DO NOT USE FOR ACTUAL NAVIGATION
+#
+# Turn restrictions are missing, leading to wrong routes
+#
+
+---context:global
+
+assign downhillcost 0
+assign downhillcutoff 0
+assign uphillcost 0
+assign uphillcutoff 0
+
+assign validForCars 1
+assign pass1coefficient 1.3
+
+---context:way   # following code refers to way-tags
+
+assign turncost 200
+assign initialcost switch highway=ferry 20000 0
+
+
+#
+# calculate logical car access
+#
+assign caraccess
+       switch motorcar=
+              switch motor_vehicle=
+                     switch vehicle=
+                            switch access=
+                                   switch or highway=motorway highway=motorway_link    1
+                                   switch or highway=trunk highway=trunk_link          1
+                                   switch or highway=primary highway=primary_link      1
+                                   switch or highway=secondary highway=secondary_link  1
+                                   switch or highway=tertiary highway=tertiary_link    1
+                                   switch    highway=unclassified                      1
+                                   switch    highway=ferry                             1
+                                   switch or highway=residential highway=living_street 1
+                                   switch    highway=service                           1
+                                   0
+                                   or access=yes or access=designated access=destination
+                            or vehicle=yes or vehicle=designated vehicle=destination
+                     or motor_vehicle=yes or motor_vehicle=designated motor_vehicle=destination
+              or motorcar=yes or motorcar=designated motorcar=destination
+
+assign accesspenalty
+       switch caraccess
+              0
+              10000
+
+assign onewaypenalty
+       switch switch reversedirection=yes
+                     switch oneway=
+                            junction=roundabout
+                            or oneway=yes or oneway=true oneway=1
+                     oneway=-1
+              10000
+              0.0
+
+
+assign ispaved or surface=paved or surface=asphalt or surface=concrete surface=paving_stones
+
+assign costfactor
+
+ add max onewaypenalty accesspenalty
+
+ switch or highway=motorway highway=motorway_link    1
+ switch or highway=trunk highway=trunk_link          1
+ switch or highway=primary highway=primary_link      switch maxspeed=30 2.0 switch maxspeed=50 1.5 1.2
+ switch or highway=secondary highway=secondary_link  1.3
+ switch or highway=tertiary highway=tertiary_link    1.4
+ switch    highway=unclassified                      1.5
+ switch    highway=ferry                             5.67
+ switch    highway=bridleway                         5
+ switch or highway=residential highway=living_street 2
+ switch    highway=service                           2
+ switch or highway=track or highway=road highway=path
+  switch tracktype=grade1 5
+  switch ispaved 5
+  30
+ 10000
+
+---context:node  # following code refers to node tags
+
+#
+# calculate logical car access to nodes
+#
+assign caraccess
+       switch motorcar=
+              switch motor_vehicle=
+                     switch vehicle=
+                            switch access=
+                                   switch barrier=gate 0
+                                   switch barrier=bollard 0
+                                   switch barrier=lift_gate 0
+                                   switch barrier=cycle_barrier 0
+                                   1
+                                   or access=yes or access=designated access=destination
+                            or vehicle=yes or vehicle=designated vehicle=destination
+                     or motor_vehicle=yes or motor_vehicle=designated motor_vehicle=destination
+              or motorcar=yes or motorcar=designated motorcar=destination
+
+assign initialcost
+       switch caraccess
+              0
+              1000000

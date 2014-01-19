@@ -1,0 +1,176 @@
+Profile developers guide - Technical reference
+for BRouter cost-function scripts
+==============================================
+
+The tag-value lookup table
+--------------------------
+
+Within the routing data files (rd5), tag information
+is encoded in a binary bitfield of 64 bit length for
+the way tags and the node tags each.
+
+To encode and decode to/from this bitfield, a lookup
+table is used that contains all the tags and values
+that are considered for encoding.
+
+For each tag there are 2 special values:
+
+- <empty> if the tag is not set or the value is empty 
+- "unknown" if the value is not contained in the table
+
+An exception are "boolean tags" with exactly one value
+in the lookup table - these are encoded into a single
+bit and do not have the "unknown" value - in this case
+unknown values are treated as empty.
+
+Each value can have optional "aliases", these alias
+values are encoded into the same binary value as the
+associated primary value.
+
+For compact encoding, the number of values per
+tag in the lookup table should be a power of 2,
+including the default values (<empty>, "unknown"),
+so typically, a tag has 1, 2, 6, 14 or 30 values.
+
+The numbers in the lookup table are statistical
+information on the frequency of the values in the
+map of germany - these are just informational and
+are not processed by BRouter.
+
+Context-Separation
+------------------
+
+Way-tags and Node-Tags are treated independently,
+so there are different sections in the lookup table
+as well as in the profile scripts for each context.
+The special tags: "---context:way" and "---context:node"
+mark the beginning of each section.
+
+In the profile scripts there is a third context "global"
+which contains global configuration which is shared for
+all contexts and is accessible by the routing engine.
+
+The variables from the "global" section in the profile
+scripts are read-only visible in the "way" and
+"node" sections of the scripts.
+
+Predefined variables in the profile scripts
+-------------------------------------------
+
+Some variable names are pre-defined and accessed by
+the routing engine:
+
+- for the global section these are:
+
+  - 4 elevation configuration parameters:
+
+    - downhillcost
+    - downhillcutoff
+    - uphillcost
+    - uphillcutoff
+
+  - 3 boolean mode-hint flags
+
+    - validForBikes
+    - validForFoot
+    - validForCars
+
+  - and 2 variables to change the heuristic
+    coefficients for the 2 routing passes
+    ( <0 disables a routing pass )
+
+   - pass1coefficient
+   - pass2coefficient
+
+- for the way section these are
+
+  - turncost
+  - initialcost
+  - costfactor
+
+- for the node section this is just
+
+  - initialcost
+
+The operators of the profile scripts
+------------------------------------
+
+The "assign" operator is special: it can be used
+only on the top level of the expression hirarchy
+and has 2 operands:
+
+  assign <variable-name> <expression>
+
+It just assigns the expression value to this
+variable (which can be a predined variable or
+any other variable, which in this case is defined
+implicitly). The expression can be a complex expression
+using other operators.
+
+All other operators can be used recursively to an unlimted
+complexity, which means that each operand can be a composed
+expression starting with an operator and so on.
+
+All expressions have one of the following basic forms:
+
+  - <numeric>
+  - <lookup-match>
+  - <1-op-operator> <operand>
+  - <2-op-operator> <operand> <operand>
+  - <3-op-operator> <operand> <operand> <operand>
+
+- A numeric value is just a number, floating point, with "." as
+  decimal separtor. Boolean values are treated as numbers as well,
+  with "0" = false and every nonzero value = true.
+
+- A lookup match has the form <tag-name>=<value>, e.g. highway=primary
+  Only the primary values can be used in lookup-matches, not aliases.
+  The <empty> value is refered to as an empty string, e.g. access=
+
+- 1 Operand operators are:
+
+  not <boolean expression>
+
+- 2 Operand operators are:
+
+  or       <boolean expression 1> <boolean expression 2>
+  and      <boolean expression 1> <boolean expression 2>
+  multiply <numeric expression 1> <numeric expression 2>
+  add      <numeric expression 1> <numeric expression 2>
+  max      <numeric expression 1> <numeric expression 2>
+
+- 3 Operand operators are:
+
+  switch <boolean-expression> <true-expression> <false-expression>
+
+  So the switch expression has a numeric value which is the
+  true-expression if the boolean expression is true, the
+  false-expression otherwise
+
+
+Technical constraints
+---------------------
+
+- The costfactor is required to be >= 1, otherwise the cost-cutoff
+  logic of the routing algorithm does not work and you get wrong results.
+
+- The profile should be able to find a route with an average costfactor
+  not very much larger than one, because otherwise the routing algorithm
+  will not find a reasonable cost-cutoff, leading to a very large
+  search area and thus to long processing times.
+
+- Forbidden ways or nodes must be treated as very high cost, because
+  there is no "forbidden" value. Please use 100000 for a (way-)costfactor,
+  and 1000000 for a nodes "initalcost", as these are proven values with
+  no overflow issues.
+
+
+Developing and debugging scripts
+--------------------------------
+
+For developing scripts, the "Upload profile" funcionality and the
+"Export CSV" button of the online version are your friends.
+The "Export CSV" gives a (tab-separated) list of all way segments
+with all tag values and with the calulated cost (in "cost per km").
+
+These CSV-Data can be imported in Excel using "paste content" function.

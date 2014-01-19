@@ -1,0 +1,91 @@
+---context:global   # following code refers to global config
+
+# the elevation parameters
+
+assign downhillcost 0
+assign downhillcutoff 1.5
+assign uphillcost 0
+assign uphillcutoff 1.5
+
+assign   validForFoot        1
+
+---context:way   # following code refers to way-tags
+
+assign turncost 0
+
+assign initialcost switch highway=ferry 10000 0
+
+#
+# implicit access here just from the motorroad tag
+# (implicit access rules from highway tag handled elsewhere)
+#
+assign defaultaccess
+       switch access=
+              not motorroad=yes
+              switch or access=private access=no
+                     0
+                     1
+
+#
+# calculate logical bike access
+#
+assign bikeaccess
+       or longdistancecycleway=yes
+          switch bicycle=
+                 switch vehicle=
+                        defaultaccess
+                        switch or vehicle=private vehicle=no
+                               0
+                               1
+                 not or bicycle=private or bicycle=no bicycle=dismount
+
+#
+# calculate logical foot access
+#
+assign footaccess
+       or bikeaccess
+          or bicycle=dismount
+             switch foot=
+                    defaultaccess
+                    not or foot=private foot=no
+
+assign accesspenalty switch or bikeaccess footaccess 0 100000
+
+assign costfactor
+  add accesspenalty
+
+  switch    highway=ferry                             5.67
+  switch or highway=motorway highway=motorway_link    100000
+  switch    highway=proposed                          100000
+  1
+
+---context:node  # following code refers to node tags
+
+assign defaultaccess
+       switch access=
+              1 # add default barrier restrictions here!
+              switch or access=private access=no
+                     0
+                     1
+
+assign bikeaccess
+       or or longdistancecycleway=yes lcn=yes
+          switch bicycle=
+                 switch vehicle=
+                        defaultaccess
+                        switch or vehicle=private vehicle=no
+                               0
+                               1
+                 switch or bicycle=private or bicycle=no bicycle=dismount
+                        0
+                        1
+
+assign footaccess
+       or bicycle=dismount
+          switch foot=
+                 defaultaccess
+                 switch or foot=private foot=no
+                        0
+                        1
+
+assign initialcost switch or bikeaccess footaccess 0 1000000
