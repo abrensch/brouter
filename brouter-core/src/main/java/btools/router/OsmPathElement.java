@@ -1,18 +1,19 @@
-/**
- * Container for link between two Osm nodes
- *
- * @author ab
- */
 package btools.router;
+
+import btools.mapaccess.OsmNode;
+import btools.mapaccess.OsmPos;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmPos;
+/**
+ * Container for link between two Osm nodes
+ *
+ * @author ab
+ */
 
-final class OsmPathElement implements OsmPos
+public final class OsmPathElement implements OsmPos
 {
   private int ilat; // latitude
   private int ilon; // longitude
