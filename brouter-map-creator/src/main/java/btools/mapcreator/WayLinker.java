@@ -92,7 +92,7 @@ public class WayLinker extends MapCreatorBase
 
       // read this tile's nodes
       readingBorder = false;
-      new NodeIterator( this, false ).processFile( nodeFile );
+      new NodeIterator( this, true ).processFile( nodeFile );
     
       // freeze the nodes-map
       FrozenLongMap<OsmNodeP> nodesMapFrozen = new FrozenLongMap<OsmNodeP>( nodesMap );
