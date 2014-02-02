@@ -22,6 +22,8 @@ final class OsmFile
 
   public String filename;
 
+  public boolean ghost = false;
+
   public OsmFile( PhysicalFile rafile, int tileIndex, byte[] iobuffer ) throws Exception
   {
     if ( rafile != null )
@@ -76,8 +78,43 @@ final class OsmFile
      return size;
   }
 
-  public void close()
+  // set this OsmFile to ghost-state:
+  long setGhostState()
   {
-    try { is.close(); } catch( IOException e ) { throw new RuntimeException( e ); }
+    long sum = 0;
+    ghost = true;
+    for( int i=0; i< microCaches.length; i++ )
+    {
+      MicroCache mc = microCaches[i];
+      if ( mc == null ) continue;
+      if ( mc.virgin )
+      {
+        mc.ghost = true;
+        sum += mc.getDataSize();
+      }
+      else
+      {
+        microCaches[i] = null;
+      }
+    }
+    return sum;
   }
+
+  void cleanAll()
+  {
+    for( int i=0; i< microCaches.length; i++ )
+    {
+      MicroCache mc = microCaches[i];
+      if ( mc == null ) continue;
+      if ( mc.ghost )
+      {
+        microCaches[i] = null;
+      }
+      else
+      {
+        mc.collect();
+      }
+    }
+  }
+
 }

@@ -24,6 +24,11 @@ final class MicroCache
   private int aboffset;
   private int ablength;
 
+  // cache control: a virgin cache can be
+  // put to ghost state for later recovery
+  boolean virgin = true;
+  boolean ghost = false;
+
   public MicroCache( OsmFile segfile, int lonIdx80, int latIdx80, byte[] iobuffer ) throws Exception
   {
      int lonDegree = lonIdx80/80;
@@ -40,6 +45,7 @@ final class MicroCache
 
        if ( asize == 0 )
        {
+         ab = null;
          return;
        }
        if ( asize > iobuffer.length )
@@ -105,9 +111,19 @@ final class MicroCache
     return size;
   }
   
+  public int getDataSize()
+  {
+    return ab == null ? 0 : ab.length;
+  }
+
   /**
-   * @return the value for "id",
-   * Throw an exception if not contained in the map.
+   * Set the internal reader (aboffset, ablength)
+   * to the body data for the given id
+   *
+   * @return true if id was found
+   *
+   * Throws an exception if that id was already requested
+   * as an early detector for identity problems
    */
   private boolean getAndClear( long id )
   {
@@ -148,7 +164,10 @@ final class MicroCache
     return false;
   }
 
-  public void fillNode( OsmNode node, OsmNodesMap nodesMap, DistanceChecker dc )
+  /**
+   * Fill a hollow node with it's body data
+   */
+  public void fillNode( OsmNode node, OsmNodesMap nodesMap, DistanceChecker dc, boolean doCollect )
   {
     long id = node.getIdFromPos();
     if ( getAndClear( id ) )
@@ -156,8 +175,18 @@ final class MicroCache
       node.parseNodeBody( this, ablength, nodesMap, dc );
     }
 
-    if ( delcount > size / 2 ) // garbage collection
+    if ( doCollect && delcount > size / 2 ) // garbage collection
     {
+      collect();
+    }
+  }
+
+  void collect()
+  {
+    if ( delcount > 0 )
+    {
+      virgin = false;
+
       int nsize = size - delcount;
       if ( nsize == 0 )
       {
@@ -194,6 +223,17 @@ final class MicroCache
       delbytes = 0;
       p2size = 0x40000000;
       while( p2size > size ) p2size >>= 1;
+    }
+  }
+
+  void unGhost()
+  {
+    ghost = false;
+    delcount = 0;
+    delbytes = 0;
+    for( int i=0; i<size; i++ )
+    {
+      fapos[i] &= 0x7fffffff; // clear deleted flags
     }
   }
 

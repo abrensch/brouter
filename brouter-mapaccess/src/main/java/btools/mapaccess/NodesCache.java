@@ -19,12 +19,15 @@ public final class NodesCache
   private HashMap<String,PhysicalFile> fileCache;
   private byte[] iobuffer;
   
-  private OsmFile[][] fileRows = new OsmFile[180][];
+  private OsmFile[][] fileRows;
   private ArrayList<MicroCache> segmentList = new ArrayList<MicroCache>();
 
   public DistanceChecker distanceChecker;
   
   public boolean oom_carsubset_hint = false;
+
+  private long cacheSum = 0;
+  private boolean garbageCollectionEnabled = false;
 
   public NodesCache( String segmentDir, OsmNodesMap nodesMap, int lookupVersion, boolean carMode, NodesCache oldCache )
   {
@@ -38,12 +41,53 @@ public final class NodesCache
       fileCache = oldCache.fileCache;
       iobuffer = oldCache.iobuffer;
       oom_carsubset_hint = oldCache.oom_carsubset_hint;
+
+      // re-use old, virgin caches
+      fileRows = oldCache.fileRows;
+      for( OsmFile[] fileRow : fileRows )
+      {
+        if ( fileRow == null ) continue;
+        for( OsmFile osmf : fileRow )
+        {
+          cacheSum += osmf.setGhostState();
+        }
+      }
     }
     else
     {
       fileCache = new HashMap<String,PhysicalFile>(4);
+      fileRows = new OsmFile[180][];
       iobuffer = new byte[65636];
     }
+  }
+
+  // if the cache sum exceeded a threshold,
+  // clean all ghosts and enable garbage collection
+  private void checkEnableCacheCleaning()
+  {
+    if ( cacheSum < 200000 || garbageCollectionEnabled ) return;
+
+    for( int i=0; i<fileRows.length; i++ )
+    {
+      OsmFile[] fileRow = fileRows[i];
+      if ( fileRow == null ) continue;
+      int nghosts = 0;
+      for( OsmFile osmf :  fileRow )
+      {
+        if ( osmf.ghost ) nghosts++;
+        else osmf.cleanAll();
+      }
+      if ( nghosts == 0 ) continue;
+      int j=0;
+      OsmFile[] frow = fileRows[fileRows.length-nghosts];
+      for( OsmFile osmf : fileRow )
+      {
+        if ( osmf.ghost ) continue;
+        frow[j++] = osmf;
+      }
+      fileRows[i] = frow;
+    }
+    garbageCollectionEnabled = true;
   }
 
   public int loadSegmentFor( int ilon, int ilat )
@@ -82,6 +126,7 @@ public final class NodesCache
           newFileRow[ndegrees] = osmf;
           fileRows[latDegree] = newFileRow;
         }
+        osmf.ghost = false;
         currentFileName = osmf.filename;
         if ( osmf.microCaches == null )
         {
@@ -93,8 +138,16 @@ public final class NodesCache
         {
           // nodesMap.removeCompleteNodes();
 
+          checkEnableCacheCleaning();
+
           segment = new MicroCache( osmf, lonIdx80, latIdx80, iobuffer );
+          cacheSum += segment.getDataSize();
           osmf.microCaches[subIdx] = segment;
+          segmentList.add( segment );
+        }
+        else if ( segment.ghost )
+        {
+          segment.unGhost();
           segmentList.add( segment );
         }
         return segment;
@@ -119,7 +172,7 @@ public final class NodesCache
     {
       return false;
     }
-    segment.fillNode( node, nodesMap, distanceChecker );
+    segment.fillNode( node, nodesMap, distanceChecker, garbageCollectionEnabled );
     return !node.isHollow();
   }
 
