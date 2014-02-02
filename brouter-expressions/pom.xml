@@ -10,4 +10,12 @@
     </parent>
     <artifactId>brouter-expressions</artifactId>
     <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.btools</groupId>
+            <artifactId>brouter-util</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 </project>

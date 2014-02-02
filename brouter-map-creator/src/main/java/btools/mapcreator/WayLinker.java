@@ -31,6 +31,8 @@ public class WayLinker extends MapCreatorBase
   private CompactLongSet borderSet;
   private short lookupVersion;
 
+  private long creationTimeStamp;
+  
   private BExpressionContext expctxWay;
 
   private int minLon;
@@ -67,6 +69,8 @@ public class WayLinker extends MapCreatorBase
     expctxWay.readMetaData( lookupFile );
     lookupVersion = expctxWay.lookupVersion;
     expctxWay.parseFile( profileFile, "global" );
+    
+    creationTimeStamp = System.currentTimeMillis();
 
     // then process all segments    
     new WayIterator( this, true ).processDir( wayTilesIn, ".wt5" );
@@ -88,7 +92,7 @@ public class WayLinker extends MapCreatorBase
 
       // read this tile's nodes
       readingBorder = false;
-      new NodeIterator( this, true ).processFile( nodeFile );
+      new NodeIterator( this, false ).processFile( nodeFile );
     
       // freeze the nodes-map
       FrozenLongMap<OsmNodeP> nodesMapFrozen = new FrozenLongMap<OsmNodeP>( nodesMap );
@@ -203,8 +207,10 @@ public class WayLinker extends MapCreatorBase
       File outfile = fileFromTemplate( wayfile, dataTilesOut, dataTilesSuffix );
       DataOutputStream os = createOutStream( outfile );
 
-      // write 5*5 index dummy
       long[] fileIndex = new long[25];
+      int[] fileHeaderCrcs = new int[25];
+
+      // write 5*5 index dummy
       for( int i55=0; i55<25; i55++)
       {
         os.writeLong( 0 );
@@ -243,7 +249,7 @@ public class WayLinker extends MapCreatorBase
 
                 ByteArrayOutputStream bos = new ByteArrayOutputStream( );
                 DataOutputStream dos = new DataOutputStream( bos );
-                dos.writeInt( subList.size() );
+                dos.writeInt( subList.size() + 1 ); // reserve 1 dummy node for crc
                 for( int ni=0; ni<subList.size(); ni++ )
                 {
                   OsmNodeP n = subList.get(ni);
@@ -251,21 +257,25 @@ public class WayLinker extends MapCreatorBase
                 }
                 dos.close();
                 byte[] subBytes = bos.toByteArray();
-                pos += subBytes.length;
+                pos += subBytes.length + 12; // reserve 12 bytes for crc dummy node
                 subByteArrays[si] = subBytes;
               }
               posIdx[si] = pos;
             }
 
+            byte[] abSubIndex = compileSubFileIndex( posIdx );
+            fileHeaderCrcs[tileIndex] = Crc32.crc( abSubIndex, 0, abSubIndex.length );
+            os.write( abSubIndex, 0, abSubIndex.length );
             for( int si=0; si<6400; si++)
             {
-              os.writeInt( posIdx[si] );
-            }
-            for( int si=0; si<6400; si++)
-            {
-              if ( subByteArrays[si] != null )
+              byte[] ab = subByteArrays[si];
+              if ( ab != null )
               {
-                os.write( subByteArrays[si] );
+                os.write( ab );
+                os.writeShort( Short.MAX_VALUE ); // write crc as a dummy node for compatibility
+                os.writeShort( Short.MAX_VALUE );
+                os.writeInt( 4 );
+                os.writeInt( Crc32.crc( ab, 0 , ab.length ) );
               }
             }
             filepos += pos;
@@ -273,17 +283,49 @@ public class WayLinker extends MapCreatorBase
           fileIndex[ tileIndex ] = filepos;
         }
       }
+      
+      byte[] abFileIndex = compileFileIndex( fileIndex, lookupVersion );
+      
+      // write extra data: timestamp + index-checksums
+      os.writeLong( creationTimeStamp );
+      os.writeInt( Crc32.crc( abFileIndex, 0, abFileIndex.length ) );
+      for( int i55=0; i55<25; i55++)
+      {
+        os.writeInt( fileHeaderCrcs[i55] );
+      }
+      
       os.close();
       
       // re-open random-access to write file-index
       RandomAccessFile ra = new RandomAccessFile( outfile, "rw" );
-      long versionPrefix = lookupVersion;
-      versionPrefix <<= 48;
-      for( int i55=0; i55<25; i55++)
-      {
-        ra.writeLong( fileIndex[i55] | versionPrefix );
-      }
+      ra.write( abFileIndex, 0, abFileIndex.length );
       ra.close();
     }
+  }
+  
+  private byte[] compileFileIndex( long[] fileIndex, short lookupVersion ) throws Exception
+  {
+    ByteArrayOutputStream bos = new ByteArrayOutputStream( );
+    DataOutputStream dos = new DataOutputStream( bos );
+    long versionPrefix = lookupVersion;
+    versionPrefix <<= 48;
+    for( int i55=0; i55<25; i55++)
+    {
+      dos.writeLong( fileIndex[i55] | versionPrefix );
+    }
+    dos.close();
+    return bos.toByteArray();
+  }
+
+  private byte[] compileSubFileIndex( int[] posIdx ) throws Exception
+  {
+    ByteArrayOutputStream bos = new ByteArrayOutputStream( );
+    DataOutputStream dos = new DataOutputStream( bos );
+    for( int si=0; si<6400; si++)
+    {
+      dos.writeInt( posIdx[si] );
+    }
+    dos.close();
+    return bos.toByteArray();
   }
 }

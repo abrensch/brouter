@@ -7,6 +7,7 @@ package btools.mapaccess;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import btools.util.Crc32;
 
 final class OsmFile
 {
@@ -21,16 +22,31 @@ final class OsmFile
 
   public String filename;
 
-  public OsmFile( RandomAccessFile rafile, long startPos, byte[] iobuffer ) throws Exception
+  public OsmFile( PhysicalFile rafile, int tileIndex, byte[] iobuffer ) throws Exception
   {
-    fileOffset = startPos;
     if ( rafile != null )
     {
-      is = rafile;
+      filename = rafile.fileName;
+
+      long[] index = rafile.fileIndex;
+      fileOffset = tileIndex > 0 ? index[ tileIndex-1 ] : 200L;
+      if ( fileOffset == index[ tileIndex] ) return; // empty
+    	
+      is = rafile.ra;
       posIdx = new int[6400];
       microCaches = new MicroCache[6400];
       is.seek( fileOffset );
       is.readFully( iobuffer, 0, 25600 );
+      
+      if ( rafile.fileHeaderCrcs != null )
+      {
+        int headerCrc = Crc32.crc( iobuffer, 0, 25600 );
+        if ( rafile.fileHeaderCrcs[tileIndex] != headerCrc )
+        {
+          throw new IOException( "sub index checksum error" );
+        }
+      }
+      
       ByteDataReader dis = new ByteDataReader( iobuffer );
       for( int i=0; i<6400; i++ )
       {
@@ -54,7 +70,7 @@ final class OsmFile
        is.seek( fileOffset + startPos );
        if ( size <= iobuffer.length )
        {
-         is.readFully( iobuffer );
+         is.readFully( iobuffer, 0, size );
        }
      }
      return size;

@@ -8,6 +8,8 @@ package btools.mapaccess;
 import java.util.*;
 import java.io.*;
 
+import btools.util.Crc32;
+
 final class MicroCache
 {
   private long[] faid;
@@ -32,10 +34,10 @@ final class MicroCache
 
      int subIdx = (latIdx80-80*latDegree)*80 + (lonIdx80-80*lonDegree);
 
-     try
      {
        ab = iobuffer;
        int asize = segfile.getDataInputForSubIdx(subIdx, ab);
+
        if ( asize == 0 )
        {
          return;
@@ -48,8 +50,30 @@ final class MicroCache
        aboffset = 0;
        size = readInt();
 
+       // get net size
+       int nbytes = 0;
+       for(int i = 0; i<size; i++)
+       {
+         int ilon = readShort();
+         int ilat = readShort();
+         int bodySize = readInt();
+         if ( ilon == Short.MAX_VALUE )        
+         {
+           int crc = Crc32.crc( ab, 0, aboffset-8 );
+           if ( crc != readInt() )
+           {
+             throw new IOException( "checkum error" );
+           }
+           size = i;
+           break;
+         }
+         aboffset += bodySize;
+         nbytes += bodySize;
+       }
+
        // new array with only net data
-       byte[] nab = new byte[asize - 4 - size*8];
+       byte[] nab = new byte[nbytes];
+       aboffset = 4;
        int noffset = 0;
        faid = new long[size];
        fapos = new int[size];
@@ -71,10 +95,8 @@ final class MicroCache
          aboffset += bodySize;
          noffset += bodySize;
        }
+
        ab = nab;
-     }
-     catch( EOFException eof )
-     {
      }
   }
 

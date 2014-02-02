@@ -16,8 +16,7 @@ public final class NodesCache
   private boolean carMode;
   private String currentFileName;
 
-  private HashMap<String,RandomAccessFile> fileCache;
-  private HashMap<String,long[]> indexCache;
+  private HashMap<String,PhysicalFile> fileCache;
   private byte[] iobuffer;
   
   private OsmFile[][] fileRows = new OsmFile[180][];
@@ -37,14 +36,12 @@ public final class NodesCache
     if ( oldCache != null )
     {
       fileCache = oldCache.fileCache;
-      indexCache = oldCache.indexCache;
       iobuffer = oldCache.iobuffer;
       oom_carsubset_hint = oldCache.oom_carsubset_hint;
     }
     else
     {
-      fileCache = new HashMap<String,RandomAccessFile>(4);
-      indexCache = new HashMap<String,long[]>(4);
+      fileCache = new HashMap<String,PhysicalFile>(4);
       iobuffer = new byte[65636];
     }
   }
@@ -144,6 +141,7 @@ public final class NodesCache
 
     currentFileName = filenameBase + ".rd5/cd5";
 
+    PhysicalFile ra = null;
     if ( !fileCache.containsKey( filenameBase ) )
     {
       File f = null;
@@ -158,39 +156,17 @@ public final class NodesCache
         if ( fullFile.exists() ) f = fullFile;
         if ( carMode && f != null ) oom_carsubset_hint = true;
       }
-      RandomAccessFile ra = f != null ? new RandomAccessFile( f, "r" ) : null;
-      fileCache.put( filenameBase, ra );
-      if ( ra != null )
+      if ( f != null )
       {
-        long[] fileIndex = new long[25];
-        ra.readFully( iobuffer, 0, 200 );
-        ByteDataReader dis = new ByteDataReader( iobuffer );
-        for( int i=0; i<25; i++ )
-        {
-          long lv = dis.readLong();
-          short readVersion = (short)(lv >> 48);
-          if ( readVersion != lookupVersion )
-          {
-            throw new IllegalArgumentException( "lookup version mismatch (old rd5?) lookups.dat="
-                     + lookupVersion + " " + f. getAbsolutePath() + "=" + readVersion );
-          }
-          fileIndex[i] = lv & 0xffffffffffffL;
-        }
-        indexCache.put( filenameBase, fileIndex );
+        currentFileName = f.getName();
+        ra = new PhysicalFile( f, iobuffer, lookupVersion );
       }
+      fileCache.put( filenameBase, ra );
     }
-    RandomAccessFile ra = fileCache.get( filenameBase );
-    long startPos = 0L;
-    if ( ra != null )
-    {
-      long[] index = indexCache.get( filenameBase );
-      startPos = tileIndex > 0 ? index[ tileIndex-1 ] : 200L;
-      if ( startPos == index[ tileIndex] ) ra = null;
-    }
-    OsmFile osmf = new OsmFile( ra, startPos, iobuffer );
+    ra = fileCache.get( filenameBase );
+    OsmFile osmf = new OsmFile( ra, tileIndex, iobuffer );
     osmf.lonDegree = lonDegree;
     osmf.latDegree = latDegree;
-    osmf.filename = currentFileName;
     return osmf;
   }
 
@@ -208,11 +184,11 @@ public final class NodesCache
 
   public void close()
   {
-    for( RandomAccessFile f: fileCache.values() )
+    for( PhysicalFile f: fileCache.values() )
     {
       try
       {
-        f.close();
+        f.ra.close();
       }
       catch( IOException ioe )
       {
