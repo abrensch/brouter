@@ -79,7 +79,7 @@ public final class NodesCache
       }
       if ( nghosts == 0 ) continue;
       int j=0;
-      OsmFile[] frow = fileRows[fileRows.length-nghosts];
+      OsmFile[] frow = new OsmFile[fileRow.length-nghosts];
       for( OsmFile osmf : fileRow )
       {
         if ( osmf.ghost ) continue;
