@@ -83,7 +83,8 @@ final class OsmFile
   {
     long sum = 0;
     ghost = true;
-    for( int i=0; i< microCaches.length; i++ )
+    int nc = microCaches == null ? 0 : microCaches.length;
+    for( int i=0; i< nc; i++ )
     {
       MicroCache mc = microCaches[i];
       if ( mc == null ) continue;
@@ -102,7 +103,8 @@ final class OsmFile
 
   void cleanAll()
   {
-    for( int i=0; i< microCaches.length; i++ )
+    int nc = microCaches == null ? 0 : microCaches.length;
+    for( int i=0; i< nc; i++ )
     {
       MicroCache mc = microCaches[i];
       if ( mc == null ) continue;

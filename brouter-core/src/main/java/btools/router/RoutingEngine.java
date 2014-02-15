@@ -166,6 +166,11 @@ public class RoutingEngine extends Thread
       long endTime = System.currentTimeMillis();
       logInfo( "execution time = " + (endTime-startTime)/1000. + " seconds" );
     }
+    catch( IllegalArgumentException e)
+    {
+      errorMessage = e.getMessage();
+      logInfo( "Exception (linksProcessed=" + linksProcessed + ": " + errorMessage );
+    }
     catch( Exception e)
     {
       errorMessage = e instanceof IllegalArgumentException ? e.getMessage() : e.toString();
