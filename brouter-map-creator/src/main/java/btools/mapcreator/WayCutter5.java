@@ -1,16 +1,10 @@
 package btools.mapcreator;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.EOFException;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.util.HashMap;
 
-import btools.util.*;
+import btools.util.DenseLongMap;
+import btools.util.TinyDenseLongMap;
 
 /**
  * WayCutter5 does 2 step in map-processing:

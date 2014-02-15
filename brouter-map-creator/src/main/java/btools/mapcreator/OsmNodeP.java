@@ -91,14 +91,11 @@ public class OsmNodeP implements Comparable<OsmNodeP>
 
      os2.writeShort( getSElev() );
 
-     int nlinks = 0;
-
      // hack: write node-desc as link tag (copy cycleway-bits)
      long nodeDescription = getNodeDecsription();
 
      for( OsmLinkP link0 = firstlink; link0 != null; link0 = link0.next )
      {
-       nlinks++;
        OsmLinkP link = link0;
        OsmNodeP origin = this;
        int skipDetailBit = link0.counterLinkWritten() ? SKIPDETAILS_BITMASK : 0;

@@ -13,7 +13,6 @@ public class CompactLongSet
   private int _maxKeepExponent = 14; // the maximum exponent to keep the invalid arrays
 
   protected static final int MAXLISTS = 31; // enough for size Integer.MAX_VALUE
-  private static boolean earlyDuplicateCheck;
 
   public CompactLongSet()
   {
@@ -23,8 +22,6 @@ public class CompactLongSet
     // allocate key lists
     al = new long[MAXLISTS][];
     al[0] = new long[1]; // make the first array (the transient buffer)
-
-    earlyDuplicateCheck = Boolean.getBoolean( "earlyDuplicateCheck" );
   }
 
 

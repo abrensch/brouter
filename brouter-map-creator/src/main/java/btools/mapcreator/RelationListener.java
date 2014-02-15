@@ -1,6 +1,5 @@
 package btools.mapcreator;
 
-import java.io.File;
 
 /**
  * Callbacklistener for Relations

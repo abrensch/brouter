@@ -1,2 +1,5 @@
 target/
 *.BAK
+.classpath
+.project
+*.class

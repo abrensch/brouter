@@ -7,10 +7,8 @@ package btools.mapaccess;
 
 
 
-public class OsmNode implements OsmPos, Comparable
+public class OsmNode implements OsmPos
 {
-  private static final long serialVersionUID = -4166565134085275556L;
-
   public static final int EXTERNAL_BITMASK        = 0x80;
   public static final int FIRSTFORWAY_BITMASK     = 0x40;
   public static final int TRANSFERNODE_BITMASK    = 0x20;
@@ -329,29 +327,6 @@ public class OsmNode implements OsmPos, Comparable
       }
     }
   }
-
- /**
-   * Compares two OsmNodes for position ordering.
-   *
-   * @return -1,0,1 depending an comparson result
-   */
-   public int compareTo( Object o )
-   {
-     OsmNode n = (OsmNode)o;
-     long id1 = getIdFromPos();
-     long id2 = n.getIdFromPos();
-     if ( id1 < id2 ) return -1;
-     if ( id1 > id2 ) return  1;
-     return 0;
-   }
-
- /**
-   * @return if equals in the sense of compareTo == 0
-   */
-   public boolean equals( Object o )
-   {
-     return compareTo( o ) == 0;
-   }
 
    // mark the link to the given node as written,
    // don't want to write the counter-direction

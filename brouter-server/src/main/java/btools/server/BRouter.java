@@ -1,15 +1,12 @@
 package btools.server;
 
-import java.io.File;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TreeSet;
 
 import btools.router.OsmNodeNamed;
-import btools.router.RoutingEngine;
 import btools.router.RoutingContext;
-import btools.router.OsmTrack;
+import btools.router.RoutingEngine;
 
 public class BRouter
 {
@@ -70,7 +67,6 @@ public class BRouter
         maxRunningTime = Integer.parseInt( sMaxRunningTime ) * 1000;
       }
 
-        long startTime = System.currentTimeMillis();
         List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
         wplist.add( from );
         wplist.add( to );

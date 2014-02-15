@@ -5,7 +5,6 @@
  */
 package btools.mapaccess;
 
-import java.util.*;
 
 final class NodesList
 {

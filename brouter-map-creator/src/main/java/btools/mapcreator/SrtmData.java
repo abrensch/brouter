@@ -29,16 +29,12 @@ public class SrtmData
   public short[] eval_array;
 
   private double minlon;
-  private double maxlon;
   private double minlat;
-  private double maxlat;
 
   public void init()
   {
     minlon = xllcorner;
-    maxlon = minlon + cellsize*ncols;
     minlat = yllcorner;
-    maxlat = minlat + cellsize*nrows;
   }
 
   private boolean missingData = false;

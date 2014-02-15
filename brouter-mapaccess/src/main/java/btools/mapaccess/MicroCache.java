@@ -63,7 +63,7 @@ final class MicroCache
          int ilon = readShort();
          int ilat = readShort();
          int bodySize = readInt();
-         if ( ilon == Short.MAX_VALUE )        
+         if ( ilon == Short.MAX_VALUE && ilat == Short.MAX_VALUE )
          {
            int crc = Crc32.crc( ab, 0, aboffset-8 );
            if ( crc != readInt() )

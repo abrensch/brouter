@@ -27,12 +27,10 @@ public class RouteServer extends Thread
 	public ServiceContext serviceContext;
   public short port = 17777;
 
-  private boolean serverStopped = false;
   private ServerSocket serverSocket = null;
 
   public void close()
   {
-    serverStopped = true;
     try
     {
       ServerSocket ss = serverSocket;
@@ -123,7 +121,6 @@ public class RouteServer extends Thread
             HashMap<String,String> params = getUrlParams(url);
 
             long maxRunningTime = getMaxRunningTime();
-            long startTime = System.currentTimeMillis();
 
             RequestHandler handler;
             if ( params.containsKey( "lonlats" ) && params.containsKey( "profile" ) )
@@ -230,7 +227,7 @@ public class RouteServer extends Thread
       value = value.trim();
       profileMap.put( key, value );
     }
-    
+    pr.close();
     return profileMap;
   }
 

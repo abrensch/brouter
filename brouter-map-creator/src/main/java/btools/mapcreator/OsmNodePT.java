@@ -5,9 +5,6 @@
  */
 package btools.mapcreator;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 
 public class OsmNodePT extends OsmNodeP
 {

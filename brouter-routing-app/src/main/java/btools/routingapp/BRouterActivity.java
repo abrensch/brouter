@@ -7,17 +7,11 @@ import java.util.Set;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.ProgressDialog;
 import android.content.DialogInterface;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.speech.tts.TextToSpeech.OnInitListener;
-import android.view.Display;
-import android.view.WindowManager;
 import android.widget.EditText;
 import btools.router.OsmNodeNamed;
 
@@ -36,8 +30,6 @@ public class BRouterActivity  extends Activity implements OnInitListener {
 
     private BRouterView mBRouterView;
     private PowerManager mPowerManager;
-    private WindowManager mWindowManager;
-    private Display mDisplay;
     private WakeLock mWakeLock;
 
     /** Called when the activity is first created. */
@@ -48,10 +40,6 @@ public class BRouterActivity  extends Activity implements OnInitListener {
 
         // Get an instance of the PowerManager
         mPowerManager = (PowerManager) getSystemService(POWER_SERVICE);
-
-        // Get an instance of the WindowManager
-        mWindowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-        mDisplay = mWindowManager.getDefaultDisplay();
 
         // Create a bright wake lock
         mWakeLock = mPowerManager.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, getClass()
@@ -234,7 +222,6 @@ public class BRouterActivity  extends Activity implements OnInitListener {
     private String selectedProfile = null;
 
     private String[] availableWaypoints;
-    private String selectedWaypoint = null;
 
     private String[] routingModes;
     private boolean[] routingModesChecked;
@@ -306,11 +293,11 @@ public class BRouterActivity  extends Activity implements OnInitListener {
     
     private void showNewDialog( int id )
     {
-      if ( dialogIds.contains( new Integer( id ) ) )
+      if ( dialogIds.contains( Integer.valueOf( id ) ) )
       {
     	  removeDialog( id );
       }
-      dialogIds.add( new Integer( id ) );
+      dialogIds.add( Integer.valueOf( id ) );
       showDialog( id );
     }
     

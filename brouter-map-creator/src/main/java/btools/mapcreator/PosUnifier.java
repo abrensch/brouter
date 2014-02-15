@@ -1,19 +1,13 @@
 package btools.mapcreator;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.util.HashMap;
 
 import btools.util.CompactLongSet;
-import btools.util.CompactLongMap;
 import btools.util.FrozenLongSet;
-import btools.util.FrozenLongMap;
 
 /**
  * PosUnifier does 3 steps in map-processing:
@@ -37,9 +31,6 @@ public class PosUnifier extends MapCreatorBase
   private int lastStrmLatIdx;
   private SrtmData lastSrtmData;
   private String srtmdir;
-
-  private int totalLatSteps = 0;
-  private int totalLonSteps = 0;
 
   private CompactLongSet borderNids;
 
@@ -130,8 +121,6 @@ public class PosUnifier extends MapCreatorBase
         long pid = ((long)lon)<<32 | lat; // id from position
         if ( !positionSet.contains( pid ) )
         {
-          totalLonSteps += lonsteps;
-          totalLatSteps += latsteps;
           positionSet.fastAdd( pid );
           n.ilon = lon;
           n.ilat = lat;
