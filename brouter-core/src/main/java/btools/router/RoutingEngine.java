@@ -186,6 +186,11 @@ public class RoutingEngine extends Thread
     }
     finally
     {
+      if ( nodesCache != null )
+      {
+        nodesCache.close();
+        nodesCache = null;
+      }
       openSet.clear();
       finished = true; // this signals termination to outside
     }
@@ -195,7 +200,6 @@ public class RoutingEngine extends Thread
   {
 	  boolean oom_carsubset_hint = nodesCache == null ? false : nodesCache.oom_carsubset_hint;
       nodesMap = null;
-      nodesCache = null;
       terminate();
       return oom_carsubset_hint ? "\nPlease use 'carsubset' maps for long-distance car-routing" : "";
   }      

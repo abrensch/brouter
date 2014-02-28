@@ -241,7 +241,7 @@ public final class NodesCache
     {
       try
       {
-        f.ra.close();
+        if ( f != null ) f.ra.close();
       }
       catch( IOException ioe )
       {

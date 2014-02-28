@@ -9,9 +9,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.StringTokenizer;
 
 import btools.router.OsmNodeNamed;
@@ -20,84 +22,21 @@ import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
 import btools.server.request.RequestHandler;
 import btools.server.request.ServerHandler;
-import btools.server.request.YoursHandler;
 
 public class RouteServer extends Thread
 {
 	public ServiceContext serviceContext;
-  public short port = 17777;
 
-  private ServerSocket serverSocket = null;
+  private Socket clientSocket = null;
+  private RoutingEngine cr = null;
 
-  public void close()
+  public void stopRouter()
   {
-    try
-    {
-      ServerSocket ss = serverSocket;
-      serverSocket = null;
-      ss.close();
-    }
-    catch( Throwable t ) {}
+    RoutingEngine e = cr;
+    if ( e != null ) e.terminate();
   }
-
-  private void killOtherServer() throws Exception
-  {
-    Socket socket = new Socket( "localhost", port );
-    BufferedWriter bw = null;
-    try
-    {
-      bw = new BufferedWriter( new OutputStreamWriter( socket.getOutputStream() ) );
-      bw.write( "EXIT\n" );
-    }
-    finally
-    {
-      bw.close();
-      socket.close();
-    }
-  }
-
+    
   public void run()
-  {
-    // first go an kill any other server on that port
-
-    for(;;)
-    {
-      try
-      {
-        killOtherServer();
-        System.out.println( "killed, waiting" );
-        try { Thread.sleep( 3000 ); } catch( InterruptedException ie ) {}
-      }
-      catch( Throwable t ) {
-          System.out.println( "not killed: " + t );
-          break;
-          }
-    }
-    try
-    {
-        serverSocket = new ServerSocket(port);
-        for(;;)
-        {
-      System.out.println("RouteServer accepting connections..");
-          Socket clientSocket = serverSocket.accept();
-          if ( !serveRequest( clientSocket ) ) break;
-        }
-    }
-    catch( Throwable e )
-    {
-      System.out.println("RouteServer main loop got exception (exiting): "+e);
-      if ( serverSocket != null )
-      {
-        try { serverSocket.close(); } catch( Throwable t ) {}
-      }
-      System.exit(0);
-    }
-
-  }
-
-
-
-  public boolean serveRequest( Socket clientSocket )
   {
           BufferedReader br = null;
           BufferedWriter bw = null;
@@ -108,14 +47,13 @@ public class RouteServer extends Thread
 
             // we just read the first line
             String getline = br.readLine();
-            if ( getline == null || getline.startsWith( "EXIT") )
+            if ( getline == null || getline.startsWith("GET /favicon.ico") )
             {
-              throw new RuntimeException( "socketExitRequest" );
+            	return;
             }
-            if ( getline.startsWith("GET /favicon.ico") )
-            {
-            	return true;
-            }
+
+            InetAddress ip = clientSocket.getInetAddress();
+            System.out.println( "ip=" + (ip==null ? "null" : ip.toString() ) + " -> " + getline );
 
             String url = getline.split(" ")[1];
             HashMap<String,String> params = getUrlParams(url);
@@ -129,12 +67,12 @@ public class RouteServer extends Thread
             }
             else
             {
-            	handler =  new YoursHandler( serviceContext, params );
+            	throw new IllegalArgumentException( "unknown request syntax: " + getline );
             }
             RoutingContext rc = handler.readRoutingContext();
             List<OsmNodeNamed> wplist = handler.readWayPointList();
 
-            RoutingEngine cr = new RoutingEngine( null, null, serviceContext.segmentDir, wplist, rc );
+            cr = new RoutingEngine( null, null, serviceContext.segmentDir, wplist, rc );
             cr.quite = true;
             cr.doRun( maxRunningTime );
 
@@ -162,74 +100,62 @@ public class RouteServer extends Thread
           }
           catch (Throwable e)
           {
-             if ( "socketExitRequest".equals( e.getMessage() ) )
-             {
-               return false;
-             }
              System.out.println("RouteServer got exception (will continue): "+e);
              e.printStackTrace();
           }
           finally
           {
+              cr = null;
               if ( br != null ) try { br.close(); } catch( Exception e ) {}
               if ( bw != null ) try { bw.close(); } catch( Exception e ) {}
+              if ( clientSocket != null ) try { clientSocket.close(); } catch( Exception e ) {}
           }
-          return true;
   }
 
   public static void main(String[] args) throws Exception
   {
         System.out.println("BRouter 0.98 / 12012014 / abrensch");
-        if ( args.length != 3 )
+        if ( args.length != 4 )
         {
-          System.out.println("serve YOURS protocol for BRouter");
-          System.out.println("usage: java RouteServer <segmentdir> <profile-list> <port>");
-          System.out.println("");
           System.out.println("serve BRouter protocol");
-          System.out.println("usage: java RouteServer <segmentdir> <profiledir> <port>");
+          System.out.println("usage: java RouteServer <segmentdir> <profiledir> <port> <maxthreads>");
           return;
         }
 
         ServiceContext serviceContext = new ServiceContext();
         serviceContext.segmentDir = args[0];
-        File profileMapOrDir = new File( args[1] );
-        if ( profileMapOrDir.isDirectory() )
-        {
-        	System.setProperty( "profileBaseDir", args[1] );
-        }
-        else 
-        {
-        	serviceContext.profileMap = loadProfileMap( profileMapOrDir );
-        }
+        System.setProperty( "profileBaseDir", args[1] );
+
+        int maxthreads = Integer.parseInt( args[3] );
+
+        TreeMap<Long,RouteServer> threadMap = new TreeMap<Long,RouteServer>();
 
         ServerSocket serverSocket = new ServerSocket(Integer.parseInt(args[2]));
+        long last_ts = 0;
         for (;;)
         {
           Socket clientSocket = serverSocket.accept();
           RouteServer server = new RouteServer();
           server.serviceContext = serviceContext;
-          server.serveRequest( clientSocket );
+          server.clientSocket = clientSocket;
+
+          // kill thread if limit reached
+          if ( threadMap.size() >= maxthreads )
+          {
+             Long k = threadMap.firstKey();
+             RouteServer victim = threadMap.get( k );
+             threadMap.remove( k );
+             victim.stopRouter();
+          }
+
+          long ts = System.currentTimeMillis();
+          while ( ts <=  last_ts ) ts++;
+          threadMap.put( Long.valueOf( ts ), server );
+          last_ts = ts;
+          server.start();
         }
   }
 
-  private static Map<String,String> loadProfileMap( File file ) throws IOException 
-  {
-    Map<String,String> profileMap = new HashMap<String,String>();
-
-    BufferedReader pr = new BufferedReader( new InputStreamReader( new FileInputStream( file ) ) );
-    for(;;)
-    {
-      String key = pr.readLine();
-      if ( key == null ) break;
-      key = key.trim();
-      if ( key.length() == 0 ) continue;
-      String value = pr.readLine();
-      value = value.trim();
-      profileMap.put( key, value );
-    }
-    pr.close();
-    return profileMap;
-  }
 
   private static HashMap<String,String> getUrlParams( String url )
   {
