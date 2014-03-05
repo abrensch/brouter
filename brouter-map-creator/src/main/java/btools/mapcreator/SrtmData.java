@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.StringTokenizer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -25,7 +26,6 @@ public class SrtmData
   public double xllcorner;
   public double yllcorner;
   public double cellsize;
-  public int nodata_value;
   public short[] eval_array;
 
   private double minlon;
@@ -80,20 +80,6 @@ public class SrtmData
         if ( ze.getName().endsWith( ".asc" ) )
         {
           readFromStream( zis );
-
-/*        // test
-        int[] ca = new int[]{ 50477121, 8051915, // 181
-                              50477742, 8047408, // 154
-                              50477189, 8047308, // 159
-                                  };
-        for( int i=0; i<ca.length; i+=2 )
-        {
-           int lat=ca[i] + 90000000;
-           int lon=ca[i+1] + 180000000;
-            System.err.println( "lat=" + lat + " lon=" + lon + " elev=" + getElevation( lon, lat )/4. );
-        }
-        // end test
-*/
           return;
         }
       }
@@ -104,6 +90,12 @@ public class SrtmData
     }
   }
 
+  private String secondToken( String s )
+  {
+    StringTokenizer tk = new StringTokenizer( s, " " );
+    tk.nextToken();
+    return tk.nextToken();
+  }
 
   public void readFromStream( InputStream is ) throws Exception
   {
@@ -115,14 +107,14 @@ public class SrtmData
       if ( linenr <= 6 )
       {
         String line = br.readLine();
-        if      ( linenr == 1 ) ncols = Integer.parseInt( line.substring(14) );
-        else if ( linenr == 2 ) nrows = Integer.parseInt( line.substring(14) );
-        else if ( linenr == 3 ) xllcorner = Double.parseDouble( line.substring(14) );
-        else if ( linenr == 4 ) yllcorner = Double.parseDouble( line.substring(14) );
-        else if ( linenr == 5 ) cellsize = Double.parseDouble( line.substring(14) );
+        if      ( linenr == 1 ) ncols = Integer.parseInt( secondToken( line ) );
+        else if ( linenr == 2 ) nrows = Integer.parseInt( secondToken( line ) );
+        else if ( linenr == 3 ) xllcorner = Double.parseDouble( secondToken( line ) );
+        else if ( linenr == 4 ) yllcorner = Double.parseDouble( secondToken( line ) );
+        else if ( linenr == 5 ) cellsize = Double.parseDouble( secondToken( line ) );
         else if ( linenr == 6 )
         {
-          nodata_value = Integer.parseInt( line.substring(14) );
+          // nodata_value ignored, assumed something << 0
           eval_array = new short[ncols * nrows];
         }
       }
@@ -139,8 +131,7 @@ public class SrtmData
           if ( c == ' ' )
           {
             if ( negative ) n = -n;
-            short val = n == nodata_value ? Short.MIN_VALUE : (short)(n*4);
-            if ( val < -1000 ) val = Short.MIN_VALUE;
+            short val = n < -250 ? Short.MIN_VALUE : (short)(n*4);
 
             eval_array[ (nrows-1-row)*ncols + col ] = val;
             if (++col == ncols )
@@ -167,4 +158,23 @@ public class SrtmData
     br.close();
   }
 
+  private void test()
+  {
+        int[] ca = new int[]{ 50477121, 8051915, // 181
+                              50477742, 8047408, // 154
+                              50477189, 8047308, // 159
+                                  };
+        for( int i=0; i<ca.length; i+=2 )
+        {
+           int lat=ca[i] + 90000000;
+           int lon=ca[i+1] + 180000000;
+            System.err.println( "lat=" + lat + " lon=" + lon + " elev=" + getElevation( lon, lat )/4. );
+        }
+  }    
+
+  public static void main( String[] args ) throws Exception
+  {
+    SrtmData data = new SrtmData( new File( args[0] ) );
+    data.test();
+  }
 }
