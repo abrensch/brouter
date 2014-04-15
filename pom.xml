@@ -40,15 +40,22 @@
                 <plugin>
                     <groupId>com.jayway.maven.plugins.android.generation2</groupId>
                     <artifactId>android-maven-plugin</artifactId>
-                    <version>3.8.2</version>
+                    <version>3.6.0</version>
                     <extensions>true</extensions>
                     <configuration>
                         <genDirectory>gen</genDirectory>
                         <genDirectoryAidl>gen</genDirectoryAidl>
                         <extractDuplicates>true</extractDuplicates>
                         <sdk>
-                            <platform>19</platform>
+                            <platform>10</platform>
                         </sdk>
+                        <dex>
+                            <jvmArguments>
+                                <jvmArgument>-Xmn16m</jvmArgument>
+                                <jvmArgument>-Xms256m</jvmArgument>
+                                <jvmArgument>-Xmx512m</jvmArgument>
+                            </jvmArguments>
+                        </dex>
                     </configuration>
                 </plugin>
 

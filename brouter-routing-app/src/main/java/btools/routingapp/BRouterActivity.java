@@ -1,5 +1,7 @@
 package btools.routingapp;
 
+import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -7,10 +9,14 @@ import java.util.Set;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.os.StatFs;
 import android.speech.tts.TextToSpeech.OnInitListener;
 import android.widget.EditText;
 import btools.router.OsmNodeNamed;
@@ -19,7 +25,7 @@ public class BRouterActivity  extends Activity implements OnInitListener {
 
     private static final int DIALOG_SELECTPROFILE_ID = 1;
     private static final int DIALOG_EXCEPTION_ID = 2;
-    private static final int DIALOG_WARNEXPIRY_ID = 3;
+    private static final int DIALOG_SHOW_DM_INFO_ID = 3;
     private static final int DIALOG_TEXTENTRY_ID = 4;
     private static final int DIALOG_VIASELECT_ID = 5;
     private static final int DIALOG_NOGOSELECT_ID = 6;
@@ -27,6 +33,8 @@ public class BRouterActivity  extends Activity implements OnInitListener {
     private static final int DIALOG_ROUTINGMODES_ID = 8;
     private static final int DIALOG_MODECONFIGOVERVIEW_ID = 9;
     private static final int DIALOG_PICKWAYPOINT_ID = 10;
+    private static final int DIALOG_SELECTBASEDIR_ID = 11;
+    private static final int DIALOG_MAINACTION_ID = 12;
 
     private BRouterView mBRouterView;
     private PowerManager mPowerManager;
@@ -67,6 +75,37 @@ public class BRouterActivity  extends Activity implements OnInitListener {
             }
           });
           return builder.create();
+        case DIALOG_MAINACTION_ID:
+            builder = new AlertDialog.Builder(this);
+            builder.setTitle("Select Main Action");
+            builder.setItems( new String[] { "Download Manager", "BRouter App" }, new DialogInterface.OnClickListener() {
+              public void onClick(DialogInterface dialog, int item) {
+            	  if ( item == 0 ) startDownloadManager();
+            	  else showDialog( DIALOG_SELECTPROFILE_ID );
+              }
+            });
+            return builder.create();
+        case DIALOG_SHOW_DM_INFO_ID:
+            builder = new AlertDialog.Builder(this);
+            builder.setTitle( "BRouter Download Manager" )
+                   .setMessage( "*** Attention: ***\n\n"
+             		      + "The Download Manager is used to download routing-data "
+            		      + "files which can be huge. Do not start the Download Manager "
+            		      + "on a cellular data connection without a flat-rate! "
+            		      + "Download speed is restricted to 200 kB/s." )
+                   .setPositiveButton( "I know", new DialogInterface.OnClickListener() {
+                       public void onClick(DialogInterface dialog, int id) {
+                    	   Intent intent = new Intent(BRouterActivity.this, BInstallerActivity.class);
+                    	    startActivity(intent);
+                      	    finish();
+                       }
+                   })
+                   .setNegativeButton( "Cancel", new DialogInterface.OnClickListener() {
+                       public void onClick(DialogInterface dialog, int id) {
+                    	   finish();
+                       }
+                   });
+            return builder.create();
         case DIALOG_ROUTINGMODES_ID:
           builder = new AlertDialog.Builder(this);
           builder.setTitle( message );
@@ -93,15 +132,6 @@ public class BRouterActivity  extends Activity implements OnInitListener {
                      }
                  });
           return builder.create();
-        case DIALOG_WARNEXPIRY_ID:
-            builder = new AlertDialog.Builder(this);
-            builder.setMessage( errorMessage )
-                   .setPositiveButton( "OK", new DialogInterface.OnClickListener() {
-                       public void onClick(DialogInterface dialog, int id) {
-                         mBRouterView.startProcessing(selectedProfile);
-                       }
-                   });
-            return builder.create();
         case DIALOG_TEXTENTRY_ID:
             builder = new AlertDialog.Builder(this);
             builder.setTitle("Enter SDCARD base dir:");
@@ -115,6 +145,30 @@ public class BRouterActivity  extends Activity implements OnInitListener {
                      mBRouterView.startSetup(basedir, true );
                    }
                  });
+            return builder.create();
+        case DIALOG_SELECTBASEDIR_ID:
+            builder = new AlertDialog.Builder(this);
+            builder.setTitle("Select an SDCARD base dir:");
+            builder.setSingleChoiceItems(basedirOptions, 0, new DialogInterface.OnClickListener() {
+                 @Override
+                 public void onClick(DialogInterface dialog, int item )
+                 {
+                	 selectedBasedir = item;
+                 }
+            });
+            builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton)
+                {
+              	  if ( selectedBasedir < availableBasedirs.size() )
+              	  {
+                      mBRouterView.startSetup(availableBasedirs.get(selectedBasedir), true );
+              	  }
+              	  else
+              	  {
+              	    showDialog( DIALOG_TEXTENTRY_ID );
+              	  }
+                }
+             });
             return builder.create();
         case DIALOG_VIASELECT_ID:
             builder = new AlertDialog.Builder(this);
@@ -221,6 +275,10 @@ public class BRouterActivity  extends Activity implements OnInitListener {
     private String[] availableProfiles;
     private String selectedProfile = null;
 
+    private List<String> availableBasedirs;
+    private String[] basedirOptions;
+    private int selectedBasedir;
+
     private String[] availableWaypoints;
 
     private String[] routingModes;
@@ -234,11 +292,64 @@ public class BRouterActivity  extends Activity implements OnInitListener {
 
     private List<OsmNodeNamed> nogoList;
 
+    public boolean isOnline() {
+        ConnectivityManager cm =
+            (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        return cm.getActiveNetworkInfo() != null && 
+           cm.getActiveNetworkInfo().isConnectedOrConnecting();
+    } 
+    
     @SuppressWarnings("deprecation")
     public void selectProfile( String[] items )
     {
       availableProfiles = items;
-      showDialog( DIALOG_SELECTPROFILE_ID );
+      
+      // if we have internet access, first show the main action dialog
+      if ( isOnline() )
+      {
+          showDialog( DIALOG_MAINACTION_ID );
+      }
+      else
+      {
+        showDialog( DIALOG_SELECTPROFILE_ID );
+      }
+    }
+
+    @SuppressWarnings("deprecation")
+    public void startDownloadManager()
+    {
+      showDialog( DIALOG_SHOW_DM_INFO_ID );
+    }
+
+    @SuppressWarnings("deprecation")
+    public void selectBasedir( List<String> items, String defaultBasedir, String message )
+    {
+      this.defaultbasedir = defaultBasedir;
+      this.message = message;
+      availableBasedirs = new ArrayList<String>();
+      ArrayList<Long> dirFreeSizes = new ArrayList<Long>();
+      for( String d : items )
+      {
+        StatFs stat = new StatFs(d);
+        long size = (long)stat.getAvailableBlocks()*stat.getBlockSize();
+        int idx = 0;
+        while ( idx < availableBasedirs.size() && dirFreeSizes.get(idx).longValue() > size ) idx++;
+        availableBasedirs.add( idx, d );
+        dirFreeSizes.add( idx, Long.valueOf( size ) );
+      }
+      
+      basedirOptions= new String[items.size() + 1];
+      int bdidx = 0;
+      DecimalFormat df = new DecimalFormat( "###0.00" );
+      for( int idx=0; idx<availableBasedirs.size(); idx++ )
+      {
+        basedirOptions[bdidx++] = availableBasedirs.get(idx)
+        		+ " (" + df.format( dirFreeSizes.get(idx)/1024./1024./1024. ) + " GB free)";
+      }
+      basedirOptions[bdidx] = "Other";
+      
+      showDialog( DIALOG_SELECTBASEDIR_ID );
     }
 
     @SuppressWarnings("deprecation")
@@ -258,14 +369,6 @@ public class BRouterActivity  extends Activity implements OnInitListener {
     }
     
     
-    @SuppressWarnings("deprecation")
-    public void selectBasedir( String defaultBasedir, String message )
-    {
-        this.defaultbasedir = defaultBasedir;
-        this.message = message;
-      showDialog( DIALOG_TEXTENTRY_ID );
-    }
-
     @SuppressWarnings("deprecation")
     public void selectVias( String[] items )
     {

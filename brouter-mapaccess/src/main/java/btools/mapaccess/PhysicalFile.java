@@ -8,7 +8,7 @@ package btools.mapaccess;
 import java.io.*;
 import btools.util.Crc32;
 
-final class PhysicalFile
+final public class PhysicalFile
 {
   RandomAccessFile ra = null;
   long[] fileIndex = new long[25];
@@ -19,6 +19,42 @@ final class PhysicalFile
 
   String fileName;
   
+  /**
+   * Checks the integrity of the file using the build-in checksums
+   *
+   * @return the error message if file corrupt, else null
+   */
+  public static String checkFileIntegrity( File f )
+  {
+      PhysicalFile pf = null;
+	  try
+	  {
+        byte[] iobuffer = new byte[65636];
+        pf = new PhysicalFile( f, new byte[65636], -1 );
+      	for( int tileIndex=0; tileIndex<25; tileIndex++ )
+      	{
+		  OsmFile osmf = new OsmFile( pf, tileIndex, iobuffer );
+		  if ( osmf.microCaches != null )
+		    for( int lonIdx80=0; lonIdx80<80; lonIdx80++ )
+			  for( int latIdx80=0; latIdx80<80; latIdx80++ )
+                new MicroCache( osmf, lonIdx80, latIdx80, iobuffer );
+      	}
+	  }
+	  catch( IllegalArgumentException iae )
+	  {
+	    return iae.getMessage();
+	  }
+	  catch( Exception e )
+	  {
+	    return e.toString();
+	  }
+	  finally
+	  {
+        if ( pf != null ) try{ pf.ra.close(); } catch( Exception ee ) {}
+	  }
+	  return null;
+  }
+
   public PhysicalFile( File f, byte[] iobuffer, int lookupVersion ) throws Exception
   {
     fileName = f.getName();
@@ -31,7 +67,7 @@ final class PhysicalFile
     {
       long lv = dis.readLong();
       short readVersion = (short)(lv >> 48);
-      if ( readVersion != lookupVersion )
+      if ( readVersion != lookupVersion && lookupVersion != -1 )
       {
         throw new IllegalArgumentException( "lookup version mismatch (old rd5?) lookups.dat="
                  + lookupVersion + " " + f. getAbsolutePath() + "=" + readVersion );

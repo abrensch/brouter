@@ -4,20 +4,24 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.TreeMap;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -82,19 +86,7 @@ public class BRouterView extends View
             imgh = metrics.heightPixels;
 
             // get base dir from private file
-            String baseDir = null;
-            InputStream configInput = null;
-            try
-            {
-              configInput =  getContext().openFileInput( "config.dat" );
-              BufferedReader br = new BufferedReader( new InputStreamReader (configInput ) );
-              baseDir = br.readLine();
-            }
-            catch( Exception e ) {}
-            finally
-            {
-              if ( configInput != null  ) try { configInput.close(); } catch( Exception ee ) {}
-            }
+            String baseDir = ConfigHelper.getBaseDir( getContext() );
             // check if valid
             boolean bdValid = false;
             if ( baseDir != null )
@@ -114,7 +106,7 @@ public class BRouterView extends View
                   ( bdValid ? " does not contain 'brouter' subfolder)"
                             : " is not valid)" );
 
-            ((BRouterActivity)getContext()).selectBasedir( guessBaseDir(), message );
+            ((BRouterActivity)getContext()).selectBasedir( getStorageDirectories(), guessBaseDir(), message );
             waitingForSelection = true;
         }
 
@@ -129,32 +121,21 @@ public class BRouterView extends View
 
             if ( storeBasedir )
             {
-                BufferedWriter bw = null;
-                try
-                {
-                    OutputStream configOutput =  getContext().openFileOutput( "config.dat", Context.MODE_PRIVATE );
-                  bw = new BufferedWriter( new OutputStreamWriter (configOutput ) );
-                  bw.write( baseDir );
-                  bw.write( '\n' );
-                }
-                catch( Exception e ) {}
-                finally
-                {
-                  if ( bw != null  ) try { bw.close(); } catch( Exception ee ) {}
-                }
+            	ConfigHelper.writeBaseDir( getContext(), baseDir );
             }
 
             cor = null;
             try
             {
               // create missing directories
-              assertDirectoryExists( "project directory", basedir + "/brouter" );
+              assertDirectoryExists( "project directory", basedir + "/brouter", null );
               segmentDir = basedir + "/brouter/segments2";
-              assertDirectoryExists( "map directory", segmentDir );
+              assertDirectoryExists( "data directory", segmentDir, null );
+              assertDirectoryExists( "carsubset directory", segmentDir + "/carsubset", null );
               profileDir = basedir + "/brouter/profiles2";
-              assertDirectoryExists( "profile directory", profileDir );
+              assertDirectoryExists( "profile directory", profileDir, "profiles2.zip" );
               modesDir = basedir + "/brouter/modes";
-              assertDirectoryExists( "modes directory", modesDir );
+              assertDirectoryExists( "modes directory", modesDir, "modes.zip" );
               
               cor = CoordinateReader.obtainValidReader( basedir );
               wpList = cor.waypoints;
@@ -170,7 +151,7 @@ public class BRouterView extends View
               if ( cor.tracksdir != null )
               {
                 tracksDir = cor.basedir + cor.tracksdir;
-                assertDirectoryExists( "track directory", tracksDir );
+                assertDirectoryExists( "track directory", tracksDir, null );
               
                 // output redirect: look for a pointerfile in tracksdir
                 File tracksDirPointer = new File( tracksDir + "/brouter.redirect" );
@@ -200,9 +181,9 @@ public class BRouterView extends View
               }
               if ( !segmentFound )
               {
-                  throw new IllegalArgumentException( "The segments-directory " + segmentDir
-                          + " contains no routing data files (*.rd5)."
-                          + " see www.dr-brenschede.de/brouter for setup instructions." );
+                  ((BRouterActivity)getContext()).startDownloadManager();
+                  waitingForSelection = true;
+                  return;
               }
 
               fileNames = new File( profileDir ).list();
@@ -410,10 +391,45 @@ System.out.println( "updateWaypointList: " + waypoint + " wpList.size()=" + wpLi
             }
         }
 
-        private void assertDirectoryExists( String message, String path )
+        private void assertDirectoryExists( String message, String path, String assetZip )
         {
           File f = new File( path );
-          f.mkdirs();
+          if ( !f.exists() )
+          {
+              f.mkdirs();
+              // default contents from assets archive
+              if ( assetZip != null )
+              {
+                  try
+                  {
+                    AssetManager assetManager = getContext().getAssets();
+                    InputStream is = assetManager.open( assetZip );
+                    ZipInputStream zis = new ZipInputStream( is );
+                    byte[] data = new byte[1024];
+                    for(;;)
+                    {
+                      ZipEntry ze = zis.getNextEntry();
+                      if ( ze == null ) break;
+                      String name = ze.getName();
+                      FileOutputStream fos = new FileOutputStream( new File( f, name ) );
+                      
+                      for(;;)
+                      {
+                    	int len = zis.read( data, 0, 1024 );
+                    	if ( len < 0 ) break;
+                    	fos.write( data, 0, len );
+                      }
+                      fos.close();
+                    }
+                    is.close();
+                  }
+                  catch( IOException io )
+                  {
+                  	throw new RuntimeException( "error expanding " + assetZip + ": " + io );
+                  }
+            	 
+              }
+          }
           if ( !f.exists() || !f.isDirectory() ) throw new IllegalArgumentException( message + ": " + path + " cannot be created" );
         }
 
@@ -755,6 +771,53 @@ private long startTime = 0L;
      {
        if ( br != null  ) try { br.close(); } catch( Exception ee ) {}
      }
+   }
+
+   
+   private static List<String> getStorageDirectories()
+   {
+     ArrayList<String> res = new ArrayList<String>();
+     res.add( Environment.getExternalStorageDirectory().getPath() );
+     BufferedReader br = null;
+     try
+     {
+       br = new BufferedReader(new FileReader("/proc/mounts"));
+       for(;;)
+       {
+         String line = br.readLine();
+         if ( line == null ) break;
+         if (line.indexOf("vfat") < 0 && line.indexOf("/mnt") < 0 ) continue;
+         StringTokenizer tokens = new StringTokenizer(line, " ");
+         tokens.nextToken();
+         String d = tokens.nextToken();
+         boolean isExternalDir = false;
+         if ( line.contains( "/dev/block/vold" ) )
+         {
+           isExternalDir = true;
+           String[] vetos = new String[] { "/mnt/secure", "/mnt/asec", "/mnt/obb", "/dev/mapper", "tmpfs" };
+           for( String v: vetos )
+           {
+             if ( d.indexOf( v ) >= 0 )
+             {
+               isExternalDir = false;
+             }
+           }
+         }
+         if ( isExternalDir )
+         {
+           if ( !res.contains( d ) )
+           {
+             res.add( d );
+           }
+         }
+       }
+     }
+     catch ( Exception e) { /* ignore */ }
+     finally
+     {
+       if (br != null) { try { br.close(); } catch (Exception e) { /* ignore */ } }
+     }
+     return res;
    }
 
 } 
