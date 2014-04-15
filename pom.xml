@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.btools</groupId>
     <artifactId>brouter</artifactId>
-    <version>0.98</version>
+    <version>0.9.8-SNAPSHOT</version>
     <packaging>pom</packaging>
     <url>http://brensche.de/brouter/</url>
     <name>brouter</name>

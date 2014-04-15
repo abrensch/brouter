@@ -114,7 +114,7 @@ public class RouteServer extends Thread
 
   public static void main(String[] args) throws Exception
   {
-        System.out.println("BRouter 0.98 / 12012014 / abrensch");
+        System.out.println("BRouter 0.9.8 / 12012014 / abrensch");
         if ( args.length != 4 )
         {
           System.out.println("serve BRouter protocol");

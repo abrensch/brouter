@@ -197,21 +197,21 @@ public final class OsmTrack
     {
       String message = messageList.get(i);
       if ( i < messageList.size()-1 ) message = "(alt-index " + i + ": " + message + " )";
-      if ( message != null ) sb.append( "<!-- " + message + " -->\n" );
+      if ( message != null ) sb.append("<!-- ").append(message).append(" -->\n");
     }
     sb.append( "<gpx \n" );
     sb.append( " xmlns=\"http://www.topografix.com/GPX/1/1\" \n" );
     sb.append( " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \n" );
     sb.append( " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\" \n" );
-    sb.append( " creator=\"BRouter-0.98\" version=\"1.1\">\n" );
+    sb.append( " creator=\"BRouter-0.9.8\" version=\"1.1\">\n" );
     sb.append( " <trk>\n" );
-    sb.append( "  <name>" + name + "</name>\n" );
+    sb.append("  <name>").append(name).append("</name>\n");
     sb.append( "  <trkseg>\n" );
 
     for( OsmPathElement n : nodes )
     {
       String sele = n.getSElev() == Short.MIN_VALUE ? "" : "<ele>" + n.getElev() + "</ele>";
-      sb.append( "   <trkpt lon=\"" + formatPos( n.getILon() - 180000000 ) + "\" lat=\"" + formatPos( n.getILat() - 90000000 ) + "\">" + sele + "</trkpt>\n" );
+      sb.append("   <trkpt lon=\"").append(formatPos(n.getILon() - 180000000)).append("\" lat=\"").append(formatPos(n.getILat() - 90000000)).append("\">").append(sele).append("</trkpt>\n");
     }
 
     sb.append( "  </trkseg>\n" );
@@ -257,7 +257,7 @@ public final class OsmTrack
 
     for( OsmPathElement n : nodes )
     {
-      sb.append( formatPos( n.getILon() - 180000000 ) + "," + formatPos( n.getILat() - 90000000 ) + "\n" );
+      sb.append(formatPos(n.getILon() - 180000000)).append(",").append(formatPos(n.getILat() - 90000000)).append("\n");
     }
 
     sb.append( "          </coordinates>\n" );
