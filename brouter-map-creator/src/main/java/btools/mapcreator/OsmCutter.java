@@ -141,6 +141,11 @@ public class OsmCutter extends MapCreatorBase
         return;
       }
     }
+    
+    if ( "no".equals( w.getTag( "oneway:bicycle" ) ) && w.getTag( "cycleway" ) == null )
+    {
+      w.putTag( "cycleway", "opposite" ); // fake that (no more bits available for oneway:bicycle..
+    }
 
     // encode tags
     if ( w.getTagsOrNull() != null )
