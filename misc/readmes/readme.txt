@@ -1,4 +1,4 @@
-BRouter - Beta Version 0.9.8 - Setting up the Android App
+BRouter - Beta Version 0.9.9 - Setting up the Android App
 =========================================================
 
 Choosing and Installing a Map-Tool
@@ -16,7 +16,6 @@ at least one of them:
 - "OsmAnd": See http://www.osmand.net Get It from Google-Play
    or get it as an APK from the release-build archive:
    http://download.osmand.net/releases/
-   I tested versions up to 1.6
 
 - "Locus": See http://www.locusmap.eu There's a "Pro"
   Version which is ad-free and a free version with ads. 
@@ -30,29 +29,58 @@ at least one of them:
 Which one to use is a matter of taste. Maybe OsmAnd is
 more plug&play and has a reasonable voice-guidig. Locus
 and Oruxmaps are more powerful and better for outdoor
-use. Locus for example has elevation profile diagrams
+use. Locus and Oruxmaps have elevation profile diagrams
 which OsmAnd has not.
 
 Locus and Oruxmaps are best used with third-party vector
 maps, check http://www.openandromaps.org if you consider
 to go for Locus or OruxMaps.
 
+Installing the BRouter App
+--------------------------
 
-Choosing an SD-Card Base Directory
-----------------------------------
+You can install the BRouter-App either from Google's Play Store
+or directly from the APK-File contained within the "brouter_0_9_9.zip"
+distribution zip-file.
 
-Some phones (namely those with Android 4.x) have 2 logical
+Both APKs are not identical: While the Google-Play-Version contains
+a download manager and asks for internet access, the APK from the
+distribution zip is the "pure offline" version and does not contain
+the download manager. The download manager assists downloading the
+required routing data files. If you are using the pure-offline version,
+it's on you to download these files manually. Or you can start with
+the Google-Play version and later on install the pure offline APK,
+replacing the other one, thus disabling internet access (Un-Installing
+BRouter does not delete anything on the sd-card).
+
+The pure-offline APK  asks for permissions to access the SD-Card
+and to de-activate the screen saver, but not for internet access.
+
+
+Choosing a SD-Card Base Directory
+---------------------------------
+
+When first starting BRouter (or after deleting/moving
+the brouter folder on the sd-card), it asks for a
+sd-card base directory and gives you proposals plus
+the option to enter any other base directory.
+
+Most phones (namely those with Android 4.x) have 2 logical
 "SD-Cards", where the first one is internal and not an actual
 Card, and the second one is a an optional "external" micro-sd-card
 that can be taken out of the device.
 
-If you have such a setup, try to make sure your map-tool uses
-the external sd-card to store the offline maps and other stuff.
+Navigation needs big data files that usually should go on an
+external, big sd-card. You should accept the external card, which
+is usually the one with the most space available.
 
-In OsmAnd, this works by choosing an "SD-Card base directory". Typically,
-the first card in mounted on "/mnt/sdcard", while the external
-one maybe mounted at "/mnt/sdcard/external_sd", but depending
-on your phone it can be some other path.
+Try to make sure your map-tool uses the same base directory
+to store the offline maps and other stuff, because BRouter
+tries to access the maptool's waypoint-database and tracks-directory,
+and this works only if they use either the same base directory
+or if the maptool uses the standard, internal base /mnt/sdcard.
+
+In OsmAnd, this works by choosing an "SD-Card base directory".
 
 In OruxMaps, path configuration is only possible for the actual
 map data, but the configuration database file that BRouter tries
@@ -64,91 +92,19 @@ The first line of that redirection file called "brouter.redirect"
 must contain the absolute path of the directory where you want
 the gpx-files to go (e.g. /storage0/oruxmaps/tracklogs).
 
-Make sure you understand the concept of the SD-Card base-directory,
-because the communication between BRouter and the Map-Tools
-requires that both are using either the same base-directory,
-or the maptools are using the standard base directory (/mnt/sdcard).
 
+Completing your installation
+----------------------------
 
-Selecting Waypoints in your Maptool
------------------------------------
-
-In order to calculate a route, BRouter needs to know
-at least a starting point and an endpoint. You specify
-them by creating waypoints in your map-tool.
-
-These are called "Favorites" in OsmAnd, "POI"s in Locus
-or "Wayoints" in Oruxmaps and allow to store a location
-on the map and give it a name.
-
-Pleae specify at least a waypoint called "from" for
-the starting-point and another called "to" for the
-endpoint (lowercase! names are case-sensitive) You
-can use any category, as only the name is read by BRouter.
-
-Optionally, you can specify more waypoints:
-
- "via1" ... "via9" to specify stop-overs
-
- "nogo[radius] [name]" to specify a nogo-area,
-  where radius (in Meter) is optional and defaults to 20m,
-  and the name is also optional. So "nogo", "nogo1000",
-  "nogo roadblock", "nogo200 badferry" are all valid
-  nogo-waypoints.
-
-Make sure to not create duplicates for the from, to and via-waypoints,
-as BRouter would complain about duplicates. For nogo-areas,
-duplicates are allowed.
-
-Starting from version 0.97, instead of following the from/to/via
-naming convention, you can choose any names and select them from
-withing BRouter.
-
-
-Installing the BRouter App
---------------------------
-
-Download the file "brouter_0_8.zip" and unpack in a directory
-"brouter" on the SD-Card of your Android Device. Most convenient
-is to attach the device (or just the sd-card) to a desktop-computer
-and do the unpacking there, but doing that on the device itself
-is also possible, provided you know the appropriate tools.
-
-Install the BRouter-App by installing the APK-File "BRouter.apk"
-For instructions how to install from an APK (in contrast to
-installing from Google Play), search the internet for tips.
-You may need to change system configuration, some setting like
-"Applications->Unknown sources" depending on Android version.
-
-The BRouter App asks for permissions to access the SD-Card
-and to de-activate the screen saver. Being an offline app,
-it does NOT ask for internet access. The drawback is that
-you have to install the additional resources manually.
-
-
-BRouter's SD-Card Directory Structure
--------------------------------------
-
-BRouter guesses a reasonable sd-card base directory and on
-first start prompts you for a base directory with it's
-guess as a default. You should choose the same base
-directory that is used by your map-tool.
-
-On first start, BRouter will create a "brouter" subdirectory
-relative to that base-directory if it's not already there
-(becaused you created it by unpacking the zip-file, see above)
-
-If later on you want to change the base directory, you can delete
-or rename the 'brouter' subfolder, so it will prompt again for
-a base directory. You should choose the same base directory that
-is used by your map-tool (OsmAnd or Locus).
-
-So you may end up with e.g. the following directory structure
+After accepting a base-directory proposal, "BRouter" creates a subfolders
+relative to this base directory, so you end up with e.g. the following structure:
 (depending on base dir and your map-tool choice):
 
 /mnt/sdcard/brouter
-/mnt/sdcard/brouter/segments2  <- put routing data files (*.rd5) here
-/mnt/sdcard/brouter/profiles2  <- put lookup-table and routing profiles here
+/mnt/sdcard/brouter/segments2            <- ** put routing data files (*.rd5) here **
+/mnt/sdcard/brouter/segments2/carsubset  <- ** put *.cd5 files here **
+/mnt/sdcard/brouter/profiles2  <- lookup-table and routing profiles
+/mnt/sdcard/brouter/modes      <- routing-mode/profile mapping
 
 /mnt/sdcard/osmand             <- OsmAnd's sd-card dir
 /mnt/sdcard/osmand/track       <- OsmAnd's track storage
@@ -159,10 +115,29 @@ So you may end up with e.g. the following directory structure
 /mnt/sdcard/oruxmaps           <- Oruxmaps's sd-card dir
 /mnt/sdcard/oruxmaps/tracklogs <- Oruxmaps's track storage
 
-Starting with version 0.94, if a non-standard base directory
-is choosen (e.g. /mnt/sdcard/external_sd) BRouter tries to
-additionally to access the configuraion files relative
-to the standard base directory ( /mnt/sdcard )
+
+The "profiles2" and the "modes" directory get some reasonable default-configuration
+from the installation procedure, but the "segments2" directory is still empty, so
+you have to get routing-datafiles in order to complete your installation.
+
+If using the Google-Play version, the download manager starts automatically to
+help you with this download. If using the pure offline APK, you can download
+them manually from the following locations:
+
+  http://h2096617.stratoserver.net/brouter/segments2
+  http://h2096617.stratoserver.net/brouter/segments2/carsubset
+
+Routing data files are organised as 5*5 degree files,
+with the Filename containing the south-west corner
+of the square, which means:
+
+- You want to route near West48/North37 -> get W50_N35.rd5
+- You want to route near East7/North47 -> get E5_N45.rd5
+
+From the above link you find routing data for all places in the world where OSM
+data is available. The carsubset datafiles are needed only if you want to
+calculate car-routes ovefr lomg distances, otherwise you are fine with just the
+normal (full) rd5's.
 
 The minimum files BRouter needs to work are e.g.
 
@@ -173,45 +148,107 @@ The minimum files BRouter needs to work are e.g.
 But of course you can put as many routing data files
 and routing profiles as you like.
 
-Get the profiles (*.brf) and the lookup.dat from
-the zip-file or from:
 
-  http://www.dr-brenschede.de/brouter/profiles2
+Routing via the service interface
+=================================
 
-And the routing data files from:
+BRouter is best used via it's "service interface". No need to start the BRouter-App
+in order to do that, it's just a services that sits in the background and can be
+called by the map-tools very much like on online routing service.
 
-  http://h2096617.stratoserver.net/brouter/segments2
+To do that, you have to choose BRouter as a navigation service in your map-tool.
+This is supported by OsmAnd, Locus-Maps and OruxMaps (In OsmAnd starting with version 1.7,
+you see BRouter is a navigation service if BRouter is installed. You do not see the
+option if BRouter is not installed).
 
-Routing data files are organised as 5*5 degree files,
-with the Filename containing the south-west corner
-of the square, which means:
+There's a mapping between the "routing-mode" asked for by the map-tool
+(on out of 6: car/bike/foot * fast/slow) and BRouter's routing-profiles.
+This mapping is stored in the file brouter/modes/serviceconfig.dat and is
+pre-configured by the installation process to the following mapping:
 
-- You want to route near West48/North37 -> get W50_N35.rd5
-- You want to route near East7/North47 -> get E5_N45.rd5
+  motorcar_fast  -> car-test
+  motorcar_short -> moped
+  bicycle_fast   -> fastbike
+  bicycle_short  -> trekking
+  foot_fast      -> shortest
+  foot_short     -> shortest
 
-From the above link you find routing data for all
-places in the world where OSM data is available.
+This mapping, however, can be changed any time by starting the BRouter-APP and using
+the "Server Mode" button (or by editing the serviceconfig.dat manually). You can also
+change gthe profiles themselves or create new ones. Please refer to the
+"profile_developers_guide.txt" (contained in the distribution-zip) if you plan to
+adapt routing profiles to your preferences.
 
-Starting the BRouter Android-APP
---------------------------------
+Note that if called via the service-interface, BRouter uses a timeout of 60 seconds,
+which sets a limit on the distances you can calculate.
 
-Make sure you selected "from" and "to" waypoints
-in your maptool as decsribed above.
 
-Then you can start BRouter. It will read the waypoints
-from the map-tools database, calculate the route and
-store the result as "brouter0.gpx" in the map-tools
-track directory.
+Calculate routes using the file interface
+=========================================
 
-BRouter shows a graphical animation of the routing
-algorithm, and shows some messages on distances
-and ascends. The "filtered ascend" is a measure
-for the real hill-climbing pain, with small
-variations filtered out.
+The other option is using the BRouter-App to calculate a route. This is the prefered option
+when calculating long-distance-routes that would not finish within the 60 seconds timout
+if calculated via the service-interface.
 
-Then you can use your maptool to view or navigate the
-route.
+To do this, start the BRouter-App, select two or more wayoints from the waypoint-database
+of your map-tool and then start the route calculation. These waypoints are called "Favorites"
+in OsmAnd, "POI"s in Locus or "Wayoints" in Oruxmaps and allow to store a location
+on the map and give it a name.
 
-If started once more with identical input,
-BRouter will store a second route broute1.gpx
+No need anymore to create special "to", "from", "via1..via9" points, but they are still supported
+and if a "from" and a "to" wayppoint is found in the database, you will not be prompted
+to select waypoints from the database.
+
+If a route is calculated, it is stored as "brouter0.gpx" in the map-tools track directory.
+If started once more with identical input, BRouter will store a second route broute1.gpx
 for the first alternative and so on.
+
+If more than one of the supported maptools is installed, BRouter chooses the way-point database
+with the most recent timestamp.
+
+
+Using nogo-areas
+================
+
+There's a special naming-convention to specify nogo-areas:
+
+  "nogo[radius] [name]" defines a nogo-area, where radius (in Meter)
+  is optional and defaults to 20m, and the name is also optional.
+  So "nogo", "nogo1000", "nogo roadblock", "nogo200 badferry" are all valid
+  names for nogo-waypoints.
+
+The effect is that BRouter searches a route that does not touch the disc
+defined by the position and the radius of the nogo-area.
+
+Nogo-Areas are effective in the service-interface and in the BRouter-App.
+In the BRouter-App, you will get a nogo-dialog allowing to de-select them
+if nogo-waypoints are found in the waypoint-database. This de-selection
+can also be bound to a service mode using the "Server Mode" button to make
+it effective in the service-interface as well, but initially, every nogo-area
+is effective in the service-interface.
+
+Nogo areas can be used either to account for real obstacles or to enforce
+personel routing preferences.
+
+
+Mixed operation: "timeout-free recalculations"
+==============================================
+
+You can combine both operation modes (service-interface + BRouter-App) to
+become able to calculate very long distances, but make use of the advantages of
+the service interface as well, especially the dynamic recalculations if you get
+off the track, without running into the 60 seconds timeout.
+
+To support this, BRouter can do "timeout free recalculations". It works by
+initially calculating a track to your destination nd binding it to one or
+more routing-modes using the "Server Mode" button. This way, BROuter stores
+a "reference track" in the "brouter/modes" subdirectory.
+
+If afterwards a route to the exact same destinatin is calculated via the service interface,
+BRouter uses a special calculation mode that makes use of the reference track for
+faster processing that is guaranteed to give a result within 60 seconds.
+"Exact same" destination means withing 5m, so best use the same waypoint for
+re-calculating that you used for the initial calculation.
+
+This way you can follow a long distance route via the service interface, enjoying
+automatic recalculations if you get off the track.
