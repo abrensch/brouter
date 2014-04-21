@@ -174,11 +174,16 @@ public class OsmCutter extends MapCreatorBase
       return;
     }
 
+    String network =  r.getTag( "network" );
+    if ( network == null ) network = "";
+    writeId( cyclewayDos, r.rid );
+    cyclewayDos.writeUTF( network );
     for ( int i=0; i<r.ways.size();i++ )
     {
       long wid = r.ways.get(i);
       writeId( cyclewayDos, wid );
     }
+    writeId( cyclewayDos, -1 );
   }
 
 

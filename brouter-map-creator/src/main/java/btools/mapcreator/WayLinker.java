@@ -64,7 +64,7 @@ public class WayLinker extends MapCreatorBase
     this.borderFileIn = borderFileIn;
     this.dataTilesSuffix = dataTilesSuffix;
     
-    // read lookup file to get the lookup-version
+    // read lookup + profile for lookup-version + access-filter
     expctxWay = new BExpressionContext("way");
     expctxWay.readMetaData( lookupFile );
     lookupVersion = expctxWay.lookupVersion;

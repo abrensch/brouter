@@ -34,9 +34,11 @@ public class MapcreatorTest
     new NodeFilter().process( nodetiles, wayFile, ftiles );
 
     // run WayCutter
+    File profileReport = new File( workingDir, "trekking.brf" );
+    File profileCheck = new File( workingDir, "softaccess.brf" );
     File waytiles = new File( tmpdir, "waytiles" );
     waytiles.mkdir();
-    new WayCutter().process( ftiles, wayFile, waytiles, relFile );
+    new WayCutter().process( ftiles, wayFile, waytiles, relFile, lookupFile, profileReport, profileCheck );
 
     // run WayCutter5
     File waytiles55 = new File( tmpdir, "waytiles55" );

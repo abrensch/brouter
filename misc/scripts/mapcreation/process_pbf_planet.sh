@@ -20,7 +20,7 @@ mkdir ftiles
 /java/bin/java -Xmx512M -Xms512M -Xmn32M -cp ../brouter.jar -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.NodeFilter nodetiles ways.dat ftiles
 
 mkdir waytiles
-/java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.WayCutter ftiles ways.dat waytiles cycleways.dat
+/java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.WayCutter ftiles ways.dat waytiles cycleways.dat ../lookups.dat ../trekking.brf ../softaccess.brf
 
 mkdir waytiles55
 /java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.WayCutter5 ftiles waytiles waytiles55 bordernids.dat

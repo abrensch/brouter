@@ -168,6 +168,22 @@ public final class BExpressionContext
      return sb.toString();
   }
 
+  public String getKeyValueDescription( long bitmap )
+  {
+     StringBuilder sb = new StringBuilder( 200 );
+     decode( lookupData, bitmap );
+     for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
+     {
+       BExpressionLookupValue[] va = lookupValues.get(inum);
+       String value = va[lookupData[inum]].toString();
+       if ( value != null && value.length() > 0 )
+       {
+         sb.append( " " + lookupNames.get( inum ) + "=" + value );
+       }
+     }
+     return sb.toString();
+  }
+
   public void readMetaData( File lookupsFile )
   {
    try

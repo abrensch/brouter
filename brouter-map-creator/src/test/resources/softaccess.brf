@@ -1,0 +1,21 @@
+# *** soft-access check used to prevent setting the cyclewaybit on motorroads
+
+---context:global   # following code refers to global config
+
+assign   validForBikes        1
+
+---context:way   # following code refers to way-tags
+
+assign costfactor
+
+  #
+  # exclude motorways, proposed roads and motorroads
+  #
+  switch or highway=motorway highway=motorway_link    100000
+  switch    highway=proposed                          100000
+  switch    motorroad=yes                             100000
+
+  1.0
+
+---context:node  # following code refers to node tags
+
