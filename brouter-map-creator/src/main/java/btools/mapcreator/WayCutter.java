@@ -98,14 +98,16 @@ public class WayCutter extends MapCreatorBase
     // propagate the cycleway-bit
     if ( cyclewayset.contains( data.wid ) )
     {
+      boolean ok = true;
       // check access and log a warning for conflicts
-      expctxCheck.evaluate( data.description, null );
-      boolean ok = expctxCheck.getCostfactor() < 10000.;
       expctxReport.evaluate( data.description, null );
       boolean warn = expctxReport.getCostfactor() >= 10000.;
       if ( warn )
       {
-        System.out.println( "** relation access conflict for wid = " + data.wid + " tags:" + expctxReport.getKeyValueDescription( data.description ) + " (ok=" + ok + ")"  );
+          expctxCheck.evaluate( data.description, null );
+          ok = expctxCheck.getCostfactor() < 10000.;
+
+          System.out.println( "** relation access conflict for wid = " + data.wid + " tags:" + expctxReport.getKeyValueDescription( data.description ) + " (ok=" + ok + ")"  );
       }
     	
       if ( ok )

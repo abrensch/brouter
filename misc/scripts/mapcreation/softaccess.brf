@@ -11,11 +11,12 @@ assign costfactor
   #
   # exclude motorways, proposed roads and motorroads
   #
+  switch    bicycle=yes                               1
   switch or highway=motorway highway=motorway_link    100000
   switch    highway=proposed                          100000
   switch    motorroad=yes                             100000
 
-  1.0
+  1
 
 ---context:node  # following code refers to node tags
 
