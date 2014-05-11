@@ -794,7 +794,7 @@ private long startTime = 0L;
          if ( line.contains( "/dev/block/vold" ) )
          {
            isExternalDir = true;
-           String[] vetos = new String[] { "/mnt/secure", "/mnt/asec", "/mnt/obb", "/dev/mapper", "tmpfs" };
+           String[] vetos = new String[] { "/mnt/secure", "/mnt/asec", "/mnt/obb", "/dev/mapper", "tmpfs", "/mnt/media_rw" };
            for( String v: vetos )
            {
              if ( d.indexOf( v ) >= 0 )
