@@ -73,7 +73,7 @@ public class RoutingEngine extends Thread
       BExpressionContext expctxGlobal = new BExpressionContext( "global" );
       expctxGlobal.readMetaData( new File( profileDir, "lookups.dat" ) );
       expctxGlobal.parseFile( profileFile, null );
-      expctxGlobal.evaluate( 1L, rc.messageHandler );
+      expctxGlobal.evaluate( new int[0] );
       rc.readGlobalConfig(expctxGlobal);
 
       rc.expctxWay = new BExpressionContext( "way", 4096 );

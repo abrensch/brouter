@@ -13,7 +13,7 @@ import btools.util.LongList;
 public class WayData extends MapCreatorBase
 {
   public long wid;
-  public long description;
+  public byte[] description;
   public LongList nodes;
 
   public WayData( long id  )
@@ -32,7 +32,7 @@ public class WayData extends MapCreatorBase
   {
     nodes = new LongList( 16 );
     wid = readId( di) ;
-    description = di.readLong();
+    int dlen = di.readByte(); description = new byte[dlen]; di.readFully( description );
     for (;;)
     {
       long nid = readId( di );
@@ -44,7 +44,7 @@ public class WayData extends MapCreatorBase
   public void writeTo( DataOutputStream dos ) throws Exception  
   {
     writeId( dos, wid );
-    dos.writeLong( description );
+    dos.writeByte( description.length ); dos.write( description );
     int size = nodes.size();
     for( int i=0; i < size; i++ )
     {

@@ -671,7 +671,7 @@ private long startTime = 0L;
           BExpressionContext expctxGlobal = new BExpressionContext( "global" );
           expctxGlobal.readMetaData( new File( profileDir, "lookups.dat" ) );
           expctxGlobal.parseFile( new File( profilePath ), null );
-          expctxGlobal.evaluate( 1L, null );
+          expctxGlobal.evaluate( new int[0] );
           boolean isFoot = 0.f != expctxGlobal.getVariableValue( "validForFoot" );
           boolean isBike = 0.f != expctxGlobal.getVariableValue( "validForBikes" );
           boolean isCar  = 0.f != expctxGlobal.getVariableValue( "validForCars" );

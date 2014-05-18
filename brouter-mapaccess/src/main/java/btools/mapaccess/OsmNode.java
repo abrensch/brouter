@@ -47,7 +47,7 @@ public class OsmNode implements OsmPos
    */
     public short selev;
 
-    public long nodeDescription;
+    public byte[] nodeDescription;
 
   // interface OsmPos
   public int getILat()
@@ -124,7 +124,7 @@ public class OsmNode implements OsmPos
        OsmTransferNode lastTransferNode = null;
        int linklon;
        int linklat;
-       long description = 0L;
+       byte[] description = null;
        for(;;)
        {
          int bitField = is.readByte();
@@ -147,18 +147,21 @@ public class OsmNode implements OsmPos
          }
          if ( (bitField & WRITEDESC_BITMASK ) != 0 )
          {
-             description = is.readLong();
-             bodySize -= 8;
+        	 int dlen = is.readByte(); description = new byte[dlen]; is.readFully( description );
+             bodySize -= 1 + dlen;
          }
          if ( (bitField & NODEDESC_BITMASK ) != 0 )
          {
-             nodeDescription = is.readLong();
-             bodySize -= 8;
+        	 int dlen = is.readByte(); nodeDescription = new byte[dlen]; is.readFully( nodeDescription );
+             bodySize -= 1 + dlen;
          }
          if ( (bitField & SKIPDETAILS_BITMASK ) != 0 )
          {
            link.counterLinkWritten = true;
          }
+         
+         if ( description == null && !link.counterLinkWritten ) throw new IllegalArgumentException( "internal error: missing way description!" );
+         
          boolean isTransfer = (bitField & TRANSFERNODE_BITMASK ) != 0;
          if ( isTransfer )
          {
@@ -234,32 +237,30 @@ public class OsmNode implements OsmPos
        // compute the reverse link
        if ( !link.counterLinkWritten )
        {
-           OsmLink rlink = new OsmLink();
-           long rerverseLinkBitmap =  link.descriptionBitmap ^ 1L;
+           OsmLink rlink = new OsmLinkReverse();
 
            rlink.ilonOrigin = tn.ilon;
            rlink.ilatOrigin = tn.ilat;
            rlink.targetNode = this;
-           rlink.descriptionBitmap = rerverseLinkBitmap; // default for no transfer-nodes
+           rlink.descriptionBitmap = link.descriptionBitmap; // default for no transfer-nodes
            OsmTransferNode previous = null;
            OsmTransferNode rtrans = null;
            for( OsmTransferNode trans = firstTransferNode; trans != null; trans = trans.next )
            {
-             long rerverseTransBitmap =  trans.descriptionBitmap ^ 1L;
              if ( previous == null )
              {
-                 rlink.descriptionBitmap = rerverseTransBitmap;
+                 rlink.descriptionBitmap = trans.descriptionBitmap;
              }
              else
              {
-                 previous.descriptionBitmap = rerverseTransBitmap;
+                 previous.descriptionBitmap = trans.descriptionBitmap;
              }
              rtrans = new OsmTransferNode();
              rtrans.ilon = trans.ilon;
              rtrans.ilat = trans.ilat;
              rtrans.selev = trans.selev;
              rtrans.next = previous;
-             rtrans.descriptionBitmap = rerverseLinkBitmap;
+             rtrans.descriptionBitmap = trans.descriptionBitmap;
              previous = rtrans;
            }
            rlink.encodeFirsttransfer(rtrans);

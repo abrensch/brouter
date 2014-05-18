@@ -40,15 +40,18 @@ public final class BExpressionContext
 
   private int[] lookupData = new int[0];
 
+  private byte[] abBuf = new byte[256];
+  
   private Map<String,Integer> variableNumbers = new HashMap<String,Integer>();
 
   private float[] variableData;
 
 
   // hash-cache for function results
-  private long[] _arrayBitmap;
+  private byte[][] _arrayBitmap;
   private int currentHashBucket = -1;
-  private long currentBitmap = 0;
+  private byte[] currentByteArray = null;
+  private boolean currentInversion = false;
 
   public List<BExpression> expressionList;
 
@@ -85,7 +88,7 @@ public final class BExpressionContext
   public BExpressionContext( String context, int hashSize )
   {
       this.context = context;
-    _arrayBitmap = new long[hashSize];
+    _arrayBitmap = new byte[hashSize][];
 
     _arrayCostfactor = new float[hashSize];
     _arrayTurncost = new float[hashSize];
@@ -94,62 +97,79 @@ public final class BExpressionContext
 
 
   /**
-   * encode lookup data to a 64-bit word
+   * encode lookup data to a byte array
    */
-  public long encode( int[] ld )
+  public byte[] encode()
   {
-    long w = 0;
-    for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
+    return encode( lookupData );
+  }
+
+  public byte[] encode( int[] ld )
+  {
+	// start with first bit hardwired ("reversedirection")
+    int idx = 0;
+  	int bm = 2; // byte mask
+  	abBuf[0] = (byte)(ld[0] == 0 ? 0 : 1);
+  	
+    // all others are generic
+    for( int inum = 1; inum < lookupValues.size(); inum++ ) // loop over lookup names
     {
       int n = lookupValues.get(inum).length - 1;
       int d = ld[inum];
+      int im = 1; // integer mask
+      
       if ( n == 2 ) { n = 1; d = d == 2 ? 1 : 0; } // 1-bit encoding for booleans
-
-      while( n != 0 ) { n >>= 1; w <<= 1; }
-      w |= (long)d;
+      while( n != 0 )
+      {
+      	if ( bm == 0x100 ) { bm = 1; abBuf[++idx] = 0; }
+      	if ( (d & im) != 0 ) abBuf[idx] |= bm;
+      	n >>= 1;
+      	bm <<= 1;
+      	im <<= 1;
+      }
     }
-    return w;
+    idx++;
+    byte[] ab = new byte[idx];
+    System.arraycopy( abBuf, 0, ab, 0, idx );
+    return ab;
   }
 
   /**
-   * decode a 64-bit word into a lookup data array
+   * decode a byte-array into a lookup data array
    */
-  public void decode( int[] ld, long w )
+  public void decode( int[] ld, byte[] ab )
   {
-    for( int inum = lookupValues.size()-1; inum >= 0; inum-- ) // loop over lookup names
+    // start with first bit hardwired ("reversedirection")
+  	int idx = 1;
+  	int bm = 2; // byte mask
+  	int b = ab[0];
+  	ld[0] = (b & 1) == 0 ? 0 : 2;
+  	
+    // all others are generic
+    for( int inum = 1; inum < lookupValues.size(); inum++ ) // loop over lookup names
     {
       int nv = lookupValues.get(inum).length;
       int n = nv == 3 ? 1 : nv-1; // 1-bit encoding for booleans
-      int m = 0;
-      long ww = w;
-      while( n != 0 ) { n >>= 1; ww >>= 1; m = m<<1 | 1; }
-      int d = (int)(w & m);
+      int d = 0;
+      int im = 1; // integer mask
+      while( n != 0 )
+      {
+      	if ( bm == 0x100 ) { bm = 1; b = ab[idx++]; }
+      	if ( (b & bm) != 0 ) d |= im;
+      	n >>= 1;
+      	bm <<= 1;
+      	im <<= 1;
+      }
       if ( nv == 3 && d == 1 ) d = 2; // 1-bit encoding for booleans
       ld[inum] = d;
-      w = ww;
     }
   }
 
-  /**
-   * much like decode, but just for counting bits
-   */
-  private void countBits()
-  {
-    int bits = 0;
-    for( int inum = lookupValues.size()-1; inum >= 0; inum-- ) // loop over lookup names
-    {
-      int nv = lookupValues.get(inum).length;
-      int n = nv == 3 ? 1 : nv-1; // 1-bit encoding for booleans
-      while( n != 0 ) { n >>= 1; bits++; }
-    }
-//    System.out.println( "context=" + context + ",bits=" + bits + " keys=" + lookupValues.size() );
-    if ( bits > 64 ) throw new IllegalArgumentException( "lookup table for context " + context + " exceeds 64 bits!" );
-  }
 
-  public String getCsvDescription( long bitmap )
+  public String getCsvDescription( byte[] ab )
   {
      StringBuilder sb = new StringBuilder( 200 );
-     decode( lookupData, bitmap );
+     decode( lookupData, ab );
      for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
      {
        BExpressionLookupValue[] va = lookupValues.get(inum);
@@ -168,10 +188,10 @@ public final class BExpressionContext
      return sb.toString();
   }
 
-  public String getKeyValueDescription( long bitmap )
+  public String getKeyValueDescription( byte[] ab )
   {
      StringBuilder sb = new StringBuilder( 200 );
-     decode( lookupData, bitmap );
+     decode( lookupData, ab );
      for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
      {
        BExpressionLookupValue[] va = lookupValues.get(inum);
@@ -192,6 +212,7 @@ public final class BExpressionContext
 
     int parsedLines = 0;
     boolean ourContext = false;
+    addLookupValue( "reversedirection", "yes", null );
     for(;;)
     {
       String line = br.readLine();
@@ -215,6 +236,7 @@ public final class BExpressionContext
       String value = tk.nextToken();
       int idx = name.indexOf( ';' );
       if ( idx >= 0 ) name = name.substring( 0, idx );
+      if ( "reversedirection".equals( name ) ) continue; // this is hardcoded
       BExpressionLookupValue newValue = addLookupValue( name, value, null );
 
       // add aliases
@@ -229,7 +251,6 @@ public final class BExpressionContext
 
     // post-process metadata:
     lookupDataFrozen = true;
-    countBits();
    }
    catch( Exception e )
    {
@@ -237,7 +258,7 @@ public final class BExpressionContext
    }
   }
 
-  private void evaluate( int[] lookupData2 )
+  public void evaluate( int[] lookupData2 )
   {
     lookupData = lookupData2;
     for( BExpression exp: expressionList)
@@ -248,27 +269,55 @@ public final class BExpressionContext
 
 
 
-  public void evaluate( long bitmap, BExpressionReceiver receiver )
+  public void evaluate( boolean inverseDirection, byte[] ab, BExpressionReceiver receiver )
   {
      _receiver = receiver;
-
-     if ( currentBitmap != bitmap || currentHashBucket < 0 )
+     
+     int abLen = ab.length;
+     boolean equalsCurrent = currentHashBucket >= 0 && abLen == currentByteArray.length;
+     if ( equalsCurrent )
      {
-       // calc hash bucket from crc
-       int crc  = Crc32.crc( bitmap );
-       int hashSize = _arrayBitmap.length;
-       currentHashBucket =  (crc & 0xfffffff) % hashSize;
-       currentBitmap = bitmap;
+       if ( (inverseDirection ? ab[0] ^ 1 : ab[0] ) == currentByteArray[0] )
+       {
+         for( int i=1; i<abLen; i++ )
+         {
+    	   if ( ab[i] != currentByteArray[i] ) { equalsCurrent = false; break; }
+         }
+       }
+       else equalsCurrent = false;
      }
 
-     if ( _arrayBitmap[currentHashBucket] == bitmap )
+
+     if ( equalsCurrent )
      {
        return;
      }
+     else
+     {
+       // calc hash bucket from crc
+       int crc  = Crc32.crc( abBuf, 0, abLen );
+       int hashSize = _arrayBitmap.length;
+       currentHashBucket =  (crc & 0xfffffff) % hashSize;
+       currentByteArray = new byte[abLen];
+       System.arraycopy( ab,  0,  currentByteArray,  0 , abLen );
+       if ( inverseDirection ) currentByteArray[0] ^= 1;
+     }
 
-     _arrayBitmap[currentHashBucket] = bitmap;
+     boolean hashBucketEquals = false;
+     byte[] abBucket = _arrayBitmap[currentHashBucket];
+     if ( abBucket != null && abBucket.length == abLen )
+     {
+    	 hashBucketEquals = true;
+         for( int i=0; i<abLen; i++ )
+         {
+    	   if ( abBucket[i] != currentByteArray[i] ) { hashBucketEquals = false; break; }
+         }
+     }
+     if ( hashBucketEquals ) return;
+     
+     _arrayBitmap[currentHashBucket] = currentByteArray;
 
-     decode( lookupData, bitmap );
+     decode( lookupData, ab );
      evaluate( lookupData );
 
      _arrayCostfactor[currentHashBucket] = variableData[costfactorIdx];
@@ -412,6 +461,25 @@ public final class BExpressionContext
     return newValue;
   }
 
+  /**
+   * add a value-index to to internal array
+   * value-index means 0=unknown, 1=other, 2=value-x, ...
+   */
+  public void addLookupValue( String name, int valueIndex )
+  {
+    Integer num = lookupNumbers.get( name );
+    if ( num == null )
+    {
+      return;
+    }
+
+    // look for that value
+    int inum = num.intValue();
+    int nvalues = lookupValues.get( inum ).length;
+    if ( valueIndex < 0 || valueIndex >= nvalues ) throw new IllegalArgumentException( "value index out of range for name " + name + ": " + valueIndex );
+    lookupData[inum] = valueIndex;
+  }
+
   public void parseFile( File file, String readOnlyContext )
   {
     try
@@ -423,7 +491,7 @@ public final class BExpressionContext
         context = readOnlyContext;
         expressionList = _parseFile( file );
         variableData = new float[variableNumbers.size()];
-        evaluate( 1L, null );
+        evaluate( lookupData ); // lookupData is dummy here - evaluate just to create the variables
         context = realContext;
       }
       linenr = 1;
@@ -592,7 +660,7 @@ public final class BExpressionContext
 
   public void expressionWarning( String message )
   {
-    _arrayBitmap[currentHashBucket] = 0L; // no caching if warnings
+    _arrayBitmap[currentHashBucket] = null; // no caching if warnings
      if ( _receiver != null ) _receiver.expressionWarning( context, message );
   }
 }

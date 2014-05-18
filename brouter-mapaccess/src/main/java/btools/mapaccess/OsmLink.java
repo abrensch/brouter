@@ -6,13 +6,13 @@
 package btools.mapaccess;
 
 
-public final class OsmLink
+public class OsmLink
 {
  /**
    * The description bitmap is mainly the way description
    * used to calculate the costfactor
    */
-  public long descriptionBitmap;
+  public byte[] descriptionBitmap;
 
  /**
    * The target is either the next link or the target node
@@ -29,12 +29,12 @@ public final class OsmLink
 
   public byte[] firsttransferBytes;
 
-  public OsmTransferNode decodeFirsttransfer()
+  final public OsmTransferNode decodeFirsttransfer()
   {
     return firsttransferBytes == null ? null : OsmTransferNode.decode( firsttransferBytes );
   }
 
-  public void encodeFirsttransfer( OsmTransferNode firsttransfer )
+  final public void encodeFirsttransfer( OsmTransferNode firsttransfer )
   {
     if ( firsttransfer == null ) firsttransferBytes = null;
     else firsttransferBytes = OsmTransferNode.encode( firsttransfer );
@@ -44,7 +44,7 @@ public final class OsmLink
 
    public OsmLinkHolder firstlinkholder = null;
 
-   public void addLinkHolder( OsmLinkHolder holder )
+   final public void addLinkHolder( OsmLinkHolder holder )
    {
      if ( firstlinkholder != null ) { holder.setNextForLink( firstlinkholder ); }
      firstlinkholder = holder;

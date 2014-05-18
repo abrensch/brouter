@@ -100,11 +100,11 @@ public class WayCutter extends MapCreatorBase
     {
       boolean ok = true;
       // check access and log a warning for conflicts
-      expctxReport.evaluate( data.description, null );
+      expctxReport.evaluate( false, data.description, null );
       boolean warn = expctxReport.getCostfactor() >= 10000.;
       if ( warn )
       {
-          expctxCheck.evaluate( data.description, null );
+          expctxCheck.evaluate( false, data.description, null );
           ok = expctxCheck.getCostfactor() < 10000.;
 
           System.out.println( "** relation access conflict for wid = " + data.wid + " tags:" + expctxReport.getKeyValueDescription( data.description ) + " (ok=" + ok + ")"  );
@@ -112,7 +112,8 @@ public class WayCutter extends MapCreatorBase
     	
       if ( ok )
       {
-        data.description |= 2;
+    	expctxReport.addLookupValue( "longdistancecycleway", 2 );
+    	data.description = expctxReport.encode();
       }
     }
 

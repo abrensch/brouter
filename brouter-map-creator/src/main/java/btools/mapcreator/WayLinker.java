@@ -104,7 +104,7 @@ public class WayLinker extends MapCreatorBase
   @Override
   public void nextNode( NodeData data ) throws Exception
   {
-    OsmNodeP n = data.description == 0L ? new OsmNodeP() : new OsmNodePT(data.description);
+    OsmNodeP n = data.description == null ? new OsmNodeP() : new OsmNodePT(data.description);
     n.ilon = data.ilon;
     n.ilat = data.ilat;
     n.selev = data.selev;
@@ -132,18 +132,17 @@ public class WayLinker extends MapCreatorBase
   @Override
   public void nextWay( WayData way ) throws Exception
   {
-    long description = way.description;
-    long reverseDescription = description | 1L; // (add reverse bit)
+    byte[] description = way.description;
 
     // filter according to profile
-    expctxWay.evaluate( description, null );
+    expctxWay.evaluate( false, description, null );
     boolean ok = expctxWay.getCostfactor() < 10000.; 
-    expctxWay.evaluate( reverseDescription, null );
+    expctxWay.evaluate( true, description, null );
     ok |= expctxWay.getCostfactor() < 10000.;
     
     if ( !ok ) return;
     
-    byte lowbyte = (byte)description;
+//    byte lowbyte = (byte)description;
 
     OsmNodeP n1 = null;
     OsmNodeP n2 = null;
@@ -159,16 +158,16 @@ public class WayLinker extends MapCreatorBase
         l1.descriptionBitmap = description;
         n1.addLink( l1 );
 
-        OsmLinkP l2 = new OsmLinkP();
+        OsmLinkP l2 = new OsmLinkPReverse();
         l2.targetNode = n1;
-        l2.descriptionBitmap = reverseDescription;
+        l2.descriptionBitmap = description;
         
         n2.addLink( l2 );
       }
       if ( n2 != null )
       {
-        n2.wayAndBits &= lowbyte;
-        if ( n2 instanceof OsmNodePT ) ((OsmNodePT)n2).wayOrBits |= lowbyte;
+//        n2.wayAndBits &= lowbyte;
+//        if ( n2 instanceof OsmNodePT ) ((OsmNodePT)n2).wayOrBits |= lowbyte;
       }
     }
   }

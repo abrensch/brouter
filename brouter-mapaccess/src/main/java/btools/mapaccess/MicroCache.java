@@ -291,4 +291,10 @@ final class MicroCache
       int i0 = ab[aboffset++] & 0xff;
       return (short)( (i1 << 8) | i0);
   }
+
+  public void readFully( byte[] ta )
+  {
+	  System.arraycopy( ab, aboffset, ta, 0, ta.length );
+	  aboffset += ta.length;
+  }
 }

@@ -51,4 +51,19 @@ final class ByteDataWriter
     ab[aboffset++] = (byte)( (v >> 8) & 0xff );
     ab[aboffset++] = (byte)( (v     ) & 0xff );
   }
+  
+  public void write( byte[] sa )
+  {
+    System.arraycopy( sa, 0, ab, aboffset, sa.length );
+    aboffset += sa.length;
+  }
+  
+  @Override
+  public String toString()
+  {
+	  StringBuilder sb = new StringBuilder( "[" );
+	  for( int i=0; i<ab.length; i++ ) sb.append( i == 0 ? " " : ", " ).append( Integer.toString( ab[i] ) );
+      sb.append( " ]" );
+      return sb.toString();
+  }
 }

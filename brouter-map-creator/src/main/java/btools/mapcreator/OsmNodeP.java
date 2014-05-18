@@ -75,9 +75,9 @@ public class OsmNodeP implements Comparable<OsmNodeP>
      firstlink = link;
    }
 
-   public long getNodeDecsription()
+   public byte[] getNodeDecsription()
    {
-     return 0L;
+     return null;
    }
 
    public void writeNodeData( DataOutputStream os ) throws IOException
@@ -92,7 +92,7 @@ public class OsmNodeP implements Comparable<OsmNodeP>
      os2.writeShort( getSElev() );
 
      // hack: write node-desc as link tag (copy cycleway-bits)
-     long nodeDescription = getNodeDecsription();
+     byte[] nodeDescription = getNodeDecsription();
 
      for( OsmLinkP link0 = firstlink; link0 != null; link0 = link0.next )
      {
@@ -122,13 +122,15 @@ public class OsmNodeP implements Comparable<OsmNodeP>
          link = link0;
        }
        origin = this;
-       long lastDescription = 0;
+       byte[] lastDescription = null;
        while( link != null )
        {
+    	 if ( link.descriptionBitmap == null && skipDetailBit == 0 ) throw new IllegalArgumentException( "missing way description...");
+    	   
          OsmNodeP target = link.targetNode;
          int tranferbit = target.isTransferNode() ? TRANSFERNODE_BITMASK : 0;
          int writedescbit = link.descriptionBitmap != lastDescription ? WRITEDESC_BITMASK : 0;
-         int nodedescbit = nodeDescription != 0L ? NODEDESC_BITMASK : 0;
+         int nodedescbit = nodeDescription != null ? NODEDESC_BITMASK : 0;
 
          if ( skipDetailBit != 0 )
          {
@@ -153,12 +155,17 @@ public class OsmNodeP implements Comparable<OsmNodeP>
          }
          if ( writedescbit != 0 )
          {
-           os2.writeLong( link.descriptionBitmap );
+           // write the way description, code direction into the first bit
+           byte[] dbytes = link.descriptionBitmap;
+           int len = dbytes.length;
+           os2.writeByte( len );
+           os2.writeByte( link instanceof OsmLinkPReverse ? dbytes[0] | 1 : dbytes[0] );
+           if ( len > 1 ) os2.write( dbytes, 1, len-1 );
          }
          if ( nodedescbit != 0 )
          {
-           os2.writeLong( nodeDescription );
-           nodeDescription = 0L;
+           os2.writeByte( nodeDescription.length ); os2.write( nodeDescription );
+           nodeDescription = null;
          }
          lastDescription = link.descriptionBitmap;
 
@@ -220,7 +227,7 @@ public class OsmNodeP implements Comparable<OsmNodeP>
    {
      for( OsmLinkP link = firstlink; link != null; link = link.next )
      {
-       if ( link.targetNode == t) link.descriptionBitmap = 0L;
+       if ( link.targetNode == t) link.descriptionBitmap = null;
      }
    }
 

@@ -83,6 +83,8 @@ final class OsmPath implements OsmLinkHolder
 
   private void addAddionalPenalty(OsmTrack refTrack, boolean recordTransferNodes, OsmPath origin, OsmLink link, RoutingContext rc )
   {
+	if ( link.descriptionBitmap == null ) throw new IllegalArgumentException( "null description for class: " + link.getClass() );
+	  
     rc.nogomatch = false;
 
     // extract the 3 positions of the first section
@@ -101,7 +103,7 @@ final class OsmPath implements OsmLinkHolder
 
     OsmTransferNode transferNode = link.decodeFirsttransfer();
     OsmNode targetNode = link.targetNode;
-    long lastDescription = -1L;
+    byte[] lastDescription = null;
     String lastMessage = null;
     for(;;)
     {
@@ -111,7 +113,7 @@ final class OsmPath implements OsmLinkHolder
       int lon2;
       int lat2;
       short ele2;
-      long description;
+      byte[] description;
 
       if ( transferNode == null )
       {
@@ -119,6 +121,7 @@ final class OsmPath implements OsmLinkHolder
         lat2 = targetNode.ilat;
         ele2 = targetNode.selev;
         description = link.descriptionBitmap;
+    	if ( description == null ) throw new IllegalArgumentException( "null description for class: " + link.getClass() );
       }
       else
       {
@@ -126,6 +129,7 @@ final class OsmPath implements OsmLinkHolder
         lat2 = transferNode.ilat;
         ele2 = transferNode.selev;
         description = transferNode.descriptionBitmap;
+    	if ( description == null ) throw new IllegalArgumentException( "null description for class: " + transferNode.getClass() + "/" + link.getClass() + " counterlinkwritten=" + link.counterLinkWritten );
       }
 
       // if way description changed, store message
@@ -173,7 +177,7 @@ final class OsmPath implements OsmLinkHolder
       linkdisttotal += dist;
 
       rc.messageHandler.setCurrentPos( lon2, lat2 );
-      rc.expctxWay.evaluate( description, rc.messageHandler );
+      rc.expctxWay.evaluate( link instanceof OsmLinkReverse, description, rc.messageHandler );
 
       // *** penalty for way-change
       if ( origin.originElement != null )
@@ -309,10 +313,10 @@ final class OsmPath implements OsmLinkHolder
     }
 
     // finally add node-costs for target node
-    if ( targetNode.nodeDescription != 0L )
+    if ( targetNode.nodeDescription != null )
     {
         rc.messageHandler.setCurrentPos( targetNode.ilon, targetNode.ilat );
-        rc.expctxNode.evaluate( targetNode.nodeDescription, rc.messageHandler );
+        rc.expctxNode.evaluate( false, targetNode.nodeDescription, rc.messageHandler );
         float initialcost = rc.expctxNode.getInitialcost();
         if ( initialcost >= 1000000. )
         {

@@ -56,4 +56,20 @@ final class ByteDataReader
       int i0 = ab[aboffset++] & 0xff;
       return (short)( (i1 << 8) | i0);
   }
+
+  public void readFully( byte[] ta )
+  {
+	  System.arraycopy( ab, aboffset, ta, 0, ta.length );
+	  aboffset += ta.length;
+  }
+
+  @Override
+  public String toString()
+  {
+	  StringBuilder sb = new StringBuilder( "[" );
+	  for( int i=0; i<ab.length; i++ ) sb.append( i == 0 ? " " : ", " ).append( Integer.toString( ab[i] ) );
+      sb.append( " ]" );
+      return sb.toString();
+  }
+
 }

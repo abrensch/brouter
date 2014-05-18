@@ -13,7 +13,7 @@ public final class OsmTransferNode
    * The description bitmap is mainly the way description
    * used to calculate the costfactor
    */
-  public long descriptionBitmap;
+  public byte[] descriptionBitmap;
 
   public OsmTransferNode next;
 
@@ -29,7 +29,7 @@ public final class OsmTransferNode
   // encode this transfer-node into a byte array
   public static byte[] encode( OsmTransferNode tn )
   {
-      long currentDesc = 0;
+      byte[] currentDesc = null;
       int currentILonHigh = 0;
       int currentILatHigh = 0;
       OsmTransferNode n = tn;
@@ -39,10 +39,12 @@ public final class OsmTransferNode
       
       while( n != null )
       {
+    	if ( n.descriptionBitmap == null ) throw new IllegalArgumentException( "transfernode-encode: description is null" );
+    	  
         if( n.descriptionBitmap != currentDesc )
         {
-          size += 8;
           currentDesc = n.descriptionBitmap;
+          size += 1 + currentDesc.length;
         }
         if( ( n.ilon >> 16 ) != currentILonHigh )
         {
@@ -61,7 +63,7 @@ public final class OsmTransferNode
       byte[] ab = new byte[size];
       ByteDataWriter os = new ByteDataWriter( ab );
       
-      currentDesc = 0;
+      currentDesc = null;
       currentILonHigh = 0;
       currentILatHigh = 0;
       n = tn;
@@ -84,7 +86,7 @@ public final class OsmTransferNode
           currentILatHigh = n.ilat >> 16;
         }
         os.writeByte( mode);
-        if ( (mode & BIT_DESC) != 0 ) os.writeLong( currentDesc );
+        if ( (mode & BIT_DESC) != 0 ) { os.writeByte( currentDesc.length ); os.write( currentDesc ); }
         if ( (mode & BIT_ILONHIGH) != 0 ) os.writeShort( currentILonHigh );
         if ( (mode & BIT_ILATHIGH) != 0 ) os.writeShort( currentILatHigh );
         os.writeShort( n.ilon );
@@ -103,19 +105,21 @@ public final class OsmTransferNode
 
       OsmTransferNode firstNode = null;
       OsmTransferNode lastNode = null;
-      long currentDesc = 0;
+      byte[] currentDesc = null;
       int currentILonHigh = 0;
       int currentILatHigh = 0;
+      
       for(;;)
       {
         byte mode = is.readByte();
         if ( (mode & BIT_STOP ) != 0 ) break;
 
         OsmTransferNode n = new OsmTransferNode();
-        if ( (mode & BIT_DESC) != 0 ) currentDesc = is.readLong();
+        if ( (mode & BIT_DESC) != 0 ) { int dlen = is.readByte(); currentDesc = new byte[dlen]; is.readFully( currentDesc ); }
         if ( (mode & BIT_ILONHIGH) != 0 ) currentILonHigh =  is.readShort();
         if ( (mode & BIT_ILATHIGH) != 0 ) currentILatHigh =  is.readShort();
         n.descriptionBitmap = currentDesc;
+    	if ( n.descriptionBitmap == null ) throw new IllegalArgumentException( "transfernode-decode: description is null" );
         int ilon = is.readShort() & 0xffff; ilon |= currentILonHigh << 16;
         int ilat = is.readShort() & 0xffff; ilat |= currentILatHigh << 16;
         n.ilon = ilon;

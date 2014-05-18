@@ -6,13 +6,13 @@
 package btools.mapcreator;
 
 
-public final class OsmLinkP
+public class OsmLinkP
 {
  /**
    * The description bitmap is mainly the way description
    * used to calculate the costfactor
    */
-  public long descriptionBitmap;
+  public byte[] descriptionBitmap;
 
  /**
    * The target is either the next link or the target node
@@ -22,8 +22,8 @@ public final class OsmLinkP
   public OsmLinkP next;
 
   
-  public boolean counterLinkWritten( )
+  public final boolean counterLinkWritten( )
   {
-	  return descriptionBitmap == 0L;
+	  return descriptionBitmap == null;
   }
 }
