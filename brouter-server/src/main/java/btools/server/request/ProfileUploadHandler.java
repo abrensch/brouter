@@ -16,6 +16,9 @@ public class ProfileUploadHandler
   // maximum number of characters (file size limit for custom profiles)
   private static final int MAX_LENGTH = 100000;
 
+  // prefix for custom profile id to distinguish from default profiles
+  public static final String CUSTOM_PREFIX = "custom_";
+
 	private ServiceContext serviceContext;
   
 	public ProfileUploadHandler( ServiceContext serviceContext)
@@ -29,8 +32,8 @@ public class ProfileUploadHandler
 
     try
     {
-      String id = getOrCreateCustomProfileDir() + "/" + System.currentTimeMillis();
-      File file = new File ( id + ".brf" );
+      String id = "" + System.currentTimeMillis();
+      File file = new File( getOrCreateCustomProfileDir(), id + ".brf" );
       fileWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream( file ) ) );
       //StringWriter sw = new StringWriter(); bw = new BufferedWriter(sw);
 
@@ -40,7 +43,7 @@ public class ProfileUploadHandler
       fileWriter.flush();
       //System.out.println("data: |" + sw.toString() + "|");
 
-      response.write("profileid=" + id);
+      response.write("profileid=" + CUSTOM_PREFIX + id);
     }
     finally
     {
