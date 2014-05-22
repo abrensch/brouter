@@ -26,6 +26,8 @@ import btools.server.request.ServerHandler;
 
 public class RouteServer extends Thread
 {
+  public static final String PROFILE_UPLOAD_URL = "/brouter/profile";
+
 	public ServiceContext serviceContext;
 
   private Socket clientSocket = null;
@@ -66,12 +68,19 @@ public class RouteServer extends Thread
             {
             	handler = new ServerHandler( serviceContext, params );
             }
-            else if ("/brouter/profile".equals(url))
+            else if ( url.startsWith( PROFILE_UPLOAD_URL ) )
             {
               writeHttpHeader(bw);
 
+              String profileId = null;
+              if ( url.length() > PROFILE_UPLOAD_URL.length() + 1 )
+              {
+                // e.g. /brouter/profile/custom_1400767688382
+                profileId = url.substring(PROFILE_UPLOAD_URL.length() + 1);
+              }
+
               ProfileUploadHandler uploadHandler = new ProfileUploadHandler( serviceContext );
-              uploadHandler.handlePostRequest(br, bw);
+              uploadHandler.handlePostRequest( profileId, br, bw );
 
               bw.flush();
               return;

@@ -26,13 +26,20 @@ public class ProfileUploadHandler
 		this.serviceContext = serviceContext;
 	}
 
-  public void handlePostRequest(BufferedReader br, BufferedWriter response) throws IOException
+  public void handlePostRequest(String profileId, BufferedReader br, BufferedWriter response) throws IOException
   {
     BufferedWriter fileWriter = null;
 
     try
     {
-      String id = "" + System.currentTimeMillis();
+      String id;
+      if ( profileId != null )
+      {
+        // update existing file when id appended
+        id = profileId.substring( ProfileUploadHandler.CUSTOM_PREFIX.length() );
+      } else {
+        id = "" + System.currentTimeMillis();
+      }
       File file = new File( getOrCreateCustomProfileDir(), id + ".brf" );
       fileWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream( file ) ) );
       //StringWriter sw = new StringWriter(); bw = new BufferedWriter(sw);
