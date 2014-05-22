@@ -168,8 +168,9 @@ public class OsmCutter extends MapCreatorBase
     relsParsed++;
     checkStats();
 
+    String route = r.getTag( "route" );
     // filter out non-cycle relations
-    if ( ! "bicycle".equals( r.getTag( "route" ) ) )
+    if ( route == null )
     {
       return;
     }
@@ -177,6 +178,7 @@ public class OsmCutter extends MapCreatorBase
     String network =  r.getTag( "network" );
     if ( network == null ) network = "";
     writeId( cyclewayDos, r.rid );
+    cyclewayDos.writeUTF( route );
     cyclewayDos.writeUTF( network );
     for ( int i=0; i<r.ways.size();i++ )
     {

@@ -17,7 +17,8 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 
-import btools.util.Crc32;
+import btools.util.*;
+
 
 public final class BExpressionContext
 {
@@ -61,14 +62,17 @@ public final class BExpressionContext
   private int costfactorIdx;
   private int turncostIdx;
   private int initialcostIdx;
+  private int nodeaccessgrantedIdx;
 
   private float[] _arrayCostfactor;
   private float[] _arrayTurncost;
   private float[] _arrayInitialcost;
+  private float[] _arrayNodeAccessGranted;
 
   public float getCostfactor() { return _arrayCostfactor[currentHashBucket]; }
   public float getTurncost() { return _arrayTurncost[currentHashBucket]; }
   public float getInitialcost() { return _arrayInitialcost[currentHashBucket]; }
+  public float getNodeAccessGranted() { return _arrayNodeAccessGranted[currentHashBucket]; }
 
   private int linenr;
 
@@ -93,6 +97,7 @@ public final class BExpressionContext
     _arrayCostfactor = new float[hashSize];
     _arrayTurncost = new float[hashSize];
     _arrayInitialcost = new float[hashSize];
+    _arrayNodeAccessGranted = new float[hashSize];
   }
 
 
@@ -107,59 +112,55 @@ public final class BExpressionContext
   public byte[] encode( int[] ld )
   {
 	// start with first bit hardwired ("reversedirection")
-    int idx = 0;
-  	int bm = 2; // byte mask
-  	abBuf[0] = (byte)(ld[0] == 0 ? 0 : 1);
+	BitCoderContext ctx = new BitCoderContext( abBuf );
+	ctx.encodeBit( ld[0] != 0 );
+	
+	int skippedTags = 0;
   	
     // all others are generic
     for( int inum = 1; inum < lookupValues.size(); inum++ ) // loop over lookup names
     {
-      int n = lookupValues.get(inum).length - 1;
       int d = ld[inum];
-      int im = 1; // integer mask
-      
-      if ( n == 2 ) { n = 1; d = d == 2 ? 1 : 0; } // 1-bit encoding for booleans
-      while( n != 0 )
+      if ( d == 0 )
       {
-      	if ( bm == 0x100 ) { bm = 1; abBuf[++idx] = 0; }
-      	if ( (d & im) != 0 ) abBuf[idx] |= bm;
-      	n >>= 1;
-      	bm <<= 1;
-      	im <<= 1;
+        skippedTags++;
+        continue;
       }
+      int n = lookupValues.get(inum).length - 1;
+      if ( n == 2 ) { n = 1; d = d == 2 ? 1 : 0; } // 1-bit encoding for booleans
+      ctx.encodeDistance( skippedTags );
+      skippedTags = 0;
+      ctx.encode( n, d );
     }
-    idx++;
-    byte[] ab = new byte[idx];
-    System.arraycopy( abBuf, 0, ab, 0, idx );
+    ctx.encodeDistance( skippedTags );
+    int len = ctx.getEncodedLength();
+    byte[] ab = new byte[len];
+    System.arraycopy( abBuf, 0, ab, 0, len );
     return ab;
   }
+
+  
 
   /**
    * decode a byte-array into a lookup data array
    */
   public void decode( int[] ld, byte[] ab )
   {
+	BitCoderContext ctx = new BitCoderContext(ab);
+	  
     // start with first bit hardwired ("reversedirection")
-  	int idx = 1;
-  	int bm = 2; // byte mask
-  	int b = ab[0];
-  	ld[0] = (b & 1) == 0 ? 0 : 2;
+  	ld[0] = ctx.decodeBit() ? 2 : 0;
   	
     // all others are generic
     for( int inum = 1; inum < lookupValues.size(); inum++ ) // loop over lookup names
     {
+      int skip = ctx.decodeDistance();
+      while ( skip-- > 0 ) ld[inum++] = 0;
+      if ( inum >= lookupValues.size() ) break;
       int nv = lookupValues.get(inum).length;
       int n = nv == 3 ? 1 : nv-1; // 1-bit encoding for booleans
-      int d = 0;
-      int im = 1; // integer mask
-      while( n != 0 )
-      {
-      	if ( bm == 0x100 ) { bm = 1; b = ab[idx++]; }
-      	if ( (b & bm) != 0 ) d |= im;
-      	n >>= 1;
-      	bm <<= 1;
-      	im <<= 1;
-      }
+      
+      int d = ctx.decode( n );
       if ( nv == 3 && d == 1 ) d = 2; // 1-bit encoding for booleans
       ld[inum] = d;
     }
@@ -212,7 +213,8 @@ public final class BExpressionContext
 
     int parsedLines = 0;
     boolean ourContext = false;
-    addLookupValue( "reversedirection", "yes", null );
+    if ( "way".equals( context ) ) addLookupValue( "reversedirection", "yes", null );
+    else if ( "node".equals( context ) ) addLookupValue( "nodeaccessgranted", "yes", null );
     for(;;)
     {
       String line = br.readLine();
@@ -237,6 +239,7 @@ public final class BExpressionContext
       int idx = name.indexOf( ';' );
       if ( idx >= 0 ) name = name.substring( 0, idx );
       if ( "reversedirection".equals( name ) ) continue; // this is hardcoded
+      if ( "nodeaccessgranted".equals( name ) ) continue; // this is hardcoded
       BExpressionLookupValue newValue = addLookupValue( name, value, null );
 
       // add aliases
@@ -323,6 +326,7 @@ public final class BExpressionContext
      _arrayCostfactor[currentHashBucket] = variableData[costfactorIdx];
      _arrayTurncost[currentHashBucket] = variableData[turncostIdx];
      _arrayInitialcost[currentHashBucket] = variableData[initialcostIdx];
+     _arrayNodeAccessGranted[currentHashBucket] = variableData[nodeaccessgrantedIdx];
 
      _receiver = null;
   }
@@ -480,6 +484,12 @@ public final class BExpressionContext
     lookupData[inum] = valueIndex;
   }
 
+  public boolean getBooleanLookupValue( String name )
+  {
+    Integer num = lookupNumbers.get( name );
+    return num != null && lookupData[num.intValue()] != 0;
+  }
+
   public void parseFile( File file, String readOnlyContext )
   {
     try
@@ -500,6 +510,7 @@ public final class BExpressionContext
       costfactorIdx = getVariableIdx( "costfactor", true );
       turncostIdx = getVariableIdx( "turncost", true );
       initialcostIdx = getVariableIdx( "initialcost", true );
+      nodeaccessgrantedIdx = getVariableIdx( "nodeaccessgranted", true );
 
       expressionList = _parseFile( file );
       float[] readOnlyData = variableData;

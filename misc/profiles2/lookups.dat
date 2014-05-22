@@ -179,7 +179,11 @@ lcn;0000018999 yes
 
 longdistancecycleway;0000000001 yes
 
-reversedirection;0000000001 yes
+route_bicycle_icn;0000000001 yes
+route_bicycle_ncn;0000000001 yes
+route_bicycle_rcn;0000000001 yes
+route_bicycle_lcn;0000000001 yes
+route_bicycle_all;0000000001 yes
 
 ---context:node
 

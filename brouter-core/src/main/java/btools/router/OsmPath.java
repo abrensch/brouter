@@ -316,7 +316,7 @@ final class OsmPath implements OsmLinkHolder
     if ( targetNode.nodeDescription != null )
     {
         rc.messageHandler.setCurrentPos( targetNode.ilon, targetNode.ilat );
-        rc.expctxNode.evaluate( false, targetNode.nodeDescription, rc.messageHandler );
+        rc.expctxNode.evaluate( rc.expctxWay.getNodeAccessGranted() != 0. , targetNode.nodeDescription, rc.messageHandler );
         float initialcost = rc.expctxNode.getInitialcost();
         if ( initialcost >= 1000000. )
         {

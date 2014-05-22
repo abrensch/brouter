@@ -12,15 +12,15 @@ public class EncodeDecodeTest
   @Test
   public void encodeDecodeTest()
   {
-    URL lookupurl = this.getClass().getResource( "/lookups.dat" );
-    Assert.assertTrue( "lookup file lookup.dat not found", lookupurl != null );
-    File lookupFile = new File(lookupurl.getFile());
-    File workingDir = lookupFile.getParentFile();
+    URL testpurl = this.getClass().getResource( "/dummy.txt" );
+    File workingDir = new File(testpurl.getFile()).getParentFile();
+    File profileDir = new File( workingDir, "/../../../misc/profiles2" );
+    File lookupFile = new File( profileDir, "lookups.dat" );
   	
     // read lookup.dat + trekking.brf
     BExpressionContext expctxWay = new BExpressionContext("way");
     expctxWay.readMetaData( lookupFile );
-    expctxWay.parseFile( new File( workingDir, "trekking.brf" ), "global" );
+    expctxWay.parseFile( new File( profileDir, "trekking.brf" ), "global" );
 
     String[] tags = { "highway=residential",  "oneway=yes",  "reversedirection=yes" };
 
@@ -41,6 +41,6 @@ public class EncodeDecodeTest
     expctxWay.evaluate( false, description, null );
 
     float costfactor = expctxWay.getCostfactor();
-    Assert.assertTrue( "costfactor mismatch", Math.abs( costfactor - 5.1 ) > 0.00001 );
+    Assert.assertTrue( "costfactor mismatch", Math.abs( costfactor - 5.15 ) < 0.00001 );
   }
 }

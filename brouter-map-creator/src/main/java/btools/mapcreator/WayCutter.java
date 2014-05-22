@@ -1,13 +1,8 @@
 package btools.mapcreator;
 
-import java.io.DataInputStream;
-import java.io.EOFException;
 import java.io.File;
 
-import btools.expressions.BExpressionContext;
-import btools.util.CompactLongSet;
 import btools.util.DenseLongMap;
-import btools.util.FrozenLongSet;
 import btools.util.TinyDenseLongMap;
 
 /**
@@ -20,62 +15,23 @@ import btools.util.TinyDenseLongMap;
  */
 public class WayCutter extends MapCreatorBase
 {
-  private CompactLongSet cyclewayset;
   private DenseLongMap tileIndexMap;
-  private BExpressionContext expctxReport;
-  private BExpressionContext expctxCheck;
 
   public static void main(String[] args) throws Exception
   {
     System.out.println("*** WayCutter: Soft-Cut way-data into tiles");
-    if (args.length != 7)
+    if (args.length != 4)
     {
-      System.out.println("usage: java WayCutter <node-tiles-in> <way-file-in> <way-tiles-out> <relation-file> <lookup-file> <report-profile> <check-profile>" );
+      System.out.println("usage: java WayCutter <node-tiles-in> <way-file-in> <way-tiles-out> <relation-file>" );
 
       return;
     }
-    new WayCutter().process( new File( args[0] ), new File( args[1] ), new File( args[2] ), new File( args[3] ), new File( args[4] ), new File( args[5] ), new File( args[6] ) );
+    new WayCutter().process( new File( args[0] ), new File( args[1] ), new File( args[2] ), new File( args[3] ) );
   }
 
-  public void process( File nodeTilesIn, File wayFileIn, File wayTilesOut, File relationFileIn, File lookupFile, File reportProfile, File checkProfile ) throws Exception
+  public void process( File nodeTilesIn, File wayFileIn, File wayTilesOut, File relationFileIn ) throws Exception
   {
     this.outTileDir = wayTilesOut;
-
-    // read lookup + profile for relation access-check
-    expctxReport = new BExpressionContext("way");
-    expctxReport.readMetaData( lookupFile );
-    expctxReport.parseFile( reportProfile, "global" );
-    expctxCheck = new BExpressionContext("way");
-    expctxCheck.readMetaData( lookupFile );
-    expctxCheck.parseFile( checkProfile, "global" );
-    
-    // *** read the relation file into a set (currently cycleway processing only)
-    cyclewayset = new CompactLongSet();
-    DataInputStream dis = createInStream( relationFileIn );
-    try
-    {
-      for(;;)
-      {
-        long rid = readId( dis );
-        String network = dis.readUTF();
-        boolean goodNetwork = "lcn".equals( network ) || "rcn".equals( network ) || "ncn".equals( network ) || "icn".equals( network );
-        	
-        for(;;)
-        {
-          long wid = readId( dis );
-          if ( wid == -1 ) break;
-          if ( goodNetwork && !cyclewayset.contains( wid ) ) cyclewayset.add( wid );
-        }
-      }
-    }
-    catch( EOFException eof )
-    {
-      dis.close();
-    }
-    
-    cyclewayset = new FrozenLongSet( cyclewayset );
-    System.out.println( "marked cycleways: " + cyclewayset.size() );
-
 
     // *** read all nodes into tileIndexMap
     tileIndexMap = Boolean.getBoolean( "useDenseMaps" ) ? new DenseLongMap( 6 ) : new TinyDenseLongMap();
@@ -95,28 +51,6 @@ public class WayCutter extends MapCreatorBase
   @Override
   public void nextWay( WayData data ) throws Exception
   {
-    // propagate the cycleway-bit
-    if ( cyclewayset.contains( data.wid ) )
-    {
-      boolean ok = true;
-      // check access and log a warning for conflicts
-      expctxReport.evaluate( false, data.description, null );
-      boolean warn = expctxReport.getCostfactor() >= 10000.;
-      if ( warn )
-      {
-          expctxCheck.evaluate( false, data.description, null );
-          ok = expctxCheck.getCostfactor() < 10000.;
-
-          System.out.println( "** relation access conflict for wid = " + data.wid + " tags:" + expctxReport.getKeyValueDescription( data.description ) + " (ok=" + ok + ")"  );
-      }
-    	
-      if ( ok )
-      {
-    	expctxReport.addLookupValue( "longdistancecycleway", 2 );
-    	data.description = expctxReport.encode();
-      }
-    }
-
     long waytileset = 0;
     int nnodes = data.nodes.size();
 

@@ -42,6 +42,8 @@ public class OsmNodeP implements Comparable<OsmNodeP>
 
   public boolean isBorder = false;
 
+  public final static int BRIDGE_AND_BIT = 1;
+  public final static int TUNNEL_AND_BIT = 2;
   public byte wayAndBits = -1; // use for bridge/tunnel logic
 
 
@@ -59,7 +61,7 @@ public class OsmNodeP implements Comparable<OsmNodeP>
   public short getSElev()
   {
     // if all bridge or all tunnel, elevation=no-data
-    return (wayAndBits & 24) == 0 ? selev : Short.MIN_VALUE;
+    return (wayAndBits & ( BRIDGE_AND_BIT | TUNNEL_AND_BIT ) ) == 0 ? selev : Short.MIN_VALUE;
   }
 
   public double getElev()

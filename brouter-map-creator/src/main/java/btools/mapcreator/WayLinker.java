@@ -1,11 +1,19 @@
 package btools.mapcreator;
 
-import java.io.*;
-import java.util.*;
-
-import btools.util.*;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.RandomAccessFile;
+import java.util.Collections;
+import java.util.List;
 
 import btools.expressions.BExpressionContext;
+import btools.util.CompactLongMap;
+import btools.util.CompactLongSet;
+import btools.util.Crc32;
+import btools.util.FrozenLongMap;
+import btools.util.FrozenLongSet;
+import btools.util.LazyArrayOfLists;
 
 /**
  * WayLinker finally puts the pieces together
@@ -139,11 +147,13 @@ public class WayLinker extends MapCreatorBase
     boolean ok = expctxWay.getCostfactor() < 10000.; 
     expctxWay.evaluate( true, description, null );
     ok |= expctxWay.getCostfactor() < 10000.;
+
+    byte bridgeTunnel = 0;
+    if ( expctxWay.getBooleanLookupValue( "bridge" ) ) bridgeTunnel |= OsmNodeP.BRIDGE_AND_BIT;
+    if ( expctxWay.getBooleanLookupValue( "tunnel" ) ) bridgeTunnel |= OsmNodeP.TUNNEL_AND_BIT;
     
     if ( !ok ) return;
     
-//    byte lowbyte = (byte)description;
-
     OsmNodeP n1 = null;
     OsmNodeP n2 = null;
     for (int i=0; i<way.nodes.size(); i++)
@@ -166,7 +176,7 @@ public class WayLinker extends MapCreatorBase
       }
       if ( n2 != null )
       {
-//        n2.wayAndBits &= lowbyte;
+        n2.wayAndBits &= bridgeTunnel;
 //        if ( n2 instanceof OsmNodePT ) ((OsmNodePT)n2).wayOrBits |= lowbyte;
       }
     }

@@ -17,13 +17,14 @@ public class MapcreatorTest
     Assert.assertTrue( "test-osm-map dreieich.osm not found", mapurl != null );
     File mapfile = new File(mapurl.getFile());
     File workingDir = mapfile.getParentFile();
+    File profileDir = new File( workingDir, "/../../../misc/profiles2" );
     File tmpdir = new File( workingDir, "tmp" );
     tmpdir.mkdir();
 
     // run OsmCutter
     File nodetiles = new File( tmpdir, "nodetiles" );
     nodetiles.mkdir();
-    File lookupFile = new File( workingDir, "lookups.dat" );
+    File lookupFile = new File( profileDir, "lookups.dat" );
     File wayFile = new File( tmpdir, "ways.dat" );
     File relFile = new File( tmpdir, "cycleways.dat" );
     new OsmCutter().process( lookupFile, nodetiles, wayFile, relFile, mapfile );
@@ -33,12 +34,16 @@ public class MapcreatorTest
     ftiles.mkdir();
     new NodeFilter().process( nodetiles, wayFile, ftiles );
 
+    // run RelationMerger
+    File wayFile2 = new File( tmpdir, "ways2.dat" );
+    File profileReport = new File( profileDir, "trekking.brf" );
+    File profileCheck = new File( profileDir, "softaccess.brf" );
+    new RelationMerger().process( wayFile, wayFile2, relFile, lookupFile, profileReport, profileCheck );
+
     // run WayCutter
-    File profileReport = new File( workingDir, "trekking.brf" );
-    File profileCheck = new File( workingDir, "softaccess.brf" );
     File waytiles = new File( tmpdir, "waytiles" );
     waytiles.mkdir();
-    new WayCutter().process( ftiles, wayFile, waytiles, relFile, lookupFile, profileReport, profileCheck );
+    new WayCutter().process( ftiles, wayFile2, waytiles, relFile );
 
     // run WayCutter5
     File waytiles55 = new File( tmpdir, "waytiles55" );
@@ -60,13 +65,13 @@ public class MapcreatorTest
     // run WayLinker
     File segments = new File( tmpdir, "segments" );
     segments.mkdir();
-    File profileAllFile = new File( workingDir, "all.brf" );
+    File profileAllFile = new File( profileDir, "all.brf" );
     new WayLinker().process( unodes55, waytiles55, bordernodes, lookupFile, profileAllFile, segments, "rd5" );
 
     // run WayLinker, car subset
     File carsubset = new File( segments, "carsubset" );
     carsubset.mkdir();
-    File profileCarFile = new File( workingDir, "car-test.brf" );
+    File profileCarFile = new File( profileDir, "car-test.brf" );
     new WayLinker().process( unodes55, waytiles55, bordernodes, lookupFile, profileCarFile, carsubset, "cd5" );
   }
 }
