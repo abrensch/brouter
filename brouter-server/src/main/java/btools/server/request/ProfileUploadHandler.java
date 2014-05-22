@@ -53,7 +53,8 @@ public class ProfileUploadHandler
 
   private File getOrCreateCustomProfileDir()
   {
-    File customProfileDir = new File(serviceContext.customProfileDir);
+    // workaround: customProfileDir relative to profileDir, because RoutingEngine doesn't know custom profiles
+    File customProfileDir = new File(serviceContext.profileDir, serviceContext.customProfileDir);
     if (!customProfileDir.exists())
     {
       customProfileDir.mkdir();

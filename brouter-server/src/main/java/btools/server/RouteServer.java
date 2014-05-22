@@ -130,7 +130,8 @@ public class RouteServer extends Thread
 
         ServiceContext serviceContext = new ServiceContext();
         serviceContext.segmentDir = args[0];
-        System.setProperty( "profileBaseDir", args[1] );
+        serviceContext.profileDir = args[1];
+        System.setProperty( "profileBaseDir", serviceContext.profileDir );
         serviceContext.customProfileDir = args[2];
 
         int maxthreads = Integer.parseInt( args[4] );
