@@ -20,11 +20,14 @@ import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
+import btools.server.request.ProfileUploadHandler;
 import btools.server.request.RequestHandler;
 import btools.server.request.ServerHandler;
 
 public class RouteServer extends Thread
 {
+  public static final String PROFILE_UPLOAD_URL = "/brouter/profile";
+
 	public ServiceContext serviceContext;
 
   private Socket clientSocket = null;
@@ -65,6 +68,23 @@ public class RouteServer extends Thread
             {
             	handler = new ServerHandler( serviceContext, params );
             }
+            else if ( url.startsWith( PROFILE_UPLOAD_URL ) )
+            {
+              writeHttpHeader(bw);
+
+              String profileId = null;
+              if ( url.length() > PROFILE_UPLOAD_URL.length() + 1 )
+              {
+                // e.g. /brouter/profile/custom_1400767688382
+                profileId = url.substring(PROFILE_UPLOAD_URL.length() + 1);
+              }
+
+              ProfileUploadHandler uploadHandler = new ProfileUploadHandler( serviceContext );
+              uploadHandler.handlePostRequest( profileId, br, bw );
+
+              bw.flush();
+              return;
+            }
             else
             {
             	throw new IllegalArgumentException( "unknown request syntax: " + getline );
@@ -76,12 +96,7 @@ public class RouteServer extends Thread
             cr.quite = true;
             cr.doRun( maxRunningTime );
 
-            // http-header
-            bw.write( "HTTP/1.1 200 OK\n" );
-            bw.write( "Connection: close\n" );
-            bw.write( "Content-Type: text/xml; charset=utf-8\n" );
-            bw.write( "Access-Control-Allow-Origin: *\n" );
-            bw.write( "\n" );
+            writeHttpHeader(bw);
 
             if ( cr.getErrorMessage() != null )
             {
@@ -115,22 +130,24 @@ public class RouteServer extends Thread
   public static void main(String[] args) throws Exception
   {
         System.out.println("BRouter 0.9.9 / 18042014 / abrensch");
-        if ( args.length != 4 )
+        if ( args.length != 5 )
         {
           System.out.println("serve BRouter protocol");
-          System.out.println("usage: java RouteServer <segmentdir> <profiledir> <port> <maxthreads>");
+          System.out.println("usage: java RouteServer <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads>");
           return;
         }
 
         ServiceContext serviceContext = new ServiceContext();
         serviceContext.segmentDir = args[0];
-        System.setProperty( "profileBaseDir", args[1] );
+        serviceContext.profileDir = args[1];
+        System.setProperty( "profileBaseDir", serviceContext.profileDir );
+        serviceContext.customProfileDir = args[2];
 
-        int maxthreads = Integer.parseInt( args[3] );
+        int maxthreads = Integer.parseInt( args[4] );
 
         TreeMap<Long,RouteServer> threadMap = new TreeMap<Long,RouteServer>();
 
-        ServerSocket serverSocket = new ServerSocket(Integer.parseInt(args[2]));
+        ServerSocket serverSocket = new ServerSocket(Integer.parseInt(args[3]));
         long last_ts = 0;
         for (;;)
         {
@@ -186,5 +203,14 @@ public class RouteServer extends Thread
       maxRunningTime = Integer.parseInt( sMaxRunningTime ) * 1000;
     }
     return maxRunningTime;
+  }
+  
+  private static void writeHttpHeader(BufferedWriter bw) throws IOException {
+    // http-header
+    bw.write( "HTTP/1.1 200 OK\n" );
+    bw.write( "Connection: close\n" );
+    bw.write( "Content-Type: text/xml; charset=utf-8\n" );
+    bw.write( "Access-Control-Allow-Origin: *\n" );
+    bw.write( "\n" );
   }
 }

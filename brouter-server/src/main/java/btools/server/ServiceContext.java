@@ -11,6 +11,8 @@ import btools.router.OsmNodeNamed;
 public class ServiceContext
 {
   public String segmentDir;
+  public String profileDir;
+  public String customProfileDir;
   public Map<String,String> profileMap = null;
   public List<OsmNodeNamed> nogoList;
 }

@@ -8,6 +8,7 @@ import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.server.ServiceContext;
+import java.io.File;
 
 /**
  * URL query parameter handler for web and standalone server. Supports all 
@@ -38,7 +39,15 @@ public class ServerHandler extends RequestHandler {
 	{
     RoutingContext rc = new RoutingContext();
 
-    rc.localFunction = params.get( "profile" );
+    String profile = params.get( "profile" );
+    // when custom profile replace prefix with directory path
+    if ( profile.startsWith( ProfileUploadHandler.CUSTOM_PREFIX ) )
+    {
+      String customProfile = profile.substring( ProfileUploadHandler.CUSTOM_PREFIX.length() );
+      profile = new File( serviceContext.customProfileDir, customProfile ).getPath();
+    }
+    rc.localFunction = profile;
+
     rc.setAlternativeIdx(Integer.parseInt(params.get( "alternativeidx" )));
     
     List<OsmNodeNamed> nogoList = readNogoList();
