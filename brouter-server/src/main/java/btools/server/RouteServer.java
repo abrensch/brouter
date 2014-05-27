@@ -96,16 +96,16 @@ public class RouteServer extends Thread
             cr.quite = true;
             cr.doRun( maxRunningTime );
 
-            writeHttpHeader(bw);
-
             if ( cr.getErrorMessage() != null )
             {
+              writeHttpHeader(bw);
               bw.write( cr.getErrorMessage() );
               bw.write( "\n" );
             }
             else
             {
               OsmTrack track = cr.getFoundTrack();
+              writeHttpHeader(bw, handler.getMimeType());
               if ( track != null )
               {
                 bw.write( handler.formatTrack(track) );
@@ -204,12 +204,18 @@ public class RouteServer extends Thread
     }
     return maxRunningTime;
   }
-  
-  private static void writeHttpHeader(BufferedWriter bw) throws IOException {
+
+  private static void writeHttpHeader( BufferedWriter bw ) throws IOException
+  {
+    writeHttpHeader( bw, "text/plain" );
+  }
+
+  private static void writeHttpHeader( BufferedWriter bw, String mimeType ) throws IOException
+  {
     // http-header
     bw.write( "HTTP/1.1 200 OK\n" );
     bw.write( "Connection: close\n" );
-    bw.write( "Content-Type: text/xml; charset=utf-8\n" );
+    bw.write( "Content-Type: " + mimeType + "; charset=utf-8\n" );
     bw.write( "Access-Control-Allow-Origin: *\n" );
     bw.write( "\n" );
   }

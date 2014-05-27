@@ -289,7 +289,11 @@ public final class OsmTrack
   public void dumpMessages( String filename, RoutingContext rc ) throws Exception
   {
     BufferedWriter bw = filename == null ? null : new BufferedWriter( new FileWriter( filename ) );
+    writeMessages( bw, rc );
+  }
 
+  public void writeMessages( BufferedWriter bw, RoutingContext rc ) throws Exception
+  {
     // csv-header-line
 
     String header = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost";
