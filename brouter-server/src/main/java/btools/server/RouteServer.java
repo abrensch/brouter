@@ -70,7 +70,7 @@ public class RouteServer extends Thread
             }
             else if ( url.startsWith( PROFILE_UPLOAD_URL ) )
             {
-              writeHttpHeader(bw);
+              writeHttpHeader(bw, "application/json");
 
               String profileId = null;
               if ( url.length() > PROFILE_UPLOAD_URL.length() + 1 )

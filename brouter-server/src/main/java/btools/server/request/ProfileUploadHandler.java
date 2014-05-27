@@ -1,5 +1,7 @@
 package btools.server.request;
 
+import btools.router.RoutingContext;
+import btools.router.RoutingEngine;
 import btools.server.ServiceContext;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -7,6 +9,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Custom profile uploads
@@ -50,7 +54,12 @@ public class ProfileUploadHandler
       fileWriter.flush();
       //System.out.println("data: |" + sw.toString() + "|");
 
-      response.write("profileid=" + CUSTOM_PREFIX + id);
+      Map<String, String> responseData = new HashMap<String, String>();
+      responseData.put( "profileid", CUSTOM_PREFIX + id );
+
+      validateProfile( id, responseData );
+
+      response.write( toJSON( responseData ) );
     }
     finally
     {
@@ -101,6 +110,50 @@ public class ProfileUploadHandler
         }
         break;
       }
+    }
+  }
+
+  private String toJSON( Map<String, String> data )
+  {
+    boolean first = true;
+    StringBuilder sb = new StringBuilder();
+    sb.append("{");
+    for (Map.Entry<String, String> entry : data.entrySet()) {
+      sb.append(first ? "\n" : ",\n");
+      sb.append("  \"");
+      sb.append(entry.getKey());
+      sb.append("\": \"");
+      sb.append(entry.getValue());
+      sb.append("\"");
+      first = false;
+    }
+    sb.append("\n}\n");
+    return sb.toString();
+  }
+
+  public void validateProfile(String id, Map<String, String> responseData)
+  {
+    // validate by initializing RoutingEngine, where parsing is done, and catching exceptions
+    // see https://github.com/abrensch/brouter/issues/14
+    try
+    {
+      RoutingContext rc = new RoutingContext();
+      rc.localFunction =  new File( getOrCreateCustomProfileDir(), id ).getPath();
+      new RoutingEngine( null, null, null, null, rc );
+    }
+    catch ( Exception e )
+    {
+      String msg = e.getMessage();
+      if ( msg == null )
+      {
+        msg = "";
+      }
+      else if ( msg.indexOf( "does not contain expressions for context" ) >= 0 )
+      {
+        // remove absolute path in this specific exception, useful for server, but don't disclose to client
+        msg = msg.substring( msg.indexOf( "does not contain expressions for context" ) );
+      }
+      responseData.put( "error", "Profile error: " + msg );
     }
   }
 }
