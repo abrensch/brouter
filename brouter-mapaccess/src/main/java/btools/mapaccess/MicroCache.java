@@ -22,7 +22,7 @@ final class MicroCache
   // the object parsing position and length
   private byte[] ab;
   private int aboffset;
-  private int ablength;
+  private int aboffsetEnd;
 
   // cache control: a virgin cache can be
   // put to ghost state for later recovery
@@ -150,7 +150,8 @@ final class MicroCache
       if ( ( fapos[n] & 0x80000000 ) == 0 )
       {
         aboffset = fapos[n];
-        ablength = ( n+1 < size ? fapos[n+1] & 0x7fffffff : ab.length ) - aboffset;
+        int ablength = ( n+1 < size ? fapos[n+1] & 0x7fffffff : ab.length ) - aboffset;
+        aboffsetEnd = aboffset + ablength;
         fapos[n] |= 0x80000000; // mark deleted
         delbytes+= ablength;
         delcount++;
@@ -172,7 +173,7 @@ final class MicroCache
     long id = node.getIdFromPos();
     if ( getAndClear( id ) )
     {
-      node.parseNodeBody( this, ablength, nodesMap, dc );
+      node.parseNodeBody( this, nodesMap, dc );
     }
 
     if ( doCollect && delcount > size / 2 ) // garbage collection
@@ -206,7 +207,7 @@ final class MicroCache
       	  int pos = fapos[i];
           if ( ( pos & 0x80000000 ) == 0 )
           {
-            ablength = ( i+1 < size ? fapos[i+1] & 0x7fffffff : ab.length ) - pos;
+            int ablength = ( i+1 < size ? fapos[i+1] & 0x7fffffff : ab.length ) - pos;
             System.arraycopy( ab, pos, nab, nab_off, ablength );
             nfaid[idx] = faid[i];
             nfapos[idx] = nab_off;
@@ -296,5 +297,10 @@ final class MicroCache
   {
 	  System.arraycopy( ab, aboffset, ta, 0, ta.length );
 	  aboffset += ta.length;
+  }
+
+  public boolean hasMoreData()
+  {
+    return aboffset < aboffsetEnd;
   }
 }

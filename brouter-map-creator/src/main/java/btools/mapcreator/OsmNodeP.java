@@ -12,7 +12,7 @@ import java.io.IOException;
 public class OsmNodeP implements Comparable<OsmNodeP>
 {
   public static final int EXTERNAL_BITMASK        = 0x80;
-  public static final int FIRSTFORWAY_BITMASK     = 0x40;
+  public static final int VARIABLEDESC_BITMASK    = 0x40;
   public static final int TRANSFERNODE_BITMASK    = 0x20;
   public static final int WRITEDESC_BITMASK       = 0x10;
   public static final int SKIPDETAILS_BITMASK     = 0x08;
@@ -144,14 +144,14 @@ public class OsmNodeP implements Comparable<OsmNodeP>
          if ( targetLonIdx == lonIdx && targetLatIdx == latIdx )
          {
            // reduced position for internal target
-           os2.writeByte( tranferbit | writedescbit | nodedescbit | skipDetailBit );
+           os2.writeByte( tranferbit | writedescbit | nodedescbit | skipDetailBit | VARIABLEDESC_BITMASK );
            os2.writeShort( (short)(target.ilon - lonIdx*62500 - 31250) );
            os2.writeShort( (short)(target.ilat - latIdx*62500 - 31250) );
          }
          else
          {
            // full position for external target
-           os2.writeByte( tranferbit | writedescbit | nodedescbit | skipDetailBit | EXTERNAL_BITMASK );
+           os2.writeByte( tranferbit | writedescbit | nodedescbit | skipDetailBit | EXTERNAL_BITMASK | VARIABLEDESC_BITMASK );
            os2.writeInt( target.ilon );
            os2.writeInt( target.ilat );
          }

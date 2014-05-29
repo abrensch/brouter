@@ -24,6 +24,7 @@ public final class BExpressionContext
 {
   private static final String CONTEXT_TAG = "---context:";
   private static final String VERSION_TAG = "---lookupversion:";
+  private static final String VARLENGTH_TAG = "---readvarlength";
 
   private String context;
   private boolean _inOurContext = false;
@@ -77,6 +78,7 @@ public final class BExpressionContext
   private int linenr;
 
   public short lookupVersion = -1;
+  public boolean readVarLength = false;
 
   public BExpressionContext( String context )
   {
@@ -111,6 +113,8 @@ public final class BExpressionContext
 
   public byte[] encode( int[] ld )
   {
+	if ( !readVarLength ) return encodeFix( ld ); 
+	  
 	// start with first bit hardwired ("reversedirection")
 	BitCoderContext ctx = new BitCoderContext( abBuf );
 	ctx.encodeBit( ld[0] != 0 );
@@ -126,11 +130,10 @@ public final class BExpressionContext
         skippedTags++;
         continue;
       }
-      int n = lookupValues.get(inum).length - 1;
-      if ( n == 2 ) { n = 1; d = d == 2 ? 1 : 0; } // 1-bit encoding for booleans
       ctx.encodeDistance( skippedTags );
       skippedTags = 0;
-      ctx.encode( n, d );
+      int n = lookupValues.get(inum).length - 2;
+      if ( n > 1 ) ctx.encode( n, d-1 ); // booleans are encoded just by presence...
     }
     ctx.encodeDistance( skippedTags );
     int len = ctx.getEncodedLength();
@@ -139,6 +142,10 @@ public final class BExpressionContext
     return ab;
   }
 
+  private byte[] encodeFix( int[] ld )
+  {
+    throw new IllegalArgumentException( "encoding fixed-length not supporte" );
+  }
   
 
   /**
@@ -146,7 +153,9 @@ public final class BExpressionContext
    */
   public void decode( int[] ld, byte[] ab )
   {
-	BitCoderContext ctx = new BitCoderContext(ab);
+	if ( ab.length == 8 ) { decodeFix( ld, ab ); return; }
+
+    BitCoderContext ctx = new BitCoderContext(ab);
 	  
     // start with first bit hardwired ("reversedirection")
   	ld[0] = ctx.decodeBit() ? 2 : 0;
@@ -157,15 +166,47 @@ public final class BExpressionContext
       int skip = ctx.decodeDistance();
       while ( skip-- > 0 ) ld[inum++] = 0;
       if ( inum >= lookupValues.size() ) break;
-      int nv = lookupValues.get(inum).length;
-      int n = nv == 3 ? 1 : nv-1; // 1-bit encoding for booleans
-      
-      int d = ctx.decode( n );
-      if ( nv == 3 && d == 1 ) d = 2; // 1-bit encoding for booleans
-      ld[inum] = d;
+      int n = lookupValues.get(inum).length - 2;
+      if ( n > 1 )
+      {
+        ld[inum] = ctx.decode( n ) + 1;
+      }
+      else
+      {
+          ld[inum] = 2; // boolean
+      }
     }
   }
 
+  /**
+   * decode old, 64-bit-fixed-length format
+   */
+  public void decodeFix( int[] ld, byte[] ab )
+  {
+	  int idx = 0;
+      long i7 = ab[idx++]& 0xff;
+      long i6 = ab[idx++]& 0xff;
+      long i5 = ab[idx++]& 0xff;
+      long i4 = ab[idx++]& 0xff;
+      long i3 = ab[idx++]& 0xff;
+      long i2 = ab[idx++]& 0xff;
+      long i1 = ab[idx++]& 0xff;
+      long i0 = ab[idx++]& 0xff;
+      long w =  (i7 << 56) + (i6 << 48) + (i5 << 40) + (i4 << 32) + (i3 << 24) + (i2 << 16) + (i1 << 8) + i0;
+
+    for( int inum = lookupValues.size()-1; inum >= 0; inum-- ) // loop over lookup names
+    {
+      int nv = lookupValues.get(inum).length;
+      int n = nv == 3 ? 1 : nv-1; // 1-bit encoding for booleans
+      int m = 0;
+      long ww = w;
+      while( n != 0 ) { n >>= 1; ww >>= 1; m = m<<1 | 1; }
+      int d = (int)(w & m);
+      if ( nv == 3 && d == 1 ) d = 2; // 1-bit encoding for booleans
+      ld[inum] = d;
+      w = ww;
+    }
+  }
 
   public String getCsvDescription( byte[] ab )
   {
@@ -213,8 +254,7 @@ public final class BExpressionContext
 
     int parsedLines = 0;
     boolean ourContext = false;
-    if ( "way".equals( context ) ) addLookupValue( "reversedirection", "yes", null );
-    else if ( "node".equals( context ) ) addLookupValue( "nodeaccessgranted", "yes", null );
+    boolean fixTagsWritten = false;
     for(;;)
     {
       String line = br.readLine();
@@ -231,6 +271,11 @@ public final class BExpressionContext
         lookupVersion = Short.parseShort( line.substring( VERSION_TAG.length() ) );
         continue;
       }
+      if ( line.startsWith( VARLENGTH_TAG ) )
+      {
+    	readVarLength = true;
+        continue;
+      }
       if ( !ourContext ) continue;
       parsedLines++;
       StringTokenizer tk = new StringTokenizer( line, " " );
@@ -238,8 +283,18 @@ public final class BExpressionContext
       String value = tk.nextToken();
       int idx = name.indexOf( ';' );
       if ( idx >= 0 ) name = name.substring( 0, idx );
-      if ( "reversedirection".equals( name ) ) continue; // this is hardcoded
-      if ( "nodeaccessgranted".equals( name ) ) continue; // this is hardcoded
+
+      if ( readVarLength )
+      {
+        if ( !fixTagsWritten )
+        {
+          fixTagsWritten = true;
+          if ( "way".equals( context ) ) addLookupValue( "reversedirection", "yes", null );
+          else if ( "node".equals( context ) ) addLookupValue( "nodeaccessgranted", "yes", null );
+        }
+        if ( "reversedirection".equals( name ) ) continue; // this is hardcoded
+        if ( "nodeaccessgranted".equals( name ) ) continue; // this is hardcoded
+      }
       BExpressionLookupValue newValue = addLookupValue( name, value, null );
 
       // add aliases
@@ -274,20 +329,20 @@ public final class BExpressionContext
 
   public void evaluate( boolean inverseDirection, byte[] ab, BExpressionReceiver receiver )
   {
+	 int inverseBitByteIndex =  readVarLength ? 0 : 7;
+	  
      _receiver = receiver;
      
      int abLen = ab.length;
      boolean equalsCurrent = currentHashBucket >= 0 && abLen == currentByteArray.length;
      if ( equalsCurrent )
      {
-       if ( (inverseDirection ? ab[0] ^ 1 : ab[0] ) == currentByteArray[0] )
+       for( int i=0; i<abLen; i++ )
        {
-         for( int i=1; i<abLen; i++ )
-         {
-    	   if ( ab[i] != currentByteArray[i] ) { equalsCurrent = false; break; }
-         }
+         byte b = ab[i];
+         if ( i == inverseBitByteIndex && inverseDirection ) b ^= 1;
+  	     if ( b != currentByteArray[i] ) { equalsCurrent = false; break; }
        }
-       else equalsCurrent = false;
      }
 
 
@@ -303,7 +358,7 @@ public final class BExpressionContext
        currentHashBucket =  (crc & 0xfffffff) % hashSize;
        currentByteArray = new byte[abLen];
        System.arraycopy( ab,  0,  currentByteArray,  0 , abLen );
-       if ( inverseDirection ) currentByteArray[0] ^= 1;
+       if ( inverseDirection ) currentByteArray[inverseBitByteIndex] ^= 1;
      }
 
      boolean hashBucketEquals = false;

@@ -43,7 +43,7 @@ public class MapcreatorTest
     // run WayCutter
     File waytiles = new File( tmpdir, "waytiles" );
     waytiles.mkdir();
-    new WayCutter().process( ftiles, wayFile2, waytiles, relFile );
+    new WayCutter().process( ftiles, wayFile2, waytiles );
 
     // run WayCutter5
     File waytiles55 = new File( tmpdir, "waytiles55" );

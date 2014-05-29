@@ -7,10 +7,19 @@ package btools.mapaccess;
 
 import java.util.*;
 
+import btools.util.ByteArrayUnifier;
+
 public final class OsmNodesMap
 {
   private HashMap<Long,OsmNode> hmap = new HashMap<Long,OsmNode>();
+  
+  private ByteArrayUnifier abUnifier = new ByteArrayUnifier( 16384 );
 
+  public ByteArrayUnifier getByteArrayUnifier()
+  {
+    return abUnifier;
+  }
+  
   private NodesList completedNodes = null;
 
   /**

@@ -20,16 +20,16 @@ public class WayCutter extends MapCreatorBase
   public static void main(String[] args) throws Exception
   {
     System.out.println("*** WayCutter: Soft-Cut way-data into tiles");
-    if (args.length != 4)
+    if (args.length != 3)
     {
-      System.out.println("usage: java WayCutter <node-tiles-in> <way-file-in> <way-tiles-out> <relation-file>" );
+      System.out.println("usage: java WayCutter <node-tiles-in> <way-file-in> <way-tiles-out>" );
 
       return;
     }
-    new WayCutter().process( new File( args[0] ), new File( args[1] ), new File( args[2] ), new File( args[3] ) );
+    new WayCutter().process( new File( args[0] ), new File( args[1] ), new File( args[2] ) );
   }
 
-  public void process( File nodeTilesIn, File wayFileIn, File wayTilesOut, File relationFileIn ) throws Exception
+  public void process( File nodeTilesIn, File wayFileIn, File wayTilesOut ) throws Exception
   {
     this.outTileDir = wayTilesOut;
 

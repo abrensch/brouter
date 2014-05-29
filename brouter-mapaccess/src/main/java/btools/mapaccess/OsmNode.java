@@ -5,12 +5,14 @@
  */
 package btools.mapaccess;
 
+import btools.util.ByteArrayUnifier;
+
 
 
 public class OsmNode implements OsmPos
 {
   public static final int EXTERNAL_BITMASK        = 0x80;
-  public static final int FIRSTFORWAY_BITMASK     = 0x40;
+  public static final int VARIABLEDESC_BITMASK    = 0x40;
   public static final int TRANSFERNODE_BITMASK    = 0x20;
   public static final int WRITEDESC_BITMASK       = 0x10;
   public static final int SKIPDETAILS_BITMASK     = 0x08;
@@ -107,17 +109,18 @@ public class OsmNode implements OsmPos
   }
 
 
-   public void parseNodeBody( MicroCache is, int bodySize, OsmNodesMap hollowNodes, DistanceChecker dc )
+   public void parseNodeBody( MicroCache is, OsmNodesMap hollowNodes, DistanceChecker dc )
    {
-     selev = is.readShort();
-     bodySize -= 2;
+	 ByteArrayUnifier abUnifier = hollowNodes.getByteArrayUnifier();
+
+	 selev = is.readShort();
 
      OsmLink lastlink = null;
 
      int lonIdx = ilon/62500;
      int latIdx = ilat/62500;
 
-     while( bodySize > 0 )
+     while( is.hasMoreData() )
      {
        OsmLink link = new OsmLink();
        OsmTransferNode firstTransferNode = null;
@@ -128,32 +131,33 @@ public class OsmNode implements OsmPos
        for(;;)
        {
          int bitField = is.readByte();
-         bodySize -= 1;
          if ( (bitField & EXTERNAL_BITMASK) != 0 )
          {
            // full position for external target
-           bodySize -= 8;
            linklon = is.readInt();
            linklat = is.readInt();
          }
          else
          {
            // reduced position for internal target
-           bodySize -= 4;
            linklon = is.readShort();
            linklat = is.readShort();
            linklon += lonIdx*62500 + 31250;
            linklat += latIdx*62500 + 31250;
          }
+         // read variable length or old 8 byte fixed, and ensure that 8 bytes is only fixed
+         boolean readFix8 = (bitField & VARIABLEDESC_BITMASK ) == 0; // old, fix length format
          if ( (bitField & WRITEDESC_BITMASK ) != 0 )
          {
-        	 int dlen = is.readByte(); description = new byte[dlen]; is.readFully( description );
-             bodySize -= 1 + dlen;
+        	 byte[] ab = new byte[readFix8 ? 8 : is.readByte()];
+        	 is.readFully( ab );
+        	 description = abUnifier.unify( ab );
          }
          if ( (bitField & NODEDESC_BITMASK ) != 0 )
          {
-        	 int dlen = is.readByte(); nodeDescription = new byte[dlen]; is.readFully( nodeDescription );
-             bodySize -= 1 + dlen;
+        	 byte[] ab = new byte[readFix8 ? 8 : is.readByte()];
+        	 is.readFully( ab );
+        	 nodeDescription = abUnifier.unify( ab );
          }
          if ( (bitField & SKIPDETAILS_BITMASK ) != 0 )
          {
@@ -169,7 +173,6 @@ public class OsmNode implements OsmPos
            trans.ilon = linklon;
            trans.ilat = linklat;
            trans.descriptionBitmap = description;
-           bodySize -= 2;
            trans.selev = is.readShort();
            if ( lastTransferNode == null )
            {

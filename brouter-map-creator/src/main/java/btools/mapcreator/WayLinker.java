@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.List;
 
 import btools.expressions.BExpressionContext;
+import btools.util.ByteArrayUnifier;
 import btools.util.CompactLongMap;
 import btools.util.CompactLongSet;
 import btools.util.Crc32;
@@ -43,6 +44,8 @@ public class WayLinker extends MapCreatorBase
   
   private BExpressionContext expctxWay;
 
+  private ByteArrayUnifier abUnifier;
+  
   private int minLon;
   private int minLat;
   
@@ -80,6 +83,8 @@ public class WayLinker extends MapCreatorBase
     
     creationTimeStamp = System.currentTimeMillis();
 
+    abUnifier = new ByteArrayUnifier( 16384 );
+    
     // then process all segments    
     new WayIterator( this, true ).processDir( wayTilesIn, ".wt5" );
   }
@@ -140,7 +145,7 @@ public class WayLinker extends MapCreatorBase
   @Override
   public void nextWay( WayData way ) throws Exception
   {
-    byte[] description = way.description;
+    byte[] description = abUnifier.unify( way.description );
 
     // filter according to profile
     expctxWay.evaluate( false, description, null );
