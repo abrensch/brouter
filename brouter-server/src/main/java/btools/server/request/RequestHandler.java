@@ -25,4 +25,5 @@ public abstract class RequestHandler
 
 	public abstract String formatTrack(OsmTrack track);
 
+  public abstract String getMimeType();
 }

@@ -1,14 +1,15 @@
 package btools.server.request;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
 import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.server.ServiceContext;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * URL query parameter handler for web and standalone server. Supports all 
@@ -29,6 +30,8 @@ import java.io.File;
  */
 public class ServerHandler extends RequestHandler {
 
+  private RoutingContext rc;
+
 	public ServerHandler( ServiceContext serviceContext, HashMap<String, String> params )
 	{
 		super( serviceContext, params );
@@ -37,7 +40,7 @@ public class ServerHandler extends RequestHandler {
 	@Override
 	public RoutingContext readRoutingContext()
 	{
-    RoutingContext rc = new RoutingContext();
+    rc = new RoutingContext();
 
     String profile = params.get( "profile" );
     // when custom profile replace prefix with directory path
@@ -98,6 +101,20 @@ public class ServerHandler extends RequestHandler {
 		{
 			result = track.formatAsKml();
 		}
+    else if ("csv".equals(format))
+    {
+      try
+      {
+        StringWriter sw = new StringWriter();
+        BufferedWriter bw = new BufferedWriter(sw);
+        track.writeMessages( bw, rc );
+        return sw.toString();
+      }
+      catch (Exception ex)
+      {
+        return "Error: " + ex.getMessage();
+      }
+    }
 		else {
 			System.out.println("unknown track format '" + format + "', using default");
 			result = track.formatAsGpx();
@@ -105,7 +122,30 @@ public class ServerHandler extends RequestHandler {
 			
 		return result;
 	}
-	
+
+  @Override
+  public String getMimeType()
+  {
+    // default
+    String result = "text/plain";
+
+    // optional, may be null
+    String format = params.get( "format" );
+    if ( format != null )
+    {
+      if ( "gpx".equals( format ) || "kml".equals( format ) )
+      {
+        result = "text/xml";
+      }
+      else if ( "csv".equals( format ) )
+      {
+        result = "text/tab-separated-values";
+      }
+    }
+            
+    return result;
+  }
+
   private static OsmNodeNamed readPosition( String vlon, String vlat, String name )
   {
     if ( vlon == null ) throw new IllegalArgumentException( "lon " + name + " not found in input" );
