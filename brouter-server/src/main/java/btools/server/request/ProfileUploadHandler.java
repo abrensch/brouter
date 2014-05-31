@@ -99,7 +99,10 @@ public class ProfileUploadHandler
         for(;;)
         {
           // read will block when false, occurs at end of stream rather than -1
-          if (!ir.ready()) break;
+          if (!ir.ready()) {
+        	  try { Thread.sleep(1000); } catch( Exception e ) {}
+        	  if ( !ir.ready() ) break;
+          }
           int c = ir.read();
           if ( c == -1) break;
           bw.write( c );
@@ -138,7 +141,7 @@ public class ProfileUploadHandler
     try
     {
       RoutingContext rc = new RoutingContext();
-      rc.localFunction =  new File( getOrCreateCustomProfileDir(), id ).getPath();
+      rc.localFunction =  serviceContext.customProfileDir + "/" + id;
       new RoutingEngine( null, null, null, null, rc );
     }
     catch ( Exception e )
