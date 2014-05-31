@@ -103,7 +103,6 @@ final class OsmPath implements OsmLinkHolder
 
     OsmTransferNode transferNode = link.decodeFirsttransfer();
     OsmNode targetNode = link.targetNode;
-    byte[] lastDescription = null;
     String lastMessage = null;
     for(;;)
     {
@@ -132,15 +131,17 @@ final class OsmPath implements OsmLinkHolder
     	if ( description == null ) throw new IllegalArgumentException( "null description for class: " + transferNode.getClass() + "/" + link.getClass() + " counterlinkwritten=" + link.counterLinkWritten );
       }
 
+      rc.messageHandler.setCurrentPos( lon2, lat2 );
+      boolean sameData = rc.expctxWay.evaluate( link.counterLinkWritten, description, rc.messageHandler );
+      
       // if way description changed, store message
-      if ( lastMessage != null && description != lastDescription )
+      if ( lastMessage != null && !sameData )
       {
         originElement.message = lastMessage;
         linkdist = 0;
         linkelevationcost = 0;
         linkturncost = 0;
       }
-      lastDescription = description;
 
       int dist = rc.calcDistance( lon1, lat1, lon2, lat2 );
       int elefactor = 250000;
@@ -176,8 +177,6 @@ final class OsmPath implements OsmLinkHolder
       linkdist += dist;
       linkdisttotal += dist;
 
-      rc.messageHandler.setCurrentPos( lon2, lat2 );
-      rc.expctxWay.evaluate( link instanceof OsmLinkReverse, description, rc.messageHandler );
 
       // *** penalty for way-change
       if ( origin.originElement != null )
@@ -261,7 +260,7 @@ final class OsmPath implements OsmLinkHolder
                     + iCost + "\t"
                     + linkelevationcost
                     + "\t" + linkturncost
-                    + rc.expctxWay.getCsvDescription( description );
+                    + rc.expctxWay.getCsvDescription( link.counterLinkWritten, description );
       }
 
       if ( stopAtEndpoint )

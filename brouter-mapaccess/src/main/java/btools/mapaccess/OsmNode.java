@@ -240,12 +240,12 @@ public class OsmNode implements OsmPos
        // compute the reverse link
        if ( !link.counterLinkWritten )
        {
-           OsmLink rlink = new OsmLinkReverse();
-
+           OsmLink rlink = new OsmLink();
+           byte[] linkDescriptionBitmap = link.descriptionBitmap;
            rlink.ilonOrigin = tn.ilon;
            rlink.ilatOrigin = tn.ilat;
            rlink.targetNode = this;
-           rlink.descriptionBitmap = link.descriptionBitmap; // default for no transfer-nodes
+           rlink.descriptionBitmap = linkDescriptionBitmap; // default for no transfer-nodes
            OsmTransferNode previous = null;
            OsmTransferNode rtrans = null;
            for( OsmTransferNode trans = firstTransferNode; trans != null; trans = trans.next )
@@ -263,7 +263,7 @@ public class OsmNode implements OsmPos
              rtrans.ilat = trans.ilat;
              rtrans.selev = trans.selev;
              rtrans.next = previous;
-             rtrans.descriptionBitmap = trans.descriptionBitmap;
+             rtrans.descriptionBitmap = linkDescriptionBitmap;
              previous = rtrans;
            }
            rlink.encodeFirsttransfer(rtrans);
@@ -331,17 +331,6 @@ public class OsmNode implements OsmPos
       }
     }
   }
-
-   // mark the link to the given node as written,
-   // don't want to write the counter-direction
-   // in full details
-   public void markLinkWritten( OsmNode t )
-   {
-     for( OsmLink link = firstlink; link != null; link = link.next )
-     {
-       if ( link.targetNode == t) link.counterLinkWritten = true;
-     }
-   }
 
    public OsmLink getReverseLink( int lon, int lat )
    {

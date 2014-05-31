@@ -208,16 +208,22 @@ public final class BExpressionContext
     }
   }
 
-  public String getCsvDescription( byte[] ab )
+  public String getCsvDescription( boolean inverseDirection, byte[] ab )
   {
-     StringBuilder sb = new StringBuilder( 200 );
-     decode( lookupData, ab );
-     for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
-     {
-       BExpressionLookupValue[] va = lookupValues.get(inum);
-       sb.append( '\t' ).append( va[lookupData[inum]].toString() );
-     }
-     return sb.toString();
+    int inverseBitByteIndex =  readVarLength ? 0 : 7;
+    int abLen = ab.length;
+    byte[] ab_copy = new byte[abLen];
+	System.arraycopy( ab,  0,  ab_copy,  0 , abLen );
+	if ( inverseDirection ) ab_copy[inverseBitByteIndex] ^= 1;
+
+	StringBuilder sb = new StringBuilder( 200 );
+    decode( lookupData, ab_copy );
+    for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
+    {
+      BExpressionLookupValue[] va = lookupValues.get(inum);
+      sb.append( '\t' ).append( va[lookupData[inum]].toString() );
+    }
+    return sb.toString();
   }
 
   public String getCsvHeader()
@@ -327,12 +333,15 @@ public final class BExpressionContext
 
 
 
-  public void evaluate( boolean inverseDirection, byte[] ab, BExpressionReceiver receiver )
+  /**
+   * evaluates the data in the given byte array
+   * 
+   * @return true if the data is equivilant to the last calls data
+   */
+  public boolean evaluate( boolean inverseDirection, byte[] ab, BExpressionReceiver receiver )
   {
 	 int inverseBitByteIndex =  readVarLength ? 0 : 7;
-	  
-     _receiver = receiver;
-     
+	       
      int abLen = ab.length;
      boolean equalsCurrent = currentHashBucket >= 0 && abLen == currentByteArray.length;
      if ( equalsCurrent )
@@ -348,7 +357,7 @@ public final class BExpressionContext
 
      if ( equalsCurrent )
      {
-       return;
+       return true;
      }
      else
      {
@@ -371,11 +380,13 @@ public final class BExpressionContext
     	   if ( abBucket[i] != currentByteArray[i] ) { hashBucketEquals = false; break; }
          }
      }
-     if ( hashBucketEquals ) return;
+     if ( hashBucketEquals ) return false;
      
      _arrayBitmap[currentHashBucket] = currentByteArray;
 
-     decode( lookupData, ab );
+     _receiver = receiver;
+
+     decode( lookupData, currentByteArray );
      evaluate( lookupData );
 
      _arrayCostfactor[currentHashBucket] = variableData[costfactorIdx];
@@ -384,6 +395,7 @@ public final class BExpressionContext
      _arrayNodeAccessGranted[currentHashBucket] = variableData[nodeaccessgrantedIdx];
 
      _receiver = null;
+     return false;
   }
 
   public void dumpStatistics()

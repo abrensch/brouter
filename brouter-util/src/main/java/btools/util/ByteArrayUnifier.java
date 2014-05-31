@@ -3,12 +3,14 @@ package btools.util;
 public final class ByteArrayUnifier
 {
   private byte[][] byteArrayCache;
+  private int[] crcCrosscheck;
   private int size;
 
-  public ByteArrayUnifier( int size )
+  public ByteArrayUnifier( int size, boolean validateImmutability )
   {
     this.size = size;
     byteArrayCache = new byte[size][];
+    if ( validateImmutability ) crcCrosscheck = new int[size];
   }
 
   /**
@@ -20,7 +22,7 @@ public final class ByteArrayUnifier
    */
   public byte[] unify( byte[] ab )
   {
-	  int n = ab.length;
+      int n = ab.length;
       int crc  = Crc32.crc( ab, 0, n );
       int idx  =  (crc & 0xfffffff) % size;
       byte[] abc = byteArrayCache[idx];
@@ -33,6 +35,16 @@ public final class ByteArrayUnifier
         	i++;
         }
         if ( i == n ) return abc;
+      }
+      if ( crcCrosscheck != null )
+      {
+    	  if ( byteArrayCache[idx] != null )
+    	  {
+    	    byte[] abold = byteArrayCache[idx];
+    	    int crcold = Crc32.crc( abold, 0, abold.length );
+    	    if ( crcold != crcCrosscheck[idx] ) throw new IllegalArgumentException( "ByteArrayUnifier: immutablity validation failed!" );
+    	  }
+    	  crcCrosscheck[idx] = crc;
       }
       byteArrayCache[idx] = ab;
 	  return ab;

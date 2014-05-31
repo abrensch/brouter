@@ -13,7 +13,7 @@ public final class OsmNodesMap
 {
   private HashMap<Long,OsmNode> hmap = new HashMap<Long,OsmNode>();
   
-  private ByteArrayUnifier abUnifier = new ByteArrayUnifier( 16384 );
+  private ByteArrayUnifier abUnifier = new ByteArrayUnifier( 16384, false );
 
   public ByteArrayUnifier getByteArrayUnifier()
   {

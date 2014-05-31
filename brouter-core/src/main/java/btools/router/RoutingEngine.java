@@ -296,7 +296,7 @@ public class RoutingEngine extends Thread
         startLink.addLinkHolder( startPath );
         for( OsmLink link = n.firstlink; link != null; link = link.next )
         {
-          if ( link.counterLinkWritten ) continue; // reverse link not found
+          if ( link.descriptionBitmap == null ) continue; // reverse link not found
           OsmNode nextNode = link.targetNode;
           if ( nextNode.isHollow() ) continue; // border node?
           if ( nextNode.firstlink == null ) continue; // don't care about dead ends
@@ -346,7 +346,6 @@ public class RoutingEngine extends Thread
         {
           link.descriptionBitmap = rlink.descriptionBitmap;
           link.firsttransferBytes = rlink.firsttransferBytes;
-          link.counterLinkWritten = false;
         }
       }
     }

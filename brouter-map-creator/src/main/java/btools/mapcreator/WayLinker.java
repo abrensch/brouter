@@ -83,7 +83,7 @@ public class WayLinker extends MapCreatorBase
     
     creationTimeStamp = System.currentTimeMillis();
 
-    abUnifier = new ByteArrayUnifier( 16384 );
+    abUnifier = new ByteArrayUnifier( 16384, false );
     
     // then process all segments    
     new WayIterator( this, true ).processDir( wayTilesIn, ".wt5" );
