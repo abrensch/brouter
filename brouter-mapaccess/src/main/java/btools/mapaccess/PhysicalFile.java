@@ -30,7 +30,7 @@ final public class PhysicalFile
 	  try
 	  {
         byte[] iobuffer = new byte[65636];
-        pf = new PhysicalFile( f, new byte[65636], -1 );
+        pf = new PhysicalFile( f, new byte[65636], -1, -1 );
       	for( int tileIndex=0; tileIndex<25; tileIndex++ )
       	{
 		  OsmFile osmf = new OsmFile( pf, tileIndex, iobuffer );
@@ -55,7 +55,7 @@ final public class PhysicalFile
 	  return null;
   }
 
-  public PhysicalFile( File f, byte[] iobuffer, int lookupVersion ) throws Exception
+  public PhysicalFile( File f, byte[] iobuffer, int lookupVersion, int lookupMinorVersion ) throws Exception
   {
     fileName = f.getName();
 
@@ -67,10 +67,15 @@ final public class PhysicalFile
     {
       long lv = dis.readLong();
       short readVersion = (short)(lv >> 48);
-      if ( readVersion != lookupVersion && lookupVersion != -1 )
+      if ( i == 0 && lookupVersion != -1 && readVersion != lookupVersion )
       {
         throw new IllegalArgumentException( "lookup version mismatch (old rd5?) lookups.dat="
                  + lookupVersion + " " + f. getAbsolutePath() + "=" + readVersion );
+      }
+      if ( i == 1 && lookupMinorVersion != -1 && readVersion < lookupMinorVersion )
+      {
+        throw new IllegalArgumentException( "lookup minor version mismatch (old rd5?) lookups.dat="
+                 + lookupMinorVersion + " " + f. getAbsolutePath() + "=" + readVersion );
       }
       fileIndex[i] = lv & 0xffffffffffffL;
     }

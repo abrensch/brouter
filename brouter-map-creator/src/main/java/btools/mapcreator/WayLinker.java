@@ -39,6 +39,7 @@ public class WayLinker extends MapCreatorBase
   private List<OsmNodeP> nodesList;
   private CompactLongSet borderSet;
   private short lookupVersion;
+  private short lookupMinorVersion;
 
   private long creationTimeStamp;
   
@@ -59,7 +60,7 @@ public class WayLinker extends MapCreatorBase
   
   public static void main(String[] args) throws Exception
   {
-    System.out.println("*** WayLinker: Format a regionof an OSM map for routing");
+    System.out.println("*** WayLinker: Format a region of an OSM map for routing");
     if (args.length != 7)
     {
       System.out.println("usage: java WayLinker <node-tiles-in> <way-tiles-in> <bordernodes> <lookup-file> <profile-file> <data-tiles-out> <data-tiles-suffix> ");
@@ -79,6 +80,7 @@ public class WayLinker extends MapCreatorBase
     expctxWay = new BExpressionContext("way");
     expctxWay.readMetaData( lookupFile );
     lookupVersion = expctxWay.lookupVersion;
+    lookupMinorVersion = expctxWay.lookupMinorVersion;
     expctxWay.parseFile( profileFile, "global" );
     
     creationTimeStamp = System.currentTimeMillis();
@@ -152,12 +154,12 @@ public class WayLinker extends MapCreatorBase
     boolean ok = expctxWay.getCostfactor() < 10000.; 
     expctxWay.evaluate( true, description, null );
     ok |= expctxWay.getCostfactor() < 10000.;
+    if ( !ok ) return;
 
     byte bridgeTunnel = 0;
+    expctxWay.decode( description );
     if ( expctxWay.getBooleanLookupValue( "bridge" ) ) bridgeTunnel |= OsmNodeP.BRIDGE_AND_BIT;
     if ( expctxWay.getBooleanLookupValue( "tunnel" ) ) bridgeTunnel |= OsmNodeP.TUNNEL_AND_BIT;
-    
-    if ( !ok ) return;
     
     OsmNodeP n1 = null;
     OsmNodeP n2 = null;
@@ -182,7 +184,6 @@ public class WayLinker extends MapCreatorBase
       if ( n2 != null )
       {
         n2.wayAndBits &= bridgeTunnel;
-//        if ( n2 instanceof OsmNodePT ) ((OsmNodePT)n2).wayOrBits |= lowbyte;
       }
     }
   }
@@ -298,7 +299,7 @@ public class WayLinker extends MapCreatorBase
         }
       }
       
-      byte[] abFileIndex = compileFileIndex( fileIndex, lookupVersion );
+      byte[] abFileIndex = compileFileIndex( fileIndex, lookupVersion, lookupMinorVersion );
       
       // write extra data: timestamp + index-checksums
       os.writeLong( creationTimeStamp );
@@ -317,14 +318,14 @@ public class WayLinker extends MapCreatorBase
     }
   }
   
-  private byte[] compileFileIndex( long[] fileIndex, short lookupVersion ) throws Exception
+  private byte[] compileFileIndex( long[] fileIndex, short lookupVersion, short lookupMinorVersion ) throws Exception
   {
     ByteArrayOutputStream bos = new ByteArrayOutputStream( );
     DataOutputStream dos = new DataOutputStream( bos );
-    long versionPrefix = lookupVersion;
-    versionPrefix <<= 48;
     for( int i55=0; i55<25; i55++)
     {
+      long versionPrefix = i55 == 1 ? lookupMinorVersion : lookupVersion;
+      versionPrefix <<= 48;
       dos.writeLong( fileIndex[i55] | versionPrefix );
     }
     dos.close();

@@ -16,6 +16,7 @@ public final class NodesCache
   private String segmentDir;
   private OsmNodesMap nodesMap;
   private int lookupVersion;
+  private int lookupMinorVersion;
   private boolean carMode;
   private String currentFileName;
 
@@ -32,11 +33,12 @@ public final class NodesCache
   private long cacheSum = 0;
   private boolean garbageCollectionEnabled = false;
 
-  public NodesCache( String segmentDir, OsmNodesMap nodesMap, int lookupVersion, boolean carMode, NodesCache oldCache )
+  public NodesCache( String segmentDir, OsmNodesMap nodesMap, int lookupVersion, int lookupMinorVersion, boolean carMode, NodesCache oldCache )
   {
     this.segmentDir = segmentDir;
     this.nodesMap = nodesMap;
     this.lookupVersion = lookupVersion;
+    this.lookupMinorVersion = lookupMinorVersion;
     this.carMode = carMode;
 
     if ( oldCache != null )
@@ -215,7 +217,7 @@ public final class NodesCache
       if ( f != null )
       {
         currentFileName = f.getName();
-        ra = new PhysicalFile( f, iobuffer, lookupVersion );
+        ra = new PhysicalFile( f, iobuffer, lookupVersion, lookupMinorVersion );
       }
       fileCache.put( filenameBase, ra );
     }

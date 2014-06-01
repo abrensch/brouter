@@ -58,11 +58,11 @@ public class OsmCutter extends MapCreatorBase
 
     _expctxWay = new BExpressionContext("way");
     _expctxWay.readMetaData( lookupFile );
-    _expctxWayStat = new BExpressionContext("way");
+//  _expctxWayStat = new BExpressionContext("way");
 
     _expctxNode = new BExpressionContext("node");
     _expctxNode.readMetaData( lookupFile );
-    _expctxNodeStat = new BExpressionContext("node");
+//  _expctxNodeStat = new BExpressionContext("node");
 
     this.outTileDir = outTileDir;
     if ( !outTileDir.isDirectory() ) throw new RuntimeException( "out tile directory " + outTileDir + " does not exist" );
@@ -82,10 +82,10 @@ public class OsmCutter extends MapCreatorBase
     wayDos.close();
     cyclewayDos.close();
 
-    System.out.println( "-------- way-statistics -------- " );
-    _expctxWayStat.dumpStatistics();
-    System.out.println( "-------- node-statistics -------- " );
-    _expctxNodeStat.dumpStatistics();
+//    System.out.println( "-------- way-statistics -------- " );
+//    _expctxWayStat.dumpStatistics();
+//    System.out.println( "-------- node-statistics -------- " );
+//    _expctxNodeStat.dumpStatistics();
 
     System.out.println( statsLine() );
   }
@@ -114,7 +114,7 @@ public class OsmCutter extends MapCreatorBase
       {
         String value = n.getTag( key );
         _expctxNode.addLookupValue( key, value, lookupData );
-        _expctxNodeStat.addLookupValue( key, value, null );
+//        _expctxNodeStat.addLookupValue( key, value, null );
       }
       n.description = _expctxNode.encode(lookupData);
     }
@@ -161,7 +161,7 @@ public class OsmCutter extends MapCreatorBase
       {
         String value = w.getTag( key );
         _expctxWay.addLookupValue( key, value, lookupData );
-        _expctxWayStat.addLookupValue( key, value, null );
+//        _expctxWayStat.addLookupValue( key, value, null );
       }
       w.description = _expctxWay.encode(lookupData);
     }

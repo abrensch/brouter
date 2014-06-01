@@ -23,7 +23,7 @@ public class RelationMerger extends MapCreatorBase
   private CompactLongSet routesetall;
   private BExpressionContext expctxReport;
   private BExpressionContext expctxCheck;
-  private BExpressionContext expctxStat;
+ // private BExpressionContext expctxStat;
 
   private DataOutputStream wayOutStream;
   
@@ -48,7 +48,7 @@ public class RelationMerger extends MapCreatorBase
     expctxCheck = new BExpressionContext("way");
     expctxCheck.readMetaData( lookupFile );
     expctxCheck.parseFile( checkProfile, "global" );
-    expctxStat = new BExpressionContext("way");
+    // expctxStat = new BExpressionContext("way");
     
     // *** read the relation file into sets for each processed tag
     routesets = new HashMap<String,CompactLongSet>();
@@ -78,7 +78,7 @@ public class RelationMerger extends MapCreatorBase
         {
           long wid = readId( dis );
           if ( wid == -1 ) break;
-    	  expctxStat.addLookupValue( tagname, "yes", null );
+    	  // expctxStat.addLookupValue( tagname, "yes", null );
           if ( routeset != null && !routeset.contains( wid ) )
           {
         	  routeset.add( wid );
@@ -103,8 +103,8 @@ public class RelationMerger extends MapCreatorBase
     new WayIterator( this, true ).processFile( wayFileIn );
     wayOutStream.close();
 
-    System.out.println( "-------- route-statistics -------- " );
-    expctxStat.dumpStatistics();
+//    System.out.println( "-------- route-statistics -------- " );
+//    expctxStat.dumpStatistics();
 }
 
   @Override

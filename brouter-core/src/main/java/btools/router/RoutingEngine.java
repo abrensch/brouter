@@ -432,7 +432,7 @@ public class RoutingEngine extends Thread
   private void resetCache()
   {
     nodesMap = new OsmNodesMap();
-    nodesCache = new NodesCache(segmentDir, nodesMap, routingContext.expctxWay.lookupVersion, routingContext.carMode, nodesCache );
+    nodesCache = new NodesCache(segmentDir, nodesMap, routingContext.expctxWay.lookupVersion,routingContext.expctxWay.lookupMinorVersion, routingContext.carMode, nodesCache );
   }
 
   private OsmNode getStartNode( long startId )

@@ -24,6 +24,7 @@ public final class BExpressionContext
 {
   private static final String CONTEXT_TAG = "---context:";
   private static final String VERSION_TAG = "---lookupversion:";
+  private static final String MINOR_VERSION_TAG = "---minorversion:";
   private static final String VARLENGTH_TAG = "---readvarlength";
 
   private String context;
@@ -78,6 +79,7 @@ public final class BExpressionContext
   private int linenr;
 
   public short lookupVersion = -1;
+  public short lookupMinorVersion = -1;
   public boolean readVarLength = false;
 
   public BExpressionContext( String context )
@@ -104,7 +106,7 @@ public final class BExpressionContext
 
 
   /**
-   * encode lookup data to a byte array
+   * encode internal lookup data to a byte array
    */
   public byte[] encode()
   {
@@ -130,12 +132,15 @@ public final class BExpressionContext
         skippedTags++;
         continue;
       }
-      ctx.encodeDistance( skippedTags );
+      ctx.encodeDistance( skippedTags+1 );
       skippedTags = 0;
-      int n = lookupValues.get(inum).length - 2;
-      if ( n > 1 ) ctx.encode( n, d-1 ); // booleans are encoded just by presence...
+      
+      // 0 excluded already, 1 (=unknown) we rotate up to 8
+      // to have the good code space for the popular values
+      int dd = d < 2 ? 7 : ( d < 9 ? d - 2 : d - 1);
+      ctx.encodeDistance(  dd );
     }
-    ctx.encodeDistance( skippedTags );
+    ctx.encodeDistance( 0 );
     int len = ctx.getEncodedLength();
     byte[] ab = new byte[len];
     System.arraycopy( abBuf, 0, ab, 0, len );
@@ -149,11 +154,19 @@ public final class BExpressionContext
   
 
   /**
+   * decode byte array to internal lookup data
+   */
+  public void decode( byte[] ab )
+  {
+    decode( lookupData, ab );
+  }
+
+  /**
    * decode a byte-array into a lookup data array
    */
   public void decode( int[] ld, byte[] ab )
   {
-	if ( ab.length == 8 ) { decodeFix( ld, ab ); return; }
+	if ( !readVarLength ) { decodeFix( ld, ab ); return; }
 
     BitCoderContext ctx = new BitCoderContext(ab);
 	  
@@ -161,21 +174,22 @@ public final class BExpressionContext
   	ld[0] = ctx.decodeBit() ? 2 : 0;
   	
     // all others are generic
-    for( int inum = 1; inum < lookupValues.size(); inum++ ) // loop over lookup names
+  	int inum = 1;
+    for(;;)
     {
-      int skip = ctx.decodeDistance();
-      while ( skip-- > 0 ) ld[inum++] = 0;
-      if ( inum >= lookupValues.size() ) break;
-      int n = lookupValues.get(inum).length - 2;
-      if ( n > 1 )
-      {
-        ld[inum] = ctx.decode( n ) + 1;
-      }
-      else
-      {
-          ld[inum] = 2; // boolean
-      }
+      int delta = ctx.decodeDistance();
+      if ( delta == 0) break;
+      if ( inum + delta > ld.length ) break; // higher minor version is o.k.
+      
+      while ( delta-- > 1 ) ld[inum++] = 0;
+
+      // see encoder for value rotation
+      int dd = ctx.decodeDistance();
+      int d = dd == 7 ? 1 : ( dd < 7 ? dd + 2 : dd + 1);
+      if ( d >= lookupValues.get(inum).length ) d = 1; // map out-of-range to unkown
+      ld[inum++] = d;
     }
+    while( inum < ld.length ) ld[inum++] = 0;
   }
 
   /**
@@ -243,7 +257,10 @@ public final class BExpressionContext
      for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
      {
        BExpressionLookupValue[] va = lookupValues.get(inum);
-       String value = va[lookupData[inum]].toString();
+       int dataIdx = lookupData[inum];
+       if ( dataIdx >= va.length )
+          throw new RuntimeException( "ups, inum=" + inum + " dataIdx=" + dataIdx + " va.length=" + va.length + " sb=" + sb );
+       String value = va[dataIdx].toString();
        if ( value != null && value.length() > 0 )
        {
          sb.append( " " + lookupNames.get( inum ) + "=" + value );
@@ -275,6 +292,11 @@ public final class BExpressionContext
       if ( line.startsWith( VERSION_TAG ) )
       {
         lookupVersion = Short.parseShort( line.substring( VERSION_TAG.length() ) );
+        continue;
+      }
+      if ( line.startsWith( MINOR_VERSION_TAG ) )
+      {
+        lookupMinorVersion = Short.parseShort( line.substring( MINOR_VERSION_TAG.length() ) );
         continue;
       }
       if ( line.startsWith( VARLENGTH_TAG ) )

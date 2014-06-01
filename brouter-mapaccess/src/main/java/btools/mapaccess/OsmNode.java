@@ -17,6 +17,8 @@ public class OsmNode implements OsmPos
   public static final int WRITEDESC_BITMASK       = 0x10;
   public static final int SKIPDETAILS_BITMASK     = 0x08;
   public static final int NODEDESC_BITMASK        = 0x04;
+  public static final int RESERVED1_BITMASK       = 0x02;
+  public static final int RESERVED2_BITMASK       = 0x01;
 
   public OsmNode()
   {
@@ -158,6 +160,16 @@ public class OsmNode implements OsmPos
         	 byte[] ab = new byte[readFix8 ? 8 : is.readByte()];
         	 is.readFully( ab );
         	 nodeDescription = abUnifier.unify( ab );
+         }
+         if ( (bitField & RESERVED1_BITMASK ) != 0 )
+         {
+        	 byte[] ab = new byte[is.readByte()];
+        	 is.readFully( ab );
+         }
+         if ( (bitField & RESERVED2_BITMASK ) != 0 )
+         {
+        	 byte[] ab = new byte[is.readByte()];
+        	 is.readFully( ab );
          }
          if ( (bitField & SKIPDETAILS_BITMASK ) != 0 )
          {
