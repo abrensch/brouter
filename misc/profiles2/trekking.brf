@@ -29,7 +29,11 @@ assign uphillcutoff 1.5
 #
 # pre-calculate some logical expressions
 #
-assign is_ldcr and longdistancecycleway=yes not ignore_cycleroutes
+
+assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+assign nodeaccessgranted or any_cycleroute lcn=yes
+
+assign is_ldcr and any_cycleroute not ignore_cycleroutes
 assign isbike or bicycle=yes or bicycle=designated lcn=yes
 assign ispaved or surface=paved or surface=asphalt or surface=concrete surface=paving_stones
 assign isunpaved not or surface= or ispaved or surface=fine_gravel surface=cobblestone
@@ -66,7 +70,7 @@ assign defaultaccess
 # calculate logical bike access
 #
 assign bikeaccess
-       or longdistancecycleway=yes
+       or any_cycleroute
           switch bicycle=
                  switch vehicle=
                         defaultaccess
@@ -128,7 +132,7 @@ assign costfactor
 
   #
   # steps and ferries are special. Note this is handled
-  # before the longdistancecycleway-switch, to be able
+  # before the cycleroute-switch, to be able
   # to really exlude them be setting cost to infinity 
   #
   switch    highway=steps  switch allow_steps   40 100000
@@ -198,7 +202,7 @@ assign defaultaccess
                      1
 
 assign bikeaccess
-       or or longdistancecycleway=yes lcn=yes
+       or nodeaccessgranted=yes
           switch bicycle=
                  switch vehicle=
                         defaultaccess
