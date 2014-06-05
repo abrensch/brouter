@@ -11,6 +11,9 @@ assign   validForFoot        1
 
 ---context:way   # following code refers to way-tags
 
+assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+assign nodeaccessgranted or any_cycleroute lcn=yes
+
 assign turncost 0
 
 assign initialcost switch highway=ferry 10000 0
@@ -30,7 +33,7 @@ assign defaultaccess
 # calculate logical bike access
 #
 assign bikeaccess
-       or longdistancecycleway=yes
+       or any_cycleroute
           switch bicycle=
                  switch vehicle=
                         defaultaccess
@@ -69,7 +72,7 @@ assign defaultaccess
                      1
 
 assign bikeaccess
-       or or longdistancecycleway=yes lcn=yes
+       or nodeaccessgranted=yes
           switch bicycle=
                  switch vehicle=
                         defaultaccess

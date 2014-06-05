@@ -34,7 +34,7 @@ assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route
 assign nodeaccessgranted or any_cycleroute lcn=yes
 
 assign is_ldcr and any_cycleroute not ignore_cycleroutes
-assign isbike or bicycle=yes or bicycle=designated lcn=yes
+assign isbike or bicycle=yes or or bicycle=permissive bicycle=designated lcn=yes
 assign ispaved or surface=paved or surface=asphalt or surface=concrete surface=paving_stones
 assign isunpaved not or surface= or ispaved or surface=fine_gravel surface=cobblestone
 assign probablyGood or ispaved and isbike not isunpaved

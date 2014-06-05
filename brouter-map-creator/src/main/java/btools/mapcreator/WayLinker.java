@@ -40,6 +40,7 @@ public class WayLinker extends MapCreatorBase
   private CompactLongSet borderSet;
   private short lookupVersion;
   private short lookupMinorVersion;
+  private boolean writeVarLength;
 
   private long creationTimeStamp;
   
@@ -81,6 +82,7 @@ public class WayLinker extends MapCreatorBase
     expctxWay.readMetaData( lookupFile );
     lookupVersion = expctxWay.lookupVersion;
     lookupMinorVersion = expctxWay.lookupMinorVersion;
+    writeVarLength = expctxWay.readVarLength;
     expctxWay.parseFile( profileFile, "global" );
     
     creationTimeStamp = System.currentTimeMillis();
@@ -268,7 +270,7 @@ public class WayLinker extends MapCreatorBase
                 for( int ni=0; ni<subList.size(); ni++ )
                 {
                   OsmNodeP n = subList.get(ni);
-                  n.writeNodeData( dos );
+                  n.writeNodeData( dos, writeVarLength );
                 }
                 dos.close();
                 byte[] subBytes = bos.toByteArray();

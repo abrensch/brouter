@@ -17,7 +17,8 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 
-import btools.util.*;
+import btools.util.BitCoderContext;
+import btools.util.Crc32;
 
 
 public final class BExpressionContext
@@ -122,6 +123,7 @@ public final class BExpressionContext
 	ctx.encodeBit( ld[0] != 0 );
 	
 	int skippedTags = 0;
+	int nonNullTags= 0;
   	
     // all others are generic
     for( int inum = 1; inum < lookupValues.size(); inum++ ) // loop over lookup names
@@ -133,6 +135,7 @@ public final class BExpressionContext
         continue;
       }
       ctx.encodeDistance( skippedTags+1 );
+      nonNullTags++;
       skippedTags = 0;
       
       // 0 excluded already, 1 (=unknown) we rotate up to 8
@@ -141,15 +144,53 @@ public final class BExpressionContext
       ctx.encodeDistance(  dd );
     }
     ctx.encodeDistance( 0 );
+    
+    if ( nonNullTags == 0) return null;
+    
     int len = ctx.getEncodedLength();
     byte[] ab = new byte[len];
     System.arraycopy( abBuf, 0, ab, 0, len );
+    
+    
+    // crosscheck: decode and compare
+    int[] ld2 = new int[lookupValues.size()];
+    decode( ld2, ab );
+    for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
+    {
+    	if ( ld2[inum] != ld[inum] ) throw new RuntimeException( "assertion failed encoding " + getKeyValueDescription(ab) );
+    }    
+    
     return ab;
   }
 
-  private byte[] encodeFix( int[] ld )
+  /**
+   * encode lookup data to a 64-bit word
+   */
+  public byte[] encodeFix( int[] ld )
   {
-    throw new IllegalArgumentException( "encoding fixed-length not supporte" );
+    long w = 0;
+    for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
+    {
+      int n = lookupValues.get(inum).length - 1;
+      int d = ld[inum];
+      if ( n == 2 ) { n = 1; d = d == 2 ? 1 : 0; } // 1-bit encoding for booleans
+
+      while( n != 0 ) { n >>= 1; w <<= 1; }
+      w |= (long)d;
+    }
+    if ( w == 0) return null;
+    
+    byte[] ab = new byte[8];
+    int aboffset = 0;
+	ab[aboffset++] = (byte)( (w >> 56) & 0xff );
+    ab[aboffset++] = (byte)( (w >> 48) & 0xff );
+	ab[aboffset++] = (byte)( (w >> 40) & 0xff );
+    ab[aboffset++] = (byte)( (w >> 32) & 0xff );
+	ab[aboffset++] = (byte)( (w >> 24) & 0xff );
+    ab[aboffset++] = (byte)( (w >> 16) & 0xff );
+	ab[aboffset++] = (byte)( (w >>  8) & 0xff );
+    ab[aboffset++] = (byte)( (w      ) & 0xff );
+    return ab;
   }
   
 
@@ -186,7 +227,7 @@ public final class BExpressionContext
       // see encoder for value rotation
       int dd = ctx.decodeDistance();
       int d = dd == 7 ? 1 : ( dd < 7 ? dd + 2 : dd + 1);
-      if ( d >= lookupValues.get(inum).length ) d = 1; // map out-of-range to unkown
+      if ( d >= lookupValues.get(inum).length ) d = 1; // map out-of-range to unknown
       ld[inum++] = d;
     }
     while( inum < ld.length ) ld[inum++] = 0;
@@ -257,10 +298,7 @@ public final class BExpressionContext
      for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
      {
        BExpressionLookupValue[] va = lookupValues.get(inum);
-       int dataIdx = lookupData[inum];
-       if ( dataIdx >= va.length )
-          throw new RuntimeException( "ups, inum=" + inum + " dataIdx=" + dataIdx + " va.length=" + va.length + " sb=" + sb );
-       String value = va[dataIdx].toString();
+       String value = va[lookupData[inum]].toString();
        if ( value != null && value.length() > 0 )
        {
          sb.append( " " + lookupNames.get( inum ) + "=" + value );
@@ -576,7 +614,7 @@ public final class BExpressionContext
   public boolean getBooleanLookupValue( String name )
   {
     Integer num = lookupNumbers.get( name );
-    return num != null && lookupData[num.intValue()] != 0;
+    return num != null && lookupData[num.intValue()] == 2;
   }
 
   public void parseFile( File file, String readOnlyContext )

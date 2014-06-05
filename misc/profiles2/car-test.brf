@@ -40,10 +40,10 @@ assign caraccess
                                    switch or highway=residential highway=living_street 1
                                    switch    highway=service                           1
                                    0
-                                   or access=yes or access=designated access=destination
+                                   or access=yes or access=permissive or access=designated access=destination
                             or vehicle=yes or vehicle=designated vehicle=destination
-                     or motor_vehicle=yes or motor_vehicle=designated motor_vehicle=destination
-              or motorcar=yes or motorcar=designated motorcar=destination
+                     or motor_vehicle=yes or motor_vehicle=permissive or motor_vehicle=designated motor_vehicle=destination
+              or motorcar=yes or motorcar=permissive or motorcar=designated motorcar=destination
 
 assign accesspenalty
        switch caraccess
@@ -97,10 +97,10 @@ assign caraccess
                                    switch barrier=lift_gate 0
                                    switch barrier=cycle_barrier 0
                                    1
-                                   or access=yes or access=designated access=destination
-                            or vehicle=yes or vehicle=designated vehicle=destination
-                     or motor_vehicle=yes or motor_vehicle=designated motor_vehicle=destination
-              or motorcar=yes or motorcar=designated motorcar=destination
+                                   or access=yes access=permissive or access=designated access=destination
+                            or vehicle=yes or vehicle=permissive or vehicle=designated vehicle=destination
+                     or motor_vehicle=yes or motor_vehicle=permissive or motor_vehicle=designated motor_vehicle=destination
+              or motorcar=yes or motorcar=permissive or motorcar=designated motorcar=destination
 
 assign initialcost
        switch caraccess

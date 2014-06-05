@@ -82,7 +82,7 @@ public class OsmNodeP implements Comparable<OsmNodeP>
      return null;
    }
 
-   public void writeNodeData( DataOutputStream os ) throws IOException
+   public void writeNodeData( DataOutputStream os, boolean writeVarLength ) throws IOException
    {
      int lonIdx = ilon/62500;
      int latIdx = ilat/62500;
@@ -131,45 +131,68 @@ public class OsmNodeP implements Comparable<OsmNodeP>
     	   
          OsmNodeP target = link.targetNode;
          int tranferbit = target.isTransferNode() ? TRANSFERNODE_BITMASK : 0;
-         int writedescbit = link.descriptionBitmap != lastDescription ? WRITEDESC_BITMASK : 0;
          int nodedescbit = nodeDescription != null ? NODEDESC_BITMASK : 0;
 
-         if ( skipDetailBit != 0 )
+         int writedescbit = 0;
+         if ( skipDetailBit == 0 ) // check if description changed
          {
-           writedescbit = 0;
+        	 int inverseBitByteIndex =  writeVarLength ? 0 : 7;
+        	 boolean inverseDirection = link instanceof OsmLinkPReverse;
+        	 byte[] ab = link.descriptionBitmap;
+             int abLen = ab.length;
+             int lastLen = lastDescription == null ? 0 : lastDescription.length;
+             boolean equalsCurrent = abLen == lastLen;
+             if ( equalsCurrent )
+             {
+               for( int i=0; i<abLen; i++ )
+               {
+                 byte b = ab[i];
+                 if ( i == inverseBitByteIndex && inverseDirection ) b ^= 1;
+          	     if ( b != lastDescription[i] ) { equalsCurrent = false; break; }
+               }
+             }
+        	 if ( !equalsCurrent )
+        	 {
+        		 writedescbit = WRITEDESC_BITMASK;
+        		 lastDescription = new byte[abLen];
+        	     System.arraycopy( ab,  0,  lastDescription,  0 , abLen );
+        	     if ( inverseDirection ) lastDescription[inverseBitByteIndex] ^= 1;
+        	 }
+        	 
          }
          int targetLonIdx = target.ilon/62500;
          int targetLatIdx = target.ilat/62500;
 
+         int bm = tranferbit | writedescbit | nodedescbit | skipDetailBit;
+         if ( writeVarLength ) bm |= VARIABLEDESC_BITMASK;
+
          if ( targetLonIdx == lonIdx && targetLatIdx == latIdx )
          {
            // reduced position for internal target
-           os2.writeByte( tranferbit | writedescbit | nodedescbit | skipDetailBit | VARIABLEDESC_BITMASK );
+           os2.writeByte( bm );
            os2.writeShort( (short)(target.ilon - lonIdx*62500 - 31250) );
            os2.writeShort( (short)(target.ilat - latIdx*62500 - 31250) );
          }
          else
          {
            // full position for external target
-           os2.writeByte( tranferbit | writedescbit | nodedescbit | skipDetailBit | EXTERNAL_BITMASK | VARIABLEDESC_BITMASK );
+           os2.writeByte( bm | EXTERNAL_BITMASK );
            os2.writeInt( target.ilon );
            os2.writeInt( target.ilat );
          }
          if ( writedescbit != 0 )
          {
            // write the way description, code direction into the first bit
-           byte[] dbytes = link.descriptionBitmap;
-           int len = dbytes.length;
-           os2.writeByte( len );
-           os2.writeByte( link instanceof OsmLinkPReverse ? dbytes[0] | 1 : dbytes[0] );
-           if ( len > 1 ) os2.write( dbytes, 1, len-1 );
+           int len = lastDescription.length;
+           if ( writeVarLength ) os2.writeByte( len );
+           os2.write( lastDescription, 0, len );
          }
          if ( nodedescbit != 0 )
          {
-           os2.writeByte( nodeDescription.length ); os2.write( nodeDescription );
+           if ( writeVarLength ) os2.writeByte( nodeDescription.length );
+           os2.write( nodeDescription );
            nodeDescription = null;
          }
-         lastDescription = link.descriptionBitmap;
 
          if ( tranferbit == 0)
          {

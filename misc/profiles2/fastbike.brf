@@ -29,7 +29,8 @@ assign uphillcutoff 1.5
 
 ---context:way   # following code refers to way-tags
 
-
+assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+assign nodeaccessgranted or any_cycleroute lcn=yes
 
 assign ispaved or surface=paved or surface=asphalt or surface=concrete surface=paving_stones
 assign isunpaved not or surface= or ispaved or surface=fine_gravel surface=cobblestone
@@ -53,7 +54,7 @@ assign defaultaccess
 # calculate logical bike access
 #
 assign bikeaccess
-       or longdistancecycleway=yes
+       or any_cycleroute
           switch bicycle=
                  switch vehicle=
                         defaultaccess
@@ -140,7 +141,7 @@ assign defaultaccess
                      1
 
 assign bikeaccess
-       or or longdistancecycleway=yes lcn=yes
+       or nodeaccessgranted=yes
           switch bicycle=
                  switch vehicle=
                         defaultaccess
