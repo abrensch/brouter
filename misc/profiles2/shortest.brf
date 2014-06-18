@@ -59,7 +59,7 @@ assign costfactor
 
   switch    highway=ferry                             5.67
   switch or highway=motorway highway=motorway_link    100000
-  switch    highway=proposed                          100000
+  switch or highway=proposed highway=abandoned        100000
   1
 
 ---context:node  # following code refers to node tags

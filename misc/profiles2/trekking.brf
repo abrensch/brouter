@@ -175,7 +175,7 @@ assign costfactor
   # exclude motorways and proposed roads
   #
   switch or highway=motorway highway=motorway_link    100000
-  switch    highway=proposed                          100000
+  switch or highway=proposed highway=abandoned        100000
 
   #
   # actuals roads are o.k. if we have a bike hint

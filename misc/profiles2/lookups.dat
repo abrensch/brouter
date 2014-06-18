@@ -463,7 +463,8 @@ motorcar;0000000214 permissive
 motorcar;0000000093 agricultural forestry
 motorcar;0000000084 designated official
 
-motor_vehicle;0000000066 yes permissive
+motor_vehicle;0000000066 yes
+motor_vehicle;0000000001 permissive
 motor_vehicle;0000000000 designated official
 motor_vehicle;0000000030 destination
 motor_vehicle;0000000073 agricultural forestry
