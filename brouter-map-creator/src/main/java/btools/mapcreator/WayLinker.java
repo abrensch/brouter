@@ -8,7 +8,9 @@ import java.util.Collections;
 import java.util.List;
 
 import btools.expressions.BExpressionContext;
+import btools.expressions.BExpressionMetaData;
 import btools.util.ByteArrayUnifier;
+import btools.util.ByteDataWriter;
 import btools.util.CompactLongMap;
 import btools.util.CompactLongSet;
 import btools.util.Crc32;
@@ -45,6 +47,7 @@ public class WayLinker extends MapCreatorBase
   private long creationTimeStamp;
   
   private BExpressionContext expctxWay;
+  private BExpressionContext expctxNode;
 
   private ByteArrayUnifier abUnifier;
   
@@ -77,13 +80,19 @@ public class WayLinker extends MapCreatorBase
     this.borderFileIn = borderFileIn;
     this.dataTilesSuffix = dataTilesSuffix;
     
+    BExpressionMetaData meta = new BExpressionMetaData();
+    
     // read lookup + profile for lookup-version + access-filter
-    expctxWay = new BExpressionContext("way");
-    expctxWay.readMetaData( lookupFile );
-    lookupVersion = expctxWay.lookupVersion;
-    lookupMinorVersion = expctxWay.lookupMinorVersion;
-    writeVarLength = expctxWay.readVarLength;
+    expctxWay = new BExpressionContext("way", meta);
+    expctxNode = new BExpressionContext("node", meta);
+    meta.readMetaData( lookupFile );
+
+    lookupVersion = meta.lookupVersion;
+    lookupMinorVersion = meta.lookupMinorVersion;
+    writeVarLength = meta.readVarLength;
+
     expctxWay.parseFile( profileFile, "global" );
+    expctxNode.parseFile( profileFile, "global" );
     
     creationTimeStamp = System.currentTimeMillis();
 
@@ -158,11 +167,11 @@ public class WayLinker extends MapCreatorBase
     ok |= expctxWay.getCostfactor() < 10000.;
     if ( !ok ) return;
 
-    byte bridgeTunnel = 0;
+    byte wayBits = 0;
     expctxWay.decode( description );
-    if ( expctxWay.getBooleanLookupValue( "bridge" ) ) bridgeTunnel |= OsmNodeP.BRIDGE_AND_BIT;
-    if ( expctxWay.getBooleanLookupValue( "tunnel" ) ) bridgeTunnel |= OsmNodeP.TUNNEL_AND_BIT;
-    
+    if ( !expctxWay.getBooleanLookupValue( "bridge" ) ) wayBits |= OsmNodeP.NO_BRIDGE_BIT;
+    if ( !expctxWay.getBooleanLookupValue( "tunnel" ) ) wayBits |= OsmNodeP.NO_TUNNEL_BIT;
+   
     OsmNodeP n1 = null;
     OsmNodeP n2 = null;
     for (int i=0; i<way.nodes.size(); i++)
@@ -185,7 +194,7 @@ public class WayLinker extends MapCreatorBase
       }
       if ( n2 != null )
       {
-        n2.wayAndBits &= bridgeTunnel;
+        n2.wayBits |= wayBits;
       }
     }
   }
@@ -195,6 +204,9 @@ public class WayLinker extends MapCreatorBase
   {
     nodesMap = null;
     borderSet = null;
+    
+    byte[] abBuf = new byte[1024*1024];
+    byte[] abBuf2 = new byte[10*1024*1024];
 
     int maxLon = minLon + 5000000;    
     int maxLat = minLat + 5000000;
@@ -264,17 +276,16 @@ public class WayLinker extends MapCreatorBase
               {
                 Collections.sort( subList );
 
-                ByteArrayOutputStream bos = new ByteArrayOutputStream( );
-                DataOutputStream dos = new DataOutputStream( bos );
-                dos.writeInt( subList.size() + 1 ); // reserve 1 dummy node for crc
+                ByteDataWriter dos = new ByteDataWriter( abBuf2 );
+                
+                dos.writeInt( subList.size() );
                 for( int ni=0; ni<subList.size(); ni++ )
                 {
                   OsmNodeP n = subList.get(ni);
-                  n.writeNodeData( dos, writeVarLength );
+                  n.writeNodeData( dos, writeVarLength, abBuf );
                 }
-                dos.close();
-                byte[] subBytes = bos.toByteArray();
-                pos += subBytes.length + 12; // reserve 12 bytes for crc dummy node
+                byte[] subBytes = dos.toByteArray();
+                pos += subBytes.length + 4; // reserve 4 bytes for crc
                 subByteArrays[si] = subBytes;
               }
               posIdx[si] = pos;
@@ -289,9 +300,6 @@ public class WayLinker extends MapCreatorBase
               if ( ab != null )
               {
                 os.write( ab );
-                os.writeShort( Short.MAX_VALUE ); // write crc as a dummy node for compatibility
-                os.writeShort( Short.MAX_VALUE );
-                os.writeInt( 4 );
                 os.writeInt( Crc32.crc( ab, 0 , ab.length ) );
               }
             }

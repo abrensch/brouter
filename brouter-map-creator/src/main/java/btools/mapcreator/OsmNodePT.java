@@ -10,8 +10,6 @@ public class OsmNodePT extends OsmNodeP
 {
     public byte[] descriptionBits;
 
-    public byte wayOrBits = 0; // used to propagate bike networks to nodes
-
     public OsmNodePT()
     {
     }
@@ -25,7 +23,6 @@ public class OsmNodePT extends OsmNodeP
     public final byte[] getNodeDecsription()
     {
       return descriptionBits;
-      // return descriptionBits | (long)( (wayOrBits & 6) >> 1 );     TODO !!!!!!!!!!1
     }
 
     @Override

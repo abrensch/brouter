@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import btools.expressions.BExpressionContext;
+import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.NodesCache;
 import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmLinkHolder;
@@ -70,18 +71,20 @@ public class RoutingEngine extends Thread
         profileDir = new File( profileBaseDir );
         profileFile = new File( profileDir, rc.localFunction + ".brf" ) ;
       }
-      BExpressionContext expctxGlobal = new BExpressionContext( "global" );
-      expctxGlobal.readMetaData( new File( profileDir, "lookups.dat" ) );
+      
+      BExpressionMetaData meta = new BExpressionMetaData();
+      
+      BExpressionContext expctxGlobal = new BExpressionContext( "global", meta );
+      rc.expctxWay = new BExpressionContext( "way", meta );
+      rc.expctxNode = new BExpressionContext( "node", 1024, meta );
+      
+      meta.readMetaData( new File( profileDir, "lookups.dat" ) );
+
       expctxGlobal.parseFile( profileFile, null );
       expctxGlobal.evaluate( new int[0] );
       rc.readGlobalConfig(expctxGlobal);
 
-      rc.expctxWay = new BExpressionContext( "way", 4096 );
-      rc.expctxWay.readMetaData( new File( profileDir, "lookups.dat" ) );
       rc.expctxWay.parseFile( profileFile, "global" );
-
-      rc.expctxNode = new BExpressionContext( "node", 1024 );
-      rc.expctxNode.readMetaData( new File( profileDir, "lookups.dat" ) );
       rc.expctxNode.parseFile( profileFile, "global" );
     }
   }
@@ -372,7 +375,6 @@ public class RoutingEngine extends Thread
         if ( matchPath != null )
         {
           track = mergeTrack( matchPath, nearbyTrack );
-          isDirty = true;
         }
     	maxRunningTime += System.currentTimeMillis() - startTime; // reset timeout...
       }
@@ -432,7 +434,8 @@ public class RoutingEngine extends Thread
   private void resetCache()
   {
     nodesMap = new OsmNodesMap();
-    nodesCache = new NodesCache(segmentDir, nodesMap, routingContext.expctxWay.lookupVersion,routingContext.expctxWay.lookupMinorVersion, routingContext.carMode, nodesCache );
+    BExpressionContext ctx = routingContext.expctxWay;
+    nodesCache = new NodesCache(segmentDir, nodesMap, ctx.meta.lookupVersion, ctx.meta.lookupMinorVersion, ctx.meta.readVarLength, routingContext.carMode, nodesCache );
   }
 
   private OsmNode getStartNode( long startId )
@@ -566,11 +569,13 @@ public class RoutingEngine extends Thread
     }
   }
 
-  private OsmTrack findTrack( String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack, boolean reducedTimeoutWhenUnmatched )
+  private OsmTrack findTrack( String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack, boolean fastPartialRecalc )
   {
     boolean verbose = guideTrack != null;
 
     int maxTotalCost = 1000000000;
+    int firstMatchCost = 1000000000;
+    int firstEstimate = 1000000000;
     
     logInfo( "findtrack with maxTotalCost=" + maxTotalCost + " airDistanceCostFactor=" + airDistanceCostFactor );
 
@@ -607,7 +612,7 @@ public class RoutingEngine extends Thread
     {
       if ( maxRunningTime > 0 )
       {
-        long timeout = ( matchPath == null && reducedTimeoutWhenUnmatched ) ? maxRunningTime/3 : maxRunningTime;
+        long timeout = ( matchPath == null && fastPartialRecalc ) ? maxRunningTime/3 : maxRunningTime;
         if ( System.currentTimeMillis() - startTime > timeout )
         {
           throw new IllegalArgumentException( operationName + " timeout after " + (timeout/1000) + " seconds" );
@@ -627,6 +632,11 @@ public class RoutingEngine extends Thread
       }
       maxAdjCostFromQueue = path.adjustedCost;
 
+      if ( matchPath != null && fastPartialRecalc && firstMatchCost < 500 && path.cost > 30L*firstMatchCost )
+      {
+        throw new IllegalArgumentException( "early exit for a close recalc" );
+      }
+      
       nodesVisited++;
       linksProcessed++;
       
@@ -644,6 +654,32 @@ public class RoutingEngine extends Thread
           // track found, compile
           logInfo( "found track at cost " + path.cost +  " nodesVisited = " + nodesVisited );
           return compileTrack( path, verbose );
+        }
+        
+        // check for a match with the cost-cutting-track
+        if ( costCuttingTrack != null )
+        {
+          OsmPathElement pe = costCuttingTrack.getLink( sourceNodeId, currentNodeId );
+          if ( pe != null )
+          {
+            // remember first match cost for fast termination of partial recalcs
+        	int parentcost = path.originElement == null ? 0 : path.originElement.cost;
+        	if ( parentcost < firstMatchCost ) firstMatchCost = parentcost;
+        	  
+            int costEstimate = path.cost
+                             + path.elevationCorrection( routingContext )
+                             + ( costCuttingTrack.cost - pe.cost );
+            if ( costEstimate <= maxTotalCost )
+            {
+              if ( matchPath == null ) firstEstimate = costEstimate;
+              matchPath = new OsmPathElement( path );
+            }
+            if ( costEstimate < maxTotalCost )
+            {
+              logInfo( "maxcost " + maxTotalCost + " -> " + costEstimate );
+              maxTotalCost = costEstimate;
+            }
+          }
         }
       }
 
@@ -743,27 +779,6 @@ public class RoutingEngine extends Thread
           int airDistance = isFinalLink ? 0 : nextNode.calcDistance( endPos );
           bestPath.setAirDistanceCostAdjustment( (int)( airDistance * airDistanceCostFactor ) );
           
-          // check for a match with the cost-cutting-track
-          if ( costCuttingTrack != null )
-          {
-            OsmPathElement pe = costCuttingTrack.getLink( currentNodeId, targetNodeId );
-            if ( pe != null )
-            {
-              int costEstimate = bestPath.cost
-                               + bestPath.elevationCorrection( routingContext )
-                               + ( costCuttingTrack.cost - pe.cost );
-              if ( costEstimate <= maxTotalCost )
-              {
-                matchPath = new OsmPathElement( bestPath );
-              }
-              if ( costEstimate < maxTotalCost )
-              {
-                logInfo( "maxcost " + maxTotalCost + " -> " + costEstimate + " airDistance=" + airDistance );
-                maxTotalCost = costEstimate;
-              }
-            }
-          }
-
           if ( isFinalLink || bestPath.cost + airDistance <= maxTotalCost + 10 )
           {
             // add only if this may beat an existing path for that link

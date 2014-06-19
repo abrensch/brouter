@@ -1,10 +1,11 @@
 package btools.mapcreator;
 
 import java.io.BufferedInputStream;
-import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
+
+import btools.util.DiffCoderDataInputStream;
 
 /**
  * Iterate over a singe nodefile or a directory
@@ -48,7 +49,7 @@ public class NodeIterator extends MapCreatorBase
 
     listener.nodeFileStart( nodefile );
 
-    DataInputStream di = new DataInputStream( new BufferedInputStream ( new FileInputStream( nodefile ) ) );
+    DiffCoderDataInputStream di = new DiffCoderDataInputStream( new BufferedInputStream ( new FileInputStream( nodefile ) ) );
     try
     {
       for(;;)

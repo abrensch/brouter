@@ -19,7 +19,7 @@ package btools.util;
 	  // 001 -> 3 + following 2-bit word ( 3..6 )
 	  // 0001 -> 7 + following 3-bit word ( 7..14 ) etc.
 	  
-      public void encodeDistance( int value )
+      public void encodeVarBits( int value )
       {
          int range = 0;
          while ( value > range )
@@ -33,7 +33,7 @@ package btools.util;
       }
 
       // twin to encodeDistance
-      public int decodeDistance()
+      public int decodeVarBits()
       {
           int range = 0;
           int value = 0;

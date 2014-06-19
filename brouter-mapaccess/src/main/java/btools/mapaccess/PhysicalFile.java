@@ -6,6 +6,8 @@
 package btools.mapaccess;
 
 import java.io.*;
+
+import btools.util.ByteDataReader;
 import btools.util.Crc32;
 
 final public class PhysicalFile
@@ -37,7 +39,7 @@ final public class PhysicalFile
 		  if ( osmf.microCaches != null )
 		    for( int lonIdx80=0; lonIdx80<80; lonIdx80++ )
 			  for( int latIdx80=0; latIdx80<80; latIdx80++ )
-                new MicroCache( osmf, lonIdx80, latIdx80, iobuffer );
+                new MicroCache( osmf, lonIdx80, latIdx80, iobuffer, true ); // TODO: readVarLength ?
       	}
 	  }
 	  catch( IllegalArgumentException iae )

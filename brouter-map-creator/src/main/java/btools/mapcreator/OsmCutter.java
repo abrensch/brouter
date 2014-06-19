@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 import btools.expressions.BExpressionContext;
+import btools.expressions.BExpressionMetaData;
 
 public class OsmCutter extends MapCreatorBase
 {
@@ -47,7 +48,7 @@ public class OsmCutter extends MapCreatorBase
   private BExpressionContext _expctxNode;
 
   private BExpressionContext _expctxWayStat;
-  private BExpressionContext _expctxNodeStat;
+  // private BExpressionContext _expctxNodeStat;
 
   public void process (File lookupFile, File outTileDir, File wayFile, File relFile, File mapFile) throws Exception
   {
@@ -56,13 +57,13 @@ public class OsmCutter extends MapCreatorBase
       throw new IllegalArgumentException( "lookup-file: " +  lookupFile + " does not exist" );
     }
 
-    _expctxWay = new BExpressionContext("way");
-    _expctxWay.readMetaData( lookupFile );
-//  _expctxWayStat = new BExpressionContext("way");
+    BExpressionMetaData meta = new BExpressionMetaData();
 
-    _expctxNode = new BExpressionContext("node");
-    _expctxNode.readMetaData( lookupFile );
-//  _expctxNodeStat = new BExpressionContext("node");
+    _expctxWay = new BExpressionContext("way", meta );
+    _expctxNode = new BExpressionContext("node", meta );
+    meta.readMetaData( lookupFile );
+//  _expctxWayStat = new BExpressionContext("way", null );
+//  _expctxNodeStat = new BExpressionContext("node", null );
 
     this.outTileDir = outTileDir;
     if ( !outTileDir.isDirectory() ) throw new RuntimeException( "out tile directory " + outTileDir + " does not exist" );
@@ -122,8 +123,7 @@ public class OsmCutter extends MapCreatorBase
     int tileIndex = getTileIndex( n.ilon, n.ilat );
     if ( tileIndex >= 0 )
     {
-      DataOutputStream dos = getOutStreamForTile( tileIndex );
-      n.writeTo( dos );
+      n.writeTo( getOutStreamForTile( tileIndex ) );
     }
   }
 

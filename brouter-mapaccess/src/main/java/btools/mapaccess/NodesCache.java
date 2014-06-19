@@ -17,6 +17,7 @@ public final class NodesCache
   private OsmNodesMap nodesMap;
   private int lookupVersion;
   private int lookupMinorVersion;
+  private boolean readVarLength;
   private boolean carMode;
   private String currentFileName;
 
@@ -33,12 +34,13 @@ public final class NodesCache
   private long cacheSum = 0;
   private boolean garbageCollectionEnabled = false;
 
-  public NodesCache( String segmentDir, OsmNodesMap nodesMap, int lookupVersion, int lookupMinorVersion, boolean carMode, NodesCache oldCache )
+  public NodesCache( String segmentDir, OsmNodesMap nodesMap, int lookupVersion, int minorVersion, boolean varLen, boolean carMode, NodesCache oldCache )
   {
     this.segmentDir = segmentDir;
     this.nodesMap = nodesMap;
     this.lookupVersion = lookupVersion;
-    this.lookupMinorVersion = lookupMinorVersion;
+    this.lookupMinorVersion = minorVersion;
+    this.readVarLength = varLen;
     this.carMode = carMode;
 
     if ( oldCache != null )
@@ -145,7 +147,7 @@ public final class NodesCache
 
           checkEnableCacheCleaning();
 
-          segment = new MicroCache( osmf, lonIdx80, latIdx80, iobuffer );
+          segment = new MicroCache( osmf, lonIdx80, latIdx80, iobuffer, readVarLength );
           cacheSum += segment.getDataSize();
           osmf.microCaches[subIdx] = segment;
           segmentList.add( segment );

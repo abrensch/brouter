@@ -152,7 +152,7 @@ public class BInstallerView extends View
     private void startDownload( int tileIndex, boolean isCd5 )
     {
     	String namebase = baseNameForTile( tileIndex );
-    	String baseurl = "http://h2096617.stratoserver.net/brouter/segments2/";
+    	String baseurl = "http://brouter.de/brouter/segments3/";
         currentDownloadFile = namebase + (isCd5 ? ".cd5" : ".rd5" );
         String url = baseurl + (isCd5 ? "carsubset/" : "" ) + currentDownloadFile;
     	isDownloading = true;
@@ -584,7 +584,7 @@ float tx, ty;
                     // download the file
                     input = connection.getInputStream();
                     
-                    int slidx = surl.lastIndexOf( "segments2/" );
+                    int slidx = surl.lastIndexOf( "segments3/" );
                     fname = baseDir + "/brouter/segments2/" + surl.substring( slidx+10 );
                     tmp_file = new File( fname + "_tmp" );
                     if ( new File( fname ).exists() ) return "internal error: file exists: " + fname;

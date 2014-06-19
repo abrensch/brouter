@@ -22,7 +22,8 @@ public class Crc32
   public static int crc( byte[] ab, int offset, int len )
   {
     int crc  = 0xFFFFFFFF;
-    for( int j=offset; j<len; j++ )
+    int end = offset + len;
+    for( int j=offset; j<end; j++ )
     {
       crc = (crc >>> 8) ^ crctable[(crc ^ ab[j]) & 0xff];
     }

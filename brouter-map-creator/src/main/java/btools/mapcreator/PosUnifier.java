@@ -7,6 +7,7 @@ import java.io.File;
 import java.util.HashMap;
 
 import btools.util.CompactLongSet;
+import btools.util.DiffCoderDataOutputStream;
 import btools.util.FrozenLongSet;
 
 /**
@@ -21,8 +22,8 @@ import btools.util.FrozenLongSet;
  */
 public class PosUnifier extends MapCreatorBase
 {
-  private DataOutputStream nodesOutStream;
-  private DataOutputStream borderNodesOut;
+  private DiffCoderDataOutputStream nodesOutStream;
+  private DiffCoderDataOutputStream borderNodesOut;
   private File nodeTilesOut;
   private CompactLongSet positionSet;
 

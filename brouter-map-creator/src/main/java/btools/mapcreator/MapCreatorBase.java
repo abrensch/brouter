@@ -15,9 +15,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 
+import btools.util.DiffCoderDataOutputStream;
+
 public abstract class MapCreatorBase implements WayListener, NodeListener, RelationListener
 {
-  private DataOutputStream[] tileOutStreams;
+  private DiffCoderDataOutputStream[] tileOutStreams;
   protected File outTileDir;
 
   protected HashMap<String,String> tags;
@@ -102,16 +104,16 @@ public abstract class MapCreatorBase implements WayListener, NodeListener, Relat
    return new DataInputStream( new BufferedInputStream ( new FileInputStream( inFile ) ) );
  }
 
- protected DataOutputStream createOutStream( File outFile ) throws IOException
+ protected DiffCoderDataOutputStream createOutStream( File outFile ) throws IOException
  {
-   return new DataOutputStream( new BufferedOutputStream( new FileOutputStream( outFile ) ) );
+   return new DiffCoderDataOutputStream( new BufferedOutputStream( new FileOutputStream( outFile ) ) );
  }
 
-  protected DataOutputStream getOutStreamForTile( int tileIndex ) throws Exception
+  protected DiffCoderDataOutputStream getOutStreamForTile( int tileIndex ) throws Exception
   {
     if ( tileOutStreams == null )
     {
-      tileOutStreams = new DataOutputStream[64];
+      tileOutStreams = new DiffCoderDataOutputStream[64];
     }
 
     if ( tileOutStreams[tileIndex] == null )

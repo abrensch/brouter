@@ -18,8 +18,9 @@ public class EncodeDecodeTest
     File lookupFile = new File( profileDir, "lookups.dat" );
   	
     // read lookup.dat + trekking.brf
-    BExpressionContext expctxWay = new BExpressionContext("way");
-    expctxWay.readMetaData( lookupFile );
+    BExpressionMetaData meta = new BExpressionMetaData();
+    BExpressionContext expctxWay = new BExpressionContext("way", 4096, meta );
+    meta.readMetaData( lookupFile );
     expctxWay.parseFile( new File( profileDir, "trekking.brf" ), "global" );
 
     String[] tags = { "highway=residential",  "oneway=yes",  "reversedirection=yes" };

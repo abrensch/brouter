@@ -11,8 +11,9 @@ import btools.util.ByteArrayUnifier;
 
 public class OsmNode implements OsmPos
 {
-  public static final int EXTERNAL_BITMASK        = 0x80;
-  public static final int VARIABLEDESC_BITMASK    = 0x40;
+  public static final int EXTERNAL_BITMASK        = 0x80; // old semantic
+  public static final int SIGNLON_BITMASK         = 0x80;
+  public static final int SIGNLAT_BITMASK         = 0x40;
   public static final int TRANSFERNODE_BITMASK    = 0x20;
   public static final int WRITEDESC_BITMASK       = 0x10;
   public static final int SKIPDETAILS_BITMASK     = 0x08;
@@ -111,10 +112,10 @@ public class OsmNode implements OsmPos
   }
 
 
-   public void parseNodeBody( MicroCache is, OsmNodesMap hollowNodes, DistanceChecker dc )
+   public void parseNodeBody( MicroCache is, OsmNodesMap hollowNodes, DistanceChecker dc, boolean readVarLength )
    {
 	 ByteArrayUnifier abUnifier = hollowNodes.getByteArrayUnifier();
-
+	   
 	 selev = is.readShort();
 
      OsmLink lastlink = null;
@@ -124,6 +125,9 @@ public class OsmNode implements OsmPos
 
      while( is.hasMoreData() )
      {
+       int ilonref = ilon;
+       int ilatref = ilat;
+
        OsmLink link = new OsmLink();
        OsmTransferNode firstTransferNode = null;
        OsmTransferNode lastTransferNode = null;
@@ -133,31 +137,45 @@ public class OsmNode implements OsmPos
        for(;;)
        {
          int bitField = is.readByte();
-         if ( (bitField & EXTERNAL_BITMASK) != 0 )
+  //        System.out.println( "parseNodeBody: var=" + readVarLength + " bitField=" + bitField );
+         if ( readVarLength )
          {
-           // full position for external target
-           linklon = is.readInt();
-           linklat = is.readInt();
+         	int dlon = is.readVarLengthUnsigned();
+        	int dlat = is.readVarLengthUnsigned();
+        	if ( (bitField & SIGNLON_BITMASK) != 0 ) { dlon = -dlon;}
+        	if ( (bitField & SIGNLAT_BITMASK) != 0 ) { dlat = -dlat;}
+        	linklon = ilonref + dlon;
+        	linklat = ilatref + dlat;
+        	ilonref = linklon;
+        	ilatref = linklat;
          }
          else
          {
-           // reduced position for internal target
-           linklon = is.readShort();
-           linklat = is.readShort();
-           linklon += lonIdx*62500 + 31250;
-           linklat += latIdx*62500 + 31250;
+           if ( (bitField & EXTERNAL_BITMASK) != 0 )
+           {
+             // full position for external target
+             linklon = is.readInt();
+             linklat = is.readInt();
+           }
+           else
+           {
+             // reduced position for internal target
+             linklon = is.readShort();
+             linklat = is.readShort();
+             linklon += lonIdx*62500 + 31250;
+             linklat += latIdx*62500 + 31250;
+           }
          }
          // read variable length or old 8 byte fixed, and ensure that 8 bytes is only fixed
-         boolean readFix8 = (bitField & VARIABLEDESC_BITMASK ) == 0; // old, fix length format
          if ( (bitField & WRITEDESC_BITMASK ) != 0 )
          {
-        	 byte[] ab = new byte[readFix8 ? 8 : is.readByte()];
+        	 byte[] ab = new byte[readVarLength ? is.readByte() : 8 ];
         	 is.readFully( ab );
         	 description = abUnifier.unify( ab );
          }
          if ( (bitField & NODEDESC_BITMASK ) != 0 )
          {
-        	 byte[] ab = new byte[readFix8 ? 8 : is.readByte()];
+        	 byte[] ab = new byte[readVarLength ? is.readByte() : 8 ];
         	 is.readFully( ab );
         	 nodeDescription = abUnifier.unify( ab );
          }
@@ -185,7 +203,7 @@ public class OsmNode implements OsmPos
            trans.ilon = linklon;
            trans.ilat = linklat;
            trans.descriptionBitmap = description;
-           trans.selev = is.readShort();
+           trans.selev = readVarLength ? (short)(selev + is.readVarLengthSigned()) : is.readShort();
            if ( lastTransferNode == null )
            {
              firstTransferNode = trans;

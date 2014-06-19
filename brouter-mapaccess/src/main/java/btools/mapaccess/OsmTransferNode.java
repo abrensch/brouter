@@ -5,6 +5,9 @@
  */
 package btools.mapaccess;
 
+import btools.util.ByteDataReader;
+import btools.util.ByteDataWriter;
+
 
 
 public final class OsmTransferNode

@@ -30,6 +30,7 @@ import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.Toast;
 import btools.expressions.BExpressionContext;
+import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.OsmNode;
 import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
@@ -668,13 +669,14 @@ private long startTime = 0L;
           boolean[] modesChecked = new boolean[6];     
           
           // parse global section of profile for mode preselection
-          BExpressionContext expctxGlobal = new BExpressionContext( "global" );
-          expctxGlobal.readMetaData( new File( profileDir, "lookups.dat" ) );
+      	  BExpressionMetaData meta = new BExpressionMetaData();
+          BExpressionContext expctxGlobal = new BExpressionContext( "global", meta );
+          meta.readMetaData( new File( profileDir, "lookups.dat" ) );
           expctxGlobal.parseFile( new File( profilePath ), null );
           expctxGlobal.evaluate( new int[0] );
-          boolean isFoot = 0.f != expctxGlobal.getVariableValue( "validForFoot" );
-          boolean isBike = 0.f != expctxGlobal.getVariableValue( "validForBikes" );
-          boolean isCar  = 0.f != expctxGlobal.getVariableValue( "validForCars" );
+          boolean isFoot = 0.f != expctxGlobal.getVariableValue( "validForFoot", 0.f );
+          boolean isBike = 0.f != expctxGlobal.getVariableValue( "validForBikes", 0.f );
+          boolean isCar  = 0.f != expctxGlobal.getVariableValue( "validForCars", 0.f );
           
           if ( isFoot || isBike || isCar )
           {

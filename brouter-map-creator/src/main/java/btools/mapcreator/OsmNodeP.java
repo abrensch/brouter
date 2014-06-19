@@ -9,10 +9,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import sun.security.pkcs.SigningCertificateInfo;
+
+import btools.util.ByteDataWriter;
+
 public class OsmNodeP implements Comparable<OsmNodeP>
 {
-  public static final int EXTERNAL_BITMASK        = 0x80;
-  public static final int VARIABLEDESC_BITMASK    = 0x40;
+  public static final int SIGNLON_BITMASK         = 0x80;
+  public static final int SIGNLAT_BITMASK         = 0x40;
   public static final int TRANSFERNODE_BITMASK    = 0x20;
   public static final int WRITEDESC_BITMASK       = 0x10;
   public static final int SKIPDETAILS_BITMASK     = 0x08;
@@ -42,10 +46,12 @@ public class OsmNodeP implements Comparable<OsmNodeP>
 
   public boolean isBorder = false;
 
-  public final static int BRIDGE_AND_BIT = 1;
-  public final static int TUNNEL_AND_BIT = 2;
-  public byte wayAndBits = -1; // use for bridge/tunnel logic
-
+  public final static int NO_BRIDGE_BIT = 1;
+  public final static int NO_TUNNEL_BIT = 2;
+  public final static int LCN_BIT = 4;
+  public final static int CR_BIT = 8;
+  
+  public byte wayBits = 0;
 
   // interface OsmPos
   public int getILat()
@@ -61,7 +67,7 @@ public class OsmNodeP implements Comparable<OsmNodeP>
   public short getSElev()
   {
     // if all bridge or all tunnel, elevation=no-data
-    return (wayAndBits & ( BRIDGE_AND_BIT | TUNNEL_AND_BIT ) ) == 0 ? selev : Short.MIN_VALUE;
+    return ( wayBits & NO_BRIDGE_BIT ) == 0 || ( wayBits & NO_TUNNEL_BIT ) == 0 ? Short.MIN_VALUE : selev;
   }
 
   public double getElev()
@@ -82,22 +88,23 @@ public class OsmNodeP implements Comparable<OsmNodeP>
      return null;
    }
 
-   public void writeNodeData( DataOutputStream os, boolean writeVarLength ) throws IOException
+   public void writeNodeData( ByteDataWriter os, boolean writeVarLength, byte[] abBuf ) throws IOException
    {
      int lonIdx = ilon/62500;
      int latIdx = ilat/62500;
 
      // buffer the body to first calc size
-     ByteArrayOutputStream bos = new ByteArrayOutputStream( );
-     DataOutputStream os2 = new DataOutputStream( bos );
-
+     ByteDataWriter os2 = new ByteDataWriter( abBuf );
      os2.writeShort( getSElev() );
-
+     
      // hack: write node-desc as link tag (copy cycleway-bits)
      byte[] nodeDescription = getNodeDecsription();
 
      for( OsmLinkP link0 = firstlink; link0 != null; link0 = link0.next )
      {
+       int ilonref = ilon;
+       int ilatref = ilat;
+    	 
        OsmLinkP link = link0;
        OsmNodeP origin = this;
        int skipDetailBit = link0.counterLinkWritten() ? SKIPDETAILS_BITMASK : 0;
@@ -160,32 +167,24 @@ public class OsmNodeP implements Comparable<OsmNodeP>
         	 }
         	 
          }
-         int targetLonIdx = target.ilon/62500;
-         int targetLatIdx = target.ilat/62500;
 
          int bm = tranferbit | writedescbit | nodedescbit | skipDetailBit;
-         if ( writeVarLength ) bm |= VARIABLEDESC_BITMASK;
+         int dlon = target.ilon - ilonref;
+         int dlat = target.ilat - ilatref;
+         ilonref = target.ilon;
+         ilatref = target.ilat;
+         if ( dlon < 0 ) { bm |= SIGNLON_BITMASK; dlon = - dlon; }
+         if ( dlat < 0 ) { bm |= SIGNLAT_BITMASK; dlat = - dlat; }
+         os2.writeByte( bm );
 
-         if ( targetLonIdx == lonIdx && targetLatIdx == latIdx )
-         {
-           // reduced position for internal target
-           os2.writeByte( bm );
-           os2.writeShort( (short)(target.ilon - lonIdx*62500 - 31250) );
-           os2.writeShort( (short)(target.ilat - latIdx*62500 - 31250) );
-         }
-         else
-         {
-           // full position for external target
-           os2.writeByte( bm | EXTERNAL_BITMASK );
-           os2.writeInt( target.ilon );
-           os2.writeInt( target.ilat );
-         }
+         int blon = os2.writeVarLengthUnsigned( dlon );
+         int blat = os2.writeVarLengthUnsigned( dlat );
+
          if ( writedescbit != 0 )
          {
            // write the way description, code direction into the first bit
-           int len = lastDescription.length;
-           if ( writeVarLength ) os2.writeByte( len );
-           os2.write( lastDescription, 0, len );
+           if ( writeVarLength ) os2.writeByte( lastDescription.length );
+           os2.write( lastDescription );
          }
          if ( nodedescbit != 0 )
          {
@@ -199,7 +198,7 @@ public class OsmNodeP implements Comparable<OsmNodeP>
            target.markLinkWritten( origin );
            break;
          }
-         os2.writeShort( target.getSElev() );
+         os2.writeVarLengthSigned( target.getSElev() -getSElev() );
          // next link is the one (of two), does does'nt point back
          for( link = target.firstlink; link != null; link = link.next )
          {
@@ -211,12 +210,15 @@ public class OsmNodeP implements Comparable<OsmNodeP>
      }
 
      // calculate the body size
-     int bodySize = bos.size();
+     int bodySize = os2.size();
+     
+     os.ensureCapacity( bodySize + 8 );
 
      os.writeShort( (short)(ilon - lonIdx*62500 - 31250) );
      os.writeShort( (short)(ilat - latIdx*62500 - 31250) );
-     os.writeInt( bodySize );
-     bos.writeTo( os );
+
+     os.writeVarLengthUnsigned( bodySize );
+     os.write( abBuf, 0, bodySize );
    }
 
   public String toString2()

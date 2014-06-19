@@ -7,6 +7,8 @@ package btools.mapaccess;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+
+import btools.util.ByteDataReader;
 import btools.util.Crc32;
 
 final class OsmFile

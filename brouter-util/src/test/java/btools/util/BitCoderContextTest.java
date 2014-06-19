@@ -9,19 +9,19 @@ import org.junit.Test;
 public class BitCoderContextTest
 {
   @Test
-  public void distanceEncodeDecodeTest()
+  public void varBitsEncodeDecodeTest()
   {
   	byte[] ab = new byte[4000];
   	BitCoderContext ctx = new BitCoderContext( ab );
   	for( int i=0; i<1000; i++ )
   	{
-  		ctx.encodeDistance( i );
+  		ctx.encodeVarBits( i );
     }
   	ctx = new BitCoderContext( ab );
     
   	for( int i=0; i<1000; i++ )
   	{
-      int value = ctx.decodeDistance();
+      int value = ctx.decodeVarBits();
       Assert.assertTrue( "distance value mismatch", value == i );
     }
   }

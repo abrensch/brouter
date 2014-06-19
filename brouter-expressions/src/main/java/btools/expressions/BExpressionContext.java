@@ -23,11 +23,8 @@ import btools.util.Crc32;
 
 public final class BExpressionContext
 {
-  private static final String CONTEXT_TAG = "---context:";
-  private static final String VERSION_TAG = "---lookupversion:";
-  private static final String MINOR_VERSION_TAG = "---minorversion:";
-  private static final String VARLENGTH_TAG = "---readvarlength";
-
+  private  static final String CONTEXT_TAG = "---context:";
+	
   private String context;
   private boolean _inOurContext = false;
   private BufferedReader _br = null;
@@ -55,7 +52,6 @@ public final class BExpressionContext
   private byte[][] _arrayBitmap;
   private int currentHashBucket = -1;
   private byte[] currentByteArray = null;
-  private boolean currentInversion = false;
 
   public List<BExpression> expressionList;
 
@@ -79,13 +75,12 @@ public final class BExpressionContext
 
   private int linenr;
 
-  public short lookupVersion = -1;
-  public short lookupMinorVersion = -1;
-  public boolean readVarLength = false;
+  public BExpressionMetaData meta;
+  private boolean lookupDataValid = false;
 
-  public BExpressionContext( String context )
+  public BExpressionContext( String context, BExpressionMetaData meta )
   {
-    this( context, 4096 );
+    this( context, 4096, meta );
   }
 
   /**
@@ -94,9 +89,15 @@ public final class BExpressionContext
    * @param context  global, way or node - context of that instance
    * @param hashSize  size of hashmap for result caching
    */
-  public BExpressionContext( String context, int hashSize )
+  public BExpressionContext( String context, int hashSize, BExpressionMetaData meta )
   {
-      this.context = context;
+     this.context = context;
+     this.meta = meta;
+     
+     meta.registerListener(context, this );
+
+     if ( Boolean.getBoolean( "disableExpressionCache" ) ) hashSize = 1;
+      
     _arrayBitmap = new byte[hashSize][];
 
     _arrayCostfactor = new float[hashSize];
@@ -105,18 +106,18 @@ public final class BExpressionContext
     _arrayNodeAccessGranted = new float[hashSize];
   }
 
-
   /**
    * encode internal lookup data to a byte array
    */
   public byte[] encode()
   {
+	if ( !lookupDataValid ) throw new IllegalArgumentException( "internal error: encoding undefined data?" );
     return encode( lookupData );
   }
 
   public byte[] encode( int[] ld )
   {
-	if ( !readVarLength ) return encodeFix( ld ); 
+	if ( !meta.readVarLength ) return encodeFix( ld ); 
 	  
 	// start with first bit hardwired ("reversedirection")
 	BitCoderContext ctx = new BitCoderContext( abBuf );
@@ -134,16 +135,16 @@ public final class BExpressionContext
         skippedTags++;
         continue;
       }
-      ctx.encodeDistance( skippedTags+1 );
+      ctx.encodeVarBits( skippedTags+1 );
       nonNullTags++;
       skippedTags = 0;
       
       // 0 excluded already, 1 (=unknown) we rotate up to 8
       // to have the good code space for the popular values
       int dd = d < 2 ? 7 : ( d < 9 ? d - 2 : d - 1);
-      ctx.encodeDistance(  dd );
+      ctx.encodeVarBits(  dd );
     }
-    ctx.encodeDistance( 0 );
+    ctx.encodeVarBits( 0 );
     
     if ( nonNullTags == 0) return null;
     
@@ -200,6 +201,7 @@ public final class BExpressionContext
   public void decode( byte[] ab )
   {
     decode( lookupData, ab );
+    lookupDataValid = true;
   }
 
   /**
@@ -207,7 +209,7 @@ public final class BExpressionContext
    */
   public void decode( int[] ld, byte[] ab )
   {
-	if ( !readVarLength ) { decodeFix( ld, ab ); return; }
+	if ( !meta.readVarLength ) { decodeFix( ld, ab ); return; }
 
     BitCoderContext ctx = new BitCoderContext(ab);
 	  
@@ -218,14 +220,14 @@ public final class BExpressionContext
   	int inum = 1;
     for(;;)
     {
-      int delta = ctx.decodeDistance();
+      int delta = ctx.decodeVarBits();
       if ( delta == 0) break;
       if ( inum + delta > ld.length ) break; // higher minor version is o.k.
       
       while ( delta-- > 1 ) ld[inum++] = 0;
 
       // see encoder for value rotation
-      int dd = ctx.decodeDistance();
+      int dd = ctx.decodeVarBits();
       int d = dd == 7 ? 1 : ( dd < 7 ? dd + 2 : dd + 1);
       if ( d >= lookupValues.get(inum).length ) d = 1; // map out-of-range to unknown
       ld[inum++] = d;
@@ -265,7 +267,7 @@ public final class BExpressionContext
 
   public String getCsvDescription( boolean inverseDirection, byte[] ab )
   {
-    int inverseBitByteIndex =  readVarLength ? 0 : 7;
+    int inverseBitByteIndex =  meta.readVarLength ? 0 : 7;
     int abLen = ab.length;
     byte[] ab_copy = new byte[abLen];
 	System.arraycopy( ab,  0,  ab_copy,  0 , abLen );
@@ -275,8 +277,10 @@ public final class BExpressionContext
     decode( lookupData, ab_copy );
     for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
     {
-      BExpressionLookupValue[] va = lookupValues.get(inum);
-      sb.append( '\t' ).append( va[lookupData[inum]].toString() );
+      int idx = meta.readVarLength ? (inum+1)%lookupValues.size() : inum; // reversebit at the end..
+    	
+      BExpressionLookupValue[] va = lookupValues.get(idx);
+      sb.append( '\t' ).append( va[lookupData[idx]].toString() );
     }
     return sb.toString();
   }
@@ -284,9 +288,10 @@ public final class BExpressionContext
   public String getCsvHeader()
   {
      StringBuilder sb = new StringBuilder( 200 );
-     for( String name: lookupNames )
+     for( int inum = 0; inum < lookupNames.size(); inum++ ) // loop over lookup names
      {
-       sb.append( '\t' ).append( name );
+       int idx = meta.readVarLength ? (inum+1)%lookupValues.size() : inum; // reversebit at the end..
+       sb.append( '\t' ).append( lookupNames.get(idx) );
      }
      return sb.toString();
   }
@@ -307,42 +312,11 @@ public final class BExpressionContext
      return sb.toString();
   }
 
-  public void readMetaData( File lookupsFile )
+  private int parsedLines = 0;
+  private boolean fixTagsWritten = false;
+  
+  public void parseMetaLine( String line )
   {
-   try
-   {
-    BufferedReader br = new BufferedReader( new FileReader( lookupsFile ) );
-
-    int parsedLines = 0;
-    boolean ourContext = false;
-    boolean fixTagsWritten = false;
-    for(;;)
-    {
-      String line = br.readLine();
-      if ( line == null ) break;
-      line = line.trim();
-      if ( line.length() == 0 || line.startsWith( "#" ) ) continue;
-      if ( line.startsWith( CONTEXT_TAG ) )
-      {
-        ourContext = line.substring( CONTEXT_TAG.length() ).equals( context );
-        continue;
-      }
-      if ( line.startsWith( VERSION_TAG ) )
-      {
-        lookupVersion = Short.parseShort( line.substring( VERSION_TAG.length() ) );
-        continue;
-      }
-      if ( line.startsWith( MINOR_VERSION_TAG ) )
-      {
-        lookupMinorVersion = Short.parseShort( line.substring( MINOR_VERSION_TAG.length() ) );
-        continue;
-      }
-      if ( line.startsWith( VARLENGTH_TAG ) )
-      {
-    	readVarLength = true;
-        continue;
-      }
-      if ( !ourContext ) continue;
       parsedLines++;
       StringTokenizer tk = new StringTokenizer( line, " " );
       String name = tk.nextToken();
@@ -350,7 +324,7 @@ public final class BExpressionContext
       int idx = name.indexOf( ';' );
       if ( idx >= 0 ) name = name.substring( 0, idx );
 
-      if ( readVarLength )
+      if ( meta.readVarLength )
       {
         if ( !fixTagsWritten )
         {
@@ -358,28 +332,24 @@ public final class BExpressionContext
           if ( "way".equals( context ) ) addLookupValue( "reversedirection", "yes", null );
           else if ( "node".equals( context ) ) addLookupValue( "nodeaccessgranted", "yes", null );
         }
-        if ( "reversedirection".equals( name ) ) continue; // this is hardcoded
-        if ( "nodeaccessgranted".equals( name ) ) continue; // this is hardcoded
+        if ( "reversedirection".equals( name ) ) return; // this is hardcoded
+        if ( "nodeaccessgranted".equals( name ) ) return; // this is hardcoded
       }
       BExpressionLookupValue newValue = addLookupValue( name, value, null );
 
       // add aliases
       while( newValue != null && tk.hasMoreTokens() ) newValue.addAlias( tk.nextToken() );
-    }
-    br.close();
+  }
+  
+  public void finishMetaParsing()
+  {
     if ( parsedLines == 0 && !"global".equals(context) )
     {
-      throw new IllegalArgumentException( lookupsFile.getAbsolutePath()
-             + " does not contain data for context " + context + " (old version?)" );
+      throw new IllegalArgumentException( "lookup table does not contain data for context " + context + " (old version?)" );
     }
 
     // post-process metadata:
     lookupDataFrozen = true;
-   }
-   catch( Exception e )
-   {
-       throw new RuntimeException( e );
-   }
   }
 
   public void evaluate( int[] lookupData2 )
@@ -400,7 +370,9 @@ public final class BExpressionContext
    */
   public boolean evaluate( boolean inverseDirection, byte[] ab, BExpressionReceiver receiver )
   {
-	 int inverseBitByteIndex =  readVarLength ? 0 : 7;
+	 lookupDataValid = false; // this is an assertion for a nasty pifall
+	  
+	 int inverseBitByteIndex =  meta.readVarLength ? 0 : 7;
 	       
      int abLen = ab.length;
      boolean equalsCurrent = currentHashBucket >= 0 && abLen == currentByteArray.length;
@@ -685,18 +657,12 @@ public final class BExpressionContext
     return num == null ? defaultValue : getVariableValue( num.intValue() );
   }
 
-  public float getVariableValue( String name )
-  {
-    Integer num = variableNumbers.get( name );
-    return num == null ? 0.f : getVariableValue( num.intValue() );
-  }
-
-  public float getVariableValue( int variableIdx )
+  float getVariableValue( int variableIdx )
   {
     return variableData[variableIdx];
   }
 
-  public int getVariableIdx( String name, boolean create )
+  int getVariableIdx( String name, boolean create )
   {
     Integer num = variableNumbers.get( name );
     if ( num == null )
@@ -714,12 +680,12 @@ public final class BExpressionContext
     return num.intValue();
   }
 
-  public int getMinWriteIdx()
+  int getMinWriteIdx()
   {
     return minWriteIdx;
   }
 
-  public float getLookupMatch( int nameIdx, int valueIdx )
+  float getLookupMatch( int nameIdx, int valueIdx )
   {
     return lookupData[nameIdx] == valueIdx ? 1.0f : 0.0f;
   }
@@ -730,7 +696,7 @@ public final class BExpressionContext
     return num == null ? -1 : num.intValue();
   }
 
-  public int getLookupValueIdx( int nameIdx, String value )
+  int getLookupValueIdx( int nameIdx, String value )
   {
     BExpressionLookupValue[] values = lookupValues.get( nameIdx );
     for( int i=0; i< values.length; i++ )
@@ -741,7 +707,7 @@ public final class BExpressionContext
   }
 
 
-  public String parseToken() throws Exception
+  String parseToken() throws Exception
   {
     for(;;)
     {
@@ -790,13 +756,13 @@ public final class BExpressionContext
     }
   }
 
-  public float assign( int variableIdx, float value )
+  float assign( int variableIdx, float value )
   {
     variableData[variableIdx] = value;
     return value;
   }
 
-  public void expressionWarning( String message )
+  void expressionWarning( String message )
   {
     _arrayBitmap[currentHashBucket] = null; // no caching if warnings
      if ( _receiver != null ) _receiver.expressionWarning( context, message );

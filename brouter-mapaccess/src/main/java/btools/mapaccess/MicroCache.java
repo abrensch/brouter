@@ -5,12 +5,14 @@
  */
 package btools.mapaccess;
 
-import java.util.*;
-import java.io.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
+import btools.util.ByteDataReader;
 import btools.util.Crc32;
 
-final class MicroCache
+final class MicroCache extends ByteDataReader
 {
   private long[] faid;
   private int[] fapos;
@@ -18,10 +20,10 @@ final class MicroCache
   private int delcount = 0;
   private int delbytes = 0;
   private int p2size; // next power of 2 of size
+  
+  private boolean readVarLength;
 
   // the object parsing position and length
-  private byte[] ab;
-  private int aboffset;
   private int aboffsetEnd;
 
   // cache control: a virgin cache can be
@@ -29,8 +31,11 @@ final class MicroCache
   boolean virgin = true;
   boolean ghost = false;
 
-  public MicroCache( OsmFile segfile, int lonIdx80, int latIdx80, byte[] iobuffer ) throws Exception
+  public MicroCache( OsmFile segfile, int lonIdx80, int latIdx80, byte[] iobuffer, boolean readVarLength ) throws Exception
   {
+	 super( null );
+	 this.readVarLength = readVarLength;
+	  
      int lonDegree = lonIdx80/80;
      int latDegree = latIdx80/80;
 
@@ -55,26 +60,37 @@ final class MicroCache
        }
        aboffset = 0;
        size = readInt();
-
+       
        // get net size
        int nbytes = 0;
        for(int i = 0; i<size; i++)
        {
          int ilon = readShort();
          int ilat = readShort();
-         int bodySize = readInt();
-         if ( ilon == Short.MAX_VALUE && ilat == Short.MAX_VALUE )
+         int bodySize = readVarLength ? readVarLengthUnsigned() : readInt();
+
+         // kack for the old format crc         
+         if ( !readVarLength && ilon == Short.MAX_VALUE && ilat == Short.MAX_VALUE )
          {
-           int crc = Crc32.crc( ab, 0, aboffset-8 );
+           int crc = Crc32.crc( ab, 0, aboffset-8 ); // old format crc
            if ( crc != readInt() )
            {
-             throw new IOException( "checkum error" );
+             throw new IOException( "checkum-error" );
            }
            size = i;
            break;
          }
          aboffset += bodySize;
          nbytes += bodySize;
+       }
+
+       if ( readVarLength ) // new format crc
+       {
+         int crc = Crc32.crc( ab, 0, aboffset );
+         if ( crc != readInt() )
+         {
+             throw new IOException( "checkum error" );
+         }
        }
 
        // new array with only net data
@@ -95,7 +111,7 @@ final class MicroCache
          long nodeId = ((long)ilon)<<32 | ilat;
 
          faid[i] = nodeId;
-         int bodySize = readInt();
+         int bodySize = readVarLength ? readVarLengthUnsigned() : readInt();
          fapos[i] = noffset;
          System.arraycopy( ab, aboffset, nab, noffset, bodySize );
          aboffset += bodySize;
@@ -173,7 +189,7 @@ final class MicroCache
     long id = node.getIdFromPos();
     if ( getAndClear( id ) )
     {
-      node.parseNodeBody( this, nodesMap, dc );
+      node.parseNodeBody( this, nodesMap, dc, readVarLength );
     }
 
     if ( doCollect && delcount > size / 2 ) // garbage collection
@@ -250,53 +266,6 @@ final class MicroCache
       positions.add( n );
     }
     return positions;
-  }
-
-  public int readInt()
-  {
-      int i3 = ab[aboffset++]& 0xff;
-      int i2 = ab[aboffset++]& 0xff;
-      int i1 = ab[aboffset++]& 0xff;
-      int i0 = ab[aboffset++]& 0xff;
-      return (i3 << 24) + (i2 << 16) + (i1 << 8) + i0;
-  }
-
-  public long readLong()
-  {
-      long i7 = ab[aboffset++]& 0xff;
-      long i6 = ab[aboffset++]& 0xff;
-      long i5 = ab[aboffset++]& 0xff;
-      long i4 = ab[aboffset++]& 0xff;
-      long i3 = ab[aboffset++]& 0xff;
-      long i2 = ab[aboffset++]& 0xff;
-      long i1 = ab[aboffset++]& 0xff;
-      long i0 = ab[aboffset++]& 0xff;
-      return (i7 << 56) + (i6 << 48) + (i5 << 40) + (i4 << 32) + (i3 << 24) + (i2 << 16) + (i1 << 8) + i0;
-  }
-
-  public boolean readBoolean()
-  {
-      int i0 = ab[aboffset++]& 0xff;
-      return i0 != 0;
-  }
-
-  public byte readByte()
-  {
-      int i0 = ab[aboffset++] & 0xff;
-      return (byte)(i0);
-  }
-
-  public short readShort()
-  {
-      int i1 = ab[aboffset++] & 0xff;
-      int i0 = ab[aboffset++] & 0xff;
-      return (short)( (i1 << 8) | i0);
-  }
-
-  public void readFully( byte[] ta )
-  {
-	  System.arraycopy( ab, aboffset, ta, 0, ta.length );
-	  aboffset += ta.length;
   }
 
   public boolean hasMoreData()

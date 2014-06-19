@@ -9,7 +9,11 @@ public final class ByteArrayUnifier
   public ByteArrayUnifier( int size, boolean validateImmutability )
   {
     this.size = size;
-    byteArrayCache = new byte[size][];
+    
+    if ( !Boolean.getBoolean( "disableByteArrayUnifification" ) )
+    {
+      byteArrayCache = new byte[size][];
+    }
     if ( validateImmutability ) crcCrosscheck = new int[size];
   }
 
@@ -22,6 +26,8 @@ public final class ByteArrayUnifier
    */
   public byte[] unify( byte[] ab )
   {
+	  if ( byteArrayCache == null ) return ab;
+	  
       int n = ab.length;
       int crc  = Crc32.crc( ab, 0, n );
       int idx  =  (crc & 0xfffffff) % size;

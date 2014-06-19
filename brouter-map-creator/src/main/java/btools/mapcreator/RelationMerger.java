@@ -7,6 +7,7 @@ import java.io.File;
 import java.util.HashMap;
 
 import btools.expressions.BExpressionContext;
+import btools.expressions.BExpressionMetaData;
 import btools.util.CompactLongSet;
 import btools.util.FrozenLongSet;
 
@@ -29,7 +30,7 @@ public class RelationMerger extends MapCreatorBase
   
   public static void main(String[] args) throws Exception
   {
-    System.out.println("*** RelationMerger: merge relation bits into ways" );
+    System.out.println("*** RelationMerger: merge relations into ways" );
     if (args.length != 6)
     {
       System.out.println("usage: java RelationMerger <way-file-in> <way-file-out> <relation-file> <lookup-file> <report-profile> <check-profile>" );
@@ -42,11 +43,15 @@ public class RelationMerger extends MapCreatorBase
   public void process( File wayFileIn, File wayFileOut, File relationFileIn, File lookupFile, File reportProfile, File checkProfile ) throws Exception
   {
     // read lookup + profile for relation access-check
-    expctxReport = new BExpressionContext("way");
-    expctxReport.readMetaData( lookupFile );
+	BExpressionMetaData metaReport = new BExpressionMetaData();
+    expctxReport = new BExpressionContext("way", metaReport );
+    metaReport.readMetaData( lookupFile );
+
+	BExpressionMetaData metaCheck = new BExpressionMetaData();
+    expctxCheck = new BExpressionContext("way", metaCheck );
+    metaCheck.readMetaData( lookupFile );
+
     expctxReport.parseFile( reportProfile, "global" );
-    expctxCheck = new BExpressionContext("way");
-    expctxCheck.readMetaData( lookupFile );
     expctxCheck.parseFile( checkProfile, "global" );
     // expctxStat = new BExpressionContext("way");
     
@@ -63,6 +68,7 @@ public class RelationMerger extends MapCreatorBase
         String network = dis.readUTF();
         
         String tagname = "route_" + route + "_" + network;
+        
         CompactLongSet routeset = null;
         if ( expctxCheck.getLookupNameIdx(tagname)  >= 0 )
         {
@@ -127,6 +133,7 @@ public class RelationMerger extends MapCreatorBase
     	
       if ( ok )
       {
+    	expctxReport.decode( data.description );
         for( String tagname : routesets.keySet() )
         {
     	  CompactLongSet routeset = routesets.get( tagname );

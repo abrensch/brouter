@@ -1,11 +1,11 @@
 package btools.mapcreator;
 
 import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 
 import btools.util.DenseLongMap;
+import btools.util.DiffCoderDataOutputStream;
 import btools.util.TinyDenseLongMap;
 
 /**
@@ -17,7 +17,7 @@ import btools.util.TinyDenseLongMap;
  */
 public class NodeFilter extends MapCreatorBase
 {
-  private DataOutputStream nodesOutStream;
+  private DiffCoderDataOutputStream nodesOutStream;
   private File nodeTilesOut;
   protected DenseLongMap nodebitmap;
 
@@ -61,7 +61,7 @@ public class NodeFilter extends MapCreatorBase
     String filename = nodefile.getName();
     filename = filename.substring( 0, filename.length() - 3 ) + "tlf"; 
     File outfile = new File( nodeTilesOut, filename );
-    nodesOutStream = new DataOutputStream( new BufferedOutputStream ( new FileOutputStream( outfile ) ) );
+    nodesOutStream = new DiffCoderDataOutputStream( new BufferedOutputStream ( new FileOutputStream( outfile ) ) );
   }
 
   @Override

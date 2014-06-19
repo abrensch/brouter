@@ -50,13 +50,13 @@ public final class RoutingContext implements DistanceChecker
   
   public void readGlobalConfig( BExpressionContext expctxGlobal )
   {
-    downhillcostdiv = (int)expctxGlobal.getVariableValue( "downhillcost" );
-    downhillcutoff = (int)(expctxGlobal.getVariableValue( "downhillcutoff" )*10000);
-    uphillcostdiv = (int)expctxGlobal.getVariableValue( "uphillcost" );
-    uphillcutoff = (int)(expctxGlobal.getVariableValue( "uphillcutoff" )*10000);
+    downhillcostdiv = (int)expctxGlobal.getVariableValue( "downhillcost", 0.f );
+    downhillcutoff = (int)(expctxGlobal.getVariableValue( "downhillcutoff", 0.f )*10000);
+    uphillcostdiv = (int)expctxGlobal.getVariableValue( "uphillcost", 0.f );
+    uphillcutoff = (int)(expctxGlobal.getVariableValue( "uphillcutoff", 0.f )*10000);
     if ( downhillcostdiv != 0 ) downhillcostdiv = 1000000/downhillcostdiv;
     if ( uphillcostdiv != 0 ) uphillcostdiv = 1000000/uphillcostdiv;
-    carMode = 0.f != expctxGlobal.getVariableValue( "validForCars" );
+    carMode = 0.f != expctxGlobal.getVariableValue( "validForCars", 0.f );
     pass1coefficient = expctxGlobal.getVariableValue( "pass1coefficient", 1.5f );
     pass2coefficient = expctxGlobal.getVariableValue( "pass2coefficient", 0.f );
   }
