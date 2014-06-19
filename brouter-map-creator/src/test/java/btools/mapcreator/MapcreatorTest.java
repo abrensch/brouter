@@ -27,7 +27,8 @@ public class MapcreatorTest
     File lookupFile = new File( profileDir, "lookups.dat" );
     File wayFile = new File( tmpdir, "ways.dat" );
     File relFile = new File( tmpdir, "cycleways.dat" );
-    new OsmCutter().process( lookupFile, nodetiles, wayFile, relFile, mapfile );
+    File profileAllFile = new File( profileDir, "all.brf" );
+    new OsmCutter().process( lookupFile, nodetiles, wayFile, relFile, profileAllFile, mapfile );
 
     // run NodeFilter
     File ftiles = new File( tmpdir, "ftiles" );
@@ -65,7 +66,6 @@ public class MapcreatorTest
     // run WayLinker
     File segments = new File( tmpdir, "segments" );
     segments.mkdir();
-    File profileAllFile = new File( profileDir, "all.brf" );
     new WayLinker().process( unodes55, waytiles55, bordernodes, lookupFile, profileAllFile, segments, "rd5" );
 
     // run WayLinker, car subset

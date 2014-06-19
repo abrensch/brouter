@@ -75,7 +75,7 @@ public final class RoutingContext implements DistanceChecker
   public int ilatshortest;
   public int ilonshortest;
 
-  public void prepareNogoPoints( List<OsmNodeNamed> nogos )
+  public static void prepareNogoPoints( List<OsmNodeNamed> nogos )
   {
     for( OsmNodeNamed nogo : nogos )
     {

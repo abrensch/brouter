@@ -19,7 +19,7 @@ assign   validForCars        1
 ---context:way   # following code refers to way-tags
 
 assign turncost 90
-assign initialcost switch highway=ferry 20000 0
+assign initialcost switch route=ferry 20000 0
 
 
 #
@@ -34,7 +34,7 @@ assign motorverhicleaccess
                                    switch or highway=secondary highway=secondary_link  1
                                    switch or highway=tertiary highway=tertiary_link    1
                                    switch    highway=unclassified                      1
-                                   switch    highway=ferry                             1
+                                   switch    route=ferry                               1
                                    switch or highway=residential highway=living_street 1
                                    switch    highway=service                           1
                                    0
@@ -73,12 +73,14 @@ assign costfactor
 
  add max onewaypenalty accesspenalty
 
+ switch and highway= not route=ferry  100000
+
  switch or highway=trunk highway=trunk_link          1.5
  switch or highway=primary highway=primary_link      switch maxspeed=30 2.0 switch maxspeed=50 1.5 1.2
  switch or highway=secondary highway=secondary_link  1.4
  switch or highway=tertiary highway=tertiary_link    1.3
  switch    highway=unclassified                      1.2
- switch    highway=ferry                             5.67
+ switch    route=ferry                               5.67
  switch    highway=bridleway                         5
  switch or highway=residential highway=living_street 2
  switch    highway=service                           2

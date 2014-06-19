@@ -30,7 +30,6 @@ highway;0000058257 bridleway
 highway;0000039003 platform
 highway;0000037192 proposed
 highway;0000010307 raceway
-highway;0000008949 ferry
 highway;0000003152 rest_area
 highway;0000002942 abandoned
 highway;0000002631 services
@@ -213,8 +212,26 @@ cycleway;0000000224 cyclestreet
 cycleway;0000000172 path
 cycleway;0000000154 sidewalk
 
+footway;0000104998 sidewalk
+footway;0000065943 crossing
+footway;0000012342 both
+footway;0000008363 none
+footway;0000005903 right
+footway;0000004159 left
+footway;0000003966 no
+footway;0000001093 yes
+footway;0000000558 separate
+
 segregated;0000224960 no
 segregated;0000051124 yes
+
+sidewalk;0000194579 none
+sidewalk;0000111468 both
+sidewalk;0000052950 right
+sidewalk;0000024489 left
+sidewalk;0000012916 no
+sidewalk;0000005725 separate
+sidewalk;0000001950 yes
 
 mtb:scale;0000114272 0
 mtb:scale;0000068284 1
@@ -272,6 +289,28 @@ oneway:bicycle;0000012034 no
 oneway:bicycle;0000005217 yes
 oneway:bicycle;0000000161 opposite
 
+cycleway:right;0000012522 lane Lane
+cycleway:right;0000006644 track
+cycleway:right;0000000971 share_busway
+cycleway:right;0000000686 sidepath
+cycleway:right;0000000410 shared_lane
+cycleway:right;0000000104 opposite_lane
+cycleway:right;0000000058 opposite_track
+cycleway:right;0000000045 no none
+cycleway:right;0000000037 yes
+cycleway:right;0000000004 opposite
+
+cycleway:left;0000005134 lane Lane
+cycleway:left;0000003169 track
+cycleway:left;0000000656 share_busway
+cycleway:left;0000000608 opposite_lane
+cycleway:left;0000000475 sidepath
+cycleway:left;0000000257 shared_lane
+cycleway:left;0000000246 no none
+cycleway:left;0000000130 opposite_track
+cycleway:left;0000000053 opposite
+cycleway:left;0000000014 yes
+
 incline;0000052784 up
 incline;0000035413 down
 incline;0000001628 yes
@@ -295,7 +334,53 @@ incline;0000000172 -30% -30 -40 -50 -40% -50%
 
 toll;0000090536 yes true
 
-brouter_placeholder_dummy_01;0000000001 dummy
+railway;0000157547 rail
+railway;0000019316 abandoned
+railway;0000016982 tram
+railway;0000014387 platform
+railway;0000011143 disused
+railway;0000004623 light_rail
+railway;0000002982 subway
+railway;0000002422 narrow_gauge
+railway;0000001960 razed
+railway;0000001859 preserved
+
+seamark:type;0001564 recommended_track
+seamark:type;0000522 fairway
+
+waterway;0000016046 river
+waterway;0000009496 canal
+waterway;0000007876 riverbank
+waterway;0000002202 weir
+waterway;0000001364 dam
+waterway;0000000386 lock
+waterway;0000000321 tidal_flat_slough
+waterway;0000000179 wadi
+waterway;0000000126 dock
+waterway;0000000113 fish_pass
+waterway;0000000086 boatyard
+waterway;0000000071 fairway
+waterway;0000000059 lock_gate
+
+boat;0000019888 no
+boat;0000002718 yes
+boat;0000000232 private
+boat;0000000064 permissive
+boat;0000000045 designated
+
+motorboat;0000001077 yes
+motorboat;0000000808 no
+motorboat;0000000025 private privat
+
+route;0000000850 ferry
+route;0000000539 hiking
+route;0000000505 bicycle
+route;0000000454 ski
+route;0000000413 mtb
+route;0000000194 canoe
+route;0000000151 road
+route;0000000104 bus
+
 brouter_placeholder_dummy_02;0000000001 dummy
 brouter_placeholder_dummy_03;0000000001 dummy
 brouter_placeholder_dummy_04;0000000001 dummy
@@ -531,6 +616,15 @@ railway;0000037871 tram_stop
 railway;0000024038 halt
 railway;0000014285 subway_entrance
 railway;0000010890 signal
+
+waterway;0000004698 weir
+waterway;0000001647 lock_gate
+waterway;0000000425 waterfall
+waterway;0000000337 take_right_side
+waterway;0000000332 take_left_side
+waterway;0000000219 milestone
+waterway;0000000187 depth
+waterway;0000000170 lock
 
 noexit;0000195286 yes
 

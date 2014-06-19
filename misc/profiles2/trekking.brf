@@ -53,7 +53,7 @@ assign turncost switch is_ldcr 0 90
 # this is added to the total cost each time the costfactor
 # changed
 #
-assign initialcost switch highway=ferry 10000 0
+assign initialcost switch route=ferry 10000 0
 
 #
 # implicit access here just from the motorroad tag
@@ -110,9 +110,10 @@ assign oneway
        switch oneway=
               junction=roundabout
               or oneway=yes or oneway=true oneway=1
+
 assign onewaypenalty
        switch switch reversedirection=yes oneway oneway=-1
-        switch or cycleway=opposite or cycleway=opposite_lane cycleway=opposite_track 0
+        switch or cycleway=opposite or cycleway=opposite_lane or cycleway=opposite_track oneway:bicycle=no 0
         switch or highway=primary highway=primary_link 50
         switch or highway=secondary highway=secondary_link 30
         switch or highway=tertiary highway=tertiary_link 20
@@ -130,13 +131,15 @@ assign costfactor
 
   add max onewaypenalty accesspenalty
 
+  switch and highway= not route=ferry  100000
+
   #
   # steps and ferries are special. Note this is handled
   # before the cycleroute-switch, to be able
   # to really exlude them be setting cost to infinity 
   #
   switch    highway=steps  switch allow_steps   40 100000
-  switch    highway=ferry  switch allow_ferries 5.67 100000
+  switch    route=ferry    switch allow_ferries 5.67 100000
 
   #
   # handle long-distance cycle-routes.

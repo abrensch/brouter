@@ -94,7 +94,7 @@ public final class BExpressionContext
      this.context = context;
      this.meta = meta;
      
-     meta.registerListener(context, this );
+     if ( meta != null ) meta.registerListener(context, this );
 
      if ( Boolean.getBoolean( "disableExpressionCache" ) ) hashSize = 1;
       

@@ -16,7 +16,7 @@ assign nodeaccessgranted or any_cycleroute lcn=yes
 
 assign turncost 0
 
-assign initialcost switch highway=ferry 10000 0
+assign initialcost switch route=ferry 10000 0
 
 #
 # implicit access here just from the motorroad tag
@@ -57,7 +57,9 @@ assign accesspenalty switch or bikeaccess footaccess 0 100000
 assign costfactor
   add accesspenalty
 
-  switch    highway=ferry                             5.67
+  switch and highway= not route=ferry  100000
+
+  switch    route=ferry                             5.67
   switch or highway=motorway highway=motorway_link    100000
   switch or highway=proposed highway=abandoned        100000
   1

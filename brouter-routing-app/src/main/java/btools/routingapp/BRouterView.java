@@ -113,21 +113,32 @@ public class BRouterView extends View
 
         public void startSetup( String baseDir, boolean storeBasedir )
         {
-            File fbd = new File( baseDir );
-            if ( !fbd.isDirectory() )
-            {
-                throw new IllegalArgumentException( "Base-directory " + baseDir + " is not a directory " );
-            }
-            String basedir = fbd.getAbsolutePath();
-
-            if ( storeBasedir )
-            {
-            	ConfigHelper.writeBaseDir( getContext(), baseDir );
-            }
-
             cor = null;
             try
             {
+              File fbd = new File( baseDir );
+              if ( !fbd.isDirectory() )
+              {
+                  throw new IllegalArgumentException( "Base-directory " + baseDir + " is not a directory " );
+              }
+              if ( storeBasedir )
+              {
+            	// Android 4.4 patch: try extend the basedir if not valid
+            	File td = new File( fbd, "brouter" );
+            	try { td.mkdir(); } catch ( Exception e ) {};
+                if ( !td.isDirectory() )
+                {
+                  File td1 = 	new File( fbd, "Android/data/btools/routingapp" );
+              	  try { td1.mkdirs(); } catch ( Exception e ) {};
+              	  td = new File( td1, "brouter" );
+              	  try { td.mkdir(); } catch ( Exception e ) {};
+              	  if ( td.isDirectory() ) fbd = td1;
+                }
+            	  
+              	ConfigHelper.writeBaseDir( getContext(), baseDir );
+              }
+              String basedir = fbd.getAbsolutePath();
+
               // create missing directories
               assertDirectoryExists( "project directory", basedir + "/brouter", null );
               segmentDir = basedir + "/brouter/segments2";
