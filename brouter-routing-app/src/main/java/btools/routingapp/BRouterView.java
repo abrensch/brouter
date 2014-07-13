@@ -541,7 +541,7 @@ private long startTime = 0L;
                   }
                   else
                   {
-                    String result = "version = BRouter-0.9.9\n"
+                    String result = "version = BRouter-1.0.1\n"
                     + "distance = " +  cr.getDistance()/1000. + " km\n"
                     + "filtered ascend = " +  cr.getAscend() + " m\n"
                     + "plain ascend = " + cr.getPlainAscend();
