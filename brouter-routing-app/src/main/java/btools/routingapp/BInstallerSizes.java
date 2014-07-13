@@ -3,7 +3,13 @@ package btools.routingapp;
 
 public class BInstallerSizes {
 
-   public static int[] rd5_sizes = {
+  public static int getRd5Size( int idx )
+  {
+	  int i = rd5_sizes[idx];
+	  return (3*i)/4;
+  }
+	
+   private static int[] rd5_sizes = {
 
         0,0,0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,0,0,0,73999,0,0,
@@ -223,6 +229,12 @@ public class BInstallerSizes {
         0,0,0,0,0,0,0,0,0,0,0,0,
         };
         
+   public static int getCd5Size( int idx )
+   {
+ 	  int i = cd5_sizes[idx];
+ 	  return (3*i)/4;
+   }
+
    public static int[] cd5_sizes = {
         0,0,0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,0,0,0,70091,0,0,

@@ -39,6 +39,10 @@ public class BInstallerView extends View
 		9, 8, 9, 8,
 		12, 12, 12, 12 };
 	
+    private int imgwOrig;
+    private int imghOrig;
+    private float scaleOrig;
+
     private int imgw;
     private int imgh;
 
@@ -132,7 +136,7 @@ public class BInstallerView extends View
     	    	  boolean isCd5 = (mask == 2);
         	      if ( ( s & mask ) != 0 && ( s & (mask*4)) == 0 )
         	      {
-                    int tilesize = isCd5 ? BInstallerSizes.cd5_sizes[tidx] : BInstallerSizes.rd5_sizes[tidx];
+                    int tilesize = isCd5 ? BInstallerSizes.getCd5Size(tidx) : BInstallerSizes.getRd5Size(tidx);
                     if ( tilesize > 0 && tilesize < min_size )
                     {
                       tidx_min = tidx;
@@ -229,6 +233,7 @@ public class BInstallerView extends View
     }
     
     private Matrix mat;
+    private Matrix matText;
     
        public void startInstaller() {
 
@@ -249,8 +254,8 @@ public class BInstallerView extends View
            tileStatus = new int[72*36];
            scanExistingFiles();
            
-           float scaleX = imgw / ((float)bmp.getWidth());
-           float scaley = imgh / ((float)bmp.getHeight());
+           float scaleX = imgwOrig / ((float)bmp.getWidth());
+           float scaley = imghOrig / ((float)bmp.getHeight());
            
            viewscale = scaleX < scaley ? scaleX : scaley;            
 
@@ -270,8 +275,17 @@ public class BInstallerView extends View
 
             DisplayMetrics metrics = new DisplayMetrics();
             ((Activity)getContext()).getWindowManager().getDefaultDisplay().getMetrics(metrics);
-            imgw = metrics.widthPixels;
-            imgh = metrics.heightPixels;
+            imgwOrig = metrics.widthPixels;
+            imghOrig = metrics.heightPixels;
+            int im = imgwOrig > imghOrig ? imgwOrig : imghOrig;
+            
+            scaleOrig = im / 480.f;            
+
+            matText = new Matrix();
+            matText.preScale( scaleOrig, scaleOrig );
+            
+            imgw = (int)(imgwOrig / scaleOrig);
+            imgh = (int)(imghOrig / scaleOrig);
         }
 
         @Override
@@ -328,7 +342,7 @@ public class BInstallerView extends View
               pnt_2.setStrokeWidth(2);
               drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_SELECTED_RD5, MASK_SELECTED_CD5, true, drawGrid );
 
-        	canvas.setMatrix( null );
+        	canvas.setMatrix( matText );
 
             Paint paint = new Paint();
             paint.setColor(Color.RED);
@@ -388,13 +402,13 @@ float tx, ty;
           	boolean isCd5 = (tileStatus[tidx] & maskCd5) != 0;
     	    if ( isRd5 || isCd5 )
     	    {
-              int tilesize = BInstallerSizes.rd5_sizes[tidx];
+              int tilesize = BInstallerSizes.getRd5Size(tidx);
               if ( tilesize > 0 )
               {
             	if ( doCount )
             	{
-      	          if ( isRd5) { rd5Tiles++; totalSize += BInstallerSizes.rd5_sizes[tidx]; };
-    	          if ( isCd5) { cd5Tiles++; totalSize += BInstallerSizes.cd5_sizes[tidx]; };
+      	          if ( isRd5) { rd5Tiles++; totalSize += BInstallerSizes.getRd5Size(tidx); };
+    	          if ( isCd5) { cd5Tiles++; totalSize += BInstallerSizes.getCd5Size(tidx); };
             	}
             	if ( !doDraw ) continue;
         	    if ( isRd5 ) canvas.drawLine( fw*ix, fh*iy, fw*(ix+1), fh*(iy+1), pnt);
@@ -499,7 +513,7 @@ float tx, ty;
               	}
             	
                 // download button?
-            	if ( rd5Tiles + cd5Tiles > 0 && event.getX() > imgh - btnh && event.getY() > imgh-btnh )
+            	if ( rd5Tiles + cd5Tiles > 0 && event.getX() > imgwOrig - btnw*scaleOrig && event.getY() > imghOrig-btnh*scaleOrig )
             	{
             		toggleDownload();
                 	invalidate();

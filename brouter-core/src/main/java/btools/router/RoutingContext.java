@@ -92,6 +92,20 @@ public final class RoutingContext implements DistanceChecker
     }
   }
 
+  public long[] getNogoChecksums()
+  {
+    long[] cs = new long[3];
+    int n = nogopoints == null ? 0 : nogopoints.size();
+    for( int i=0; i<n; i++ )
+    {
+    	OsmNodeNamed nogo = nogopoints.get(i);
+    	cs[0] += nogo.ilon;
+    	cs[1] += nogo.ilat;
+    	cs[2] += (long) ( nogo.radius*111894.*10.);
+    }
+    return cs;
+  }
+  
   public void setWaypoint( OsmNodeNamed wp, boolean endpoint )
   {
     keepnogopoints = nogopoints;

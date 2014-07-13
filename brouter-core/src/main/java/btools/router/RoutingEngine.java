@@ -1,7 +1,11 @@
 package btools.router;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import btools.expressions.BExpressionContext;
@@ -30,10 +34,12 @@ public class RoutingEngine extends Thread
 
   private volatile boolean terminated;
 
+  private File profileDir;
   private String segmentDir;
   private String outfileBase;
   private String logfileBase;
   private boolean infoLogEnabled;
+  private Writer infoLogWriter;
   private RoutingContext routingContext;
 
   private double airDistanceCostFactor;
@@ -59,7 +65,6 @@ public class RoutingEngine extends Thread
     if ( rc.localFunction != null )
     {
       String profileBaseDir = System.getProperty( "profileBaseDir" );
-      File profileDir;
       File profileFile;
       if ( profileBaseDir == null )
       {
@@ -95,6 +100,18 @@ public class RoutingEngine extends Thread
     {
       System.out.println( s );
     }
+    if ( infoLogWriter != null )
+    {
+      try
+      {
+        infoLogWriter.write( s );
+        infoLogWriter.write( '\n' );
+      }
+      catch( IOException io )
+      {
+        infoLogWriter = null; 
+      }
+    }
   }
 
   public void run()
@@ -106,6 +123,13 @@ public class RoutingEngine extends Thread
   {
     try
     {
+      File debugLog = new File( profileDir, "../debug.txt" );
+      if ( debugLog.exists() )
+      {
+        infoLogWriter = new FileWriter( debugLog, true );
+        logInfo( "start request at " + new Date() );
+      }
+        	
       startTime = System.currentTimeMillis();
       this.maxRunningTime = maxRunningTime;
       OsmTrack sum = null;
@@ -196,6 +220,12 @@ public class RoutingEngine extends Thread
       }
       openSet.clear();
       finished = true; // this signals termination to outside
+
+      if ( infoLogWriter != null )
+      {
+        try { infoLogWriter.close(); } catch( Exception e ) {}
+        infoLogWriter = null;
+      }
     }
   }
 
@@ -218,7 +248,7 @@ public class RoutingEngine extends Thread
     OsmTrack nearbyTrack = null;
     if ( refTrack == null )
     {
-      nearbyTrack = OsmTrack.readBinary( routingContext.rawTrackPath, waypoints.get( waypoints.size()-1) );
+      nearbyTrack = OsmTrack.readBinary( routingContext.rawTrackPath, waypoints.get( waypoints.size()-1), routingContext.getNogoChecksums() );
       if ( nearbyTrack != null )
       {
           wayointIds[waypoints.size()-1] = nearbyTrack.endPoint;
@@ -375,6 +405,8 @@ public class RoutingEngine extends Thread
         if ( matchPath != null )
         {
           track = mergeTrack( matchPath, nearbyTrack );
+          isDirty = true;
+          logInfo( "using fast partial recalc" );
         }
     	maxRunningTime += System.currentTimeMillis() - startTime; // reset timeout...
       }
@@ -396,6 +428,7 @@ public class RoutingEngine extends Thread
         {
           // ups, didn't find it, use a merge
           t = mergeTrack( matchPath, track );
+          logInfo( "using sloppy merge cause pass1 didn't reach destination" );
         }
         if ( t != null )
         {
@@ -411,7 +444,9 @@ public class RoutingEngine extends Thread
     
     if ( refTrack == null && !isDirty )
     {
+      logInfo( "supplying new reference track" );
       track.endPoint = endWp;
+      track.nogoChecksums = routingContext.getNogoChecksums();
       foundRawTrack = track;
     }
 
@@ -577,7 +612,8 @@ public class RoutingEngine extends Thread
     int firstMatchCost = 1000000000;
     int firstEstimate = 1000000000;
     
-    logInfo( "findtrack with maxTotalCost=" + maxTotalCost + " airDistanceCostFactor=" + airDistanceCostFactor );
+    logInfo( "findtrack with airDistanceCostFactor=" + airDistanceCostFactor );
+    if (costCuttingTrack != null ) logInfo( "costCuttingTrack.cost=" + costCuttingTrack.cost );
 
     matchPath = null;
     int nodesVisited = 0;
@@ -602,6 +638,20 @@ public class RoutingEngine extends Thread
 
     int maxAdjCostFromQueue = 0;
 
+    // check for an INITIAL match with the cost-cutting-track
+    if ( costCuttingTrack != null )
+    {
+        OsmPathElement pe1 = costCuttingTrack.getLink( startNodeId1, startNodeId2 );
+        if ( pe1 != null ) { logInfo( "initialMatch pe1.cost=" + pe1.cost );
+        	int c = startPath1.cost - pe1.cost; if ( c < 0 ) c = 0; if ( c < firstMatchCost ) firstMatchCost = c; }
+
+        OsmPathElement pe2 = costCuttingTrack.getLink( startNodeId2, startNodeId1 );
+        if ( pe2 != null ) { logInfo( "initialMatch pe2.cost=" + pe2.cost );
+            int c = startPath2.cost - pe2.cost; if ( c < 0 ) c = 0; if ( c < firstMatchCost ) firstMatchCost = c; }
+        
+        if ( firstMatchCost < 1000000000 ) logInfo( "firstMatchCost from initial match=" + firstMatchCost );
+    }
+    
     synchronized( openSet )
     {
       openSet.clear();
@@ -634,6 +684,7 @@ public class RoutingEngine extends Thread
 
       if ( matchPath != null && fastPartialRecalc && firstMatchCost < 500 && path.cost > 30L*firstMatchCost )
       {
+        logInfo( "early exit: firstMatchCost=" + firstMatchCost + " path.cost=" + path.cost );
         throw new IllegalArgumentException( "early exit for a close recalc" );
       }
       
@@ -664,6 +715,11 @@ public class RoutingEngine extends Thread
           {
             // remember first match cost for fast termination of partial recalcs
         	int parentcost = path.originElement == null ? 0 : path.originElement.cost;
+        	
+        	// hitting start-element of costCuttingTrack?
+        	int c = path.cost - parentcost - pe.cost;
+        	if ( c > 0 ) parentcost += c;
+        	
         	if ( parentcost < firstMatchCost ) firstMatchCost = parentcost;
         	  
             int costEstimate = path.cost

@@ -11,6 +11,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -25,7 +26,8 @@ import btools.util.FrozenLongMap;
 public final class OsmTrack
 {
   public MatchedWaypoint endPoint;
-	
+  public long[] nogoChecksums;
+  
   private class OsmPathElementHolder
   {
     public OsmPathElement node;
@@ -86,10 +88,13 @@ public final class OsmTrack
 	{
       node.writeToStream( dos );
 	}
+    dos.writeLong( nogoChecksums[0] );
+    dos.writeLong( nogoChecksums[1] );
+    dos.writeLong( nogoChecksums[2] );
     dos.close();
   }
 
-  public static OsmTrack readBinary( String filename, OsmNodeNamed newEp )
+  public static OsmTrack readBinary( String filename, OsmNodeNamed newEp, long[] nogoChecksums )
   {
 	OsmTrack t = null;
 	if ( filename != null )
@@ -119,7 +124,18 @@ public final class OsmTrack
         	t.cost = last_pe.cost;
         	t.buildMap();
           }
+          long[] al = new long[3];
+          try
+          {
+            al[0] = dis.readLong();
+            al[1] = dis.readLong();
+            al[2] = dis.readLong();
+          } catch( EOFException eof ) { /* kind of expected */ }
           dis.close();
+          boolean nogoCheckOk = Math.abs( al[0] - nogoChecksums[0] ) <= 20
+                             && Math.abs( al[1] - nogoChecksums[1] ) <= 20
+		                     && Math.abs( al[2] - nogoChecksums[2] ) <= 20;
+          if ( !nogoCheckOk ) return null;
 		}
 		catch( Exception e )
 		{

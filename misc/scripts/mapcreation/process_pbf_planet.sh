@@ -14,15 +14,15 @@ rm -rf /var/www/brouter/segments2_lastrun
 mkdir tmp
 cd tmp
 mkdir nodetiles
-/java/bin/java -Xmx256m -Xms256m -Xmn32m -cp ../pbfparser.jar:../brouter.jar btools.mapcreator.OsmCutter ../lookups.dat nodetiles ways.dat relations.dat ../planet-latest.osm.pbf
-
-/java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.RelationMerger ways.dat ways2.dat relations.dat ../lookups.dat ../trekking.brf ../softaccess.brf
+/java/bin/java -Xmx256m -Xms256m -Xmn32m -cp ../pbfparser.jar:../brouter.jar btools.mapcreator.OsmCutter ../lookups.dat nodetiles ways.dat relations.dat ../all.brf ../planet-latest.osm.pbf
 
 mkdir ftiles
 /java/bin/java -Xmx512M -Xms512M -Xmn32M -cp ../brouter.jar -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.NodeFilter nodetiles ways.dat ftiles
 
+/java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.RelationMerger ways.dat ways2.dat relations.dat ../lookups.dat ../trekking.brf ../softaccess.brf
+
 mkdir waytiles
-/java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.WayCutter ftiles ways.dat waytiles
+/java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.WayCutter ftiles ways2.dat waytiles
 
 mkdir waytiles55
 /java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.WayCutter5 ftiles waytiles waytiles55 bordernids.dat

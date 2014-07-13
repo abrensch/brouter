@@ -191,12 +191,6 @@ public class BRouterView extends View
                   if ( fileName.endsWith( ".cd5" ) ) segmentFound = true;
                 }
               }
-              if ( !segmentFound )
-              {
-                  ((BRouterActivity)getContext()).startDownloadManager();
-                  waitingForSelection = true;
-                  return;
-              }
 
               fileNames = new File( profileDir ).list();
               ArrayList<String> profiles = new ArrayList<String>();
@@ -222,6 +216,12 @@ public class BRouterView extends View
                           + " contains no routing profiles (*.brf)."
                           + " see www.dr-brenschede.de/brouter for setup instructions." );
               }
+              if ( !segmentFound )
+              {
+                  ((BRouterActivity)getContext()).startDownloadManager();
+                  waitingForSelection = true;
+                  return;
+              }
               ((BRouterActivity)getContext()).selectProfile( profiles.toArray( new String[0]) );
             }
             catch( Exception e )
@@ -234,6 +234,13 @@ public class BRouterView extends View
             waitingForSelection = true;
         }
 
+        public boolean hasUpToDateLookups()
+        {
+    	  BExpressionMetaData meta = new BExpressionMetaData();
+          meta.readMetaData( new File( profileDir, "lookups.dat" ) );
+          return meta.lookupVersion == 10;
+        }
+        
         public void continueProcessing()
         {
           waitingForSelection = false;

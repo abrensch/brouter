@@ -35,6 +35,7 @@ public class BRouterActivity  extends Activity implements OnInitListener {
     private static final int DIALOG_PICKWAYPOINT_ID = 10;
     private static final int DIALOG_SELECTBASEDIR_ID = 11;
     private static final int DIALOG_MAINACTION_ID = 12;
+    private static final int DIALOG_OLDDATAHINT_ID = 13;
 
     private BRouterView mBRouterView;
     private PowerManager mPowerManager;
@@ -103,6 +104,21 @@ public class BRouterActivity  extends Activity implements OnInitListener {
                    .setNegativeButton( "Cancel", new DialogInterface.OnClickListener() {
                        public void onClick(DialogInterface dialog, int id) {
                     	   finish();
+                       }
+                   });
+            return builder.create();
+        case DIALOG_OLDDATAHINT_ID:
+            builder = new AlertDialog.Builder(this);
+            builder.setTitle( "Local setup needs reset" )
+                   .setMessage( "You are currently using an old version of the lookup-table "
+             		      + "together with routing data made for this old table. "
+            		      + "Before downloading new datafiles made for the new table, "
+            		      + "you have to reset your local setup by 'moving away' (or deleting) "
+            		      + "your <basedir>/brouter directory and start a new setup by calling the "
+            		      + "BRouter App again." )
+                   .setPositiveButton( "OK", new DialogInterface.OnClickListener() {
+                       public void onClick(DialogInterface dialog, int id) {
+                      	    finish();
                        }
                    });
             return builder.create();
@@ -319,7 +335,14 @@ public class BRouterActivity  extends Activity implements OnInitListener {
     @SuppressWarnings("deprecation")
     public void startDownloadManager()
     {
-      showDialog( DIALOG_SHOW_DM_INFO_ID );
+      if ( !mBRouterView.hasUpToDateLookups() )
+      {
+        showDialog( DIALOG_OLDDATAHINT_ID );
+      }
+      else
+      {
+        showDialog( DIALOG_SHOW_DM_INFO_ID );
+      }
     }
 
     @SuppressWarnings("deprecation")
