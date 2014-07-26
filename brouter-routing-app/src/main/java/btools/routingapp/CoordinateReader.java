@@ -2,12 +2,14 @@ package btools.routingapp;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import android.os.Environment;
 import btools.router.OsmNodeNamed;
+import btools.router.RoutingHelper;
 
 /**
  * Read coordinates from a gpx-file
@@ -96,7 +98,7 @@ public abstract class CoordinateReader
   protected abstract void readPointmap() throws Exception;
   
 
-  public static CoordinateReader obtainValidReader( String basedir ) throws Exception
+  public static CoordinateReader obtainValidReader( String basedir, String segmentDir ) throws Exception
   {
 	          CoordinateReader cor = null;
               ArrayList<CoordinateReader> rl = new ArrayList<CoordinateReader>();
@@ -117,10 +119,32 @@ public abstract class CoordinateReader
                 }
               }
 
+              // eventually add explicit directory
+              File additional = RoutingHelper.getAdditionalMaptoolDir(segmentDir);
+              if ( additional != null )
+              {
+                String base3 = additional.getAbsolutePath();
+                
+                AppLogger.log( "additional maptool-base from storage-config: " + base3  );
+                
+                rl.add( new CoordinateReaderOsmAnd(base3) );
+                rl.add( new CoordinateReaderLocus(base3) );
+                rl.add( new CoordinateReaderOrux(base3) );
+              }
+
               long tmax = 0;
               for( CoordinateReader r : rl )
               {
                 long t = r.getTimeStamp();
+                
+                if ( t != 0 )
+                {
+                  if ( AppLogger.isLogging() )
+                  {
+                    AppLogger.log( "found coordinate source at " + r.basedir + r.rootdir + " with timestamp " + new Date( t ) );
+                  }
+                }
+                	
                 if ( t > tmax )
                 {
                   tmax = t;

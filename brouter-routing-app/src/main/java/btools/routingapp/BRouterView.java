@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +37,7 @@ import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
+import btools.router.RoutingHelper;
 
 public class BRouterView extends View
 {
@@ -71,6 +73,7 @@ public class BRouterView extends View
 
     private int[] imgPixels;
 
+    
        public void startSimulation() {
         }
 
@@ -138,18 +141,19 @@ public class BRouterView extends View
               	ConfigHelper.writeBaseDir( getContext(), baseDir );
               }
               String basedir = fbd.getAbsolutePath();
+              AppLogger.log( "using basedir: " + basedir );
 
               // create missing directories
               assertDirectoryExists( "project directory", basedir + "/brouter", null );
-              segmentDir = basedir + "/brouter/segments2";
-              assertDirectoryExists( "data directory", segmentDir, null );
+              segmentDir = basedir + "/brouter/segments3";
+              assertDirectoryExists( "data directory", segmentDir, "segments3.zip" );
               assertDirectoryExists( "carsubset directory", segmentDir + "/carsubset", null );
               profileDir = basedir + "/brouter/profiles2";
               assertDirectoryExists( "profile directory", profileDir, "profiles2.zip" );
               modesDir = basedir + "/brouter/modes";
               assertDirectoryExists( "modes directory", modesDir, "modes.zip" );
               
-              cor = CoordinateReader.obtainValidReader( basedir );
+              cor = CoordinateReader.obtainValidReader( basedir, segmentDir );
               wpList = cor.waypoints;
               nogoList = cor.nogopoints;
               nogoVetoList = new ArrayList<OsmNodeNamed>();
@@ -176,23 +180,7 @@ public class BRouterView extends View
                 }
               }
 
-              boolean segmentFound = false;
-              String[] fileNames = new File( segmentDir ).list();
-              for( String fileName : fileNames )
-              {
-                if ( fileName.endsWith( ".rd5" ) ) segmentFound = true;
-              }
-              File carSubset = new File( segmentDir, "carsubset" );
-              if ( carSubset.isDirectory() )
-              {
-                fileNames = carSubset.list();
-                for( String fileName : fileNames )
-                {
-                  if ( fileName.endsWith( ".cd5" ) ) segmentFound = true;
-                }
-              }
-
-              fileNames = new File( profileDir ).list();
+              String[] fileNames = new File( profileDir ).list();
               ArrayList<String> profiles = new ArrayList<String>();
 
               boolean lookupsFound = false;
@@ -216,7 +204,7 @@ public class BRouterView extends View
                           + " contains no routing profiles (*.brf)."
                           + " see www.dr-brenschede.de/brouter for setup instructions." );
               }
-              if ( !segmentFound )
+              if ( !RoutingHelper.hasDirectoryAnyDatafiles( segmentDir ) )
               {
                   ((BRouterActivity)getContext()).startDownloadManager();
                   waitingForSelection = true;
@@ -295,7 +283,6 @@ public class BRouterView extends View
             String[] wpts = new String[allpoints.size()];
             int i = 0;
             for( OsmNodeNamed wp : allpoints.values() ) wpts[i++] = wp.name;
-System.out.println( "calling selectWaypoint..." );
             ((BRouterActivity)getContext()).selectWaypoint( wpts );
           }
         }
@@ -304,7 +291,6 @@ System.out.println( "calling selectWaypoint..." );
         {
           wpList.add( cor.allpoints.get( waypoint ) );
           cor.allpoints.remove( waypoint );
-System.out.println( "updateWaypointList: " + waypoint + " wpList.size()=" + wpList.size() );
         }
 
         public void finishWaypointSelection()
@@ -409,6 +395,7 @@ System.out.println( "updateWaypointList: " + waypoint + " wpList.size()=" + wpLi
               toast( msg );
             }
         }
+
 
         private void assertDirectoryExists( String message, String path, String assetZip )
         {

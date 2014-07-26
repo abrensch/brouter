@@ -25,6 +25,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
 import btools.mapaccess.PhysicalFile;
+import btools.router.RoutingHelper;
 
 public class BInstallerView extends View
 {
@@ -209,8 +210,15 @@ public class BInstallerView extends View
     {
       clearTileSelection( MASK_INSTALLED_CD5 | MASK_INSTALLED_RD5 );
 
-      scanExistingFiles( new File( baseDir + "/brouter/segments2" ), ".rd5", MASK_INSTALLED_RD5 );
-      scanExistingFiles( new File( baseDir + "/brouter/segments2/carsubset" ), ".cd5", MASK_INSTALLED_CD5 );
+      scanExistingFiles( new File( baseDir + "/brouter/segments3" ), ".rd5", MASK_INSTALLED_RD5 );
+      scanExistingFiles( new File( baseDir + "/brouter/segments3/carsubset" ), ".cd5", MASK_INSTALLED_CD5 );
+      
+      File secondary = RoutingHelper.getSecondarySegmentDir( baseDir + "/brouter/segments3" );
+      if ( secondary != null )
+      {
+          scanExistingFiles( secondary, ".rd5", MASK_INSTALLED_RD5 );
+          scanExistingFiles( new File( secondary, "carsubset" ), ".cd5", MASK_INSTALLED_CD5 );
+      }
 
       StatFs stat = new StatFs(baseDir);
       availableSize = (long)stat.getAvailableBlocks()*stat.getBlockSize();
@@ -599,7 +607,7 @@ float tx, ty;
                     input = connection.getInputStream();
                     
                     int slidx = surl.lastIndexOf( "segments3/" );
-                    fname = baseDir + "/brouter/segments2/" + surl.substring( slidx+10 );
+                    fname = baseDir + "/brouter/segments3/" + surl.substring( slidx+10 );
                     tmp_file = new File( fname + "_tmp" );
                     if ( new File( fname ).exists() ) return "internal error: file exists: " + fname;
                     output = new FileOutputStream( tmp_file );

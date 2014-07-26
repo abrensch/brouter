@@ -5,11 +5,7 @@
  */
 package btools.mapcreator;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-
-import sun.security.pkcs.SigningCertificateInfo;
 
 import btools.util.ByteDataWriter;
 

@@ -13,7 +13,9 @@ import java.util.List;
 
 public final class NodesCache
 {
-  private String segmentDir;
+  private File segmentDir;
+  private File secondarySegmentsDir = null;
+
   private OsmNodesMap nodesMap;
   private int lookupVersion;
   private int lookupMinorVersion;
@@ -33,21 +35,25 @@ public final class NodesCache
 
   private long cacheSum = 0;
   private boolean garbageCollectionEnabled = false;
+  
 
   public NodesCache( String segmentDir, OsmNodesMap nodesMap, int lookupVersion, int minorVersion, boolean varLen, boolean carMode, NodesCache oldCache )
   {
-    this.segmentDir = segmentDir;
+    this.segmentDir = new File( segmentDir );
     this.nodesMap = nodesMap;
     this.lookupVersion = lookupVersion;
     this.lookupMinorVersion = minorVersion;
     this.readVarLength = varLen;
     this.carMode = carMode;
 
+    if ( !this.segmentDir.isDirectory() ) throw new RuntimeException( "segment directory " + segmentDir + " does not exist" );
+
     if ( oldCache != null )
     {
       fileCache = oldCache.fileCache;
       iobuffer = oldCache.iobuffer;
       oom_carsubset_hint = oldCache.oom_carsubset_hint;
+      secondarySegmentsDir = oldCache.secondarySegmentsDir;
 
       // re-use old, virgin caches
       fileRows = oldCache.fileRows;
@@ -65,7 +71,19 @@ public final class NodesCache
       fileCache = new HashMap<String,PhysicalFile>(4);
       fileRows = new OsmFile[180][];
       iobuffer = new byte[65636];
+      secondarySegmentsDir = StorageConfigHelper.getSecondarySegmentDir( segmentDir );
     }
+  }
+  
+  private File getFileFromSegmentDir( String filename )
+  {
+    File f = new File( segmentDir, filename );
+    if ( secondarySegmentsDir != null && !f.exists() )
+    {
+      File f2 = new File( secondarySegmentsDir, filename );
+      if ( f2.exists() ) return f2;
+    }
+    return f;
   }
 
   // if the cache sum exceeded a threshold,
@@ -185,9 +203,6 @@ public final class NodesCache
 
   private OsmFile fileForSegment( int lonDegree, int latDegree ) throws Exception
   {
-    File base = new File( segmentDir );
-    if ( !base.isDirectory() ) throw new RuntimeException( "segment directory " + segmentDir + " does not exist" );
-
     int lonMod5 = lonDegree % 5;
     int latMod5 = latDegree % 5;
     int tileIndex = lonMod5 * 5 + latMod5;
@@ -207,12 +222,12 @@ public final class NodesCache
       File f = null;
       if ( carMode )
       {
-        File carFile = new File( new File( base, "carsubset" ), filenameBase + ".cd5" );
+        File carFile = getFileFromSegmentDir( "carsubset/" + filenameBase + ".cd5" );
     	if ( carFile.exists() ) f = carFile;
       }
       if ( f == null )
       {
-        File fullFile = new File( base, filenameBase + ".rd5" );
+        File fullFile = getFileFromSegmentDir( filenameBase + ".rd5" );
         if ( fullFile.exists() ) f = fullFile;
         if ( carMode && f != null ) oom_carsubset_hint = true;
       }
