@@ -152,6 +152,7 @@ public class BRouterView extends View
               assertDirectoryExists( "profile directory", profileDir, "profiles2.zip" );
               modesDir = basedir + "/brouter/modes";
               assertDirectoryExists( "modes directory", modesDir, "modes.zip" );
+              assertDirectoryExists( "readmes directory", basedir + "/brouter/readmes", "readmes.zip" );
               
               cor = CoordinateReader.obtainValidReader( basedir, segmentDir );
               wpList = cor.waypoints;

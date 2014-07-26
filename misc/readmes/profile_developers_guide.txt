@@ -95,6 +95,8 @@ the routing engine:
 The operators of the profile scripts
 ------------------------------------
 
+The profile scripts use polnic notation (=operator first)
+
 The "assign" operator is special: it can be used
 only on the top level of the expression hirarchy
 and has 2 operands:
