@@ -9,7 +9,7 @@ fi
 
 touch lastmaprun.date
 
-rm -rf /var/www/brouter/segments2_lastrun
+rm -rf /var/www/brouter/segments3_lastrun
 
 mkdir tmp
 cd tmp
@@ -43,6 +43,6 @@ cd ..
 rm -rf segments
 mv tmp/segments segments
 rm -rf tmp
-cp /var/www/brouter/segments2/.htaccess segments
-mv /var/www/brouter/segments2 /var/www/brouter/segments2_lastrun
-mv segments /var/www/brouter/segments2
+cp /var/www/brouter/segments3/.htaccess segments
+mv /var/www/brouter/segments3 /var/www/brouter/segments3_lastrun
+mv segments /var/www/brouter/segments3
