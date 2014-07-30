@@ -3,6 +3,8 @@ package btools.routingapp;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Date;
 
 import android.os.Environment;
@@ -61,8 +63,20 @@ public class AppLogger
         }
         catch( IOException e )
         {
-          throw new RuntimeException( "cannot write appdebug.txt: " + e );
+          throw new RuntimeException( "cannot write brouterapp.txt: " + e );
         }
       }
     }
+
+    /**
+	 * Format an exception using 
+	 */
+    public static String formatThrowable( Throwable t )
+    {
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter( sw );
+      t.printStackTrace( pw );
+      return sw.toString();
+    }
+
 }

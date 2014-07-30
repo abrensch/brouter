@@ -56,6 +56,7 @@ public class BRouterActivity  extends Activity implements OnInitListener {
 
         // instantiate our simulation view and set it as the activity's content
         mBRouterView = new BRouterView(this);
+        mBRouterView.init();
         setContentView(mBRouterView);
     }
 

@@ -83,7 +83,10 @@ public class BRouterView extends View
 
         public BRouterView(Context context) {
             super(context);
-
+        }
+        
+        public void init()
+        {
             DisplayMetrics metrics = new DisplayMetrics();
             ((Activity)getContext()).getWindowManager().getDefaultDisplay().getMetrics(metrics);
             imgw = metrics.widthPixels;
@@ -218,6 +221,10 @@ public class BRouterView extends View
               String msg = e instanceof IllegalArgumentException
                     ? e.getMessage() + ( cor == null ? "" : " (coordinate-source: " + cor.basedir + cor.rootdir + ")" )
                     : e.toString();
+                    
+              AppLogger.log( msg );
+              AppLogger.log( AppLogger.formatThrowable( e ) );
+
               ((BRouterActivity)getContext()).showErrorMessage( msg );
             }
             waitingForSelection = true;
