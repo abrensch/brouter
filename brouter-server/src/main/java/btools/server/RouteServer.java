@@ -105,7 +105,7 @@ public class RouteServer extends Thread
             else
             {
               OsmTrack track = cr.getFoundTrack();
-              writeHttpHeader(bw, handler.getMimeType());
+              writeHttpHeader(bw, handler.getMimeType(), handler.getFileName());
               if ( track != null )
               {
                 bw.write( handler.formatTrack(track) );
@@ -212,10 +212,19 @@ public class RouteServer extends Thread
 
   private static void writeHttpHeader( BufferedWriter bw, String mimeType ) throws IOException
   {
+    writeHttpHeader( bw, mimeType, null );
+  }
+
+  private static void writeHttpHeader( BufferedWriter bw, String mimeType, String fileName ) throws IOException
+  {
     // http-header
     bw.write( "HTTP/1.1 200 OK\n" );
     bw.write( "Connection: close\n" );
     bw.write( "Content-Type: " + mimeType + "; charset=utf-8\n" );
+    if ( fileName != null )
+    {
+      bw.write( "Content-Disposition: attachment; filename=" + fileName + "\n" );
+    }
     bw.write( "Access-Control-Allow-Origin: *\n" );
     bw.write( "\n" );
   }
