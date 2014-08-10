@@ -133,9 +133,13 @@ public class ServerHandler extends RequestHandler {
     String format = params.get( "format" );
     if ( format != null )
     {
-      if ( "gpx".equals( format ) || "kml".equals( format ) )
+      if ( "gpx".equals( format ) )
       {
-        result = "text/xml";
+        result = "application/gpx+xml";
+      }
+      else if ( "kml".equals( format ) )
+      {
+        result = "application/vnd.google-earth.kml+xml";
       }
       else if ( "csv".equals( format ) )
       {
@@ -144,6 +148,20 @@ public class ServerHandler extends RequestHandler {
     }
             
     return result;
+  }
+
+  @Override
+  public String getFileName()
+  {
+    String fileName = null;
+    String format = params.get( "format" );
+
+    if ( format != null )
+    {
+      fileName = "brouter." + format;
+    }
+
+    return fileName;
   }
 
   private static OsmNodeNamed readPosition( String vlon, String vlat, String name )
