@@ -60,16 +60,22 @@ public final class BExpressionContext
   // build-in variable indexes for fast access
   private int costfactorIdx;
   private int turncostIdx;
+  private int uphillcostfactorIdx;
+  private int downhillcostfactorIdx;
   private int initialcostIdx;
   private int nodeaccessgrantedIdx;
 
   private float[] _arrayCostfactor;
   private float[] _arrayTurncost;
+  private float[] _arrayUphillCostfactor;
+  private float[] _arrayDownhillCostfactor;
   private float[] _arrayInitialcost;
   private float[] _arrayNodeAccessGranted;
 
   public float getCostfactor() { return _arrayCostfactor[currentHashBucket]; }
   public float getTurncost() { return _arrayTurncost[currentHashBucket]; }
+  public float getUphillCostfactor() { return _arrayUphillCostfactor[currentHashBucket]; }
+  public float getDownhillCostfactor() { return _arrayDownhillCostfactor[currentHashBucket]; }
   public float getInitialcost() { return _arrayInitialcost[currentHashBucket]; }
   public float getNodeAccessGranted() { return _arrayNodeAccessGranted[currentHashBucket]; }
 
@@ -102,6 +108,8 @@ public final class BExpressionContext
 
     _arrayCostfactor = new float[hashSize];
     _arrayTurncost = new float[hashSize];
+    _arrayUphillCostfactor = new float[hashSize];
+    _arrayDownhillCostfactor = new float[hashSize];
     _arrayInitialcost = new float[hashSize];
     _arrayNodeAccessGranted = new float[hashSize];
   }
@@ -423,6 +431,8 @@ public final class BExpressionContext
 
      _arrayCostfactor[currentHashBucket] = variableData[costfactorIdx];
      _arrayTurncost[currentHashBucket] = variableData[turncostIdx];
+     _arrayUphillCostfactor[currentHashBucket] = variableData[uphillcostfactorIdx];
+     _arrayDownhillCostfactor[currentHashBucket] = variableData[downhillcostfactorIdx];
      _arrayInitialcost[currentHashBucket] = variableData[initialcostIdx];
      _arrayNodeAccessGranted[currentHashBucket] = variableData[nodeaccessgrantedIdx];
 
@@ -608,8 +618,11 @@ public final class BExpressionContext
 
       costfactorIdx = getVariableIdx( "costfactor", true );
       turncostIdx = getVariableIdx( "turncost", true );
+      uphillcostfactorIdx = getVariableIdx( "uphillcostfactor", true );
+      downhillcostfactorIdx = getVariableIdx( "downhillcostfactor", true );
       initialcostIdx = getVariableIdx( "initialcost", true );
       nodeaccessgrantedIdx = getVariableIdx( "nodeaccessgranted", true );
+
 
       expressionList = _parseFile( file );
       float[] readOnlyData = variableData;

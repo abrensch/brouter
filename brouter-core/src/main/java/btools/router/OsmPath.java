@@ -30,8 +30,6 @@ final class OsmPath implements OsmLinkHolder
   // if the corresponding node has not
   public short selev;
 
-  private static final int MAX_EHB = 10000000;
-
   public int adjustedCost = 0;
 
   public void setAirDistanceCostAdjustment( int costAdjustment )
@@ -199,30 +197,60 @@ final class OsmPath implements OsmLinkHolder
         ehbu += (ele2 - ele1)*elefactor - dist * rc.uphillcutoff;
       }
 
-      if ( ehbd > MAX_EHB )
+      float downweight = 0.f;
+      if ( ehbd > rc.elevationpenaltybuffer )
       {
+         downweight = 1.f;
+
+         int excess = ehbd - rc.elevationpenaltybuffer;
+         int reduce = dist * rc.elevationbufferreduce;
+         if ( reduce > excess )
+         {
+           downweight = ((float)reduce)/excess;
+           reduce = excess;
+         }
+         excess = ehbd - rc.elevationmaxbuffer;
+         if ( reduce < excess )
+         {
+           reduce = excess;
+         }
+         ehbd -= reduce;
          if ( rc.downhillcostdiv > 0 )
          {
-           int elevationCost = (ehbd-MAX_EHB)/rc.downhillcostdiv;
+           int elevationCost = reduce/rc.downhillcostdiv;
            cost += elevationCost;
            linkelevationcost += elevationCost;
          }
-         ehbd = MAX_EHB;
       }
       else if ( ehbd < 0 )
       {
         ehbd = 0;
       }
 
-      if ( ehbu > MAX_EHB )
+      float upweight = 0.f;
+      if ( ehbu > rc.elevationpenaltybuffer )
       {
-         if ( rc.uphillcostdiv > 0 )
-         {
-           int elevationCost = (ehbu-MAX_EHB)/rc.uphillcostdiv;
-           cost += elevationCost;
-           linkelevationcost += elevationCost;
-         }
-         ehbu = MAX_EHB;
+        upweight = 1.f;
+
+        int excess = ehbu - rc.elevationpenaltybuffer;
+        int reduce = dist * rc.elevationbufferreduce;
+        if ( reduce > excess )
+        {
+          upweight = ((float)reduce)/excess;
+          reduce = excess;
+        }
+        excess = ehbu - rc.elevationmaxbuffer;
+        if ( reduce < excess )
+        {
+          reduce = excess;
+        }
+        ehbu -= reduce;
+        if ( rc.uphillcostdiv > 0 )
+        {
+          int elevationCost = reduce/rc.uphillcostdiv;
+          cost += elevationCost;
+          linkelevationcost += elevationCost;
+        }
       }
       else if ( ehbu < 0 )
       {
@@ -230,9 +258,16 @@ final class OsmPath implements OsmLinkHolder
       }
 
       // *** penalty for distance
-      float costfactor = rc.expctxWay.getCostfactor();
+      float cfup = rc.expctxWay.getUphillCostfactor();
+      float cfdown = rc.expctxWay.getDownhillCostfactor();
+      float cf = rc.expctxWay.getCostfactor();
+
+      cfup = cfup == 0.f ? cf : cfup;
+      cfdown = cfdown == 0.f ? cf : cfdown;
+      
+      float costfactor = cfup*upweight + cf*(1.f - upweight - downweight) + cfdown*downweight;
       float fcost = dist * costfactor + 0.5f;
-      if ( costfactor >= 10000. || fcost + cost >= 2000000000. )
+      if ( cf >= 10000. || fcost + cost >= 2000000000. )
       {
         cost = -1;
         return;
@@ -241,10 +276,10 @@ final class OsmPath implements OsmLinkHolder
       cost += waycost;
 
       // *** add initial cost if factor changed
-      float costdiff = costfactor - lastCostfactor;
+      float costdiff = cf - lastCostfactor;
       if ( costdiff > 0.0005 || costdiff < -0.0005 )
       {
-          lastCostfactor = costfactor;
+          lastCostfactor = cf;
           float initialcost = rc.expctxWay.getInitialcost();
           int iicost = (int)initialcost;
           cost += iicost;
@@ -252,7 +287,8 @@ final class OsmPath implements OsmLinkHolder
 
       if ( recordTransferNodes )
       {
-        int iCost = (int)(rc.expctxWay.getCostfactor()*1000 + 0.5f);
+        int iCost = (int)(costfactor*1000 + 0.5f);
+        //int iCost = (int)(rc.expctxWay.getCostfactor()*1000 + 0.5f);
         lastMessage = (lon2-180000000) + "\t"
                     + (lat2-90000000) + "\t"
                     + ele2/4 + "\t"
