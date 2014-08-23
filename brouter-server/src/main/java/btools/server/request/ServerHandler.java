@@ -32,14 +32,14 @@ public class ServerHandler extends RequestHandler {
 
   private RoutingContext rc;
 
-	public ServerHandler( ServiceContext serviceContext, HashMap<String, String> params )
-	{
-		super( serviceContext, params );
-	}
+  public ServerHandler( ServiceContext serviceContext, HashMap<String, String> params )
+  {
+    super( serviceContext, params );
+  }
 
-	@Override
-	public RoutingContext readRoutingContext()
-	{
+  @Override
+  public RoutingContext readRoutingContext()
+  {
     rc = new RoutingContext();
 
     String profile = params.get( "profile" );
@@ -61,50 +61,50 @@ public class ServerHandler extends RequestHandler {
     }
 
     return rc;
-	}
+  }
 
-	@Override
-	public List<OsmNodeNamed> readWayPointList()
-	{
-	  // lon,lat|...
-		String lonLats = params.get( "lonlats" );
-		if (lonLats == null) throw new IllegalArgumentException( "lonlats parameter not set" );
+  @Override
+  public List<OsmNodeNamed> readWayPointList()
+  {
+    // lon,lat|...
+    String lonLats = params.get( "lonlats" );
+    if (lonLats == null) throw new IllegalArgumentException( "lonlats parameter not set" );
 
-		String[] coords = lonLats.split("\\|");
-		if (coords.length < 2) throw new IllegalArgumentException( "we need two lat/lon points at least!" );
-		
+    String[] coords = lonLats.split("\\|");
+    if (coords.length < 2) throw new IllegalArgumentException( "we need two lat/lon points at least!" );
+    
     List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
     for (int i = 0; i < coords.length; i++)
-		{
-    	String[] lonLat = coords[i].split(",");
-    	wplist.add( readPosition( lonLat[0], lonLat[1], "via" + i ) );
-		}
+    {
+      String[] lonLat = coords[i].split(",");
+      wplist.add( readPosition( lonLat[0], lonLat[1], "via" + i ) );
+    }
 
     wplist.get(0).name = "from";
     wplist.get(wplist.size()-1).name = "to";
 
     return wplist;
-	}
-	
-	@Override
-	public String formatTrack(OsmTrack track)
-	{
-		String result;
-		// optional, may be null
-		String format = params.get( "format" );
+  }
+  
+  @Override
+  public String formatTrack(OsmTrack track)
+  {
+    String result;
+    // optional, may be null
+    String format = params.get( "format" );
 
-		if (format == null || "gpx".equals(format))
-		{
-			result = track.formatAsGpx();
-		}
-		else if ("kml".equals(format))
-		{
-			result = track.formatAsKml();
+    if (format == null || "gpx".equals(format))
+    {
+      result = track.formatAsGpx();
     }
-		else if ("geojson".equals(format))
-		{
-			result = track.formatAsGeoJson();
-		}
+    else if ("kml".equals(format))
+    {
+      result = track.formatAsKml();
+    }
+    else if ("geojson".equals(format))
+    {
+      result = track.formatAsGeoJson();
+    }
     else if ("csv".equals(format))
     {
       try
@@ -119,13 +119,13 @@ public class ServerHandler extends RequestHandler {
         return "Error: " + ex.getMessage();
       }
     }
-		else {
-			System.out.println("unknown track format '" + format + "', using default");
-			result = track.formatAsGpx();
-		}
-			
-		return result;
-	}
+    else {
+      System.out.println("unknown track format '" + format + "', using default");
+      result = track.formatAsGpx();
+    }
+      
+    return result;
+  }
 
   @Override
   public String getMimeType()
