@@ -286,6 +286,43 @@ public final class OsmTrack
     return sb.toString();
   }
 
+  public String formatAsGeoJson()
+  {
+    StringBuilder sb = new StringBuilder(8192);
+
+    sb.append( "{\n" );
+    sb.append( "  \"type\": \"FeatureCollection\",\n" );
+    sb.append( "  \"features\": [\n" );
+    sb.append( "    {\n" );
+    sb.append( "      \"type\": \"Feature\",\n" );
+    sb.append( "      \"properties\": {\n" );
+    sb.append( "        \"creator\": \"BRouter-1.0.2\",\n" );
+    sb.append( "        \"name\": \"" ).append( name ).append( "\",\n" );
+    sb.append( "        \"track-length\": \"" ).append( distance ).append( "\",\n" );
+    sb.append( "        \"filtered ascend\": \"" ).append( ascend ).append( "\",\n" );
+    sb.append( "        \"plain-ascend\": \"" ).append( plainAscend ).append( "\",\n" );
+    sb.append( "        \"cost\": \"" ).append( cost ).append( "\"\n" );
+    sb.append( "      },\n" );
+    sb.append( "      \"geometry\": {\n" );
+    sb.append( "        \"type\": \"LineString\",\n" );
+    sb.append( "        \"coordinates\": [\n" );
+
+    for( OsmPathElement n : nodes )
+    {
+      String sele = n.getSElev() == Short.MIN_VALUE ? "" : ", " + n.getElev();
+      sb.append( "          [" ).append(formatPos(n.getILon() - 180000000)).append(", ").append(formatPos(n.getILat() - 90000000)).append(sele).append( "],\n" );
+    }
+    sb.deleteCharAt( sb.lastIndexOf( "," ) );
+
+    sb.append( "        ]\n" );
+    sb.append( "      }\n" );
+    sb.append( "    }\n" );
+    sb.append( "  ]\n" );
+    sb.append( "}\n" );
+
+    return sb.toString();
+  }
+
   private static String formatPos( int p )
   {
     boolean negative = p < 0;

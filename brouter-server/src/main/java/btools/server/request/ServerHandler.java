@@ -21,7 +21,7 @@ import java.util.List;
  * nogos = lon,lat,radius|... (optional, radius in meters)
  * profile = profile file name without .brf
  * alternativeidx = [0|1|2|3] (optional, default 0)
- * format = [kml|gpx] (optional, default gpx)
+ * format = [kml|gpx|geojson] (optional, default gpx)
  *
  * Example URLs:
  * http://localhost:17777/brouter?lonlats=8.799297,49.565883|8.811764,49.563606&nogos=&profile=trekking&alternativeidx=0&format=gpx
@@ -100,6 +100,10 @@ public class ServerHandler extends RequestHandler {
 		else if ("kml".equals(format))
 		{
 			result = track.formatAsKml();
+    }
+		else if ("geojson".equals(format))
+		{
+			result = track.formatAsGeoJson();
 		}
     else if ("csv".equals(format))
     {
@@ -140,6 +144,10 @@ public class ServerHandler extends RequestHandler {
       else if ( "kml".equals( format ) )
       {
         result = "application/vnd.google-earth.kml+xml";
+      }
+      else if ( "geojson".equals( format ) )
+      {
+        result = "application/vnd.geo+json";
       }
       else if ( "csv".equals( format ) )
       {
