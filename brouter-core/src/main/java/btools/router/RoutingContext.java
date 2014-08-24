@@ -62,9 +62,9 @@ public final class RoutingContext implements DistanceChecker
     carMode = 0.f != expctxGlobal.getVariableValue( "validForCars", 0.f );
     pass1coefficient = expctxGlobal.getVariableValue( "pass1coefficient", 1.5f );
     pass2coefficient = expctxGlobal.getVariableValue( "pass2coefficient", 0.f );
-    elevationpenaltybuffer = (int)(expctxGlobal.getVariableValue( "elevationpenaltybuffer", 10.f )*1000000);
+    elevationpenaltybuffer = (int)(expctxGlobal.getVariableValue( "elevationpenaltybuffer", 5.f )*1000000);
     elevationmaxbuffer = (int)(expctxGlobal.getVariableValue( "elevationmaxbuffer", 10.f )*1000000);
-    elevationbufferreduce = (int)(expctxGlobal.getVariableValue( "elevationbufferreduce", 1.f )*10000);
+    elevationbufferreduce = (int)(expctxGlobal.getVariableValue( "elevationbufferreduce", 0.f )*10000);
   }
 
   public RoutingMessageHandler messageHandler = new RoutingMessageHandler();

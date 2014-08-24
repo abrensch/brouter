@@ -206,7 +206,7 @@ final class OsmPath implements OsmLinkHolder
          int reduce = dist * rc.elevationbufferreduce;
          if ( reduce > excess )
          {
-           downweight = ((float)reduce)/excess;
+           downweight = ((float)excess)/reduce;
            reduce = excess;
          }
          excess = ehbd - rc.elevationmaxbuffer;
@@ -236,7 +236,7 @@ final class OsmPath implements OsmLinkHolder
         int reduce = dist * rc.elevationbufferreduce;
         if ( reduce > excess )
         {
-          upweight = ((float)reduce)/excess;
+          upweight = ((float)excess)/reduce;
           reduce = excess;
         }
         excess = ehbu - rc.elevationmaxbuffer;
@@ -267,7 +267,7 @@ final class OsmPath implements OsmLinkHolder
       
       float costfactor = cfup*upweight + cf*(1.f - upweight - downweight) + cfdown*downweight;
       float fcost = dist * costfactor + 0.5f;
-      if ( cf >= 10000. || fcost + cost >= 2000000000. )
+      if ( costfactor > 9999. || fcost + cost >= 2000000000. )
       {
         cost = -1;
         return;
@@ -276,10 +276,11 @@ final class OsmPath implements OsmLinkHolder
       cost += waycost;
 
       // *** add initial cost if factor changed
-      float costdiff = cf - lastCostfactor;
+      float newcostfactor = (cfup + cfdown + cf)/3;
+      float costdiff = newcostfactor - lastCostfactor;
       if ( costdiff > 0.0005 || costdiff < -0.0005 )
       {
-          lastCostfactor = cf;
+          lastCostfactor = newcostfactor;
           float initialcost = rc.expctxWay.getInitialcost();
           int iicost = (int)initialcost;
           cost += iicost;
@@ -288,7 +289,6 @@ final class OsmPath implements OsmLinkHolder
       if ( recordTransferNodes )
       {
         int iCost = (int)(costfactor*1000 + 0.5f);
-        //int iCost = (int)(rc.expctxWay.getCostfactor()*1000 + 0.5f);
         lastMessage = (lon2-180000000) + "\t"
                     + (lat2-90000000) + "\t"
                     + ele2/4 + "\t"
