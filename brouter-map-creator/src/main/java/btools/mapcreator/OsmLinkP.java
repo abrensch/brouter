@@ -17,13 +17,98 @@ public class OsmLinkP
  /**
    * The target is either the next link or the target node
    */
-  public OsmNodeP targetNode;
+  private OsmNodeP sourceNode;
+  private OsmNodeP targetNode;
 
-  public OsmLinkP next;
+  private OsmLinkP previous;
+  private OsmLinkP next;
 
+  
+  public OsmLinkP( OsmNodeP source, OsmNodeP target )
+  {
+    sourceNode = source;
+    targetNode = target;
+  }
   
   public final boolean counterLinkWritten( )
   {
 	  return descriptionBitmap == null;
   }
+
+  /**
+   * Set the relevant next-pointer for the given source
+   */
+  public void setNext( OsmLinkP link, OsmNodeP source )
+  {
+	 if ( sourceNode == source )
+     {
+       next = link;
+     }
+     else if ( targetNode == source )
+     {
+       previous = link;
+     }
+     else
+     {
+       throw new IllegalArgumentException( "internal error: setNext: unknown source" );
+     }
+  }  
+  
+  /**
+   * Get the relevant next-pointer for the given source
+   */
+  public OsmLinkP getNext( OsmNodeP source )
+  {
+    if ( sourceNode == source )
+    {
+      return next;
+    }
+    else if ( targetNode == source )
+	{
+      return previous;
+    }
+    else
+    {
+      throw new IllegalArgumentException( "internal error: gextNext: unknown source" );
+    }
+  }
+
+  /**
+   * Get the relevant target-node for the given source
+   */
+  public OsmNodeP getTarget( OsmNodeP source )
+  {
+    if ( sourceNode == source )
+    {
+      return targetNode;
+    }
+    else if ( targetNode == source )
+	{
+      return sourceNode;
+    }
+    else
+    {
+      throw new IllegalArgumentException( "internal error: getTarget: unknown source" );
+    }
+  }
+
+  /**
+   * Check if reverse link for the given source
+   */
+  public boolean isReverse( OsmNodeP source )
+  {
+    if ( sourceNode == source )
+    {
+      return false;
+    }
+    else if ( targetNode == source )
+	{
+      return true;
+    }
+    else
+    {
+      throw new IllegalArgumentException( "internal error: isReverse: unknown source" );
+    }
+  }
+
 }

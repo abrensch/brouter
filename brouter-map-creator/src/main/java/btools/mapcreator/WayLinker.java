@@ -179,18 +179,12 @@ public class WayLinker extends MapCreatorBase
       long nid = way.nodes.get(i);
       n1 = n2;
       n2 = nodesMap.get( nid );
-      if ( n1 != null && n2 != null )
+      if ( n1 != null && n2 != null && n1 != n2 )
       {
-        OsmLinkP l1 = new OsmLinkP();
-        l1.targetNode = n2;
-        l1.descriptionBitmap = description;
-        n1.addLink( l1 );
-
-        OsmLinkP l2 = new OsmLinkPReverse();
-        l2.targetNode = n1;
-        l2.descriptionBitmap = description;
-        
-        n2.addLink( l2 );
+        OsmLinkP link = new OsmLinkP( n1, n2 );
+        link.descriptionBitmap = description;
+        n1.addLink( link );
+        n2.addLink( link );
       }
       if ( n2 != null )
       {

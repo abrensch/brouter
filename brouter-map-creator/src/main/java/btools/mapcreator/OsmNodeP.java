@@ -75,7 +75,7 @@ public class OsmNodeP implements Comparable<OsmNodeP>
 
    public void addLink( OsmLinkP link )
    {
-     if ( firstlink != null ) link.next = firstlink;
+	 link.setNext( firstlink, this );
      firstlink = link;
    }
 
@@ -96,27 +96,27 @@ public class OsmNodeP implements Comparable<OsmNodeP>
      // hack: write node-desc as link tag (copy cycleway-bits)
      byte[] nodeDescription = getNodeDecsription();
 
-     for( OsmLinkP link0 = firstlink; link0 != null; link0 = link0.next )
+     for( OsmLinkP link0 = firstlink; link0 != null; link0 = link0.getNext( this ) )
      {
        int ilonref = ilon;
        int ilatref = ilat;
     	 
        OsmLinkP link = link0;
        OsmNodeP origin = this;
-       int skipDetailBit = link0.counterLinkWritten() ? SKIPDETAILS_BITMASK : 0;
+       int skipDetailBit = link0.descriptionBitmap == null ? SKIPDETAILS_BITMASK : 0;
 
        // first pass just to see if that link is consistent
        while( link != null )
        {
-         OsmNodeP target = link.targetNode;
+         OsmNodeP target = link.getTarget( origin );
          if ( !target.isTransferNode() )
          {
            break;
          }
          // next link is the one (of two), does does'nt point back
-         for( link = target.firstlink; link != null; link = link.next )
+         for( link = target.firstlink; link != null; link = link.getNext( target ) )
          {
-           if ( link.targetNode != origin ) break;
+           if ( link.getTarget( target ) != origin ) break;
          }
          origin = target;
        }
@@ -125,14 +125,14 @@ public class OsmNodeP implements Comparable<OsmNodeP>
        if ( skipDetailBit == 0)
        {
          link = link0;
+         origin = this;
        }
-       origin = this;
        byte[] lastDescription = null;
        while( link != null )
        {
     	 if ( link.descriptionBitmap == null && skipDetailBit == 0 ) throw new IllegalArgumentException( "missing way description...");
     	   
-         OsmNodeP target = link.targetNode;
+         OsmNodeP target = link.getTarget( origin );
          int tranferbit = target.isTransferNode() ? TRANSFERNODE_BITMASK : 0;
          int nodedescbit = nodeDescription != null ? NODEDESC_BITMASK : 0;
 
@@ -140,7 +140,7 @@ public class OsmNodeP implements Comparable<OsmNodeP>
          if ( skipDetailBit == 0 ) // check if description changed
          {
         	 int inverseBitByteIndex =  writeVarLength ? 0 : 7;
-        	 boolean inverseDirection = link instanceof OsmLinkPReverse;
+        	 boolean inverseDirection = link.isReverse( origin );
         	 byte[] ab = link.descriptionBitmap;
              int abLen = ab.length;
              int lastLen = lastDescription == null ? 0 : lastDescription.length;
@@ -189,16 +189,17 @@ public class OsmNodeP implements Comparable<OsmNodeP>
            nodeDescription = null;
          }
 
+         link.descriptionBitmap = null; // mark link as written
+         
          if ( tranferbit == 0)
          {
-           target.markLinkWritten( origin );
            break;
          }
          os2.writeVarLengthSigned( target.getSElev() -getSElev() );
          // next link is the one (of two), does does'nt point back
-         for( link = target.firstlink; link != null; link = link.next )
+         for( link = target.firstlink; link != null; link = link.getNext( target ) )
          {
-           if ( link.targetNode != origin ) break;
+           if ( link.getTarget( target ) != origin ) break;
          }
          if ( link == null ) throw new RuntimeException( "follow-up link not found for transfer-node!" );
          origin = target;
@@ -236,23 +237,12 @@ public class OsmNodeP implements Comparable<OsmNodeP>
   {
     int cnt = 0;
 
-    for( OsmLinkP link = firstlink; link != null; link = link.next )
+    for( OsmLinkP link = firstlink; link != null; link = link.getNext( this ) )
     {
       cnt++;
     }
     return cnt;
   }
-
-   // mark the link to the given node as written,
-   // don't want to write the counter-direction
-   // in full details
-   public void markLinkWritten( OsmNodeP t )
-   {
-     for( OsmLinkP link = firstlink; link != null; link = link.next )
-     {
-       if ( link.targetNode == t) link.descriptionBitmap = null;
-     }
-   }
 
  /**
    * Compares two OsmNodes for position ordering.
