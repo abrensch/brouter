@@ -178,9 +178,12 @@ public class OsmCutter extends MapCreatorBase
 
     String network =  r.getTag( "network" );
     if ( network == null ) network = "";
+    String state =  r.getTag( "state" );
+    if ( state == null ) state = "";
     writeId( cyclewayDos, r.rid );
     cyclewayDos.writeUTF( route );
     cyclewayDos.writeUTF( network );
+    cyclewayDos.writeUTF( state );
     for ( int i=0; i<r.ways.size();i++ )
     {
       long wid = r.ways.get(i);

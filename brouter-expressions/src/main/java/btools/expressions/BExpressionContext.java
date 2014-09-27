@@ -593,6 +593,36 @@ public final class BExpressionContext
     lookupData[inum] = valueIndex;
   }
 
+  /**
+   * special hack for yes/proposed relations:
+   * add a lookup value if not yet a smaller, >1 value was added
+   * add a 2=yes if the provided value is out of range
+   * value-index means here 0=unknown, 1=other, 2=yes, 3=proposed
+   */
+  public void addSmallestLookupValue( String name, int valueIndex )
+  {
+    Integer num = lookupNumbers.get( name );
+    if ( num == null )
+    {
+      return;
+    }
+
+    // look for that value
+    int inum = num.intValue();
+    int nvalues = lookupValues.get( inum ).length;
+    int oldValueIndex = lookupData[inum];
+    if ( oldValueIndex > 1 && oldValueIndex < valueIndex )
+    {
+      return;
+    }
+    if ( valueIndex >= nvalues )
+    {
+      valueIndex = nvalues-1;
+    }
+    if ( valueIndex < 0 ) throw new IllegalArgumentException( "value index out of range for name " + name + ": " + valueIndex );
+    lookupData[inum] = valueIndex;
+  }
+
   public boolean getBooleanLookupValue( String name )
   {
     Integer num = lookupNumbers.get( name );

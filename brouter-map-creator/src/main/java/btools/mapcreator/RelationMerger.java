@@ -66,29 +66,32 @@ public class RelationMerger extends MapCreatorBase
         long rid = readId( dis );
         String route = dis.readUTF();
         String network = dis.readUTF();
+        String state = dis.readUTF();
+        int value = "proposed".equals( state ) ? 3 : 2; // 2=yes, 3=proposed
         
         String tagname = "route_" + route + "_" + network;
         
         CompactLongSet routeset = null;
         if ( expctxCheck.getLookupNameIdx(tagname)  >= 0 )
         {
-        	routeset = routesets.get( tagname );
-        	if ( routeset == null )
-        	{
-        		routeset = new CompactLongSet();
-        		routesets.put( tagname, routeset );
-        	}
+          String key = tagname + "_" + value;
+          routeset = routesets.get( key );
+          if ( routeset == null )
+          {
+            routeset = new CompactLongSet();
+            routesets.put( key, routeset );
+          }
         }
-        	
+
         for(;;)
         {
           long wid = readId( dis );
           if ( wid == -1 ) break;
-    	  // expctxStat.addLookupValue( tagname, "yes", null );
+          // expctxStat.addLookupValue( tagname, "yes", null );
           if ( routeset != null && !routeset.contains( wid ) )
           {
-        	  routeset.add( wid );
-        	  routesetall.add( wid );
+            routeset.add( wid );
+            routesetall.add( wid );
           }
         }
       }
@@ -97,11 +100,11 @@ public class RelationMerger extends MapCreatorBase
     {
       dis.close();
     }
-    for( String tagname : routesets.keySet() )
+    for( String key : routesets.keySet() )
     {
-    	CompactLongSet routeset = new FrozenLongSet( routesets.get( tagname ) );
-    	routesets.put( tagname, routeset );
-        System.out.println( "marked " + routeset.size() + " routes for tag: " + tagname );
+      CompactLongSet routeset = new FrozenLongSet( routesets.get( key ) );
+      routesets.put( key, routeset );
+      System.out.println( "marked " + routeset.size() + " routes for key: " + key );
     }
 
     // *** finally process the way-file
@@ -125,20 +128,26 @@ public class RelationMerger extends MapCreatorBase
       boolean warn = expctxReport.getCostfactor() >= 10000.;
       if ( warn )
       {
-          expctxCheck.evaluate( false, data.description, null );
-          ok = expctxCheck.getCostfactor() < 10000.;
+        expctxCheck.evaluate( false, data.description, null );
+        ok = expctxCheck.getCostfactor() < 10000.;
 
-          System.out.println( "** relation access conflict for wid = " + data.wid + " tags:" + expctxReport.getKeyValueDescription( data.description ) + " (ok=" + ok + ")"  );
+        System.out.println( "** relation access conflict for wid = " + data.wid + " tags:" + expctxReport.getKeyValueDescription( data.description ) + " (ok=" + ok + ")"  );
       }
     	
       if ( ok )
       {
     	expctxReport.decode( data.description );
-        for( String tagname : routesets.keySet() )
+        for( String key : routesets.keySet() )
         {
-    	  CompactLongSet routeset = routesets.get( tagname );
-    	  if ( routeset.contains( data.wid ) ) expctxReport.addLookupValue( tagname, 2 );
-    	}
+          CompactLongSet routeset = routesets.get( key );
+          if ( routeset.contains( data.wid ) )
+          {
+            int sepIdx = key.lastIndexOf( '_' );
+            String tagname = key.substring( 0, sepIdx );
+            int val = Integer.valueOf( key.substring( sepIdx+1 ) );
+            expctxReport.addSmallestLookupValue( tagname, val );
+          }
+        }
     	data.description = expctxReport.encode();
       }
     }
