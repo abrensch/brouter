@@ -1,5 +1,5 @@
 ---lookupversion:10
----minorversion:1
+---minorversion:2
 ---readvarlength
 
 ---context:way
@@ -381,18 +381,42 @@ route;0000000194 canoe
 route;0000000151 road
 route;0000000104 bus
 
-brouter_placeholder_dummy_02;0000000001 dummy
-brouter_placeholder_dummy_03;0000000001 dummy
-brouter_placeholder_dummy_04;0000000001 dummy
+smoothness;0000068136 good
+smoothness;0000042124 bad Bad
+smoothness;0000040763 intermediate
+smoothness;0000033941 excellent
+smoothness;0000012683 very_bad
+smoothness;0000009837 horrible terrible
+smoothness;0000003515 very_horrible
+smoothness;0000000919 impassable
+smoothness;0000000251 robust_wheels
+smoothness;0000000221 high_clearance
+smoothness;0000000132 very_good
+smoothness;0000000083 off_road_wheels
+smoothness;0000000057 medium Medium average
+smoothness;0000000048 poor
+smoothness;0000000039 rough
+
+rcn;0000014518 yes
+rcn;0000002862 proposed
+
+ncn;0000002941 yes
+ncn;0000001036 proposed
+
 brouter_placeholder_dummy_05;0000000001 dummy
 brouter_placeholder_dummy_06;0000000001 dummy
 brouter_placeholder_dummy_07;0000000001 dummy
 brouter_placeholder_dummy_08;0000000001 dummy
   
 route_bicycle_icn;0000088753 yes
+route_bicycle_icn;0000000001 proposed
 route_bicycle_ncn;0000268180 yes
+route_bicycle_ncn;00000000001 proposed
 route_bicycle_rcn;0000718163 yes
+route_bicycle_rcn;00000000001 proposed
 route_bicycle_lcn;0000469215 yes
+route_bicycle_lcn;00000000001 proposed
+
 route_bicycle_;0000024662 yes
 route_bicycle_radweit;0000004604 yes
 
@@ -642,3 +666,15 @@ entrance;0000000504 main_entrance
 entrance;0000000439 secondary_entrance
 entrance;0000000285 shop
 entrance;0000000258 private
+
+traffic_calming;0000045987 bump bump;choker
+traffic_calming;0000040022 hump hump;choker
+traffic_calming;0000012499 table table;choker
+traffic_calming;0000006808 yes *
+traffic_calming;0000005754 cushion cushion;choker
+traffic_calming;0000005466 choker choker;cushion choker;hump choker;table choker;bump
+traffic_calming;0000005305 island
+traffic_calming;0000004686 chicane
+traffic_calming;0000004032 rumble_strip
+traffic_calming;0000000847 speed_bump
+traffic_calming;0000000186 dip
