@@ -219,7 +219,7 @@ public final class OsmTrack
     sb.append( " xmlns=\"http://www.topografix.com/GPX/1/1\" \n" );
     sb.append( " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \n" );
     sb.append( " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\" \n" );
-    sb.append( " creator=\"BRouter-1.0.3\" version=\"1.1\">\n" );
+    sb.append( " creator=\"BRouter-1.0.4\" version=\"1.1\">\n" );
     sb.append( " <trk>\n" );
     sb.append("  <name>").append(name).append("</name>\n");
     sb.append( "  <trkseg>\n" );
@@ -296,7 +296,7 @@ public final class OsmTrack
     sb.append( "    {\n" );
     sb.append( "      \"type\": \"Feature\",\n" );
     sb.append( "      \"properties\": {\n" );
-    sb.append( "        \"creator\": \"BRouter-1.0.3\",\n" );
+    sb.append( "        \"creator\": \"BRouter-1.0.4\",\n" );
     sb.append( "        \"name\": \"" ).append( name ).append( "\",\n" );
     sb.append( "        \"track-length\": \"" ).append( distance ).append( "\",\n" );
     sb.append( "        \"filtered ascend\": \"" ).append( ascend ).append( "\",\n" );
