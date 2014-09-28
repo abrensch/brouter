@@ -131,7 +131,7 @@ public class RelationMerger extends MapCreatorBase
         expctxCheck.evaluate( false, data.description, null );
         ok = expctxCheck.getCostfactor() < 10000.;
 
-        System.out.println( "** relation access conflict for wid = " + data.wid + " tags:" + expctxReport.getKeyValueDescription( data.description ) + " (ok=" + ok + ")"  );
+        System.out.println( "** relation access conflict for wid = " + data.wid + " tags:" + expctxReport.getKeyValueDescription( false, data.description ) + " (ok=" + ok + ")"  );
       }
     	
       if ( ok )

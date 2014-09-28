@@ -166,7 +166,7 @@ public final class BExpressionContext
     decode( ld2, ab );
     for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
     {
-    	if ( ld2[inum] != ld[inum] ) throw new RuntimeException( "assertion failed encoding " + getKeyValueDescription(ab) );
+      if ( ld2[inum] != ld[inum] ) throw new RuntimeException( "assertion failed encoding " + getKeyValueDescription(false, ab) );
     }    
     
     return ab;
@@ -273,7 +273,7 @@ public final class BExpressionContext
     }
   }
 
-  public String getCsvDescription( boolean inverseDirection, byte[] ab )
+  public String getKeyValueDescription( boolean inverseDirection, byte[] ab )
   {
     int inverseBitByteIndex =  meta.readVarLength ? 0 : 7;
     int abLen = ab.length;
@@ -285,39 +285,14 @@ public final class BExpressionContext
     decode( lookupData, ab_copy );
     for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
     {
-      int idx = meta.readVarLength ? (inum+1)%lookupValues.size() : inum; // reversebit at the end..
-    	
-      BExpressionLookupValue[] va = lookupValues.get(idx);
-      sb.append( '\t' ).append( va[lookupData[idx]].toString() );
+      BExpressionLookupValue[] va = lookupValues.get(inum);
+      String value = va[lookupData[inum]].toString();
+      if ( value != null && value.length() > 0 )
+      {
+        sb.append( " " + lookupNames.get( inum ) + "=" + value );
+      }
     }
     return sb.toString();
-  }
-
-  public String getCsvHeader()
-  {
-     StringBuilder sb = new StringBuilder( 200 );
-     for( int inum = 0; inum < lookupNames.size(); inum++ ) // loop over lookup names
-     {
-       int idx = meta.readVarLength ? (inum+1)%lookupValues.size() : inum; // reversebit at the end..
-       sb.append( '\t' ).append( lookupNames.get(idx) );
-     }
-     return sb.toString();
-  }
-
-  public String getKeyValueDescription( byte[] ab )
-  {
-     StringBuilder sb = new StringBuilder( 200 );
-     decode( lookupData, ab );
-     for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
-     {
-       BExpressionLookupValue[] va = lookupValues.get(inum);
-       String value = va[lookupData[inum]].toString();
-       if ( value != null && value.length() > 0 )
-       {
-         sb.append( " " + lookupNames.get( inum ) + "=" + value );
-       }
-     }
-     return sb.toString();
   }
 
   private int parsedLines = 0;

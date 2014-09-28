@@ -98,6 +98,8 @@ final class OsmPath implements OsmLinkHolder
     int linkdist = 0;
     int linkelevationcost = 0;
     int linkturncost = 0;
+    int linknodecost = 0;
+    int linkinitcost = 0;
 
     OsmTransferNode transferNode = link.decodeFirsttransfer();
     OsmNode targetNode = link.targetNode;
@@ -139,6 +141,8 @@ final class OsmPath implements OsmLinkHolder
         linkdist = 0;
         linkelevationcost = 0;
         linkturncost = 0;
+        linknodecost = 0;
+        linkinitcost = 0;
       }
 
       int dist = rc.calcDistance( lon1, lat1, lon2, lat2 );
@@ -176,7 +180,7 @@ final class OsmPath implements OsmLinkHolder
       linkdisttotal += dist;
 
 
-      // *** penalty for way-change
+      // *** penalty for turning angles
       if ( origin.originElement != null )
       {
         // penalty proportional to direction change
@@ -283,6 +287,7 @@ final class OsmPath implements OsmLinkHolder
           lastCostfactor = newcostfactor;
           float initialcost = rc.expctxWay.getInitialcost();
           int iicost = (int)initialcost;
+          linkinitcost += iicost;
           cost += iicost;
       }
 
@@ -296,7 +301,9 @@ final class OsmPath implements OsmLinkHolder
                     + iCost + "\t"
                     + linkelevationcost
                     + "\t" + linkturncost
-                    + rc.expctxWay.getCsvDescription( link.counterLinkWritten, description );
+                    + "\t" + linknodecost
+                    + "\t" + linkinitcost
+                    + rc.expctxWay.getKeyValueDescription( link.counterLinkWritten, description );
       }
 
       if ( stopAtEndpoint )
@@ -305,6 +312,7 @@ final class OsmPath implements OsmLinkHolder
         {
           originElement = new OsmPathElement( rc.ilonshortest, rc.ilatshortest, ele2, originElement );
           originElement.cost = cost;
+          originElement.message = lastMessage;
         }
         if ( rc.nogomatch )
         {
@@ -359,6 +367,7 @@ final class OsmPath implements OsmLinkHolder
           return;
         }
         int iicost = (int)initialcost;
+        linknodecost += iicost;
         cost += iicost;
     }
   }

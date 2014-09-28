@@ -349,11 +349,7 @@ public final class OsmTrack
   {
     // csv-header-line
 
-    String header = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost";
-    if ( rc.expctxWay != null )
-    {
-      header += rc.expctxWay.getCsvHeader();
-    }
+    String header = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tOsmTags";
     dumpLine( bw, header );
     for( OsmPathElement n : nodes )
     {
