@@ -470,7 +470,7 @@ public class RoutingEngine extends Thread
   {
     nodesMap = new OsmNodesMap();
     BExpressionContext ctx = routingContext.expctxWay;
-    nodesCache = new NodesCache(segmentDir, nodesMap, ctx.meta.lookupVersion, ctx.meta.lookupMinorVersion, ctx.meta.readVarLength, routingContext.carMode, nodesCache );
+    nodesCache = new NodesCache(segmentDir, nodesMap, ctx.meta.lookupVersion, ctx.meta.lookupMinorVersion, ctx.meta.readVarLength, routingContext.carMode, routingContext.forceSecondaryData, nodesCache );
   }
 
   private OsmNode getStartNode( long startId )
