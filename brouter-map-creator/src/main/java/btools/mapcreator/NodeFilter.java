@@ -38,7 +38,7 @@ public class NodeFilter extends MapCreatorBase
     this.nodeTilesOut = nodeTilesOut;
 
     // read the wayfile into a bitmap of used nodes
-    nodebitmap = Boolean.getBoolean( "useDenseMaps" ) ? new DenseLongMap( 1 ) : new TinyDenseLongMap();
+    nodebitmap = Boolean.getBoolean( "useDenseMaps" ) ? new DenseLongMap( 512 ) : new TinyDenseLongMap();
     new WayIterator( this, false ).processFile( wayFileIn );
 
     // finally filter all node files

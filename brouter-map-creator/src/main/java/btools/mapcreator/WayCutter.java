@@ -34,7 +34,7 @@ public class WayCutter extends MapCreatorBase
     this.outTileDir = wayTilesOut;
 
     // *** read all nodes into tileIndexMap
-    tileIndexMap = Boolean.getBoolean( "useDenseMaps" ) ? new DenseLongMap( 6 ) : new TinyDenseLongMap();
+    tileIndexMap = Boolean.getBoolean( "useDenseMaps" ) ? new DenseLongMap() : new TinyDenseLongMap();
     new NodeIterator( this, false ).processDir( nodeTilesIn, ".tlf" );
 
     // *** finally process the way-file, cutting into pieces

@@ -20,11 +20,11 @@ public class DenseLongMapTest
   {
     Random rand = new Random( 12345 );
     HashMap<Long,Integer> hmap = new HashMap<Long,Integer>();
-    DenseLongMap dmap = new DenseLongMap( 6 );
+    DenseLongMap dmap = new DenseLongMap( 512 );
 
     for( int i=0; i<mapsize; i++ )
     {
-      int value = i%63;
+      int value = i%255;
       long k = (long)(rand.nextDouble()*keyrange);
       Long KK = new Long( k );
 
@@ -57,7 +57,7 @@ public class DenseLongMapTest
     Random rand = new Random( 12345 );
     HashSet<Long> hset = new HashSet<Long>();
 
-    DenseLongMap dmap = new DenseLongMap( 1 );
+    DenseLongMap dmap = new DenseLongMap( 512 );
     for( int i=0; i<mapputs; i++ )
     {
       long k = (long)(rand.nextDouble()*keyrange);

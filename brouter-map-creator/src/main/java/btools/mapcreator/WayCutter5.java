@@ -53,7 +53,7 @@ public class WayCutter5 extends MapCreatorBase
     String nodefilename = name.substring( 0, name.length()-3 ) + "tlf";
     File nodefile = new File( nodeTilesIn, nodefilename );
 
-    tileIndexMap = Boolean.getBoolean( "useDenseMaps" ) ? new DenseLongMap( 6 ) : new TinyDenseLongMap();
+    tileIndexMap = Boolean.getBoolean( "useDenseMaps" ) ? new DenseLongMap() : new TinyDenseLongMap();
     lonoffset = -1;
     latoffset = -1;
     new NodeIterator( this, false ).processFile( nodefile );

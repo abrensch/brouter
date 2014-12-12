@@ -20,7 +20,7 @@ public class TinyDenseLongMap extends DenseLongMap
 
   public TinyDenseLongMap()
   {
-    super(1);
+    super();
 
     // pointer array
     pa = new int[MAXLISTS];

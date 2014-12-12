@@ -9,11 +9,6 @@ import java.util.ArrayList;
  * a simple array as the best-fit data model (except for
  * the 32-bit limit of arrays!)
  *
- * Additionally, to enable small-memory unit testing 
- * of code using this map this one has a fallback for a small map
- * where we have only few keys, but not dense. In this
- * case, we use the mechanics of the CompactLongMap
- *
  * Target application are osm-node ids which are in the
  * range 0...3 billion and basically dense (=only few
  * nodes deleted)
@@ -22,57 +17,70 @@ import java.util.ArrayList;
  */
 public class DenseLongMap
 {
-  private ArrayList<int[]> blocklist = new ArrayList<int[]>(1024);
+  private ArrayList<byte[]> blocklist = new ArrayList<byte[]>(4096);
 
-  private static final int BLOCKSIZE = 0x10000; // 64k * 32 bits
-  private int valuebits;
-  private int maxvalue;
-  private long maxkey;
-  private long maxmemory;
+  private int blocksize; // bytes per bitplane in one block
+  private int blocksizeBits;
+  private long blocksizeBitsMask;
+  private int maxvalue = 254; // fixed due to 8 bit lookup table
+  private int[] bitplaneCount = new int[8];
+  private long putCount = 0L;
+  private long getCount = 0L;
 
   /**
-   * Creates a DenseLongMap for the given value range
-   * Note that one value is reserved for the "unset" state,
-   * so with 6 value bits you can store values in the
-   * range 0..62 only
+   * Creates a DenseLongMap for the default block size
+   * ( 512 bytes per bitplane, covering a key range of 4096 keys )
+   * Note that one value range is limited to 0..254
    *
    * @param valuebits number of bits to use per value
    */
-  public DenseLongMap( int valuebits )
+  public DenseLongMap()
   {
-    if ( valuebits < 1 || valuebits > 32 )
-    {
-      throw new IllegalArgumentException( "invalid valuebits (1..32): " + valuebits );
-    }
-    this.valuebits = valuebits;
-    maxmemory = (Runtime.getRuntime().maxMemory() / 8) * 7; // assume most of it for our map
-    maxvalue = (1 << valuebits) - 2;
-    maxkey = ( maxmemory / valuebits ) * 8;
+    this(512);
+  }
+
+  /**
+   * Creates a DenseLongMap for the given block size
+   *
+   * @param blocksize bytes per bit-plane
+   */
+  public DenseLongMap( int blocksize )
+  {
+	int bits = 4;
+	while( bits < 28 && (1 << bits) != blocksize  )
+	{
+	  bits++;
+	}
+	if ( bits == 28 )
+	{
+	  throw new RuntimeException( "not a valid blocksize: " +  blocksize + " ( expected 1 << bits with bits in (4..27) )");
+	}
+	blocksizeBits = bits + 3;
+	blocksizeBitsMask = (1L << blocksizeBits ) -1;
+	this.blocksize = blocksize;
   }
 
 
 
   public void put( long key, int value )
   {
-    if ( key < 0L || key > maxkey )
-    {
-      throw new IllegalArgumentException( "key out of range (0.." + maxkey + "): " + key
-            + " give more memory (currently " + (maxmemory / 0x100000)
-            + "MB) to extend key range" );
-    }
-    if ( value < 0 || value > maxvalue )
+	putCount++;
+
+	if ( value < 0 || value > maxvalue )
     {
       throw new IllegalArgumentException( "value out of range (0.." + maxvalue + "): " + value );
     }
 
-    int blockn = (int)(key >> 21);
-    int offset = (int)(key & 0x1fffff);
+    int blockn = (int)(key >> blocksizeBits);
+    int offset = (int)(key & blocksizeBitsMask);
 
-    int[] block = blockn < blocklist.size() ? blocklist.get( blockn ) : null;
+    byte[] block = blockn < blocklist.size() ? blocklist.get( blockn ) : null;
 
+    int valuebits = 1;
     if ( block == null )
     {
-      block = new int[BLOCKSIZE * valuebits];
+      block = new byte[sizeForBits(valuebits)];
+      bitplaneCount[0] ++;
 
       while (blocklist.size() < blockn+1 )
       {
@@ -80,17 +88,49 @@ public class DenseLongMap
       }      
       blocklist.set( blockn, block );
     }
-    
-    int bitmask = 1 << (offset & 0x1f);
-    int invmask = bitmask ^ 0xffffffff;
-    int probebit = 1;
-    int blockidx = (offset >> 5)*valuebits;
-    int blockend = blockidx + valuebits;
-    int v = value + 1; // 0 is reserved (=unset)
-
-    while( blockidx < blockend )
+    else
     {
-      if ( ( v & probebit ) != 0 )
+      // check how many bitplanes we have from the arraysize
+      while( sizeForBits( valuebits) < block.length )
+      {
+        valuebits++;
+      }
+    }
+    int headersize = 1 << valuebits;
+
+    byte v = (byte)(value + 1); // 0 is reserved (=unset)
+    
+    // find the index in the lookup table or the first entry
+    int idx = 1;
+    while( idx < headersize )
+    {
+    	if ( block[idx] == 0 )
+    	{
+    	  block[idx] = v; // create new entry
+    	}
+    	if ( block[idx] == v )
+    	{
+    	  break;
+    	}
+    	idx++;
+    }
+    if ( idx == headersize )
+    {
+    	block = expandBlock( block, valuebits );
+  	    block[idx] = v; // create new entry
+        blocklist.set( blockn, block );
+    	valuebits++;
+    	headersize = 1 << valuebits;
+    }
+        
+    int bitmask = 1 << (offset & 0x7);
+    int invmask = bitmask ^ 0xff;
+    int probebit = 1;
+    int blockidx = (offset >> 3) + headersize;
+
+    for( int i=0; i < valuebits; i++ )
+    {
+      if ( ( idx & probebit ) != 0 )
       {
         block[blockidx] |= bitmask;
       }
@@ -99,42 +139,80 @@ public class DenseLongMap
         block[blockidx] &= invmask;
       }
       probebit <<= 1;
-      blockidx++;
+      blockidx += blocksize;
     }
   }
 
 
+  private int sizeForBits( int bits )
+  {
+	  // size is lookup table + datablocks
+	  return ( 1 << bits ) + blocksize * bits;
+  }
+  
+  private byte[] expandBlock( byte[] block, int valuebits )
+  {
+    bitplaneCount[valuebits] ++;
+	byte[] newblock = new byte[sizeForBits(valuebits+1)];
+	int headersize = 1 << valuebits;
+	System.arraycopy(block, 0, newblock, 0, headersize ); // copy header
+	System.arraycopy(block, headersize, newblock, 2*headersize, block.length - headersize ); // copy data
+	return newblock;
+  }
+
   public int getInt( long key )
   {
+	// bit-stats on first get
+    if ( getCount++ == 0L )
+    {
+    	System.out.println( "**** DenseLongMap stats ****" );
+    	System.out.println( "putCount=" + putCount );
+    	for( int i=0; i<8; i++ )
+    	{
+    	   	System.out.println( i + "-bitplanes=" +bitplaneCount[i]  );
+    	}
+    	System.out.println( "****************************" );
+    }
+	  
     if ( key < 0 )
     {
       return -1;
     }
-    int blockn = (int)(key >> 21);
-    int offset = (int)(key & 0x1fffff);
+    int blockn = (int)(key >> blocksizeBits);
+    int offset = (int)(key & blocksizeBitsMask);
 
-    int[] block = blockn < blocklist.size() ? blocklist.get( blockn ) : null;
+    byte[] block = blockn < blocklist.size() ? blocklist.get( blockn ) : null;
 
     if ( block == null )
     {
       return -1;
     }
-    int bitmask = 1 << (offset & 0x1f);
+    
+    // check how many bitplanes we have from the arrayzize
+    int valuebits = 1;
+    while( sizeForBits( valuebits) < block.length )
+    {
+      valuebits++;
+    }
+    int headersize = 1 << valuebits;
+    
+    int bitmask = 1 << (offset & 7);
     int probebit = 1;
-    int blockidx = (offset >> 5)*valuebits;
-    int blockend = blockidx + valuebits;
-    int v = 0; // 0 is reserved (=unset)
+    int blockidx = (offset >> 3) + headersize;
+    int idx = 0; // 0 is reserved (=unset)
 
-    while( blockidx < blockend )
+    for( int i=0; i < valuebits; i++ )
     {
       if ( ( block[blockidx] & bitmask ) != 0 )
       {
-        v  |= probebit;
+        idx  |= probebit;
       }
       probebit <<= 1;
-      blockidx++;
+      blockidx += blocksize;
     }
-    return v-1;
+
+    // lookup that value in the lookup header
+    return ((256 + block[idx]) & 0xff ) -1;
   }
 
 }
