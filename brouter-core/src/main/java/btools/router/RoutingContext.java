@@ -45,6 +45,7 @@ public final class RoutingContext implements DistanceChecker
   public int uphillcostdiv;
   public int uphillcutoff;
   public boolean carMode;
+  public boolean forceSecondaryData;
   public double pass1coefficient;
   public double pass2coefficient;
   public int elevationpenaltybuffer;
@@ -60,6 +61,7 @@ public final class RoutingContext implements DistanceChecker
     if ( downhillcostdiv != 0 ) downhillcostdiv = 1000000/downhillcostdiv;
     if ( uphillcostdiv != 0 ) uphillcostdiv = 1000000/uphillcostdiv;
     carMode = 0.f != expctxGlobal.getVariableValue( "validForCars", 0.f );
+    forceSecondaryData = 0.f != expctxGlobal.getVariableValue( "forceSecondaryData", 0.f );
     pass1coefficient = expctxGlobal.getVariableValue( "pass1coefficient", 1.5f );
     pass2coefficient = expctxGlobal.getVariableValue( "pass2coefficient", 0.f );
     elevationpenaltybuffer = (int)(expctxGlobal.getVariableValue( "elevationpenaltybuffer", 5.f )*1000000);

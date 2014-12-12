@@ -21,6 +21,7 @@ public final class NodesCache
   private int lookupMinorVersion;
   private boolean readVarLength;
   private boolean carMode;
+  private boolean forceSecondaryData;
   private String currentFileName;
 
   private HashMap<String,PhysicalFile> fileCache;
@@ -37,7 +38,7 @@ public final class NodesCache
   private boolean garbageCollectionEnabled = false;
   
 
-  public NodesCache( String segmentDir, OsmNodesMap nodesMap, int lookupVersion, int minorVersion, boolean varLen, boolean carMode, NodesCache oldCache )
+  public NodesCache( String segmentDir, OsmNodesMap nodesMap, int lookupVersion, int minorVersion, boolean varLen, boolean carMode, boolean forceSecondaryData, NodesCache oldCache )
   {
     this.segmentDir = new File( segmentDir );
     this.nodesMap = nodesMap;
@@ -45,6 +46,7 @@ public final class NodesCache
     this.lookupMinorVersion = minorVersion;
     this.readVarLength = varLen;
     this.carMode = carMode;
+    this.forceSecondaryData = forceSecondaryData;
 
     if ( !this.segmentDir.isDirectory() ) throw new RuntimeException( "segment directory " + segmentDir + " does not exist" );
 
@@ -77,6 +79,11 @@ public final class NodesCache
   
   private File getFileFromSegmentDir( String filename )
   {
+    if ( forceSecondaryData )
+    {
+      return new File( secondarySegmentsDir, filename );
+    }
+  	
     File f = new File( segmentDir, filename );
     if ( secondarySegmentsDir != null && !f.exists() )
     {
