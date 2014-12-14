@@ -1,5 +1,5 @@
 ---lookupversion:10
----minorversion:2
+---minorversion:3
 ---readvarlength
 
 ---context:way
@@ -50,15 +50,20 @@ surface;0000727427 gravel
 surface;0000560191 ground
 surface;0000350378 dirt
 surface;0000237226 grass
-surface;0000212587 concrete
-surface;0000188743 paving_stones
-surface;0000113800 cobblestone
+surface;0000212587 concrete concrete:plates concrete:lanes
+surface;0000188743 paving_stones paving_stones:30
+surface;0000113800 cobblestone cobblestone:flattened
 surface;0000093164 compacted
-surface;0000091171 sand
+surface;0000091171 sand dirt/sand
 surface;0000023293 wood
 surface;0000019915 pebblestone
 surface;0000012866 fine_gravel
 surface;0000010681 earth
+surface;0000007331 sett
+surface;0000005778 mud
+surface;0000004549 grass_paver
+surface;0000004398 clay
+surface;0000003760 metal
 
 maxspeed;0001058313 50 30_mph 30mph
 maxspeed;0000860780 30 20_mph 20mph
@@ -403,8 +408,16 @@ rcn;0000002862 proposed
 ncn;0000002941 yes
 ncn;0000001036 proposed
 
-brouter_placeholder_dummy_05;0000000001 dummy
-brouter_placeholder_dummy_06;0000000001 dummy
+ford;0000020552 yes
+ford;0000000289 stepping_stones
+
+trail_visibility;0000067438 good
+trail_visibility;0000041280 intermediate
+trail_visibility;0000039801 excellent
+trail_visibility;0000023482 bad
+trail_visibility;0000005853 horrible
+trail_visibility;0000002222 no
+
 brouter_placeholder_dummy_07;0000000001 dummy
 brouter_placeholder_dummy_08;0000000001 dummy
   
