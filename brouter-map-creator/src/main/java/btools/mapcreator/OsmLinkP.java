@@ -17,11 +17,11 @@ public class OsmLinkP
  /**
    * The target is either the next link or the target node
    */
-  private OsmNodeP sourceNode;
-  private OsmNodeP targetNode;
+  protected OsmNodeP sourceNode;
+  protected OsmNodeP targetNode;
 
-  private OsmLinkP previous;
-  private OsmLinkP next;
+  protected OsmLinkP previous;
+  protected OsmLinkP next;
 
   
   public OsmLinkP( OsmNodeP source, OsmNodeP target )
@@ -30,6 +30,10 @@ public class OsmLinkP
     targetNode = target;
   }
   
+  protected OsmLinkP()
+  {
+  }
+
   public final boolean counterLinkWritten( )
   {
 	  return descriptionBitmap == null;

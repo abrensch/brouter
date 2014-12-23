@@ -9,7 +9,7 @@ import java.io.IOException;
 
 import btools.util.ByteDataWriter;
 
-public class OsmNodeP implements Comparable<OsmNodeP>
+public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>
 {
   public static final int SIGNLON_BITMASK         = 0x80;
   public static final int SIGNLAT_BITMASK         = 0x40;
@@ -30,12 +30,6 @@ public class OsmNodeP implements Comparable<OsmNodeP>
 
 
  /**
-   * The links to other nodes
-   */
-  public OsmLinkP firstlink = null;
-
-
- /**
    * The elevation
    */
   public short selev;
@@ -46,7 +40,7 @@ public class OsmNodeP implements Comparable<OsmNodeP>
   public final static int NO_TUNNEL_BIT = 2;
   public final static int LCN_BIT = 4;
   public final static int CR_BIT = 8;
-  
+
   public byte wayBits = 0;
 
   // interface OsmPos
@@ -72,11 +66,36 @@ public class OsmNodeP implements Comparable<OsmNodeP>
   }
 
 
+   // populate and return the inherited link, if available,
+   // else create a new one
+   public OsmLinkP createLink( OsmNodeP source )
+   {
+    if ( sourceNode == null && targetNode == null )
+    {
+      // inherited instance is available, use this
+      sourceNode = source;
+      targetNode = this;
+      source.addLink( this );
+      return this;
+    }
+    OsmLinkP link = new OsmLinkP( source, this );
+    addLink( link );
+    source.addLink( link );
+    return link;
+  }
+
+
+   // memory-squeezing-hack: OsmLinkP's "previous" also used as firstlink..
 
    public void addLink( OsmLinkP link )
    {
-	 link.setNext( firstlink, this );
-     firstlink = link;
+     link.setNext( previous, this );
+     previous = link;
+   }
+
+   public OsmLinkP getFirstLink()
+   {
+     return sourceNode == null && targetNode == null ? previous : this;
    }
 
    public byte[] getNodeDecsription()
@@ -92,15 +111,15 @@ public class OsmNodeP implements Comparable<OsmNodeP>
      // buffer the body to first calc size
      ByteDataWriter os2 = new ByteDataWriter( abBuf );
      os2.writeShort( getSElev() );
-     
+
      // hack: write node-desc as link tag (copy cycleway-bits)
      byte[] nodeDescription = getNodeDecsription();
 
-     for( OsmLinkP link0 = firstlink; link0 != null; link0 = link0.getNext( this ) )
+     for( OsmLinkP link0 = getFirstLink(); link0 != null; link0 = link0.getNext( this ) )
      {
        int ilonref = ilon;
        int ilatref = ilat;
-    	 
+
        OsmLinkP link = link0;
        OsmNodeP origin = this;
        int skipDetailBit = link0.descriptionBitmap == null ? SKIPDETAILS_BITMASK : 0;
@@ -114,7 +133,7 @@ public class OsmNodeP implements Comparable<OsmNodeP>
            break;
          }
          // next link is the one (of two), does does'nt point back
-         for( link = target.firstlink; link != null; link = link.getNext( target ) )
+         for( link = target.getFirstLink(); link != null; link = link.getNext( target ) )
          {
            if ( link.getTarget( target ) != origin ) break;
          }
@@ -130,8 +149,8 @@ public class OsmNodeP implements Comparable<OsmNodeP>
        byte[] lastDescription = null;
        while( link != null )
        {
-    	 if ( link.descriptionBitmap == null && skipDetailBit == 0 ) throw new IllegalArgumentException( "missing way description...");
-    	   
+       if ( link.descriptionBitmap == null && skipDetailBit == 0 ) throw new IllegalArgumentException( "missing way description...");
+
          OsmNodeP target = link.getTarget( origin );
          int tranferbit = target.isTransferNode() ? TRANSFERNODE_BITMASK : 0;
          int nodedescbit = nodeDescription != null ? NODEDESC_BITMASK : 0;
@@ -139,9 +158,9 @@ public class OsmNodeP implements Comparable<OsmNodeP>
          int writedescbit = 0;
          if ( skipDetailBit == 0 ) // check if description changed
          {
-        	 int inverseBitByteIndex =  writeVarLength ? 0 : 7;
-        	 boolean inverseDirection = link.isReverse( origin );
-        	 byte[] ab = link.descriptionBitmap;
+           int inverseBitByteIndex =  writeVarLength ? 0 : 7;
+           boolean inverseDirection = link.isReverse( origin );
+           byte[] ab = link.descriptionBitmap;
              int abLen = ab.length;
              int lastLen = lastDescription == null ? 0 : lastDescription.length;
              boolean equalsCurrent = abLen == lastLen;
@@ -151,17 +170,17 @@ public class OsmNodeP implements Comparable<OsmNodeP>
                {
                  byte b = ab[i];
                  if ( i == inverseBitByteIndex && inverseDirection ) b ^= 1;
-          	     if ( b != lastDescription[i] ) { equalsCurrent = false; break; }
+                 if ( b != lastDescription[i] ) { equalsCurrent = false; break; }
                }
              }
-        	 if ( !equalsCurrent )
-        	 {
-        		 writedescbit = WRITEDESC_BITMASK;
-        		 lastDescription = new byte[abLen];
-        	     System.arraycopy( ab,  0,  lastDescription,  0 , abLen );
-        	     if ( inverseDirection ) lastDescription[inverseBitByteIndex] ^= 1;
-        	 }
-        	 
+           if ( !equalsCurrent )
+           {
+             writedescbit = WRITEDESC_BITMASK;
+             lastDescription = new byte[abLen];
+               System.arraycopy( ab,  0,  lastDescription,  0 , abLen );
+               if ( inverseDirection ) lastDescription[inverseBitByteIndex] ^= 1;
+           }
+
          }
 
          int bm = tranferbit | writedescbit | nodedescbit | skipDetailBit;
@@ -190,14 +209,14 @@ public class OsmNodeP implements Comparable<OsmNodeP>
          }
 
          link.descriptionBitmap = null; // mark link as written
-         
+
          if ( tranferbit == 0)
          {
            break;
          }
          os2.writeVarLengthSigned( target.getSElev() -getSElev() );
          // next link is the one (of two), does does'nt point back
-         for( link = target.firstlink; link != null; link = link.getNext( target ) )
+         for( link = target.getFirstLink(); link != null; link = link.getNext( target ) )
          {
            if ( link.getTarget( target ) != origin ) break;
          }
@@ -208,7 +227,7 @@ public class OsmNodeP implements Comparable<OsmNodeP>
 
      // calculate the body size
      int bodySize = os2.size();
-     
+
      os.ensureCapacity( bodySize + 8 );
 
      os.writeShort( (short)(ilon - lonIdx*62500 - 31250) );
@@ -237,7 +256,7 @@ public class OsmNodeP implements Comparable<OsmNodeP>
   {
     int cnt = 0;
 
-    for( OsmLinkP link = firstlink; link != null; link = link.getNext( this ) )
+    for( OsmLinkP link = getFirstLink(); link != null; link = link.getNext( this ) )
     {
       cnt++;
     }

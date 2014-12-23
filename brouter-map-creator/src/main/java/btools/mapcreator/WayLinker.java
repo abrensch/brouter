@@ -181,10 +181,8 @@ public class WayLinker extends MapCreatorBase
       n2 = nodesMap.get( nid );
       if ( n1 != null && n2 != null && n1 != n2 )
       {
-        OsmLinkP link = new OsmLinkP( n1, n2 );
+        OsmLinkP link = n2.createLink( n1 );
         link.descriptionBitmap = description;
-        n1.addLink( link );
-        n2.addLink( link );
       }
       if ( n2 != null )
       {
@@ -214,7 +212,7 @@ public class WayLinker extends MapCreatorBase
       LazyArrayOfLists<OsmNodeP> seglists = new LazyArrayOfLists<OsmNodeP>(nLonSegs*nLatSegs);
       for( OsmNodeP n : nodesList )
       {
-        if ( n == null || n.firstlink == null || n.isTransferNode() ) continue;
+        if ( n == null || n.getFirstLink() == null || n.isTransferNode() ) continue;
         if ( n.ilon < minLon || n.ilon >= maxLon
           || n.ilat < minLat || n.ilat >= maxLat ) continue;
         int lonIdx = (n.ilon-minLon)/1000000;
