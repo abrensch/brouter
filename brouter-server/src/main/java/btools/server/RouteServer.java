@@ -2,19 +2,16 @@ package btools.server;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 
 import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
@@ -129,7 +126,7 @@ public class RouteServer extends Thread
 
   public static void main(String[] args) throws Exception
   {
-        System.out.println("BRouter 1.0.4 / 28092014");
+        System.out.println("BRouter 1.1 / 27122014");
         if ( args.length != 5 )
         {
           System.out.println("serve BRouter protocol");

@@ -40,6 +40,8 @@ public final class RoutingContext implements DistanceChecker
   public BExpressionContext expctxWay;
   public BExpressionContext expctxNode;
 
+  public boolean serversizing = false;
+  
   public int downhillcostdiv;
   public int downhillcutoff;
   public int uphillcostdiv;
@@ -51,6 +53,12 @@ public final class RoutingContext implements DistanceChecker
   public int elevationpenaltybuffer;
   public int elevationmaxbuffer;
   public int elevationbufferreduce;
+
+  public double cost1speed;
+  public double additionalcostfactor;
+  public double changetime;
+  public double buffertime;
+  public double waittimeadjustment;
   
   public void readGlobalConfig( BExpressionContext expctxGlobal )
   {
@@ -67,6 +75,12 @@ public final class RoutingContext implements DistanceChecker
     elevationpenaltybuffer = (int)(expctxGlobal.getVariableValue( "elevationpenaltybuffer", 5.f )*1000000);
     elevationmaxbuffer = (int)(expctxGlobal.getVariableValue( "elevationmaxbuffer", 10.f )*1000000);
     elevationbufferreduce = (int)(expctxGlobal.getVariableValue( "elevationbufferreduce", 0.f )*10000);
+
+    cost1speed           = expctxGlobal.getVariableValue( "cost1speed", 22.f );
+    additionalcostfactor = expctxGlobal.getVariableValue( "additionalcostfactor", 1.5f );
+    changetime           = expctxGlobal.getVariableValue( "changetime", 180.f );
+    buffertime           = expctxGlobal.getVariableValue( "buffertime", 120.f );
+    waittimeadjustment   = expctxGlobal.getVariableValue( "waittimeadjustment", 0.9f );
   }
 
   public RoutingMessageHandler messageHandler = new RoutingMessageHandler();

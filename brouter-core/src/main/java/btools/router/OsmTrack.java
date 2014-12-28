@@ -18,6 +18,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.List;
 
 import btools.mapaccess.OsmPos;
 import btools.util.CompactLongMap;
@@ -219,7 +220,7 @@ public final class OsmTrack
     sb.append( " xmlns=\"http://www.topografix.com/GPX/1/1\" \n" );
     sb.append( " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \n" );
     sb.append( " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\" \n" );
-    sb.append( " creator=\"BRouter-1.0.4\" version=\"1.1\">\n" );
+    sb.append( " creator=\"BRouter-1.1\" version=\"1.1\">\n" );
     sb.append( " <trk>\n" );
     sb.append("  <name>").append(name).append("</name>\n");
     sb.append( "  <trkseg>\n" );
@@ -286,6 +287,8 @@ public final class OsmTrack
     return sb.toString();
   }
 
+  public List<String> iternity;
+  
   public String formatAsGeoJson()
   {
     StringBuilder sb = new StringBuilder(8192);
@@ -296,13 +299,24 @@ public final class OsmTrack
     sb.append( "    {\n" );
     sb.append( "      \"type\": \"Feature\",\n" );
     sb.append( "      \"properties\": {\n" );
-    sb.append( "        \"creator\": \"BRouter-1.0.4\",\n" );
+    sb.append( "        \"creator\": \"BRouter-1.1\",\n" );
     sb.append( "        \"name\": \"" ).append( name ).append( "\",\n" );
     sb.append( "        \"track-length\": \"" ).append( distance ).append( "\",\n" );
     sb.append( "        \"filtered ascend\": \"" ).append( ascend ).append( "\",\n" );
     sb.append( "        \"plain-ascend\": \"" ).append( plainAscend ).append( "\",\n" );
     sb.append( "        \"cost\": \"" ).append( cost ).append( "\"\n" );
     sb.append( "      },\n" );
+    
+    if ( iternity != null )
+    {
+      sb.append( "      \"iternity\": [\n" );
+      for( String s : iternity )
+      {
+    	  sb.append( "        \"").append( s ).append( "\",\n" );
+      }
+      sb.deleteCharAt( sb.lastIndexOf( "," ) );
+      sb.append( "        ],\n" );
+    }
     sb.append( "      \"geometry\": {\n" );
     sb.append( "        \"type\": \"LineString\",\n" );
     sb.append( "        \"coordinates\": [\n" );

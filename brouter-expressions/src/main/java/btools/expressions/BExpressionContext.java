@@ -50,8 +50,12 @@ public final class BExpressionContext
 
   // hash-cache for function results
   private byte[][] _arrayBitmap;
+  private boolean[] _arrayInverse;
+  private int[] _arrayCrc;
+
   private int currentHashBucket = -1;
   private byte[] currentByteArray = null;
+  private boolean currentInverseDirection= false;
 
   public List<BExpression> expressionList;
 
@@ -104,7 +108,9 @@ public final class BExpressionContext
 
      if ( Boolean.getBoolean( "disableExpressionCache" ) ) hashSize = 1;
       
-    _arrayBitmap = new byte[hashSize][];
+     _arrayBitmap = new byte[hashSize][];
+     _arrayInverse = new boolean[hashSize];
+     _arrayCrc = new int[hashSize];
 
     _arrayCostfactor = new float[hashSize];
     _arrayTurncost = new float[hashSize];
@@ -163,7 +169,7 @@ public final class BExpressionContext
     
     // crosscheck: decode and compare
     int[] ld2 = new int[lookupValues.size()];
-    decode( ld2, ab );
+    decode( ld2, false, ab );
     for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
     {
       if ( ld2[inum] != ld[inum] ) throw new RuntimeException( "assertion failed encoding " + getKeyValueDescription(false, ab) );
@@ -208,21 +214,21 @@ public final class BExpressionContext
    */
   public void decode( byte[] ab )
   {
-    decode( lookupData, ab );
+    decode( lookupData, false, ab );
     lookupDataValid = true;
   }
 
   /**
    * decode a byte-array into a lookup data array
    */
-  public void decode( int[] ld, byte[] ab )
+  private void decode( int[] ld, boolean inverseDirection, byte[] ab )
   {
 	if ( !meta.readVarLength ) { decodeFix( ld, ab ); return; }
 
     BitCoderContext ctx = new BitCoderContext(ab);
 	  
     // start with first bit hardwired ("reversedirection")
-  	ld[0] = ctx.decodeBit() ? 2 : 0;
+  	ld[0] = inverseDirection ^ ctx.decodeBit() ? 2 : 0;
   	
     // all others are generic
   	int inum = 1;
@@ -276,13 +282,10 @@ public final class BExpressionContext
   public String getKeyValueDescription( boolean inverseDirection, byte[] ab )
   {
     int inverseBitByteIndex =  meta.readVarLength ? 0 : 7;
-    int abLen = ab.length;
-    byte[] ab_copy = new byte[abLen];
-	System.arraycopy( ab,  0,  ab_copy,  0 , abLen );
-	if ( inverseDirection ) ab_copy[inverseBitByteIndex] ^= 1;
+//    int abLen = ab.length;
 
 	StringBuilder sb = new StringBuilder( 200 );
-    decode( lookupData, ab_copy );
+    decode( lookupData, inverseDirection, ab );
     for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
     {
       BExpressionLookupValue[] va = lookupValues.get(inum);
@@ -344,7 +347,9 @@ public final class BExpressionContext
     }
   }
 
-
+  public long requests;
+  public long requests2;
+  public long cachemisses;
 
   /**
    * evaluates the data in the given byte array
@@ -353,55 +358,53 @@ public final class BExpressionContext
    */
   public boolean evaluate( boolean inverseDirection, byte[] ab, BExpressionReceiver receiver )
   {
+	 requests ++;
 	 lookupDataValid = false; // this is an assertion for a nasty pifall
-	  
-	 int inverseBitByteIndex =  meta.readVarLength ? 0 : 7;
-	       
-     int abLen = ab.length;
-     boolean equalsCurrent = currentHashBucket >= 0 && abLen == currentByteArray.length;
-     if ( equalsCurrent )
-     {
-       for( int i=0; i<abLen; i++ )
-       {
-         byte b = ab[i];
-         if ( i == inverseBitByteIndex && inverseDirection ) b ^= 1;
-  	     if ( b != currentByteArray[i] ) { equalsCurrent = false; break; }
-       }
-     }
 
+	 int inverseBitByteIndex = meta.readVarLength ? 0 : 7;
 
-     if ( equalsCurrent )
-     {
-       return true;
-     }
-     else
-     {
-       // calc hash bucket from crc
-       int crc  = Crc32.crc( abBuf, 0, abLen );
-       int hashSize = _arrayBitmap.length;
-       currentHashBucket =  (crc & 0xfffffff) % hashSize;
-       currentByteArray = new byte[abLen];
-       System.arraycopy( ab,  0,  currentByteArray,  0 , abLen );
-       if ( inverseDirection ) currentByteArray[inverseBitByteIndex] ^= 1;
-     }
-
-     boolean hashBucketEquals = false;
+	 // calc hash bucket from crc
+	 int lastHashBucket = currentHashBucket;
+     int crc  = Crc32.crcWithInverseBit(ab, inverseDirection ? inverseBitByteIndex : -1 );
+     int hashSize = _arrayBitmap.length;
+     currentHashBucket =  (crc & 0xfffffff) % hashSize;
+     currentByteArray = ab;
+     currentInverseDirection = inverseDirection;
      byte[] abBucket = _arrayBitmap[currentHashBucket];
-     if ( abBucket != null && abBucket.length == abLen )
+     boolean inverseBucket = _arrayInverse[currentHashBucket];
+	 if ( ab == abBucket && inverseBucket == inverseDirection ) // fast identity check
      {
+	   return lastHashBucket == currentHashBucket;
+	 }
+	 requests2++;
+
+	 // compare input value to hash bucket content
+     boolean hashBucketEquals = false;
+     if ( crc == _arrayCrc[currentHashBucket] )
+     {
+       int abLen = ab.length;
+       if ( abBucket != null && abBucket.length == ab.length )
+       {
     	 hashBucketEquals = true;
+    	 boolean isInverse = inverseDirection ^ inverseBucket;
          for( int i=0; i<abLen; i++ )
          {
-    	   if ( abBucket[i] != currentByteArray[i] ) { hashBucketEquals = false; break; }
+           byte b = ab[i];
+           if ( isInverse && i == inverseBitByteIndex ) b ^= 1;
+    	   if ( abBucket[i] != b ) { hashBucketEquals = false; break; }
          }
+       }
      }
-     if ( hashBucketEquals ) return false;
+     if ( hashBucketEquals ) return lastHashBucket == currentHashBucket;
+     cachemisses++;
      
      _arrayBitmap[currentHashBucket] = currentByteArray;
+     _arrayInverse[currentHashBucket] = currentInverseDirection;
+     _arrayCrc[currentHashBucket] = crc;
 
      _receiver = receiver;
 
-     decode( lookupData, currentByteArray );
+     decode( lookupData, currentInverseDirection, currentByteArray );
      evaluate( lookupData );
 
      _arrayCostfactor[currentHashBucket] = variableData[costfactorIdx];

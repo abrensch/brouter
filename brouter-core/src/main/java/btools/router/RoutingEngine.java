@@ -15,32 +15,33 @@ import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmNodesMap;
+import btools.util.SortedHeap;
 
 public class RoutingEngine extends Thread
 {
   private OsmNodesMap nodesMap;
   private NodesCache nodesCache;
-  private OpenSet openSet = new OpenSet();
+  private SortedHeap<OsmPath> openSet = new SortedHeap<OsmPath>();
   private boolean finished = false;
 
-  private List<OsmNodeNamed> waypoints = null;
+  protected List<OsmNodeNamed> waypoints = null;
   private int linksProcessed = 0;
 
-  private OsmTrack foundTrack = new OsmTrack();
+  protected OsmTrack foundTrack = new OsmTrack();
   private OsmTrack foundRawTrack = null;
   private int alternativeIndex = 0;
 
-  private String errorMessage = null;
+  protected String errorMessage = null;
 
   private volatile boolean terminated;
 
-  private File profileDir;
-  private String segmentDir;
+  protected File profileDir;
+  protected String segmentDir;
   private String outfileBase;
   private String logfileBase;
   private boolean infoLogEnabled;
   private Writer infoLogWriter;
-  private RoutingContext routingContext;
+  protected RoutingContext routingContext;
 
   private double airDistanceCostFactor;
   private OsmTrack guideTrack;
@@ -80,8 +81,8 @@ public class RoutingEngine extends Thread
       BExpressionMetaData meta = new BExpressionMetaData();
       
       BExpressionContext expctxGlobal = new BExpressionContext( "global", meta );
-      rc.expctxWay = new BExpressionContext( "way", meta );
-      rc.expctxNode = new BExpressionContext( "node", 1024, meta );
+      rc.expctxWay = new BExpressionContext( "way", rc.serversizing ? 262144 : 4096, meta );
+      rc.expctxNode = new BExpressionContext( "node", rc.serversizing ?  16384 : 1024, meta );
       
       meta.readMetaData( new File( profileDir, "lookups.dat" ) );
 
@@ -504,7 +505,6 @@ public class RoutingEngine extends Thread
       if ( pe.cost >= costdelta )
       {
     	pe.cost -= costdelta;
-    	pe.adjustedCost -= costdelta;
 
     	if ( guideTrack != null )
     	{
@@ -559,7 +559,7 @@ public class RoutingEngine extends Thread
 
          wp.radius = 1e9;
          OsmPath testPath = new OsmPath( null, startPath, link, null, guideTrack != null, routingContext );
-         testPath.setAirDistanceCostAdjustment( (int)( nextNode.calcDistance( endPos ) * airDistanceCostFactor ) );
+         testPath.airdistance = nextNode.calcDistance( endPos );
          if ( wp.radius < minradius )
          {
            bestPath = testPath;
@@ -593,10 +593,7 @@ public class RoutingEngine extends Thread
 
       if ( wp != null ) wp.radius = 1e-5;
      
-      OsmPath testPath = new OsmPath( n1, startPath, link, null, guideTrack != null, routingContext );
-      testPath.setAirDistanceCostAdjustment( 0 );
-
-      return testPath;
+      return new OsmPath( n1, startPath, link, null, guideTrack != null, routingContext );
     }
     finally
     {
@@ -636,8 +633,6 @@ public class RoutingEngine extends Thread
     OsmPath startPath1 = getStartPath( start1, start2, startWp, endWp, sameSegmentSearch );
     OsmPath startPath2 = getStartPath( start2, start1, startWp, endWp, sameSegmentSearch );
 
-    int maxAdjCostFromQueue = 0;
-
     // check for an INITIAL match with the cost-cutting-track
     if ( costCuttingTrack != null )
     {
@@ -655,8 +650,8 @@ public class RoutingEngine extends Thread
     synchronized( openSet )
     {
       openSet.clear();
-      if ( startPath1.cost >= 0 ) openSet.add( startPath1 );
-      if ( startPath2.cost >= 0 ) openSet.add( startPath2 );
+      addToOpenset( startPath1 );
+      addToOpenset( startPath2 );
     }
     while(!terminated)
     {
@@ -671,16 +666,10 @@ public class RoutingEngine extends Thread
       OsmPath path = null;
       synchronized( openSet )
       {
-        if ( openSet.size() == 0 ) break;
-        path = openSet.first();
-        openSet.remove( path );
+        path = openSet.popLowestKeyValue();
       }
-
-      if ( path.adjustedCost < maxAdjCostFromQueue && airDistanceCostFactor == 0.)
-      {
-        throw new RuntimeException( "assertion failed: path.adjustedCost < maxAdjCostFromQueue: " + path.adjustedCost + "<" + maxAdjCostFromQueue );
-      }
-      maxAdjCostFromQueue = path.adjustedCost;
+      if ( path == null ) break;
+      if ( path.airdistance == -1 ) continue;
 
       if ( matchPath != null && fastPartialRecalc && firstMatchCost < 500 && path.cost > 30L*firstMatchCost )
       {
@@ -740,8 +729,7 @@ public class RoutingEngine extends Thread
       }
 
       // recheck cutoff before doing expensive stuff
-      int airDistance2 = currentNode.calcDistance( endPos );
-      if ( path.cost + airDistance2 > maxTotalCost + 10 )
+      if ( path.cost + path.airdistance > maxTotalCost + 10 )
       {
         continue;
       }
@@ -824,18 +812,14 @@ public class RoutingEngine extends Thread
           }
           if ( otherPath != path )
           {
-            synchronized( openSet )
-            {
-                openSet.remove( otherPath );
-            }
+            otherPath.airdistance = -1; // invalidate the entry in the open set
           }
         }
         if ( bestPath != null )
         {
-          int airDistance = isFinalLink ? 0 : nextNode.calcDistance( endPos );
-          bestPath.setAirDistanceCostAdjustment( (int)( airDistance * airDistanceCostFactor ) );
+          bestPath.airdistance = isFinalLink ? 0 : nextNode.calcDistance( endPos );
           
-          if ( isFinalLink || bestPath.cost + airDistance <= maxTotalCost + 10 )
+          if ( isFinalLink || bestPath.cost + bestPath.airdistance <= maxTotalCost + 10 )
           {
             // add only if this may beat an existing path for that link
         	OsmLinkHolder dominator = link.firstlinkholder;
@@ -854,7 +838,7 @@ public class RoutingEngine extends Thread
               link.addLinkHolder( bestPath );
               synchronized( openSet )
               {
-                openSet.add( bestPath );
+                addToOpenset( bestPath );
               }
         	}
           }
@@ -868,6 +852,14 @@ public class RoutingEngine extends Thread
 
     }
     return null;
+  }
+  
+  private void addToOpenset( OsmPath path )
+  {
+    if ( path.cost >= 0 )
+    {
+      openSet.add( path.cost + (int)(path.airdistance*airDistanceCostFactor), path );
+    }
   }
 
   private void preloadPosition( OsmNode n, int minRingWidth, int minCount )
@@ -991,7 +983,16 @@ public class RoutingEngine extends Thread
   {
     synchronized( openSet )
     {
-      return openSet.getExtract();
+      List<OsmPath> extract = openSet.getExtract();
+      int[] res =  new int[extract.size() * 2];
+      int i = 0;
+      for( OsmPath p : extract )
+      {
+          OsmNode n = p.getLink().targetNode;
+          res[i++] = n.ilon;
+          res[i++] = n.ilat;
+      }
+      return res;
     }
   }
 
@@ -1044,4 +1045,10 @@ public class RoutingEngine extends Thread
   {
     terminated = true;
   }
+
+  public boolean isTerminated()
+  {
+	  return terminated;
+  }
+
 }

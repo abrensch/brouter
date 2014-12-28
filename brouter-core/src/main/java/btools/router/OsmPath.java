@@ -9,12 +9,6 @@ import btools.mapaccess.*;
 
 final class OsmPath implements OsmLinkHolder
 {
-  // double-linked lists for the openSet
-  public OsmPath nextInSet;
-  public OsmPath prevInSet;
-  public OsmPath nextInIndexSet;
-  public OsmPath prevInIndexSet;
-  
   /**
    * The cost of that path (a modified distance)
    */
@@ -30,12 +24,7 @@ final class OsmPath implements OsmLinkHolder
   // if the corresponding node has not
   public short selev;
 
-  public int adjustedCost = 0;
-
-  public void setAirDistanceCostAdjustment( int costAdjustment )
-  {
-    adjustedCost = cost + costAdjustment;
-  }
+  public int airdistance = 0; // distance to endpos
   
   private OsmNode sourcenode;
   private OsmLink link;

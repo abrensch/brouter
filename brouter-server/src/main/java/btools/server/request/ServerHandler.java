@@ -41,6 +41,7 @@ public class ServerHandler extends RequestHandler {
   public RoutingContext readRoutingContext()
   {
     rc = new RoutingContext();
+    rc.serversizing = true;
 
     String profile = params.get( "profile" );
     // when custom profile replace prefix with directory path
@@ -123,7 +124,7 @@ public class ServerHandler extends RequestHandler {
       System.out.println("unknown track format '" + format + "', using default");
       result = track.formatAsGpx();
     }
-      
+
     return result;
   }
 
