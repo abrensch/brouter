@@ -6,8 +6,8 @@ The tag-value lookup table
 --------------------------
 
 Within the routing data files (rd5), tag information
-is encoded in a binary bitfield of 64 bit length for
-the way tags and the node tags each.
+is encoded in a binary bitfield for the way tags and
+the node tags each.
 
 To encode and decode to/from this bitfield, a lookup
 table is used that contains all the tags and values
@@ -18,19 +18,9 @@ For each tag there are 2 special values:
 - <empty> if the tag is not set or the value is empty 
 - "unknown" if the value is not contained in the table
 
-An exception are "boolean tags" with exactly one value
-in the lookup table - these are encoded into a single
-bit and do not have the "unknown" value - in this case
-unknown values are treated as empty.
-
 Each value can have optional "aliases", these alias
 values are encoded into the same binary value as the
 associated primary value.
-
-For compact encoding, the number of values per
-tag in the lookup table should be a power of 2,
-including the default values (<empty>, "unknown"),
-so typically, a tag has 1, 2, 6, 14 or 30 values.
 
 The numbers in the lookup table are statistical
 information on the frequency of the values in the
@@ -45,6 +35,11 @@ so there are different sections in the lookup table
 as well as in the profile scripts for each context.
 The special tags: "---context:way" and "---context:node"
 mark the beginning of each section.
+
+The only exception from context separation is a single
+bit information "nodeaccessgranted" which is automatically
+carried from the way context to the terminating node
+of the way section.
 
 In the profile scripts there is a third context "global"
 which contains global configuration which is shared for
@@ -62,12 +57,15 @@ the routing engine:
 
 - for the global section these are:
 
-  - 4 elevation configuration parameters:
+  - 7 elevation configuration parameters:
 
     - downhillcost
     - downhillcutoff
     - uphillcost
     - uphillcutoff
+    - elevationpenaltybuffer
+    - elevationmaxbuffer
+    - elevationbufferreduce
 
   - 3 boolean mode-hint flags
 
@@ -87,6 +85,9 @@ the routing engine:
   - turncost
   - initialcost
   - costfactor
+  - uphillcostfactor
+  - downhillcostfactor
+  - nodeaccessgranted
 
 - for the node section this is just
 
@@ -162,9 +163,9 @@ Technical constraints
   search area and thus to long processing times.
 
 - Forbidden ways or nodes must be treated as very high cost, because
-  there is no "forbidden" value. Please use 100000 for a (way-)costfactor,
-  and 1000000 for a nodes "initalcost", as these are proven values with
-  no overflow issues.
+  there is no "forbidden" value. Technically, values >= 10000. for a
+  (way-)costfactor, and >=1000000. for a nodes "initalcost" are treated
+  as infinity, so please use these as the "forbidden" values.
 
 
 Developing and debugging scripts
@@ -176,3 +177,44 @@ The "Export CSV" gives a (tab-separated) list of all way segments
 with all tag values and with the calulated cost (in "cost per km").
 
 These CSV-Data can be imported in Excel using "paste content" function.
+
+
+Lookup-Table evolution and the the "major" and "minor" versions
+---------------------------------------------------------------
+
+The lookup-table is allowed to grow over time, to include more tags
+and values as needed. To support that evolution, it carries a major
+and a minor version number. These numbers are also encoded into
+the routing data files, taken from the lookups.dat that is used
+to pre-process the routing data files.
+
+A major version change is considered to always break compatibiliy
+between the routing datafiles and the lookup table.
+
+A minor version change keeps the routing data files and the lookup-table
+compatible in the following way:
+
+If the minor version from the routing data file is equal OR LARGER
+than the minor version in the lookup table, everything is o.k.
+This is the case, if you get updated data files, but don't update
+the lookup-table of your local installation.
+
+If the lookup-tables's minor version is larger than that in the the
+data files, you will get an error message.
+
+Note that for an update of the Android app, your local lookup-table is NOT
+replaced by the new version. The new lookup table is contained inside
+the APK, but is not automatically copied to your sd-card if there
+is already a local installation. This is to prevent invalidating
+your routing data files due to software updates. However, in order
+to make use of the new tags and values in a new software version, you
+have to delete (or rename) your "profiles2" directory, so the new
+content from the APK file is copied to the sd-card at next start.
+
+For a minor version change it is required that tags are only
+appended at the end of the table (or replace one of the dummy
+tags located between the way-tags and the relation pseudo-tags),
+and that values are only appended at the end of the value lists.
+This is because the routing data files adress tags and values
+by their sequence numbers, so changing sequences would produce
+garbage data.

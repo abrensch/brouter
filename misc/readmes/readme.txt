@@ -1,5 +1,5 @@
-BRouter - Version 1.0.1 - Setting up the Android App
-=========================================================
+BRouter - Version 1.1 - Setting up the Android App
+==================================================
 
 Choosing and Installing a Map-Tool
 ----------------------------------
@@ -40,14 +40,12 @@ Installing the BRouter App
 --------------------------
 
 You can install the BRouter-App either from Google's Play Store
-or directly from the APK-File contained within the "brouter_1_0_1.zip"
+or directly from the APK-File contained within the "brouter_1_1.zip"
 distribution zip-file.
 
 Both APKs are identical. There used to be a pure-offline version
-in the distribution-zip, but with version 1.0.1 this APK also does
+in the distribution-zip, but with version 1.1 this APK also does
 include the download manager, so it asks for internet access.
-Pure offline support will be restored in the next version.
-
 
 Choosing a SD-Card Base Directory
 ---------------------------------
