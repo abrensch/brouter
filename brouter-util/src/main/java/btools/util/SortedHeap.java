@@ -167,16 +167,21 @@ public class SortedHeap<V>
     // now merge the contents of arrays 0...idx-1 into idx
     while ( cnt > 0 )
     {
-      int maxId = 0;
-      int maxIdx = -1;
+      int i=0;
+      while( pa[i] == lp[i] )
+      {
+        i++;
+      }
+      int maxId = al[i][pa[i]-1];
+      int maxIdx = i;
 
-      for ( int i=0; i<=idx; i++ )
+      for ( i++; i<=idx; i++ )
       {
         int p = pa[i];
         if ( p > lp[i] )
         {
           int currentId = al[i][p-1];
-          if ( maxIdx < 0 || currentId > maxId )
+          if ( currentId > maxId )
           {
             maxIdx = i;
             maxId = currentId;
