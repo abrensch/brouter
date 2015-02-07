@@ -59,6 +59,7 @@ public final class RoutingContext implements DistanceChecker
   public double changetime;
   public double buffertime;
   public double waittimeadjustment;
+  public double starttimeoffset;
   
   public void readGlobalConfig( BExpressionContext expctxGlobal )
   {
@@ -81,6 +82,7 @@ public final class RoutingContext implements DistanceChecker
     changetime           = expctxGlobal.getVariableValue( "changetime", 180.f );
     buffertime           = expctxGlobal.getVariableValue( "buffertime", 120.f );
     waittimeadjustment   = expctxGlobal.getVariableValue( "waittimeadjustment", 0.9f );
+    starttimeoffset      = expctxGlobal.getVariableValue( "starttimeoffset", 0.f );
   }
 
   public RoutingMessageHandler messageHandler = new RoutingMessageHandler();
