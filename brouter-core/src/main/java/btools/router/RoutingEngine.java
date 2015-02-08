@@ -298,9 +298,13 @@ public class RoutingEngine extends Thread
                return mwp;
              }
            }
+           if ( minRingWith == 1 && nodesCache.first_file_access_failed )
+           {
+             throw new IllegalArgumentException( "datafile " + nodesCache.first_file_access_name + " not found" );
+           }
            if ( minRingWith++ == 5 )
            {
-             throw new IllegalArgumentException( wp.name + "-position not mapped" );
+             throw new IllegalArgumentException( wp.name + "-position not mapped in existing datafile" );
            }
          }
      }

@@ -39,7 +39,7 @@ public class RouterTest
 
     msg = calcRoute( 8.720897, 50.002515, 16.723658, 49.997510, "notrack" );
 
-    Assert.assertTrue( msg, msg != null && msg.indexOf( "not mapped" ) >= 0 );
+    Assert.assertTrue( msg, msg != null && msg.indexOf( "not found" ) >= 0 );
   }
 
   private String calcRoute( double flon, double flat, double tlon, double tlat, String trackname ) throws Exception

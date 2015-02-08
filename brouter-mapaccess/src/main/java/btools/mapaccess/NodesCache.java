@@ -33,6 +33,8 @@ public final class NodesCache
   public DistanceChecker distanceChecker;
   
   public boolean oom_carsubset_hint = false;
+  public boolean first_file_access_failed = false;
+  public String first_file_access_name;
 
   private long cacheSum = 0;
   private boolean garbageCollectionEnabled = false;
@@ -47,6 +49,9 @@ public final class NodesCache
     this.readVarLength = varLen;
     this.carMode = carMode;
     this.forceSecondaryData = forceSecondaryData;
+
+    first_file_access_failed = false;
+    first_file_access_name = null;
 
     if ( !this.segmentDir.isDirectory() ) throw new RuntimeException( "segment directory " + segmentDir + " does not exist" );
 
@@ -249,6 +254,13 @@ public final class NodesCache
     OsmFile osmf = new OsmFile( ra, tileIndex, iobuffer );
     osmf.lonDegree = lonDegree;
     osmf.latDegree = latDegree;
+
+    if ( first_file_access_name == null )
+    {
+      first_file_access_name = currentFileName;
+      first_file_access_failed = osmf.filename == null;
+    }
+
     return osmf;
   }
 
