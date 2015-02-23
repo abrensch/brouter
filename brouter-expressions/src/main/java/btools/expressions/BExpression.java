@@ -1,5 +1,6 @@
 package btools.expressions;
 
+import java.util.StringTokenizer;
 
 final class BExpression
 {
@@ -26,7 +27,7 @@ final class BExpression
   private float numberValue;
   private int variableIdx;
   private int lookupNameIdx;
-  private int lookupValueIdx;
+  private int[] lookupValueIdxArray;
 
   // Parse the expression and all subexpression
   public static BExpression parse( BExpressionContext ctx, int level ) throws Exception
@@ -105,17 +106,25 @@ final class BExpression
           {
             exp.typ = LOOKUP_EXP;
             String name = operator.substring( 0, idx );
-            String value = operator.substring( idx+1 );
+            String values = operator.substring( idx+1 );
 
             exp.lookupNameIdx = ctx.getLookupNameIdx( name );
             if ( exp.lookupNameIdx < 0 )
             {
               throw new IllegalArgumentException( "unknown lookup name: " + name );
             }
-            exp.lookupValueIdx = ctx.getLookupValueIdx( exp.lookupNameIdx, value );
-            if ( exp.lookupValueIdx < 0 )
+            StringTokenizer tk = new StringTokenizer( values, "|" );
+            int nt = tk.countTokens();
+            int nt2 = nt == 0 ? 1 : nt;
+            exp.lookupValueIdxArray = new int[nt2];
+            for( int ti=0; ti<nt2; ti++ )
             {
-              throw new IllegalArgumentException( "unknown lookup value: " + value );
+              String value = ti < nt ? tk.nextToken() : "";
+              exp.lookupValueIdxArray[ti] = ctx.getLookupValueIdx( exp.lookupNameIdx, value );
+              if ( exp.lookupValueIdxArray[ti] < 0 )
+              {
+                throw new IllegalArgumentException( "unknown lookup value: " + value );
+              }
             }
           }
           else if ( (idx = ctx.getVariableIdx( operator, false )) >= 0 )
@@ -157,7 +166,7 @@ final class BExpression
       case MAX_EXP: return max( op1.evaluate(ctx), op2.evaluate(ctx) );
       case SWITCH_EXP: return op1.evaluate(ctx) != 0.f ? op2.evaluate(ctx) : op3.evaluate(ctx);
       case ASSIGN_EXP: return ctx.assign( variableIdx, op1.evaluate(ctx) );
-      case LOOKUP_EXP: return ctx.getLookupMatch( lookupNameIdx, lookupValueIdx );
+      case LOOKUP_EXP: return ctx.getLookupMatch( lookupNameIdx, lookupValueIdxArray );
       case NUMBER_EXP: return numberValue;
       case VARIABLE_EXP: return ctx.getVariableValue( variableIdx );
       case NOT_EXP: return op1.evaluate(ctx) == 0.f ? 1.f : 0.f;

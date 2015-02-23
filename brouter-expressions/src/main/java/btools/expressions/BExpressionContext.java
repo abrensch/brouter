@@ -706,9 +706,16 @@ public final class BExpressionContext
     return minWriteIdx;
   }
 
-  float getLookupMatch( int nameIdx, int valueIdx )
+  float getLookupMatch( int nameIdx, int[] valueIdxArray )
   {
-    return lookupData[nameIdx] == valueIdx ? 1.0f : 0.0f;
+    for( int i=0; i<valueIdxArray.length; i++ )
+    {
+      if ( lookupData[nameIdx] == valueIdxArray[i] )
+      {
+        return 1.0f;
+      }
+    }
+    return 0.0f;
   }
 
   public int getLookupNameIdx( String name )
