@@ -133,12 +133,14 @@ public class RoutingEngine extends Thread
         	
       startTime = System.currentTimeMillis();
       this.maxRunningTime = maxRunningTime;
-      OsmTrack sum = null;
+      int nsections = waypoints.size() - 1;
+      OsmTrack[] refTracks = new OsmTrack[nsections]; // used ways for alternatives
+      OsmTrack[] lastTracks = new OsmTrack[nsections];
       OsmTrack track = null;
       ArrayList<String> messageList = new ArrayList<String>();
       for( int i=0; !terminated; i++ )
       {
-        track = findTrack( sum );
+        track = findTrack( refTracks, lastTracks );
         track.message = "track-length = " + track.distance + " filtered ascend = " + track.ascend
         + " plain-ascend = " +  track.plainAscend + " cost=" + track.cost;
         track.name = "brouter_" + routingContext.getProfileName() + "_" + i;
@@ -152,8 +154,6 @@ public class RoutingEngine extends Thread
           oldTrack.readGpx(filename);
           if ( track.equalsTrack( oldTrack ) )
           {
-            if ( sum == null ) sum = new OsmTrack();
-            sum.addNodes( track );
             continue;
           }
           track.writeGpx( filename );
@@ -179,8 +179,6 @@ public class RoutingEngine extends Thread
           }
           else
           {
-            if ( sum == null ) sum = new OsmTrack();
-            sum.addNodes( track );
             continue;
           }
         }
@@ -240,14 +238,14 @@ public class RoutingEngine extends Thread
   
   
 
-  private OsmTrack findTrack( OsmTrack refTrack )
+  private OsmTrack findTrack( OsmTrack[] refTracks, OsmTrack[] lastTracks )
   {
     OsmTrack totaltrack = new OsmTrack();
     MatchedWaypoint[] wayointIds = new MatchedWaypoint[waypoints.size()];
 
     // check for a track for that target
     OsmTrack nearbyTrack = null;
-    if ( refTrack == null )
+    if ( refTracks[waypoints.size()-2] == null )
     {
       nearbyTrack = OsmTrack.readBinary( routingContext.rawTrackPath, waypoints.get( waypoints.size()-1), routingContext.getNogoChecksums() );
       if ( nearbyTrack != null )
@@ -267,9 +265,16 @@ public class RoutingEngine extends Thread
 
     for( int i=0; i<waypoints.size() -1; i++ )
     {
-      OsmTrack seg = searchTrack( wayointIds[i], wayointIds[i+1], i == waypoints.size()-2 ? nearbyTrack : null, refTrack );
+      if ( lastTracks[i] != null )
+      {
+        if ( refTracks[i] == null ) refTracks[i] = new OsmTrack();
+        refTracks[i].addNodes( lastTracks[i] );
+      }
+
+      OsmTrack seg = searchTrack( wayointIds[i], wayointIds[i+1], i == waypoints.size()-2 ? nearbyTrack : null, refTracks[i] );
       if ( seg == null ) return null;
       totaltrack.appendTrack( seg );
+      lastTracks[i] = seg;
     }
     return totaltrack;
   }
@@ -293,9 +298,13 @@ public class RoutingEngine extends Thread
                return mwp;
              }
            }
+           if ( minRingWith == 1 && nodesCache.first_file_access_failed )
+           {
+             throw new IllegalArgumentException( "datafile " + nodesCache.first_file_access_name + " not found" );
+           }
            if ( minRingWith++ == 5 )
            {
-             throw new IllegalArgumentException( wp.name + "-position not mapped" );
+             throw new IllegalArgumentException( wp.name + "-position not mapped in existing datafile" );
            }
          }
      }

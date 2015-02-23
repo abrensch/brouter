@@ -1,5 +1,5 @@
 ---lookupversion:10
----minorversion:3
+---minorversion:4
 ---readvarlength
 
 ---context:way
@@ -418,8 +418,21 @@ trail_visibility;0000023482 bad
 trail_visibility;0000005853 horrible
 trail_visibility;0000002222 no
 
-brouter_placeholder_dummy_07;0000000001 dummy
-brouter_placeholder_dummy_08;0000000001 dummy
+class:bicycle:mtb;0000002079 1 +1
+class:bicycle:mtb;0000001191 0
+class:bicycle:mtb;0000001089 2 +2
+class:bicycle:mtb;0000000703 -1
+class:bicycle:mtb;0000000234 -2
+class:bicycle:mtb;0000000140 3 +3
+class:bicycle:mtb;0000000068 -3
+
+class:bicycle;0000002842 1 +1
+class:bicycle;0000000595 -1
+class:bicycle;0000000533 2 +2
+class:bicycle;0000000516 -2
+class:bicycle;0000000245 -3
+class:bicycle;0000000170 0
+class:bicycle;0000000108 3 +3
   
 route_bicycle_icn;0000088753 yes
 route_bicycle_icn;0000000001 proposed
@@ -450,6 +463,40 @@ route_mtb_ncn;0000004853 yes
 route_mtb_rcn;0000013321 yes
 route_mtb_mtb;0000006853 yes
 route_bicycle_mtb;0000002240 yes
+
+brouter_route_placeholder_dummy_01;0000000001 dummy
+brouter_route_placeholder_dummy_02;0000000001 dummy
+brouter_route_placeholder_dummy_03;0000000001 dummy
+brouter_route_placeholder_dummy_04;0000000001 dummy
+brouter_route_placeholder_dummy_05;0000000001 dummy
+brouter_route_placeholder_dummy_06;0000000001 dummy
+brouter_route_placeholder_dummy_07;0000000001 dummy
+brouter_route_placeholder_dummy_08;0000000001 dummy
+brouter_route_placeholder_dummy_09;0000000001 dummy
+brouter_route_placeholder_dummy_10;0000000001 dummy
+brouter_route_placeholder_dummy_11;0000000001 dummy
+brouter_route_placeholder_dummy_12;0000000001 dummy
+brouter_route_placeholder_dummy_13;0000000001 dummy
+brouter_route_placeholder_dummy_14;0000000001 dummy
+brouter_route_placeholder_dummy_15;0000000001 dummy
+brouter_route_placeholder_dummy_16;0000000001 dummy
+brouter_route_placeholder_dummy_17;0000000001 dummy
+brouter_route_placeholder_dummy_18;0000000001 dummy
+brouter_route_placeholder_dummy_19;0000000001 dummy
+brouter_route_placeholder_dummy_20;0000000001 dummy
+brouter_route_placeholder_dummy_21;0000000001 dummy
+
+ramp:bicycle;0000001305 yes both permissive right left
+ramp:bicycle;0000000385 no
+
+ramp:stroller;0000001099 yes
+ramp:stroller;0000000326 no
+
+ramp:wheelchair;0000000610 yes
+ramp:wheelchair;0000000439 no
+
+ramp:luggage;0000000162 no
+ramp:luggage;0000000054 yes automatic manual
 
 ---context:node
 
@@ -691,3 +738,6 @@ traffic_calming;0000004686 chicane
 traffic_calming;0000004032 rumble_strip
 traffic_calming;0000000847 speed_bump
 traffic_calming;0000000186 dip
+
+ford;0000037927 yes
+ford;0000000310 stepping_stones

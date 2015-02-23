@@ -50,10 +50,11 @@
             <groupId>org.btools</groupId>
             <artifactId>brouter-map-creator</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>junit</groupId>
-          <artifactId>junit</artifactId>
-        </dependency>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
     </dependencies>
 </project>

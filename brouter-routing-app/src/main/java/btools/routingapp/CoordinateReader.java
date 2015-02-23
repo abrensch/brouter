@@ -102,6 +102,8 @@ public abstract class CoordinateReader
   {
 	          CoordinateReader cor = null;
               ArrayList<CoordinateReader> rl = new ArrayList<CoordinateReader>();
+
+              AppLogger.log( "adding standard maptool-base: " + basedir  );
               rl.add( new CoordinateReaderOsmAnd(basedir) );
               rl.add( new CoordinateReaderLocus(basedir) );
               rl.add( new CoordinateReaderOrux(basedir) );
@@ -113,6 +115,7 @@ public abstract class CoordinateReader
                 String base2 = standardbase.getAbsolutePath();
                 if ( !base2.equals( basedir ) )
                 {
+                  AppLogger.log( "adding internal sd maptool-base: " + base2  );
                   rl.add( new CoordinateReaderOsmAnd(base2) );
                   rl.add( new CoordinateReaderLocus(base2) );
                   rl.add( new CoordinateReaderOrux(base2) );
@@ -125,7 +128,7 @@ public abstract class CoordinateReader
               {
                 String base3 = additional.getAbsolutePath();
                 
-                AppLogger.log( "additional maptool-base from storage-config: " + base3  );
+                AppLogger.log( "adding maptool-base from storage-config: " + base3  );
                 
                 rl.add( new CoordinateReaderOsmAnd(base3) );
                 rl.add( new CoordinateReaderLocus(base3) );
@@ -135,6 +138,11 @@ public abstract class CoordinateReader
               long tmax = 0;
               for( CoordinateReader r : rl )
               {
+                if ( AppLogger.isLogging() )
+                {
+                  AppLogger.log( "reading timestamp at systime " + new Date() );
+                }
+
                 long t = r.getTimeStamp();
                 
                 if ( t != 0 )
