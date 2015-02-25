@@ -32,7 +32,14 @@ final class BExpression
   // Parse the expression and all subexpression
   public static BExpression parse( BExpressionContext ctx, int level ) throws Exception
   {
+    boolean brackets = false;
     String operator = ctx.parseToken();
+    if ( "(".equals( operator ) )
+    {
+      brackets = true;
+      operator = ctx.parseToken();
+    }
+    
     if ( operator == null )
     {
       if ( level == 0 ) return null;
@@ -49,10 +56,16 @@ final class BExpression
 
     BExpression exp = new BExpression();
     int nops = 3;
+    boolean ifThenElse = false;
 
     if ( "switch".equals( operator ) )
     {
       exp.typ = SWITCH_EXP;
+    }
+    else if ( "if".equals( operator ) )
+    {
+      exp.typ = SWITCH_EXP;
+      ifThenElse = true;
     }
     else
     {
@@ -148,10 +161,34 @@ final class BExpression
       }
     }
     // parse operands
-    if ( nops > 0  ) exp.op1 = BExpression.parse( ctx, level+1 );
-    if ( nops > 1  ) exp.op2 = BExpression.parse( ctx, level+1 );
-    if ( nops > 2  ) exp.op3 = BExpression.parse( ctx, level+1 );
+    if ( nops > 0  )
+    {
+      exp.op1 = BExpression.parse( ctx, level+1 );
+    }
+    if ( nops > 1  )
+    {
+      if ( ifThenElse ) checkExpectedToken( ctx, "then" );
+      exp.op2 = BExpression.parse( ctx, level+1 );
+    }
+    if ( nops > 2  )
+    {
+      if ( ifThenElse ) checkExpectedToken( ctx, "else" );
+      exp.op3 = BExpression.parse( ctx, level+1 );
+    }
+    if ( brackets )
+    {
+      checkExpectedToken( ctx, ")" );
+    }
     return exp;
+  }
+  
+  private static void checkExpectedToken( BExpressionContext ctx, String expected ) throws Exception
+  {
+    String token = ctx.parseToken();
+    if ( ! expected.equals( token ) )
+    {
+      throw new IllegalArgumentException( "unexpected token: " + token + ", expected: " + expected );
+    }
   }
 
   // Evaluate the expression
