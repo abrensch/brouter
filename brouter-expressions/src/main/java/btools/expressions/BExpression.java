@@ -32,8 +32,17 @@ final class BExpression
   // Parse the expression and all subexpression
   public static BExpression parse( BExpressionContext ctx, int level ) throws Exception
   {
+    return parse( ctx, level, null );
+  }
+
+  private static BExpression parse( BExpressionContext ctx, int level, String optionalToken  ) throws Exception
+  {
     boolean brackets = false;
     String operator = ctx.parseToken();
+    if ( optionalToken != null && optionalToken.equals( operator ) )
+    {
+      operator = ctx.parseToken();
+    }
     if ( "(".equals( operator ) )
     {
       brackets = true;
@@ -145,6 +154,16 @@ final class BExpression
             exp.typ = VARIABLE_EXP;
             exp.variableIdx = idx;
           }
+          else if ( "true".equals( operator ) )
+          {
+            exp.numberValue = 1.f;
+            exp.typ = NUMBER_EXP;
+          }
+          else if ( "false".equals( operator ) )
+          {
+            exp.numberValue = 0.f;
+            exp.typ = NUMBER_EXP;
+          }
           else
           {
             try
@@ -163,17 +182,17 @@ final class BExpression
     // parse operands
     if ( nops > 0  )
     {
-      exp.op1 = BExpression.parse( ctx, level+1 );
+      exp.op1 = BExpression.parse( ctx, level+1, exp.typ == ASSIGN_EXP ? "=" : null );
     }
     if ( nops > 1  )
     {
       if ( ifThenElse ) checkExpectedToken( ctx, "then" );
-      exp.op2 = BExpression.parse( ctx, level+1 );
+      exp.op2 = BExpression.parse( ctx, level+1, null );
     }
     if ( nops > 2  )
     {
       if ( ifThenElse ) checkExpectedToken( ctx, "else" );
-      exp.op3 = BExpression.parse( ctx, level+1 );
+      exp.op3 = BExpression.parse( ctx, level+1, null );
     }
     if ( brackets )
     {

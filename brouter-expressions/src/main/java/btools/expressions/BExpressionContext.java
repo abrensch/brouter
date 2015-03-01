@@ -19,6 +19,7 @@ import java.util.TreeMap;
 
 import btools.util.BitCoderContext;
 import btools.util.Crc32;
+import java.util.Random;
 
 
 public final class BExpressionContext
@@ -172,7 +173,7 @@ public final class BExpressionContext
     decode( ld2, false, ab );
     for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
     {
-      if ( ld2[inum] != ld[inum] ) throw new RuntimeException( "assertion failed encoding " + getKeyValueDescription(false, ab) );
+      if ( ld2[inum] != ld[inum] ) throw new RuntimeException( "assertion failed encoding inum=" + inum + " val=" + ld[inum] + " " + getKeyValueDescription(false, ab) );
     }    
     
     return ab;
@@ -469,6 +470,51 @@ public final class BExpressionContext
       return new int[lookupValues.size()];
     }
     return null;
+  }
+
+  /**
+   * generate random values for regression testing
+   */
+  public int[] generateRandomValues( Random rnd )
+  {
+    int[] data = createNewLookupData();
+    data[0] = 2*rnd.nextInt( 2 ); // reverse-direction = 0 or 2
+    for( int inum = 1; inum < data.length; inum++ )
+    {
+      int nvalues = lookupValues.get( inum ).length;
+      data[inum] = 0;
+      if ( inum > 1 && rnd.nextInt( 10 ) > 0 ) continue; // tags other than highway only 10%
+      data[inum] = rnd.nextInt( nvalues );
+    }
+    lookupDataValid = true;
+    return data;
+  }
+
+  public void assertAllVariablesEqual( BExpressionContext other )
+  {
+    int nv = variableData.length;
+    int nv2 = other.variableData.length;
+    if ( nv != nv2 ) throw new RuntimeException( "mismatch in variable-count: " + nv + "<->" + nv2 );
+    for( int i=0; i<nv; i++ )
+    {
+      if ( variableData[i] != other.variableData[i] )
+      {
+        throw new RuntimeException( "mismatch in variable " + variableName(i) + " " + variableData[i] + "<->" + other.variableData[i]
+           + "\ntags = " + getKeyValueDescription( false, encode()  ) );
+      }
+    }
+  }
+
+  private String variableName( int idx )
+  {
+    for( Map.Entry<String,Integer> e : variableNumbers.entrySet() )
+    {
+      if ( e.getValue().intValue() == idx )
+      {
+        return e.getKey();
+      }
+    }
+    throw new RuntimeException( "no variable for index" + idx );
   }
 
   /**

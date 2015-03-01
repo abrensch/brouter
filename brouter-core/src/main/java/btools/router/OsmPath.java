@@ -292,7 +292,7 @@ final class OsmPath implements OsmLinkHolder
                     + "\t" + linkturncost
                     + "\t" + linknodecost
                     + "\t" + linkinitcost
-                    + rc.expctxWay.getKeyValueDescription( link.counterLinkWritten, description );
+                    + "\t" + rc.expctxWay.getKeyValueDescription( link.counterLinkWritten, description );
       }
 
       if ( stopAtEndpoint )
