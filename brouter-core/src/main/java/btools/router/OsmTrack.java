@@ -26,6 +26,9 @@ import btools.util.FrozenLongMap;
 
 public final class OsmTrack
 {
+  // csv-header-line
+  private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tOsmTags";
+
   public MatchedWaypoint endPoint;
   public long[] nogoChecksums;
   
@@ -304,7 +307,19 @@ public final class OsmTrack
     sb.append( "        \"track-length\": \"" ).append( distance ).append( "\",\n" );
     sb.append( "        \"filtered ascend\": \"" ).append( ascend ).append( "\",\n" );
     sb.append( "        \"plain-ascend\": \"" ).append( plainAscend ).append( "\",\n" );
-    sb.append( "        \"cost\": \"" ).append( cost ).append( "\"\n" );
+    sb.append( "        \"cost\": \"" ).append( cost ).append( "\",\n" );
+    sb.append( "        \"messages\": [\n" );
+    sb.append( "          [\"").append( MESSAGES_HEADER.replaceAll("\t", "\", \"") ).append( "\"],\n" );
+    for( OsmPathElement n : nodes )
+    {
+      if ( n.message != null )
+      {
+        sb.append( "          [\"").append( n.message.replaceAll("\t", "\", \"") ).append( "\"],\n" );
+      }
+    }
+    sb.deleteCharAt( sb.lastIndexOf( "," ) );
+    sb.append( "        ]\n" );
+    
     sb.append( "      },\n" );
     
     if ( iternity != null )
@@ -361,10 +376,7 @@ public final class OsmTrack
 
   public void writeMessages( BufferedWriter bw, RoutingContext rc ) throws Exception
   {
-    // csv-header-line
-
-    String header = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tOsmTags";
-    dumpLine( bw, header );
+    dumpLine( bw, MESSAGES_HEADER );
     for( OsmPathElement n : nodes )
     {
       if ( n.message != null )
