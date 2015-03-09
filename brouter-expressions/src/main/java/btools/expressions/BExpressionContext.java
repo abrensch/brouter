@@ -281,9 +281,6 @@ public final class BExpressionContext
 
   public String getKeyValueDescription( boolean inverseDirection, byte[] ab )
   {
-    int inverseBitByteIndex =  meta.readVarLength ? 0 : 7;
-//    int abLen = ab.length;
-
 	StringBuilder sb = new StringBuilder( 200 );
     decode( lookupData, inverseDirection, ab );
     for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
@@ -292,7 +289,8 @@ public final class BExpressionContext
       String value = va[lookupData[inum]].toString();
       if ( value != null && value.length() > 0 )
       {
-        sb.append( " " + lookupNames.get( inum ) + "=" + value );
+        if ( sb.length() > 0 ) sb.append( ' ' );
+        sb.append(lookupNames.get( inum ) + "=" + value );
       }
     }
     return sb.toString();
@@ -570,6 +568,7 @@ public final class BExpressionContext
     if ( valueIndex < 0 || valueIndex >= nvalues ) throw new IllegalArgumentException( "value index out of range for name " + name + ": " + valueIndex );
     lookupData[inum] = valueIndex;
   }
+
 
   /**
    * special hack for yes/proposed relations:
