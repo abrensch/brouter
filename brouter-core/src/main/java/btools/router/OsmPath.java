@@ -84,15 +84,11 @@ final class OsmPath implements OsmLinkHolder
     short ele1 = origin.selev;
 
     int linkdisttotal = 0;
-    int linkdist = 0;
-    int linkelevationcost = 0;
-    int linkturncost = 0;
-    int linknodecost = 0;
-    int linkinitcost = 0;
+
+    MessageData msgData = new MessageData();
 
     OsmTransferNode transferNode = link.decodeFirsttransfer();
     OsmNode targetNode = link.targetNode;
-    String lastMessage = null;
     for(;;)
     {
       originLon = lon1;
@@ -124,14 +120,10 @@ final class OsmPath implements OsmLinkHolder
       boolean sameData = rc.expctxWay.evaluate( link.counterLinkWritten, description, rc.messageHandler );
       
       // if way description changed, store message
-      if ( lastMessage != null && !sameData )
+      if ( msgData.wayKeyValues != null && !sameData )
       {
-        originElement.message = lastMessage;
-        linkdist = 0;
-        linkelevationcost = 0;
-        linkturncost = 0;
-        linknodecost = 0;
-        linkinitcost = 0;
+        originElement.message = msgData.toMessage();
+        msgData = new MessageData();
       }
 
       int dist = rc.calcDistance( lon1, lat1, lon2, lat2 );
@@ -165,7 +157,7 @@ final class OsmPath implements OsmLinkHolder
         }
       }
 
-      linkdist += dist;
+      msgData.linkdist += dist;
       linkdisttotal += dist;
 
 
@@ -176,7 +168,7 @@ final class OsmPath implements OsmLinkHolder
         double cos = rc.calcCosAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
         int turncost = (int)(cos * rc.expctxWay.getTurncost() + 0.2 ); // e.g. turncost=90 -> 90 degree = 90m penalty
         cost += turncost;
-        linkturncost += turncost;
+        msgData.linkturncost += turncost;
       }
 
       // *** penalty for elevation (penalty is for descend! in a way that slow descends give no penalty)
@@ -212,7 +204,7 @@ final class OsmPath implements OsmLinkHolder
          {
            int elevationCost = reduce/rc.downhillcostdiv;
            cost += elevationCost;
-           linkelevationcost += elevationCost;
+           msgData.linkelevationcost += elevationCost;
          }
       }
       else if ( ehbd < 0 )
@@ -242,7 +234,7 @@ final class OsmPath implements OsmLinkHolder
         {
           int elevationCost = reduce/rc.uphillcostdiv;
           cost += elevationCost;
-          linkelevationcost += elevationCost;
+          msgData.linkelevationcost += elevationCost;
         }
       }
       else if ( ehbu < 0 )
@@ -276,23 +268,17 @@ final class OsmPath implements OsmLinkHolder
           lastCostfactor = newcostfactor;
           float initialcost = rc.expctxWay.getInitialcost();
           int iicost = (int)initialcost;
-          linkinitcost += iicost;
+          msgData.linkinitcost += iicost;
           cost += iicost;
       }
 
       if ( recordTransferNodes )
       {
-        int iCost = (int)(costfactor*1000 + 0.5f);
-        lastMessage = (lon2-180000000) + "\t"
-                    + (lat2-90000000) + "\t"
-                    + ele2/4 + "\t"
-                    + linkdist + "\t"
-                    + iCost + "\t"
-                    + linkelevationcost
-                    + "\t" + linkturncost
-                    + "\t" + linknodecost
-                    + "\t" + linkinitcost
-                    + "\t" + rc.expctxWay.getKeyValueDescription( link.counterLinkWritten, description );
+        msgData.costfactor = costfactor;
+        msgData.lon = lon2;
+        msgData.lat = lat2;
+        msgData.ele = ele2;
+        msgData.wayKeyValues = rc.expctxWay.getKeyValueDescription( link.counterLinkWritten, description );
       }
 
       if ( stopAtEndpoint )
@@ -301,7 +287,7 @@ final class OsmPath implements OsmLinkHolder
         {
           originElement = new OsmPathElement( rc.ilonshortest, rc.ilatshortest, ele2, originElement );
           originElement.cost = cost;
-          originElement.message = lastMessage;
+          originElement.message = msgData.toMessage();
         }
         if ( rc.nogomatch )
         {
@@ -318,7 +304,6 @@ final class OsmPath implements OsmLinkHolder
           int reftrackcost = linkdisttotal;
           cost += reftrackcost;
         }
-        message = lastMessage;
         selev = ele2;
         break;
       }
@@ -347,8 +332,9 @@ final class OsmPath implements OsmLinkHolder
     // finally add node-costs for target node
     if ( targetNode.nodeDescription != null )
     {
+        boolean nodeAccessGranted = rc.expctxWay.getNodeAccessGranted() != 0.;
         rc.messageHandler.setCurrentPos( targetNode.ilon, targetNode.ilat );
-        rc.expctxNode.evaluate( rc.expctxWay.getNodeAccessGranted() != 0. , targetNode.nodeDescription, rc.messageHandler );
+        rc.expctxNode.evaluate( nodeAccessGranted , targetNode.nodeDescription, rc.messageHandler );
         float initialcost = rc.expctxNode.getInitialcost();
         if ( initialcost >= 1000000. )
         {
@@ -356,9 +342,18 @@ final class OsmPath implements OsmLinkHolder
           return;
         }
         int iicost = (int)initialcost;
-        linknodecost += iicost;
+        msgData.linknodecost += iicost;
+
         cost += iicost;
+
+        if ( recordTransferNodes )
+        {
+          msgData.nodeKeyValues = rc.expctxNode.getKeyValueDescription( nodeAccessGranted, targetNode.nodeDescription );
+        }
     }
+
+    message = msgData.toMessage();
+
   }
 
   public int elevationCorrection( RoutingContext rc )
