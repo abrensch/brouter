@@ -67,20 +67,32 @@ public class RouteServer extends Thread
             }
             else if ( url.startsWith( PROFILE_UPLOAD_URL ) )
             {
-              writeHttpHeader(bw, "application/json");
-
-              String profileId = null;
-              if ( url.length() > PROFILE_UPLOAD_URL.length() + 1 )
+              if ( getline.startsWith("OPTIONS") )
               {
-                // e.g. /brouter/profile/custom_1400767688382
-                profileId = url.substring(PROFILE_UPLOAD_URL.length() + 1);
+                // handle CORS preflight request (Safari)
+                String corsHeaders = "Access-Control-Allow-Methods: GET, POST\n"
+                                   + "Access-Control-Allow-Headers: Content-Type\n";
+                writeHttpHeader( bw, "text/plain", null, corsHeaders );
+                bw.flush();
+                return;
               }
+              else
+              {
+                writeHttpHeader(bw, "application/json");
 
-              ProfileUploadHandler uploadHandler = new ProfileUploadHandler( serviceContext );
-              uploadHandler.handlePostRequest( profileId, br, bw );
+                String profileId = null;
+                if ( url.length() > PROFILE_UPLOAD_URL.length() + 1 )
+                {
+                  // e.g. /brouter/profile/custom_1400767688382
+                  profileId = url.substring(PROFILE_UPLOAD_URL.length() + 1);
+                }
 
-              bw.flush();
-              return;
+                ProfileUploadHandler uploadHandler = new ProfileUploadHandler( serviceContext );
+                uploadHandler.handlePostRequest( profileId, br, bw );
+
+                bw.flush();
+                return;
+              }
             }
             else
             {
@@ -214,6 +226,11 @@ public class RouteServer extends Thread
 
   private static void writeHttpHeader( BufferedWriter bw, String mimeType, String fileName ) throws IOException
   {
+    writeHttpHeader( bw, mimeType, fileName, null);
+  }
+
+  private static void writeHttpHeader( BufferedWriter bw, String mimeType, String fileName, String headers ) throws IOException
+  {
     // http-header
     bw.write( "HTTP/1.1 200 OK\n" );
     bw.write( "Connection: close\n" );
@@ -223,6 +240,10 @@ public class RouteServer extends Thread
       bw.write( "Content-Disposition: attachment; filename=" + fileName + "\n" );
     }
     bw.write( "Access-Control-Allow-Origin: *\n" );
+    if ( headers != null )
+    {
+      bw.write( headers );
+    }
     bw.write( "\n" );
   }
 }
