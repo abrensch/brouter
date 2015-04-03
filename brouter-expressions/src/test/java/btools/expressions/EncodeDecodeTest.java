@@ -19,7 +19,7 @@ public class EncodeDecodeTest
   	
     // read lookup.dat + trekking.brf
     BExpressionMetaData meta = new BExpressionMetaData();
-    BExpressionContext expctxWay = new BExpressionContext("way", 4096, meta );
+    BExpressionContextWay expctxWay = new BExpressionContextWay( meta );
     meta.readMetaData( lookupFile );
     expctxWay.parseFile( new File( profileDir, "trekking.brf" ), "global" );
 

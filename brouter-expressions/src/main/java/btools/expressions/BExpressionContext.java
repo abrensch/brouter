@@ -22,7 +22,7 @@ import btools.util.Crc32;
 import java.util.Random;
 
 
-public final class BExpressionContext
+public abstract class BExpressionContext
 {
   private  static final String CONTEXT_TAG = "---context:";
 	
@@ -63,33 +63,23 @@ public final class BExpressionContext
   private int minWriteIdx;
 
   // build-in variable indexes for fast access
-  private int costfactorIdx;
-  private int turncostIdx;
-  private int uphillcostfactorIdx;
-  private int downhillcostfactorIdx;
-  private int initialcostIdx;
-  private int nodeaccessgrantedIdx;
+  private int[] buildInVariableIdx;
 
-  private float[] _arrayCostfactor;
-  private float[] _arrayTurncost;
-  private float[] _arrayUphillCostfactor;
-  private float[] _arrayDownhillCostfactor;
-  private float[] _arrayInitialcost;
-  private float[] _arrayNodeAccessGranted;
+  protected float[][] arrayBuildInVariablesCache;
 
-  public float getCostfactor() { return _arrayCostfactor[currentHashBucket]; }
-  public float getTurncost() { return _arrayTurncost[currentHashBucket]; }
-  public float getUphillCostfactor() { return _arrayUphillCostfactor[currentHashBucket]; }
-  public float getDownhillCostfactor() { return _arrayDownhillCostfactor[currentHashBucket]; }
-  public float getInitialcost() { return _arrayInitialcost[currentHashBucket]; }
-  public float getNodeAccessGranted() { return _arrayNodeAccessGranted[currentHashBucket]; }
+  abstract String[] getBuildInVariableNames();
+
+  protected float getBuildInVariable( int idx ) 
+  {
+    return arrayBuildInVariablesCache[idx][currentHashBucket];
+  }
 
   private int linenr;
 
   public BExpressionMetaData meta;
   private boolean lookupDataValid = false;
 
-  public BExpressionContext( String context, BExpressionMetaData meta )
+  protected BExpressionContext( String context, BExpressionMetaData meta )
   {
     this( context, 4096, meta );
   }
@@ -100,7 +90,7 @@ public final class BExpressionContext
    * @param context  global, way or node - context of that instance
    * @param hashSize  size of hashmap for result caching
    */
-  public BExpressionContext( String context, int hashSize, BExpressionMetaData meta )
+  protected BExpressionContext( String context, int hashSize, BExpressionMetaData meta )
   {
      this.context = context;
      this.meta = meta;
@@ -113,12 +103,13 @@ public final class BExpressionContext
      _arrayInverse = new boolean[hashSize];
      _arrayCrc = new int[hashSize];
 
-    _arrayCostfactor = new float[hashSize];
-    _arrayTurncost = new float[hashSize];
-    _arrayUphillCostfactor = new float[hashSize];
-    _arrayDownhillCostfactor = new float[hashSize];
-    _arrayInitialcost = new float[hashSize];
-    _arrayNodeAccessGranted = new float[hashSize];
+     // create the build-in variables cache     
+     int nBuildInVars = getBuildInVariableNames().length;
+     arrayBuildInVariablesCache = new float[nBuildInVars][];
+     for( int vi=0; vi<nBuildInVars; vi++ )
+     {
+       arrayBuildInVariablesCache[vi] = new float[hashSize];
+     }
   }
 
   /**
@@ -406,12 +397,10 @@ public final class BExpressionContext
      decode( lookupData, currentInverseDirection, currentByteArray );
      evaluate( lookupData );
 
-     _arrayCostfactor[currentHashBucket] = variableData[costfactorIdx];
-     _arrayTurncost[currentHashBucket] = variableData[turncostIdx];
-     _arrayUphillCostfactor[currentHashBucket] = variableData[uphillcostfactorIdx];
-     _arrayDownhillCostfactor[currentHashBucket] = variableData[downhillcostfactorIdx];
-     _arrayInitialcost[currentHashBucket] = variableData[initialcostIdx];
-     _arrayNodeAccessGranted[currentHashBucket] = variableData[nodeaccessgrantedIdx];
+     for( int vi=0; vi<buildInVariableIdx.length; vi++ )
+     {
+       arrayBuildInVariablesCache[vi][currentHashBucket] = variableData[buildInVariableIdx[vi]];
+     }
 
      _receiver = null;
      return false;
@@ -669,13 +658,13 @@ public final class BExpressionContext
       linenr = 1;
       minWriteIdx = variableData == null ? 0 : variableData.length;
 
-      costfactorIdx = getVariableIdx( "costfactor", true );
-      turncostIdx = getVariableIdx( "turncost", true );
-      uphillcostfactorIdx = getVariableIdx( "uphillcostfactor", true );
-      downhillcostfactorIdx = getVariableIdx( "downhillcostfactor", true );
-      initialcostIdx = getVariableIdx( "initialcost", true );
-      nodeaccessgrantedIdx = getVariableIdx( "nodeaccessgranted", true );
-
+      // create the build-in variables
+      String[] varNames = getBuildInVariableNames();
+      buildInVariableIdx = new int[varNames.length];
+      for( int vi=0; vi<varNames.length; vi++ )
+      {
+        buildInVariableIdx[vi] = getVariableIdx( varNames[vi], true );
+      }
 
       expressionList = _parseFile( file );
       float[] readOnlyData = variableData;

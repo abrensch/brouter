@@ -6,7 +6,7 @@ import java.io.EOFException;
 import java.io.File;
 import java.util.HashMap;
 
-import btools.expressions.BExpressionContext;
+import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.util.CompactLongSet;
 import btools.util.FrozenLongSet;
@@ -22,8 +22,8 @@ public class RelationMerger extends MapCreatorBase
 {
   private HashMap<String,CompactLongSet> routesets;
   private CompactLongSet routesetall;
-  private BExpressionContext expctxReport;
-  private BExpressionContext expctxCheck;
+  private BExpressionContextWay expctxReport;
+  private BExpressionContextWay expctxCheck;
  // private BExpressionContext expctxStat;
 
   private DataOutputStream wayOutStream;
@@ -44,11 +44,11 @@ public class RelationMerger extends MapCreatorBase
   {
     // read lookup + profile for relation access-check
 	BExpressionMetaData metaReport = new BExpressionMetaData();
-    expctxReport = new BExpressionContext("way", metaReport );
+    expctxReport = new BExpressionContextWay( metaReport );
     metaReport.readMetaData( lookupFile );
 
 	BExpressionMetaData metaCheck = new BExpressionMetaData();
-    expctxCheck = new BExpressionContext("way", metaCheck );
+    expctxCheck = new BExpressionContextWay( metaCheck );
     metaCheck.readMetaData( lookupFile );
 
     expctxReport.parseFile( reportProfile, "global" );

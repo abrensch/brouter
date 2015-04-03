@@ -7,7 +7,8 @@ import java.io.RandomAccessFile;
 import java.util.Collections;
 import java.util.List;
 
-import btools.expressions.BExpressionContext;
+import btools.expressions.BExpressionContextNode;
+import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.util.ByteArrayUnifier;
 import btools.util.ByteDataWriter;
@@ -46,8 +47,8 @@ public class WayLinker extends MapCreatorBase
 
   private long creationTimeStamp;
   
-  private BExpressionContext expctxWay;
-  private BExpressionContext expctxNode;
+  private BExpressionContextWay expctxWay;
+  private BExpressionContextNode expctxNode;
 
   private ByteArrayUnifier abUnifier;
   
@@ -83,8 +84,8 @@ public class WayLinker extends MapCreatorBase
     BExpressionMetaData meta = new BExpressionMetaData();
     
     // read lookup + profile for lookup-version + access-filter
-    expctxWay = new BExpressionContext("way", meta);
-    expctxNode = new BExpressionContext("node", meta);
+    expctxWay = new BExpressionContextWay( meta);
+    expctxNode = new BExpressionContextNode( meta);
     meta.readMetaData( lookupFile );
 
     lookupVersion = meta.lookupVersion;

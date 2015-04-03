@@ -37,8 +37,8 @@ public final class RoutingContext implements DistanceChecker
     return name;
   }
 
-  public BExpressionContext expctxWay;
-  public BExpressionContext expctxNode;
+  public BExpressionContextWay expctxWay;
+  public BExpressionContextNode expctxNode;
 
   public boolean serversizing = false;
   

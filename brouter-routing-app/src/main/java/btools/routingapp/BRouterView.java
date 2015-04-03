@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +29,7 @@ import android.os.Environment;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.Toast;
-import btools.expressions.BExpressionContext;
+import btools.expressions.BExpressionContextGlobal;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.OsmNode;
 import btools.router.OsmNodeNamed;
@@ -683,7 +682,7 @@ private long startTime = 0L;
           
           // parse global section of profile for mode preselection
       	  BExpressionMetaData meta = new BExpressionMetaData();
-          BExpressionContext expctxGlobal = new BExpressionContext( "global", meta );
+          BExpressionContextGlobal expctxGlobal = new BExpressionContextGlobal( meta );
           meta.readMetaData( new File( profileDir, "lookups.dat" ) );
           expctxGlobal.parseFile( new File( profilePath ), null );
           expctxGlobal.evaluate( new int[0] );

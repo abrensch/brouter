@@ -9,6 +9,9 @@ import java.util.Date;
 import java.util.List;
 
 import btools.expressions.BExpressionContext;
+import btools.expressions.BExpressionContextGlobal;
+import btools.expressions.BExpressionContextNode;
+import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.NodesCache;
 import btools.mapaccess.OsmLink;
@@ -80,9 +83,9 @@ public class RoutingEngine extends Thread
       
       BExpressionMetaData meta = new BExpressionMetaData();
       
-      BExpressionContext expctxGlobal = new BExpressionContext( "global", meta );
-      rc.expctxWay = new BExpressionContext( "way", rc.serversizing ? 262144 : 4096, meta );
-      rc.expctxNode = new BExpressionContext( "node", rc.serversizing ?  16384 : 1024, meta );
+      BExpressionContextGlobal expctxGlobal = new BExpressionContextGlobal( meta );
+      rc.expctxWay = new BExpressionContextWay( rc.serversizing ? 262144 : 4096, meta );
+      rc.expctxNode = new BExpressionContextNode( rc.serversizing ?  16384 : 1024, meta );
       
       meta.readMetaData( new File( profileDir, "lookups.dat" ) );
 

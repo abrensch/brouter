@@ -29,18 +29,18 @@ public final class ProfileComparator
     File profile1File = new File( args[1] );
     File profile2File = new File( args[2] );
     int nsamples = Integer.parseInt( args[3] );
-    testContext( lookupFile, profile1File, profile2File, nsamples, "way" );
-    testContext( lookupFile, profile1File, profile2File, nsamples, "node" );
+    testContext( lookupFile, profile1File, profile2File, nsamples, false );
+    testContext( lookupFile, profile1File, profile2File, nsamples, true );
 
   }
   
-  private static void testContext( File lookupFile, File profile1File, File profile2File, int nsamples, String contextName )
+  private static void testContext( File lookupFile, File profile1File, File profile2File, int nsamples, boolean nodeContext )
   {
     // read lookup.dat + profiles
     BExpressionMetaData meta1 = new BExpressionMetaData();
     BExpressionMetaData meta2 = new BExpressionMetaData();
-    BExpressionContext expctx1 = new BExpressionContext(contextName, 4096, meta1 );
-    BExpressionContext expctx2 = new BExpressionContext(contextName, 4096, meta2 );
+    BExpressionContext expctx1 = nodeContext ? new BExpressionContextNode( meta1 ) : new BExpressionContextWay( meta1 );
+    BExpressionContext expctx2 = nodeContext ? new BExpressionContextNode( meta2 ) : new BExpressionContextWay( meta2 );
     meta1.readMetaData( lookupFile );
     meta2.readMetaData( lookupFile );
     expctx1.parseFile( profile1File, "global" );

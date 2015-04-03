@@ -13,6 +13,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 import btools.expressions.BExpressionContext;
+import btools.expressions.BExpressionContextNode;
+import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 
 public class OsmCutter extends MapCreatorBase
@@ -46,11 +48,11 @@ public class OsmCutter extends MapCreatorBase
                 		 );
   }
 
-  private BExpressionContext _expctxWay;
-  private BExpressionContext _expctxNode;
+  private BExpressionContextWay _expctxWay;
+  private BExpressionContextNode _expctxNode;
 
-  private BExpressionContext _expctxWayStat;
-  private BExpressionContext _expctxNodeStat;
+  private BExpressionContextWay _expctxWayStat;
+  private BExpressionContextNode _expctxNodeStat;
 
   public void process (File lookupFile, File outTileDir, File wayFile, File relFile, File profileFile, File mapFile ) throws Exception
   {
@@ -61,14 +63,14 @@ public class OsmCutter extends MapCreatorBase
 
     BExpressionMetaData meta = new BExpressionMetaData();
 
-    _expctxWay = new BExpressionContext("way", meta );
-    _expctxNode = new BExpressionContext("node", meta );
+    _expctxWay = new BExpressionContextWay( meta );
+    _expctxNode = new BExpressionContextNode( meta );
     meta.readMetaData( lookupFile );
     _expctxWay.parseFile( profileFile, "global" );
 
     
-   _expctxWayStat = new BExpressionContext("way", null );
-   _expctxNodeStat = new BExpressionContext("node", null );
+   _expctxWayStat = new BExpressionContextWay( null );
+   _expctxNodeStat = new BExpressionContextNode( null );
 
     this.outTileDir = outTileDir;
     if ( !outTileDir.isDirectory() ) throw new RuntimeException( "out tile directory " + outTileDir + " does not exist" );
