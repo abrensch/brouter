@@ -24,6 +24,12 @@ assign downhillcutoff  = 1.5
 assign uphillcost      = 0
 assign uphillcutoff    = 1.5
 
+
+# classifier constants
+
+assign classifier_none     = 1
+assign classifier_ferry    = 2
+
 ---context:way   # following code refers to way-tags
 
 #
@@ -59,12 +65,22 @@ assign probablyGood = or ispaved and isbike not isunpaved
 #
 assign turncost = if is_ldcr then 0 else 90
 
+
+#
+# for any change in initialclassifier, initialcost is added once
+#
+assign initialclassifier =
+     if route=ferry then classifier_ferry
+     else classifier_none
+
 #
 # calculate the initial cost
 # this is added to the total cost each time the costfactor
 # changed
 #
-assign initialcost = if route=ferry then 10000 else 0
+assign initialcost =
+     if ( equal initialclassifier classifier_ferry ) then 10000
+     else 0
 
 #
 # implicit access here just from the motorroad tag
