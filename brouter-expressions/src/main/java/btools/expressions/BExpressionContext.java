@@ -399,7 +399,8 @@ public abstract class BExpressionContext
 
      for( int vi=0; vi<buildInVariableIdx.length; vi++ )
      {
-       arrayBuildInVariablesCache[vi][currentHashBucket] = variableData[buildInVariableIdx[vi]];
+       int idx = buildInVariableIdx[vi];
+       arrayBuildInVariablesCache[vi][currentHashBucket] = idx == -1 ? 0.f : variableData[idx];
      }
 
      _receiver = null;
@@ -658,15 +659,16 @@ public abstract class BExpressionContext
       linenr = 1;
       minWriteIdx = variableData == null ? 0 : variableData.length;
 
-      // create the build-in variables
+      expressionList = _parseFile( file );
+
+      // determine the build-in variable indices
       String[] varNames = getBuildInVariableNames();
       buildInVariableIdx = new int[varNames.length];
       for( int vi=0; vi<varNames.length; vi++ )
       {
-        buildInVariableIdx[vi] = getVariableIdx( varNames[vi], true );
+        buildInVariableIdx[vi] = getVariableIdx( varNames[vi], false );
       }
 
-      expressionList = _parseFile( file );
       float[] readOnlyData = variableData;
       variableData = new float[variableNumbers.size()];
       for( int i=0; i<minWriteIdx; i++ )

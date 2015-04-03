@@ -11,7 +11,7 @@ package btools.expressions;
 public final class BExpressionContextWay extends BExpressionContext
 {
   private static String[] buildInVariables =
-	  { "costfactor", "turncost", "uphillcostfactor", "downhillcostfactor", "initialcost", "nodeaccessgranted" };
+	  { "costfactor", "turncost", "uphillcostfactor", "downhillcostfactor", "initialcost", "nodeaccessgranted", "initialclassifier" };
 	  
   protected String[] getBuildInVariableNames()
   {
@@ -24,6 +24,7 @@ public final class BExpressionContextWay extends BExpressionContext
   public float getDownhillCostfactor() { return getBuildInVariable(3); }
   public float getInitialcost() { return getBuildInVariable(4); }
   public float getNodeAccessGranted() { return getBuildInVariable(5); }
+  public float getInitialClassifier() { return getBuildInVariable(6); }
 
 
   public BExpressionContextWay( BExpressionMetaData meta )

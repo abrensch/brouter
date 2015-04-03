@@ -40,7 +40,7 @@ final class OsmPath implements OsmLinkHolder
   public int originLat;
 
   // the costfactor of the segment just before this paths position
-  public float lastCostfactor;
+  public float lastClassifier;
 
   public String message;
 
@@ -64,7 +64,7 @@ final class OsmPath implements OsmLinkHolder
     this.cost = origin.cost;
     this.ehbd = origin.ehbd;
     this.ehbu = origin.ehbu;
-    this.lastCostfactor = origin.lastCostfactor;
+    this.lastClassifier = origin.lastClassifier;
     addAddionalPenalty(refTrack, recordTransferNodes, origin, link, rc );
   }
 
@@ -260,12 +260,16 @@ final class OsmPath implements OsmLinkHolder
       int waycost = (int)(fcost);
       cost += waycost;
 
-      // *** add initial cost if factor changed
-      float newcostfactor = (cfup + cfdown + cf)/3;
-      float costdiff = newcostfactor - lastCostfactor;
-      if ( costdiff > 0.0005 || costdiff < -0.0005 )
+      // *** add initial cost if the classifier changed
+      float newClassifier = rc.expctxWay.getInitialClassifier();
+      if ( newClassifier == 0. )
       {
-          lastCostfactor = newcostfactor;
+        newClassifier = (cfup + cfdown + cf)/3;
+      }
+      float classifierDiff = newClassifier - lastClassifier;
+      if ( classifierDiff > 0.0005 || classifierDiff < -0.0005 )
+      {
+          lastClassifier = classifierDiff;
           float initialcost = rc.expctxWay.getInitialcost();
           int iicost = (int)initialcost;
           msgData.linkinitcost += iicost;
