@@ -269,7 +269,7 @@ final class OsmPath implements OsmLinkHolder
       float classifierDiff = newClassifier - lastClassifier;
       if ( classifierDiff > 0.0005 || classifierDiff < -0.0005 )
       {
-          lastClassifier = classifierDiff;
+          lastClassifier = newClassifier;
           float initialcost = rc.expctxWay.getInitialcost();
           int iicost = (int)initialcost;
           msgData.linkinitcost += iicost;
