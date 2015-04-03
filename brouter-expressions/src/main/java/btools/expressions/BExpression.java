@@ -1,5 +1,6 @@
 package btools.expressions;
 
+import java.util.StringTokenizer;
 
 final class BExpression
 {
@@ -26,12 +27,28 @@ final class BExpression
   private float numberValue;
   private int variableIdx;
   private int lookupNameIdx;
-  private int lookupValueIdx;
+  private int[] lookupValueIdxArray;
 
   // Parse the expression and all subexpression
   public static BExpression parse( BExpressionContext ctx, int level ) throws Exception
   {
+    return parse( ctx, level, null );
+  }
+
+  private static BExpression parse( BExpressionContext ctx, int level, String optionalToken  ) throws Exception
+  {
+    boolean brackets = false;
     String operator = ctx.parseToken();
+    if ( optionalToken != null && optionalToken.equals( operator ) )
+    {
+      operator = ctx.parseToken();
+    }
+    if ( "(".equals( operator ) )
+    {
+      brackets = true;
+      operator = ctx.parseToken();
+    }
+    
     if ( operator == null )
     {
       if ( level == 0 ) return null;
@@ -48,10 +65,16 @@ final class BExpression
 
     BExpression exp = new BExpression();
     int nops = 3;
+    boolean ifThenElse = false;
 
     if ( "switch".equals( operator ) )
     {
       exp.typ = SWITCH_EXP;
+    }
+    else if ( "if".equals( operator ) )
+    {
+      exp.typ = SWITCH_EXP;
+      ifThenElse = true;
     }
     else
     {
@@ -105,23 +128,41 @@ final class BExpression
           {
             exp.typ = LOOKUP_EXP;
             String name = operator.substring( 0, idx );
-            String value = operator.substring( idx+1 );
+            String values = operator.substring( idx+1 );
 
             exp.lookupNameIdx = ctx.getLookupNameIdx( name );
             if ( exp.lookupNameIdx < 0 )
             {
               throw new IllegalArgumentException( "unknown lookup name: " + name );
             }
-            exp.lookupValueIdx = ctx.getLookupValueIdx( exp.lookupNameIdx, value );
-            if ( exp.lookupValueIdx < 0 )
+            StringTokenizer tk = new StringTokenizer( values, "|" );
+            int nt = tk.countTokens();
+            int nt2 = nt == 0 ? 1 : nt;
+            exp.lookupValueIdxArray = new int[nt2];
+            for( int ti=0; ti<nt2; ti++ )
             {
-              throw new IllegalArgumentException( "unknown lookup value: " + value );
+              String value = ti < nt ? tk.nextToken() : "";
+              exp.lookupValueIdxArray[ti] = ctx.getLookupValueIdx( exp.lookupNameIdx, value );
+              if ( exp.lookupValueIdxArray[ti] < 0 )
+              {
+                throw new IllegalArgumentException( "unknown lookup value: " + value );
+              }
             }
           }
           else if ( (idx = ctx.getVariableIdx( operator, false )) >= 0 )
           {
             exp.typ = VARIABLE_EXP;
             exp.variableIdx = idx;
+          }
+          else if ( "true".equals( operator ) )
+          {
+            exp.numberValue = 1.f;
+            exp.typ = NUMBER_EXP;
+          }
+          else if ( "false".equals( operator ) )
+          {
+            exp.numberValue = 0.f;
+            exp.typ = NUMBER_EXP;
           }
           else
           {
@@ -139,10 +180,34 @@ final class BExpression
       }
     }
     // parse operands
-    if ( nops > 0  ) exp.op1 = BExpression.parse( ctx, level+1 );
-    if ( nops > 1  ) exp.op2 = BExpression.parse( ctx, level+1 );
-    if ( nops > 2  ) exp.op3 = BExpression.parse( ctx, level+1 );
+    if ( nops > 0  )
+    {
+      exp.op1 = BExpression.parse( ctx, level+1, exp.typ == ASSIGN_EXP ? "=" : null );
+    }
+    if ( nops > 1  )
+    {
+      if ( ifThenElse ) checkExpectedToken( ctx, "then" );
+      exp.op2 = BExpression.parse( ctx, level+1, null );
+    }
+    if ( nops > 2  )
+    {
+      if ( ifThenElse ) checkExpectedToken( ctx, "else" );
+      exp.op3 = BExpression.parse( ctx, level+1, null );
+    }
+    if ( brackets )
+    {
+      checkExpectedToken( ctx, ")" );
+    }
     return exp;
+  }
+  
+  private static void checkExpectedToken( BExpressionContext ctx, String expected ) throws Exception
+  {
+    String token = ctx.parseToken();
+    if ( ! expected.equals( token ) )
+    {
+      throw new IllegalArgumentException( "unexpected token: " + token + ", expected: " + expected );
+    }
   }
 
   // Evaluate the expression
@@ -157,7 +222,7 @@ final class BExpression
       case MAX_EXP: return max( op1.evaluate(ctx), op2.evaluate(ctx) );
       case SWITCH_EXP: return op1.evaluate(ctx) != 0.f ? op2.evaluate(ctx) : op3.evaluate(ctx);
       case ASSIGN_EXP: return ctx.assign( variableIdx, op1.evaluate(ctx) );
-      case LOOKUP_EXP: return ctx.getLookupMatch( lookupNameIdx, lookupValueIdx );
+      case LOOKUP_EXP: return ctx.getLookupMatch( lookupNameIdx, lookupValueIdxArray );
       case NUMBER_EXP: return numberValue;
       case VARIABLE_EXP: return ctx.getVariableValue( variableIdx );
       case NOT_EXP: return op1.evaluate(ctx) == 0.f ? 1.f : 0.f;

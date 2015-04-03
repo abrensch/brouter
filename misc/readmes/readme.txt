@@ -66,7 +66,7 @@ is usually the one with the most space available.
 
 However, on Android 4.4, write access to the external card
 is restricted, and usually you will not get a proposal to use
-the external card. Here you should accespt to go with the
+the external card. Here you should accept to go with the
 internal card - later on you can setup a "secondary" data
 directory on the external card where you can move the datafiles
 to.
