@@ -1,0 +1,546 @@
+-- locations
+KoblenzHbf           50.35066,7.58997
+Frankfurt(M)Hbf      50.10676,8.66323 50.10754,8.66107 50.10596,8.66448 50.10765,8.66566
+Frankfurt/Hoechst    50.10271,8.54212 50.10363,8.54240 50.10186,8.54298
+Bensheim-Auerbach    49.70216,8.61371
+Bensheim             49.68108,8.61724
+F-Niederrad          50.08096,8.63768
+Walldorf             50.00159,8.58155
+Moerfelden           49.97940,8.56534
+Gross-G-Dornberg     49.91241,8.49420
+Riedstatt-Goddelau   49.83462,8.49087
+Stockstadt-Rhein     49.80906,8.47207
+Biebesheim           49.78091,8.47350
+Gernsheim            49.75359,8.49062
+Gross-Rohrheim       49.71415,8.47826
+Biblis               49.68821,8.45130
+Buerstadt            49.64535,8.45888
+Lampertheim          49.59978,8.47715
+Mannheim-Waldhof     49.52538,8.48217
+MannheimHbf          49.47983,8.47003
+WiesbadenHbf         50.07118,8.24377
+MainzHbf             50.00159,8.25939
+Mainz-Roemisches-Th  49.99350,8.27852
+Mainz-Bischofsheim   49.99228,8.35835
+Nauheim              49.94192,8.45068
+Gross-Gerau          49.92421,8.48589
+Klein-Gerau          49.92004,8.51734
+Weiterstadt          49.91027,8.57899
+DarmstadtHbf         49.87254,8.63142
+Darmstadt-Sued       49.85558,8.63703
+Wiesbaden-Ost        50.04053,8.25616
+Mainz-Nord           50.01062,8.24626
+Mainz-Gustavsburg    49.99454,8.31414
+Ruesselsheim-Opel    49.98780,8.40201
+Ruesselsheim         49.99205,8.41375
+Raunheim             50.01000,8.45704
+Kelsterbach          50.06329,8.53006
+F-Stadion            50.06778,8.63561
+Bad-Soden            50.14283,8.50455 50.14339,8.50457 50.14308,8.50359
+Sulzbach-Nord        50.13905,8.51788 50.13812,8.51823
+Schwalbach-Limes     50.15444,8.52819 50.15485,8.52801
+Schwalbach-Nord      50.15976,8.53459 50.15965,8.53487
+Niederhoechsstadt    50.15439,8.54707 50.15476,8.54627
+Eschborn             50.14371,8.56076 50.14323,8.56112
+Eschborn-Sued        50.13352,8.57863 50.13327,8.57807 50.13441,8.57850
+Frankfurt-Roedelheim  50.12457,8.60708 50.12431,8.60628 50.12473,8.60800
+Frankfurt-West        50.11885,8.63981 50.11876,8.63932
+Frankfurt-Messe       50.11190,8.64354 50.11271,8.64371
+Frankfurt-Galluswarte 50.10384,8.64487 50.10384,8.64487
+F-Taunusanlage        50.11325,8.66906
+F-Hauptwache          50.11393,8.67835
+F-Konstablerwache     50.11423,8.68621
+F-Ostendstrasse       50.11226,8.69710
+F-Lokalbahnhof        50.10198,8.69294
+Frankfurt-Süd         50.09907,8.68627
+F-Stresemannallee     50.09455,8.67173
+F-Louisa              50.08320,8.66947
+Neu-Isenburg          50.05303,8.66450
+Dreieich-Buchschlag   50.02230,8.66256
+Langen-Flugsicherung  50.00559,8.65843
+Langen                49.99373,8.65786
+Egelsbach             49.96785,8.65403
+Erzhausen             49.95128,8.65086
+D-Wixhausen           49.92889,8.64724
+D-Arheiligen          49.91424,8.64625
+F-ZusckschwerdStr      50.10290,8.55181
+F-Bolognaropalast      50.10140,8.55297
+F-TillyStr             50.10173,8.56031
+F-NiedKirche           50.09823,8.56726
+F-LuthmerStr           50.09907,8.57265
+F-BirminghamStr        50.10009,8.57790
+F-Jaegerallee          50.10024,8.59112
+F-Linnegraben          50.10017,8.59781
+F-WaldschulStr         50.10061,8.60305
+F-MoenchhofStr         50.10079,8.61903
+F-WickererStr          50.10057,8.62240
+F-RebstoeckerStr       50.10154,8.62866
+F-SchwalbacherStr      50.10235,8.63628
+F-SpeyererStr          50.10542,8.65043
+F-Gueterplatz          50.10751,8.65557
+F-PlatzDerRepublik     50.10929,8.66073
+Kronberg              50.17983,8.51726 50.17949,8.51744
+Kronberg-Sued         50.17289,8.52965 50.17368,8.52843
+Sulzbach(Taunus)     50.12957,8.52836 50.13012,8.52812
+Weisskirchen-Steinb   50.17346,8.58782
+Stierstadt            50.18486,8.58486
+Oberursel             50.19853,8.58769
+Bad-Homburg           50.21945,8.62057
+Seulberg              50.24286,8.64559
+Friedrichsdorf        50.25200,8.64432
+Diez-Ost             50.37614,8.03851 50.37512,8.03780
+Staffel              50.39929,8.04620 50.39838,8.04605
+Elz                  50.41450,8.03848 50.41490,8.03826
+Niederhadamar        50.43309,8.03737 50.43340,8.03737
+Hadamar              50.44710,8.04351 50.44771,8.04416
+Niederzeuzheim       50.46802,8.03966 50.46880,8.03954
+Frickofen            50.50485,8.03060 50.50485,8.03002
+Wilsenroth           50.53191,8.03165 50.53076,8.03371
+Wilmenroth           50.53940,7.98573 50.53940,7.98477
+Westerburg           50.55747,7.96709 50.55674,7.96668
+Langenhahn           50.58733,7.91494 50.58761,7.91676
+Elz-Sued             50.40851,8.03211 50.40845,8.03290
+Niedererbach         50.42488,7.97713
+Dreikirchen          50.44986,7.95879
+Steinefrenz          50.44778,7.93970,50.44737,7.94294
+Girod                50.45439,7.90259
+Goldhausen           50.46131,7.87345 50.46185,7.87268
+Montabaur            50.44479,7.82520 50.44415,7.82538 50.44504,7.83017
+Dernbach             50.45672,7.78386
+Wirges               50.46728,7.78485
+Sirshahn             50.48593,7.77162 50.48597,7.77052
+Limburg(Lahn)        50.38426,8.06296 50.38495,8.06215
+Eschofen             50.39337,8.10427 50.39396,8.10594
+Lindenholzhausen    50.37840,8.13335 50.37768,8.13321
+Niederbrechen       50.35957,8.15976 50.36031,8.15854
+Oberbrechen         50.35454,8.18765 50.35524,8.18722
+Niederselters       50.33249,8.22995 50.33283,8.23066
+Bad-Camberg         50.29644,8.25516 50.29597,8.25585
+Woersdorf           50.24550,8.24926 50.24614,8.24910 
+Idstein             50.21591,8.25755 50.21665,8.25795
+Niedernhausen       50.15972,8.31272 50.16053,8.31281
+Hofheim             50.08406,8.44493 50.08502,8.44549
+Unterliederbach     50.10796,8.52798 50.10842,8.52797
+Liederbach-Sued      50.11538,8.50159 50.11571,8.50118
+Liederbach           50.11861,8.48631 50.11823,8.48802
+Kelkheim-Muenster    50.12477,8.46183 50.12517,8.46202
+Kelkheim             50.13694,8.44781 50.13730,8.44812
+Kelkheim-Hornau      50.14692,8.44459 50.14770,8.44509
+Schneidhain          50.17261,8.45209 50.17245,8.45160
+Koenigstein          50.17758,8.46892 50.17738,8.46989
+FfmFlughfFbf        50.05297,8.57086 50.05202,8.57030
+Limburg-Sued         50.38241,8.09621 50.38283,8.09445 50.38349,8.09597
+Siegburg-Bonn        50.79377,7.20269 50.79446,7.20331
+Koeln                50.94299,6.95907 50.94220,6.95798
+Kerkerbach           50.40172,8.13610
+Runkel               50.40502,8.15961
+Villmar              50.39477,8.18734
+Arfurt(Lahn)         50.40644,8.21076
+Aumenau              50.39990,8.24952
+Fürfurt              50.42938,8.25411
+Gräveneck            50.45194,8.25117
+Weilburg             50.48731,8.26838
+Löhnberg             50.50920,8.27367
+Stockhausen(Lahn)    50.54039,8.32492
+Leun/Braunfels       50.53957,8.36628
+Solms                50.54520,8.40752
+Albshausen           50.54561,8.43360
+Wetzlar              50.56509,8.50360
+Dutenhofen(Wetzlar)  50.56379,8.59979
+Gießen               50.57804,8.66280
+DA-RheinNeckarStrasse     49.87183,8.64463
+DA-EscholbrueckerStr      49.86537,8.64717
+DA-PrinzEmilGarten        49.86154,8.64708
+DA-BessungerStr           49.85836,8.64698
+DA-LandskronenStr         49.85335,8.64668
+DA-Marienhoehe            49.84355,8.64609
+Eberstadt-FriedrichEbert  49.83855,8.64559
+Eberstadt-CarlUlrich      49.83321,8.64496
+Eberstadt-VonKetteler     49.82911,8.64520
+Eberstadt-KatharinenStr   49.82476,8.64482
+Eberstadt-Wartehalle      49.82027,8.64411
+Eberstadt-Modaubruecke    49.81739,8.64425
+Eberstadt-Kirche          49.81429,8.64600
+Eberstadt-Friedhof        49.81108,8.64603
+Eberstadt-Frankenstein    49.80744,8.64542
+Eberstadt-Mittelschneise  49.80234,8.64689
+Malchen-Seeheim           49.79020,8.64875
+Seeheim-Wingert           49.77274,8.64814
+Seeheim-NeuesRathaus      49.76666,8.64623
+Seeheim-Tannenberg        49.76287,8.64482
+Jugenheim-LudwigStr       49.75676,8.63487
+Jugenheim-Bickenbacher    49.75357,8.62937
+Alsbach-Beuneweg          49.74641,8.62061
+Alsbach-Hikelstein        49.74028,8.61432
+
+-- trainline STR11
+Frankfurt(M)Hbf       + 4,14,24,34,44,54_6-22_*
+F-PlatzDerRepublik     +2
+F-Gueterplatz          +4
+F-SpeyererStr          +5
+Frankfurt-Galluswarte  +7
+F-SchwalbacherStr      +9
+F-RebstoeckerStr       +11
+F-WickererStr          +12
+F-MoenchhofStr         +13
+F-WaldschulStr         +15
+F-Linnegraben          +16
+F-Jaegerallee          +17
+F-BirminghamStr        +19
+F-LuthmerStr           +20
+F-NiedKirche           +22
+F-TillyStr             +24
+F-ZusckschwerdStr      +26
+
+-- trainline STR11
+F-ZusckschwerdStr      + 0,10,20,30,40,50_6-22_*
+F-Bolognaropalast      +1
+F-TillyStr             +3
+F-NiedKirche           +4
+F-LuthmerStr           +5
+F-BirminghamStr        +7
+F-Jaegerallee          +9
+F-Linnegraben          +10
+F-WaldschulStr         +11
+F-MoenchhofStr         +13
+F-WickererStr          +14
+F-RebstoeckerStr       +15
+F-SchwalbacherStr      +17
+Frankfurt-Galluswarte  +19
+F-SpeyererStr          +20
+F-Gueterplatz          +22
+F-PlatzDerRepublik     +24
+Frankfurt(M)Hbf        +26
+
+-- trainline S3
+Bad-Soden             + 20,50_0,5-23_*
+Sulzbach-Nord         +2
+Schwalbach-Limes      +5
+Schwalbach-Nord       +6
+Niederhoechsstadt     +9
+Eschborn              +11
+Eschborn-Sued         +13
+Frankfurt-Roedelheim  +17
+Frankfurt-West        +20
+Frankfurt-Messe       +22
+Frankfurt-Galluswarte +24
+Frankfurt(M)Hbf       +26
+F-Taunusanlage        +28
+F-Hauptwache          +30
+F-Konstablerwache     +31
+F-Ostendstrasse       +33
+F-Lokalbahnhof        +35
+Frankfurt-Süd         +37
+F-Stresemannallee     +39
+F-Louisa              +41
+Neu-Isenburg          +44
+Dreieich-Buchschlag   +47
+Langen-Flugsicherung  +49
+Langen                +51
+Egelsbach             +54
+Erzhausen             +56
+D-Wixhausen           +58
+D-Arheiligen          +61
+DarmstadtHbf          +64
+
+-- trainline S4
+Kronberg              + 8,38_0,5-23_*
+Kronberg-Sued         +2
+Niederhoechsstadt     +6
+Eschborn              +8
+Eschborn-Sued         +10
+Frankfurt-Roedelheim  +14
+Frankfurt-West        +17
+Frankfurt-Messe       +19
+Frankfurt-Galluswarte +21
+Frankfurt(M)Hbf       +23
+F-Taunusanlage        +25
+F-Hauptwache          +27
+F-Konstablerwache     +28
+F-Ostendstrasse       +30
+F-Lokalbahnhof        +32
+Frankfurt-Süd         +34
+F-Stresemannallee     +36
+F-Louisa              +38
+Neu-Isenburg          +41
+Dreieich-Buchschlag   +44
+Langen-Flugsicherung  +46
+Langen                +48
+
+-- trainline S3
+Frankfurt(M)Hbf       + 14,44_0,5-23_*
+Frankfurt-Galluswarte +3
+Frankfurt-Messe       +4
+Frankfurt-West        +6
+Frankfurt-Roedelheim  +9
+Eschborn-Sued         +12
+Eschborn              +15
+Bad-Soden             +26
+
+-- trainline S4
+Frankfurt(M)Hbf       + 29,59_0,5-23_*
+Frankfurt-Galluswarte +3
+Frankfurt-Messe       +4
+Frankfurt-West        +6
+Frankfurt-Roedelheim  +9
+Eschborn-Sued         +12
+Eschborn              +15
+Niederhoechsstadt     +17
+Kronberg-Sued         +20
+Kronberg              +22
+
+-- trainline S5
+Frankfurt(M)Hbf       + 24,54_0,5-23_*
+Frankfurt-Galluswarte +3
+Frankfurt-Messe       +4
+Frankfurt-West        +6
+Frankfurt-Roedelheim  +9
+Weisskirchen-Steinb  +13
+Stierstadt           +15
+Oberursel            +18
+Bad-Homburg          +21
+Seulberg             +25
+Friedrichsdorf       +26
+
+-- trainline S5
+Friedrichsdorf       + 8,38_0,5-23_*
+Seulberg             +3
+Bad-Homburg          +7
+Oberursel            +11
+Stierstadt           +13
+Weisskirchen-Steinb  +15
+Frankfurt-Roedelheim  +19
+Frankfurt-West        +22
+Frankfurt-Messe       +24
+Frankfurt-Galluswarte +26
+Frankfurt(M)Hbf       +29
+
+-- trainline S8
+WiesbadenHbf         + 19,49_0,5-23_*
+Wiesbaden-Ost        +4
+Mainz-Nord           +8
+MainzHbf             +14
+Mainz-Roemisches-Th  +17
+Mainz-Gustavsburg    +20
+Mainz-Bischofsheim   +23
+Ruesselsheim-Opel    +26
+Ruesselsheim         +29
+Raunheim             +32
+Kelsterbach          +37
+FfmFlughfFbf        +43
+F-Stadion            +47
+F-Niederrad          +50
+Frankfurt(M)Hbf      +54
+
+
+-- trainline HLB
+Frankfurt/Hoechst    + 28,58_6-23_*
+Frankfurt(M)Hbf      +11
+
+-- trainline HLB
+Frankfurt(M)Hbf      + 17,47_6-23_*
+Frankfurt/Hoechst    +12
+Unterliederbach      +14
+Liederbach-Sued      +16
+Liederbach           +18
+Kelkheim-Muenster    +21
+Kelkheim             +25
+Kelkheim-Hornau      +27
+Schneidhain          +31
+Koenigstein          +35
+
+-- trainline HLB
+Frankfurt/Hoechst    + 0,30_5-20_* - 0_9-15_*
+Sulzbach(Taunus)     +6
+Bad-Soden            +9
+
+-- trainline HLB
+Bad-Soden            + 14,44_5-20_* - 14_9-15_*
+Sulzbach(Taunus)     +3
+Frankfurt/Hoechst    +9
+
+-- trainline SE60
+Frankfurt(M)Hbf      + 6_0,5-23_*
+DarmstadtHbf         +24
+Darmstadt-Sued       +27
+Bensheim-Auerbach    +50
+Bensheim             +53
+
+-- trainline SE60
+Bensheim             + 0_0,5-23_*
+Bensheim-Auerbach    +3
+DarmstadtHbf         +30
+Frankfurt(M)Hbf      +48
+
+-- trainline RE60
+Frankfurt(M)Hbf      + 34_6,8,12,14,16,18,20_1-5
+Langen               +10
+DarmstadtHbf         +20
+#Bickenbach           +29
+Bensheim             +34
+
+-- trainline RB15707
+WiesbadenHbf         + 38_6-23_*
+MainzHbf             +11
+Mainz-Roemisches-Th  +14
+Mainz-Bischofsheim   +19
+Nauheim              +26
+Gross-Gerau          +29
+Klein-Gerau          +32
+Weiterstadt          +36
+DarmstadtHbf         +43
+
+-- trainline RE50
+Frankfurt(M)Hbf      + 10_6-23_*
+F-Niederrad          +6
+Walldorf             +15
+Moerfelden           +18
+Gross-G-Dornberg     +24
+Riedstatt-Goddelau   +30
+Stockstadt-Rhein     +33
+Biebesheim           +37
+Gernsheim            +41
+Gross-Rohrheim       +45
+Biblis               +48
+Buerstadt            +53
+Lampertheim          +57
+Mannheim-Waldhof     +62
+MannheimHbf          +69
+
+-- trainline Vectus
+Frickofen            + 49_6,7,9,11,13,15,17,19_* + 19_6_* + 13_9_* + 6_15_*
+Niederzeuzheim       +6
+Hadamar              +4
+Niederhadamar        +13
+Elz                  +16
+Staffel              +19
+Diez-Ost             +23
+Limburg(Lahn)        +26
+
+-- trainline Vectus
+Limburg(Lahn)        + 8_8,10,12,14,16,18,20_*
+Diez-Ost             +3
+Staffel              +8
+Elz                  +11
+Niederhadamar        +14
+Hadamar              +16
+Niederzeuzheim       +20
+Frickofen            +26
+Wilsenroth           +31
+Wilmenroth           +36
+Westerburg           +42
+Langenhahn           +49
+
+-- trainline Vectus
+Limburg(Lahn)        + 54_7,9,10,11,12,13,14,15,16,17,18,19,20_*
+Diez-Ost             +4
+Staffel              +7
+Elz-Sued             +10
+Niedererbach         +17
+Dreikirchen          +23
+Steinefrenz          +26
+Girod                +30
+Goldhausen           +38
+Montabaur            +46
+Dernbach             +53
+Wirges               +55
+Sirshahn             +59
+
+
+-- trainline Vectus
+Sirshahn             + 9_7,9,10,11,12,13,14,15,16,17,18,19,20_*
+Wirges               +4
+Dernbach             +7
+Montabaur            +14
+Goldhausen           +21
+Girod                +25
+Steinefrenz          +29
+Dreikirchen          +32
+Niedererbach         +38
+Elz-Sued             +45
+Staffel              +48
+Diez-Ost             +52
+Limburg(Lahn)        +55
+
+-- trainline SE10
+Limburg(Lahn)        + 18_7-21_*
+Eschofen             +4
+Lindenholzhausen     +8
+Niederbrechen        +12
+Oberbrechen          +15
+Niederselters        +19
+Bad-Camberg          +24
+Woersdorf            +29
+Idstein              +33
+Niedernhausen        +40
+Hofheim              +52
+Frankfurt/Hoechst    +59
+Frankfurt(M)Hbf      +70
+
+-- trainline HLB
+Limburg(Lahn)        + 23_7-21_*
+Eschofen             +4
+Kerkerbach           +7
+Runkel               +10
+Villmar              +14
+Arfurt(Lahn)         +19
+Aumenau              +23
+Fürfurt              +27
+Gräveneck            +31
+Weilburg             +37
+Löhnberg             +41
+Stockhausen(Lahn)    +46
+Leun/Braunfels       +50
+Solms                +54
+Albshausen           +57
+Wetzlar              +63
+Dutenhofen(Wetzlar)  +69
+Gießen               +75
+
+-- trainline SE10
+Frankfurt(M)Hbf      + 31_7-22_*
+Frankfurt/Hoechst    +10
+Hofheim              +18
+Niedernhausen        +30
+Idstein              +37
+Woersdorf            +41
+Bad-Camberg          +46
+Niederselters        +50
+Oberbrechen          +54
+Niederbrechen        +57
+Lindenholzhausen     +61
+Eschofen             +65
+Limburg(Lahn)        +69
+
+
+-- trainline RE1530x
+Limburg(Lahn)        + 55_6,7_*
+Eschofen             +4
+Frankfurt/Hoechst    +52
+Frankfurt(M)Hbf      +63
+
+-- trainline STR8
+DA-RheinNeckarStrasse     + 16,46_6-23_*
+DA-EscholbrueckerStr      +2
+DA-PrinzEmilGarten        +3
+DA-BessungerStr           +4
+DA-LandskronenStr         +6
+DA-Marienhoehe            +8
+Eberstadt-FriedrichEbert  +9
+Eberstadt-CarlUlrich      +10
+Eberstadt-VonKetteler     +12
+Eberstadt-KatharinenStr   +13
+Eberstadt-Wartehalle      +14
+Eberstadt-Modaubruecke    +16
+Eberstadt-Kirche          +17
+Eberstadt-Friedhof        +18
+Eberstadt-Frankenstein    +20
+Eberstadt-Mittelschneise  +21
+Malchen-Seeheim           +23
+Seeheim-Wingert           +26
+Seeheim-NeuesRathaus      +28
+Seeheim-Tannenberg        +29
+Jugenheim-LudwigStr       +31
+Jugenheim-Bickenbacher    +32
+Alsbach-Beuneweg          +34
+Alsbach-Hikelstein        +36
