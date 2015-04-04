@@ -176,6 +176,8 @@ are possible:
 - additional "=" symbol for "assign"operations:
   assign <variable-name> = <expression>
 
+- boolean constants: "true" and "false" can be used instead of 1 and 0
+
 Please note the the tokenizer always expects blank space to separate
 symbols and expressions so it is not allowed to places parentheses or
 the "=" symbol without separating blank space!
