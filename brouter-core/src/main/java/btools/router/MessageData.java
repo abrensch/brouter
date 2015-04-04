@@ -5,10 +5,9 @@
  */
 package btools.router;
 
-import btools.expressions.BExpressionContext;
 
 
-final class MessageData
+final class MessageData implements Cloneable
 {
   int linkdist = 0;
   int linkelevationcost = 0;
@@ -44,5 +43,25 @@ final class MessageData
          + "\t" + wayKeyValues
          + "\t" + ( nodeKeyValues == null ? "" : nodeKeyValues );
   }
-    
+
+  void add( MessageData d )
+  {
+    linkdist += d.linkdist;
+    linkelevationcost += d.linkelevationcost;
+    linkturncost += d.linkturncost;
+    linknodecost += d.linknodecost;
+    linkinitcost+= d.linkinitcost;
+  }
+
+  MessageData copy()
+  {
+    try
+    {
+      return (MessageData)clone();
+    }
+    catch( CloneNotSupportedException e )
+    {
+      throw new RuntimeException( e );
+    }
+  }
 }

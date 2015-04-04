@@ -42,7 +42,7 @@ final class OsmPath implements OsmLinkHolder
   // the costfactor of the segment just before this paths position
   public float lastClassifier;
 
-  public String message;
+  public MessageData message;
 
   OsmPath()
   {
@@ -122,7 +122,7 @@ final class OsmPath implements OsmLinkHolder
       // if way description changed, store message
       if ( msgData.wayKeyValues != null && !sameData )
       {
-        originElement.message = msgData.toMessage();
+        originElement.message = msgData;
         msgData = new MessageData();
       }
 
@@ -291,7 +291,7 @@ final class OsmPath implements OsmLinkHolder
         {
           originElement = new OsmPathElement( rc.ilonshortest, rc.ilatshortest, ele2, originElement );
           originElement.cost = cost;
-          originElement.message = msgData.toMessage();
+          originElement.message = msgData;
         }
         if ( rc.nogomatch )
         {
@@ -356,7 +356,7 @@ final class OsmPath implements OsmLinkHolder
         }
     }
 
-    message = msgData.toMessage();
+    message = msgData;
 
   }
 

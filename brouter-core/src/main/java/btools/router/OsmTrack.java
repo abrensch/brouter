@@ -27,7 +27,7 @@ import btools.util.FrozenLongMap;
 public final class OsmTrack
 {
   // csv-header-line
-  private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tOsmTags";
+  private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags";
 
   public MatchedWaypoint endPoint;
   public long[] nogoChecksums;
@@ -78,6 +78,36 @@ public final class OsmTrack
 	nodesMap = new FrozenLongMap<OsmPathElementHolder>( nodesMap );
   }
   
+  private ArrayList<String> aggregateMessages()
+  {
+    ArrayList<String> res = new ArrayList<String>();
+    MessageData current = null;
+    for( OsmPathElement n : nodes )
+    {
+      if ( n.message != null )
+      {
+        MessageData md = n.message.copy();
+        if ( current != null )
+        {
+          if ( current.nodeKeyValues != null || !current.wayKeyValues.equals( md.wayKeyValues ) )
+          {
+            res.add( current.toMessage() );
+          }
+          else
+          {
+            md.add( current );
+          }
+        }
+        current = md;
+      }
+    }
+    if ( current != null )
+    {
+      res.add( current.toMessage() );
+    }
+    return res;
+  }
+
   /**
    * writes the track in binary-format to a file
    * @param filename the filename to write to
@@ -310,12 +340,9 @@ public final class OsmTrack
     sb.append( "        \"cost\": \"" ).append( cost ).append( "\",\n" );
     sb.append( "        \"messages\": [\n" );
     sb.append( "          [\"").append( MESSAGES_HEADER.replaceAll("\t", "\", \"") ).append( "\"],\n" );
-    for( OsmPathElement n : nodes )
+    for( String m : aggregateMessages() )
     {
-      if ( n.message != null )
-      {
-        sb.append( "          [\"").append( n.message.replaceAll("\t", "\", \"") ).append( "\"],\n" );
-      }
+      sb.append( "          [\"").append( m.replaceAll("\t", "\", \"") ).append( "\"],\n" );
     }
     sb.deleteCharAt( sb.lastIndexOf( "," ) );
     sb.append( "        ]\n" );
@@ -377,12 +404,9 @@ public final class OsmTrack
   public void writeMessages( BufferedWriter bw, RoutingContext rc ) throws Exception
   {
     dumpLine( bw, MESSAGES_HEADER );
-    for( OsmPathElement n : nodes )
+    for( String m : aggregateMessages() )
     {
-      if ( n.message != null )
-      {
-        dumpLine( bw, n.message );
-      }
+      dumpLine( bw, m );
     }
     if ( bw != null ) bw.close();
   }

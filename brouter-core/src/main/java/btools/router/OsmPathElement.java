@@ -19,7 +19,7 @@ public final class OsmPathElement implements OsmPos
   private int ilon; // longitude
   private short selev; // longitude
 
-  public String message = null; // description
+  public MessageData message = null; // description
 
   public int cost;
 
