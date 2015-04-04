@@ -88,6 +88,7 @@ the routing engine:
   - uphillcostfactor
   - downhillcostfactor
   - nodeaccessgranted
+  - initialclassifier
 
 - for the node section this is just
 
@@ -141,6 +142,7 @@ All expressions have one of the following basic forms:
   multiply <numeric expression 1> <numeric expression 2>
   add      <numeric expression 1> <numeric expression 2>
   max      <numeric expression 1> <numeric expression 2>
+  equal    <numeric expression 1> <numeric expression 2>
 
 - 3 Operand operators are:
 
@@ -149,6 +151,44 @@ All expressions have one of the following basic forms:
   So the switch expression has a numeric value which is the
   true-expression if the boolean expression is true, the
   false-expression otherwise
+
+
+Syntactic Alternatives
+----------------------
+
+To improve the readablity of the profile-scripts, some syntactic variations
+are possible:
+
+- "if then else" : "if" can be used instead of the "switch" operator, if the
+  additional keywords "then" and "else" are placed between the operators:
+
+  if <boolean-expression> then <true-expression> else <false-expression>
+
+- Parentheses: each expression can be surrounded by parentheses: ( <expression> )
+  Please note that the profile syntax, due to the polnic notation, does not
+  need parentheses, they are always optional. However, if there are parentheses,
+  the parser checks if they really match the expression boundaries.
+
+- or-ing lookup-matches: the pipe-symbol can be used as a short syntax for
+  lookup matches where more than one value is accepted for a key:
+  highway=primary|secondary|tertiary
+
+- additional "=" symbol for "assign"operations:
+  assign <variable-name> = <expression>
+
+Please note the the tokenizer always expects blank space to separate
+symbols and expressions so it is not allowed to places parentheses or
+the "=" symbol without separating blank space!
+
+
+The initial cost classifier
+---------------------------
+
+To trigger the addition of the "initialcost", another variable is used:
+"initialclassifier" - any change in the value of that variable leads
+to adding the value of "initialcost".
+For backward compatibility, if "initialclassifier"  = 0, it is replaced
+by the costfactor.
 
 
 Technical constraints
