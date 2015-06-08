@@ -1,8 +1,9 @@
-Surviving with Android 4.4 (KitKat) using BRouter 1.0.1
+Surviving with Android 4.4 (KitKat) or 5.0 (Lollipop) using latest BRouter
 =======================================================
 
-BRouter 1.0.1 adds some basic support to reclaim your external
-SD card on KitKat.
+BRouter has some basic support to reclaim your external SD card.
+
+Brouter must be installed on internal drive ("SD card"), but maps could be moved to external SD card.
 
 What's new is a configuration file located at:
 
@@ -20,7 +21,7 @@ Initially, the value for "secondary_segment_dir" is "../segments2" to support th
 file-format transition from 0.9.9 to 1.0.1, so that, after upgrading, your existing
 datafiles are found via the secondary directory.
 
-However, for surviving KitKat, you are supposed to change that to the
+However, for surviving KitKatn and later, you are supposed to change that to the
 absolute path to a directory on the external card, e.g.:
 
 secondary_segment_dir=/storage/external_SD/brouter_segments3
@@ -59,6 +60,6 @@ a redirection-file (create the tracks folder if it does not exist!)
  /storage/external_SD/Android/data/net.osmand/files/osmand/tracks/brouter.redirect
 
 and that should contain a single line with the absolute path to the folder where
-the tracks should be written (e.g. /mnt/sdcard/brouter )
+the tracks should be written (e.g. /mnt/sdcard/brouter ). Redirection file is normal file named brouter.redirect and containing single line pointing to folder writable by BRouter and readable by OsmAnd.
 
 THEN you are done.
