@@ -101,7 +101,7 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>
      return null;
    }
 
-   public void writeNodeData( ByteDataWriter os, boolean writeVarLength, byte[] abBuf ) throws IOException
+   public void writeNodeData( ByteDataWriter os, byte[] abBuf ) throws IOException
    {
      int lonIdx = ilon/62500;
      int latIdx = ilat/62500;
@@ -156,7 +156,7 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>
          int writedescbit = 0;
          if ( skipDetailBit == 0 ) // check if description changed
          {
-           int inverseBitByteIndex =  writeVarLength ? 0 : 7;
+           int inverseBitByteIndex =  0;
            boolean inverseDirection = link.isReverse( origin );
            byte[] ab = link.descriptionBitmap;
              int abLen = ab.length;
@@ -196,12 +196,12 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>
          if ( writedescbit != 0 )
          {
            // write the way description, code direction into the first bit
-           if ( writeVarLength ) os2.writeByte( lastDescription.length );
+           os2.writeByte( lastDescription.length );
            os2.write( lastDescription );
          }
          if ( nodedescbit != 0 )
          {
-           if ( writeVarLength ) os2.writeByte( nodeDescription.length );
+           os2.writeByte( nodeDescription.length );
            os2.write( nodeDescription );
            nodeDescription = null;
          }

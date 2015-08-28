@@ -39,7 +39,7 @@ final public class PhysicalFile
 		  if ( osmf.microCaches != null )
 		    for( int lonIdx80=0; lonIdx80<80; lonIdx80++ )
 			  for( int latIdx80=0; latIdx80<80; latIdx80++ )
-                new MicroCache( osmf, lonIdx80, latIdx80, iobuffer, true ); // TODO: readVarLength ?
+                new MicroCache( osmf, lonIdx80, latIdx80, iobuffer );
       	}
 	  }
 	  catch( IllegalArgumentException iae )

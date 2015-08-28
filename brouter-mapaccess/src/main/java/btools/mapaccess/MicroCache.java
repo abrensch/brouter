@@ -21,8 +21,6 @@ final class MicroCache extends ByteDataReader
   private int delbytes = 0;
   private int p2size; // next power of 2 of size
   
-  private boolean readVarLength;
-
   // the object parsing position and length
   private int aboffsetEnd;
 
@@ -31,11 +29,9 @@ final class MicroCache extends ByteDataReader
   boolean virgin = true;
   boolean ghost = false;
 
-  public MicroCache( OsmFile segfile, int lonIdx80, int latIdx80, byte[] iobuffer, boolean readVarLength ) throws Exception
+  public MicroCache( OsmFile segfile, int lonIdx80, int latIdx80, byte[] iobuffer ) throws Exception
   {
 	 super( null );
-	 this.readVarLength = readVarLength;
-	  
      int lonDegree = lonIdx80/80;
      int latDegree = latIdx80/80;
 
@@ -67,30 +63,16 @@ final class MicroCache extends ByteDataReader
        {
          int ilon = readShort();
          int ilat = readShort();
-         int bodySize = readVarLength ? readVarLengthUnsigned() : readInt();
+         int bodySize = readVarLengthUnsigned();
 
-         // kack for the old format crc         
-         if ( !readVarLength && ilon == Short.MAX_VALUE && ilat == Short.MAX_VALUE )
-         {
-           int crc = Crc32.crc( ab, 0, aboffset-8 ); // old format crc
-           if ( crc != readInt() )
-           {
-             throw new IOException( "checkum-error" );
-           }
-           size = i;
-           break;
-         }
          aboffset += bodySize;
          nbytes += bodySize;
        }
 
-       if ( readVarLength ) // new format crc
+       int crc = Crc32.crc( ab, 0, aboffset );
+       if ( crc != readInt() )
        {
-         int crc = Crc32.crc( ab, 0, aboffset );
-         if ( crc != readInt() )
-         {
-             throw new IOException( "checkum error" );
-         }
+         throw new IOException( "checkum error" );
        }
 
        // new array with only net data
@@ -111,7 +93,7 @@ final class MicroCache extends ByteDataReader
          long nodeId = ((long)ilon)<<32 | ilat;
 
          faid[i] = nodeId;
-         int bodySize = readVarLength ? readVarLengthUnsigned() : readInt();
+         int bodySize = readVarLengthUnsigned();
          fapos[i] = noffset;
          System.arraycopy( ab, aboffset, nab, noffset, bodySize );
          aboffset += bodySize;
@@ -189,7 +171,7 @@ final class MicroCache extends ByteDataReader
     long id = node.getIdFromPos();
     if ( getAndClear( id ) )
     {
-      node.parseNodeBody( this, nodesMap, dc, readVarLength );
+      node.parseNodeBody( this, nodesMap, dc );
     }
 
     if ( doCollect && delcount > size / 2 ) // garbage collection

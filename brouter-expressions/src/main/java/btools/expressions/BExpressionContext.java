@@ -123,8 +123,6 @@ public abstract class BExpressionContext
 
   public byte[] encode( int[] ld )
   {
-	if ( !meta.readVarLength ) return encodeFix( ld ); 
-	  
 	// start with first bit hardwired ("reversedirection")
 	BitCoderContext ctx = new BitCoderContext( abBuf );
 	ctx.encodeBit( ld[0] != 0 );
@@ -170,36 +168,6 @@ public abstract class BExpressionContext
     return ab;
   }
 
-  /**
-   * encode lookup data to a 64-bit word
-   */
-  public byte[] encodeFix( int[] ld )
-  {
-    long w = 0;
-    for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
-    {
-      int n = lookupValues.get(inum).length - 1;
-      int d = ld[inum];
-      if ( n == 2 ) { n = 1; d = d == 2 ? 1 : 0; } // 1-bit encoding for booleans
-
-      while( n != 0 ) { n >>= 1; w <<= 1; }
-      w |= (long)d;
-    }
-    if ( w == 0) return null;
-    
-    byte[] ab = new byte[8];
-    int aboffset = 0;
-	ab[aboffset++] = (byte)( (w >> 56) & 0xff );
-    ab[aboffset++] = (byte)( (w >> 48) & 0xff );
-	ab[aboffset++] = (byte)( (w >> 40) & 0xff );
-    ab[aboffset++] = (byte)( (w >> 32) & 0xff );
-	ab[aboffset++] = (byte)( (w >> 24) & 0xff );
-    ab[aboffset++] = (byte)( (w >> 16) & 0xff );
-	ab[aboffset++] = (byte)( (w >>  8) & 0xff );
-    ab[aboffset++] = (byte)( (w      ) & 0xff );
-    return ab;
-  }
-  
 
   /**
    * decode byte array to internal lookup data
@@ -215,8 +183,6 @@ public abstract class BExpressionContext
    */
   private void decode( int[] ld, boolean inverseDirection, byte[] ab )
   {
-	if ( !meta.readVarLength ) { decodeFix( ld, ab ); return; }
-
     BitCoderContext ctx = new BitCoderContext(ab);
 	  
     // start with first bit hardwired ("reversedirection")
@@ -239,36 +205,6 @@ public abstract class BExpressionContext
       ld[inum++] = d;
     }
     while( inum < ld.length ) ld[inum++] = 0;
-  }
-
-  /**
-   * decode old, 64-bit-fixed-length format
-   */
-  public void decodeFix( int[] ld, byte[] ab )
-  {
-	  int idx = 0;
-      long i7 = ab[idx++]& 0xff;
-      long i6 = ab[idx++]& 0xff;
-      long i5 = ab[idx++]& 0xff;
-      long i4 = ab[idx++]& 0xff;
-      long i3 = ab[idx++]& 0xff;
-      long i2 = ab[idx++]& 0xff;
-      long i1 = ab[idx++]& 0xff;
-      long i0 = ab[idx++]& 0xff;
-      long w =  (i7 << 56) + (i6 << 48) + (i5 << 40) + (i4 << 32) + (i3 << 24) + (i2 << 16) + (i1 << 8) + i0;
-
-    for( int inum = lookupValues.size()-1; inum >= 0; inum-- ) // loop over lookup names
-    {
-      int nv = lookupValues.get(inum).length;
-      int n = nv == 3 ? 1 : nv-1; // 1-bit encoding for booleans
-      int m = 0;
-      long ww = w;
-      while( n != 0 ) { n >>= 1; ww >>= 1; m = m<<1 | 1; }
-      int d = (int)(w & m);
-      if ( nv == 3 && d == 1 ) d = 2; // 1-bit encoding for booleans
-      ld[inum] = d;
-      w = ww;
-    }
   }
 
   public String getKeyValueDescription( boolean inverseDirection, byte[] ab )
@@ -300,17 +236,14 @@ public abstract class BExpressionContext
       int idx = name.indexOf( ';' );
       if ( idx >= 0 ) name = name.substring( 0, idx );
 
-      if ( meta.readVarLength )
+      if ( !fixTagsWritten )
       {
-        if ( !fixTagsWritten )
-        {
-          fixTagsWritten = true;
-          if ( "way".equals( context ) ) addLookupValue( "reversedirection", "yes", null );
-          else if ( "node".equals( context ) ) addLookupValue( "nodeaccessgranted", "yes", null );
-        }
-        if ( "reversedirection".equals( name ) ) return; // this is hardcoded
-        if ( "nodeaccessgranted".equals( name ) ) return; // this is hardcoded
+        fixTagsWritten = true;
+        if ( "way".equals( context ) ) addLookupValue( "reversedirection", "yes", null );
+        else if ( "node".equals( context ) ) addLookupValue( "nodeaccessgranted", "yes", null );
       }
+      if ( "reversedirection".equals( name ) ) return; // this is hardcoded
+      if ( "nodeaccessgranted".equals( name ) ) return; // this is hardcoded
       BExpressionLookupValue newValue = addLookupValue( name, value, null );
 
       // add aliases
@@ -351,7 +284,7 @@ public abstract class BExpressionContext
 	 requests ++;
 	 lookupDataValid = false; // this is an assertion for a nasty pifall
 
-	 int inverseBitByteIndex = meta.readVarLength ? 0 : 7;
+	 int inverseBitByteIndex = 0;
 
 	 // calc hash bucket from crc
 	 int lastHashBucket = currentHashBucket;

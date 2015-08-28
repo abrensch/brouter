@@ -105,7 +105,7 @@ public class OsmNode implements OsmPos
   }
 
 
-   public void parseNodeBody( MicroCache is, OsmNodesMap hollowNodes, DistanceChecker dc, boolean readVarLength )
+   public void parseNodeBody( MicroCache is, OsmNodesMap hollowNodes, DistanceChecker dc )
    {
 	 ByteArrayUnifier abUnifier = hollowNodes.getByteArrayUnifier();
 	   
@@ -115,9 +115,6 @@ public class OsmNode implements OsmPos
      
      OsmLink firstHollowLink = firstlink;
      firstlink = null;
-
-     int lonIdx = ilon/62500;
-     int latIdx = ilat/62500;
 
      while( is.hasMoreData() )
      {
@@ -133,44 +130,24 @@ public class OsmNode implements OsmPos
        for(;;)
        {
          int bitField = is.readByte();
-         if ( readVarLength )
-         {
-         	int dlon = is.readVarLengthUnsigned();
-        	int dlat = is.readVarLengthUnsigned();
-        	if ( (bitField & SIGNLON_BITMASK) != 0 ) { dlon = -dlon;}
-        	if ( (bitField & SIGNLAT_BITMASK) != 0 ) { dlat = -dlat;}
-        	linklon = ilonref + dlon;
-        	linklat = ilatref + dlat;
-        	ilonref = linklon;
-        	ilatref = linklat;
-         }
-         else
-         {
-           if ( (bitField & EXTERNAL_BITMASK) != 0 )
-           {
-             // full position for external target
-             linklon = is.readInt();
-             linklat = is.readInt();
-           }
-           else
-           {
-             // reduced position for internal target
-             linklon = is.readShort();
-             linklat = is.readShort();
-             linklon += lonIdx*62500 + 31250;
-             linklat += latIdx*62500 + 31250;
-           }
-         }
+         int dlon = is.readVarLengthUnsigned();
+         int dlat = is.readVarLengthUnsigned();
+         if ( (bitField & SIGNLON_BITMASK) != 0 ) { dlon = -dlon;}
+         if ( (bitField & SIGNLAT_BITMASK) != 0 ) { dlat = -dlat;}
+         linklon = ilonref + dlon;
+         linklat = ilatref + dlat;
+         ilonref = linklon;
+         ilatref = linklat;
          // read variable length or old 8 byte fixed, and ensure that 8 bytes is only fixed
          if ( (bitField & WRITEDESC_BITMASK ) != 0 )
          {
-        	 byte[] ab = new byte[readVarLength ? is.readByte() : 8 ];
+        	 byte[] ab = new byte[is.readByte()];
         	 is.readFully( ab );
         	 description = abUnifier.unify( ab );
          }
          if ( (bitField & NODEDESC_BITMASK ) != 0 )
          {
-        	 byte[] ab = new byte[readVarLength ? is.readByte() : 8 ];
+        	 byte[] ab = new byte[is.readByte()];
         	 is.readFully( ab );
         	 nodeDescription = abUnifier.unify( ab );
          }
@@ -198,7 +175,7 @@ public class OsmNode implements OsmPos
            trans.ilon = linklon;
            trans.ilat = linklat;
            trans.descriptionBitmap = description;
-           trans.selev = readVarLength ? (short)(selev + is.readVarLengthSigned()) : is.readShort();
+           trans.selev = (short)(selev + is.readVarLengthSigned());
            if ( lastTransferNode == null )
            {
              firstTransferNode = trans;
@@ -248,7 +225,6 @@ public class OsmNode implements OsmPos
        	 OsmNode t = l.targetNode;
        	 if ( t.ilon == linklon && t.ilat == linklat )
        	 {
-System.out.println( "found target in hollow links: " + t.getIdFromPos() );
        	   tn = t;
        	   break;
        	 }
@@ -264,8 +240,6 @@ System.out.println( "found target in hollow links: " + t.getIdFromPos() );
            tn.setHollow();
            hollowNodes.put( targetNodeId, tn );
          }
-
-System.out.println( "registering : " + getIdFromPos() + " at hollow " + tn.getIdFromPos() );
 
          OsmLink hollowLink = new OsmLink();
          hollowLink.targetNode = this;

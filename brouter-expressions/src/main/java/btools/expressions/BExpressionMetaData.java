@@ -26,11 +26,9 @@ public final class BExpressionMetaData
   private  static final String CONTEXT_TAG = "---context:";
   private static final String VERSION_TAG = "---lookupversion:";
   private static final String MINOR_VERSION_TAG = "---minorversion:";
-  private static final String VARLENGTH_TAG = "---readvarlength";
 
   public short lookupVersion = -1;
   public short lookupMinorVersion = -1;
-  public boolean readVarLength = false;
 
   private HashMap<String,BExpressionContext> listeners = new HashMap<String,BExpressionContext>();
   
@@ -66,11 +64,6 @@ public final class BExpressionMetaData
       if ( line.startsWith( MINOR_VERSION_TAG ) )
       {
         lookupMinorVersion = Short.parseShort( line.substring( MINOR_VERSION_TAG.length() ) );
-        continue;
-      }
-      if ( line.startsWith( VARLENGTH_TAG ) )
-      {
-    	readVarLength = true;
         continue;
       }
       if ( ctx != null ) ctx.parseMetaLine( line );
