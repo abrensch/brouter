@@ -46,14 +46,15 @@ public class RoutingEngine extends Thread
   private Writer infoLogWriter;
   protected RoutingContext routingContext;
 
-  private double airDistanceCostFactor;
+  public double airDistanceCostFactor;
   private OsmTrack guideTrack;
 
   private OsmPathElement matchPath;
   
   private long startTime;
   private long maxRunningTime;
-  
+  public SearchBoundary boundary;
+
   public boolean quite = false;
 
   public RoutingEngine( String outfileBase, String logfileBase, String segmentDir,
@@ -194,6 +195,51 @@ public class RoutingEngine extends Thread
       }
       long endTime = System.currentTimeMillis();
       logInfo( "execution time = " + (endTime-startTime)/1000. + " seconds" );
+    }
+    catch( IllegalArgumentException e)
+    {
+      errorMessage = e.getMessage();
+      logInfo( "Exception (linksProcessed=" + linksProcessed + ": " + errorMessage );
+    }
+    catch( Exception e)
+    {
+      errorMessage = e instanceof IllegalArgumentException ? e.getMessage() : e.toString();
+      logInfo( "Exception (linksProcessed=" + linksProcessed + ": " + errorMessage );
+      e.printStackTrace();
+    }
+    catch( Error e)
+    {
+      String hint = cleanOnOOM();
+      errorMessage = e.toString() + hint;
+      logInfo( "Error (linksProcessed=" + linksProcessed + ": " + errorMessage );
+      e.printStackTrace();
+    }
+    finally
+    {
+      if ( nodesCache != null )
+      {
+        nodesCache.close();
+        nodesCache = null;
+      }
+      openSet.clear();
+      finished = true; // this signals termination to outside
+
+      if ( infoLogWriter != null )
+      {
+        try { infoLogWriter.close(); } catch( Exception e ) {}
+        infoLogWriter = null;
+      }
+    }
+  }
+
+  public void doSearch()
+  {
+    try
+    {
+      MatchedWaypoint seedPoint = matchNodeForPosition( waypoints.get(0) );
+      routingContext.countTraffic = true;
+
+      findTrack( "seededSearch", seedPoint, null, null, null, false );
     }
     catch( IllegalArgumentException e)
     {
@@ -504,15 +550,15 @@ public class RoutingEngine extends Thread
     return start;
   }
 
-  private OsmPath getStartPath( OsmNode n1, OsmNode n2, MatchedWaypoint mwp, MatchedWaypoint endWp, boolean sameSegmentSearch )
+  private OsmPath getStartPath( OsmNode n1, OsmNode n2, MatchedWaypoint mwp, OsmNodeNamed endPos, boolean sameSegmentSearch )
   {
-    OsmPath p = getStartPath( n1, n2, mwp.waypoint, endWp.crosspoint );
+    OsmPath p = getStartPath( n1, n2, mwp.waypoint, endPos );
     
     // special case: start+end on same segment
     if ( sameSegmentSearch )
     {
-      OsmPath pe = getEndPath( n1, p.getLink(), endWp.crosspoint, endWp.crosspoint );
-      OsmPath pt = getEndPath( n1, p.getLink(), null, endWp.crosspoint );
+      OsmPath pe = getEndPath( n1, p.getLink(), endPos );
+      OsmPath pt = getEndPath( n1, p.getLink(), null );
       int costdelta = pt.cost - p.cost;
       if ( pe.cost >= costdelta )
       {
@@ -571,7 +617,7 @@ public class RoutingEngine extends Thread
 
          wp.radius = 1e9;
          OsmPath testPath = new OsmPath( null, startPath, link, null, guideTrack != null, routingContext );
-         testPath.airdistance = nextNode.calcDistance( endPos );
+         testPath.airdistance = endPos == null ? 0 : nextNode.calcDistance( endPos );
          if ( wp.radius < minradius )
          {
            bestPath = testPath;
@@ -593,7 +639,7 @@ public class RoutingEngine extends Thread
     }
   }
 
-  private OsmPath getEndPath( OsmNode n1, OsmLink link, OsmNodeNamed wp, OsmNode endPos )
+  private OsmPath getEndPath( OsmNode n1, OsmLink link, OsmNodeNamed wp )
   {
     try
     {
@@ -619,7 +665,6 @@ public class RoutingEngine extends Thread
 
     int maxTotalCost = 1000000000;
     int firstMatchCost = 1000000000;
-    int firstEstimate = 1000000000;
     
     logInfo( "findtrack with airDistanceCostFactor=" + airDistanceCostFactor );
     if (costCuttingTrack != null ) logInfo( "costCuttingTrack.cost=" + costCuttingTrack.cost );
@@ -628,12 +673,13 @@ public class RoutingEngine extends Thread
     int nodesVisited = 0;
 
     resetCache();
-    long endNodeId1 = endWp.node1.getIdFromPos();
-    long endNodeId2 = endWp.node2.getIdFromPos();
+    long endNodeId1 = endWp == null ? -1L : endWp.node1.getIdFromPos();
+    long endNodeId2 = endWp == null ? -1L : endWp.node2.getIdFromPos();
     long startNodeId1 = startWp.node1.getIdFromPos();
     long startNodeId2 = startWp.node2.getIdFromPos();
 
-    OsmNode endPos = endWp.crosspoint;
+    OsmNodeNamed startPos = startWp.crosspoint;
+    OsmNodeNamed endPos = endWp == null ? null : endWp.crosspoint;
     
     boolean sameSegmentSearch = ( startNodeId1 == endNodeId1 && startNodeId2 == endNodeId2 )
                              || ( startNodeId1 == endNodeId2 && startNodeId2 == endNodeId1 );
@@ -642,8 +688,8 @@ public class RoutingEngine extends Thread
     OsmNode start2 = getStartNode( startNodeId2 );
     if ( start1 == null || start2 == null ) return null;
 
-    OsmPath startPath1 = getStartPath( start1, start2, startWp, endWp, sameSegmentSearch );
-    OsmPath startPath2 = getStartPath( start2, start1, startWp, endWp, sameSegmentSearch );
+    OsmPath startPath1 = getStartPath( start1, start2, startWp, endPos, sameSegmentSearch );
+    OsmPath startPath2 = getStartPath( start2, start1, startWp, endPos, sameSegmentSearch );
 
     // check for an INITIAL match with the cost-cutting-track
     if ( costCuttingTrack != null )
@@ -681,7 +727,11 @@ public class RoutingEngine extends Thread
         path = openSet.popLowestKeyValue();
       }
       if ( path == null ) break;
-      if ( path.airdistance == -1 ) continue;
+      if ( path.airdistance == -1 )
+      {
+        path.unregisterUpTree( routingContext );
+        continue;
+      }
 
       if ( matchPath != null && fastPartialRecalc && firstMatchCost < 500 && path.cost > 30L*firstMatchCost )
       {
@@ -728,8 +778,7 @@ public class RoutingEngine extends Thread
                              + ( costCuttingTrack.cost - pe.cost );
             if ( costEstimate <= maxTotalCost )
             {
-              if ( matchPath == null ) firstEstimate = costEstimate;
-              matchPath = new OsmPathElement( path );
+              matchPath = OsmPathElement.create( path, routingContext.countTraffic );
             }
             if ( costEstimate < maxTotalCost )
             {
@@ -743,6 +792,7 @@ public class RoutingEngine extends Thread
       // recheck cutoff before doing expensive stuff
       if ( path.cost + path.airdistance > maxTotalCost + 10 )
       {
+        path.unregisterUpTree( routingContext );
         continue;
       }
 
@@ -809,8 +859,8 @@ public class RoutingEngine extends Thread
           {
             if ( isFinalLink )
             {
-              endWp.crosspoint.radius = 1e-5;
-              routingContext.setWaypoint( endWp.crosspoint, true );
+              endPos.radius = 1e-5;
+              routingContext.setWaypoint( endPos, true );
             }
             OsmPath testPath = new OsmPath( currentNode, otherPath, link, refTrack, guideTrack != null, routingContext );
             if ( testPath.cost >= 0 && ( bestPath == null || testPath.cost < bestPath.cost ) )
@@ -829,13 +879,17 @@ public class RoutingEngine extends Thread
         }
         if ( bestPath != null )
         {
-          bestPath.airdistance = isFinalLink ? 0 : nextNode.calcDistance( endPos );
+          boolean trafficSim = endPos == null;
+
+          bestPath.airdistance = trafficSim ? path.airdistance : ( isFinalLink ? 0 : nextNode.calcDistance( endPos ) );
           
-          if ( isFinalLink || bestPath.cost + bestPath.airdistance <= maxTotalCost + 10 )
+          boolean inRadius = boundary == null || boundary.isInBoundary( nextNode, bestPath.cost );
+
+          if ( inRadius && ( isFinalLink || bestPath.cost + bestPath.airdistance <= maxTotalCost + 10 ) )
           {
             // add only if this may beat an existing path for that link
         	OsmLinkHolder dominator = link.firstlinkholder;
-        	while( dominator != null )
+            while( !trafficSim && dominator != null )
             {
               if ( bestPath.definitlyWorseThan( (OsmPath)dominator, routingContext ) )
               {
@@ -846,6 +900,11 @@ public class RoutingEngine extends Thread
 
         	if ( dominator == null )
         	{
+              if ( trafficSim && boundary != null && path.cost == 0 && bestPath.cost > 0 )
+              {
+                bestPath.airdistance += boundary.getBoundaryDistance( nextNode );
+              }
+
               bestPath.treedepth = path.treedepth + 1;
               link.addLinkHolder( bestPath );
               synchronized( openSet )
@@ -861,7 +920,7 @@ public class RoutingEngine extends Thread
       {
         currentNode.unlinkLink(counterLink);
       }
-
+      path.unregisterUpTree( routingContext );
     }
     return null;
   }
@@ -871,6 +930,7 @@ public class RoutingEngine extends Thread
     if ( path.cost >= 0 )
     {
       openSet.add( path.cost + (int)(path.airdistance*airDistanceCostFactor), path );
+      path.registerUpTree();
     }
   }
 
@@ -902,7 +962,7 @@ public class RoutingEngine extends Thread
 
   private OsmTrack compileTrack( OsmPath path, boolean verbose )
   {
-    OsmPathElement element = new OsmPathElement( path );
+    OsmPathElement element = OsmPathElement.create( path, false );
 
     // for final track, cut endnode
     if ( guideTrack != null ) element = element.origin;

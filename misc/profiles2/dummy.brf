@@ -1,0 +1,7 @@
+---context:global   # following code refers to global config
+---context:way   # following code refers to way-tags
+
+assign costfactor
+  switch and highway= not route=ferry  100000
+
+---context:node  # following code refers to node tags

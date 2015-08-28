@@ -5,11 +5,15 @@
  */
 package btools.router;
 
+import java.io.DataOutput;
 import java.util.ArrayList;
 import java.util.List;
 
-import btools.mapaccess.*;
-import btools.expressions.*;
+import btools.expressions.BExpressionContext;
+import btools.expressions.BExpressionContextNode;
+import btools.expressions.BExpressionContextWay;
+import btools.mapaccess.DistanceChecker;
+import btools.mapaccess.OsmTransferNode;
 
 public final class RoutingContext implements DistanceChecker
 {
@@ -83,6 +87,14 @@ public final class RoutingContext implements DistanceChecker
     buffertime           = expctxGlobal.getVariableValue( "buffertime", 120.f );
     waittimeadjustment   = expctxGlobal.getVariableValue( "waittimeadjustment", 0.9f );
     starttimeoffset      = expctxGlobal.getVariableValue( "starttimeoffset", 0.f );
+
+    farTrafficWeight        = expctxGlobal.getVariableValue( "farTrafficWeight", 2.f );
+    nearTrafficWeight        = expctxGlobal.getVariableValue( "nearTrafficWeight", 2.f );
+    farTrafficDecayLength      = expctxGlobal.getVariableValue( "farTrafficDecayLength", 30000.f );
+    nearTrafficDecayLength      = expctxGlobal.getVariableValue( "nearTrafficDecayLength", 3000.f );
+    trafficDirectionFactor      = expctxGlobal.getVariableValue( "trafficDirectionFactor", 0.9f );
+    trafficSourceExponent      = expctxGlobal.getVariableValue( "trafficSourceExponent", -0.7f );
+    trafficSourceMinDist      = expctxGlobal.getVariableValue( "trafficSourceMinDist", 3000.f );
   }
 
   public RoutingMessageHandler messageHandler = new RoutingMessageHandler();
@@ -98,6 +110,18 @@ public final class RoutingContext implements DistanceChecker
   public double wayfraction;
   public int ilatshortest;
   public int ilonshortest;
+
+  public boolean countTraffic;
+  public boolean inverseDirection;
+  public DataOutput trafficOutputStream;
+
+  public double farTrafficWeight;
+  public double nearTrafficWeight;
+  public double farTrafficDecayLength;
+  public double nearTrafficDecayLength;
+  public double trafficDirectionFactor;
+  public double trafficSourceExponent;
+  public double trafficSourceMinDist;
 
   public static void prepareNogoPoints( List<OsmNodeNamed> nogos )
   {

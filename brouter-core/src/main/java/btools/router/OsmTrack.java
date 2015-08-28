@@ -32,7 +32,7 @@ public final class OsmTrack
   public MatchedWaypoint endPoint;
   public long[] nogoChecksums;
   
-  private class OsmPathElementHolder
+  private static class OsmPathElementHolder
   {
     public OsmPathElement node;
     public OsmPathElementHolder nextHolder;
@@ -448,7 +448,7 @@ public final class OsmTrack
           idx2 += 6;
           int idx3 = line.indexOf( '"', idx2 );
           int ilat = (int)((Double.parseDouble( line.substring( idx2, idx3 ) ) + 90. )*1000000. + 0.5);
-          nodes.add( new OsmPathElement( ilon, ilat, (short)0, null ) );
+          nodes.add( OsmPathElement.create( ilon, ilat, (short)0, null, false ) );
         }
       }
       br.close();

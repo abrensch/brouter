@@ -1,5 +1,5 @@
 ---lookupversion:10
----minorversion:4
+---minorversion:5
 ---readvarlength
 
 ---context:way
@@ -497,6 +497,14 @@ ramp:wheelchair;0000000439 no
 
 ramp:luggage;0000000162 no
 ramp:luggage;0000000054 yes automatic manual
+
+estimated_traffic_class;0000000001 1
+estimated_traffic_class;0000000001 2
+estimated_traffic_class;0000000001 3
+estimated_traffic_class;0000000001 4
+estimated_traffic_class;0000000001 5
+estimated_traffic_class;0000000001 6
+estimated_traffic_class;0000000001 7
 
 ---context:node
 

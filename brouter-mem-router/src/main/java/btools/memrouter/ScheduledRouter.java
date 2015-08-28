@@ -339,7 +339,7 @@ time0 = minutes0 * 60000L;
       {
 System.out.println( "trip=" + current );
     	  OsmNodeP node = current.getTargetNode();
-    	  OsmPathElement pe = new OsmPathElement(node.ilon, node.ilat, node.selev, null );
+    	  OsmPathElement pe = OsmPathElement.create(node.ilon, node.ilat, node.selev, null, false );
     	  track.addNode(pe);
 
 	      if ( nextNode != null )

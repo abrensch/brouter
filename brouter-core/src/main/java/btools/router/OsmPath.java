@@ -5,7 +5,13 @@
  */
 package btools.router;
 
-import btools.mapaccess.*;
+import java.io.IOException;
+import java.util.ArrayList;
+
+import btools.mapaccess.OsmLink;
+import btools.mapaccess.OsmLinkHolder;
+import btools.mapaccess.OsmNode;
+import btools.mapaccess.OsmTransferNode;
 
 final class OsmPath implements OsmLinkHolder
 {
@@ -29,6 +35,9 @@ final class OsmPath implements OsmLinkHolder
   private OsmNode sourcenode;
   private OsmLink link;
   public OsmPathElement originElement;
+  public OsmPathElement myElement;
+
+  private float traffic;
 
   private OsmLinkHolder nextForLink = null;
 
@@ -44,6 +53,32 @@ final class OsmPath implements OsmLinkHolder
 
   public MessageData message;
 
+  public void unregisterUpTree( RoutingContext rc )
+  {
+    try
+    {
+      OsmPathElement pe = originElement;
+      while( pe instanceof OsmPathElementWithTraffic && ((OsmPathElementWithTraffic)pe).unregister(rc) )
+      {
+        pe = pe.origin;
+      }
+    }
+    catch( IOException ioe )
+    {
+      throw new RuntimeException( ioe );
+    }
+  }
+
+  public void registerUpTree()
+  {
+    if ( originElement instanceof OsmPathElementWithTraffic )
+    {
+      OsmPathElementWithTraffic ot = (OsmPathElementWithTraffic)originElement;
+      ot.register();
+      ot.addTraffic( traffic );
+    }
+  }
+
   OsmPath()
   {
   }
@@ -55,23 +90,30 @@ final class OsmPath implements OsmLinkHolder
     this.selev = link.targetNode.getSElev();
   }
 
-  OsmPath( OsmNode sourcenode, OsmPath origin, OsmLink link, OsmTrack refTrack, boolean recordTransferNodes, RoutingContext rc )
+  OsmPath( OsmNode sourcenode, OsmPath origin, OsmLink link, OsmTrack refTrack, boolean detailMode, RoutingContext rc )
   {
     this();
-    this.originElement = new OsmPathElement( origin );
+    if ( origin.myElement == null )
+    {
+      origin.myElement = OsmPathElement.create( origin, rc.countTraffic );
+    }
+    this.originElement = origin.myElement;
     this.link = link;
     this.sourcenode = sourcenode;
     this.cost = origin.cost;
     this.ehbd = origin.ehbd;
     this.ehbu = origin.ehbu;
     this.lastClassifier = origin.lastClassifier;
-    addAddionalPenalty(refTrack, recordTransferNodes, origin, link, rc );
+    addAddionalPenalty(refTrack, detailMode, origin, link, rc );
   }
 
-  private void addAddionalPenalty(OsmTrack refTrack, boolean recordTransferNodes, OsmPath origin, OsmLink link, RoutingContext rc )
+  private void addAddionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, OsmLink link, RoutingContext rc )
   {
 	if ( link.descriptionBitmap == null ) throw new IllegalArgumentException( "null description for class: " + link.getClass() );
-	  
+
+	boolean recordTransferNodes = detailMode || rc.countTraffic;
+	boolean recordMessageData = detailMode;
+
     rc.nogomatch = false;
 
     // extract the 3 positions of the first section
@@ -117,10 +159,10 @@ final class OsmPath implements OsmLinkHolder
       }
 
       rc.messageHandler.setCurrentPos( lon2, lat2 );
-      boolean sameData = rc.expctxWay.evaluate( link.counterLinkWritten, description, rc.messageHandler );
+      boolean sameData = rc.expctxWay.evaluate( rc.inverseDirection ^ link.counterLinkWritten, description, rc.messageHandler );
       
       // if way description changed, store message
-      if ( msgData.wayKeyValues != null && !sameData )
+      if ( recordMessageData && msgData.wayKeyValues != null && !sameData )
       {
         originElement.message = msgData;
         msgData = new MessageData();
@@ -147,7 +189,7 @@ final class OsmPath implements OsmLinkHolder
           {
             if (  rc.wayfraction > 0. )
             {
-              originElement = new OsmPathElement( rc.ilonshortest, rc.ilatshortest, ele2, null );
+              originElement = OsmPathElement.create( rc.ilonshortest, rc.ilatshortest, ele2, null, rc.countTraffic );
             }
             else
             {
@@ -160,9 +202,10 @@ final class OsmPath implements OsmLinkHolder
       msgData.linkdist += dist;
       linkdisttotal += dist;
 
+      boolean isTrafficBackbone = cost == 0 && rc.expctxWay.getIsTrafficBackbone() > 0.f;
 
       // *** penalty for turning angles
-      if ( origin.originElement != null )
+      if ( !isTrafficBackbone && origin.originElement != null )
       {
         // penalty proportional to direction change
         double cos = rc.calcCosAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
@@ -251,6 +294,12 @@ final class OsmPath implements OsmLinkHolder
       cfdown = cfdown == 0.f ? cf : cfdown;
       
       float costfactor = cfup*upweight + cf*(1.f - upweight - downweight) + cfdown*downweight;
+
+      if ( isTrafficBackbone )
+      {
+        costfactor = 0.f;
+      }
+
       float fcost = dist * costfactor + 0.5f;
       if ( costfactor > 9999. || fcost + cost >= 2000000000. )
       {
@@ -260,6 +309,12 @@ final class OsmPath implements OsmLinkHolder
       int waycost = (int)(fcost);
       cost += waycost;
 
+      // calculate traffic
+      {
+        int minDist = (int)rc.trafficSourceMinDist;
+        int cost2 = cost < minDist ? minDist : cost;
+        traffic += dist*rc.expctxWay.getTrafficSourceDensity()*Math.pow(cost2/10000.f,rc.trafficSourceExponent);
+      }
       // *** add initial cost if the classifier changed
       float newClassifier = rc.expctxWay.getInitialClassifier();
       if ( newClassifier == 0. )
@@ -276,7 +331,7 @@ final class OsmPath implements OsmLinkHolder
           cost += iicost;
       }
 
-      if ( recordTransferNodes )
+      if ( recordMessageData )
       {
         msgData.costfactor = costfactor;
         msgData.lon = lon2;
@@ -289,9 +344,12 @@ final class OsmPath implements OsmLinkHolder
       {
         if ( recordTransferNodes )
         {
-          originElement = new OsmPathElement( rc.ilonshortest, rc.ilatshortest, ele2, originElement );
+          originElement = OsmPathElement.create( rc.ilonshortest, rc.ilatshortest, ele2, originElement, rc.countTraffic );
           originElement.cost = cost;
-          originElement.message = msgData;
+          if ( recordMessageData )
+          {
+            originElement.message = msgData;
+          }
         }
         if ( rc.nogomatch )
         {
@@ -315,8 +373,10 @@ final class OsmPath implements OsmLinkHolder
 
       if ( recordTransferNodes )
       {
-        originElement = new OsmPathElement( lon2, lat2, ele2, originElement );
+        originElement = OsmPathElement.create( lon2, lat2, ele2, originElement, rc.countTraffic );
         originElement.cost = cost;
+        originElement.addTraffic( traffic );
+        traffic = 0;
       }
       lon0 = lon1;
       lat0 = lat1;
@@ -350,13 +410,15 @@ final class OsmPath implements OsmLinkHolder
 
         cost += iicost;
 
-        if ( recordTransferNodes )
+        if ( recordMessageData )
         {
           msgData.nodeKeyValues = rc.expctxNode.getKeyValueDescription( nodeAccessGranted, targetNode.nodeDescription );
         }
     }
-
-    message = msgData;
+    if ( recordMessageData )
+    {
+      message = msgData;
+    }
 
   }
 

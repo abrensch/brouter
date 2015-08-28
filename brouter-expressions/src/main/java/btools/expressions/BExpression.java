@@ -12,6 +12,7 @@ final class BExpression
   private static final int MULTIPLY_EXP = 21;
   private static final int MAX_EXP = 22;
   private static final int EQUAL_EXP = 23;
+  private static final int GREATER_EXP = 24;
 
   private static final int SWITCH_EXP = 30;
   private static final int ASSIGN_EXP = 31;
@@ -104,6 +105,10 @@ final class BExpression
       else if ( "equal".equals( operator ) )
       {
         exp.typ = EQUAL_EXP;
+      }
+      else if ( "greater".equals( operator ) )
+      {
+        exp.typ = GREATER_EXP;
       }
       else
       {
@@ -226,6 +231,7 @@ final class BExpression
       case MULTIPLY_EXP: return op1.evaluate(ctx) * op2.evaluate(ctx);
       case MAX_EXP: return max( op1.evaluate(ctx), op2.evaluate(ctx) );
       case EQUAL_EXP: return op1.evaluate(ctx) == op2.evaluate(ctx) ? 1.f : 0.f;
+      case GREATER_EXP: return op1.evaluate(ctx) > op2.evaluate(ctx) ? 1.f : 0.f;
       case SWITCH_EXP: return op1.evaluate(ctx) != 0.f ? op2.evaluate(ctx) : op3.evaluate(ctx);
       case ASSIGN_EXP: return ctx.assign( variableIdx, op1.evaluate(ctx) );
       case LOOKUP_EXP: return ctx.getLookupMatch( lookupNameIdx, lookupValueIdxArray );

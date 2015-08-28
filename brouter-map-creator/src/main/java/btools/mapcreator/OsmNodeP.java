@@ -34,14 +34,12 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>
    */
   public short selev;
 
-  public boolean isBorder = false;
-
   public final static int NO_BRIDGE_BIT = 1;
   public final static int NO_TUNNEL_BIT = 2;
-  public final static int LCN_BIT = 4;
-  public final static int CR_BIT = 8;
+  public final static int BORDER_BIT = 4;
+  public final static int TRAFFIC_BIT = 8;
 
-  public byte wayBits = 0;
+  public byte bits = 0;
 
   // interface OsmPos
   public int getILat()
@@ -57,7 +55,7 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>
   public short getSElev()
   {
     // if all bridge or all tunnel, elevation=no-data
-    return ( wayBits & NO_BRIDGE_BIT ) == 0 || ( wayBits & NO_TUNNEL_BIT ) == 0 ? Short.MIN_VALUE : selev;
+    return ( bits & NO_BRIDGE_BIT ) == 0 || ( bits & NO_TUNNEL_BIT ) == 0 ? Short.MIN_VALUE : selev;
   }
 
   public double getElev()
@@ -247,9 +245,19 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>
     return ((long)ilon)<<32 | ilat;
   }
 
+  public boolean isBorderNode()
+  {
+    return (bits & BORDER_BIT) != 0;
+  }
+
+  public boolean hasTraffic()
+  {
+    return (bits & TRAFFIC_BIT) != 0;
+  }
+
   public boolean isTransferNode()
   {
-    return (!isBorder) && _linkCnt() == 2;
+    return (bits & BORDER_BIT) == 0 && _linkCnt() == 2;
   }
 
   private int _linkCnt()

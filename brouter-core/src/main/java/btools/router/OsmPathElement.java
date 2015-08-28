@@ -13,7 +13,7 @@ import java.io.IOException;
  * @author ab
  */
 
-public final class OsmPathElement implements OsmPos
+public class OsmPathElement implements OsmPos
 {
   private int ilat; // latitude
   private int ilon; // longitude
@@ -24,32 +24,32 @@ public final class OsmPathElement implements OsmPos
   public int cost;
 
   // interface OsmPos
-  public int getILat()
+  public final int getILat()
   {
     return ilat;
   }
 
-  public int getILon()
+  public final int getILon()
   {
     return ilon;
   }
 
-  public short getSElev()
+  public final short getSElev()
   {
     return selev;
   }
 
-  public double getElev()
+  public final double getElev()
   {
     return selev / 4.;
   }
 
-  public long getIdFromPos()
+  public final long getIdFromPos()
   {
     return ((long)ilon)<<32 | ilat;
   }
 
-  public int calcDistance( OsmPos p )
+  public final int calcDistance( OsmPos p )
   {
     double l = (ilat-90000000) * 0.00000001234134;
     double l2 = l*l;
@@ -65,27 +65,30 @@ public final class OsmPathElement implements OsmPos
   public OsmPathElement origin;
 
   // construct a path element from a path
-  public OsmPathElement( OsmPath path )
+  public static final OsmPathElement create( OsmPath path, boolean countTraffic )
   {
     OsmNode n = path.getLink().targetNode;
-    ilat = n.getILat();
-    ilon = n.getILon();
-    selev = path.selev;
-    cost = path.cost;
-
-    origin = path.originElement;
-    message = path.message;
+    OsmPathElement pe = create( n.getILon(), n.getILat(), path.selev, path.originElement, countTraffic );
+    pe.cost = path.cost;
+    pe.message = path.message;
+    return pe;
   }
 
-  public OsmPathElement( int ilon, int ilat, short selev, OsmPathElement origin )
+  public static final OsmPathElement create( int ilon, int ilat, short selev, OsmPathElement origin, boolean countTraffic )
   {
-    this.ilon = ilon;
-    this.ilat = ilat;
-    this.selev = selev;
-    this.origin = origin;
+    OsmPathElement pe = countTraffic ? new OsmPathElementWithTraffic() : new OsmPathElement();
+    pe.ilon = ilon;
+    pe.ilat = ilat;
+    pe.selev = selev;
+    pe.origin = origin;
+    return pe;
   }
   
-  private OsmPathElement()
+  protected OsmPathElement()
+  {
+  }
+
+  public void addTraffic( float traffic )
   {
   }
 

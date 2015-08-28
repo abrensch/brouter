@@ -1,5 +1,8 @@
 package btools.server;
 
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
+import java.io.FileOutputStream;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,6 +10,7 @@ import java.util.List;
 import btools.router.OsmNodeNamed;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
+import btools.router.SearchBoundary;
 
 public class BRouter
 {
@@ -84,7 +88,7 @@ public class BRouter
       }
       System.exit(0);
     }
-    System.out.println("BRouter 1.0 / 01062014 / abrensch");
+    System.out.println("BRouter 1.2 / 04042015 / abrensch");
     if ( args.length < 6 )
     {
       System.out.println("Find routes in an OSM map");
@@ -93,9 +97,37 @@ public class BRouter
     }
     List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
     wplist.add( readPosition( args, 1, "from" ) );
-    wplist.add( readPosition( args, 3, "to" ) );
-    RoutingEngine re = new RoutingEngine( "mytrack", "mylog", args[0], wplist, readRoutingContext(args) );
-    re.doRun( 0 );
+    RoutingEngine re = null;
+    if ( "seed".equals( args[3] ) )
+    {
+      int searchRadius = Integer.parseInt( args[4] ); // if = 0 search a 5x5 square
+
+      String filename = SearchBoundary.getFileName( wplist.get(0) );
+      DataOutputStream dos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( "traffic/" + filename ) ) );
+
+      for( int direction = 0; direction < 8; direction++ )
+      {
+        RoutingContext rc = readRoutingContext(args);
+        SearchBoundary boundary = new SearchBoundary( wplist.get(0), searchRadius, direction/2 );
+        rc.trafficOutputStream = dos;
+        rc.inverseDirection = (direction & 1 ) != 0;
+        re = new RoutingEngine( "mytrack", "mylog", args[0], wplist, rc );
+        re.boundary = boundary;
+        re.airDistanceCostFactor = rc.trafficDirectionFactor;
+        re.doSearch();
+        if ( re.getErrorMessage() != null )
+        {
+          break;
+        }
+      }
+      dos.close();
+    }
+    else
+    {
+      wplist.add( readPosition( args, 3, "to" ) );
+      re = new RoutingEngine( "mytrack", "mylog", args[0], wplist, readRoutingContext(args) );
+      re.doRun( 0 );
+    }
     if ( re.getErrorMessage() != null )
     {
     	System.out.println( re.getErrorMessage() );
