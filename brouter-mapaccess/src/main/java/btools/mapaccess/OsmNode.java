@@ -75,9 +75,6 @@ public class OsmNode implements OsmPos
     return selev / 4.;
   }
 
- /**
-   * Whether there's a traffic signal
-   */
 
  /**
    * The links to other nodes
@@ -86,11 +83,7 @@ public class OsmNode implements OsmPos
 
     public OsmLink firstreverse = null;
 
-   // whether this node is completed and registerd for map-removal
-   public boolean completed;
-
-   public boolean wasProcessed;
-   public int maxcost; // maximum cost to consider for that node
+   public boolean wasProcessed; // whether this node has all it's links resolved
 
    public void addLink( OsmLink link )
    {
@@ -119,6 +112,9 @@ public class OsmNode implements OsmPos
 	 selev = is.readShort();
 
      OsmLink lastlink = null;
+     
+     OsmLink firstHollowLink = firstlink;
+     firstlink = null;
 
      int lonIdx = ilon/62500;
      int latIdx = ilat/62500;
@@ -137,7 +133,6 @@ public class OsmNode implements OsmPos
        for(;;)
        {
          int bitField = is.readByte();
-  //        System.out.println( "parseNodeBody: var=" + readVarLength + " bitField=" + bitField );
          if ( readVarLength )
          {
          	int dlon = is.readVarLengthUnsigned();
@@ -226,7 +221,7 @@ public class OsmNode implements OsmPos
        {
            if ( !dc.isWithinRadius( ilon, ilat, firstTransferNode, linklon, linklat ) )
            {
-               continue;
+            //   continue;
            }
        }
 
@@ -245,23 +240,36 @@ public class OsmNode implements OsmPos
        }
        lastlink = link;
 
+       OsmNode tn = null;
 
-       long targetNodeId = ((long)linklon)<<32 | linklat;
-       OsmNode tn = hollowNodes.get( targetNodeId ); // target node
-
-       if ( tn == null )
+       // first check the hollow links for that target
+       for( OsmLink l = firstHollowLink; l != null; l = l.next )
        {
-         // node not yet known, create a hollow proxy
-         tn = new OsmNode(linklon, linklat);
-         tn.setHollow();
-         hollowNodes.put( targetNodeId, tn );
+       	 OsmNode t = l.targetNode;
+       	 if ( t.ilon == linklon && t.ilat == linklat )
+       	 {
+System.out.println( "found target in hollow links: " + t.getIdFromPos() );
+       	   tn = t;
+       	   break;
+       	 }
        }
-       else
+       if ( tn == null ) // then check the hollow-nodes
        {
-         if ( !( tn.isHollow() || tn.hasHollowLinks() ) )
+         long targetNodeId = ((long)linklon)<<32 | linklat;
+         tn = hollowNodes.get( targetNodeId ); // target node
+
+         if ( tn == null ) // node not yet known, create a new hollow proxy
          {
-           hollowNodes.registerCompletedNode( tn );
+           tn = new OsmNode(linklon, linklat);
+           tn.setHollow();
+           hollowNodes.put( targetNodeId, tn );
          }
+
+System.out.println( "registering : " + getIdFromPos() + " at hollow " + tn.getIdFromPos() );
+
+         OsmLink hollowLink = new OsmLink();
+         hollowLink.targetNode = this;
+         tn.addLink( hollowLink );  // make us known at the hollow link
        }
        link.targetNode = tn;
 
@@ -303,10 +311,7 @@ public class OsmNode implements OsmPos
 
      }
 
-     if ( !hasHollowLinks() )
-     {
-       hollowNodes.registerCompletedNode( this );
-     }
+     hollowNodes.remove( getIdFromPos() );
    }
 
   public boolean isHollow()
@@ -322,27 +327,6 @@ public class OsmNode implements OsmPos
   public long getIdFromPos()
   {
     return ((long)ilon)<<32 | ilat;
-  }
-
-  public boolean hasHollowLinks()
-  {
-    for( OsmLink link = firstlink; link != null; link = link.next )
-    {
-      if ( link.targetNode.isHollow() ) return true;
-    }
-    return false;
-  }
-
-
-  public int linkCnt()
-  {
-    int cnt = 0;
-
-    for( OsmLink link = firstlink; link != null; link = link.next )
-    {
-      cnt++;
-    }
-    return cnt;
   }
 
   public void unlinkLink( OsmLink link )

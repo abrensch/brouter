@@ -535,13 +535,8 @@ public class RoutingEngine extends Thread
   private OsmNode getStartNode( long startId )
   {
     // initialize the start-node
-    OsmNode start = nodesMap.get( startId );
-    if ( start == null )
-    {
-      start = new OsmNode( startId );
-      start.setHollow();
-      nodesMap.put( startId, start );
-    }
+    OsmNode start = new OsmNode( startId );
+    start.setHollow();
     if ( !nodesCache.obtainNonHollowNode( start ) )
     {
       return null;
@@ -678,14 +673,27 @@ public class RoutingEngine extends Thread
     long startNodeId1 = startWp.node1.getIdFromPos();
     long startNodeId2 = startWp.node2.getIdFromPos();
 
-    OsmNodeNamed startPos = startWp.crosspoint;
     OsmNodeNamed endPos = endWp == null ? null : endWp.crosspoint;
     
     boolean sameSegmentSearch = ( startNodeId1 == endNodeId1 && startNodeId2 == endNodeId2 )
                              || ( startNodeId1 == endNodeId2 && startNodeId2 == endNodeId1 );
     
     OsmNode start1 = getStartNode( startNodeId1 );
-    OsmNode start2 = getStartNode( startNodeId2 );
+    if ( start1 == null ) return null;
+    OsmNode start2 = null;
+    for( OsmLink link = start1.firstlink; link != null; link = link.next )
+    {
+    	if ( link.targetNode.getIdFromPos() == startNodeId2 )
+    	{
+    	  start2 = link.targetNode;
+    	  break;
+    	}
+    }
+    if ( start2 == null ) return null;
+
+
+    
+
     if ( start1 == null || start2 == null ) return null;
 
     OsmPath startPath1 = getStartPath( start1, start2, startWp, endPos, sameSegmentSearch );
@@ -799,7 +807,6 @@ public class RoutingEngine extends Thread
       if ( !currentNode.wasProcessed )
       {
         expandHollowLinkTargets( currentNode, true );
-        nodesMap.removeCompletedNodes();
       }
 
       if ( sourceNode != null )
