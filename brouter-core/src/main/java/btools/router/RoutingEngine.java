@@ -381,7 +381,7 @@ public class RoutingEngine extends Thread
         {
           continue;
         }
-        expandHollowLinkTargets( n, false );
+        expandHollowLinkTargets( n );
         OsmLink startLink = new OsmLink();
         startLink.targetNode = n;
         OsmPath startPath = new OsmPath( startLink );
@@ -418,30 +418,12 @@ public class RoutingEngine extends Thread
   }
 
   // expand hollow link targets and resolve reverse links
-  private void expandHollowLinkTargets( OsmNode n, boolean failOnReverseNotFound )
+  private void expandHollowLinkTargets( OsmNode n )
   {
     for( OsmLink link = n.firstlink; link != null; link = link.next )
     {
-      if ( ! nodesCache.obtainNonHollowNode( link.targetNode ) )
-      {
-        continue;
-      }
-
-      if ( link.counterLinkWritten )
-      {
-        OsmLink rlink = link.targetNode.getReverseLink( n.getILon(), n.getILat() );
-        if ( rlink == null )
-        {
-          if ( failOnReverseNotFound ) throw new RuntimeException( "reverse link not found!" );
-        }
-        else
-        {
-          link.descriptionBitmap = rlink.descriptionBitmap;
-          link.firsttransferBytes = rlink.firsttransferBytes;
-        }
-      }
+      nodesCache.obtainNonHollowNode( link.targetNode );
     }
-    n.wasProcessed = true;
   }
 
   private OsmTrack searchTrack( MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack )
@@ -541,7 +523,7 @@ public class RoutingEngine extends Thread
     {
       return null;
     }
-    expandHollowLinkTargets( start, true );
+    expandHollowLinkTargets( start );
     return start;
   }
 
@@ -804,10 +786,7 @@ public class RoutingEngine extends Thread
         continue;
       }
 
-      if ( !currentNode.wasProcessed )
-      {
-        expandHollowLinkTargets( currentNode, true );
-      }
+      expandHollowLinkTargets( currentNode );
 
       if ( sourceNode != null )
       {

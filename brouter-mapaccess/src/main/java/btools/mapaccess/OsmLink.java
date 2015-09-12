@@ -19,12 +19,6 @@ public class OsmLink
    */
   public OsmNode targetNode;
 
-  /**
-   * The origin position
-   */
-  public int ilatOrigin;
-  public int ilonOrigin;
-
   public OsmLink next;
 
   public byte[] firsttransferBytes;
@@ -42,11 +36,18 @@ public class OsmLink
 
   public boolean counterLinkWritten;
 
+  public byte state;
+
    public OsmLinkHolder firstlinkholder = null;
 
    final public void addLinkHolder( OsmLinkHolder holder )
    {
      if ( firstlinkholder != null ) { holder.setNextForLink( firstlinkholder ); }
      firstlinkholder = holder;
+   }
+
+   public String toString()
+   {
+     return "Link(target=" + targetNode.getIdFromPos() + " counterLinkWritten=" + counterLinkWritten + " state=" + state + ")";
    }
 }

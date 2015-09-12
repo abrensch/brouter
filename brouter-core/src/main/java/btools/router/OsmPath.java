@@ -109,7 +109,7 @@ final class OsmPath implements OsmLinkHolder
 
   private void addAddionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, OsmLink link, RoutingContext rc )
   {
-	if ( link.descriptionBitmap == null ) throw new IllegalArgumentException( "null description for class: " + link.getClass() );
+	if ( link.descriptionBitmap == null ) throw new IllegalArgumentException( "null description for: " + link );
 
 	boolean recordTransferNodes = detailMode || rc.countTraffic;
 	boolean recordMessageData = detailMode;

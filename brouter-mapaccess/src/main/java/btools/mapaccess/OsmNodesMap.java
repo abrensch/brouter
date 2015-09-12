@@ -11,9 +11,11 @@ import btools.util.ByteArrayUnifier;
 
 public final class OsmNodesMap
 {
-  private HashMap<Long,OsmNode> hmap = new HashMap<Long,OsmNode>();
+  private HashMap<OsmNode,OsmNode> hmap = new HashMap<OsmNode,OsmNode>();
   
   private ByteArrayUnifier abUnifier = new ByteArrayUnifier( 16384, false );
+
+  private OsmNode testKey = new OsmNode();
 
   public ByteArrayUnifier getByteArrayUnifier()
   {
@@ -26,22 +28,24 @@ public final class OsmNodesMap
    */
   public OsmNode get( long id )
   {
-    return hmap.get( new Long( id  ) );
+    testKey.ilon = (int)(id >> 32);
+    testKey.ilat = (int)(id & 0xffffffff);
+    return hmap.get( testKey );
   }
 
 
-  public void remove( long id )
+  public void remove( OsmNode node )
   {
-    hmap.remove( new Long( id  ) );
+    hmap.remove( node );
   }
 
   /**
    * Put a node into the map
    * @return the previous node if that id existed, else null
    */
-  public OsmNode put( long id, OsmNode node )
+  public OsmNode put( OsmNode node )
   {
-    return hmap.put( new Long( id  ), node );
+    return hmap.put( node, node );
   }
 
 
