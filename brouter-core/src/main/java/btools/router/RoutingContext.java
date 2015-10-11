@@ -140,6 +140,27 @@ public final class RoutingContext implements DistanceChecker
     }
   }
 
+  public void cleanNogolist( List<OsmNodeNamed> waypoints )
+  {
+    if ( nogopoints == null ) return;
+    List<OsmNodeNamed> nogos = new ArrayList<OsmNodeNamed>();
+    for( OsmNodeNamed nogo : nogopoints )
+    {
+      int radiusInMeter = (int)(nogo.radius * 111894.);
+      boolean goodGuy = true;
+      for( OsmNodeNamed wp : waypoints )
+      {
+        if ( wp.calcDistance( nogo ) < radiusInMeter )
+        {
+          goodGuy = false;
+          break;
+        }
+      }
+      if ( goodGuy ) nogos.add( nogo );
+    }
+    nogopoints = nogos;
+  }
+
   public long[] getNogoChecksums()
   {
     long[] cs = new long[3];
@@ -215,8 +236,7 @@ public final class RoutingContext implements DistanceChecker
             // calculate remaining distance
             if ( s2 < 0. )
             {
-              double distance = d > 0. ? -s2 / d : 0.;
-              wayfraction = d > 0. ? distance / d : 0.;
+              wayfraction = -s2 / (d*d);
               double xm = x2 - wayfraction*dx;
               double ym = y2 - wayfraction*dy;
               ilonshortest = (int)(xm / coslat6 + nogo.ilon);

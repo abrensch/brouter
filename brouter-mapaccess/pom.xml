@@ -17,5 +17,15 @@
             <artifactId>brouter-util</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.btools</groupId>
+            <artifactId>brouter-codec</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.btools</groupId>
+            <artifactId>brouter-expressions</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>

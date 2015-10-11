@@ -129,7 +129,7 @@ final class OsmPath implements OsmLinkHolder
 
     MessageData msgData = new MessageData();
 
-    OsmTransferNode transferNode = link.decodeFirsttransfer();
+    OsmTransferNode transferNode = link.decodeFirsttransfer( p1 );
     OsmNode targetNode = link.targetNode;
     for(;;)
     {

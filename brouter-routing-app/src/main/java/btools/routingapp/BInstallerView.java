@@ -157,7 +157,7 @@ public class BInstallerView extends View
     private void startDownload( int tileIndex, boolean isCd5 )
     {
     	String namebase = baseNameForTile( tileIndex );
-    	String baseurl = "http://brouter.de/brouter/segments3/";
+      String baseurl = "http://brouter.de/brouter/segments4/";
         currentDownloadFile = namebase + (isCd5 ? ".cd5" : ".rd5" );
         String url = baseurl + (isCd5 ? "carsubset/" : "" ) + currentDownloadFile;
     	isDownloading = true;
@@ -606,7 +606,7 @@ float tx, ty;
                     // download the file
                     input = connection.getInputStream();
                     
-                    int slidx = surl.lastIndexOf( "segments3/" );
+                    int slidx = surl.lastIndexOf( "segments4/" );
                     fname = baseDir + "/brouter/segments3/" + surl.substring( slidx+10 );
                     tmp_file = new File( fname + "_tmp" );
                     if ( new File( fname ).exists() ) return "internal error: file exists: " + fname;
@@ -633,6 +633,15 @@ float tx, ty;
                         	try { Thread.sleep( dt ); } catch( InterruptedException ie ) {}
                         }
                     }
+                    publishProgress( 101 );
+                    String check_result = PhysicalFile.checkFileIntegrity( tmp_file );
+                    if ( check_result != null ) return check_result;
+
+                    if ( !tmp_file.renameTo( new File( fname ) ) )
+                    {
+                      return "Could not rename to " + fname;
+                    }
+                    return null;
                 } catch (Exception e) {
                     return e.toString();
                 } finally {
@@ -647,15 +656,6 @@ float tx, ty;
                     if (connection != null)
                         connection.disconnect();
                 }
-                publishProgress( 101 );
-                String check_result = PhysicalFile.checkFileIntegrity( tmp_file );
-                if ( check_result != null ) return check_result;
-                
-                if ( !tmp_file.renameTo( new File( fname ) ) )
-                {
-                  return "Could not rename to " + fname;
-                }
-                return null;
               }
               finally
               {

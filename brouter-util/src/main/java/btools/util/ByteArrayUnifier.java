@@ -9,11 +9,7 @@ public final class ByteArrayUnifier
   public ByteArrayUnifier( int size, boolean validateImmutability )
   {
     this.size = size;
-    
-    if ( !Boolean.getBoolean( "disableByteArrayUnifification" ) )
-    {
-      byteArrayCache = new byte[size][];
-    }
+    byteArrayCache = new byte[size][];
     if ( validateImmutability ) crcCrosscheck = new int[size];
   }
 
@@ -26,33 +22,40 @@ public final class ByteArrayUnifier
    */
   public byte[] unify( byte[] ab )
   {
-	  if ( byteArrayCache == null ) return ab;
-	  
-      int n = ab.length;
-      int crc  = Crc32.crc( ab, 0, n );
-      int idx  =  (crc & 0xfffffff) % size;
-      byte[] abc = byteArrayCache[idx];
-      if ( abc != null && abc.length == n )
+    return unify( ab, 0, ab.length );
+  }
+
+  public byte[] unify( byte[] ab, int offset, int len )
+  {
+    int crc = Crc32.crc( ab, offset, len );
+    int idx = ( crc & 0xfffffff ) % size;
+    byte[] abc = byteArrayCache[idx];
+    if ( abc != null && abc.length == len )
+    {
+      int i = 0;
+      while (i < len)
       {
-    	int i = 0;
-        while( i < n )
-        {
-        	if ( ab[i] != abc[i] ) break;
-        	i++;
-        }
-        if ( i == n ) return abc;
+        if ( ab[offset + i] != abc[i] )
+          break;
+        i++;
       }
-      if ( crcCrosscheck != null )
+      if ( i == len )
+        return abc;
+    }
+    if ( crcCrosscheck != null )
+    {
+      if ( byteArrayCache[idx] != null )
       {
-    	  if ( byteArrayCache[idx] != null )
-    	  {
-    	    byte[] abold = byteArrayCache[idx];
-    	    int crcold = Crc32.crc( abold, 0, abold.length );
-    	    if ( crcold != crcCrosscheck[idx] ) throw new IllegalArgumentException( "ByteArrayUnifier: immutablity validation failed!" );
-    	  }
-    	  crcCrosscheck[idx] = crc;
+        byte[] abold = byteArrayCache[idx];
+        int crcold = Crc32.crc( abold, 0, abold.length );
+        if ( crcold != crcCrosscheck[idx] )
+          throw new IllegalArgumentException( "ByteArrayUnifier: immutablity validation failed!" );
       }
-      byteArrayCache[idx] = ab;
-	  return ab;
+      crcCrosscheck[idx] = crc;
+    }
+    byte[] nab = new byte[len];
+    System.arraycopy( ab, offset, nab, 0, len );
+    byteArrayCache[idx] = nab;
+    return nab;
   }
 }

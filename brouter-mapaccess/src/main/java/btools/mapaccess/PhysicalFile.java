@@ -5,8 +5,11 @@
  */
 package btools.mapaccess;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 
+import btools.codec.DataBuffers;
 import btools.util.ByteDataReader;
 import btools.util.Crc32;
 
@@ -21,6 +24,8 @@ final public class PhysicalFile
 
   String fileName;
   
+  public int divisor = 80;
+
   /**
    * Checks the integrity of the file using the build-in checksums
    *
@@ -28,39 +33,50 @@ final public class PhysicalFile
    */
   public static String checkFileIntegrity( File f )
   {
-      PhysicalFile pf = null;
-	  try
-	  {
-        byte[] iobuffer = new byte[65636];
-        pf = new PhysicalFile( f, new byte[65636], -1, -1 );
-      	for( int tileIndex=0; tileIndex<25; tileIndex++ )
-      	{
-		  OsmFile osmf = new OsmFile( pf, tileIndex, iobuffer );
-		  if ( osmf.microCaches != null )
-		    for( int lonIdx80=0; lonIdx80<80; lonIdx80++ )
-			  for( int latIdx80=0; latIdx80<80; latIdx80++ )
-                new MicroCache( osmf, lonIdx80, latIdx80, iobuffer );
-      	}
-	  }
-	  catch( IllegalArgumentException iae )
-	  {
-	    return iae.getMessage();
-	  }
-	  catch( Exception e )
-	  {
-	    return e.toString();
-	  }
-	  finally
-	  {
-        if ( pf != null ) try{ pf.ra.close(); } catch( Exception ee ) {}
-	  }
-	  return null;
+    PhysicalFile pf = null;
+    try
+    {
+      DataBuffers dataBuffers = new DataBuffers();
+      pf = new PhysicalFile( f, dataBuffers, -1, -1 );
+      int div = pf.divisor;
+      for ( int lonDegree = 0; lonDegree < 5; lonDegree++ ) // does'nt really matter..
+      {
+        for ( int latDegree = 0; latDegree < 5; latDegree++ ) // ..where on earth we are
+        {
+          OsmFile osmf = new OsmFile( pf, lonDegree, latDegree, dataBuffers );
+          if ( osmf.hasData() )
+            for ( int lonIdx = 0; lonIdx < div; lonIdx++ )
+              for ( int latIdx = 0; latIdx < div; latIdx++ )
+                osmf.createMicroCache( lonDegree * div + lonIdx, latDegree * div + latIdx, dataBuffers, null, null, false );
+        }
+      }
+    }
+    catch (IllegalArgumentException iae)
+    {
+      return iae.getMessage();
+    }
+    catch (Exception e)
+    {
+      return e.toString();
+    }
+    finally
+    {
+      if ( pf != null )
+        try
+        {
+          pf.ra.close();
+        }
+        catch (Exception ee)
+        {
+        }
+    }
+    return null;
   }
 
-  public PhysicalFile( File f, byte[] iobuffer, int lookupVersion, int lookupMinorVersion ) throws Exception
+  public PhysicalFile( File f, DataBuffers dataBuffers, int lookupVersion, int lookupMinorVersion ) throws Exception
   {
     fileName = f.getName();
-
+    byte[] iobuffer = dataBuffers.iobuffer;
     ra = new RandomAccessFile( f, "r" );
     ra.readFully( iobuffer, 0, 200 );
     fileIndexCrc = Crc32.crc( iobuffer, 0, 200 );
@@ -99,7 +115,17 @@ final public class PhysicalFile
     ra.readFully( iobuffer, 0, extraLen );
     dis = new ByteDataReader( iobuffer );
     creationTime = dis.readLong();
-    if ( dis.readInt() != fileIndexCrc )
+
+    int crcData = dis.readInt();
+    if ( crcData == fileIndexCrc )
+    {
+      divisor = 80; // old format
+    }
+    else if ( (crcData ^ 2) == fileIndexCrc )
+    {
+      divisor = 32; // new format
+    }
+    else
     {
       throw new IOException( "top index checksum error" );
     }

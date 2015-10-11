@@ -3,12 +3,13 @@ package btools.router;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import btools.expressions.BExpressionContext;
 import btools.expressions.BExpressionContextGlobal;
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
@@ -28,6 +29,7 @@ public class RoutingEngine extends Thread
   private boolean finished = false;
 
   protected List<OsmNodeNamed> waypoints = null;
+  protected List<MatchedWaypoint> matchedWaypoints;
   private int linksProcessed = 0;
 
   protected OsmTrack foundTrack = new OsmTrack();
@@ -85,8 +87,8 @@ public class RoutingEngine extends Thread
       BExpressionMetaData meta = new BExpressionMetaData();
       
       BExpressionContextGlobal expctxGlobal = new BExpressionContextGlobal( meta );
-      rc.expctxWay = new BExpressionContextWay( rc.serversizing ? 262144 : 4096, meta );
-      rc.expctxNode = new BExpressionContextNode( rc.serversizing ?  16384 : 1024, meta );
+      rc.expctxWay = new BExpressionContextWay( rc.serversizing ? 262144 : 8192, meta );
+      rc.expctxNode = new BExpressionContextNode( rc.serversizing ?  16384 : 2048, meta );
       
       meta.readMetaData( new File( profileDir, "lookups.dat" ) );
 
@@ -111,12 +113,21 @@ public class RoutingEngine extends Thread
       {
         infoLogWriter.write( s );
         infoLogWriter.write( '\n' );
+        infoLogWriter.flush();
       }
       catch( IOException io )
       {
         infoLogWriter = null; 
       }
     }
+  }
+
+  private void logThrowable( Throwable t )
+  {
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    t.printStackTrace(pw);
+    logInfo( sw.toString() );
   }
 
   public void run()
@@ -135,6 +146,9 @@ public class RoutingEngine extends Thread
         logInfo( "start request at " + new Date() );
       }
         	
+      // delete nogos with waypoints in them
+      routingContext.cleanNogolist( waypoints );
+
       startTime = System.currentTimeMillis();
       this.maxRunningTime = maxRunningTime;
       int nsections = waypoints.size() - 1;
@@ -205,14 +219,14 @@ public class RoutingEngine extends Thread
     {
       errorMessage = e instanceof IllegalArgumentException ? e.getMessage() : e.toString();
       logInfo( "Exception (linksProcessed=" + linksProcessed + ": " + errorMessage );
-      e.printStackTrace();
+      logThrowable( e );
     }
     catch( Error e)
     {
       String hint = cleanOnOOM();
       errorMessage = e.toString() + hint;
       logInfo( "Error (linksProcessed=" + linksProcessed + ": " + errorMessage );
-      e.printStackTrace();
+      logThrowable( e );
     }
     finally
     {
@@ -250,14 +264,14 @@ public class RoutingEngine extends Thread
     {
       errorMessage = e instanceof IllegalArgumentException ? e.getMessage() : e.toString();
       logInfo( "Exception (linksProcessed=" + linksProcessed + ": " + errorMessage );
-      e.printStackTrace();
+      logThrowable( e );
     }
     catch( Error e)
     {
       String hint = cleanOnOOM();
       errorMessage = e.toString() + hint;
       logInfo( "Error (linksProcessed=" + linksProcessed + ": " + errorMessage );
-      e.printStackTrace();
+      logThrowable( e );
     }
     finally
     {
@@ -290,7 +304,7 @@ public class RoutingEngine extends Thread
   private OsmTrack findTrack( OsmTrack[] refTracks, OsmTrack[] lastTracks )
   {
     OsmTrack totaltrack = new OsmTrack();
-    MatchedWaypoint[] wayointIds = new MatchedWaypoint[waypoints.size()];
+    int nUnmatched = waypoints.size();
 
     // check for a track for that target
     OsmTrack nearbyTrack = null;
@@ -299,20 +313,27 @@ public class RoutingEngine extends Thread
       nearbyTrack = OsmTrack.readBinary( routingContext.rawTrackPath, waypoints.get( waypoints.size()-1), routingContext.getNogoChecksums() );
       if ( nearbyTrack != null )
       {
-          wayointIds[waypoints.size()-1] = nearbyTrack.endPoint;
-      }
-    }
-    
-    // match waypoints to nodes
-    for( int i=0; i<waypoints.size(); i++ )
-    {
-      if ( wayointIds[i] == null )
-      {
-        wayointIds[i] = matchNodeForPosition( waypoints.get(i) );
+        nUnmatched--;
       }
     }
 
-    for( int i=0; i<waypoints.size() -1; i++ )
+    if ( matchedWaypoints == null ) // could exist from the previous alternative level
+    {
+      matchedWaypoints = new ArrayList<MatchedWaypoint>();
+      for( int i=0; i<nUnmatched; i++ )
+      {
+        MatchedWaypoint mwp = new MatchedWaypoint();
+        mwp.waypoint = waypoints.get(i);
+        matchedWaypoints.add( mwp );
+      }
+      matchWaypointsToNodes( matchedWaypoints );
+      if ( nearbyTrack != null )
+      {
+        matchedWaypoints.add( nearbyTrack.endPoint );
+      }
+    }
+
+    for( int i=0; i<matchedWaypoints.size() -1; i++ )
     {
       if ( lastTracks[i] != null )
       {
@@ -320,13 +341,57 @@ public class RoutingEngine extends Thread
         refTracks[i].addNodes( lastTracks[i] );
       }
 
-      OsmTrack seg = searchTrack( wayointIds[i], wayointIds[i+1], i == waypoints.size()-2 ? nearbyTrack : null, refTracks[i] );
+      OsmTrack seg = searchTrack( matchedWaypoints.get(i), matchedWaypoints.get(i+1), i == matchedWaypoints.size()-2 ? nearbyTrack : null, refTracks[i] );
       if ( seg == null ) return null;
       totaltrack.appendTrack( seg );
       lastTracks[i] = seg;
     }
     return totaltrack;
   }
+
+  // geometric position matching finding the nearest routable way-section
+  private void matchWaypointsToNodes( List<MatchedWaypoint> unmatchedWaypoints )
+  {
+    resetCache();
+    nodesCache.waypointMatcher = new WaypointMatcherImpl( unmatchedWaypoints, 250. );
+    for( MatchedWaypoint mwp : unmatchedWaypoints )
+    {
+      preloadPosition( mwp.waypoint );
+    }
+
+    // preliminary-hack: use old stuff if not yet matched
+    for( int i=0; i<unmatchedWaypoints.size(); i++)
+    {
+      MatchedWaypoint mwp = unmatchedWaypoints.get(i);
+      if ( mwp.crosspoint == null )
+      {
+      System.out.println( "name=" + mwp.waypoint.name + " NOT matched r=" + mwp.radius * 111894. );
+        unmatchedWaypoints.set(i, matchNodeForPosition( mwp.waypoint ) );
+      }
+      else
+      {
+        System.out.println( "name=" + mwp.waypoint.name + " matched r=" + mwp.radius * 111894. );
+      }
+    }
+  }
+
+  private void preloadPosition( OsmNode n )
+  {
+    int d = 12500;
+    nodesCache.first_file_access_failed = false;
+    nodesCache.first_file_access_name = null;
+    nodesCache.loadSegmentFor( n.ilon, n.ilat );
+    if ( nodesCache.first_file_access_failed )
+    {
+      throw new IllegalArgumentException( "datafile " + nodesCache.first_file_access_name + " not found" );
+    }
+    for( int idxLat=-1; idxLat<=1; idxLat++ )
+      for( int idxLon=-1; idxLon<=1; idxLon++ )
+      {
+        nodesCache.loadSegmentFor( n.ilon + d*idxLon , n.ilat +d*idxLat );
+      }
+  }
+
 
   // geometric position matching finding the nearest routable way-section
   private MatchedWaypoint matchNodeForPosition( OsmNodeNamed wp )
@@ -406,7 +471,6 @@ public class RoutingEngine extends Thread
              mwp.node1 = n;
              mwp.node2 = nextNode;
              mwp.radius = wp.radius;
-             mwp.cost = testPath.cost;
              mwp.crosspoint = new OsmNodeNamed();
              mwp.crosspoint.ilon = routingContext.ilonshortest;
              mwp.crosspoint.ilat = routingContext.ilatshortest;
@@ -510,8 +574,7 @@ public class RoutingEngine extends Thread
   private void resetCache()
   {
     nodesMap = new OsmNodesMap();
-    BExpressionContext ctx = routingContext.expctxWay;
-    nodesCache = new NodesCache(segmentDir, nodesMap, ctx.meta.lookupVersion, ctx.meta.lookupMinorVersion, routingContext.carMode, routingContext.forceSecondaryData, nodesCache );
+    nodesCache = new NodesCache(segmentDir, nodesMap, routingContext.expctxWay, routingContext.carMode, routingContext.forceSecondaryData, nodesCache );
   }
 
   private OsmNode getStartNode( long startId )

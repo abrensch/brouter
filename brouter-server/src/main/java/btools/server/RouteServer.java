@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 
-import btools.memrouter.TwinRoutingEngine;
 import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
@@ -102,7 +101,7 @@ public class RouteServer extends Thread
             RoutingContext rc = handler.readRoutingContext();
             List<OsmNodeNamed> wplist = handler.readWayPointList();
 
-            cr = new TwinRoutingEngine( null, null, serviceContext.segmentDir, wplist, rc );
+            cr = new RoutingEngine( null, null, serviceContext.segmentDir, wplist, rc );
             cr.quite = true;
             cr.doRun( maxRunningTime );
 

@@ -10,10 +10,19 @@ public class ByteDataReader
 {
   protected byte[] ab;
   protected int aboffset;
+  protected int aboffsetEnd;
 
   public ByteDataReader( byte[] byteArray )
   {
 	 ab = byteArray;
+	 aboffsetEnd = ab == null ? 0 : ab.length;
+  }
+
+  public ByteDataReader( byte[] byteArray, int offset )
+  {
+	 ab = byteArray;
+	 aboffset = offset;
+	 aboffsetEnd = ab == null ? 0 : ab.length;
   }
 
   public final int readInt()
@@ -57,6 +66,41 @@ public class ByteDataReader
       return (short)( (i1 << 8) | i0);
   }
 
+  /**
+   * Read a size value and return a pointer to the end of a data section of that size
+   *
+   * @return the pointer to the first byte after that section
+   */
+  public int getEndPointer()
+  {
+    int size = readVarLengthUnsigned();
+    return aboffset + size;
+  }
+
+  public byte[] readDataUntil( int endPointer )
+  {
+    int size = endPointer - aboffset;
+    if ( size == 0 )
+    {
+      return null;
+    }
+    byte[] data = new byte[size];
+    readFully( data );
+    return data;
+  }
+
+  public byte[] readVarBytes()
+  {
+    int len = readVarLengthUnsigned();
+    if ( len == 0 )
+    {
+      return null;
+    }
+    byte[] bytes = new byte[len];
+    readFully( bytes );
+    return bytes;
+  }
+
   public final int readVarLengthSigned()
   {
 	  int v = readVarLengthUnsigned();
@@ -81,6 +125,11 @@ public class ByteDataReader
   {
 	  System.arraycopy( ab, aboffset, ta, 0, ta.length );
 	  aboffset += ta.length;
+  }
+
+  public boolean hasMoreData()
+  {
+    return aboffset < aboffsetEnd;
   }
 
   @Override

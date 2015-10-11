@@ -6,9 +6,11 @@
 
 package btools.expressions;
 
+import btools.codec.TagValueValidator;
 
 
-public final class BExpressionContextWay extends BExpressionContext
+
+public final class BExpressionContextWay extends BExpressionContext implements TagValueValidator
 {
   private static String[] buildInVariables =
 	  { "costfactor", "turncost", "uphillcostfactor", "downhillcostfactor", "initialcost", "nodeaccessgranted", "initialclassifier", "trafficsourcedensity", "istrafficbackbone" };
@@ -43,4 +45,15 @@ public final class BExpressionContextWay extends BExpressionContext
   {
     super( "way", hashSize, meta );
   }
+
+  @Override
+  public boolean accessAllowed( byte[] description )
+  {
+    evaluate( false, description, null );
+    boolean ok = getCostfactor() < 10000.;
+    evaluate( true, description, null );
+    ok |= getCostfactor() < 10000.;
+    return ok;
+  }
+
 }

@@ -6,16 +6,18 @@
     <artifactId>brouter</artifactId>
     <version>1.2</version>
     <packaging>pom</packaging>
-    <url>http://brensche.de/brouter/</url>
+    <url>http://brouter.de/brouter/</url>
     <name>brouter</name>
     <description>configurable OSM offline router with elevation awareness, Java + Android</description>
 
     <modules>
         <module>brouter-util</module>
+        <module>brouter-codec</module>
         <module>brouter-expressions</module>
         <module>brouter-mapaccess</module>
         <module>brouter-core</module>
         <module>brouter-map-creator</module>
+        <!-- <module>brouter-mem-router</module> -->
         <module>brouter-server</module>
         <module>brouter-routing-app</module>
     </modules>

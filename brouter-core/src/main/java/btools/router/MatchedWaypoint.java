@@ -18,7 +18,7 @@ final class MatchedWaypoint
   public OsmNodeNamed crosspoint;
   public OsmNodeNamed waypoint;
   public double radius;
-  public int cost;
+  public boolean hasUpdate;
 
   public void writeToStream( DataOutput dos ) throws IOException
   {

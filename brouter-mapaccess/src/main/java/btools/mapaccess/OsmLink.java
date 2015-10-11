@@ -5,6 +5,8 @@
  */
 package btools.mapaccess;
 
+import btools.util.ByteDataReader;
+
 
 public class OsmLink
 {
@@ -14,31 +16,76 @@ public class OsmLink
    */
   public byte[] descriptionBitmap;
 
- /**
-   * The target is either the next link or the target node
-   */
   public OsmNode targetNode;
 
   public OsmLink next;
 
-  public byte[] firsttransferBytes;
+  public OsmLinkHolder firstlinkholder = null;
 
-  final public OsmTransferNode decodeFirsttransfer()
+  public byte[] geometry;
+
+  public boolean counterLinkWritten;
+
+  public boolean hasNewGeometry; // preliminary
+
+  public byte state;
+
+  public void setGeometry( byte[] geometry )
   {
-    return firsttransferBytes == null ? null : OsmTransferNode.decode( firsttransferBytes );
+    this.geometry = geometry;
+    hasNewGeometry = true;
+  }
+
+  final public OsmTransferNode decodeFirsttransfer( OsmNode sourceNode )
+  {
+    if ( geometry == null ) return null;
+    if ( hasNewGeometry )
+    {
+      OsmTransferNode firstTransferNode = null;
+      OsmTransferNode lastTransferNode = null;
+      OsmNode startnode =  counterLinkWritten ? targetNode : sourceNode;
+      ByteDataReader r = new ByteDataReader( geometry );
+      int olon = startnode.ilon;
+      int olat = startnode.ilat;
+      int oselev = startnode.selev;
+      while ( r.hasMoreData() )
+      {
+        OsmTransferNode trans = new OsmTransferNode();
+        trans.ilon = olon + r.readVarLengthSigned();
+        trans.ilat = olat + r.readVarLengthSigned();
+        trans.descriptionBitmap = descriptionBitmap;
+        trans.selev = (short)(oselev + r.readVarLengthSigned());
+        olon = trans.ilon;
+        olat = trans.ilat;
+        oselev = trans.selev;
+        if ( counterLinkWritten ) // reverse chaining
+        {
+          trans.next = firstTransferNode;
+          firstTransferNode = trans;
+        }
+        else
+        {
+          if ( lastTransferNode == null )
+          {
+            firstTransferNode = trans;
+          }
+          else
+          {
+            lastTransferNode.next = trans;
+          }
+          lastTransferNode = trans;
+        }
+      }
+      return firstTransferNode;
+    }
+    return OsmTransferNode.decode( geometry );
   }
 
   final public void encodeFirsttransfer( OsmTransferNode firsttransfer )
   {
-    if ( firsttransfer == null ) firsttransferBytes = null;
-    else firsttransferBytes = OsmTransferNode.encode( firsttransfer );
+    if ( firsttransfer == null ) geometry = null;
+    else geometry = OsmTransferNode.encode( firsttransfer );
   }
-
-  public boolean counterLinkWritten;
-
-  public byte state;
-
-   public OsmLinkHolder firstlinkholder = null;
 
    final public void addLinkHolder( OsmLinkHolder holder )
    {
