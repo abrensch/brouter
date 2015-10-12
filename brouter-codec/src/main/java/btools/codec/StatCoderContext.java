@@ -45,6 +45,10 @@ public final class StatCoderContext extends BitCoderContext
    */
   public static String getBitReport()
   {
+    if ( statsPerName == null )
+    {
+      return "<empty bit report>";
+    }
     StringBuilder sb = new StringBuilder();
     for ( String name : statsPerName.keySet() )
     {
