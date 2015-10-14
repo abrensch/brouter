@@ -30,15 +30,8 @@ import btools.router.RoutingHelper;
 public class BInstallerView extends View
 {
 	private static final int MASK_SELECTED_RD5 = 1;
-	private static final int MASK_SELECTED_CD5 = 2;
-	private static final int MASK_INSTALLED_RD5 = 4;
-	private static final int MASK_INSTALLED_CD5 = 8;
-	
-	private static final int[] maskTransitions = new int[]
-	  { 3, 2, 0, 1,
-		6, 6, 4, 4,
-		9, 8, 9, 8,
-		12, 12, 12, 12 };
+  private static final int MASK_INSTALLED_RD5 = 4;
+  private static final int MASK_CURRENT_RD5 = 8;
 	
     private int imgwOrig;
     private int imghOrig;
@@ -60,8 +53,6 @@ public class BInstallerView extends View
 
     private boolean tilesVisible = false;
     
-    private long lastDownTime = 0;
-
     private long availableSize;
     private String baseDir;
     
@@ -74,7 +65,6 @@ public class BInstallerView extends View
 
     private long totalSize = 0;
     private long rd5Tiles = 0;
-    private long cd5Tiles = 0;
 
     protected String baseNameForTile( int tileIndex )
     {
@@ -122,7 +112,6 @@ public class BInstallerView extends View
     	}
 
         int tidx_min = -1;
-        boolean isCd5_min = false;
         int min_size = Integer.MAX_VALUE;
     	
 		// prepare download list
@@ -131,35 +120,31 @@ public class BInstallerView extends View
             for( int iy=0; iy<36; iy++ )
             {
     	    	int tidx = gridPos2Tileindex( ix, iy );
-    	    	for( int mask = 1; mask <= 2; mask *= 2 )
-    	    	{
-    	    	  int s = tileStatus[tidx];
-    	    	  boolean isCd5 = (mask == 2);
-        	      if ( ( s & mask ) != 0 && ( s & (mask*4)) == 0 )
+        	      if ( ( tileStatus[tidx] & MASK_SELECTED_RD5 ) != 0 )
         	      {
-                    int tilesize = isCd5 ? BInstallerSizes.getCd5Size(tidx) : BInstallerSizes.getRd5Size(tidx);
+                    int tilesize = BInstallerSizes.getRd5Size(tidx);
                     if ( tilesize > 0 && tilesize < min_size )
                     {
                       tidx_min = tidx;
-                      isCd5_min = isCd5;
                       min_size = tilesize;
                     }
         	      }
-      	        }
             }
         }
         if ( tidx_min != -1 )
         {
-          startDownload( tidx_min, isCd5_min );
+          tileStatus[tidx_min] = 0;
+          startDownload( tidx_min );
         }
     }
     
-    private void startDownload( int tileIndex, boolean isCd5 )
+    private void startDownload( int tileIndex )
     {
+      
     	String namebase = baseNameForTile( tileIndex );
       String baseurl = "http://brouter.de/brouter/segments4/";
-        currentDownloadFile = namebase + (isCd5 ? ".cd5" : ".rd5" );
-        String url = baseurl + (isCd5 ? "carsubset/" : "" ) + currentDownloadFile;
+        currentDownloadFile = namebase + ".rd5";
+        String url = baseurl + currentDownloadFile;
     	isDownloading = true;
     	downloadCanceled = false;
     	currentDownloadSize = 0;
@@ -208,34 +193,35 @@ public class BInstallerView extends View
     
     private void scanExistingFiles()
     {
-      clearTileSelection( MASK_INSTALLED_CD5 | MASK_INSTALLED_RD5 );
+      clearTileSelection( MASK_INSTALLED_RD5 | MASK_CURRENT_RD5 );
 
-      scanExistingFiles( new File( baseDir + "/brouter/segments3" ), ".rd5", MASK_INSTALLED_RD5 );
-      scanExistingFiles( new File( baseDir + "/brouter/segments3/carsubset" ), ".cd5", MASK_INSTALLED_CD5 );
+      scanExistingFiles( new File( baseDir + "/brouter/segments3" ) );
       
       File secondary = RoutingHelper.getSecondarySegmentDir( baseDir + "/brouter/segments3" );
       if ( secondary != null )
       {
-          scanExistingFiles( secondary, ".rd5", MASK_INSTALLED_RD5 );
-          scanExistingFiles( new File( secondary, "carsubset" ), ".cd5", MASK_INSTALLED_CD5 );
+          scanExistingFiles( secondary );
       }
 
       StatFs stat = new StatFs(baseDir);
       availableSize = (long)stat.getAvailableBlocks()*stat.getBlockSize();
     }
 
-    private void scanExistingFiles( File dir, String suffix, int maskBit )
+    private void scanExistingFiles( File dir )
     {
         String[] fileNames = dir.list();
         if ( fileNames == null ) return;
+        String suffix = ".rd5";
         for( String fileName : fileNames )
         {
           if ( fileName.endsWith( suffix ) )
           {
         	 String basename = fileName.substring( 0, fileName.length() - suffix.length() );
         	 int tidx = tileForBaseName( basename );
-        	 tileStatus[tidx] |= maskBit;
-        	 tileStatus[tidx] ^= tileStatus[tidx] & (maskBit >> 2);
+        	 tileStatus[tidx] |= MASK_INSTALLED_RD5;
+        	 
+        	 long age = System.currentTimeMillis() - new File( dir, fileName ).lastModified();
+        	 if ( age < 86400000 ) tileStatus[tidx] |= MASK_CURRENT_RD5;
           }
         }
     }
@@ -340,15 +326,22 @@ public class BInstallerView extends View
               }
           }
           rd5Tiles = 0;
-          cd5Tiles = 0;
           totalSize = 0;
+              int mask2 = MASK_SELECTED_RD5 | MASK_INSTALLED_RD5;
+              int mask3 = mask2 | MASK_CURRENT_RD5;
               Paint pnt_2 = new Paint();
               pnt_2.setColor(Color.GRAY);
               pnt_2.setStrokeWidth(1);
-              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5, MASK_INSTALLED_CD5, false, drawGrid );
+              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5, mask3, false, drawGrid );
+              pnt_2.setColor(Color.BLUE);
+              pnt_2.setStrokeWidth(1);
+              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5 | MASK_CURRENT_RD5, mask3, false, drawGrid );
               pnt_2.setColor(Color.GREEN);
               pnt_2.setStrokeWidth(2);
-              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_SELECTED_RD5, MASK_SELECTED_CD5, true, drawGrid );
+              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_SELECTED_RD5, mask2, true, drawGrid );
+              pnt_2.setColor(Color.YELLOW);
+              pnt_2.setStrokeWidth(2);
+              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_SELECTED_RD5 | MASK_INSTALLED_RD5, mask2, true, drawGrid );
 
         	canvas.setMatrix( matText );
 
@@ -375,13 +368,13 @@ public class BInstallerView extends View
             
             String totmb = ((totalSize + mb-1)/mb) + " MB";
             String freemb = ((availableSize + mb-1)/mb) + " MB";
-            canvas.drawText( "Selected: full=" + rd5Tiles + " carsubset=" + cd5Tiles, 10, 25, paint );
+            canvas.drawText( "Selected segments=" + rd5Tiles, 10, 25, paint );
             canvas.drawText( "Size=" + totmb + " Free=" + freemb , 10, 45, paint );
 
 
             String btnText = null;
             if ( isDownloading ) btnText = "Cancel Download";
-            else if ( rd5Tiles + cd5Tiles > 0 ) btnText = "Start Download";
+            else if ( rd5Tiles > 0 ) btnText = "Start Download";
             
             if ( btnText != null )
             {
@@ -400,37 +393,37 @@ public class BInstallerView extends View
         
 float tx, ty;        
 
-  private void drawSelectedTiles( Canvas canvas, Paint pnt, float fw, float fh, int maskRd5, int maskCd5, boolean doCount, boolean doDraw )
+  private void drawSelectedTiles( Canvas canvas, Paint pnt, float fw, float fh, int status, int mask, boolean doCount, boolean doDraw )
   {
-      for( int ix=0; ix<72; ix++ )
-          for( int iy=0; iy<36; iy++ )
+    for ( int ix = 0; ix < 72; ix++ )
+      for ( int iy = 0; iy < 36; iy++ )
+      {
+        int tidx = gridPos2Tileindex( ix, iy );
+        if ( ( tileStatus[tidx] & mask ) == status )
+        {
+          int tilesize = BInstallerSizes.getRd5Size( tidx );
+          if ( tilesize > 0 )
           {
-          	int tidx = gridPos2Tileindex( ix, iy );
-          	boolean isRd5 = (tileStatus[tidx] & maskRd5) != 0;
-          	boolean isCd5 = (tileStatus[tidx] & maskCd5) != 0;
-    	    if ( isRd5 || isCd5 )
-    	    {
-              int tilesize = BInstallerSizes.getRd5Size(tidx);
-              if ( tilesize > 0 )
-              {
-            	if ( doCount )
-            	{
-      	          if ( isRd5) { rd5Tiles++; totalSize += BInstallerSizes.getRd5Size(tidx); };
-    	          if ( isCd5) { cd5Tiles++; totalSize += BInstallerSizes.getCd5Size(tidx); };
-            	}
-            	if ( !doDraw ) continue;
-        	    if ( isRd5 ) canvas.drawLine( fw*ix, fh*iy, fw*(ix+1), fh*(iy+1), pnt);
-        	    if ( isCd5 ) canvas.drawLine( fw*ix, fh*(iy+1), fw*(ix+1), fh*iy, pnt);
-                
-                canvas.drawLine( fw*ix, fh*iy, fw*(ix+1), fh*iy, pnt);
-                canvas.drawLine( fw*ix, fh*(iy+1), fw*(ix+1), fh*(iy+1), pnt);
-                canvas.drawLine( fw*ix, fh*iy, fw*ix, fh*(iy+1), pnt);
-                canvas.drawLine( fw*(ix+1), fh*iy, fw*(ix+1), fh*(iy+1), pnt);
-              }
-    	    }
-          }
-  }
+            if ( doCount )
+            {
+              rd5Tiles++;
+              totalSize += BInstallerSizes.getRd5Size( tidx );
+            }
+            if ( !doDraw )
+              continue;
+            // draw cross
+            canvas.drawLine( fw * ix, fh * iy, fw * ( ix + 1 ), fh * ( iy + 1 ), pnt );
+            canvas.drawLine( fw * ix, fh * ( iy + 1 ), fw * ( ix + 1 ), fh * iy, pnt );
 
+            // draw frame
+            canvas.drawLine( fw * ix, fh * iy, fw * ( ix + 1 ), fh * iy, pnt );
+            canvas.drawLine( fw * ix, fh * ( iy + 1 ), fw * ( ix + 1 ), fh * ( iy + 1 ), pnt );
+            canvas.drawLine( fw * ix, fh * iy, fw * ix, fh * ( iy + 1 ), pnt );
+            canvas.drawLine( fw * ( ix + 1 ), fh * iy, fw * ( ix + 1 ), fh * ( iy + 1 ), pnt );
+          }
+        }
+      }
+  }
 
         @Override
         public boolean onTouchEvent(MotionEvent event) {
@@ -495,7 +488,7 @@ float tx, ty;
                 	  boolean tilesv = currentScale() >= 3.f;
                 	  if ( tilesVisible && !tilesv )
                 	  {
-                        clearTileSelection( MASK_SELECTED_CD5 | MASK_SELECTED_RD5 );
+                        clearTileSelection( MASK_SELECTED_RD5 );
                       }
                 	  tilesVisible = tilesv;
                 	}
@@ -508,9 +501,9 @@ float tx, ty;
             }
             case MotionEvent.ACTION_UP:
             	
-            	lastDownTime = event.getEventTime() - event.getDownTime();
+            	long downTime = event.getEventTime() - event.getDownTime();
             	
-            	if ( lastDownTime < 5 || lastDownTime > 500 )
+            	if ( downTime < 5 || downTime > 500 )
             	{
             	  break;
             	}
@@ -521,7 +514,7 @@ float tx, ty;
               	}
             	
                 // download button?
-            	if ( rd5Tiles + cd5Tiles > 0 && event.getX() > imgwOrig - btnw*scaleOrig && event.getY() > imghOrig-btnh*scaleOrig )
+            	if ( rd5Tiles  > 0 && event.getX() > imgwOrig - btnw*scaleOrig && event.getY() > imghOrig-btnh*scaleOrig )
             	{
             		toggleDownload();
                 	invalidate();
@@ -541,7 +534,10 @@ float tx, ty;
             	  int tidx = tileIndex( touchpoint[0], touchpoint[1] );
             	  if ( tidx != -1 )
             	  {
-            	    tileStatus[tidx] = maskTransitions[tileStatus[tidx]]; 
+            	    if ( ( tileStatus[tidx] & MASK_CURRENT_RD5 ) == 0 )
+            	    {
+            	      tileStatus[tidx] ^= MASK_SELECTED_RD5;
+            	    }
             	  }
             	  
             	  tx = touchpoint[0];
@@ -609,7 +605,6 @@ float tx, ty;
                     int slidx = surl.lastIndexOf( "segments4/" );
                     fname = baseDir + "/brouter/segments3/" + surl.substring( slidx+10 );
                     tmp_file = new File( fname + "_tmp" );
-                    if ( new File( fname ).exists() ) return "internal error: file exists: " + fname;
                     output = new FileOutputStream( tmp_file );
 
                     byte data[] = new byte[4096];
@@ -626,8 +621,8 @@ float tx, ty;
                             publishProgress((int) (total * 100 / fileLength));
                         output.write(data, 0, count);
                         
-                        // enforce < 200kB/s
-                        long dt = t0 + total/200 - System.currentTimeMillis();
+                        // enforce < 2 Mbit/s
+                        long dt = t0 + total/262 - System.currentTimeMillis();
                         if ( dt > 0  )
                         {
                         	try { Thread.sleep( dt ); } catch( InterruptedException ie ) {}

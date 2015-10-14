@@ -92,9 +92,9 @@ public class BRouterActivity  extends Activity implements OnInitListener {
             builder.setTitle( "BRouter Download Manager" )
                    .setMessage( "*** Attention: ***\n\n"
              		      + "The Download Manager is used to download routing-data "
-            		      + "files which can be huge. Do not start the Download Manager "
-            		      + "on a cellular data connection without a flat-rate! "
-            		      + "Download speed is restricted to 200 kB/s." )
+            		      + "files which can be up to 100MB each. Do not start the Download Manager "
+            		      + "on a cellular data connection without a data plan! "
+            		      + "Download speed is restricted to 2 MBit/s." )
                    .setPositiveButton( "I know", new DialogInterface.OnClickListener() {
                        public void onClick(DialogInterface dialog, int id) {
                     	   Intent intent = new Intent(BRouterActivity.this, BInstallerActivity.class);
