@@ -213,6 +213,7 @@ public class WayLinker extends MapCreatorBase
           expctxWay.addLookupValue( "estimated_traffic_class", traffic == 0 ? 0 : traffic + 1 );
           description = abUnifier.unify( expctxWay.encode() );
           lastTraffic = traffic;
+          n1.incWayCount(); // force network node due to description change
         }
         link.descriptionBitmap = description;
 
