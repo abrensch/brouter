@@ -195,9 +195,9 @@ public class BInstallerView extends View
     {
       clearTileSelection( MASK_INSTALLED_RD5 | MASK_CURRENT_RD5 );
 
-      scanExistingFiles( new File( baseDir + "/brouter/segments3" ) );
+      scanExistingFiles( new File( baseDir + "/brouter/segments4" ) );
       
-      File secondary = RoutingHelper.getSecondarySegmentDir( baseDir + "/brouter/segments3" );
+      File secondary = RoutingHelper.getSecondarySegmentDir( baseDir + "/brouter/segments4" );
       if ( secondary != null )
       {
           scanExistingFiles( secondary );
@@ -597,7 +597,7 @@ float tx, ty;
                     input = connection.getInputStream();
                     
                     int slidx = surl.lastIndexOf( "segments4/" );
-                    fname = baseDir + "/brouter/segments3/" + surl.substring( slidx+10 );
+                    fname = baseDir + "/brouter/segments4/" + surl.substring( slidx+10 );
                     tmp_file = new File( fname + "_tmp" );
                     output = new FileOutputStream( tmp_file );
 

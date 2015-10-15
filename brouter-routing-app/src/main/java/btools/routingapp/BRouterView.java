@@ -147,9 +147,8 @@ public class BRouterView extends View
 
               // create missing directories
               assertDirectoryExists( "project directory", basedir + "/brouter", null );
-              segmentDir = basedir + "/brouter/segments3";
-              assertDirectoryExists( "data directory", segmentDir, "segments3.zip" );
-              assertDirectoryExists( "carsubset directory", segmentDir + "/carsubset", null );
+              segmentDir = basedir + "/brouter/segments4";
+              assertDirectoryExists( "data directory", segmentDir, "segments4.zip" );
               profileDir = basedir + "/brouter/profiles2";
               assertDirectoryExists( "profile directory", profileDir, "profiles2.zip" );
               modesDir = basedir + "/brouter/modes";
@@ -501,11 +500,10 @@ private long startTime = 0L;
         	catch( Throwable t )
         	{
         		// on out of mem, try to stop the show
-        		String hint = "";
-                if ( cr != null ) hint = cr.cleanOnOOM();
+            if ( cr != null ) cr.cleanOnOOM();
         		cr = null;
         		try { Thread.sleep( 2000 ); } catch( InterruptedException ie ) {}
-                ((BRouterActivity)getContext()).showErrorMessage( t.toString() + hint );
+                ((BRouterActivity)getContext()).showErrorMessage( t.toString() );
                  waitingForSelection = true;
         	}
         }
@@ -535,7 +533,7 @@ private long startTime = 0L;
                   }
                   else
                   {
-                    String result = "version = BRouter-1.2\n"
+                    String result = "version = BRouter-1.3\n"
                     + "distance = " +  cr.getDistance()/1000. + " km\n"
                     + "filtered ascend = " +  cr.getAscend() + " m\n"
                     + "plain ascend = " + cr.getPlainAscend();

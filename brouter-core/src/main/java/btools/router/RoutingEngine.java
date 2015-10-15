@@ -223,8 +223,8 @@ public class RoutingEngine extends Thread
     }
     catch( Error e)
     {
-      String hint = cleanOnOOM();
-      errorMessage = e.toString() + hint;
+      cleanOnOOM();
+      errorMessage = e.toString();
       logInfo( "Error (linksProcessed=" + linksProcessed + ": " + errorMessage );
       logThrowable( e );
     }
@@ -268,8 +268,8 @@ public class RoutingEngine extends Thread
     }
     catch( Error e)
     {
-      String hint = cleanOnOOM();
-      errorMessage = e.toString() + hint;
+      cleanOnOOM();
+      errorMessage = e.toString();
       logInfo( "Error (linksProcessed=" + linksProcessed + ": " + errorMessage );
       logThrowable( e );
     }
@@ -291,12 +291,10 @@ public class RoutingEngine extends Thread
     }
   }
 
-  public String cleanOnOOM()
+  public void cleanOnOOM()
   {
-	  boolean oom_carsubset_hint = nodesCache == null ? false : nodesCache.oom_carsubset_hint;
       nodesMap = null;
       terminate();
-      return oom_carsubset_hint ? "\nPlease use 'carsubset' maps for long-distance car-routing" : "";
   }      
   
   

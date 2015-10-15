@@ -39,7 +39,6 @@ public final class NodesCache
 
   public WaypointMatcher waypointMatcher;
 
-  public boolean oom_carsubset_hint = false;
   public boolean first_file_access_failed = false;
   public String first_file_access_name;
 
@@ -67,7 +66,6 @@ public final class NodesCache
     {
       fileCache = oldCache.fileCache;
       dataBuffers = oldCache.dataBuffers;
-      oom_carsubset_hint = oldCache.oom_carsubset_hint;
       secondarySegmentsDir = oldCache.secondarySegmentsDir;
 
       // re-use old, virgin caches
@@ -89,23 +87,6 @@ public final class NodesCache
       dataBuffers = new DataBuffers();
       secondarySegmentsDir = StorageConfigHelper.getSecondarySegmentDir( segmentDir );
     }
-  }
-
-  private File getFileFromSegmentDir( String filename )
-  {
-    if ( forceSecondaryData )
-    {
-      return new File( secondarySegmentsDir, filename );
-    }
-
-    File f = new File( segmentDir, filename );
-    if ( secondarySegmentsDir != null && !f.exists() )
-    {
-      File f2 = new File( secondarySegmentsDir, filename );
-      if ( f2.exists() )
-        return f2;
-    }
-    return f;
   }
 
   // if the cache sum exceeded a threshold,
@@ -260,19 +241,32 @@ public final class NodesCache
     if ( !fileCache.containsKey( filenameBase ) )
     {
       File f = null;
-      if ( carMode )
+      if ( !forceSecondaryData )
       {
-        File carFile = getFileFromSegmentDir( "carsubset/" + filenameBase + ".cd5" );
-        if ( carFile.exists() )
-          f = carFile;
+        File primary = new File( segmentDir, filenameBase + ".rd5" );
+        if ( primary .exists() )
+        {
+          f = primary;
+        }
       }
       if ( f == null )
       {
-        File fullFile = getFileFromSegmentDir( filenameBase + ".rd5" );
-        if ( fullFile.exists() )
-          f = fullFile;
-        if ( carMode && f != null )
-          oom_carsubset_hint = true;
+        if ( carMode ) // look for carsubset-files only in secondary (primaries are now good for car-mode)
+        {
+          File carFile = new File( secondarySegmentsDir, "carsubset/" + filenameBase + ".cd5" );
+          if ( carFile.exists() )
+          {
+            f = carFile;
+          }
+        }
+        if ( f == null )
+        {
+          File secondary = new File( secondarySegmentsDir, filenameBase + ".rd5" );
+          if ( secondary.exists() )
+          {
+            f = secondary;
+          }
+        }
       }
       if ( f != null )
       {

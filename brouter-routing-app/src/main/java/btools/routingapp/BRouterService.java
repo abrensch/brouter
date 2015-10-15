@@ -57,7 +57,7 @@ public class BRouterService extends Service
             {
               String modesFile = baseDir + "/brouter/modes/serviceconfig.dat";
               br = new BufferedReader( new FileReader (modesFile ) );
-              worker.segmentDir = baseDir + "/brouter/segments3";
+              worker.segmentDir = baseDir + "/brouter/segments4";
               for(;;)
               {
                 String line = br.readLine();
