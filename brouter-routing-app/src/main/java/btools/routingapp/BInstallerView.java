@@ -57,7 +57,7 @@ public class BInstallerView extends View
     private String baseDir;
     
     private boolean isDownloading = false;
-    private transient boolean downloadCanceled = false;
+    private volatile boolean downloadCanceled = false;
 
     private long currentDownloadSize;
     private String currentDownloadFile = "";
@@ -133,7 +133,7 @@ public class BInstallerView extends View
         }
         if ( tidx_min != -1 )
         {
-          tileStatus[tidx_min] = 0;
+          tileStatus[tidx_min] ^= tileStatus[tidx_min] & MASK_SELECTED_RD5;
           startDownload( tidx_min );
         }
     }
@@ -256,12 +256,6 @@ public class BInstallerView extends View
            mat = new Matrix();
            mat.postScale( viewscale, viewscale );
            tilesVisible = false;
-        }
-
-        public void stopInstaller() {
-            downloadCanceled = true;
-            bmp = null;
-            tileStatus = null;
         }
 
         public BInstallerView(Context context) {
@@ -514,7 +508,7 @@ float tx, ty;
               	}
             	
                 // download button?
-            	if ( rd5Tiles  > 0 && event.getX() > imgwOrig - btnw*scaleOrig && event.getY() > imghOrig-btnh*scaleOrig )
+              if ( ( rd5Tiles  > 0 || isDownloading ) && event.getX() > imgwOrig - btnw*scaleOrig && event.getY() > imghOrig-btnh*scaleOrig )
             	{
             		toggleDownload();
                 	invalidate();
