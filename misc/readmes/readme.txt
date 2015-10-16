@@ -1,4 +1,4 @@
-BRouter - Version 1.2 - Setting up the Android App
+BRouter - Version 1.3 - Setting up the Android App
 ==================================================
 
 Choosing and Installing a Map-Tool
@@ -40,12 +40,8 @@ Installing the BRouter App
 --------------------------
 
 You can install the BRouter-App either from Google's Play Store
-or directly from the APK-File contained within the "brouter_1_1.zip"
+or directly from the APK-File contained within the "brouter_1_3.zip"
 distribution zip-file.
-
-Both APKs are identical. There used to be a pure-offline version
-in the distribution-zip, but with version 1.1 this APK also does
-include the download manager, so it asks for internet access.
 
 Choosing a SD-Card Base Directory
 ---------------------------------
@@ -64,14 +60,14 @@ Navigation needs big data files that usually should go on an
 external, big sd-card. You should accept the external card, which
 is usually the one with the most space available.
 
-However, on Android 4.4, write access to the external card
+However, on Android >= 4.4, write access to the external card
 is restricted, and usually you will not get a proposal to use
 the external card. Here you should accept to go with the
 internal card - later on you can setup a "secondary" data
 directory on the external card where you can move the datafiles
 to.
 
-*** see the kitkat_survival_readme.txt for special Android 4.4 issues ***
+*** see the kitkat_survival_readme.txt for special Android 4.4 and Android 5x issues ***
 
 Try to make sure your map-tool uses the same base directory
 to store the offline maps and other stuff, because BRouter
@@ -109,8 +105,7 @@ relative to this base directory, so you end up with e.g. the following structure
 (depending on base dir and your map-tool choice):
 
 /mnt/sdcard/brouter
-/mnt/sdcard/brouter/segments3            <- ** put routing data files (*.rd5) here **
-/mnt/sdcard/brouter/segments3/carsubset  <- ** put *.cd5 files here **
+/mnt/sdcard/brouter/segments4            <- ** put routing data files (*.rd5) here **
 /mnt/sdcard/brouter/profiles2  <- lookup-table and routing profiles
 /mnt/sdcard/brouter/modes      <- routing-mode/profile mapping
 
@@ -131,10 +126,9 @@ order to complete your installation.
 
 After accepting the base directory, the download manager starts automatically to
 help you with this download. Or you can download
-them manually from the following locations:
+them manually from the following location:
 
-  http://brouter.de/brouter/segments3
-  http://brouter.de/brouter/segments3/carsubset
+  http://brouter.de/brouter/segments4
 
 Routing data files are organised as 5*5 degree files,
 with the Filename containing the south-west corner
@@ -150,7 +144,7 @@ normal (full) rd5's.
 
 The minimum files BRouter needs to work are e.g.
 
-/mnt/sdcard/brouter/segments3/E5_N45.rd5
+/mnt/sdcard/brouter/segments4/E5_N45.rd5
 /mnt/sdcard/brouter/profiles2/lookups.dat
 /mnt/sdcard/brouter/profiles2/trekking.brf
 

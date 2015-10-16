@@ -1,4 +1,4 @@
-Surviving with Android 4.4 (KitKat) or 5.0 (Lollipop) using latest BRouter
+Surviving with Android 4.4 (KitKat) or 5.x (Lollipop) using latest BRouter
 =======================================================
 
 BRouter has some basic support to reclaim your external SD card.
@@ -7,7 +7,7 @@ Brouter must be installed on internal drive ("SD card"), but maps could be moved
 
 What's new is a configuration file located at:
 
-  brouter/segments3/storageconfig.txt
+  brouter/segments4/storageconfig.txt
 
 which has 2 configuration items:
 
@@ -17,19 +17,20 @@ which has 2 configuration items:
   "additional_maptool_dir" points to a base-directory that should
   be scanned for maptool-installations in addition to the standard-guesses.
 
-Initially, the value for "secondary_segment_dir" is "../segments2" to support the
-file-format transition from 0.9.9 to 1.0.1, so that, after upgrading, your existing
+Initially, the value for "secondary_segment_dir" is "../segments3" to support the
+file-format transition from 1.2 to 1.3, so that, after upgrading, your existing
 datafiles are found via the secondary directory.
 
 However, for surviving KitKatn and later, you are supposed to change that to the
 absolute path to a directory on the external card, e.g.:
 
-secondary_segment_dir=/storage/external_SD/brouter_segments3
+secondary_segment_dir=/storage/external_SD/brouter_segments4
 
-When searching for datafiles, both the download manager and the router first look in the primary (brouter/segments3) and then in the secondary directory (or it's "carsubset" subfolder). On the other hand, the download manager always writes new datafiles to the primary directory, so the secondary directory is read-only.
+When searching for datafiles, both the download manager and the router first look in the primary (brouter/segments4) and then in the secondary directory.
+On the other hand, the download manager always writes new datafiles to the primary directory, so the secondary directory is read-only.
 
 So you can move datafiles downloaded by the download-manager to the secondary directory, by using a file manager, in order to free disk space on the internal card. Or you ca download datafiles directly to the secondary directory by doing manual http downloads
-from http://brouter.de/brouter/segments3
+from http://brouter.de/brouter/segments4
 
 Depending on how your maptool handles the file-system structure, you are done.
 
