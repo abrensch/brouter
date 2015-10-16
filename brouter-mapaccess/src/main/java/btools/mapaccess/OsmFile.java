@@ -145,6 +145,7 @@ final class OsmFile
     {
       ab = new byte[asize];
       asize = getDataInputForSubIdx( subIdx, ab );
+      dataBuffers = new DataBuffers( ab );
     }
     // hack: the checksum contains the information
     // which type of microcache we have

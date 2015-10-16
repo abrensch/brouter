@@ -363,12 +363,7 @@ public class RoutingEngine extends Thread
       MatchedWaypoint mwp = unmatchedWaypoints.get(i);
       if ( mwp.crosspoint == null )
       {
-      System.out.println( "name=" + mwp.waypoint.name + " NOT matched r=" + mwp.radius * 111894. );
         unmatchedWaypoints.set(i, matchNodeForPosition( mwp.waypoint ) );
-      }
-      else
-      {
-        System.out.println( "name=" + mwp.waypoint.name + " matched r=" + mwp.radius * 111894. );
       }
     }
   }
