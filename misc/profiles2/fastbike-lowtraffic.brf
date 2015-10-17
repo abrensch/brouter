@@ -37,7 +37,8 @@ assign nodeaccessgranted or any_cycleroute lcn=yes
 assign ispaved or surface=paved or surface=asphalt or surface=concrete surface=paving_stones
 assign isunpaved not or surface= or ispaved or surface=fine_gravel surface=cobblestone
 
-assign turncost 90
+assign turncost = if junction=roundabout then 0
+                  else 90
 
 assign initialcost switch route=ferry 10000 0
 

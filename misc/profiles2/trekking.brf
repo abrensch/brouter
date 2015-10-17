@@ -63,7 +63,9 @@ assign probablyGood = or ispaved and isbike not isunpaved
 # (Suppressing turncost while following longdistance-cycleways
 # makes them a little bit more magnetic)
 #
-assign turncost = if is_ldcr then 0 else 90
+assign turncost = if is_ldcr then 0
+                  else if junction=roundabout then 0
+                  else 90
 
 
 #

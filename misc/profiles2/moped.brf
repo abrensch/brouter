@@ -18,7 +18,9 @@ assign   validForCars        1
 
 ---context:way   # following code refers to way-tags
 
-assign turncost 90
+assign turncost = if junction=roundabout then 0
+                  else 90
+
 assign initialcost switch route=ferry 20000 0
 
 
