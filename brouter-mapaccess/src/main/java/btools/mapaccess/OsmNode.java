@@ -238,10 +238,7 @@ public class OsmNode implements OsmPos
       }
 
     }
-    if ( dc == null )
-    {
-      hollowNodes.remove( this );
-    }
+    hollowNodes.remove( this );
   }
 
   public void parseNodeBody1( MicroCache1 is, OsmNodesMap hollowNodes, DistanceChecker dc )

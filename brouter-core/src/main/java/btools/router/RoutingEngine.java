@@ -32,6 +32,8 @@ public class RoutingEngine extends Thread
   protected List<MatchedWaypoint> matchedWaypoints;
   private int linksProcessed = 0;
 
+  private int nodeLimit; // used for target island search
+
   protected OsmTrack foundTrack = new OsmTrack();
   private OsmTrack foundRawTrack = null;
   private int alternativeIndex = 0;
@@ -325,6 +327,22 @@ public class RoutingEngine extends Thread
         matchedWaypoints.add( mwp );
       }
       matchWaypointsToNodes( matchedWaypoints );
+
+      // detect target islands: restricted search in inverse direction
+      routingContext.inverseDirection = true;
+      airDistanceCostFactor = 0.;
+      for( int i=0; i<matchedWaypoints.size() -1; i++ )
+      {
+        nodeLimit = 200;
+        OsmTrack seg = findTrack( "target-island-check", matchedWaypoints.get(i+1), matchedWaypoints.get(i), null, null, false );
+        if ( seg == null && nodeLimit > 0 )
+        {
+          throw new IllegalArgumentException( "target island detected for section " + i );
+        }
+      }
+      routingContext.inverseDirection = false;
+      nodeLimit = 0;
+
       if ( nearbyTrack != null )
       {
         matchedWaypoints.add( nearbyTrack.endPoint );
@@ -785,6 +803,14 @@ public class RoutingEngine extends Thread
         throw new IllegalArgumentException( "early exit for a close recalc" );
       }
       
+      if ( nodeLimit > 0 ) // check node-limit for target island search
+      {
+        if ( --nodeLimit == 0 )
+        {
+          return null;
+        }
+      }
+
       nodesVisited++;
       linksProcessed++;
       
