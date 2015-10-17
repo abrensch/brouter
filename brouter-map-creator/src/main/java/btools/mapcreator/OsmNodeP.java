@@ -7,6 +7,7 @@ package btools.mapcreator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import btools.codec.MicroCache;
 import btools.codec.MicroCache1;
@@ -260,6 +261,52 @@ public class OsmNodeP extends OsmLinkP
     else
     {
       mc.discardNode();
+    }
+  }
+
+  public void checkDuplicateTargets()
+  {
+    HashMap<OsmNodeP,OsmLinkP> targets = new HashMap<OsmNodeP,OsmLinkP>();
+
+    for ( OsmLinkP link0 = getFirstLink(); link0 != null; link0 = link0.getNext( this ) )
+    {
+      OsmLinkP link = link0;
+      OsmNodeP origin = this;
+      OsmNodeP target = null;
+
+      // first pass just to see if that link is consistent
+      while (link != null)
+      {
+        target = link.getTarget( origin );
+        if ( !target.isTransferNode() )
+        {
+          break;
+        }
+        // next link is the one (of two), does does'nt point back
+        for ( link = target.getFirstLink(); link != null; link = link.getNext( target ) )
+        {
+          if ( link.getTarget( target ) != origin )
+            break;
+        }
+        origin = target;
+      }
+      if ( link == null ) continue;
+      OsmLinkP oldLink = targets.put( target, link0 );
+      if ( oldLink != null )
+      {
+        unifyLink( oldLink );
+        unifyLink( link0 );
+      }
+    }
+  }
+
+  private void unifyLink( OsmLinkP link )
+  {
+    if ( link.isReverse( this ) ) return;
+    OsmNodeP target = link.getTarget( this );
+    if ( target.isTransferNode() )
+    {
+      target.incWayCount();
     }
   }
 

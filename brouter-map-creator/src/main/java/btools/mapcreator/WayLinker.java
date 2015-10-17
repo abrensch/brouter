@@ -247,6 +247,14 @@ public class WayLinker extends MapCreatorBase
     int maxLon = minLon + 5000000;
     int maxLat = minLat + 5000000;
 
+    // cleanup duplicate targets
+    for ( OsmNodeP n : nodesList )
+    {
+      if ( n == null || n.getFirstLink() == null || n.isTransferNode() )
+        continue;
+      n.checkDuplicateTargets();
+    }
+
     // write segment data to individual files
     {
       int nLonSegs = ( maxLon - minLon ) / 1000000;
