@@ -253,7 +253,7 @@ public final class OsmTrack
     sb.append( " xmlns=\"http://www.topografix.com/GPX/1/1\" \n" );
     sb.append( " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \n" );
     sb.append( " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\" \n" );
-    sb.append( " creator=\"BRouter-1.3\" version=\"1.1\">\n" );
+    sb.append( " creator=\"BRouter-1.3.1\" version=\"1.1\">\n" );
     sb.append( " <trk>\n" );
     sb.append("  <name>").append(name).append("</name>\n");
     sb.append( "  <trkseg>\n" );
