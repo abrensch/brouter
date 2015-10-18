@@ -1123,6 +1123,19 @@ public class RoutingEngine extends Thread
   {
     synchronized( openSet )
     {
+      if ( guideTrack != null )
+      {
+        ArrayList<OsmPathElement> nodes =  guideTrack.nodes;
+        int[] res =  new int[nodes.size() * 2];
+        int i = 0;
+        for( OsmPathElement n : nodes )
+        {
+          res[i++] = n.getILon();
+          res[i++] = n.getILat();
+        }
+        return res;
+      }
+    
       List<OsmPath> extract = openSet.getExtract();
       int[] res =  new int[extract.size() * 2];
       int i = 0;
