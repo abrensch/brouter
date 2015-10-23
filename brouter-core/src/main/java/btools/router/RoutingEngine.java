@@ -158,7 +158,7 @@ public class RoutingEngine extends Thread
       OsmTrack[] lastTracks = new OsmTrack[nsections];
       OsmTrack track = null;
       ArrayList<String> messageList = new ArrayList<String>();
-      for( int i=0; !terminated; i++ )
+      for( int i=0;; i++ )
       {
         track = findTrack( refTracks, lastTracks );
         track.message = "track-length = " + track.distance + " filtered ascend = " + track.ascend
@@ -516,6 +516,8 @@ public class RoutingEngine extends Thread
       }
       catch( IllegalArgumentException iae )
       {
+        if ( terminated ) throw iae;
+        
         // fast partial recalcs: if that timed out, but we had a match,
         // build the concatenation from the partial and the nearby track
         if ( matchPath != null )
@@ -530,7 +532,7 @@ public class RoutingEngine extends Thread
 
     if ( track == null )
     {
-      for( int cfi = 0; cfi < airDistanceCostFactors.length && !terminated; cfi++ )
+      for( int cfi = 0; cfi < airDistanceCostFactors.length; cfi++ )
       {
         airDistanceCostFactor = airDistanceCostFactors[cfi];
         
@@ -775,8 +777,13 @@ public class RoutingEngine extends Thread
       addToOpenset( startPath1 );
       addToOpenset( startPath2 );
     }
-    while(!terminated)
+    for(;;)
     {
+      if ( terminated )
+      {
+        throw new IllegalArgumentException( "operation killed by thread-priority-watchdog after " + ( System.currentTimeMillis() - startTime)/1000 + " seconds" );
+      }
+      
       if ( maxRunningTime > 0 )
       {
         long timeout = ( matchPath == null && fastPartialRecalc ) ? maxRunningTime/3 : maxRunningTime;

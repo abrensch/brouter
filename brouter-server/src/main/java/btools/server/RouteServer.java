@@ -8,10 +8,15 @@ import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
+import java.util.Date;
+import java.util.Locale;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
 import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
@@ -29,6 +34,7 @@ public class RouteServer extends Thread
 
   private Socket clientSocket = null;
   private RoutingEngine cr = null;
+  private volatile boolean terminated;
 
   public void stopRouter()
   {
@@ -36,6 +42,16 @@ public class RouteServer extends Thread
     if ( e != null ) e.terminate();
   }
     
+  private static DateFormat tsFormat = new SimpleDateFormat( "dd.MM.yy HH:mm", new Locale( "en", "US" ) );
+
+  private static String formattedTimestamp()
+  {
+    synchronized( tsFormat )
+    {
+      return tsFormat.format( new Date( System.currentTimeMillis() ) );
+    }
+  }
+
   public void run()
   {
           BufferedReader br = null;
@@ -53,7 +69,7 @@ public class RouteServer extends Thread
             }
 
             InetAddress ip = clientSocket.getInetAddress();
-            System.out.println( "ip=" + (ip==null ? "null" : ip.toString() ) + " -> " + getline );
+            System.out.println( formattedTimestamp() + " ip=" + (ip==null ? "null" : ip.toString() ) + " -> " + getline );
 
             String url = getline.split(" ")[1];
             HashMap<String,String> params = getUrlParams(url);
@@ -133,6 +149,7 @@ public class RouteServer extends Thread
               if ( br != null ) try { br.close(); } catch( Exception e ) {}
               if ( bw != null ) try { bw.close(); } catch( Exception e ) {}
               if ( clientSocket != null ) try { clientSocket.close(); } catch( Exception e ) {}
+              terminated = true;
           }
   }
 
@@ -164,6 +181,22 @@ public class RouteServer extends Thread
           RouteServer server = new RouteServer();
           server.serviceContext = serviceContext;
           server.clientSocket = clientSocket;
+
+          // cleanup thread list
+          for(;;)
+          {
+            boolean removedItem = false;
+            for (Map.Entry<Long,RouteServer> e : threadMap.entrySet())
+            {
+              if ( e.getValue().terminated )
+              {
+                threadMap.remove( e.getKey() );
+                removedItem = true;
+                break;
+              }
+            }
+            if ( !removedItem ) break;
+          }
 
           // kill thread if limit reached
           if ( threadMap.size() >= maxthreads )
