@@ -108,7 +108,7 @@ final public class PhysicalFile
 
     if ( len < pos+extraLen ) // > is o.k. for future extensions!
     {
-      throw new IOException( "file of size " + len + " + too short, should be " + (pos+extraLen) );
+      throw new IOException( "file of size " + len + " too short, should be " + (pos+extraLen) );
     }
     
     ra.seek( pos );

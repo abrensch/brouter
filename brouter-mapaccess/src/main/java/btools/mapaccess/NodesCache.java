@@ -194,7 +194,7 @@ public final class NodesCache
     }
     catch (Exception e)
     {
-      throw new RuntimeException( "error reading datafile " + currentFileName + ": ", e );
+      throw new RuntimeException( "error reading datafile " + currentFileName + ": " + e, e );
     }
   }
 

@@ -52,12 +52,9 @@ public class BRouterWorker
     RoutingEngine cr = new RoutingEngine( null, null, segmentDir, readPositions(params), rc );
     cr.quite = true;
     cr.doRun( maxRunningTime );
-    if ( cr.getErrorMessage() != null )
-    {
-      return cr.getErrorMessage();
-    }
 	
     // store new reference track if any
+    // (can exist fot timeed-out search)
     if ( cr.getFoundRawTrack() != null )
     {
       try
@@ -67,6 +64,10 @@ public class BRouterWorker
       catch( Exception e ) {}
     }
     
+    if ( cr.getErrorMessage() != null )
+    {
+      return cr.getErrorMessage();
+    }
     
 	String format = params.getString("trackFormat");
 	boolean writeKml = format != null && "kml".equals( format );

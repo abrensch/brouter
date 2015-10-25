@@ -10,10 +10,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import btools.expressions.BExpressionContextGlobal;
-import btools.expressions.BExpressionContextNode;
-import btools.expressions.BExpressionContextWay;
-import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.NodesCache;
 import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmLinkHolder;
@@ -42,7 +38,6 @@ public class RoutingEngine extends Thread
 
   private volatile boolean terminated;
 
-  protected File profileDir;
   protected String segmentDir;
   private String outfileBase;
   private String logfileBase;
@@ -71,36 +66,30 @@ public class RoutingEngine extends Thread
     this.infoLogEnabled = outfileBase != null;
     this.routingContext = rc;
 
-    if ( rc.localFunction != null )
+    try
     {
-      String profileBaseDir = System.getProperty( "profileBaseDir" );
-      File profileFile;
-      if ( profileBaseDir == null )
+      File debugLog = new File( new File( routingContext.localFunction ).getParentFile(), "../debug.txt" );
+      if ( debugLog.exists() )
       {
-        profileDir = new File( rc.localFunction ).getParentFile();
-        profileFile = new File( rc.localFunction ) ;
+        infoLogWriter = new FileWriter( debugLog, true );
+        logInfo( "********** start request at " );
+        logInfo( "********** " + new Date() );
       }
-      else
-      {
-        profileDir = new File( profileBaseDir );
-        profileFile = new File( profileDir, rc.localFunction + ".brf" ) ;
-      }
-      
-      BExpressionMetaData meta = new BExpressionMetaData();
-      
-      BExpressionContextGlobal expctxGlobal = new BExpressionContextGlobal( meta );
-      rc.expctxWay = new BExpressionContextWay( rc.serversizing ? 262144 : 8192, meta );
-      rc.expctxNode = new BExpressionContextNode( rc.serversizing ?  16384 : 2048, meta );
-      
-      meta.readMetaData( new File( profileDir, "lookups.dat" ) );
-
-      expctxGlobal.parseFile( profileFile, null );
-      expctxGlobal.evaluate( new int[0] );
-      rc.readGlobalConfig(expctxGlobal);
-
-      rc.expctxWay.parseFile( profileFile, "global" );
-      rc.expctxNode.parseFile( profileFile, "global" );
     }
+    catch( IOException ioe )
+    {
+      throw new RuntimeException( "cannot open debug-log:" + ioe );
+    }
+    boolean cachedProfile = ProfileCache.parseProfile( rc );
+    if ( hasInfo() )
+    {
+      logInfo( "parsed profile " + rc.localFunction + " cached=" + cachedProfile );
+    }
+  }
+
+  private boolean hasInfo()
+  {
+    return infoLogEnabled || infoLogWriter != null;
   }
 
   private void logInfo( String s )
@@ -140,14 +129,7 @@ public class RoutingEngine extends Thread
   public void doRun( long maxRunningTime )
   {
     try
-    {
-      File debugLog = new File( profileDir, "../debug.txt" );
-      if ( debugLog.exists() )
-      {
-        infoLogWriter = new FileWriter( debugLog, true );
-        logInfo( "start request at " + new Date() );
-      }
-        	
+    {        	
       // delete nogos with waypoints in them
       routingContext.cleanNogolist( waypoints );
 
@@ -232,6 +214,8 @@ public class RoutingEngine extends Thread
     }
     finally
     {
+      ProfileCache.releaseProfile( routingContext );
+
       if ( nodesCache != null )
       {
         nodesCache.close();
@@ -313,6 +297,10 @@ public class RoutingEngine extends Thread
       nearbyTrack = OsmTrack.readBinary( routingContext.rawTrackPath, waypoints.get( waypoints.size()-1), routingContext.getNogoChecksums() );
       if ( nearbyTrack != null )
       {
+        if ( hasInfo() )
+        {
+          logInfo( "read referenceTrack, dirty=" + nearbyTrack.isDirty );
+        }
         nUnmatched--;
       }
     }
@@ -506,6 +494,7 @@ public class RoutingEngine extends Thread
     OsmTrack track = null;
     double[] airDistanceCostFactors = new double[]{ routingContext.pass1coefficient, routingContext.pass2coefficient };
     boolean isDirty = false;
+    IllegalArgumentException dirtyMessage = null;
     
     if ( nearbyTrack != null )
     {
@@ -524,6 +513,7 @@ public class RoutingEngine extends Thread
         {
           track = mergeTrack( matchPath, nearbyTrack );
           isDirty = true;
+          dirtyMessage = iae;
           logInfo( "using fast partial recalc" );
         }
     	maxRunningTime += System.currentTimeMillis() - startTime; // reset timeout...
@@ -541,7 +531,24 @@ public class RoutingEngine extends Thread
           continue;
         }
       
-        OsmTrack t = findTrack( cfi == 0 ? "pass0" : "pass1", startWp, endWp, track , refTrack, false  );
+        OsmTrack t;
+        try
+        {
+          t = findTrack( cfi == 0 ? "pass0" : "pass1", startWp, endWp, track , refTrack, false  );
+        }
+        catch( IllegalArgumentException iae )
+        {
+          if ( !terminated && matchPath != null ) // timeout, but eventually prepare a dirty ref track
+          {
+            logInfo( "supplying dirty reference track after timeout" );
+            foundRawTrack = mergeTrack( matchPath, track );
+            foundRawTrack.endPoint = endWp;
+            foundRawTrack.nogoChecksums = routingContext.getNogoChecksums();
+            foundRawTrack.isDirty = true;
+          }
+          throw iae;
+        }
+
         if ( t == null && track != null && matchPath != null )
         {
           // ups, didn't find it, use a merge
@@ -560,17 +567,25 @@ public class RoutingEngine extends Thread
     }
     if ( track == null ) throw new IllegalArgumentException( "no track found" );
     
-    if ( refTrack == null && !isDirty )
+    boolean wasClean = nearbyTrack != null && !nearbyTrack.isDirty;
+    if ( refTrack == null && !(wasClean && isDirty) ) // do not overwrite a clean with a dirty track
     {
-      logInfo( "supplying new reference track" );
+      logInfo( "supplying new reference track, dirty=" + isDirty );
       track.endPoint = endWp;
       track.nogoChecksums = routingContext.getNogoChecksums();
+      track.isDirty = isDirty;
       foundRawTrack = track;
+    }
+
+    if ( !wasClean && isDirty )
+    {
+      throw dirtyMessage;
     }
 
     // final run for verbose log info and detail nodes
     airDistanceCostFactor = 0.;
     guideTrack = track;
+    startTime = System.currentTimeMillis(); // reset timeout...
     try
     {
       OsmTrack tt = findTrack( "re-tracking", startWp, endWp, null , refTrack, false );
@@ -804,7 +819,8 @@ public class RoutingEngine extends Thread
         continue;
       }
 
-      if ( matchPath != null && fastPartialRecalc && firstMatchCost < 500 && path.cost > 30L*firstMatchCost )
+      if ( matchPath != null && fastPartialRecalc && firstMatchCost < 500 && path.cost > 30L*firstMatchCost
+          && !costCuttingTrack.isDirty )
       {
         logInfo( "early exit: firstMatchCost=" + firstMatchCost + " path.cost=" + path.cost );
         throw new IllegalArgumentException( "early exit for a close recalc" );
