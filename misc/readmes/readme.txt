@@ -1,5 +1,5 @@
-BRouter - Version 1.3 - Setting up the Android App
-==================================================
+BRouter - Version 1.3.2 - Setting up the Android App
+====================================================
 
 Choosing and Installing a Map-Tool
 ----------------------------------
@@ -40,7 +40,7 @@ Installing the BRouter App
 --------------------------
 
 You can install the BRouter-App either from Google's Play Store
-or directly from the APK-File contained within the "brouter_1_3.zip"
+or directly from the APK-File contained within the "brouter_1_3_2.zip"
 distribution zip-file.
 
 Choosing a SD-Card Base Directory
@@ -105,7 +105,7 @@ relative to this base directory, so you end up with e.g. the following structure
 (depending on base dir and your map-tool choice):
 
 /mnt/sdcard/brouter
-/mnt/sdcard/brouter/segments4            <- ** put routing data files (*.rd5) here **
+/mnt/sdcard/brouter/segments4  <- ** put routing data files (*.rd5) here **
 /mnt/sdcard/brouter/profiles2  <- lookup-table and routing profiles
 /mnt/sdcard/brouter/modes      <- routing-mode/profile mapping
 
@@ -120,7 +120,7 @@ relative to this base directory, so you end up with e.g. the following structure
 
 
 The "profiles2" and the "modes" directory get some reasonable default-configuration
-from the installation procedure, but the "segments3" directory is basically empty
+from the installation procedure, but the "segments4" directory is basically empty
 (except for the storageconfig.txt file) so you have to get routing-datafiles in
 order to complete your installation.
 
@@ -202,7 +202,8 @@ No need anymore to create special "to", "from", "via1..via9" points, but they ar
 and if a "from" and a "to" wayppoint is found in the database, you will not be prompted
 to select waypoints from the database.
 
-If a route is calculated, it is stored as "brouter0.gpx" in the map-tools track directory.
+If a route is calculated, it is stored as "brouter0.gpx" in the map-tools track directory
+(or, if there is no write-access, in brouter's base directory)
 If started once more with identical input, BRouter will store a second route broute1.gpx
 for the first alternative and so on.
 

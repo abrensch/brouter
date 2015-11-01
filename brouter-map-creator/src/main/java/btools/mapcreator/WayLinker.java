@@ -110,8 +110,14 @@ public class WayLinker extends MapCreatorBase
   }
 
   @Override
-  public void wayFileStart( File wayfile ) throws Exception
+  public boolean wayFileStart( File wayfile ) throws Exception
   {
+    File trafficFile = fileFromTemplate( wayfile, trafficTilesIn, "trf" );
+    if ( trafficTilesIn.isDirectory() && !trafficFile.exists() )
+    {
+      return false;
+    }
+
     // process corresponding node-file, if any
     File nodeFile = fileFromTemplate( wayfile, nodeTilesIn, "u5d" );
     if ( nodeFile.exists() )
@@ -134,12 +140,12 @@ public class WayLinker extends MapCreatorBase
     }
 
     // read a traffic-file, if any
-    File trafficFile = fileFromTemplate( wayfile, trafficTilesIn, "trf" );
     if ( trafficFile.exists() )
     {
       trafficMap = new OsmTrafficMap();
       trafficMap.load( trafficFile, minLon, minLat, minLon + 5000000, minLat + 5000000, false );
     }
+    return true;
   }
 
   @Override

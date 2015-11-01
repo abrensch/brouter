@@ -154,7 +154,7 @@ public abstract class MapCreatorBase implements WayListener, NodeListener, Relat
   public void nodeFileEnd( File nodefile ) throws Exception {}
 
   @Override
-  public void wayFileStart( File wayfile ) throws Exception {}
+  public boolean wayFileStart( File wayfile ) throws Exception { return true; }
 
   @Override
   public void nextWay( WayData data ) throws Exception {}

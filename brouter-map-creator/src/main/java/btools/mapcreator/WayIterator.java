@@ -46,7 +46,10 @@ public class WayIterator extends MapCreatorBase
   {
     System.out.println( "*** WayIterator reading: " + wayfile );
 
-    listener.wayFileStart( wayfile );
+    if ( !listener.wayFileStart( wayfile ) )
+    {
+      return;
+    }
 
     DataInputStream di = new DataInputStream( new BufferedInputStream ( new FileInputStream( wayfile ) ) );
     try

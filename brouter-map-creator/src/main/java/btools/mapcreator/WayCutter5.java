@@ -46,7 +46,7 @@ public class WayCutter5 extends MapCreatorBase
   }
 
   @Override
-  public void wayFileStart( File wayfile ) throws Exception
+  public boolean wayFileStart( File wayfile ) throws Exception
   {
     // read corresponding node-file into tileIndexMap
     String name = wayfile.getName();
@@ -57,6 +57,7 @@ public class WayCutter5 extends MapCreatorBase
     lonoffset = -1;
     latoffset = -1;
     new NodeIterator( this, false ).processFile( nodefile );
+    return true;
   }
 
   @Override

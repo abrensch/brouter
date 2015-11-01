@@ -213,12 +213,12 @@ Technical constraints
 Developing and debugging scripts
 --------------------------------
 
-For developing scripts, the "Upload profile" funcionality and the
-"Export CSV" button of the online version are your friends.
-The "Export CSV" gives a (tab-separated) list of all way segments
-with all tag values and with the calulated cost (in "cost per km").
-
-These CSV-Data can be imported in Excel using "paste content" function.
+For developing scripts, the "brouter-web" web-application is your
+friend. You can use that either online at http://brouter/brouter-web
+or set up a local installation.
+BRouter-Web has a window at the lower left corner with a "Profile"
+and a "Data" tab. Here, you can upload profile scripts and see
+the individual cost calculations per way-section in the "Data"-tab.
 
 
 Lookup-Table evolution and the the "major" and "minor" versions

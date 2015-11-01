@@ -9,7 +9,7 @@ import java.io.File;
  */
 public interface WayListener
 {
-  void wayFileStart( File wayfile ) throws Exception;
+  boolean wayFileStart( File wayfile ) throws Exception;
 
   void nextWay( WayData data ) throws Exception;
 
