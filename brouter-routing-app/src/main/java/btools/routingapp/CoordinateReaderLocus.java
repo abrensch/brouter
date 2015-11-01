@@ -38,14 +38,16 @@ public class CoordinateReaderLocus extends CoordinateReader
   private void _readPointmap( String filename ) throws Exception
   {
     SQLiteDatabase myDataBase = SQLiteDatabase.openDatabase( filename, null, SQLiteDatabase.OPEN_READONLY);
-    Cursor c = myDataBase.rawQuery("SELECT name, longitude, latitude FROM waypoints", null);
+    
+    Cursor c = myDataBase.rawQuery("SELECT c.name, w.name, w.longitude, w.latitude FROM waypoints w, categories c where w.parent_id = c._id", null);
     while (c.moveToNext())
     {
       OsmNodeNamed n = new OsmNodeNamed();
-      n.name = c.getString(0);
-      n.ilon = (int)( ( Double.parseDouble( c.getString(1) ) + 180. )*1000000. + 0.5);
-      n.ilat = (int)( ( Double.parseDouble( c.getString(2) ) + 90. )*1000000. + 0.5);
-      checkAddPoint( n );
+      String category = c.getString(0);
+      n.name = c.getString(1);
+      n.ilon = (int)( ( Double.parseDouble( c.getString(2) ) + 180. )*1000000. + 0.5);
+      n.ilat = (int)( ( Double.parseDouble( c.getString(3) ) + 90. )*1000000. + 0.5);
+      checkAddPoint( category, n );
     }
     myDataBase.close();
   }

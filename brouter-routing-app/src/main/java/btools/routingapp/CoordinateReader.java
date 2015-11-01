@@ -4,8 +4,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 import android.os.Environment;
 import btools.router.OsmNodeNamed;
@@ -22,7 +25,9 @@ public abstract class CoordinateReader
   public String rootdir;
   public String tracksdir;
 
-  public Map<String,OsmNodeNamed> allpoints;
+  private Map<String,Map<String, OsmNodeNamed>> allpointsMap;
+  public List<OsmNodeNamed> allpoints;
+  
   private HashMap<String,OsmNodeNamed> pointmap;
 
   protected static String[] posnames
@@ -34,6 +39,34 @@ public abstract class CoordinateReader
   }
 
   public abstract long getTimeStamp() throws Exception;
+
+  public void readAllPoints() throws Exception
+  {
+    allpointsMap = new TreeMap<String, Map<String,OsmNodeNamed>>();
+    readFromTo();
+    allpoints = new ArrayList<OsmNodeNamed>();
+    Set<String> names = new HashSet<String>();
+    for( String category : allpointsMap.keySet() )
+    {
+      Map<String, OsmNodeNamed> cat = allpointsMap.get( category );
+      if ( cat.size() < 101 )
+      {
+        for ( OsmNodeNamed wp : cat.values() )
+        {
+          if ( names.add( wp.name ) )
+          {
+            allpoints.add( wp );
+          }
+        }
+      }
+      else
+      {
+        OsmNodeNamed nocatHint = new OsmNodeNamed();
+        nocatHint.name = "<big category " + category + " supressed>";
+        allpoints.add( nocatHint);
+      }
+    }
+  }
 
   /*
    * read the from, to and via-positions from a gpx-file
@@ -62,13 +95,23 @@ public abstract class CoordinateReader
     if ( fromToMissing ) waypoints.clear();
   }
 
-  protected void checkAddPoint( OsmNodeNamed n )
+  protected void checkAddPoint( String category, OsmNodeNamed n )
   {
-	if ( allpoints != null )
-	{
-		allpoints.put( n.name, n );
-		return;
-	}
+    if ( allpointsMap != null )
+    {
+      if ( category == null ) category = "";
+      Map<String, OsmNodeNamed> cat = allpointsMap.get( category );
+      if ( cat == null )
+      {
+        cat = new TreeMap<String, OsmNodeNamed>();
+        allpointsMap.put( category, cat );
+      }
+      if ( cat.size() < 101 )
+      {
+        cat.put( n.name, n );
+      }
+      return;
+    }
 	  
     boolean isKnown = false;
     for( int i=0; i<posnames.length; i++ )
@@ -100,70 +143,71 @@ public abstract class CoordinateReader
 
   public static CoordinateReader obtainValidReader( String basedir, String segmentDir ) throws Exception
   {
-	          CoordinateReader cor = null;
-              ArrayList<CoordinateReader> rl = new ArrayList<CoordinateReader>();
+    CoordinateReader cor = null;
+    ArrayList<CoordinateReader> rl = new ArrayList<CoordinateReader>();
 
-              AppLogger.log( "adding standard maptool-base: " + basedir  );
-              rl.add( new CoordinateReaderOsmAnd(basedir) );
-              rl.add( new CoordinateReaderLocus(basedir) );
-              rl.add( new CoordinateReaderOrux(basedir) );
+    AppLogger.log( "adding standard maptool-base: " + basedir );
+    rl.add( new CoordinateReaderOsmAnd( basedir ) );
+    rl.add( new CoordinateReaderLocus( basedir ) );
+    rl.add( new CoordinateReaderOrux( basedir ) );
 
-              // eventually add standard-sd
-              File standardbase = Environment.getExternalStorageDirectory();
-              if ( standardbase != null )
-              {
-                String base2 = standardbase.getAbsolutePath();
-                if ( !base2.equals( basedir ) )
-                {
-                  AppLogger.log( "adding internal sd maptool-base: " + base2  );
-                  rl.add( new CoordinateReaderOsmAnd(base2) );
-                  rl.add( new CoordinateReaderLocus(base2) );
-                  rl.add( new CoordinateReaderOrux(base2) );
-                }
-              }
+    // eventually add standard-sd
+    File standardbase = Environment.getExternalStorageDirectory();
+    if ( standardbase != null )
+    {
+      String base2 = standardbase.getAbsolutePath();
+      if ( !base2.equals( basedir ) )
+      {
+        AppLogger.log( "adding internal sd maptool-base: " + base2 );
+        rl.add( new CoordinateReaderOsmAnd( base2 ) );
+        rl.add( new CoordinateReaderLocus( base2 ) );
+        rl.add( new CoordinateReaderOrux( base2 ) );
+      }
+    }
 
-              // eventually add explicit directory
-              File additional = RoutingHelper.getAdditionalMaptoolDir(segmentDir);
-              if ( additional != null )
-              {
-                String base3 = additional.getAbsolutePath();
-                
-                AppLogger.log( "adding maptool-base from storage-config: " + base3  );
-                
-                rl.add( new CoordinateReaderOsmAnd(base3) );
-                rl.add( new CoordinateReaderLocus(base3) );
-                rl.add( new CoordinateReaderOrux(base3) );
-              }
+    // eventually add explicit directory
+    File additional = RoutingHelper.getAdditionalMaptoolDir( segmentDir );
+    if ( additional != null )
+    {
+      String base3 = additional.getAbsolutePath();
 
-              long tmax = 0;
-              for( CoordinateReader r : rl )
-              {
-                if ( AppLogger.isLogging() )
-                {
-                  AppLogger.log( "reading timestamp at systime " + new Date() );
-                }
+      AppLogger.log( "adding maptool-base from storage-config: " + base3 );
 
-                long t = r.getTimeStamp();
-                
-                if ( t != 0 )
-                {
-                  if ( AppLogger.isLogging() )
-                  {
-                    AppLogger.log( "found coordinate source at " + r.basedir + r.rootdir + " with timestamp " + new Date( t ) );
-                  }
-                }
-                	
-                if ( t > tmax )
-                {
-                  tmax = t;
-                  cor = r;
-                }
-              }
-              if ( cor == null )
-              {
-            	cor = new CoordinateReaderNone();
-              }
-              cor.readFromTo();
-              return cor;
+      rl.add( new CoordinateReaderOsmAnd( base3 ) );
+      rl.add( new CoordinateReaderOsmAnd( base3, true ) );
+      rl.add( new CoordinateReaderLocus( base3 ) );
+      rl.add( new CoordinateReaderOrux( base3 ) );
+    }
+
+    long tmax = 0;
+    for ( CoordinateReader r : rl )
+    {
+      if ( AppLogger.isLogging() )
+      {
+        AppLogger.log( "reading timestamp at systime " + new Date() );
+      }
+
+      long t = r.getTimeStamp();
+
+      if ( t != 0 )
+      {
+        if ( AppLogger.isLogging() )
+        {
+          AppLogger.log( "found coordinate source at " + r.basedir + r.rootdir + " with timestamp " + new Date( t ) );
+        }
+      }
+
+      if ( t > tmax )
+      {
+        tmax = t;
+        cor = r;
+      }
+    }
+    if ( cor == null )
+    {
+      cor = new CoordinateReaderNone();
+    }
+    cor.readFromTo();
+    return cor;
   }
 }

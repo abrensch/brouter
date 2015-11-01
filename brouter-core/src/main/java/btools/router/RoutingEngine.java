@@ -236,7 +236,12 @@ public class RoutingEngine extends Thread
   {
     try
     {
-      MatchedWaypoint seedPoint = matchNodeForPosition( waypoints.get(0) );
+      MatchedWaypoint seedPoint = new MatchedWaypoint();
+      seedPoint.waypoint = waypoints.get(0);
+      List<MatchedWaypoint> listOne = new ArrayList<MatchedWaypoint>();
+      listOne.add( seedPoint );
+      matchWaypointsToNodes( listOne );
+
       routingContext.countTraffic = true;
 
       findTrack( "seededSearch", seedPoint, null, null, null, false );

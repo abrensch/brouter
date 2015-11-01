@@ -38,14 +38,15 @@ public class CoordinateReaderOrux extends CoordinateReader
   private void _readPointmap( String filename ) throws Exception
   {
     SQLiteDatabase myDataBase = SQLiteDatabase.openDatabase( filename, null, SQLiteDatabase.OPEN_READONLY);
-    Cursor c = myDataBase.rawQuery("SELECT poiname, poilon, poilat FROM pois", null);
+    Cursor c = myDataBase.rawQuery("SELECT poiname, poilon, poilat, poifolder FROM pois", null);
     while (c.moveToNext())
     {
       OsmNodeNamed n = new OsmNodeNamed();
       n.name = c.getString(0);
       n.ilon = (int)( ( Double.parseDouble( c.getString(1) ) + 180. )*1000000. + 0.5);
       n.ilat = (int)( ( Double.parseDouble( c.getString(2) ) + 90. )*1000000. + 0.5);
-      checkAddPoint( n );
+      String category = c.getString(3);
+      checkAddPoint( category, n );
     }
     myDataBase.close();
   }

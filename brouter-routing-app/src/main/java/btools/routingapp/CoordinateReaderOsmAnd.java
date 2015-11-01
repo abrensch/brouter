@@ -12,18 +12,35 @@ import btools.router.OsmNodeNamed;
  */
 public class CoordinateReaderOsmAnd extends CoordinateReader
 {
+  private String osmandDir;
+
   public CoordinateReaderOsmAnd( String basedir )
   {
+    this( basedir, false );
+  }
+
+  public CoordinateReaderOsmAnd( String basedir, boolean shortPath )
+  {
     super( basedir );
-    tracksdir = "/osmand/tracks";
-    rootdir = "/osmand";
+    if ( shortPath )
+    {
+      osmandDir = basedir;
+      tracksdir = "/tracks";
+      rootdir = "";
+    }
+    else
+    {
+      osmandDir = basedir + "/osmand";
+      tracksdir = "/osmand/tracks";
+      rootdir = "/osmand";
+    }
   }
 
   @Override
   public long getTimeStamp() throws Exception
   {
-    long t1 = new File( basedir + "/osmand/favourites_bak.gpx" ).lastModified();
-    long t2 = new File( basedir + "/osmand/favourites.gpx" ).lastModified();
+    long t1 = new File( osmandDir + "/favourites_bak.gpx" ).lastModified();
+    long t2 = new File( osmandDir + "/favourites.gpx" ).lastModified();
     return t1 > t2 ? t1 : t2;
   }
 
@@ -36,11 +53,11 @@ public class CoordinateReaderOsmAnd extends CoordinateReader
   {
     try
     {
-      _readPointmap( basedir + "/osmand/favourites_bak.gpx" );
+      _readPointmap( osmandDir + "/favourites_bak.gpx" );
     }
     catch( Exception e )
     {
-      _readPointmap( basedir + "/osmand/favourites.gpx" );
+      _readPointmap( osmandDir + "/favourites.gpx" );
     }
   }
 
@@ -78,7 +95,7 @@ public class CoordinateReaderOsmAnd extends CoordinateReader
           if ( idx11 >= 0 )
           {
             n.name = line.substring( idx10, idx11 ).trim();
-            checkAddPoint( n );
+            checkAddPoint( "(one-for-all)", n );
           }
         }
       }

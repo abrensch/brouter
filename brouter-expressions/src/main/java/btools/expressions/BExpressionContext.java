@@ -577,6 +577,10 @@ public abstract class BExpressionContext
 
   public void parseFile( File file, String readOnlyContext )
   {
+    if ( !file.exists() )
+    {
+      throw new IllegalArgumentException( "profile "  + file + " does not exist" );
+    }
     try
     {
       if ( readOnlyContext != null )
