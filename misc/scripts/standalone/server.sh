@@ -7,4 +7,4 @@
 JAVA_OPTS="-Xmx128M -Xms128M -Xmn8M -DmaxRunningTime=300"
 CLASSPATH=../brouter.jar
 
-java $JAVA_OPTS -cp $CLASSPATH btools.server.RouteServer ../segments3 ../profiles2 ../customprofiles 17777 1
+java $JAVA_OPTS -cp $CLASSPATH btools.server.RouteServer ../segments4 ../profiles2 ../customprofiles 17777 1
