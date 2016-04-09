@@ -296,6 +296,42 @@ public final class RoutingContext implements DistanceChecker
     return 1.-cosp; // don't care to really do acos..
   }
 
+  public double calcAngle( int lon0, int lat0,  int lon1, int lat1, int lon2, int lat2 )
+  {
+    double dlat1 = (lat1 - lat0);
+    double dlon1 = (lon1 - lon0) * coslat;
+    double dlat2 = (lat2 - lat1);
+    double dlon2 = (lon2 - lon1) * coslat;
+
+    double dd = Math.sqrt( (dlat1*dlat1 + dlon1*dlon1)*(dlat2*dlat2 + dlon2*dlon2) );
+    if ( dd == 0. ) return 0.;
+    double sinp = (dlat1*dlon2 - dlon1*dlat2)/dd;
+    double cosp = (dlat1*dlat2 + dlon1*dlon2)/dd;
+
+    double p;
+    if ( sinp > -0.7 && sinp < 0.7 )
+    {
+      p = Math.asin( sinp )*57.3;
+      if ( cosp < 0. )
+      {
+        p = 180. - p;
+      }
+    }
+    else
+    {
+      p = Math.acos( cosp )*57.3;
+      if ( sinp < 0. )
+      {
+        p = - p;
+      }
+    }
+    if ( p > 180. )
+    {
+      p -= 360.;
+    }
+    return p;
+  }
+
   @Override
   public boolean isWithinRadius( int ilon0, int ilat0, OsmTransferNode firstTransfer, int ilon1, int ilat1 )
   {

@@ -16,6 +16,8 @@ final class MessageData implements Cloneable
   int linkinitcost = 0;
   
   float costfactor;
+  float priorityclassifier;
+  float turnangle;
   String wayKeyValues;
   String nodeKeyValues;
 
@@ -63,5 +65,11 @@ final class MessageData implements Cloneable
     {
       throw new RuntimeException( e );
     }
+  }
+
+  @Override
+  public String toString()
+  {
+    return "dist=" + linkdist + " prio=" + priorityclassifier + " turn=" + turnangle;
   }
 }

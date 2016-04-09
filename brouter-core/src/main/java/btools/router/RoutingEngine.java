@@ -930,8 +930,15 @@ public class RoutingEngine extends Thread
             continue;
           }
           OsmPathElement guideNode = guideTrack.nodes.get( gidx );
-          if ( nextNode.getILat() != guideNode.getILat() || nextNode.getILon() != guideNode.getILon() )
+          long nextId = nextNode.getIdFromPos();
+          if ( nextId != guideNode.getIdFromPos() )
           {
+            // not along the guide-track, discard, but register for voice-hint processing
+            OsmPath detour = new OsmPath( currentNode, path, link, refTrack, true, routingContext );
+            if ( detour.cost >= 0. && nextId != startNodeId1 && nextId != startNodeId2 )
+            {
+              guideTrack.registerDetourForId( currentNode.getIdFromPos(), OsmPathElement.create( detour, false ) );
+            }
             continue;
           }
         }
@@ -1109,6 +1116,13 @@ public class RoutingEngine extends Thread
     logInfo( "track-length = " + track.distance );
     logInfo( "filtered ascend = " + track.ascend );
     track.buildMap();
+
+    // for final track..
+    if ( guideTrack != null )
+    {
+      track.copyDetours( guideTrack );
+      track.processVoiceHints();
+    }
     return track;
   }
 

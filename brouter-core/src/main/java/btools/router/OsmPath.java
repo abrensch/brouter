@@ -6,7 +6,6 @@
 package btools.router;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmLinkHolder;
@@ -162,7 +161,7 @@ final class OsmPath implements OsmLinkHolder
       boolean sameData = rc.expctxWay.evaluate( rc.inverseDirection ^ link.counterLinkWritten, description, rc.messageHandler );
       
       // if way description changed, store message
-      if ( recordMessageData && msgData.wayKeyValues != null && !sameData )
+      if ( recordMessageData && msgData.wayKeyValues != null )
       {
         originElement.message = msgData;
         msgData = new MessageData();
@@ -212,6 +211,10 @@ final class OsmPath implements OsmLinkHolder
         int turncost = (int)(cos * rc.expctxWay.getTurncost() + 0.2 ); // e.g. turncost=90 -> 90 degree = 90m penalty
         cost += turncost;
         msgData.linkturncost += turncost;
+        if ( recordMessageData )
+        {
+          msgData.turnangle = (float)rc.calcAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
+        }
       }
 
       // *** penalty for elevation (penalty is for descend! in a way that slow descends give no penalty)
@@ -334,6 +337,7 @@ final class OsmPath implements OsmLinkHolder
       if ( recordMessageData )
       {
         msgData.costfactor = costfactor;
+        msgData.priorityclassifier = rc.expctxWay.getPriorityClassifier();
         msgData.lon = lon2;
         msgData.lat = lat2;
         msgData.ele = ele2;

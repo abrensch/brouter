@@ -43,6 +43,10 @@ public final class OsmTrack
 
   private CompactLongMap<OsmPathElementHolder> nodesMap;
 
+  private CompactLongMap<OsmPathElementHolder> detourMap;
+
+  private List<VoiceHint> voiceHints;
+
   public String message = null;
   public ArrayList<String> messageList = null;
 
@@ -51,6 +55,34 @@ public final class OsmTrack
   public void addNode( OsmPathElement node )
   {
     nodes.add( 0, node );
+  }
+
+  public void registerDetourForId( long id, OsmPathElement detour )
+  {
+    if ( detourMap == null )
+    {
+      detourMap = new CompactLongMap<OsmPathElementHolder>();
+    }
+    OsmPathElementHolder nh = new OsmPathElementHolder();
+    nh.node = detour;
+    OsmPathElementHolder h = detourMap.get( id );
+    if ( h != null )
+    {
+      while ( h.nextHolder != null )
+      {
+        h = h.nextHolder;
+      }
+      h.nextHolder = nh;
+    }
+    else
+    {
+      detourMap.fastPut( id, nh );
+    }
+  }
+
+  public void copyDetours( OsmTrack source )
+  {
+    detourMap = new FrozenLongMap<OsmPathElementHolder>( source.detourMap );
   }
 
   public void buildMap()
@@ -226,6 +258,15 @@ public final class OsmTrack
         nodes.add( t.nodes.get( i ) );
       }
     }
+
+    if ( t.voiceHints != null )
+    {
+      for( VoiceHint hint : t.voiceHints )
+      {
+        addVoiceHint( hint );
+      }
+    }
+
     distance += t.distance;
     ascend += t.ascend;
     plainAscend += t.plainAscend;
@@ -269,6 +310,20 @@ public final class OsmTrack
     sb.append( " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \n" );
     sb.append( " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\" \n" );
     sb.append( " creator=\"BRouter-1.3.2\" version=\"1.1\">\n" );
+
+    if ( voiceHints != null )
+    {
+      for( VoiceHint hint:    voiceHints )
+      {
+        sb.append( " <wpt lon=\"" ).append( formatILon( hint.ilon ) ).append( "\" lat=\"" )
+          .append( formatILat( hint.ilat ) ).append( "\">" )
+          .append( "<name>" ).append( hint.message ).append( "</name>" )
+          .append( "<sym>" ).append( hint.symbol ).append( "</sym>" )
+          .append( "<type>" ).append( hint.symbol ).append( "</type>" )
+          .append( "</wpt>\n" );
+      }
+    }
+
     sb.append( " <trk>\n" );
     sb.append( "  <name>" ).append( name ).append( "</name>\n" );
     sb.append( "  <trkseg>\n" );
@@ -276,8 +331,8 @@ public final class OsmTrack
     for ( OsmPathElement n : nodes )
     {
       String sele = n.getSElev() == Short.MIN_VALUE ? "" : "<ele>" + n.getElev() + "</ele>";
-      sb.append( "   <trkpt lon=\"" ).append( formatPos( n.getILon() - 180000000 ) ).append( "\" lat=\"" )
-          .append( formatPos( n.getILat() - 90000000 ) ).append( "\">" ).append( sele ).append( "</trkpt>\n" );
+      sb.append( "   <trkpt lon=\"" ).append( formatILon( n.getILon() ) ).append( "\" lat=\"" )
+          .append( formatILat( n.getILat() ) ).append( "\">" ).append( sele ).append( "</trkpt>\n" );
     }
 
     sb.append( "  </trkseg>\n" );
@@ -322,7 +377,7 @@ public final class OsmTrack
 
     for ( OsmPathElement n : nodes )
     {
-      sb.append( formatPos( n.getILon() - 180000000 ) ).append( "," ).append( formatPos( n.getILat() - 90000000 ) ).append( "\n" );
+      sb.append( formatILon( n.getILon() ) ).append( "," ).append( formatILat( n.getILat() ) ).append( "\n" );
     }
 
     sb.append( "          </coordinates>\n" );
@@ -381,7 +436,7 @@ public final class OsmTrack
     for ( OsmPathElement n : nodes )
     {
       String sele = n.getSElev() == Short.MIN_VALUE ? "" : ", " + n.getElev();
-      sb.append( "          [" ).append( formatPos( n.getILon() - 180000000 ) ).append( ", " ).append( formatPos( n.getILat() - 90000000 ) )
+      sb.append( "          [" ).append( formatILon( n.getILon() ) ).append( ", " ).append( formatILat( n.getILat() ) )
           .append( sele ).append( "],\n" );
     }
     sb.deleteCharAt( sb.lastIndexOf( "," ) );
@@ -393,6 +448,16 @@ public final class OsmTrack
     sb.append( "}\n" );
 
     return sb.toString();
+  }
+
+  private static String formatILon( int ilon )
+  {
+    return formatPos(  ilon - 180000000 );
+  }
+
+  private static String formatILat( int ilat )
+  {
+    return formatPos(  ilat - 90000000 );
   }
 
   private static String formatPos( int p )
@@ -487,5 +552,70 @@ public final class OsmTrack
         return false;
     }
     return true;
+  }
+
+  private void addVoiceHint( VoiceHint hint )
+  {
+    if ( voiceHints == null )
+    {
+      voiceHints = new ArrayList<VoiceHint>();
+    }
+    voiceHints.add( hint );
+  }
+
+  public void processVoiceHints()
+  {
+    OsmPathElement node = nodes.get( nodes.size() - 1 );
+    List<VoiceHint> inputs = new ArrayList<VoiceHint>();
+    while (node != null)
+    {
+      if ( node.origin != null )
+      {
+        VoiceHint input = new VoiceHint();
+        inputs.add( input );
+        input.ilat = node.origin.getILat();
+        input.ilon = node.origin.getILon();
+        input.goodWay = node.message;
+
+        OsmPathElementHolder detours = detourMap.get( node.origin.getIdFromPos() );
+        if ( detours != null )
+        {
+          OsmPathElementHolder h = detours;
+          while (h != null)
+          {
+            OsmPathElement e = h.node;
+            input.addBadWay( startSection( e, node.origin ) );
+            h = h.nextHolder;
+          }
+        }
+      }
+      node = node.origin;
+    }
+
+    List<VoiceHint> results = VoiceHintProcessor.process( inputs );
+    for( int i=results.size()-1; i >= 0; i-- )
+    {
+      addVoiceHint( results.get(i) );
+    }
+  }
+
+
+  private MessageData startSection( OsmPathElement element, OsmPathElement root )
+  {
+    OsmPathElement e = element;
+    int cnt = 0;
+    while( e != null )
+    {
+      if ( e.origin == root )
+      {
+        return e.message;
+      }
+      e = e.origin;
+      if ( cnt++ == 10000 )
+      {
+        throw new IllegalArgumentException( "ups?" );
+      }
+    }
+    return null;
   }
 }

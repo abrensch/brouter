@@ -13,7 +13,7 @@ import btools.codec.TagValueValidator;
 public final class BExpressionContextWay extends BExpressionContext implements TagValueValidator
 {
   private static String[] buildInVariables =
-	  { "costfactor", "turncost", "uphillcostfactor", "downhillcostfactor", "initialcost", "nodeaccessgranted", "initialclassifier", "trafficsourcedensity", "istrafficbackbone" };
+	  { "costfactor", "turncost", "uphillcostfactor", "downhillcostfactor", "initialcost", "nodeaccessgranted", "initialclassifier", "trafficsourcedensity", "istrafficbackbone", "priorityclassifier" };
 	  
   protected String[] getBuildInVariableNames()
   {
@@ -29,6 +29,7 @@ public final class BExpressionContextWay extends BExpressionContext implements T
   public float getInitialClassifier() { return getBuildInVariable(6); }
   public float getTrafficSourceDensity() { return getBuildInVariable(7); }
   public float getIsTrafficBackbone() { return getBuildInVariable(8); }
+  public float getPriorityClassifier() { return getBuildInVariable(9); }
 
 
   public BExpressionContextWay( BExpressionMetaData meta )
