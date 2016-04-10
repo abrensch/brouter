@@ -14,6 +14,7 @@ assign   allow_ferries        = true   # set to false to disallow ferries
 assign   ignore_cycleroutes   = false   # set to true for better elevation results
 assign   stick_to_cycleroutes = false   # set to true to just follow cycleroutes
 assign   avoid_unsafe         = false   # set to true to avoid standard highways
+assign   turnInstructionMode  = 0       # 0=none, 1=gpsies-style, 2=locus-style
 
 assign   validForBikes        = true
 
@@ -74,6 +75,29 @@ assign turncost = if is_ldcr then 0
 assign initialclassifier =
      if route=ferry then classifier_ferry
      else classifier_none
+
+
+assign priorityclassifier =
+
+       if ( highway=motorway                  ) then  101
+  else if ( highway=motorway_link             ) then  100
+  else if ( highway=trunk                     ) then  91
+  else if ( highway=trunk_link                ) then  90
+  else if ( highway=primary                   ) then  88
+  else if ( highway=primary_link              ) then  87
+  else if ( highway=secondary                 ) then  86
+  else if ( highway=secondary_link            ) then  85
+  else if ( highway=tertiary                  ) then  84
+  else if ( highway=tertiary_link             ) then  83
+  else if ( highway=unclassified              ) then  82
+  else if ( highway=residential|living_street ) then  50
+  else if ( highway=service                   ) then  40
+  else if ( highway=cycleway                  ) then  30
+  else if ( highway=bridleway                 ) then  20
+  else if ( highway=track|road|path|footway   ) then  20
+  else if ( highway=steps                     ) then  10
+  else if ( highway=pedestrian                ) then  10
+  else 0
 
 #
 # calculate the initial cost
