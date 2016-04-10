@@ -18,6 +18,9 @@ public class VoiceHint
   int locusAction;
   MessageData goodWay;
   List<MessageData> badWays;
+  double distanceToNext;
+  int locusRouteType;
+  int turnInstructionMode;
   
   public void addBadWay( MessageData badWay )
   {

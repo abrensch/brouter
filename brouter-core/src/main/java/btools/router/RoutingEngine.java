@@ -934,10 +934,13 @@ public class RoutingEngine extends Thread
           if ( nextId != guideNode.getIdFromPos() )
           {
             // not along the guide-track, discard, but register for voice-hint processing
-            OsmPath detour = new OsmPath( currentNode, path, link, refTrack, true, routingContext );
-            if ( detour.cost >= 0. && nextId != startNodeId1 && nextId != startNodeId2 )
+            if ( routingContext.turnInstructionMode > 0 )
             {
-              guideTrack.registerDetourForId( currentNode.getIdFromPos(), OsmPathElement.create( detour, false ) );
+              OsmPath detour = new OsmPath( currentNode, path, link, refTrack, true, routingContext );
+              if ( detour.cost >= 0. && nextId != startNodeId1 && nextId != startNodeId2 )
+              {
+                guideTrack.registerDetourForId( currentNode.getIdFromPos(), OsmPathElement.create( detour, false ) );
+              }
             }
             continue;
           }
@@ -1121,7 +1124,7 @@ public class RoutingEngine extends Thread
     if ( guideTrack != null )
     {
       track.copyDetours( guideTrack );
-      track.processVoiceHints();
+      track.processVoiceHints( routingContext );
     }
     return track;
   }

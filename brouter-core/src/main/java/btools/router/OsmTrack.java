@@ -82,7 +82,7 @@ public final class OsmTrack
 
   public void copyDetours( OsmTrack source )
   {
-    detourMap = new FrozenLongMap<OsmPathElementHolder>( source.detourMap );
+    detourMap = source.detourMap == null ? null : new FrozenLongMap<OsmPathElementHolder>( source.detourMap );
   }
 
   public void buildMap()
@@ -317,15 +317,29 @@ public final class OsmTrack
       {
         sb.append( " <wpt lon=\"" ).append( formatILon( hint.ilon ) ).append( "\" lat=\"" )
           .append( formatILat( hint.ilat ) ).append( "\">" )
-          .append( "<name>" ).append( hint.message ).append( "</name>" )
-          .append( "<sym>" ).append( hint.symbol ).append( "</sym>" )
-          .append( "<type>" ).append( hint.symbol ).append( "</type>" )
-          .append( "</wpt>\n" );
+          .append( "<name>" ).append( hint.message ).append( "</name>" );
+        if ( hint.turnInstructionMode == 2 )
+        {
+          sb.append( "<extensions><locus:rteDistance>" ).append( hint.distanceToNext ).append( "</locus:rteDistance>" )
+            .append( "<locus:rtePointAction>" ).append( hint.locusAction ).append( "</locus:rtePointAction></extensions>" );
+        }
+        else
+        {
+          sb.append( "<sym>" ).append( hint.symbol.toLowerCase() ).append( "</sym>" )
+            .append( "<type>" ).append( hint.symbol ).append( "</type>" );
+        }
+        sb.append( "</wpt>\n" );
       }
     }
 
     sb.append( " <trk>\n" );
     sb.append( "  <name>" ).append( name ).append( "</name>\n" );
+
+    if ( voiceHints != null && voiceHints.size() > 0 && voiceHints.get(0).turnInstructionMode == 2 )
+    {
+      sb.append( "  <extensions><locus:rteComputeType>" ).append( voiceHints.get(0).locusRouteType ).append( "</locus:rteComputeType></extensions>\n" );
+    }
+
     sb.append( "  <trkseg>\n" );
 
     for ( OsmPathElement n : nodes )
@@ -563,8 +577,12 @@ public final class OsmTrack
     voiceHints.add( hint );
   }
 
-  public void processVoiceHints()
+  public void processVoiceHints( RoutingContext rc )
   {
+    if ( detourMap == null )
+    {
+      return;
+    }
     OsmPathElement node = nodes.get( nodes.size() - 1 );
     List<VoiceHint> inputs = new ArrayList<VoiceHint>();
     while (node != null)
@@ -575,6 +593,8 @@ public final class OsmTrack
         inputs.add( input );
         input.ilat = node.origin.getILat();
         input.ilon = node.origin.getILon();
+        input.locusRouteType = rc.carMode ? 4 : 5;
+        input.turnInstructionMode = rc.turnInstructionMode;
         input.goodWay = node.message;
 
         OsmPathElementHolder detours = detourMap.get( node.origin.getIdFromPos() );

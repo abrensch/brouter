@@ -14,9 +14,11 @@ public final class VoiceHintProcessor
   public static List<VoiceHint> process( List<VoiceHint> inputs )
   {
     List<VoiceHint> results = new ArrayList<VoiceHint>();
+    double distance = 0.;
     for ( VoiceHint input : inputs )
     {
 //      System.out.println( "***** processing: " + input.ilat + " " + input.ilon + " goodWay=" + input.goodWay );
+      distance += input.goodWay.linkdist;
       if ( input.badWays != null )
       {
         float maxprio = 0.f;
@@ -33,6 +35,8 @@ public final class VoiceHintProcessor
           boolean isTurn = input.setTurnAngle( input.goodWay.turnangle );
           if ( isTurn || input.goodWay.priorityclassifier < maxprio )
           {
+            input.distanceToNext = distance;
+            distance = 0.;
             results.add( input );
           }
         }
