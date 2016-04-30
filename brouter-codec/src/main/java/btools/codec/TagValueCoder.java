@@ -1,5 +1,6 @@
 package btools.codec;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.PriorityQueue;
 
@@ -7,10 +8,10 @@ import btools.util.BitCoderContext;
 
 /**
  * Encoder/Decoder for way-/node-descriptions
- * 
- * It detects identical descriptions and sorts them 
+ *
+ * It detects identical descriptions and sorts them
  * into a huffman-tree according to their frequencies
- * 
+ *
  * Adapted for 3-pass encoding (counters -> statistics -> encoding )
  * but doesn't do anything at pass1
  */
@@ -61,7 +62,8 @@ public final class TagValueCoder
   {
     if ( ++pass == 3 )
     {
-      PriorityQueue<TagValueSet> queue = new PriorityQueue<TagValueSet>( identityMap.values() );
+      PriorityQueue<TagValueSet> queue = new PriorityQueue<TagValueSet>(2*identityMap.size(), new TagValueSet.FrequencyComparator());
+      queue.addAll(identityMap.values());
       while (queue.size() > 1)
       {
         TagValueSet node = new TagValueSet();
@@ -131,7 +133,7 @@ public final class TagValueCoder
     public Object child2;
   }
 
-  public static final class TagValueSet implements Comparable<TagValueSet>
+  public static final class TagValueSet
   {
     public byte[] data;
     public int frequency;
@@ -222,14 +224,18 @@ public final class TagValueCoder
       return h;
     }
 
-    @Override
-    public int compareTo( TagValueSet tvs )
+    public static class FrequencyComparator implements Comparator<TagValueSet>
     {
-      if ( frequency < tvs.frequency )
-        return -1;
-      if ( frequency > tvs.frequency )
-        return 1;
-      return 0;
+
+      @Override
+      public int compare(TagValueSet tvs1, TagValueSet tvs2) {
+        if ( tvs1.frequency < tvs2.frequency )
+          return -1;
+        if ( tvs1.frequency > tvs2.frequency )
+          return 1;
+        return 0;
+      }
     }
+
   }
 }
