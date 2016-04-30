@@ -347,7 +347,11 @@ public class BRouterView extends View
       {
         if ( wp.ilat != 0 || wp.ilat != 0 )
         {
-          wpList.add( wp );
+          int nwp = wpList.size();
+          if ( nwp == 0 || wpList.get( nwp-1 ) != wp )
+          {
+            wpList.add( wp );
+          }
         }
         return;
       }
@@ -405,6 +409,7 @@ public class BRouterView extends View
       RoutingContext rc = new RoutingContext();
 
       rc.localFunction = profilePath;
+      rc.turnInstructionMode = cor.getTurnInstructionMode();
 
       int plain_distance = 0;
       int maxlon = Integer.MIN_VALUE;

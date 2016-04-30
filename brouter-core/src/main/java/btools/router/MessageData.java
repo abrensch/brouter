@@ -16,8 +16,10 @@ final class MessageData implements Cloneable
   int linkinitcost = 0;
   
   float costfactor;
-  float priorityclassifier;
+  int priorityclassifier;
   float turnangle;
+  int onwaydirection;
+  int roundaboutdirection;
   String wayKeyValues;
   String nodeKeyValues;
 
@@ -71,5 +73,15 @@ final class MessageData implements Cloneable
   public String toString()
   {
     return "dist=" + linkdist + " prio=" + priorityclassifier + " turn=" + turnangle;
+  }
+
+  public int getPrio()
+  {
+    return Math.abs( priorityclassifier );
+  }
+
+  public boolean isGoodForCars()
+  {
+    return priorityclassifier > 0;
   }
 }

@@ -45,7 +45,7 @@ public final class OsmTrack
 
   private CompactLongMap<OsmPathElementHolder> detourMap;
 
-  private List<VoiceHint> voiceHints;
+  private VoiceHintList voiceHints;
 
   public String message = null;
   public ArrayList<String> messageList = null;
@@ -261,9 +261,13 @@ public final class OsmTrack
 
     if ( t.voiceHints != null )
     {
-      for( VoiceHint hint : t.voiceHints )
+      if ( voiceHints == null )
       {
-        addVoiceHint( hint );
+        voiceHints = t.voiceHints;
+      }
+      else
+      {
+        voiceHints.list.addAll( t.voiceHints.list );
       }
     }
 
@@ -295,6 +299,7 @@ public final class OsmTrack
   public String formatAsGpx()
   {
     StringBuilder sb = new StringBuilder( 8192 );
+    int turnInstructionMode = voiceHints != null ? voiceHints.turnInstructionMode : 0;
 
     sb.append( "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" );
     for ( int i = messageList.size() - 1; i >= 0; i-- )
@@ -305,46 +310,107 @@ public final class OsmTrack
       if ( message != null )
         sb.append( "<!-- " ).append( message ).append( " -->\n" );
     }
+
+    if ( turnInstructionMode == 4 ) // comment style
+    {
+      sb.append( "<!-- $transport-mode$").append( voiceHints.getTransportMode() ).append( "$ -->\n" );
+      sb.append( "<!--          cmd    idx        lon        lat d2next  geometry -->\n" );
+      sb.append( "<!-- $turn-instruction-start$\n" );
+      for( VoiceHint hint: voiceHints.list )
+      {
+        sb.append( String.format( "     $turn$%6s;%6d;%10s;%10s;%6d;%s$\n", hint.getCommandString(), hint.indexInTrack,
+                                  formatILon( hint.ilon ), formatILat( hint.ilat ), (int)(hint.distanceToNext), hint.formatGeometry() ) );
+      }
+      sb.append( "    $turn-instruction-end$ -->\n" );
+    }
     sb.append( "<gpx \n" );
     sb.append( " xmlns=\"http://www.topografix.com/GPX/1/1\" \n" );
     sb.append( " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \n" );
-    sb.append( " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\" \n" );
-    sb.append( " creator=\"BRouter-1.3.2\" version=\"1.1\">\n" );
-
-    if ( voiceHints != null )
+    if ( turnInstructionMode == 2 ) // locus style
     {
-      for( VoiceHint hint:    voiceHints )
+      sb.append( " xmlns:locus=\"http://www.locusmap.eu\" \n" );
+    }
+    sb.append( " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\" \n" );
+
+    if ( turnInstructionMode == 3)
+    {
+      sb.append(" creator=\"OsmAndRouter\" version=\"1.1\">\n" );
+    }
+    else
+    {
+      sb.append( " creator=\"BRouter-1.3.2\" version=\"1.1\">\n" );
+    }
+
+    if ( turnInstructionMode == 3) // osmand style
+    {
+      sb.append(" <rte>\n");
+      for( VoiceHint hint: voiceHints.list )
+      {
+        sb.append("  <rtept lat=\"").append( formatILat( hint.ilat ) ).append( "\" lon=\"" )
+          .append( formatILon( hint.ilon ) ).append( "\">\n" )
+          .append ( "   <desc>" ).append( hint.getMessageString() ).append( "</desc>\n   <extensions>\n   <turn>" )
+          .append( hint.getCommandString() ).append("</turn>\n   <turn-angle>").append( hint.angle )
+          .append("</turn-angle>\n   <offset>").append( hint.indexInTrack ).append("</offset>\n  </extensions>\n </rtept>\n");
+      }
+      sb.append("</rte>\n");
+    }
+
+    if ( turnInstructionMode == 2 ) // locus style
+    {
+      for( VoiceHint hint: voiceHints.list )
       {
         sb.append( " <wpt lon=\"" ).append( formatILon( hint.ilon ) ).append( "\" lat=\"" )
           .append( formatILat( hint.ilat ) ).append( "\">" )
-          .append( "<name>" ).append( hint.message ).append( "</name>" );
-        if ( hint.turnInstructionMode == 2 )
-        {
-          sb.append( "<extensions><locus:rteDistance>" ).append( hint.distanceToNext ).append( "</locus:rteDistance>" )
-            .append( "<locus:rtePointAction>" ).append( hint.locusAction ).append( "</locus:rtePointAction></extensions>" );
-        }
-        else
-        {
-          sb.append( "<sym>" ).append( hint.symbol.toLowerCase() ).append( "</sym>" )
-            .append( "<type>" ).append( hint.symbol ).append( "</type>" );
-        }
-        sb.append( "</wpt>\n" );
+          .append( "<name>" ).append( hint.getMessageString() ).append( "</name>" )
+          .append( "<extensions><locus:rteDistance>" ).append( hint.distanceToNext ).append( "</locus:rteDistance>" )
+          .append( "<locus:rtePointAction>" ).append( hint.getLocusAction() ).append( "</locus:rtePointAction></extensions>" )
+          .append( "</wpt>\n" );
       }
     }
-
+    if ( turnInstructionMode == 5 ) // gpsies style
+    {
+      for( VoiceHint hint: voiceHints.list )
+      {
+        sb.append( " <wpt lon=\"" ).append( formatILon( hint.ilon ) ).append( "\" lat=\"" )
+          .append( formatILat( hint.ilat ) ).append( "\">" )
+          .append( "<name>" ).append( hint.getMessageString() ).append( "</name>" )
+          .append( "<sym>" ).append( hint.getSymbolString().toLowerCase() ).append( "</sym>" )
+          .append( "<type>" ).append( hint.getSymbolString() ).append( "</type>" )
+          .append( "</wpt>\n" );
+      }
+    }
     sb.append( " <trk>\n" );
     sb.append( "  <name>" ).append( name ).append( "</name>\n" );
-
-    if ( voiceHints != null && voiceHints.size() > 0 && voiceHints.get(0).turnInstructionMode == 2 )
+    if ( turnInstructionMode == 1 ) // trkpt/sym style
     {
-      sb.append( "  <extensions><locus:rteComputeType>" ).append( voiceHints.get(0).locusRouteType ).append( "</locus:rteComputeType></extensions>\n" );
+      sb.append( "  <type>" ).append( voiceHints.getTransportMode() ).append( "</type>\n" );
+    }
+
+    if ( turnInstructionMode == 2 )
+    {
+      int routeType = voiceHints.getLocusRouteType();
+      if ( routeType != 4 ) // 4 = car = default seems to work better as default
+      {
+        sb.append( "  <extensions><locus:rteComputeType>" ).append( voiceHints.getLocusRouteType() ).append( "</locus:rteComputeType></extensions>\n" );
+      }
     }
 
     sb.append( "  <trkseg>\n" );
 
-    for ( OsmPathElement n : nodes )
+    for ( int idx = 0; idx < nodes.size(); idx++ )
     {
+      OsmPathElement n = nodes.get(idx);
       String sele = n.getSElev() == Short.MIN_VALUE ? "" : "<ele>" + n.getElev() + "</ele>";
+      if ( turnInstructionMode == 1 ) // trkpt/sym style
+      {
+        for ( VoiceHint hint : voiceHints.list )
+        {
+          if ( hint.indexInTrack == idx )
+          {
+            sele += "<sym>" + hint.getCommandString() + "</sym>";
+          }
+        }
+      }
       sb.append( "   <trkpt lon=\"" ).append( formatILon( n.getILon() ) ).append( "\" lat=\"" )
           .append( formatILat( n.getILat() ) ).append( "\">" ).append( sele ).append( "</trkpt>\n" );
     }
@@ -568,22 +634,18 @@ public final class OsmTrack
     return true;
   }
 
-  private void addVoiceHint( VoiceHint hint )
-  {
-    if ( voiceHints == null )
-    {
-      voiceHints = new ArrayList<VoiceHint>();
-    }
-    voiceHints.add( hint );
-  }
-
   public void processVoiceHints( RoutingContext rc )
   {
+    voiceHints = new VoiceHintList();
+    voiceHints.setTransportMode( rc.carMode );
+    voiceHints.turnInstructionMode = rc.turnInstructionMode;
+
     if ( detourMap == null )
     {
       return;
     }
-    OsmPathElement node = nodes.get( nodes.size() - 1 );
+    int nodeNr = nodes.size() - 1;
+    OsmPathElement node = nodes.get( nodeNr );
     List<VoiceHint> inputs = new ArrayList<VoiceHint>();
     while (node != null)
     {
@@ -593,9 +655,9 @@ public final class OsmTrack
         inputs.add( input );
         input.ilat = node.origin.getILat();
         input.ilon = node.origin.getILon();
-        input.locusRouteType = rc.carMode ? 4 : 5;
-        input.turnInstructionMode = rc.turnInstructionMode;
+        input.indexInTrack = --nodeNr;
         input.goodWay = node.message;
+        input.oldWay = node.origin.message;
 
         OsmPathElementHolder detours = detourMap.get( node.origin.getIdFromPos() );
         if ( detours != null )
@@ -613,9 +675,9 @@ public final class OsmTrack
     }
 
     List<VoiceHint> results = VoiceHintProcessor.process( inputs );
-    for( int i=results.size()-1; i >= 0; i-- )
+    for( VoiceHint hint : results )
     {
-      addVoiceHint( results.get(i) );
+      voiceHints.list.add( hint );
     }
   }
 

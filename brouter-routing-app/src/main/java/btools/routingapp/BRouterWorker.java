@@ -41,6 +41,19 @@ public class BRouterWorker
     RoutingContext rc = new RoutingContext();
     rc.rawTrackPath = rawTrackPath;
     rc.localFunction = profilePath;
+
+    String tiFormat = params.getString( "turnInstructionFormat" );
+    if ( tiFormat != null )
+    {
+      if ( "osmand".equalsIgnoreCase( tiFormat ) )
+      {
+        rc.turnInstructionMode = 3;
+      }
+      else if ( "locus".equalsIgnoreCase( tiFormat ) )
+      {
+        rc.turnInstructionMode = 2;
+      }
+    }
     if ( nogoList != null )
     {
       rc.prepareNogoPoints( nogoList );

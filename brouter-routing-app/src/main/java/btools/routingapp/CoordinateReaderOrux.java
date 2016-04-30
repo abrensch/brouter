@@ -25,6 +25,12 @@ public class CoordinateReaderOrux extends CoordinateReader
     return t1;
   }
 
+  @Override
+  public int getTurnInstructionMode()
+  {
+    return 0; // none
+  }
+
   /*
    * read the from and to position from a ggx-file
    * (with hardcoded name for now)

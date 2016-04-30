@@ -25,6 +25,12 @@ public class CoordinateReaderLocus extends CoordinateReader
     return t1;
   }
 
+  @Override
+  public int getTurnInstructionMode()
+  {
+    return 2; // locus style
+  }
+
   /*
    * read the from and to position from a ggx-file
    * (with hardcoded name for now)

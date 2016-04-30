@@ -19,6 +19,12 @@ public class CoordinateReaderNone extends CoordinateReader
   }
 
   @Override
+  public int getTurnInstructionMode()
+  {
+    return 0; // none
+  }
+
+  @Override
   public void readPointmap() throws Exception
   {
   }

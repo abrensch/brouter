@@ -40,6 +40,8 @@ public abstract class CoordinateReader
 
   public abstract long getTimeStamp() throws Exception;
 
+  public abstract int getTurnInstructionMode();
+
   public void readAllPoints() throws Exception
   {
     allpointsMap = new TreeMap<String, Map<String,OsmNodeNamed>>();

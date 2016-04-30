@@ -96,7 +96,11 @@ public final class RoutingContext implements DistanceChecker
     trafficSourceExponent      = expctxGlobal.getVariableValue( "trafficSourceExponent", -0.7f );
     trafficSourceMinDist      = expctxGlobal.getVariableValue( "trafficSourceMinDist", 3000.f );
 
-    turnInstructionMode = (int)expctxGlobal.getVariableValue( "turnInstructionMode", 0.f );
+    int tiMode = (int)expctxGlobal.getVariableValue( "turnInstructionMode", 0.f );
+    if ( tiMode != 1 ) // automatic selection from coordinate source
+    {
+      turnInstructionMode = tiMode;
+    }
   }
 
   public RoutingMessageHandler messageHandler = new RoutingMessageHandler();
@@ -125,7 +129,7 @@ public final class RoutingContext implements DistanceChecker
   public double trafficSourceExponent;
   public double trafficSourceMinDist;
 
-  public int turnInstructionMode; // 0=none, 1=osmand, 2=locus
+  public int turnInstructionMode; // 0=none, 1=auto, 2=locus, 3=osmand, 4=comment-style, 5=gpsies-style
 
   public static void prepareNogoPoints( List<OsmNodeNamed> nogos )
   {

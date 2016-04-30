@@ -44,6 +44,12 @@ public class CoordinateReaderOsmAnd extends CoordinateReader
     return t1 > t2 ? t1 : t2;
   }
 
+  @Override
+  public int getTurnInstructionMode()
+  {
+    return 3; // osmand style
+  }
+
   /*
    * read the from and to position from a gpx-file
    * (with hardcoded name for now)

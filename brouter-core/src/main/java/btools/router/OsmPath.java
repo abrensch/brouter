@@ -304,7 +304,7 @@ final class OsmPath implements OsmLinkHolder
       }
 
       float fcost = dist * costfactor + 0.5f;
-      if ( costfactor > 9999. || fcost + cost >= 2000000000. )
+      if ( ( costfactor > 9999. && !detailMode ) || fcost + cost >= 2000000000. )
       {
         cost = -1;
         return;
@@ -337,7 +337,9 @@ final class OsmPath implements OsmLinkHolder
       if ( recordMessageData )
       {
         msgData.costfactor = costfactor;
-        msgData.priorityclassifier = rc.expctxWay.getPriorityClassifier();
+        msgData.priorityclassifier = (int)rc.expctxWay.getPriorityClassifier();
+        msgData.onwaydirection = (int)rc.expctxWay.getOnewayDirection();
+        msgData.roundaboutdirection = (int)rc.expctxWay.getRoundaboutDirection();
         msgData.lon = lon2;
         msgData.lat = lat2;
         msgData.ele = ele2;
