@@ -49,13 +49,19 @@ public final class BExpressionContextWay extends BExpressionContext implements T
   }
 
   @Override
-  public boolean accessAllowed( byte[] description )
+  public int accessType( byte[] description )
   {
     evaluate( false, description, null );
-    boolean ok = getCostfactor() < 10000.;
-    evaluate( true, description, null );
-    ok |= getCostfactor() < 10000.;
-    return ok;
+    float minCostFactor = getCostfactor();
+    if ( minCostFactor >= 9999.f )
+    {
+      evaluate( true, description, null );
+      float reverseCostFactor = getCostfactor();
+      if ( reverseCostFactor < minCostFactor )
+      {
+        minCostFactor = reverseCostFactor;
+      }
+    }
+    return minCostFactor < 9999.f ? 2 : minCostFactor < 10000.f ? 1 : 0;
   }
-
 }

@@ -95,7 +95,8 @@ public final class MicroCache2 extends MicroCache
 
       selev += nodeEleDiff.decodeSignedValue();
       writeShort( (short) selev );
-      writeVarBytes( nodeTagCoder.decodeTagValueSet() );
+      TagValueWrapper nodeTags = nodeTagCoder.decodeTagValueSet();
+      writeVarBytes( nodeTags == null ? null : nodeTags.data );
 
       int links = bc.decodeNoisyNumber( 1 );
       if ( debug ) System.out.println( "*** decoding node with links=" + links );
@@ -120,7 +121,7 @@ public final class MicroCache2 extends MicroCache
           writeVarLengthSigned( dlon_remaining = extLonDiff.decodeSignedValue() );
           writeVarLengthSigned( dlat_remaining = extLatDiff.decodeSignedValue() );
         }
-        byte[] wayTags = wayTagCoder.decodeTagValueSet();
+        TagValueWrapper wayTags = wayTagCoder.decodeTagValueSet();
 
         if ( wayTags != null )
         {
@@ -133,10 +134,10 @@ public final class MicroCache2 extends MicroCache
           }
         }
 
-        writeModeAndDesc( isReverse, wayTags );
+        writeModeAndDesc( isReverse, wayTags == null ? null : wayTags.data );
         if ( !isReverse ) // write geometry for forward links only
         {
-          WaypointMatcher matcher = wayTags == null ? null : waypointMatcher;
+          WaypointMatcher matcher = wayTags == null || wayTags.accessType < 2 ? null : waypointMatcher;
           if ( matcher != null ) matcher.startNode( ilon, ilat );
           int ilontarget = ilon + dlon_remaining;
           int ilattarget = ilat + dlat_remaining;

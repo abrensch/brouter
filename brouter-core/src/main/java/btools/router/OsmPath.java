@@ -304,7 +304,7 @@ final class OsmPath implements OsmLinkHolder
       }
 
       float fcost = dist * costfactor + 0.5f;
-      if ( ( costfactor > 9999. && !detailMode ) || fcost + cost >= 2000000000. )
+      if ( ( costfactor > 9998. && !detailMode ) || fcost + cost >= 2000000000. )
       {
         cost = -1;
         return;

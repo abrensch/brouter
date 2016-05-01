@@ -46,7 +46,7 @@ public final class TagValueCoder
     }
   }
 
-  public byte[] decodeTagValueSet()
+  public TagValueWrapper decodeTagValueSet()
   {
     Object node = tree;
     while (node instanceof TreeNode)
@@ -55,7 +55,7 @@ public final class TagValueCoder
       boolean nextBit = bc.decodeBit();
       node = nextBit ? tn.child2 : tn.child1;
     }
-    return (byte[]) node;
+    return (TagValueWrapper) node;
   }
 
   public void encodeDictionary( BitCoderContext bc )
@@ -120,9 +120,13 @@ public final class TagValueCoder
     byte[] res = new byte[len];
     System.arraycopy( buffer, 0, res, 0, len );
 
-    if ( validator == null || validator.accessAllowed( res ) )
+    int accessType = validator == null ? 2 : validator.accessType( res );
+    if ( accessType > 0 )
     {
-      return res;
+      TagValueWrapper w = new TagValueWrapper();
+      w.data = res;
+      w.accessType = accessType;
+      return w;
     }
     return null;
   }

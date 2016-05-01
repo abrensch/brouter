@@ -5,7 +5,7 @@ public interface TagValueValidator
 {
   /**
    * @param tagValueSet the way description to check
-   * @return true if access is allowed in the current profile 
+   * @return 0 = nothing, 1=no matching, 2=normal
    */
-  public boolean accessAllowed( byte[] tagValueSet );
+  public int accessType( byte[] tagValueSet );
 }
