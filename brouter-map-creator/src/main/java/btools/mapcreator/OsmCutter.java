@@ -148,7 +148,7 @@ public class OsmCutter extends MapCreatorBase
     for( String key : w.getTagsOrNull().keySet() )
     {
       String value = w.getTag( key );
-      _expctxWay.addLookupValue( key, value, lookupData );
+      _expctxWay.addLookupValue( key, value.replace( ' ', '_' ), lookupData );
       _expctxWayStat.addLookupValue( key, value, null );
     }
     w.description = _expctxWay.encode(lookupData);
