@@ -17,9 +17,8 @@ final class MessageData implements Cloneable
   
   float costfactor;
   int priorityclassifier;
+  int classifiermask;
   float turnangle;
-  int onwaydirection;
-  int roundaboutdirection;
   String wayKeyValues;
   String nodeKeyValues;
 
@@ -77,11 +76,32 @@ final class MessageData implements Cloneable
 
   public int getPrio()
   {
-    return Math.abs( priorityclassifier );
+    return priorityclassifier;
+  }
+
+  public boolean isBadOneway()
+  {
+    return ( classifiermask & 1 ) != 0;
+  }
+
+  public boolean isGoodOneway()
+  {
+    return ( classifiermask & 2 ) != 0;
+  }
+
+  public boolean isRoundabout()
+  {
+    return ( classifiermask & 4 ) != 0;
+  }
+
+  public boolean isLinktType()
+  {
+    return ( classifiermask & 8 ) != 0;
   }
 
   public boolean isGoodForCars()
   {
-    return priorityclassifier > 0;
+    return ( classifiermask & 16 ) != 0;
   }
+
 }

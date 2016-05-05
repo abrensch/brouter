@@ -101,6 +101,8 @@ public final class RoutingContext implements DistanceChecker
     {
       turnInstructionMode = tiMode;
     }
+    turnInstructionCatchingRange = expctxGlobal.getVariableValue( "trafficSourceMinDist", 40.f );
+    turnInstructionRoundabouts = expctxGlobal.getVariableValue( "turnInstructionRoundabouts", 1.f ) != 0.f;
   }
 
   public RoutingMessageHandler messageHandler = new RoutingMessageHandler();
@@ -130,6 +132,8 @@ public final class RoutingContext implements DistanceChecker
   public double trafficSourceMinDist;
 
   public int turnInstructionMode; // 0=none, 1=auto, 2=locus, 3=osmand, 4=comment-style, 5=gpsies-style
+  public double turnInstructionCatchingRange;
+  public boolean turnInstructionRoundabouts;
 
   public static void prepareNogoPoints( List<OsmNodeNamed> nogos )
   {

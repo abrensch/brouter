@@ -338,8 +338,7 @@ final class OsmPath implements OsmLinkHolder
       {
         msgData.costfactor = costfactor;
         msgData.priorityclassifier = (int)rc.expctxWay.getPriorityClassifier();
-        msgData.onwaydirection = (int)rc.expctxWay.getOnewayDirection();
-        msgData.roundaboutdirection = (int)rc.expctxWay.getRoundaboutDirection();
+        msgData.classifiermask = (int)rc.expctxWay.getClassifierMask();
         msgData.lon = lon2;
         msgData.lat = lat2;
         msgData.ele = ele2;

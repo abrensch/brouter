@@ -657,7 +657,7 @@ public final class OsmTrack
         input.ilon = node.origin.getILon();
         input.indexInTrack = --nodeNr;
         input.goodWay = node.message;
-        input.oldWay = node.origin.message;
+        input.oldWay = node.origin.message == null ? node.message : node.origin.message;
 
         OsmPathElementHolder detours = detourMap.get( node.origin.getIdFromPos() );
         if ( detours != null )
@@ -674,7 +674,8 @@ public final class OsmTrack
       node = node.origin;
     }
 
-    List<VoiceHint> results = VoiceHintProcessor.process( inputs );
+    VoiceHintProcessor vproc = new VoiceHintProcessor( rc.turnInstructionCatchingRange, rc.turnInstructionRoundabouts );
+    List<VoiceHint> results = vproc.process( inputs );
     for( VoiceHint hint : results )
     {
       voiceHints.list.add( hint );
