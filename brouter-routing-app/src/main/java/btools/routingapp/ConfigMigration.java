@@ -86,4 +86,61 @@ public class ConfigMigration
       }
     }
   }
+
+  public static File saveAdditionalMaptoolDir( String segmentDir, String value )
+  {
+    return saveStorageLocation( segmentDir, "additional_maptool_dir=", value );
+  }
+
+  private static File saveStorageLocation( String segmentDir, String tag, String value )
+  {
+    File res = null;
+    BufferedReader br = null;
+    BufferedWriter bw = null;
+    String configFile = segmentDir + "/storageconfig.txt";
+    List<String> lines = new ArrayList<String>();
+    try
+    {
+      br = new BufferedReader( new FileReader( configFile ) );
+      for ( ;; )
+      {
+        String line = br.readLine();
+        if ( line == null ) break;
+        if ( !line.trim().startsWith( tag ) )
+        {
+          lines.add( line );
+        }
+      }
+      lines.add( tag + value );
+      br.close();
+      br = null;
+      bw = new BufferedWriter( new FileWriter( configFile ) );
+      for( String line : lines )
+      {
+        bw.write( line + "\r\n" );
+      }
+    }
+    catch (Exception e) { /* ignore */ }
+    finally
+    {
+      if ( br != null )
+      {
+        try
+        {
+          br.close();
+        }
+        catch (Exception ee) { /* ignore */ }
+      }
+      if ( bw != null )
+      {
+        try
+        {
+          bw.close();
+        }
+        catch (Exception ee) { /* ignore */ }
+      }
+    }
+    return res;
+  }
+
 }

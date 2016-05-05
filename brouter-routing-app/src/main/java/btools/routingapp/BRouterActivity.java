@@ -36,6 +36,8 @@ public class BRouterActivity extends Activity implements OnInitListener
   private static final int DIALOG_SELECTBASEDIR_ID = 11;
   private static final int DIALOG_MAINACTION_ID = 12;
   private static final int DIALOG_OLDDATAHINT_ID = 13;
+  private static final int DIALOG_SHOW_WP_HELP_ID = 14;
+  private static final int DIALOG_SHOW_WP_SCANRESULT_ID = 15;
 
   private BRouterView mBRouterView;
   private PowerManager mPowerManager;
@@ -110,6 +112,51 @@ public class BRouterActivity extends Activity implements OnInitListener
               finish();
             }
           } ).setNegativeButton( "Cancel", new DialogInterface.OnClickListener()
+          {
+            public void onClick( DialogInterface dialog, int id )
+            {
+              finish();
+            }
+          } );
+      return builder.create();
+    case DIALOG_SHOW_WP_HELP_ID:
+      builder = new AlertDialog.Builder( this );
+      builder
+          .setTitle( "No Waypoint Database found" )
+          .setMessage(
+              "The simple scan did not find any map-tool directory including a waypoint database. "
+            + "Reason could be there is no map-tool installed (osmand, locus or oruxmaps), or at an "
+            + "unusual path, or it contains no waypoints yet. That's o.k. if you want to use BRouter "
+            + "in server-mode only - in that case you can still use the 'Server-Mode' button to "
+            + "configure the profile mapping. But you will not be able to use nogo-points or do "
+            + "long distance calculations. If you know the path to your map-tool, you can manually "
+            + "configure it in 'storageconfig.txt'. Or I can do an extended scan searching "
+            + "your sd-card for a valid waypoint database" ).setPositiveButton( "Scan", new DialogInterface.OnClickListener()
+          {
+            public void onClick( DialogInterface dialog, int id )
+            {
+              mBRouterView.startWpDatabaseScan();
+            }
+          } ).setNegativeButton( "Exit", new DialogInterface.OnClickListener()
+          {
+            public void onClick( DialogInterface dialog, int id )
+            {
+              finish();
+            }
+          } );
+      return builder.create();
+    case DIALOG_SHOW_WP_SCANRESULT_ID:
+      builder = new AlertDialog.Builder( this );
+      builder
+          .setTitle( "Waypoint Database " )
+          .setMessage( "Found Waypoint-Database(s) for maptool-dir: " + maptoolDirCandidate
+            + " Configure that?" ).setPositiveButton( "Yes", new DialogInterface.OnClickListener()
+          {
+            public void onClick( DialogInterface dialog, int id )
+            {
+              mBRouterView.saveMaptoolDir( maptoolDirCandidate );
+            }
+          } ).setNegativeButton( "No", new DialogInterface.OnClickListener()
           {
             public void onClick( DialogInterface dialog, int id )
             {
@@ -257,17 +304,25 @@ public class BRouterActivity extends Activity implements OnInitListener
       } );
       return builder.create();
     case DIALOG_SHOWRESULT_ID:
-      String leftLabel = wpCount < 0 ? "Exit" : ( wpCount == 0 ? "Select from" : "Select to/via" );
+      String leftLabel = wpCount < 0 ? ( wpCount == -1 ? "Exit" : "Help") : ( wpCount == 0 ? "Select from" : "Select to/via" );
       String rightLabel = wpCount < 2 ? "Server-Mode" : "Calc Route";
       builder = new AlertDialog.Builder( this );
       builder.setTitle( title ).setMessage( errorMessage ).setPositiveButton( leftLabel, new DialogInterface.OnClickListener()
       {
         public void onClick( DialogInterface dialog, int id )
         {
-          if ( wpCount < 0 )
+          if ( wpCount == -2 )
+          {
+            showWaypointDatabaseHelp();
+          }
+          else if ( wpCount == -1 )
+          {
             finish();
+          }
           else
+          {
             mBRouterView.pickWaypoints();
+          }
         }
       } ).setNegativeButton( rightLabel, new DialogInterface.OnClickListener()
       {
@@ -337,6 +392,8 @@ public class BRouterActivity extends Activity implements OnInitListener
   private Set<String> selectedVias;
 
   private List<OsmNodeNamed> nogoList;
+
+  private String maptoolDirCandidate;
 
   public boolean isOnline()
   {
@@ -439,6 +496,19 @@ public class BRouterActivity extends Activity implements OnInitListener
   {
     availableWaypoints = items;
     showNewDialog( DIALOG_PICKWAYPOINT_ID );
+  }
+
+  @SuppressWarnings("deprecation")
+  public void showWaypointDatabaseHelp()
+  {
+    showNewDialog( DIALOG_SHOW_WP_HELP_ID );
+  }
+
+  @SuppressWarnings("deprecation")
+  public void showWpDatabaseScanSuccess( String bestGuess )
+  {
+    maptoolDirCandidate = bestGuess;
+    showNewDialog( DIALOG_SHOW_WP_SCANRESULT_ID );
   }
 
   @SuppressWarnings("deprecation")
