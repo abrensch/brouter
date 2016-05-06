@@ -17,6 +17,7 @@ assign   allow_ferries        1   # set to 0 to disallow ferries
 assign   ignore_cycleroutes   0   # set to 1 for better elevation results
 assign   stick_to_cycleroutes 0   # set to 1 to just follow cycleroutes
 assign   avoid_unsafe         0   # set to 1 to avoid standard highways
+assign   turnInstructionMode  1   # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style
 
 assign   validForBikes        1
 
@@ -83,7 +84,7 @@ assign accesspenalty
               0
               switch footaccess
                      6
-                     100000
+                     10000
 
 #
 # handle one-ways. On primary roads, wrong-oneways should
@@ -106,12 +107,13 @@ assign onewaypenalty
 
 assign costfactor
 
+  switch and highway= not route=ferry  10000
+  switch or highway=proposed highway=abandoned 10000
+
+  min 9999
   add max onewaypenalty accesspenalty
 
-  switch and highway= not route=ferry  100000
-
-  switch or highway=motorway highway=motorway_link    100000
-  switch or highway=proposed highway=abandoned        100000
+  switch or highway=motorway highway=motorway_link    10000
   switch or highway=trunk highway=trunk_link          10
   switch or highway=primary highway=primary_link      1.2
   switch or highway=secondary highway=secondary_link  1.1
@@ -133,6 +135,53 @@ assign costfactor
    switch bicycle=designated 2.0
    switch ispaved 2.0 100.0
    10.0
+
+# way priorities used for voice hint generation
+
+assign priorityclassifier =
+
+  if      ( highway=motorway                  ) then  30
+  else if ( highway=motorway_link             ) then  29
+  else if ( highway=trunk                     ) then  28
+  else if ( highway=trunk_link                ) then  27
+  else if ( highway=primary                   ) then  26
+  else if ( highway=primary_link              ) then  25
+  else if ( highway=secondary                 ) then  24
+  else if ( highway=secondary_link            ) then  23
+  else if ( highway=tertiary                  ) then  22
+  else if ( highway=tertiary_link             ) then  21
+  else if ( highway=unclassified              ) then  20
+  else if ( highway=residential|living_street ) then  6
+  else if ( highway=service                   ) then  6
+  else if ( highway=cycleway                  ) then  6
+  else if ( bicycle=designated                ) then  6
+  else if ( highway=track                     ) then if tracktype=grade1 then 6 else 4
+  else if ( highway=bridleway|road|path|footway ) then  4
+  else if ( highway=steps                     ) then  2
+  else if ( highway=pedestrian                ) then  2
+  else 0
+
+
+# some more classifying bits used for voice hint generation...
+
+assign isbadoneway = not equal onewaypenalty 0
+assign isgoodoneway = if reversedirection=yes then oneway=-1
+                      else if oneway= then junction=roundabout else oneway=yes|true|1
+assign isroundabout = junction=roundabout
+assign islinktype = highway=motorway_link|trunk_link|primary_link|secondary_link|tertiary_link
+assign isgoodforcars = if greater priorityclassifier 6 then true
+                  else if highway=residential|living_street|service then true
+                  else if ( and highway=track tracktype=grade1 ) then true
+                  else false
+
+# ... encoded into a bitmask
+
+assign classifiermask add          isbadoneway
+                      add multiply isgoodoneway   2
+                      add multiply isroundabout   4
+                      add multiply islinktype     8
+                          multiply isgoodforcars 16
+
 
 ---context:node  # following code refers to node tags
 
