@@ -101,7 +101,7 @@ public final class RoutingContext implements DistanceChecker
     {
       turnInstructionMode = tiMode;
     }
-    turnInstructionCatchingRange = expctxGlobal.getVariableValue( "trafficSourceMinDist", 40.f );
+    turnInstructionCatchingRange = expctxGlobal.getVariableValue( "turnInstructionCatchingRange", 40.f );
     turnInstructionRoundabouts = expctxGlobal.getVariableValue( "turnInstructionRoundabouts", 1.f ) != 0.f;
   }
 
