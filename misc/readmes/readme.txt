@@ -1,4 +1,4 @@
-BRouter - Version 1.3.2 - Setting up the Android App
+BRouter - Version 1.4 - Setting up the Android App
 ====================================================
 
 Choosing and Installing a Map-Tool
@@ -40,7 +40,7 @@ Installing the BRouter App
 --------------------------
 
 You can install the BRouter-App either from Google's Play Store
-or directly from the APK-File contained within the "brouter_1_3_2.zip"
+or directly from the APK-File contained within the "brouter_1_4.zip"
 distribution zip-file.
 
 Choosing a SD-Card Base Directory

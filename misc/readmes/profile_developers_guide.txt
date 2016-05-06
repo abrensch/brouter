@@ -73,12 +73,18 @@ the routing engine:
     - validForFoot
     - validForCars
 
-  - and 2 variables to change the heuristic
+  - 2 variables to change the heuristic
     coefficients for the 2 routing passes
     ( <0 disables a routing pass )
 
    - pass1coefficient
    - pass2coefficient
+
+  - 3 variables to influence the generation of turn-instructions
+
+   - turnInstructionMode      0=none, 1=auto-choose, 2=locus-style, 3=osmand-style
+   - turnInstructionCatchingRange  default 40m
+   - turnInstructionRoundabouts     default=true=generate explicit roundabout hints
 
 - for the way section these are
 
@@ -142,6 +148,7 @@ All expressions have one of the following basic forms:
   multiply <numeric expression 1> <numeric expression 2>
   add      <numeric expression 1> <numeric expression 2>
   max      <numeric expression 1> <numeric expression 2>
+  min      <numeric expression 1> <numeric expression 2>
   equal    <numeric expression 1> <numeric expression 2>
 
 - 3 Operand operators are:
