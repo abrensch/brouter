@@ -281,6 +281,7 @@ public final class OsmTrack
   public int ascend;
   public int plainAscend;
   public int cost;
+  public long arrivaltime;
 
   /**
    * writes the track in gpx-format to a file
@@ -338,7 +339,7 @@ public final class OsmTrack
     }
     else
     {
-      sb.append( " creator=\"BRouter-1.4\" version=\"1.1\">\n" );
+      sb.append( " creator=\"BRouter-1.4.1\" version=\"1.1\">\n" );
     }
 
     if ( turnInstructionMode == 3) // osmand style
@@ -393,6 +394,7 @@ public final class OsmTrack
       {
         sb.append( "  <extensions><locus:rteComputeType>" ).append( voiceHints.getLocusRouteType() ).append( "</locus:rteComputeType></extensions>\n" );
       }
+      sb.append( "  <extensions><locus:rteSimpleRoundabouts>1</locus:rteSimpleRoundabouts></extensions>\n" );
     }
 
     sb.append( "  <trkseg>\n" );

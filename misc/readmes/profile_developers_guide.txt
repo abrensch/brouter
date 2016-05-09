@@ -145,11 +145,15 @@ All expressions have one of the following basic forms:
 
   or       <boolean expression 1> <boolean expression 2>
   and      <boolean expression 1> <boolean expression 2>
+  xor      <boolean expression 1> <boolean expression 2>
   multiply <numeric expression 1> <numeric expression 2>
   add      <numeric expression 1> <numeric expression 2>
+  sub      <numeric expression 1> <numeric expression 2>
   max      <numeric expression 1> <numeric expression 2>
   min      <numeric expression 1> <numeric expression 2>
   equal    <numeric expression 1> <numeric expression 2>
+  greater  <numeric expression 1> <numeric expression 2>
+  lesser   <numeric expression 1> <numeric expression 2>
 
 - 3 Operand operators are:
 

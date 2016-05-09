@@ -15,6 +15,10 @@ final class BExpression
   private static final int GREATER_EXP = 24;
   private static final int MIN_EXP = 25;
 
+  private static final int SUB_EXP = 26;
+  private static final int LESSER_EXP = 27;
+  private static final int XOR_EXP = 28;
+
   private static final int SWITCH_EXP = 30;
   private static final int ASSIGN_EXP = 31;
   private static final int LOOKUP_EXP = 32;
@@ -114,6 +118,18 @@ final class BExpression
       else if ( "greater".equals( operator ) )
       {
         exp.typ = GREATER_EXP;
+      }
+      else if ( "sub".equals( operator ) )
+      {
+        exp.typ = SUB_EXP;
+      }
+      else if ( "lesser".equals( operator ) )
+      {
+        exp.typ = LESSER_EXP;
+      }
+      else if ( "xor".equals( operator ) )
+      {
+        exp.typ = XOR_EXP;
       }
       else
       {
@@ -231,13 +247,16 @@ final class BExpression
     switch( typ )
     {
       case OR_EXP: return op1.evaluate(ctx) != 0.f ? 1.f : ( op2.evaluate(ctx) != 0.f ? 1.f : 0.f );
+      case XOR_EXP: return ( (op1.evaluate(ctx) != 0.f) ^ ( op2.evaluate(ctx) != 0.f ) ? 1.f : 0.f );
       case AND_EXP: return op1.evaluate(ctx) != 0.f ? ( op2.evaluate(ctx) != 0.f ? 1.f : 0.f ) : 0.f;
       case ADD_EXP: return op1.evaluate(ctx) + op2.evaluate(ctx);
+      case SUB_EXP: return op1.evaluate(ctx) - op2.evaluate(ctx);
       case MULTIPLY_EXP: return op1.evaluate(ctx) * op2.evaluate(ctx);
       case MAX_EXP: return max( op1.evaluate(ctx), op2.evaluate(ctx) );
       case MIN_EXP: return min( op1.evaluate(ctx), op2.evaluate(ctx) );
       case EQUAL_EXP: return op1.evaluate(ctx) == op2.evaluate(ctx) ? 1.f : 0.f;
       case GREATER_EXP: return op1.evaluate(ctx) > op2.evaluate(ctx) ? 1.f : 0.f;
+      case LESSER_EXP: return op1.evaluate(ctx) < op2.evaluate(ctx) ? 1.f : 0.f;
       case SWITCH_EXP: return op1.evaluate(ctx) != 0.f ? op2.evaluate(ctx) : op3.evaluate(ctx);
       case ASSIGN_EXP: return ctx.assign( variableIdx, op1.evaluate(ctx) );
       case LOOKUP_EXP: return ctx.getLookupMatch( lookupNameIdx, lookupValueIdxArray );
