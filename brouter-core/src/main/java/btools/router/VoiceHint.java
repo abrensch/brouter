@@ -28,6 +28,7 @@ public class VoiceHint
 
   int ilon;
   int ilat;
+  short selev;
   int cmd;
   MessageData oldWay;
   MessageData goodWay;

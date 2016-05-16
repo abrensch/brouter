@@ -362,6 +362,7 @@ public final class OsmTrack
       {
         sb.append( " <wpt lon=\"" ).append( formatILon( hint.ilon ) ).append( "\" lat=\"" )
           .append( formatILat( hint.ilat ) ).append( "\">" )
+          .append( hint.selev == Short.MIN_VALUE ? "" : "<ele>" + (hint.selev / 4.) + "</ele>" )
           .append( "<name>" ).append( hint.getMessageString() ).append( "</name>" )
           .append( "<extensions><locus:rteDistance>" ).append( hint.distanceToNext ).append( "</locus:rteDistance>" )
           .append( "<locus:rtePointAction>" ).append( hint.getLocusAction() ).append( "</locus:rtePointAction></extensions>" )
@@ -657,6 +658,7 @@ public final class OsmTrack
         inputs.add( input );
         input.ilat = node.origin.getILat();
         input.ilon = node.origin.getILon();
+        input.selev = node.origin.getSElev();
         input.indexInTrack = --nodeNr;
         input.goodWay = node.message;
         input.oldWay = node.origin.message == null ? node.message : node.origin.message;
