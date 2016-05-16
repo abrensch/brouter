@@ -390,11 +390,7 @@ public final class OsmTrack
 
     if ( turnInstructionMode == 2 )
     {
-      int routeType = voiceHints.getLocusRouteType();
-      if ( routeType != 4 ) // 4 = car = default seems to work better as default
-      {
-        sb.append( "  <extensions><locus:rteComputeType>" ).append( voiceHints.getLocusRouteType() ).append( "</locus:rteComputeType></extensions>\n" );
-      }
+      sb.append( "  <extensions><locus:rteComputeType>" ).append( voiceHints.getLocusRouteType() ).append( "</locus:rteComputeType></extensions>\n" );
       sb.append( "  <extensions><locus:rteSimpleRoundabouts>1</locus:rteSimpleRoundabouts></extensions>\n" );
     }
 
@@ -640,7 +636,7 @@ public final class OsmTrack
   public void processVoiceHints( RoutingContext rc )
   {
     voiceHints = new VoiceHintList();
-    voiceHints.setTransportMode( rc.carMode );
+    voiceHints.setTransportMode( rc.carMode, rc.bikeMode );
     voiceHints.turnInstructionMode = rc.turnInstructionMode;
 
     if ( detourMap == null )

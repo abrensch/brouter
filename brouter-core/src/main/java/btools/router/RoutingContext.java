@@ -51,6 +51,7 @@ public final class RoutingContext implements DistanceChecker
   public int uphillcostdiv;
   public int uphillcutoff;
   public boolean carMode;
+  public boolean bikeMode;
   public boolean forceSecondaryData;
   public double pass1coefficient;
   public double pass2coefficient;
@@ -63,6 +64,7 @@ public final class RoutingContext implements DistanceChecker
   public double changetime;
   public double buffertime;
   public double waittimeadjustment;
+  public double inittimeadjustment;
   public double starttimeoffset;
   
   public void readGlobalConfig( BExpressionContext expctxGlobal )
@@ -74,6 +76,8 @@ public final class RoutingContext implements DistanceChecker
     if ( downhillcostdiv != 0 ) downhillcostdiv = 1000000/downhillcostdiv;
     if ( uphillcostdiv != 0 ) uphillcostdiv = 1000000/uphillcostdiv;
     carMode = 0.f != expctxGlobal.getVariableValue( "validForCars", 0.f );
+    bikeMode = 0.f != expctxGlobal.getVariableValue( "validForBikes", 0.f );
+
     forceSecondaryData = 0.f != expctxGlobal.getVariableValue( "forceSecondaryData", 0.f );
     pass1coefficient = expctxGlobal.getVariableValue( "pass1coefficient", 1.5f );
     pass2coefficient = expctxGlobal.getVariableValue( "pass2coefficient", 0.f );
@@ -86,6 +90,7 @@ public final class RoutingContext implements DistanceChecker
     changetime           = expctxGlobal.getVariableValue( "changetime", 180.f );
     buffertime           = expctxGlobal.getVariableValue( "buffertime", 120.f );
     waittimeadjustment   = expctxGlobal.getVariableValue( "waittimeadjustment", 0.9f );
+    inittimeadjustment   = expctxGlobal.getVariableValue( "inittimeadjustment", 0.2f );
     starttimeoffset      = expctxGlobal.getVariableValue( "starttimeoffset", 0.f );
 
     farTrafficWeight        = expctxGlobal.getVariableValue( "farTrafficWeight", 2.f );

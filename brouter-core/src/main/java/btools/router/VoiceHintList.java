@@ -15,9 +15,9 @@ public class VoiceHintList
   int turnInstructionMode;
   ArrayList<VoiceHint> list = new ArrayList<VoiceHint>();
 
-  public void setTransportMode( boolean isCar )
+  public void setTransportMode( boolean isCar, boolean isBike )
   {
-    transportMode = isCar ? "car" : "bike";
+    transportMode = isCar ? "car" : ( isBike ? "bike" : "foot" );
   }
 
   public String getTransportMode()
@@ -29,12 +29,12 @@ public class VoiceHintList
   {
     if ( "car".equals( transportMode ) )
     {
-      return 4;
+      return 0;
     }
     if ( "bike".equals( transportMode ) )
     {
       return 5;
     }
-    return 5; // ??
+    return 3; // foot
   }
 }
