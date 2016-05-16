@@ -146,6 +146,32 @@ public class VoiceHint
 
   public void calcCommand()
   {
+    float lowerBadWayAngle = -181;
+    float higherBadWayAngle = 181;
+    for ( MessageData badWay : badWays )
+    {
+      if ( badWay.isBadOneway() )
+      {
+        continue;
+      }
+      if ( lowerBadWayAngle < badWay.turnangle && badWay.turnangle < goodWay.turnangle )
+      {
+        lowerBadWayAngle = badWay.turnangle;
+      }
+      if ( higherBadWayAngle > badWay.turnangle && badWay.turnangle > goodWay.turnangle )
+      {
+        higherBadWayAngle = badWay.turnangle;
+      }
+    }
+
+    float cmdAngle= angle;
+
+    // fall back to local angle if otherwise inconsistent
+    if ( lowerBadWayAngle > angle || higherBadWayAngle < angle )
+    {
+      cmdAngle = goodWay.turnangle;
+    }
+
     if (roundaboutExit > 0)
     {
       cmd = RNDB;
@@ -154,44 +180,68 @@ public class VoiceHint
     {
       cmd = RNLB;
     }
-    else if ( angle < -159. )
+    else if ( cmdAngle < -159. )
     {
       cmd = TU;
     }
-    else if ( angle < -113. )
+    else if ( cmdAngle < -135. )
     {
       cmd = TSHL;
     }
-    else if ( angle < -67. )
+    else if ( cmdAngle < -45. )
     {
-      cmd = TL;
+      // a TL can be pushed in either direction by a close-by alternative
+      if ( higherBadWayAngle > -90. && higherBadWayAngle < -15. && lowerBadWayAngle < -180. )
+      {
+        cmd = TSHL;
+      }
+      else if ( lowerBadWayAngle > -180. && lowerBadWayAngle < -90. && higherBadWayAngle > 0. )
+      {
+        cmd = TSLL;
+      }
+      else
+      {
+        cmd = TL;
+      }
     }
-    else if ( angle < -21. )
+    else if ( cmdAngle < -21. )
     {
       if ( cmd != KR ) // don't overwrite KR with TSLL
       {
         cmd = TSLL;
       }
     }
-    else if ( angle < 21. )
+    else if ( cmdAngle < 21. )
     {
       if ( cmd != KR && cmd != KL ) // don't overwrite KL/KR hints!
       {
         cmd = C;
       }
     }
-    else if ( angle < 67. )
+    else if ( cmdAngle < 45. )
     {
       if ( cmd != KL ) // don't overwrite KL with TSLR
       {
         cmd = TSLR;
       }
     }
-    else if ( angle < 113. )
+    else if ( cmdAngle < 135. )
     {
-      cmd = TR;
+      // a TR can be pushed in either direction by a close-by alternative
+      if ( higherBadWayAngle > 90. && higherBadWayAngle < 180. && lowerBadWayAngle < 0. )
+      {
+        cmd = TSLR;
+      }
+      else if ( lowerBadWayAngle > 15. && lowerBadWayAngle < 90. && higherBadWayAngle > 180. )
+      {
+        cmd = TSHR;
+      }
+      else
+      {
+        cmd = TR;
+      }
     }
-    else if ( angle < 159. )
+    else if ( cmdAngle < 159. )
     {
       cmd = TSHR;
     }
