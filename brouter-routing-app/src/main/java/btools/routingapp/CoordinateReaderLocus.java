@@ -51,8 +51,8 @@ public class CoordinateReaderLocus extends CoordinateReader
       OsmNodeNamed n = new OsmNodeNamed();
       String category = c.getString(0);
       n.name = c.getString(1);
-      n.ilon = (int)( ( Double.parseDouble( c.getString(2) ) + 180. )*1000000. + 0.5);
-      n.ilat = (int)( ( Double.parseDouble( c.getString(3) ) + 90. )*1000000. + 0.5);
+      n.ilon = (int)( ( c.getDouble(2) + 180. )*1000000. + 0.5);
+      n.ilat = (int)( ( c.getDouble(3)  + 90. )*1000000. + 0.5);
       checkAddPoint( category, n );
     }
     myDataBase.close();

@@ -49,8 +49,8 @@ public class CoordinateReaderOrux extends CoordinateReader
     {
       OsmNodeNamed n = new OsmNodeNamed();
       n.name = c.getString(0);
-      n.ilon = (int)( ( Double.parseDouble( c.getString(1) ) + 180. )*1000000. + 0.5);
-      n.ilat = (int)( ( Double.parseDouble( c.getString(2) ) + 90. )*1000000. + 0.5);
+      n.ilon = (int)( ( c.getDouble(1) + 180. )*1000000. + 0.5);
+      n.ilat = (int)( ( c.getDouble(2) + 90. )*1000000. + 0.5);
       String category = c.getString(3);
       checkAddPoint( category, n );
     }

@@ -163,7 +163,7 @@ public final class OsmTrack
     dos.close();
   }
 
-  public static OsmTrack readBinary( String filename, OsmNodeNamed newEp, long[] nogoChecksums )
+  public static OsmTrack readBinary( String filename, OsmNodeNamed newEp, long[] nogoChecksums, StringBuilder debugInfo )
   {
     OsmTrack t = null;
     if ( filename != null )
@@ -211,6 +211,11 @@ public final class OsmTrack
           boolean nogoCheckOk = Math.abs( al[0] - nogoChecksums[0] ) <= 20
                              && Math.abs( al[1] - nogoChecksums[1] ) <= 20
                              && Math.abs( al[2] - nogoChecksums[2] ) <= 20;
+
+          if ( debugInfo != null )
+          {
+            debugInfo.append( "target-delta = " + dlon + "/" + dlat + " nogoCheckOk=" + nogoCheckOk );
+          }
           if ( !nogoCheckOk ) return null;
         }
         catch (Exception e)

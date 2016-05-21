@@ -295,18 +295,29 @@ public class RoutingEngine extends Thread
     OsmTrack totaltrack = new OsmTrack();
     int nUnmatched = waypoints.size();
 
+    if ( hasInfo() )
+    {
+      for( OsmNodeNamed wp : waypoints )
+      {
+        logInfo( "wp=" + wp );
+      }
+    }
+
     // check for a track for that target
     OsmTrack nearbyTrack = null;
     if ( refTracks[waypoints.size()-2] == null )
     {
-      nearbyTrack = OsmTrack.readBinary( routingContext.rawTrackPath, waypoints.get( waypoints.size()-1), routingContext.getNogoChecksums() );
+      StringBuilder debugInfo =  hasInfo() ? new StringBuilder() : null;
+      nearbyTrack = OsmTrack.readBinary( routingContext.rawTrackPath, waypoints.get( waypoints.size()-1), routingContext.getNogoChecksums(), debugInfo );
       if ( nearbyTrack != null )
       {
-        if ( hasInfo() )
-        {
-          logInfo( "read referenceTrack, dirty=" + nearbyTrack.isDirty );
-        }
         nUnmatched--;
+      }
+      if ( hasInfo() )
+      {
+        boolean found = nearbyTrack != null;
+        boolean dirty = found ? nearbyTrack.isDirty : false;
+        logInfo( "read referenceTrack, found=" + found + " dirty=" + dirty + " " + debugInfo );
       }
     }
 
