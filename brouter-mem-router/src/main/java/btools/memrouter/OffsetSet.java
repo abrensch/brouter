@@ -5,141 +5,185 @@
  */
 package btools.memrouter;
 
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
 
 public class OffsetSet
 {
-  private static Map<Long,OffsetSet> existingSets = new HashMap<Long,OffsetSet>();
-  private static OffsetSet empty = new OffsetSet( 0L );
-  private static OffsetSet full = new OffsetSet( -1L );
+  private Map<BitSet, OffsetSet> existingSets = new HashMap<BitSet, OffsetSet>();
 
-  protected long mask;
-  
-  private static int instancecount = 0;
+  private static final int size = 185;
 
-  public static OffsetSet emptySet()
+  protected BitSet mask;
+
+  public OffsetSet emptySet()
   {
-    return empty;  
+    return new OffsetSet( new BitSet( size ), existingSets );
   }
 
   public static OffsetSet fullSet()
   {
-    return full;
+    BitSet allbits = new BitSet( size );
+    allbits.set( 0, size );
+    return new OffsetSet( allbits, new HashMap<BitSet, OffsetSet>() );
   }
 
-  private OffsetSet( long m )
+  private OffsetSet( BitSet m, Map<BitSet, OffsetSet> knownSets )
   {
+    existingSets = knownSets;
+    existingSets.put( m , this );
     mask = m;
   }
 
-  private static OffsetSet create( long m, OffsetSet template )
+  private OffsetSet create( BitSet m )
   {
-	  if ( m == 0L )
-	  {
-	    return null;
-	  }
-	  if ( m == template.mask )
-	  {
-	    return template;
-	  }
-	  
-	  Long mm = Long.valueOf( m );
-	  OffsetSet set = existingSets.get( mm );
-	  if ( set == null )
-	  {
-	    set = new OffsetSet( m );
-	    existingSets.put( mm, set );
-		instancecount++;
-	    System.out.println( "created set: " + set + " instancecount=" + instancecount );
-	  }
-      return set;
+    if ( m.isEmpty() )
+    {
+      return null;
+    }
+    if ( m.equals( mask ) )
+    {
+      return this;
+    }
+
+    OffsetSet set = existingSets.get( m );
+    if ( set == null )
+    {
+      set = new OffsetSet( m, existingSets );
+//      System.out.println( "created set: " + set + " instancecount=" + existingSets.size() );
+    }
+    return set;
   }
-  public static OffsetSet create( List<Integer> offsets, OffsetSet template )
+
+  public OffsetSet create( List<Integer> offsets )
   {
-	  long m = 0L;
-	  for( Integer offset : offsets )
-	  {
-		  int i = offset.intValue();
-		  if ( i >= 0 && i < 64 )
-		  {
-			  m |= ( 1L << i );
-		  }
-	  }
-	  return create( m, template );
+    BitSet m = new BitSet( size );
+    for ( Integer offset : offsets )
+    {
+      int i = offset.intValue();
+      if ( i >= 0 && i < size )
+      {
+        m.set( i );
+      }
+    }
+    return create( m );
   }
-  
+
+  public OffsetSet filterWithSet( SortedSet<Integer> usedTimes, int minuteArrival )
+  {
+    BitSet fmask = (BitSet)mask.clone();
+    int idx = 0;
+    int maxtime = usedTimes.isEmpty() ? Integer.MAX_VALUE: usedTimes.first().intValue() + size();
+
+    for(;;)
+    {
+      idx = fmask.nextSetBit( idx );      
+      if ( idx < 0 ) break;
+      int i = minuteArrival + idx;
+      if ( i > maxtime || !usedTimes.add( Integer.valueOf(i) ) )
+      {
+        fmask.set( idx, false );
+      }
+      idx++;
+    }
+    return create( fmask );
+  }
+
   public int size()
   {
-	  return 64;
+    return size;
   }
-  
+
   public boolean contains( int offset )
   {
-	  return ( ( 1L << offset ) & mask ) != 0L;
+    return mask.get( offset );
   }
-  
+
   public OffsetSet add( int offset )
   {
-	  return create( mask | ( 1L << offset ), this );
+    if ( mask.get( offset ) ) 
+    {
+      return this;
+    }
+    BitSet m = (BitSet)mask.clone();
+    m.set( offset );
+    return create( m );
   }
   
   public OffsetSet add( OffsetSet offsets )
   {
-	  return create(mask | offsets.mask, this );
+    BitSet m = (BitSet)mask.clone();
+    m.or( offsets.mask );
+    return create( m );
   }
 
+  // clear all bits from this set in the argument set
   public OffsetSet filter( OffsetSet in )
   {
-		long fmask = in.mask;
-		fmask = fmask ^ ( fmask & mask );
-		return create( fmask, in );
+    BitSet fmask = (BitSet)in.mask.clone();
+    fmask.andNot( mask );
+    return create( fmask );
   }
 
-  public static OffsetSet filterAndClose( OffsetSet in, OffsetSetHolder gateHolder, int timeDiff )
+  public OffsetSet ensureMaxOffset( int max )
   {
-	OffsetSet gate = gateHolder.getOffsetSet();
-	long gmask = gate.mask;
-	  
-    long fmask = in.mask;
-	
-	// delete the high offsets with offset + timeDiff >= maxoffset
-    fmask = timeDiff > 31 ? 0L : ( fmask << timeDiff ) >> timeDiff;		
-	
-	fmask = fmask ^ ( fmask & gmask );
-
-	gmask |= fmask;
-	
-	gateHolder.setOffsetSet( create( gmask, gate ) ); // modify the gate
-		
-	if ( timeDiff > 0 )
-	{
-		fmask = fmask ^ ( fmask & (gmask >> timeDiff) );
-	}
-	return create( fmask, in );
+    if ( max < size )
+    { 
+      BitSet fmask = (BitSet)mask.clone();
+      fmask.set( max > 0 ? max : 0, size, false );
+      return create( fmask );
+    }
+    return this;
   }
-  
-  
+
+  public OffsetSet filterAndClose( OffsetSetHolder gateHolder, boolean closeGate )
+  {
+    OffsetSet gate = gateHolder.getOffsetSet();
+    BitSet gmask = (BitSet)gate.mask.clone();
+
+    BitSet fmask = (BitSet)mask.clone();
+
+    fmask.andNot( gmask );
+
+    gmask.or( fmask );
+
+    if ( closeGate )
+    {
+      gateHolder.setOffsetSet( create( gmask ) ); // modify the gate
+    }
+    return create( fmask );
+  }
+
+  public OffsetSet sweepWith( OffsetSet sweeper, int timeDiff )
+  {
+    BitSet sweepmask = sweeper.mask;
+    BitSet fmask = (BitSet)mask.clone();
+
+    if ( timeDiff >= 0 )
+    {
+      int idx = 0;
+      for(;;)
+      {
+        idx = sweepmask.nextSetBit( idx ) + 1;
+        if ( idx < 1 ) break;
+
+        int sweepStart = Math.max( 0, idx-timeDiff );
+        fmask.set( sweepStart, idx, false );
+      }
+      int sweepStart = Math.max( 0, size-timeDiff );
+      fmask.set( sweepStart, size, false );
+    }
+// System.out.println( "sweep: " + mask + " with: " + sweepmask + "=" + fmask );
+
+    return create( fmask );
+  }
+
   @Override
   public String toString()
   {
-	  if ( mask == -1L ) return "*";
-	  
-	  StringBuilder sb = new StringBuilder();
-	  int nbits = 0;
-	  for( int i=0; i<65; i++ )
-	  {
-		  boolean bit = i < 64 ? ((1L << i) & mask) != 0L : false;
-		  if ( bit ) nbits++;
-		  else if ( nbits > 0)
-		  {
-			if ( sb.length() > 0 ) sb.append( ',' );
-			if ( nbits == 1) sb.append( i-1 );
-			else sb.append( (i-nbits) + "-" + (i-1) );
-			nbits = 0;
-		  }
-	  }
-	  return sb.toString();
+   return mask.toString();
   }
 }

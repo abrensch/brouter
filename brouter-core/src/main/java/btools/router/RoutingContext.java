@@ -19,13 +19,11 @@ public final class RoutingContext implements DistanceChecker
 {
   public void setAlternativeIdx( int idx )
   {
-    if ( idx < 0 ) idx = 0;
-    if ( idx > 3 ) idx = 3;
     alternativeIdx = idx;
   }
-  public int getAlternativeIdx()
+  public int getAlternativeIdx(int min, int max)
   {
-    return alternativeIdx;
+    return alternativeIdx < min ? min : (alternativeIdx > max ? max : alternativeIdx);
   }
   public int alternativeIdx = 0;
   public String localFunction;
@@ -66,6 +64,7 @@ public final class RoutingContext implements DistanceChecker
   public double waittimeadjustment;
   public double inittimeadjustment;
   public double starttimeoffset;
+  public boolean transitonly;
   
   public void readGlobalConfig( BExpressionContext expctxGlobal )
   {
@@ -92,6 +91,7 @@ public final class RoutingContext implements DistanceChecker
     waittimeadjustment   = expctxGlobal.getVariableValue( "waittimeadjustment", 0.9f );
     inittimeadjustment   = expctxGlobal.getVariableValue( "inittimeadjustment", 0.2f );
     starttimeoffset      = expctxGlobal.getVariableValue( "starttimeoffset", 0.f );
+    transitonly          = expctxGlobal.getVariableValue( "transitonly", 0.f ) != 0.f;
 
     farTrafficWeight        = expctxGlobal.getVariableValue( "farTrafficWeight", 2.f );
     nearTrafficWeight        = expctxGlobal.getVariableValue( "nearTrafficWeight", 2.f );

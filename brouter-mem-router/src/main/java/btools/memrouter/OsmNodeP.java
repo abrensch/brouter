@@ -146,5 +146,13 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>, OsmPos
      return 0;
    }
 
-
+  public OffsetSet filterAndCloseNode( OffsetSet in, boolean modifyGate )
+  {
+    return in; // do nothing (StationNode overrides)
+  }
+  
+  public String getName()
+  {
+    return "<waynode>";
+  }
 }

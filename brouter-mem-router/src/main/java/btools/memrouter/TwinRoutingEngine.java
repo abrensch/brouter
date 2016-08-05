@@ -65,7 +65,7 @@ public class TwinRoutingEngine extends RoutingEngine
 */
 	    OsmLinkP.currentserial++;
 	    ScheduledRouter router = new ScheduledRouter( graph, routingContext, this );
-	    foundTrack = router.findRoute( waypoints.get(0), waypoints.get(1), "17.12.2014-19:00", routingContext.getAlternativeIdx() );
+	    foundTrack = router.findRoute( waypoints.get(0), waypoints.get(1), routingContext.getAlternativeIdx(-1,10) );
         System.out.println( "linksProcessed=" + router.linksProcessed + " linksReProcessed=" +  router.linksReProcessed);
         System.out.println( "skippedChained=" + router.skippedChained + " closedSkippedChained=" +  router.closedSkippedChained);
         
@@ -88,7 +88,7 @@ public class TwinRoutingEngine extends RoutingEngine
 	  File wayTilesIn = new File( parentDir, "waytiles55");
 	  File[] fahrplanFiles = new File[2];
       fahrplanFiles[0] = new File( parentDir, "fahrplan_nahverkehr.txt" );
-      fahrplanFiles[1] = new File( parentDir, "fahrplan.txt" );
+      fahrplanFiles[1] = new File( parentDir, "fahrplan_dbfern.txt" );
       
 	  graph = new GraphLoader();
 	  graph.process( nodeTilesIn, wayTilesIn, fahrplanFiles, routingContext.expctxWay );

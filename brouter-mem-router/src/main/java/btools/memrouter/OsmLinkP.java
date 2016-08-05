@@ -5,16 +5,15 @@
  */
 package btools.memrouter;
 
-
 public class OsmLinkP implements OffsetSetHolder
 {
- /**
-   * The description bitmap is mainly the way description
-   * used to calculate the costfactor
+  /**
+   * The description bitmap is mainly the way description used to calculate the
+   * costfactor
    */
   public byte[] descriptionBitmap;
 
- /**
+  /**
    * The target is either the next link or the target node
    */
   protected OsmNodeP sourceNode;
@@ -23,12 +22,12 @@ public class OsmLinkP implements OffsetSetHolder
   protected OsmLinkP previous;
   protected OsmLinkP next;
 
-  public static int currentserial = 0; // serial version to invalidate link occupation
+  public static int currentserial = 0; // serial version to invalidate link
+                                       // occupation
   private int instanceserial = 0;
 
   private OffsetSet offsets;
-  private int time;
-  
+
   public boolean isConnection()
   {
     return descriptionBitmap == null;
@@ -44,59 +43,61 @@ public class OsmLinkP implements OffsetSetHolder
     sourceNode = source;
     targetNode = target;
   }
-  
+
   protected OsmLinkP()
   {
   }
 
   public OffsetSet getOffsetSet()
   {
-	  return offsets;
+    return offsets;
   }
 
   public void setOffsetSet( OffsetSet offsets )
   {
-	  this.offsets = offsets;
+    this.offsets = offsets;
   }
-  
+
   public boolean isVirgin()
   {
-	  return instanceserial != currentserial;
+    return instanceserial != currentserial;
   }
-  
-  public OffsetSet filterAndClose( OffsetSet in, long arrival, boolean scheduled  )
+
+  public OffsetSet filterAndClose( OffsetSet in, long arrival )
   {
-	int minutesArrival = (int)(arrival/60000L);
     if ( offsets == null || isVirgin() )
     {
-    	time = minutesArrival;
-    	instanceserial = currentserial;
-    	offsets = in;
-    	return in;
+      initLink();
+      offsets = in;
+      return in;
     }
-    return OffsetSet.filterAndClose( in, this, scheduled ? minutesArrival - time : 0 );
+    return in.filterAndClose( this, true );
   }
   
-  
+  protected void initLink()
+  {
+    instanceserial = currentserial;
+  }
+
   /**
    * Set the relevant next-pointer for the given source
    */
   public void setNext( OsmLinkP link, OsmNodeP source )
   {
-	 if ( sourceNode == source )
-     {
-       next = link;
-     }
-     else if ( targetNode == source )
-     {
-       previous = link;
-     }
-     else
-     {
-       throw new IllegalArgumentException( "internal error: setNext: unknown source" );
-     }
-  }  
-  
+    if ( sourceNode == source )
+    {
+      next = link;
+    }
+    else if ( targetNode == source )
+    {
+      previous = link;
+    }
+    else
+    {
+      throw new IllegalArgumentException( "internal error: setNext: unknown source" );
+    }
+  }
+
   /**
    * Get the relevant next-pointer for the given source
    */
@@ -107,7 +108,7 @@ public class OsmLinkP implements OffsetSetHolder
       return next;
     }
     else if ( targetNode == source )
-	{
+    {
       return previous;
     }
     else
@@ -126,7 +127,7 @@ public class OsmLinkP implements OffsetSetHolder
       return targetNode;
     }
     else if ( targetNode == source )
-	{
+    {
       return sourceNode;
     }
     else
@@ -145,7 +146,7 @@ public class OsmLinkP implements OffsetSetHolder
       return false;
     }
     else if ( targetNode == source )
-	{
+    {
       return true;
     }
     else

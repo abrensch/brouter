@@ -58,8 +58,8 @@ public class RouteServer extends Thread
           BufferedWriter bw = null;
           try
           {
-            br = new BufferedReader( new InputStreamReader( clientSocket.getInputStream() ) );
-            bw = new BufferedWriter( new OutputStreamWriter( clientSocket.getOutputStream() ) );
+            br = new BufferedReader( new InputStreamReader( clientSocket.getInputStream() , "UTF-8") );
+            bw = new BufferedWriter( new OutputStreamWriter( clientSocket.getOutputStream(), "UTF-8" ) );
 
             // we just read the first line
             String getline = br.readLine();

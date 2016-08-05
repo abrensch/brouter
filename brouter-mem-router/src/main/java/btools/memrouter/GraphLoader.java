@@ -3,8 +3,8 @@ package btools.memrouter;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-import btools.expressions.BExpressionContext;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.OsmPos;
@@ -27,6 +27,8 @@ import btools.util.LazyArrayOfLists;
 public class GraphLoader extends MapCreatorBase
 {
   private CompactLongMap<OsmNodeP> nodesMap;
+
+  private Map<String, StationNode> stationMap;
   
   private BExpressionContextWay expctxWay;
 
@@ -102,7 +104,7 @@ public class GraphLoader extends MapCreatorBase
     System.out.println( "nodesLoaded=" + nodesLoaded + " linksLoaded=" + linksLoaded );
     
     // now load the train-schedules
-    ScheduleParser.parseTrainTable( fahrplanFiles, this, expctxWay );
+    stationMap = ScheduleParser.parseTrainTable( fahrplanFiles, this, expctxWay );
     
     System.gc();
     long mem = Runtime.getRuntime().totalMemory() -  Runtime.getRuntime().freeMemory();
@@ -110,12 +112,15 @@ public class GraphLoader extends MapCreatorBase
   }
 
 
-  public OsmNodeP matchNodeForPosition( OsmPos pos, BExpressionContextWay wayCtx )
+  public OsmNodeP matchNodeForPosition( OsmPos pos, BExpressionContextWay wayCtx, boolean transitonly )
   {
-      // todo: this creates empty lists lazy
-
-	int ilon = pos.getILon();
-	int ilat = pos.getILat();
+    if ( transitonly )
+    {
+      return matchStationForPosition( pos );
+    }
+  
+	  int ilon = pos.getILon();
+	  int ilat = pos.getILat();
 	  
     List<OsmNodeP> nodes = new ArrayList<OsmNodeP>();
     nodes.addAll( subListForPos( ilon-6125, ilat-6125 ) );
@@ -128,6 +133,22 @@ public class GraphLoader extends MapCreatorBase
 
     for( OsmNodeP node : nodes )
     {
+      if ( transitonly )
+      {
+        StationNode sn = getStationNode( node );
+        if ( sn != null )
+        {
+          int dist = pos.calcDistance( sn );
+          if ( dist < mindist )
+          {
+            mindist = dist;
+            bestmatch = sn;
+          }
+        }
+        continue;
+      }
+    
+    
       int dist = pos.calcDistance( node );
       if ( dist < mindist )
       {
@@ -136,6 +157,36 @@ public class GraphLoader extends MapCreatorBase
           mindist = dist;
           bestmatch = node;
     	}
+      }
+    }
+    return bestmatch;
+  }
+
+  private StationNode getStationNode( OsmNodeP node )
+  {
+    for( OsmLinkP link = node.getFirstLink(); link != null; link = link.getNext( node ) )
+    {
+      OsmNodeP tn = link.getTarget( node );
+      if ( tn instanceof StationNode )
+      {
+        return (StationNode)tn;
+      }
+    }
+    return null;
+  }
+
+  public OsmNodeP matchStationForPosition( OsmPos pos )
+  {
+    int mindist = Integer.MAX_VALUE;
+    OsmNodeP bestmatch = null;
+
+    for( OsmNodeP node : stationMap.values() )
+    {
+      int dist = pos.calcDistance( node );
+      if ( dist < mindist )
+      {
+        mindist = dist;
+        bestmatch = node;
       }
     }
     return bestmatch;
@@ -183,10 +234,11 @@ public class GraphLoader extends MapCreatorBase
   }
 
   @Override
-  public void wayFileStart( File wayfile ) throws Exception
+  public boolean wayFileStart( File wayfile ) throws Exception
   {
   	currentTile = tileForFilename( wayfile.getName() );
   	System.out.println( "ways currentTile=" + currentTile );
+  	return true;
   }
 
   @Override

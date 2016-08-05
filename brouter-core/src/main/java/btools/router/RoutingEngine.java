@@ -164,7 +164,7 @@ public class RoutingEngine extends Thread
         }
         else
         {
-          if ( i == routingContext.getAlternativeIdx() )
+          if ( i == routingContext.getAlternativeIdx(0,3) )
           {
             if ( "CSV".equals( System.getProperty( "reportFormat" ) ) )
             {

@@ -286,7 +286,6 @@ public final class OsmTrack
   public int ascend;
   public int plainAscend;
   public int cost;
-  public long arrivaltime;
 
   /**
    * writes the track in gpx-format to a file
