@@ -67,7 +67,7 @@ public class BRouterWorker
     cr.doRun( maxRunningTime );
 	
     // store new reference track if any
-    // (can exist fot timeed-out search)
+    // (can exist for timed-out search)
     if ( cr.getFoundRawTrack() != null )
     {
       try

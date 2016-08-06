@@ -17,6 +17,7 @@ interface IBRouterService {
     //  "nogoRadi"-->double[] array of nogo radius in meters; may be null.
     //  "fast"-->[0|1]
     //  "v"-->[motorcar|bicycle|foot]
+    //  "remoteProfile"--> (String), net-content of a profile. If remoteProfile != null, v+fast are ignored
     //return null if all ok and no path given, the track if ok and path given, an error message if it was wrong
     //call in a background thread, heavy task!
 

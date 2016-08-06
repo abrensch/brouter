@@ -40,6 +40,7 @@ public final class ProfileCache
         profileDir = new File( profileBaseDir );
         profileFile = new File( profileDir, rc.localFunction + ".brf" ) ;
       }
+      rc.profileTimestamp = profileFile.lastModified();
       File lookupFile = new File( profileDir, "lookups.dat" );
 
       // check for re-use
@@ -47,7 +48,7 @@ public final class ProfileCache
       {
         if ( profileFile.equals( lastProfileFile ) && lookupFile.equals( lastLookupFile ) )
         {
-          if ( profileFile.lastModified() == lastProfileTimestamp
+          if ( rc.profileTimestamp == lastProfileTimestamp
             && lookupFile.lastModified() ==  lastLookupTimestamp )
           {
             rc.expctxWay = expctxWay;

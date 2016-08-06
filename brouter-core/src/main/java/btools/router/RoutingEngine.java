@@ -305,10 +305,10 @@ public class RoutingEngine extends Thread
 
     // check for a track for that target
     OsmTrack nearbyTrack = null;
-    if ( refTracks[waypoints.size()-2] == null )
+    if ( lastTracks[waypoints.size()-2] == null )
     {
       StringBuilder debugInfo =  hasInfo() ? new StringBuilder() : null;
-      nearbyTrack = OsmTrack.readBinary( routingContext.rawTrackPath, waypoints.get( waypoints.size()-1), routingContext.getNogoChecksums(), debugInfo );
+      nearbyTrack = OsmTrack.readBinary( routingContext.rawTrackPath, waypoints.get( waypoints.size()-1), routingContext.getNogoChecksums(), routingContext.profileTimestamp, debugInfo );
       if ( nearbyTrack != null )
       {
         nUnmatched--;
@@ -532,7 +532,10 @@ public class RoutingEngine extends Thread
           dirtyMessage = iae;
           logInfo( "using fast partial recalc" );
         }
-    	maxRunningTime += System.currentTimeMillis() - startTime; // reset timeout...
+        if ( maxRunningTime > 0 )
+        {
+          maxRunningTime += System.currentTimeMillis() - startTime; // reset timeout...
+        }
       }
     }
 
@@ -560,6 +563,7 @@ public class RoutingEngine extends Thread
             foundRawTrack = mergeTrack( matchPath, track );
             foundRawTrack.endPoint = endWp;
             foundRawTrack.nogoChecksums = routingContext.getNogoChecksums();
+            foundRawTrack.profileTimestamp = routingContext.profileTimestamp;
             foundRawTrack.isDirty = true;
           }
           throw iae;
@@ -589,6 +593,7 @@ public class RoutingEngine extends Thread
       logInfo( "supplying new reference track, dirty=" + isDirty );
       track.endPoint = endWp;
       track.nogoChecksums = routingContext.getNogoChecksums();
+      track.profileTimestamp = routingContext.profileTimestamp;
       track.isDirty = isDirty;
       foundRawTrack = track;
     }

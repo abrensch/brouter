@@ -167,20 +167,22 @@ public class BRouterView extends View
       String basedir = fbd.getAbsolutePath();
       AppLogger.log( "using basedir: " + basedir );
 
+      String version = "v1.4.3";
+
       // create missing directories
-      assertDirectoryExists( "project directory", basedir + "/brouter", null );
+      assertDirectoryExists( "project directory", basedir + "/brouter", null, null );
       segmentDir = basedir + "/brouter/segments4";
-      if ( assertDirectoryExists( "data directory", segmentDir, "segments4.zip" ) )
+      if ( assertDirectoryExists( "data directory", segmentDir, "segments4.zip", null ) )
       {
         ConfigMigration.tryMigrateStorageConfig(
               new File( basedir + "/brouter/segments3/storageconfig.txt" ),
               new File( basedir + "/brouter/segments4/storageconfig.txt" ) );
       }
       profileDir = basedir + "/brouter/profiles2";
-      assertDirectoryExists( "profile directory", profileDir, "profiles2.zip" );
+      assertDirectoryExists( "profile directory", profileDir, "profiles2.zip", version );
       modesDir = basedir + "/brouter/modes";
-      assertDirectoryExists( "modes directory", modesDir, "modes.zip" );
-      assertDirectoryExists( "readmes directory", basedir + "/brouter/readmes", "readmes.zip" );
+      assertDirectoryExists( "modes directory", modesDir, "modes.zip", null );
+      assertDirectoryExists( "readmes directory", basedir + "/brouter/readmes", "readmes.zip", version );
 
       cor = CoordinateReader.obtainValidReader( basedir, segmentDir );
       wpList = cor.waypoints;
@@ -196,7 +198,7 @@ public class BRouterView extends View
       if ( cor.tracksdir != null )
       {
         tracksDir = cor.basedir + cor.tracksdir;
-        assertDirectoryExists( "track directory", tracksDir, null );
+        assertDirectoryExists( "track directory", tracksDir, null, null );
 
         // output redirect: look for a pointerfile in tracksdir
         File tracksDirPointer = new File( tracksDir + "/brouter.redirect" );
@@ -465,6 +467,12 @@ public class BRouterView extends View
       rc.prepareNogoPoints( nogoList );
       rc.nogopoints = nogoList;
 
+      // for profile remote, use ref-track logic same as service interface      
+      if ( "remote".equals( profileName ) )
+      {
+        rc.rawTrackPath = modesDir + "/remote_rawtrack.dat";
+      }
+
       cr = new RoutingEngine( tracksDir + "/brouter", null, segmentDir, wpList, rc );
       cr.start();
       invalidate();
@@ -477,12 +485,27 @@ public class BRouterView extends View
     }
   }
 
-  private boolean assertDirectoryExists( String message, String path, String assetZip )
+  private boolean assertDirectoryExists( String message, String path, String assetZip, String versionTag )
   {
     File f = new File( path );
-    if ( !f.exists() )
+
+    boolean exists = f.exists();
+    if ( !exists )
     {
       f.mkdirs();
+    }
+    if ( versionTag != null )
+    {
+      File vtag = new File( f, versionTag );
+      try
+      {
+        exists = !vtag.createNewFile();
+      }
+      catch( IOException io ) { throw new RuntimeException( "error checking version tag " + vtag ); }
+    }
+
+    if ( !exists )
+    {
       // default contents from assets archive
       if ( assetZip != null )
       {
@@ -680,10 +703,19 @@ public class BRouterView extends View
         }
         else
         {
-          String result = "version = BRouter-1.4.2\n" + "distance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
+          String result = "version = BRouter-1.4.3\n" + "distance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
               + " m\n" + "plain ascend = " + cr.getPlainAscend();
 
           rawTrack = cr.getFoundRawTrack();
+
+          // for profile "remote", always persist referencetrack
+          if ( cr.getAlternativeIndex() == 0 )
+          {
+            if ( "remote".equals( profileName ) )
+            {
+              writeRawTrackToMode( "remote" );
+            }
+          }
 
           String title = "Success";
           if ( cr.getAlternativeIndex() > 0 )

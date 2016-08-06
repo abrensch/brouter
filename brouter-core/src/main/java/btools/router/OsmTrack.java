@@ -18,6 +18,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import btools.mapaccess.OsmPos;
@@ -31,6 +32,7 @@ public final class OsmTrack
 
   public MatchedWaypoint endPoint;
   public long[] nogoChecksums;
+  public long profileTimestamp;
   public boolean isDirty;
 
   private static class OsmPathElementHolder
@@ -160,10 +162,11 @@ public final class OsmTrack
     dos.writeLong( nogoChecksums[1] );
     dos.writeLong( nogoChecksums[2] );
     dos.writeBoolean( isDirty );
+    dos.writeLong( profileTimestamp );
     dos.close();
   }
 
-  public static OsmTrack readBinary( String filename, OsmNodeNamed newEp, long[] nogoChecksums, StringBuilder debugInfo )
+  public static OsmTrack readBinary( String filename, OsmNodeNamed newEp, long[] nogoChecksums, long profileChecksum, StringBuilder debugInfo )
   {
     OsmTrack t = null;
     if ( filename != null )
@@ -177,7 +180,12 @@ public final class OsmTrack
           MatchedWaypoint ep = MatchedWaypoint.readFromStream( dis );
           int dlon = ep.waypoint.ilon - newEp.ilon;
           int dlat = ep.waypoint.ilat - newEp.ilat;
-          if ( dlon < 20 && dlon > -20 && dlat < 20 && dlat > -20 )
+          boolean targetMatch = dlon < 20 && dlon > -20 && dlat < 20 && dlat > -20;
+          if ( debugInfo != null )
+          {
+            debugInfo.append( "target-delta = " + dlon + "/" + dlat + " targetMatch=" + targetMatch );
+          }
+          if ( targetMatch )
           {
             t = new OsmTrack();
             t.endPoint = ep;
@@ -192,31 +200,40 @@ public final class OsmTrack
             }
             t.cost = last_pe.cost;
             t.buildMap();
-          }
-          long[] al = new long[3];
-          try
-          {
-            al[0] = dis.readLong();
-            al[1] = dis.readLong();
-            al[2] = dis.readLong();
-          }
-          catch (EOFException eof) { /* kind of expected */ }
-          try
-          {
-            boolean isDirty = dis.readBoolean();
-            if ( t != null ) t.isDirty = isDirty;
-          }
-          catch (EOFException eof) { /* kind of expected */ }
-          dis.close();
-          boolean nogoCheckOk = Math.abs( al[0] - nogoChecksums[0] ) <= 20
-                             && Math.abs( al[1] - nogoChecksums[1] ) <= 20
-                             && Math.abs( al[2] - nogoChecksums[2] ) <= 20;
 
-          if ( debugInfo != null )
-          {
-            debugInfo.append( "target-delta = " + dlon + "/" + dlat + " nogoCheckOk=" + nogoCheckOk );
+            // check cheecksums, too
+            long[] al = new long[3];
+            long pchecksum = 0;
+            try
+            {
+              al[0] = dis.readLong();
+              al[1] = dis.readLong();
+              al[2] = dis.readLong();
+            }
+            catch (EOFException eof) { /* kind of expected */ }
+            try
+            {
+              t.isDirty = dis.readBoolean();
+            }
+            catch (EOFException eof) { /* kind of expected */ }
+            try
+            {
+              pchecksum = dis.readLong();
+            }
+            catch (EOFException eof) { /* kind of expected */ }
+            boolean nogoCheckOk = Math.abs( al[0] - nogoChecksums[0] ) <= 20
+                               && Math.abs( al[1] - nogoChecksums[1] ) <= 20
+                               && Math.abs( al[2] - nogoChecksums[2] ) <= 20;
+            boolean profileCheckOk = pchecksum == profileChecksum;
+
+            if ( debugInfo != null )
+            {
+              debugInfo.append( " nogoCheckOk=" + nogoCheckOk + " profileCheckOk=" + profileCheckOk );
+              debugInfo.append( " al=" + formatLongs(al) + " nogoChecksums=" + formatLongs(nogoChecksums) );
+            }
+            if ( !(nogoCheckOk && profileCheckOk) ) return null;
           }
-          if ( !nogoCheckOk ) return null;
+          dis.close();
         }
         catch (Exception e)
         {
@@ -226,6 +243,20 @@ public final class OsmTrack
     }
     return t;
   }
+
+  private static String formatLongs( long[] al )
+  {
+    StringBuilder sb = new StringBuilder();
+    sb.append( '{' );
+    for( long l : al )
+    {
+      sb.append( l );
+      sb.append( ' ' );
+    }
+    sb.append( '}' );
+    return sb.toString();
+  }
+
 
   public void addNodes( OsmTrack t )
   {
@@ -343,7 +374,7 @@ public final class OsmTrack
     }
     else
     {
-      sb.append( " creator=\"BRouter-1.4.2\" version=\"1.1\">\n" );
+      sb.append( " creator=\"BRouter-1.4.3\" version=\"1.1\">\n" );
     }
 
     if ( turnInstructionMode == 3) // osmand style
