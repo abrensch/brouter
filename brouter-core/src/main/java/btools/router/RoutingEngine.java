@@ -16,6 +16,7 @@ import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmNodesMap;
 import btools.util.SortedHeap;
+import btools.util.StackSampler;
 
 public class RoutingEngine extends Thread
 {
@@ -43,6 +44,7 @@ public class RoutingEngine extends Thread
   private String logfileBase;
   private boolean infoLogEnabled;
   private Writer infoLogWriter;
+  private StackSampler stackSampler;
   protected RoutingContext routingContext;
 
   public double airDistanceCostFactor;
@@ -66,9 +68,10 @@ public class RoutingEngine extends Thread
     this.infoLogEnabled = outfileBase != null;
     this.routingContext = rc;
 
+    File baseFolder = new File( routingContext.localFunction ).getParentFile().getParentFile();
     try
     {
-      File debugLog = new File( new File( routingContext.localFunction ).getParentFile(), "../debug.txt" );
+      File debugLog = new File( baseFolder, "debug.txt" );
       if ( debugLog.exists() )
       {
         infoLogWriter = new FileWriter( debugLog, true );
@@ -80,6 +83,15 @@ public class RoutingEngine extends Thread
     {
       throw new RuntimeException( "cannot open debug-log:" + ioe );
     }
+
+    File stackLog = new File( baseFolder, "stacks.txt" );
+    if ( stackLog.exists() )
+    {
+      stackSampler = new StackSampler( stackLog, 1000 );
+      stackSampler.start();
+      logInfo( "********** started stacksampling" );
+    }
+
     boolean cachedProfile = ProfileCache.parseProfile( rc );
     if ( hasInfo() )
     {
@@ -229,6 +241,13 @@ public class RoutingEngine extends Thread
         try { infoLogWriter.close(); } catch( Exception e ) {}
         infoLogWriter = null;
       }
+
+      if ( stackSampler != null )
+      {
+        try { stackSampler.close(); } catch( Exception e ) {}
+        stackSampler = null;
+      }
+
     }
   }
 
@@ -378,16 +397,6 @@ public class RoutingEngine extends Thread
     {
       preloadPosition( mwp.waypoint );
     }
-
-    // preliminary-hack: use old stuff if not yet matched
-    for( int i=0; i<unmatchedWaypoints.size(); i++)
-    {
-      MatchedWaypoint mwp = unmatchedWaypoints.get(i);
-      if ( mwp.crosspoint == null )
-      {
-        unmatchedWaypoints.set(i, matchNodeForPosition( mwp.waypoint ) );
-      }
-    }
   }
 
   private void preloadPosition( OsmNode n )
@@ -408,93 +417,6 @@ public class RoutingEngine extends Thread
   }
 
 
-  // geometric position matching finding the nearest routable way-section
-  private MatchedWaypoint matchNodeForPosition( OsmNodeNamed wp )
-  {
-     try
-     {
-         routingContext.setWaypoint( wp, false );
-         
-         int minRingWith = 1;
-         for(;;)
-         {
-           MatchedWaypoint mwp = _matchNodeForPosition( wp, minRingWith );
-           if ( mwp.node1 != null )
-           {
-             int mismatch = wp.calcDistance( mwp.crosspoint );
-             if ( mismatch < 50*minRingWith )
-             {
-               return mwp;
-             }
-           }
-           if ( minRingWith == 1 && nodesCache.first_file_access_failed )
-           {
-             throw new IllegalArgumentException( "datafile " + nodesCache.first_file_access_name + " not found" );
-           }
-           if ( minRingWith++ == 5 )
-           {
-             throw new IllegalArgumentException( wp.name + "-position not mapped in existing datafile" );
-           }
-         }
-     }
-     finally
-     {
-         routingContext.unsetWaypoint();
-     }
-  }
-
-  private MatchedWaypoint _matchNodeForPosition( OsmNodeNamed wp, int minRingWidth )
-  {
-    wp.radius = 1e9;
-    resetCache();
-    preloadPosition( wp, minRingWidth, 2000 );
-    nodesCache.distanceChecker = routingContext;
-    List<OsmNode> nodeList = nodesCache.getAllNodes();
-
-    MatchedWaypoint mwp = new MatchedWaypoint();
-    mwp.waypoint = wp;
-
-    // first loop just to expand reverse links
-    for( OsmNode n : nodeList )
-    {
-        if ( !nodesCache.obtainNonHollowNode( n ) )
-        {
-          continue;
-        }
-        expandHollowLinkTargets( n );
-        OsmLink startLink = new OsmLink();
-        startLink.targetNode = n;
-        OsmPath startPath = new OsmPath( startLink );
-        startLink.addLinkHolder( startPath );
-        for( OsmLink link = n.firstlink; link != null; link = link.next )
-        {
-          if ( link.descriptionBitmap == null ) continue; // reverse link not found
-          OsmNode nextNode = link.targetNode;
-          if ( nextNode.isHollow() ) continue; // border node?
-          if ( nextNode.firstlink == null ) continue; // don't care about dead ends
-          if ( nextNode == n ) continue; // ?
-          double oldRadius = wp.radius;
-          OsmPath testPath = new OsmPath( n, startPath, link, null, false, routingContext );
-          if ( wp.radius < oldRadius )
-          {
-           if ( testPath.cost < 0 )
-           {
-             wp.radius = oldRadius; // no valid way
-           }
-           else
-           {
-             mwp.node1 = n;
-             mwp.node2 = nextNode;
-             mwp.radius = wp.radius;
-             mwp.crosspoint = new OsmNodeNamed();
-             mwp.crosspoint.ilon = routingContext.ilonshortest;
-             mwp.crosspoint.ilat = routingContext.ilatshortest;
-           }
-          }
-        }
-    }
-    return mwp;
-  }
 
   // expand hollow link targets and resolve reverse links
   private void expandHollowLinkTargets( OsmNode n )

@@ -108,10 +108,11 @@ final class OsmPath implements OsmLinkHolder
 
   private void addAddionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, OsmLink link, RoutingContext rc )
   {
-	if ( link.descriptionBitmap == null ) throw new IllegalArgumentException( "null description for: " + link );
+    byte[] description = link.descriptionBitmap;
+	  if ( description == null ) throw new IllegalArgumentException( "null description for: " + link );
 
-	boolean recordTransferNodes = detailMode || rc.countTraffic;
-	boolean recordMessageData = detailMode;
+    boolean recordTransferNodes = detailMode || rc.countTraffic;
+    boolean recordMessageData = detailMode;
 
     rc.nogomatch = false;
 
@@ -126,7 +127,7 @@ final class OsmPath implements OsmLinkHolder
 
     int linkdisttotal = 0;
 
-    MessageData msgData = new MessageData();
+    MessageData msgData = recordMessageData ? new MessageData() : null;
 
     OsmTransferNode transferNode = link.decodeFirsttransfer( p1 );
     OsmNode targetNode = link.targetNode;
@@ -138,27 +139,21 @@ final class OsmPath implements OsmLinkHolder
       int lon2;
       int lat2;
       short ele2;
-      byte[] description;
 
       if ( transferNode == null )
       {
         lon2 = targetNode.ilon;
         lat2 = targetNode.ilat;
         ele2 = targetNode.selev;
-        description = link.descriptionBitmap;
-    	if ( description == null ) throw new IllegalArgumentException( "null description for class: " + link.getClass() );
       }
       else
       {
         lon2 = transferNode.ilon;
         lat2 = transferNode.ilat;
         ele2 = transferNode.selev;
-        description = transferNode.descriptionBitmap;
-    	if ( description == null ) throw new IllegalArgumentException( "null description for class: " + transferNode.getClass() + "/" + link.getClass() + " counterlinkwritten=" + link.counterLinkWritten );
       }
 
-      rc.messageHandler.setCurrentPos( lon2, lat2 );
-      boolean sameData = rc.expctxWay.evaluate( rc.inverseDirection ^ link.counterLinkWritten, description, rc.messageHandler );
+      boolean sameData = rc.expctxWay.evaluate( rc.inverseDirection ^ link.counterLinkWritten, description );
       
       // if way description changed, store message
       if ( recordMessageData && msgData.wayKeyValues != null )
@@ -198,7 +193,10 @@ final class OsmPath implements OsmLinkHolder
         }
       }
 
-      msgData.linkdist += dist;
+      if ( recordMessageData )
+      {
+        msgData.linkdist += dist;
+      }
       linkdisttotal += dist;
 
       boolean isTrafficBackbone = cost == 0 && rc.expctxWay.getIsTrafficBackbone() > 0.f;
@@ -210,9 +208,9 @@ final class OsmPath implements OsmLinkHolder
         double cos = rc.calcCosAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
         int turncost = (int)(cos * rc.expctxWay.getTurncost() + 0.2 ); // e.g. turncost=90 -> 90 degree = 90m penalty
         cost += turncost;
-        msgData.linkturncost += turncost;
         if ( recordMessageData )
         {
+          msgData.linkturncost += turncost;
           msgData.turnangle = (float)rc.calcAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
         }
       }
@@ -250,7 +248,10 @@ final class OsmPath implements OsmLinkHolder
          {
            int elevationCost = reduce/rc.downhillcostdiv;
            cost += elevationCost;
-           msgData.linkelevationcost += elevationCost;
+           if ( recordMessageData )
+           {
+             msgData.linkelevationcost += elevationCost;
+           }
          }
       }
       else if ( ehbd < 0 )
@@ -280,7 +281,10 @@ final class OsmPath implements OsmLinkHolder
         {
           int elevationCost = reduce/rc.uphillcostdiv;
           cost += elevationCost;
-          msgData.linkelevationcost += elevationCost;
+          if ( recordMessageData )
+          {
+            msgData.linkelevationcost += elevationCost;
+          }
         }
       }
       else if ( ehbu < 0 )
@@ -313,6 +317,7 @@ final class OsmPath implements OsmLinkHolder
       cost += waycost;
 
       // calculate traffic
+      if ( rc.countTraffic )
       {
         int minDist = (int)rc.trafficSourceMinDist;
         int cost2 = cost < minDist ? minDist : cost;
@@ -330,7 +335,10 @@ final class OsmPath implements OsmLinkHolder
           lastClassifier = newClassifier;
           float initialcost = rc.expctxWay.getInitialcost();
           int iicost = (int)initialcost;
-          msgData.linkinitcost += iicost;
+          if ( recordMessageData )
+          {
+            msgData.linkinitcost += iicost;
+          }
           cost += iicost;
       }
 
@@ -402,8 +410,7 @@ final class OsmPath implements OsmLinkHolder
     if ( targetNode.nodeDescription != null )
     {
         boolean nodeAccessGranted = rc.expctxWay.getNodeAccessGranted() != 0.;
-        rc.messageHandler.setCurrentPos( targetNode.ilon, targetNode.ilat );
-        rc.expctxNode.evaluate( nodeAccessGranted , targetNode.nodeDescription, rc.messageHandler );
+        rc.expctxNode.evaluate( nodeAccessGranted , targetNode.nodeDescription );
         float initialcost = rc.expctxNode.getInitialcost();
         if ( initialcost >= 1000000. )
         {
@@ -411,12 +418,12 @@ final class OsmPath implements OsmLinkHolder
           return;
         }
         int iicost = (int)initialcost;
-        msgData.linknodecost += iicost;
 
         cost += iicost;
 
         if ( recordMessageData )
         {
+          msgData.linknodecost += iicost;
           msgData.nodeKeyValues = rc.expctxNode.getKeyValueDescription( nodeAccessGranted, targetNode.nodeDescription );
         }
     }

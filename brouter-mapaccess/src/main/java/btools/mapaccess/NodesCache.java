@@ -35,8 +35,6 @@ public final class NodesCache
   private OsmFile[][] fileRows;
   private ArrayList<MicroCache> segmentList = new ArrayList<MicroCache>();
 
-  public DistanceChecker distanceChecker;
-
   public WaypointMatcher waypointMatcher;
 
   public boolean first_file_access_failed = false;
@@ -212,7 +210,7 @@ public final class NodesCache
     long id = node.getIdFromPos();
     if ( segment.getAndClear( id ) )
     {
-      node.parseNodeBody( segment, nodesMap, distanceChecker );
+      node.parseNodeBody( segment, nodesMap );
     }
 
     if ( garbageCollectionEnabled ) // garbage collection

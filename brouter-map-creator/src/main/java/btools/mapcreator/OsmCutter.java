@@ -156,9 +156,9 @@ public class OsmCutter extends MapCreatorBase
     if ( w.description == null ) return;
 
     // filter according to profile
-    _expctxWay.evaluate( false, w.description, null );
+    _expctxWay.evaluate( false, w.description );
     boolean ok = _expctxWay.getCostfactor() < 10000.; 
-    _expctxWay.evaluate( true, w.description, null );
+    _expctxWay.evaluate( true, w.description );
     ok |= _expctxWay.getCostfactor() < 10000.;
     if ( !ok ) return;
     

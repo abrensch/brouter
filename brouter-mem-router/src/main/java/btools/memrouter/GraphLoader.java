@@ -198,7 +198,7 @@ public class GraphLoader extends MapCreatorBase
 	{
         if ( link.isWayLink() )
         {
-          wayCtx.evaluate( false, link.descriptionBitmap, null );
+          wayCtx.evaluate( false, link.descriptionBitmap );
           if ( wayCtx.getCostfactor() < 10000.f )
           {
             return true;

@@ -6,22 +6,11 @@
 package btools.mapaccess;
 
 import btools.codec.MicroCache;
-import btools.codec.MicroCache1;
 import btools.codec.MicroCache2;
 import btools.util.ByteArrayUnifier;
 
 public class OsmNode implements OsmPos
 {
-  public static final int EXTERNAL_BITMASK = 0x80; // old semantic
-  public static final int SIGNLON_BITMASK = 0x80;
-  public static final int SIGNLAT_BITMASK = 0x40;
-  public static final int TRANSFERNODE_BITMASK = 0x20;
-  public static final int WRITEDESC_BITMASK = 0x10;
-  public static final int SKIPDETAILS_BITMASK = 0x08;
-  public static final int NODEDESC_BITMASK = 0x04;
-  public static final int RESERVED1_BITMASK = 0x02;
-  public static final int RESERVED2_BITMASK = 0x01;
-
   public OsmNode()
   {
   }
@@ -146,21 +135,17 @@ public class OsmNode implements OsmPos
     return "" + getIdFromPos();
   }
 
-  public void parseNodeBody( MicroCache mc, OsmNodesMap hollowNodes, DistanceChecker dc )
+  public void parseNodeBody( MicroCache mc, OsmNodesMap hollowNodes )
   {
-    if ( mc instanceof MicroCache1 )
+    if ( mc instanceof MicroCache2 )
     {
-      parseNodeBody1( (MicroCache1) mc, hollowNodes, dc );
-    }
-    else if ( mc instanceof MicroCache2 )
-    {
-      parseNodeBody2( (MicroCache2) mc, hollowNodes, dc );
+      parseNodeBody2( (MicroCache2) mc, hollowNodes );
     }
     else
       throw new IllegalArgumentException( "unknown cache version: " + mc.getClass() );
   }
 
-  public void parseNodeBody2( MicroCache2 mc, OsmNodesMap hollowNodes, DistanceChecker dc )
+  public void parseNodeBody2( MicroCache2 mc, OsmNodesMap hollowNodes )
   {
     ByteArrayUnifier abUnifier = hollowNodes.getByteArrayUnifier();
 
@@ -183,10 +168,6 @@ public class OsmNode implements OsmPos
         description = mc.readUnified( descSize, abUnifier );
       }
       byte[] geometry = mc.readDataUntil( endPointer );
-
-      // preliminary hack: way-point-matching not here (done at decoding time)
-      if ( dc != null )
-        continue;
 
       if ( linklon == ilon && linklat == ilat )
       {
@@ -236,186 +217,10 @@ public class OsmNode implements OsmPos
           rlink.setGeometry( geometry );
         }
       }
-
     }
     hollowNodes.remove( this );
   }
 
-  public void parseNodeBody1( MicroCache1 is, OsmNodesMap hollowNodes, DistanceChecker dc )
-  {
-    ByteArrayUnifier abUnifier = hollowNodes.getByteArrayUnifier();
-
-    selev = is.readShort();
-
-    while (is.hasMoreData())
-    {
-      int ilonref = ilon;
-      int ilatref = ilat;
-
-      boolean counterLinkWritten = false;
-      OsmTransferNode firstTransferNode = null;
-      OsmTransferNode lastTransferNode = null;
-      int linklon;
-      int linklat;
-      byte[] description = null;
-      for ( ;; )
-      {
-        int bitField = is.readByte();
-        int dlon = is.readVarLengthUnsigned();
-        int dlat = is.readVarLengthUnsigned();
-        if ( ( bitField & SIGNLON_BITMASK ) != 0 )
-        {
-          dlon = -dlon;
-        }
-        if ( ( bitField & SIGNLAT_BITMASK ) != 0 )
-        {
-          dlat = -dlat;
-        }
-        linklon = ilonref + dlon;
-        linklat = ilatref + dlat;
-        ilonref = linklon;
-        ilatref = linklat;
-        // read variable length or old 8 byte fixed, and ensure that 8 bytes is
-        // only fixed
-        if ( ( bitField & WRITEDESC_BITMASK ) != 0 )
-        {
-          byte[] ab = new byte[is.readByte()];
-          is.readFully( ab );
-          description = abUnifier.unify( ab );
-        }
-        if ( ( bitField & NODEDESC_BITMASK ) != 0 )
-        {
-          byte[] ab = new byte[is.readByte()];
-          is.readFully( ab );
-          nodeDescription = abUnifier.unify( ab );
-        }
-        if ( ( bitField & RESERVED1_BITMASK ) != 0 )
-        {
-          byte[] ab = new byte[is.readByte()];
-          is.readFully( ab );
-        }
-        if ( ( bitField & RESERVED2_BITMASK ) != 0 )
-        {
-          byte[] ab = new byte[is.readByte()];
-          is.readFully( ab );
-        }
-        if ( ( bitField & SKIPDETAILS_BITMASK ) != 0 )
-        {
-          counterLinkWritten = true;
-        }
-
-        if ( description == null && !counterLinkWritten )
-          throw new IllegalArgumentException( "internal error: missing way description!" );
-
-        boolean isTransfer = ( bitField & TRANSFERNODE_BITMASK ) != 0;
-        if ( isTransfer )
-        {
-          OsmTransferNode trans = new OsmTransferNode();
-          trans.ilon = linklon;
-          trans.ilat = linklat;
-          trans.descriptionBitmap = description;
-          trans.selev = (short) ( selev + is.readVarLengthSigned() );
-          if ( lastTransferNode == null )
-          {
-            firstTransferNode = trans;
-          }
-          else
-          {
-            lastTransferNode.next = trans;
-          }
-          lastTransferNode = trans;
-        }
-        else
-        {
-          break;
-        }
-      }
-
-      // performance shortcut: ignore link if out of reach
-      if ( dc != null && !counterLinkWritten )
-      {
-        if ( !dc.isWithinRadius( ilon, ilat, firstTransferNode, linklon, linklat ) )
-        {
-          continue;
-        }
-      }
-
-      if ( linklon == ilon && linklat == ilat )
-      {
-        continue; // skip self-ref
-      }
-
-      // first check the known links for that target
-      OsmLink link = getCompatibleLink( linklon, linklat, counterLinkWritten, 2 );
-      if ( link == null ) // .. not found, then check the hollow nodes
-      {
-        long targetNodeId = ( (long) linklon ) << 32 | linklat;
-        OsmNode tn = hollowNodes.get( targetNodeId ); // target node
-        if ( tn == null ) // node not yet known, create a new hollow proxy
-        {
-          tn = new OsmNode( linklon, linklat );
-          tn.setHollow();
-          hollowNodes.put( tn );
-        }
-        link = new OsmLink();
-        link.targetNode = tn;
-        link.counterLinkWritten = counterLinkWritten;
-        link.state = 1;
-        addLink( link );
-      }
-
-      // now we have a link with a target node -> get the reverse link
-      OsmLink rlink = link.targetNode.getCompatibleLink( ilon, ilat, !counterLinkWritten, 1 );
-      if ( rlink == null ) // .. not found, create it
-      {
-        rlink = new OsmLink();
-        rlink.targetNode = this;
-        rlink.counterLinkWritten = !counterLinkWritten;
-        rlink.state = 2;
-        link.targetNode.addLink( rlink );
-      }
-
-      if ( !counterLinkWritten )
-      {
-        // we have the data for that link, so fill both the link ..
-        link.descriptionBitmap = description;
-        link.encodeFirsttransfer( firstTransferNode );
-
-        // .. and the reverse
-        if ( rlink.counterLinkWritten )
-        {
-          rlink.descriptionBitmap = description; // default for no
-                                                 // transfer-nodes
-          OsmTransferNode previous = null;
-          OsmTransferNode rtrans = null;
-          for ( OsmTransferNode trans = firstTransferNode; trans != null; trans = trans.next )
-          {
-            if ( previous == null )
-            {
-              rlink.descriptionBitmap = trans.descriptionBitmap;
-            }
-            else
-            {
-              previous.descriptionBitmap = trans.descriptionBitmap;
-            }
-            rtrans = new OsmTransferNode();
-            rtrans.ilon = trans.ilon;
-            rtrans.ilat = trans.ilat;
-            rtrans.selev = trans.selev;
-            rtrans.next = previous;
-            rtrans.descriptionBitmap = description;
-            previous = rtrans;
-          }
-          rlink.encodeFirsttransfer( rtrans );
-        }
-      }
-
-    }
-    if ( dc == null )
-    {
-      hollowNodes.remove( this );
-    }
-  }
 
   public boolean isHollow()
   {

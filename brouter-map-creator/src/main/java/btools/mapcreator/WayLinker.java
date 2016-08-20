@@ -9,7 +9,6 @@ import java.util.TreeMap;
 
 import btools.codec.DataBuffers;
 import btools.codec.MicroCache;
-import btools.codec.MicroCache1;
 import btools.codec.MicroCache2;
 import btools.codec.StatCoderContext;
 import btools.expressions.BExpressionContextWay;
@@ -57,7 +56,7 @@ public class WayLinker extends MapCreatorBase
   private int minLat;
 
   private int microCacheEncoding = 2;
-  private int divisor = microCacheEncoding == 2 ? 32 : 80;
+  private int divisor = 32;
   private int cellsize = 1000000 / divisor;
 
   private void reset()
@@ -186,9 +185,9 @@ public class WayLinker extends MapCreatorBase
     int lastTraffic = 0;
 
     // filter according to profile
-    expctxWay.evaluate( false, description, null );
+    expctxWay.evaluate( false, description );
     boolean ok = expctxWay.getCostfactor() < 10000.;
-    expctxWay.evaluate( true, description, null );
+    expctxWay.evaluate( true, description );
     ok |= expctxWay.getCostfactor() < 10000.;
     if ( !ok )
       return;
@@ -330,8 +329,7 @@ public class WayLinker extends MapCreatorBase
                 OsmNodeP n0 = subList.get( 0 );
                 int lonIdxDiv = n0.ilon / cellsize;
                 int latIdxDiv = n0.ilat / cellsize;
-                MicroCache mc = microCacheEncoding == 0 ? new MicroCache1( size, abBuf2, lonIdxDiv, latIdxDiv ) : new MicroCache2( size, abBuf2,
-                    lonIdxDiv, latIdxDiv, divisor );
+                MicroCache mc = new MicroCache2( size, abBuf2, lonIdxDiv, latIdxDiv, divisor );
 
                 // sort via treemap
                 TreeMap<Integer, OsmNodeP> sortedList = new TreeMap<Integer, OsmNodeP>();
@@ -360,8 +358,7 @@ public class WayLinker extends MapCreatorBase
                     System.arraycopy( abBuf1, 0, subBytes, 0, len );
 
                     // cross-check the encoding: re-instantiate the cache
-                    MicroCache mc2 = microCacheEncoding == 0 ? new MicroCache1( subBytes, lonIdxDiv, latIdxDiv ) : new MicroCache2( new DataBuffers(
-                        subBytes ), lonIdxDiv, latIdxDiv, divisor, null, null );
+                    MicroCache mc2 = new MicroCache2( new DataBuffers( subBytes ), lonIdxDiv, latIdxDiv, divisor, null, null );
                     // ..and check if still the same
                     String diffMessage = mc.compareWith( mc2 );
                     if ( diffMessage != null )

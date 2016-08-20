@@ -26,21 +26,17 @@ public class OsmLink
 
   public boolean counterLinkWritten;
 
-  public boolean hasNewGeometry; // preliminary
-
   public byte state;
 
   public void setGeometry( byte[] geometry )
   {
     this.geometry = geometry;
-    hasNewGeometry = true;
   }
 
   final public OsmTransferNode decodeFirsttransfer( OsmNode sourceNode )
   {
-    if ( geometry == null ) return null;
-    if ( hasNewGeometry )
-    {
+      if ( geometry == null ) return null;
+
       OsmTransferNode firstTransferNode = null;
       OsmTransferNode lastTransferNode = null;
       OsmNode startnode =  counterLinkWritten ? targetNode : sourceNode;
@@ -53,7 +49,6 @@ public class OsmLink
         OsmTransferNode trans = new OsmTransferNode();
         trans.ilon = olon + r.readVarLengthSigned();
         trans.ilat = olat + r.readVarLengthSigned();
-        trans.descriptionBitmap = descriptionBitmap;
         trans.selev = (short)(oselev + r.readVarLengthSigned());
         olon = trans.ilon;
         olat = trans.ilat;
@@ -77,14 +72,6 @@ public class OsmLink
         }
       }
       return firstTransferNode;
-    }
-    return OsmTransferNode.decode( geometry );
-  }
-
-  final public void encodeFirsttransfer( OsmTransferNode firsttransfer )
-  {
-    if ( firsttransfer == null ) geometry = null;
-    else geometry = OsmTransferNode.encode( firsttransfer );
   }
 
    final public void addLinkHolder( OsmLinkHolder holder )

@@ -347,7 +347,7 @@ System.out.println( "*** finishedOffsets = " + finishedOffsets );
     else if ( link.isWayLink() )
     {
       // get costfactor
-      rc.expctxWay.evaluate( link.isReverse( currentNode ), link.descriptionBitmap, null );
+      rc.expctxWay.evaluate( link.isReverse( currentNode ), link.descriptionBitmap );
 
       // *** penalty for distance
       float costfactor = rc.expctxWay.getCostfactor();
@@ -366,7 +366,7 @@ System.out.println( "*** finishedOffsets = " + finishedOffsets );
 
       if ( node.getNodeDecsription() != null )
       {
-        rc.expctxNode.evaluate( rc.expctxWay.getNodeAccessGranted() != 0., node.getNodeDecsription(), null );
+        rc.expctxNode.evaluate( rc.expctxWay.getNodeAccessGranted() != 0., node.getNodeDecsription() );
         float initialcost = rc.expctxNode.getInitialcost();
         if ( initialcost >= 1000000. )
         {

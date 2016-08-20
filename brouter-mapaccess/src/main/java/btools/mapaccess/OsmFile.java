@@ -10,7 +10,6 @@ import java.io.RandomAccessFile;
 
 import btools.codec.DataBuffers;
 import btools.codec.MicroCache;
-import btools.codec.MicroCache1;
 import btools.codec.MicroCache2;
 import btools.codec.TagValueValidator;
 import btools.codec.WaypointMatcher;
@@ -152,10 +151,6 @@ final class OsmFile
 
     int crcData = Crc32.crc( ab, 0, asize - 4 );
     int crcFooter = new ByteDataReader( ab, asize - 4 ).readInt();
-    if ( crcData == crcFooter )
-    {
-      return reallyDecode ? new MicroCache1( ab, lonIdx, latIdx ) : null;
-    }
     if ( ( crcData ^ 2 ) == crcFooter )
     {
       return reallyDecode ? new MicroCache2( dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher ) : null;

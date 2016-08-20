@@ -25,8 +25,6 @@ final class BExpression
   private static final int NUMBER_EXP = 33;
   private static final int VARIABLE_EXP = 34;
 
-  private static final int DUMPPOS_EXP = 40;
-
   private int typ;
   private BExpression op1;
   private BExpression op2;
@@ -147,10 +145,6 @@ final class BExpression
         {
           exp.typ = NOT_EXP;
         }
-        else if ( "dumppos".equals( operator ) )
-        {
-          exp.typ = DUMPPOS_EXP;
-        }
         else
         {
           nops = 0; // check elemantary expressions
@@ -263,7 +257,6 @@ final class BExpression
       case NUMBER_EXP: return numberValue;
       case VARIABLE_EXP: return ctx.getVariableValue( variableIdx );
       case NOT_EXP: return op1.evaluate(ctx) == 0.f ? 1.f : 0.f;
-      case DUMPPOS_EXP: ctx.expressionWarning( "INFO" ); return op1.evaluate(ctx);
       default: throw new IllegalArgumentException( "unknown op-code: " + typ );
     }
   }

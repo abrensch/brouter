@@ -39,7 +39,7 @@ public class EncodeDecodeTest
     byte[] description = expctxWay.encode(lookupData);
 
     // calculate the cost factor from that description
-    expctxWay.evaluate( false, description, null );
+    expctxWay.evaluate( false, description );
 
     float costfactor = expctxWay.getCostfactor();
     Assert.assertTrue( "costfactor mismatch", Math.abs( costfactor - 5.15 ) < 0.00001 );

@@ -10,18 +10,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import btools.codec.MicroCache;
-import btools.codec.MicroCache1;
 import btools.codec.MicroCache2;
 
 public class OsmNodeP extends OsmLinkP
 {
-  public static final int SIGNLON_BITMASK = 0x80;
-  public static final int SIGNLAT_BITMASK = 0x40;
-  public static final int TRANSFERNODE_BITMASK = 0x20;
-  public static final int WRITEDESC_BITMASK = 0x10;
-  public static final int SKIPDETAILS_BITMASK = 0x08;
-  public static final int NODEDESC_BITMASK = 0x04;
-
   /**
    * The latitude
    */
@@ -104,151 +96,10 @@ public class OsmNodeP extends OsmLinkP
     return null;
   }
 
-  public void writeNodeData1( MicroCache1 mc ) throws IOException
-  {
-    mc.writeShort( getSElev() );
-
-    // hack: write node-desc as link tag (copy cycleway-bits)
-    byte[] nodeDescription = getNodeDecsription();
-
-    for ( OsmLinkP link0 = getFirstLink(); link0 != null; link0 = link0.getNext( this ) )
-    {
-      int ilonref = ilon;
-      int ilatref = ilat;
-
-      OsmLinkP link = link0;
-      OsmNodeP origin = this;
-      int skipDetailBit = link0.descriptionBitmap == null ? SKIPDETAILS_BITMASK : 0;
-
-      // first pass just to see if that link is consistent
-      while (link != null)
-      {
-        OsmNodeP target = link.getTarget( origin );
-        if ( !target.isTransferNode() )
-        {
-          break;
-        }
-        // next link is the one (of two), does does'nt point back
-        for ( link = target.getFirstLink(); link != null; link = link.getNext( target ) )
-        {
-          if ( link.getTarget( target ) != origin )
-            break;
-        }
-        origin = target;
-      }
-      if ( link == null )
-        continue; // dead end
-
-      if ( skipDetailBit == 0 )
-      {
-        link = link0;
-        origin = this;
-      }
-      byte[] lastDescription = null;
-      while (link != null)
-      {
-        if ( link.descriptionBitmap == null && skipDetailBit == 0 )
-          throw new IllegalArgumentException( "missing way description..." );
-
-        OsmNodeP target = link.getTarget( origin );
-        int tranferbit = target.isTransferNode() ? TRANSFERNODE_BITMASK : 0;
-        int nodedescbit = nodeDescription != null ? NODEDESC_BITMASK : 0;
-
-        int writedescbit = 0;
-        if ( skipDetailBit == 0 ) // check if description changed
-        {
-          int inverseBitByteIndex = 0;
-          boolean inverseDirection = link.isReverse( origin );
-          byte[] ab = link.descriptionBitmap;
-          int abLen = ab.length;
-          int lastLen = lastDescription == null ? 0 : lastDescription.length;
-          boolean equalsCurrent = abLen == lastLen;
-          if ( equalsCurrent )
-          {
-            for ( int i = 0; i < abLen; i++ )
-            {
-              byte b = ab[i];
-              if ( i == inverseBitByteIndex && inverseDirection )
-                b ^= 1;
-              if ( b != lastDescription[i] )
-              {
-                equalsCurrent = false;
-                break;
-              }
-            }
-          }
-          if ( !equalsCurrent )
-          {
-            writedescbit = WRITEDESC_BITMASK;
-            lastDescription = new byte[abLen];
-            System.arraycopy( ab, 0, lastDescription, 0, abLen );
-            if ( inverseDirection )
-              lastDescription[inverseBitByteIndex] ^= 1;
-          }
-
-        }
-
-        int bm = tranferbit | writedescbit | nodedescbit | skipDetailBit;
-        int dlon = target.ilon - ilonref;
-        int dlat = target.ilat - ilatref;
-        ilonref = target.ilon;
-        ilatref = target.ilat;
-        if ( dlon < 0 )
-        {
-          bm |= SIGNLON_BITMASK;
-          dlon = -dlon;
-        }
-        if ( dlat < 0 )
-        {
-          bm |= SIGNLAT_BITMASK;
-          dlat = -dlat;
-        }
-        mc.writeByte( bm );
-
-        mc.writeVarLengthUnsigned( dlon );
-        mc.writeVarLengthUnsigned( dlat );
-
-        if ( writedescbit != 0 )
-        {
-          // write the way description, code direction into the first bit
-          mc.writeByte( lastDescription.length );
-          mc.write( lastDescription );
-        }
-        if ( nodedescbit != 0 )
-        {
-          mc.writeByte( nodeDescription.length );
-          mc.write( nodeDescription );
-          nodeDescription = null;
-        }
-
-        link.descriptionBitmap = null; // mark link as written
-
-        if ( tranferbit == 0 )
-        {
-          break;
-        }
-        mc.writeVarLengthSigned( target.getSElev() - getSElev() );
-        // next link is the one (of two), does does'nt point back
-        for ( link = target.getFirstLink(); link != null; link = link.getNext( target ) )
-        {
-          if ( link.getTarget( target ) != origin )
-            break;
-        }
-        if ( link == null )
-          throw new RuntimeException( "follow-up link not found for transfer-node!" );
-        origin = target;
-      }
-    }
-  }
-
   public void writeNodeData( MicroCache mc ) throws IOException
   {
     boolean valid = true;
-    if ( mc instanceof MicroCache1 )
-    {
-      writeNodeData1( (MicroCache1) mc );
-    }
-    else if ( mc instanceof MicroCache2 )
+    if ( mc instanceof MicroCache2 )
     {
       valid = writeNodeData2( (MicroCache2) mc );
     }

@@ -31,8 +31,6 @@ public abstract class BExpressionContext
   private BufferedReader _br = null;
   private boolean _readerDone = false;
 
-  private BExpressionReceiver _receiver;
-
   private Map<String,Integer> lookupNumbers = new HashMap<String,Integer>();
   private ArrayList<BExpressionLookupValue[]> lookupValues = new ArrayList<BExpressionLookupValue[]>();
   private ArrayList<String> lookupNames = new ArrayList<String>();
@@ -58,20 +56,21 @@ public abstract class BExpressionContext
   private byte[] currentByteArray = null;
   private boolean currentInverseDirection= false;
 
-  public List<BExpression> expressionList;
+  private List<BExpression> expressionList;
 
   private int minWriteIdx;
 
   // build-in variable indexes for fast access
   private int[] buildInVariableIdx;
 
-  protected float[][] arrayBuildInVariablesCache;
+  private float[][] arrayBuildInVariablesCache;
+  private float[] hashBucketVars;
 
   abstract String[] getBuildInVariableNames();
 
-  protected float getBuildInVariable( int idx ) 
+  protected final float getBuildInVariable( int idx ) 
   {
-    return arrayBuildInVariablesCache[idx][currentHashBucket];
+    return hashBucketVars[idx];
   }
 
   private int linenr;
@@ -105,10 +104,10 @@ public abstract class BExpressionContext
 
      // create the build-in variables cache     
      int nBuildInVars = getBuildInVariableNames().length;
-     arrayBuildInVariablesCache = new float[nBuildInVars][];
-     for( int vi=0; vi<nBuildInVars; vi++ )
+     arrayBuildInVariablesCache = new float[hashSize][];
+     for( int hi=0; hi<hashSize; hi++ )
      {
-       arrayBuildInVariablesCache[vi] = new float[hashSize];
+       arrayBuildInVariablesCache[hi] = new float[nBuildInVars];
      }
   }
 
@@ -264,9 +263,10 @@ public abstract class BExpressionContext
   public void evaluate( int[] lookupData2 )
   {
     lookupData = lookupData2;
-    for( BExpression exp: expressionList)
+    int n = expressionList.size();
+    for( int expidx = 0; expidx < n; expidx++ )
     {
-      exp.evaluate( this );
+      expressionList.get( expidx ).evaluate( this );
     }
   }
 
@@ -279,7 +279,7 @@ public abstract class BExpressionContext
    * 
    * @return true if the data is equivilant to the last calls data
    */
-  public boolean evaluate( boolean inverseDirection, byte[] ab, BExpressionReceiver receiver )
+  public boolean evaluate( boolean inverseDirection, byte[] ab )
   {
 	 requests ++;
 	 lookupDataValid = false; // this is an assertion for a nasty pifall
@@ -291,6 +291,7 @@ public abstract class BExpressionContext
      int crc  = Crc32.crcWithInverseBit(ab, inverseDirection ? inverseBitByteIndex : -1 );
      int hashSize = _arrayBitmap.length;
      currentHashBucket =  (crc & 0xfffffff) % hashSize;
+     hashBucketVars = arrayBuildInVariablesCache[currentHashBucket];
      currentByteArray = ab;
      currentInverseDirection = inverseDirection;
      byte[] abBucket = _arrayBitmap[currentHashBucket];
@@ -325,18 +326,15 @@ public abstract class BExpressionContext
      _arrayInverse[currentHashBucket] = currentInverseDirection;
      _arrayCrc[currentHashBucket] = crc;
 
-     _receiver = receiver;
-
      decode( lookupData, currentInverseDirection, currentByteArray );
      evaluate( lookupData );
 
      for( int vi=0; vi<buildInVariableIdx.length; vi++ )
      {
        int idx = buildInVariableIdx[vi];
-       arrayBuildInVariablesCache[vi][currentHashBucket] = idx == -1 ? 0.f : variableData[idx];
+       hashBucketVars[vi] = idx == -1 ? 0.f : variableData[idx];
      }
 
-     _receiver = null;
      return false;
   }
 
@@ -763,9 +761,4 @@ public abstract class BExpressionContext
     return value;
   }
 
-  void expressionWarning( String message )
-  {
-    _arrayBitmap[currentHashBucket] = null; // no caching if warnings
-     if ( _receiver != null ) _receiver.expressionWarning( context, message );
-  }
 }

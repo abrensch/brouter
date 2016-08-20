@@ -111,8 +111,6 @@ public final class RoutingContext implements DistanceChecker
     turnInstructionRoundabouts = expctxGlobal.getVariableValue( "turnInstructionRoundabouts", 1.f ) != 0.f;
   }
 
-  public RoutingMessageHandler messageHandler = new RoutingMessageHandler();
-
   public List<OsmNodeNamed> nogopoints = null;
   private List<OsmNodeNamed> keepnogopoints = null;
 
@@ -222,10 +220,11 @@ public final class RoutingContext implements DistanceChecker
 
     shortestmatch = false;
 
-    if ( d > 0. && nogopoints != null )
+    if ( nogopoints != null && !nogopoints.isEmpty() && d > 0. )
     {
-      for( OsmNodeNamed nogo : nogopoints )
+      for( int ngidx = 0; ngidx < nogopoints.size(); ngidx++ )
       {
+        OsmNodeNamed nogo = nogopoints.get(ngidx);
         double x1 = (lon1 - nogo.ilon) * coslat6;
         double y1 = (lat1 - nogo.ilat) * 0.000001;
         double x2 = (lon2 - nogo.ilon) * coslat6;

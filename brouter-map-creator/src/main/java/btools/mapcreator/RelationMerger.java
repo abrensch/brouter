@@ -124,11 +124,11 @@ public class RelationMerger extends MapCreatorBase
     {
       boolean ok = true;
       // check access and log a warning for conflicts
-      expctxReport.evaluate( false, data.description, null );
+      expctxReport.evaluate( false, data.description );
       boolean warn = expctxReport.getCostfactor() >= 10000.;
       if ( warn )
       {
-        expctxCheck.evaluate( false, data.description, null );
+        expctxCheck.evaluate( false, data.description );
         ok = expctxCheck.getCostfactor() < 10000.;
 
         System.out.println( "** relation access conflict for wid = " + data.wid + " tags:" + expctxReport.getKeyValueDescription( false, data.description ) + " (ok=" + ok + ")"  );
