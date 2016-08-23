@@ -42,6 +42,11 @@ public final class NodesCache
 
   private long cacheSum = 0;
   private boolean garbageCollectionEnabled = false;
+  
+  public String formatStatus()
+  {
+    return "collecting=" + garbageCollectionEnabled + " cacheSum=" + cacheSum;
+  }
 
   public NodesCache( String segmentDir, OsmNodesMap nodesMap, BExpressionContextWay ctxWay, boolean carMode, boolean forceSecondaryData,
       NodesCache oldCache )
@@ -91,7 +96,7 @@ public final class NodesCache
   // clean all ghosts and enable garbage collection
   private void checkEnableCacheCleaning()
   {
-    if ( cacheSum < 500000 || garbageCollectionEnabled )
+    if ( cacheSum < 3000000 || garbageCollectionEnabled )
       return;
 
     for ( int i = 0; i < fileRows.length; i++ )

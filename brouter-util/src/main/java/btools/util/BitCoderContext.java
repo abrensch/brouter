@@ -4,13 +4,16 @@ package btools.util;
 public class BitCoderContext
 {
   private byte[] ab;
+  private int idxMax;
   private int idx = -1;
-  private int bm = 0x100; // byte mask
+  private int bm = 0x100; // byte mask (write mode)
+  private int bits; // bits left in buffer (read mode)
   private int b;
 
   public BitCoderContext( byte[] ab )
   {
     this.ab = ab;
+    idxMax = ab.length-1;
   }
 
   /**
@@ -39,17 +42,31 @@ public class BitCoderContext
   /**
    * @see #encodeVarBits
    */
-  public final int decodeVarBits()
+  public final int decodeVarBits2()
   {
     int range = 0;
-    int value = 0;
     while (!decodeBit())
     {
-      value += range + 1;
       range = 2 * range + 1;
     }
-    return value + decodeBounded( range );
+    return range + decodeBounded( range );
   }
+
+  public final int decodeVarBits()
+  {
+    int range = 1;
+    int cnt = 1;
+    fillBuffer();
+    while ((b & range) == 0)
+    {
+      range = (range << 1) | 1;
+      cnt++;
+    }
+    b >>>= cnt;
+    bits -= cnt;
+    return (range >>> 1) + ( cnt > 1 ? decodeBits( cnt-1 ) : 0 );
+  }
+
 
   public final void encodeBit( boolean value )
   {
@@ -65,13 +82,14 @@ public class BitCoderContext
 
   public final boolean decodeBit()
   {
-    if ( bm == 0x100 )
+    if ( bits == 0 )
     {
-      bm = 1;
-      b = ab[++idx];
+      bits = 8;
+      b = ab[++idx] & 0xff;
     }
-    boolean value = ( ( b & bm ) != 0 );
-    bm <<= 1;
+    boolean value = ( ( b & 1 ) != 0 );
+    b >>>= 1;
+    bits--;
     return value;
   }
 
@@ -111,18 +129,45 @@ public class BitCoderContext
     int im = 1; // integer mask
     while (( value | im ) <= max)
     {
-      if ( bm == 0x100 )
+      if ( bits == 0 )
       {
-        bm = 1;
-        b = ab[++idx];
+        bits = 8;
+        b = ab[++idx] & 0xff;
       }
-      if ( ( b & bm ) != 0 )
+      if ( ( b & 1 ) != 0 )
         value |= im;
-      bm <<= 1;
+      b >>>= 1;
+      bits--;
       im <<= 1;
     }
     return value;
   }
+
+  public final int decodeBits( int count )
+  {
+    if ( count == 0 )
+    {
+      return 0;
+    }
+    fillBuffer();
+    int mask = 0xffffffff >>> ( 32 - count );
+    int value = b & mask;
+    b >>>= count;
+    bits -= count;
+    return value;
+  }
+  
+  private void fillBuffer()
+  {
+    while (bits < 24)
+    {
+      if ( idx < idxMax )
+      {
+        b |= (ab[++idx] & 0xff) << bits;
+      }
+      bits += 8;
+    }
+  }    
 
   /**
    * @return the encoded length in bytes
@@ -135,7 +180,7 @@ public class BitCoderContext
   /**
    * @return the encoded length in bits
    */
-  public final long getBitPosition()
+  public final long getWritingBitPosition()
   {
     long bitpos = idx << 3;
     int m = bm;
@@ -145,6 +190,55 @@ public class BitCoderContext
       m >>= 1;
     }
     return bitpos;
+  }
+
+  public final int getReadingBitPosition()
+  {
+    return (idx << 3) + 8 - bits;
+  }
+
+  public final void setReadingBitPosition(int pos)
+  {
+    idx = pos >>> 3;
+    bits = (idx << 3) + 8 - pos;
+    b = ab[idx] & 0xff;
+    b >>>= (8-bits);
+  }
+
+  public final void copyBitsTo( byte[] dst, int bitcount )
+  {
+    int dstIdx = 0;
+    for(;;)
+    {
+      if ( bitcount > 8 )
+      {
+        if ( bits < 8 )
+        {
+          b |= (ab[++idx] & 0xff) << bits;
+        }
+        else
+        {
+          bits -= 8;
+        }
+        dst[dstIdx++] = (byte)b;
+        b >>>= 8;
+        bitcount -= 8;
+      }
+      else
+      {
+        if ( bits < bitcount )
+        {
+          b |= (ab[++idx] & 0xff) << bits;
+          bits += 8;
+        }
+
+        int mask = 0xff >>> ( 8 - bitcount );
+        dst[dstIdx] = (byte)(b & mask);
+        bits -= bitcount;
+        b >>>= bitcount;
+        break;
+      }
+    }
   }
 
 }

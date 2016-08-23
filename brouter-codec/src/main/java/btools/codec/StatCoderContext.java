@@ -22,7 +22,7 @@ public final class StatCoderContext extends BitCoderContext
    */
   public void assignBits( String name )
   {
-    long bitpos = getBitPosition();
+    long bitpos = getWritingBitPosition();
     if ( statsPerName == null )
     {
       statsPerName = new TreeMap<String, long[]>();
@@ -88,12 +88,7 @@ public final class StatCoderContext extends BitCoderContext
    */
   public int decodeNoisyNumber( int noisybits )
   {
-    int value = 0;
-    if ( noisybits > 0 )
-    {
-      int mask = 0xffffffff >>> ( 32 - noisybits );
-      value = decodeBounded( mask );
-    }
+    int value = decodeBits( noisybits );
     return value | ( decodeVarBits() << noisybits );
   }
 
@@ -130,8 +125,7 @@ public final class StatCoderContext extends BitCoderContext
     int value = 0;
     if ( noisybits > 0 )
     {
-      int mask = 0xffffffff >>> ( 32 - noisybits );
-      value = decodeBounded( mask ) - ( 1 << ( noisybits - 1 ) );
+      value = decodeBits( noisybits ) - ( 1 << ( noisybits - 1 ) );
     }
     int val2 = decodeVarBits() << noisybits;
     if ( val2 != 0 )

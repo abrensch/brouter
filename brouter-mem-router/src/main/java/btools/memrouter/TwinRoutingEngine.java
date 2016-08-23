@@ -69,7 +69,7 @@ public class TwinRoutingEngine extends RoutingEngine
         System.out.println( "linksProcessed=" + router.linksProcessed + " linksReProcessed=" +  router.linksReProcessed);
         System.out.println( "skippedChained=" + router.skippedChained + " closedSkippedChained=" +  router.closedSkippedChained);
         
-	    System.out.println( "expCtxWay: requests: " + routingContext.expctxWay.requests + " requests2: " + routingContext.expctxWay.requests2 + " cache-misses: " + routingContext.expctxWay.cachemisses );
+	    System.out.println( "expCtxWay: requests: " + routingContext.expctxWay.cacheStats() );
         
 	  }
     }

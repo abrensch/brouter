@@ -178,8 +178,7 @@ public class OsmNode implements OsmPos
       OsmLink link = getCompatibleLink( linklon, linklat, isReverse, 2 );
       if ( link == null ) // .. not found, then check the hollow nodes
       {
-        long targetNodeId = ( (long) linklon ) << 32 | linklat;
-        OsmNode tn = hollowNodes.get( targetNodeId ); // target node
+        OsmNode tn = hollowNodes.get( linklon, linklat ); // target node
         if ( tn == null ) // node not yet known, create a new hollow proxy
         {
           tn = new OsmNode( linklon, linklat );

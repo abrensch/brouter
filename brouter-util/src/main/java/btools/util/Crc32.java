@@ -30,17 +30,15 @@ public class Crc32
     return crc;
   }
 
-  public static int crcWithInverseBit( byte[] ab, int inverseBitByteIndex )
+  public static int crcWithInverseBit( byte[] ab, boolean isInverse )
   {
-    int crc  = 0xFFFFFFFF;
+    int crc  = 0xFFFFFF ^ ( isInverse ? 0x990951ba : 0x706af48f ); // inverse is webbed into crc...
     int end = ab.length;
     for( int j=0; j<end; j++ )
     {
-      byte b = ab[j];
-      if ( j == inverseBitByteIndex ) b ^= 1;
-      crc = (crc >>> 8) ^ crctable[(crc ^ b) & 0xff];
+      crc = (crc >>> 8) ^ crctable[(crc ^ ab[j]) & 0xff];
     }
-    return crc;
+    return isInverse ? crc | 0x80000000 : crc & 0x7fffffff; // ... and set as high bit
   }
 
   private static int[] crctable = {

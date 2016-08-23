@@ -19,7 +19,7 @@ public class BitCoderContextTest
     for ( int i = 0; i < 1000; i++ )
     {
       int value = ctx.decodeVarBits();
-      Assert.assertTrue( "distance value mismatch", value == i );
+      Assert.assertTrue( "distance value mismatch i=" + i + "v=" + value, value == i );
     }
   }
 

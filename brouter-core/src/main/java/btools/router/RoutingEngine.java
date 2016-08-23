@@ -226,10 +226,19 @@ public class RoutingEngine extends Thread
     }
     finally
     {
-      ProfileCache.releaseProfile( routingContext );
+      if ( hasInfo() && routingContext.expctxWay != null )
+      {
+        logInfo( "expression cache stats=" + routingContext.expctxWay.cacheStats() );
+      }
 
+      ProfileCache.releaseProfile( routingContext );
+      
       if ( nodesCache != null )
       {
+        if ( hasInfo() && nodesCache != null )
+        {
+          logInfo( "NodesCache status before close=" + nodesCache.formatStatus() );
+        }
         nodesCache.close();
         nodesCache = null;
       }
@@ -544,6 +553,10 @@ public class RoutingEngine extends Thread
 
   private void resetCache()
   {
+    if ( hasInfo() && nodesCache != null )
+    {
+      logInfo( "NodesCache status before reset=" + nodesCache.formatStatus() );
+    }
     nodesMap = new OsmNodesMap();
     nodesCache = new NodesCache(segmentDir, nodesMap, routingContext.expctxWay, routingContext.carMode, routingContext.forceSecondaryData, nodesCache );
   }

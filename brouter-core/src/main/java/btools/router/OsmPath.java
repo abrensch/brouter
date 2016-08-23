@@ -47,7 +47,7 @@ final class OsmPath implements OsmLinkHolder
   public int originLon;
   public int originLat;
 
-  // the costfactor of the segment just before this paths position
+  // the classifier of the segment just before this paths position
   public float lastClassifier;
 
   public MessageData message;
@@ -129,6 +129,37 @@ final class OsmPath implements OsmLinkHolder
 
     MessageData msgData = recordMessageData ? new MessageData() : null;
 
+    // evaluate the way tags
+    rc.expctxWay.evaluate( rc.inverseDirection ^ link.counterLinkWritten, description );
+
+    // calculate the costfactor inputs
+    boolean isTrafficBackbone = cost == 0 && rc.expctxWay.getIsTrafficBackbone() > 0.f;
+    float turncostbase = rc.expctxWay.getTurncost();
+    float cfup = rc.expctxWay.getUphillCostfactor();
+    float cfdown = rc.expctxWay.getDownhillCostfactor();
+    float cf = rc.expctxWay.getCostfactor();
+    cfup = cfup == 0.f ? cf : cfup;
+    cfdown = cfdown == 0.f ? cf : cfdown;
+
+    // *** add initial cost if the classifier changed
+    float newClassifier = rc.expctxWay.getInitialClassifier();
+    if ( newClassifier == 0. )
+    {
+      newClassifier = (cfup + cfdown + cf)/3;
+    }
+    float classifierDiff = newClassifier - lastClassifier;
+    if ( classifierDiff > 0.0005 || classifierDiff < -0.0005 )
+    {
+      lastClassifier = newClassifier;
+      float initialcost = rc.expctxWay.getInitialcost();
+      int iicost = (int)initialcost;
+      if ( recordMessageData )
+      {
+        msgData.linkinitcost += iicost;
+      }
+      cost += iicost;
+    }
+
     OsmTransferNode transferNode = link.decodeFirsttransfer( p1 );
     OsmNode targetNode = link.targetNode;
     for(;;)
@@ -152,10 +183,8 @@ final class OsmPath implements OsmLinkHolder
         lat2 = transferNode.ilat;
         ele2 = transferNode.selev;
       }
-
-      boolean sameData = rc.expctxWay.evaluate( rc.inverseDirection ^ link.counterLinkWritten, description );
       
-      // if way description changed, store message
+      // if recording, new MessageData for each section (needed for turn-instructions)
       if ( recordMessageData && msgData.wayKeyValues != null )
       {
         originElement.message = msgData;
@@ -199,18 +228,16 @@ final class OsmPath implements OsmLinkHolder
       }
       linkdisttotal += dist;
 
-      boolean isTrafficBackbone = cost == 0 && rc.expctxWay.getIsTrafficBackbone() > 0.f;
-
       // *** penalty for turning angles
       if ( !isTrafficBackbone && origin.originElement != null )
       {
         // penalty proportional to direction change
         double cos = rc.calcCosAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
-        int turncost = (int)(cos * rc.expctxWay.getTurncost() + 0.2 ); // e.g. turncost=90 -> 90 degree = 90m penalty
-        cost += turncost;
+        int actualturncost = (int)(cos * turncostbase + 0.2 ); // e.g. turncost=90 -> 90 degree = 90m penalty
+        cost += actualturncost;
         if ( recordMessageData )
         {
-          msgData.linkturncost += turncost;
+          msgData.linkturncost += actualturncost;
           msgData.turnangle = (float)rc.calcAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
         }
       }
@@ -292,16 +319,8 @@ final class OsmPath implements OsmLinkHolder
         ehbu = 0;
       }
 
-      // *** penalty for distance
-      float cfup = rc.expctxWay.getUphillCostfactor();
-      float cfdown = rc.expctxWay.getDownhillCostfactor();
-      float cf = rc.expctxWay.getCostfactor();
-
-      cfup = cfup == 0.f ? cf : cfup;
-      cfdown = cfdown == 0.f ? cf : cfdown;
-      
+      // get the effective costfactor (slope dependent)
       float costfactor = cfup*upweight + cf*(1.f - upweight - downweight) + cfdown*downweight;
-
       if ( isTrafficBackbone )
       {
         costfactor = 0.f;
@@ -322,24 +341,6 @@ final class OsmPath implements OsmLinkHolder
         int minDist = (int)rc.trafficSourceMinDist;
         int cost2 = cost < minDist ? minDist : cost;
         traffic += dist*rc.expctxWay.getTrafficSourceDensity()*Math.pow(cost2/10000.f,rc.trafficSourceExponent);
-      }
-      // *** add initial cost if the classifier changed
-      float newClassifier = rc.expctxWay.getInitialClassifier();
-      if ( newClassifier == 0. )
-      {
-        newClassifier = (cfup + cfdown + cf)/3;
-      }
-      float classifierDiff = newClassifier - lastClassifier;
-      if ( classifierDiff > 0.0005 || classifierDiff < -0.0005 )
-      {
-          lastClassifier = newClassifier;
-          float initialcost = rc.expctxWay.getInitialcost();
-          int iicost = (int)initialcost;
-          if ( recordMessageData )
-          {
-            msgData.linkinitcost += iicost;
-          }
-          cost += iicost;
       }
 
       if ( recordMessageData )

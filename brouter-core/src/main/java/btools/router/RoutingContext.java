@@ -12,10 +12,8 @@ import java.util.List;
 import btools.expressions.BExpressionContext;
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
-import btools.mapaccess.DistanceChecker;
-import btools.mapaccess.OsmTransferNode;
 
-public final class RoutingContext implements DistanceChecker
+public final class RoutingContext
 {
   public void setAlternativeIdx( int idx )
   {
@@ -347,30 +345,6 @@ public final class RoutingContext implements DistanceChecker
       p -= 360.;
     }
     return p;
-  }
-
-  @Override
-  public boolean isWithinRadius( int ilon0, int ilat0, OsmTransferNode firstTransfer, int ilon1, int ilat1 )
-  {
-    OsmNodeNamed wp = nogopoints.get(0);
-    double keepRadius = wp.radius;
-    try
-    {
-      int ilon = ilon0;
-      int ilat = ilat0;
-      for( OsmTransferNode trans = firstTransfer; trans != null; trans = trans.next )
-      {
-        calcDistance( ilon, ilat, trans.ilon, trans.ilat );
-        ilon = trans.ilon;
-        ilat = trans.ilat;
-      }
-      calcDistance( ilon, ilat, ilon1, ilat1 );
-      return wp.radius < keepRadius;
-    }
-    finally
-    {
-      wp.radius = keepRadius;
-    }
   }
 
 }

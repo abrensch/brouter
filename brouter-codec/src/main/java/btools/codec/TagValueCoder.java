@@ -99,26 +99,33 @@ public final class TagValueCoder
       node.child2 = decodeTree( bc, buffer, validator );
       return node;
     }
-    BitCoderContext target = null;
+    int startpos = bc.getReadingBitPosition();
+    boolean hasdata = false;
     for ( ;; )
     {
       int delta = bc.decodeVarBits();
-      if ( target == null )
+      if ( !hasdata )
       {
         if ( delta == 0 )
+        {
           return null;
-        target = new BitCoderContext( buffer );
-        target.encodeBit( false ); // dummy reverse bit
+        }
+        hasdata = true;
       }
-      target.encodeVarBits( delta );
       if ( delta == 0 )
+      {
         break;
-      int data = bc.decodeVarBits();
-      target.encodeVarBits( data );
+      }
+      bc.decodeVarBits();
     }
-    int len = target.getEncodedLength();
-    byte[] res = new byte[len];
-    System.arraycopy( buffer, 0, res, 0, len );
+    int endpos = bc.getReadingBitPosition();
+    
+    int bitcount = endpos - startpos;
+    int bytecount = ( bitcount + 7 ) >> 3;
+
+    bc.setReadingBitPosition( startpos );
+    byte[] res = new byte[bytecount];
+    bc.copyBitsTo( res, bitcount );
 
     int accessType = validator == null ? 2 : validator.accessType( res );
     if ( accessType > 0 )
@@ -165,10 +172,6 @@ public final class TagValueCoder
           return;
         }
         BitCoderContext src = new BitCoderContext( data );
-        if ( src.decodeBit() )
-        {
-          throw new IllegalArgumentException( "cannot encode reverse bit!" );
-        }
         for ( ;; )
         {
           int delta = src.decodeVarBits();

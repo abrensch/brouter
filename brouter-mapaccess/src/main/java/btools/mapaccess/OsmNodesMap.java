@@ -26,10 +26,10 @@ public final class OsmNodesMap
    * Get a node from the map
    * @return the node for the given id if exist, else null
    */
-  public OsmNode get( long id )
+  public OsmNode get( int ilon, int ilat )
   {
-    testKey.ilon = (int)(id >> 32);
-    testKey.ilat = (int)(id & 0xffffffff);
+    testKey.ilon = ilon;
+    testKey.ilat = ilat;
     return hmap.get( testKey );
   }
 
@@ -46,15 +46,6 @@ public final class OsmNodesMap
   public OsmNode put( OsmNode node )
   {
     return hmap.put( node, node );
-  }
-
-
-  /**
-   * @return the number of nodes in that map
-   */
-  public int size()
-  {
-    return hmap.size();
   }
 
 }
