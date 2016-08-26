@@ -14,15 +14,16 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 
 import btools.util.BitCoderContext;
 import btools.util.Crc32;
-import java.util.Random;
+import btools.util.IByteArrayUnifier;
 
 
-public abstract class BExpressionContext
+public abstract class BExpressionContext implements IByteArrayUnifier
 {
   private  static final String CONTEXT_TAG = "---context:";
 	
@@ -70,6 +71,11 @@ public abstract class BExpressionContext
     return hashBucketVars[idx];
   }
 
+  protected final float getInverseBuildInVariable( int idx ) 
+  {
+    return arrayBuildInVariablesCache[currentHashBucket | 1][idx];
+  }
+
   private int linenr;
 
   public BExpressionMetaData meta;
@@ -98,7 +104,7 @@ public abstract class BExpressionContext
      // create the expression cache
      _arrayBitmap = new byte[hashSize][];
      _arrayCrc = new int[hashSize];
-     arrayBuildInVariablesCache = new float[hashSize][];
+     arrayBuildInVariablesCache = new float[hashSize << 1][];
   }
 
   /**
@@ -249,9 +255,14 @@ public abstract class BExpressionContext
     lookupDataFrozen = true;
   }
 
-  public void evaluate( int[] lookupData2 )
+  public final void evaluate( int[] lookupData2 )
   {
     lookupData = lookupData2;
+    evaluate();
+  }
+
+  private void evaluate()
+  {
     int n = expressionList.size();
     for( int expidx = 0; expidx < n; expidx++ )
     {
@@ -268,32 +279,62 @@ public abstract class BExpressionContext
     return "requests=" + requests + " requests2=" + requests2 + " cachemisses=" + cachemisses;
   }
 
+  @Override
+  public final byte[] unify( byte[] ab, int offset, int len )
+  {
+    int crc = Crc32.crc( ab, offset, len );
+    int hashSize = _arrayBitmap.length;
+    int idx = ( crc & 0xfffffff ) % hashSize;
+    byte[] abc = _arrayBitmap[idx];
+    if ( abc != null && abc.length == len )
+    {
+      int i = 0;
+      while (i < len)
+      {
+        if ( ab[offset + i] != abc[i] )
+          break;
+        i++;
+      }
+      if ( i == len )
+        return abc;
+    }
+    byte[] nab = new byte[len];
+    System.arraycopy( ab, offset, nab, 0, len );
+    return nab;
+  }
+
   /**
    * evaluates the data in the given byte array
    * 
    * @return true if the data is equivilant to the last calls data
    */
-  public void evaluate( boolean inverseDirection, byte[] ab )
+  public final void evaluate( boolean inverseDirection, byte[] ab )
   {
     requests++;
     lookupDataValid = false; // this is an assertion for a nasty pifall
 
     // calc hash bucket from crc
-    int crc = Crc32.crcWithInverseBit( ab, inverseDirection );
+    int crc = Crc32.crc( ab, 0, ab.length );
     int hashSize = _arrayBitmap.length;
-    currentHashBucket = ( crc & 0xfffffff ) % hashSize;
-    
-    int nBuildInVars = buildInVariableIdx.length;
-    hashBucketVars = arrayBuildInVariablesCache[currentHashBucket];
-    if ( hashBucketVars == null )
-    {
-      hashBucketVars = new float[nBuildInVars];
-      arrayBuildInVariablesCache[currentHashBucket] = hashBucketVars;
-    }
+    int hashBucket2 = ( crc & 0xfffffff ) % hashSize;
+    int hashBucket01 = hashBucket2 << 1;
+    int hashBucket02 = hashBucket01 | 1;
+    int hashBucket = inverseDirection ? hashBucket02 : hashBucket01;
 
-    if ( crc == _arrayCrc[currentHashBucket] )
+    if ( hashBucket != currentHashBucket )
     {
-      byte[] abBucket = _arrayBitmap[currentHashBucket];
+      currentHashBucket = hashBucket;
+      hashBucketVars = arrayBuildInVariablesCache[hashBucket];
+      if ( hashBucketVars == null )
+      {
+        arrayBuildInVariablesCache[hashBucket01] = new float[buildInVariableIdx.length];
+        arrayBuildInVariablesCache[hashBucket02] = new float[buildInVariableIdx.length];
+        hashBucketVars = arrayBuildInVariablesCache[hashBucket];
+      }
+    }
+    if ( crc == _arrayCrc[hashBucket2] )
+    {
+      byte[] abBucket = _arrayBitmap[hashBucket2];
       if ( ab == abBucket ) // fast identity check
       {
         return;
@@ -322,17 +363,31 @@ public abstract class BExpressionContext
     }
     cachemisses++;
 
-    _arrayBitmap[currentHashBucket] = ab;
-    _arrayCrc[currentHashBucket] = crc;
+    _arrayBitmap[hashBucket2] = ab;
+    _arrayCrc[hashBucket2] = crc;
 
-    decode( lookupData, inverseDirection, ab );
-    evaluate( lookupData );
+    int nBuildInVars = buildInVariableIdx.length;
 
+    // forward direction
+    decode( lookupData, false, ab );
+    evaluate();
+    float[] vars = arrayBuildInVariablesCache[hashBucket01];
     for ( int vi = 0; vi < nBuildInVars; vi++ )
     {
       int idx = buildInVariableIdx[vi];
-      hashBucketVars[vi] = idx == -1 ? 0.f : variableData[idx];
+      vars[vi] = idx == -1 ? 0.f : variableData[idx];
     }
+
+    // inverse direction
+    lookupData[0] = 2; // inverse shortcut: reuse decoding
+    evaluate();
+    vars = arrayBuildInVariablesCache[hashBucket02];
+    for ( int vi = 0; vi < nBuildInVars; vi++ )
+    {
+      int idx = buildInVariableIdx[vi];
+      vars[vi] = idx == -1 ? 0.f : variableData[idx];
+    }
+
   }
 
   public void dumpStatistics()

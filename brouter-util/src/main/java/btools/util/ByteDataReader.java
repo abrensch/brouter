@@ -107,18 +107,44 @@ public class ByteDataReader
 	  return ( v & 1 ) == 0 ? v >> 1 : -(v >> 1 );
   }
 
+  public final int readVarLengthUnsigned_old()
+  {
+    int v = 0;
+    int shift = 0;
+    for ( ;; )
+    {
+      byte b = ab[aboffset++];
+      v |= ( ( b & 0x7f ) << shift );
+      if ( ( b & 0x80 ) == 0 )
+      {
+        break;
+      }
+      shift += 7;
+    }
+    return v;
+  }
+
   public final int readVarLengthUnsigned()
   {
-	int v = 0;
-	int shift = 0;
-	for(;;)
-	{
-	  int i7 = ab[aboffset++] & 0xff;
-	  v |= (( i7 & 0x7f ) << shift);
-	  if ( ( i7 & 0x80 ) == 0 ) break;
-	  shift += 7;
-	}
-	return v;
+    byte b;
+    int v = (b=ab[aboffset++]) & 0x7f;
+    if ( b >= 0 ) return v;
+    v |= ( (b=ab[aboffset++]) & 0x7f ) <<  7;
+    if ( b >= 0 ) return v;
+    v |= ( (b=ab[aboffset++]) & 0x7f ) << 14;
+    if ( b >= 0 ) return v;
+    v |= ( (b=ab[aboffset++]) & 0x7f ) << 21;
+    if ( b >= 0 ) return v;
+    v |= ( (b=ab[aboffset++]) & 0x7f ) << 28;
+    if ( b >= 0 ) return v;
+    v |= ( (b=ab[aboffset++]) & 0x7f ) << 35;
+    if ( b >= 0 ) return v;
+    v |= ( (b=ab[aboffset++]) & 0x7f ) << 42;
+    if ( b >= 0 ) return v;
+    v |= ( (b=ab[aboffset++]) & 0x7f ) << 49;
+    if ( b >= 0 ) return v;
+    v |= ( (b=ab[aboffset++]) & 0x7f ) << 56;
+    return v;
   }
 
   public final void readFully( byte[] ta )

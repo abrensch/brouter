@@ -5,20 +5,8 @@ package btools.util;
  *
  * @author ab
  */
-public class Crc32
+public final class Crc32
 {
-  public static int crc( long bitmap )
-  {
-    int crc  = 0xFFFFFFFF;
-    long bm = bitmap;
-    for( int j=0; j<8; j++ )
-    {
-      crc = (crc >>> 8) ^ crctable[(crc ^ (int)bm) & 0xff];
-      bm >>= 8;
-    }
-    return crc;
-  }
-     
   public static int crc( byte[] ab, int offset, int len )
   {
     int crc  = 0xFFFFFFFF;
@@ -28,17 +16,6 @@ public class Crc32
       crc = (crc >>> 8) ^ crctable[(crc ^ ab[j]) & 0xff];
     }
     return crc;
-  }
-
-  public static int crcWithInverseBit( byte[] ab, boolean isInverse )
-  {
-    int crc  = 0xFFFFFF ^ ( isInverse ? 0x990951ba : 0x706af48f ); // inverse is webbed into crc...
-    int end = ab.length;
-    for( int j=0; j<end; j++ )
-    {
-      crc = (crc >>> 8) ^ crctable[(crc ^ ab[j]) & 0xff];
-    }
-    return isInverse ? crc | 0x80000000 : crc & 0x7fffffff; // ... and set as high bit
   }
 
   private static int[] crctable = {

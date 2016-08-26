@@ -1,6 +1,6 @@
 package btools.util;
 
-public final class ByteArrayUnifier
+public final class ByteArrayUnifier implements IByteArrayUnifier
 {
   private byte[][] byteArrayCache;
   private int[] crcCrosscheck;

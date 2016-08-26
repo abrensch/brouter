@@ -7,7 +7,9 @@ package btools.mapaccess;
 
 import btools.codec.MicroCache;
 import btools.codec.MicroCache2;
+import btools.expressions.BExpressionContextWay;
 import btools.util.ByteArrayUnifier;
+import btools.util.IByteArrayUnifier;
 
 public class OsmNode implements OsmPos
 {
@@ -45,22 +47,22 @@ public class OsmNode implements OsmPos
   public byte[] nodeDescription;
 
   // interface OsmPos
-  public int getILat()
+  public final int getILat()
   {
     return ilat;
   }
 
-  public int getILon()
+  public final int getILon()
   {
     return ilon;
   }
 
-  public short getSElev()
+  public final short getSElev()
   {
     return selev;
   }
 
-  public double getElev()
+  public final double getElev()
   {
     return selev / 4.;
   }
@@ -71,7 +73,7 @@ public class OsmNode implements OsmPos
   public OsmLink firstlink = null;
 
   // preliminry in forward order to avoid regressions
-  public void addLink( OsmLink link )
+  public final void addLink( OsmLink link )
   {
     if ( firstlink == null )
     {
@@ -117,7 +119,7 @@ public class OsmNode implements OsmPos
     return null;
   }
 
-  public int calcDistance( OsmPos p )
+  public final int calcDistance( OsmPos p )
   {
     double l = ( ilat - 90000000 ) * 0.00000001234134;
     double l2 = l * l;
@@ -135,17 +137,17 @@ public class OsmNode implements OsmPos
     return "" + getIdFromPos();
   }
 
-  public void parseNodeBody( MicroCache mc, OsmNodesMap hollowNodes )
+  public final void parseNodeBody( MicroCache mc, OsmNodesMap hollowNodes, IByteArrayUnifier expCtxWay )
   {
     if ( mc instanceof MicroCache2 )
     {
-      parseNodeBody2( (MicroCache2) mc, hollowNodes );
+      parseNodeBody2( (MicroCache2) mc, hollowNodes, expCtxWay );
     }
     else
       throw new IllegalArgumentException( "unknown cache version: " + mc.getClass() );
   }
 
-  public void parseNodeBody2( MicroCache2 mc, OsmNodesMap hollowNodes )
+  public final void parseNodeBody2( MicroCache2 mc, OsmNodesMap hollowNodes, IByteArrayUnifier expCtxWay )
   {
     ByteArrayUnifier abUnifier = hollowNodes.getByteArrayUnifier();
 
@@ -165,7 +167,7 @@ public class OsmNode implements OsmPos
       int descSize = sizecode >> 1;
       if ( descSize > 0 )
       {
-        description = mc.readUnified( descSize, abUnifier );
+        description = mc.readUnified( descSize, expCtxWay );
       }
       byte[] geometry = mc.readDataUntil( endPointer );
 
@@ -221,22 +223,22 @@ public class OsmNode implements OsmPos
   }
 
 
-  public boolean isHollow()
+  public final boolean isHollow()
   {
     return selev == -12345;
   }
 
-  public void setHollow()
+  public final void setHollow()
   {
     selev = -12345;
   }
 
-  public long getIdFromPos()
+  public final long getIdFromPos()
   {
     return ( (long) ilon ) << 32 | ilat;
   }
 
-  public void unlinkLink( OsmLink link )
+  public final void unlinkLink( OsmLink link )
   {
     if ( link == firstlink )
     {
@@ -254,7 +256,7 @@ public class OsmNode implements OsmPos
   }
 
   @Override
-  public boolean equals( Object o )
+  public final boolean equals( Object o )
   {
     if ( o instanceof OsmNode )
     {
@@ -265,7 +267,7 @@ public class OsmNode implements OsmPos
   }
 
   @Override
-  public int hashCode()
+  public final int hashCode()
   {
     return ilon + ilat;
   }

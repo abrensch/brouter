@@ -3,8 +3,8 @@ package btools.codec;
 import java.util.BitSet;
 import java.util.HashMap;
 
-import btools.util.ByteArrayUnifier;
 import btools.util.ByteDataReader;
+import btools.util.IByteArrayUnifier;
 
 /**
  * MicroCache2 is the new format that uses statistical encoding and
@@ -28,7 +28,7 @@ public final class MicroCache2 extends MicroCache
     latBase = latIdx*cellsize;
   }
   
-  public byte[] readUnified( int len, ByteArrayUnifier u )
+  public byte[] readUnified( int len, IByteArrayUnifier u )
   {
   	byte[] b = u.unify( ab, aboffset, len );
   	aboffset += len;

@@ -215,7 +215,7 @@ public final class NodesCache
     long id = node.getIdFromPos();
     if ( segment.getAndClear( id ) )
     {
-      node.parseNodeBody( segment, nodesMap );
+      node.parseNodeBody( segment, nodesMap, expCtxWay );
     }
 
     if ( garbageCollectionEnabled ) // garbage collection
