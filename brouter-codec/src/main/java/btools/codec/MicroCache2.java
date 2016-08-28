@@ -102,8 +102,7 @@ public final class MicroCache2 extends MicroCache
       if ( debug ) System.out.println( "*** decoding node with links=" + links );
       for( int li=0; li<links; li++ )
       {
-      	int startPointer = aboffset;
-        int sizeoffset = writeSizePlaceHolder();
+        int sizeoffset = 0;
         int nodeIdx = n + nodeIdxDiff.decodeSignedValue();
         
         int dlon_remaining;
@@ -112,19 +111,25 @@ public final class MicroCache2 extends MicroCache
         boolean isReverse = false;
         if ( nodeIdx != n ) // internal (forward-) link
         {
-          writeVarLengthSigned( dlon_remaining = alon[nodeIdx] - ilon );
-          writeVarLengthSigned( dlat_remaining = alat[nodeIdx] - ilat );
+          dlon_remaining = alon[nodeIdx] - ilon;
+          dlat_remaining = alat[nodeIdx] - ilat;
         }
         else
         {
           isReverse = bc.decodeBit();
-          writeVarLengthSigned( dlon_remaining = extLonDiff.decodeSignedValue() );
-          writeVarLengthSigned( dlat_remaining = extLatDiff.decodeSignedValue() );
+          dlon_remaining = extLonDiff.decodeSignedValue();
+          dlat_remaining = extLatDiff.decodeSignedValue();
         }
         TagValueWrapper wayTags = wayTagCoder.decodeTagValueSet();
 
         if ( wayTags != null )
         {
+          int startPointer = aboffset;
+          sizeoffset = writeSizePlaceHolder();
+
+          writeVarLengthSigned( dlon_remaining );
+          writeVarLengthSigned( dlat_remaining );
+
           validNodes.set( n, true ); // mark source-node valid
           if ( nodeIdx != n ) // valid internal (forward-) link
           {
@@ -132,9 +137,9 @@ public final class MicroCache2 extends MicroCache
             finaldatasize += 1 + aboffset-startPointer; // reserve place for reverse
             validNodes.set( nodeIdx, true ); // mark target-node valid
           }
+          writeModeAndDesc( isReverse, wayTags.data );
         }
 
-        writeModeAndDesc( isReverse, wayTags == null ? null : wayTags.data );
         if ( !isReverse ) // write geometry for forward links only
         {
           WaypointMatcher matcher = wayTags == null || wayTags.accessType < 2 ? null : waypointMatcher;
@@ -152,19 +157,19 @@ public final class MicroCache2 extends MicroCache
             dlon_remaining -= dlon;
             dlat_remaining -= dlat;
             count--;
-            writeVarLengthSigned( dlon );
-            writeVarLengthSigned( dlat );
-            writeVarLengthSigned( transEleDiff.decodeSignedValue() );
+            int elediff = transEleDiff.decodeSignedValue();
+            if ( wayTags != null )
+            {
+              writeVarLengthSigned( dlon );
+              writeVarLengthSigned( dlat );
+              writeVarLengthSigned( elediff );
+            }
             
             if ( matcher != null ) matcher.transferNode( ilontarget - dlon_remaining, ilattarget - dlat_remaining );
           }
           if ( matcher != null ) matcher.endNode( ilontarget, ilattarget );
         }
-        if ( wayTags == null )
-        {
-      	  aboffset = startPointer; // not a valid link, delete it
-        }
-        else
+        if ( wayTags != null )
         {
           injectSize( sizeoffset );
         }

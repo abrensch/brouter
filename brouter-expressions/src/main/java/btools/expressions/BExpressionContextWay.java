@@ -32,8 +32,6 @@ public final class BExpressionContextWay extends BExpressionContext implements T
   public float getPriorityClassifier() { return getBuildInVariable(9); }
   public float getClassifierMask() { return getBuildInVariable(10); }
 
-  public float getInverseCostfactor() { return getInverseBuildInVariable(0); }
-
   public BExpressionContextWay( BExpressionMetaData meta )
   {
     super( "way", meta );
@@ -56,7 +54,8 @@ public final class BExpressionContextWay extends BExpressionContext implements T
     float minCostFactor = getCostfactor();
     if ( minCostFactor >= 9999.f )
     {
-      float reverseCostFactor = getInverseCostfactor();
+      setInverseVars();
+      float reverseCostFactor = getCostfactor();
       if ( reverseCostFactor < minCostFactor )
       {
         minCostFactor = reverseCostFactor;

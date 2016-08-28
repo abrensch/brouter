@@ -13,7 +13,7 @@ public class ByteDataWriter extends ByteDataReader
     super ( byteArray );
   }
 
-  public void writeInt( int v )
+  public final void writeInt( int v )
   {
     ab[aboffset++] = (byte)( (v >> 24) & 0xff );
     ab[aboffset++] = (byte)( (v >> 16) & 0xff );
@@ -21,7 +21,7 @@ public class ByteDataWriter extends ByteDataReader
     ab[aboffset++] = (byte)( (v      ) & 0xff );
   }
 
-  public void writeLong( long v )
+  public final void writeLong( long v )
   {
     ab[aboffset++] = (byte)( (v >> 56) & 0xff );
     ab[aboffset++] = (byte)( (v >> 48) & 0xff );
@@ -33,35 +33,35 @@ public class ByteDataWriter extends ByteDataReader
     ab[aboffset++] = (byte)( (v      ) & 0xff );
   }
 
-  public void writeBoolean( boolean v)
+  public final void writeBoolean( boolean v)
   {
     ab[aboffset++] = (byte)( v ? 1 : 0 );
   }
 
-  public void writeByte( int v )
+  public final void writeByte( int v )
   {
     ab[aboffset++] = (byte)( (v     ) & 0xff );
   }
 
-  public void writeShort( int v )
+  public final void writeShort( int v )
   {
     ab[aboffset++] = (byte)( (v >> 8) & 0xff );
     ab[aboffset++] = (byte)( (v     ) & 0xff );
   }
 
-  public void write( byte[] sa )
+  public final void write( byte[] sa )
   {
     System.arraycopy( sa, 0, ab, aboffset, sa.length );
     aboffset += sa.length;
   }
 
-  public void write( byte[] sa, int offset, int len )
+  public final void write( byte[] sa, int offset, int len )
   {
     System.arraycopy( sa, offset, ab, aboffset, len );
     aboffset += len;
   }
 
-  public void writeVarBytes( byte[] sa )
+  public final void writeVarBytes( byte[] sa )
   {
     if ( sa == null )
     {
@@ -75,7 +75,7 @@ public class ByteDataWriter extends ByteDataReader
     }
   }
 
-  public void writeModeAndDesc( boolean isReverse, byte[] sa )
+  public final void writeModeAndDesc( boolean isReverse, byte[] sa )
   {
     int len = sa == null ? 0 : sa.length;
     int sizecode = len << 1 | ( isReverse ? 1 : 0 );
@@ -87,7 +87,7 @@ public class ByteDataWriter extends ByteDataReader
   }
 
 
-  public byte[] toByteArray()
+  public final byte[] toByteArray()
   {
     byte[] c = new byte[aboffset];
     System.arraycopy( ab, 0, c, 0, aboffset );
@@ -102,12 +102,12 @@ public class ByteDataWriter extends ByteDataReader
    *
    * @return the offset of the placeholder
    */
-  public int writeSizePlaceHolder()
+  public final int writeSizePlaceHolder()
   {
     return aboffset++;
   }
 
-  public void injectSize( int sizeoffset )
+  public final void injectSize( int sizeoffset )
   {
     int size = 0;
     int datasize = aboffset-sizeoffset-1;
@@ -127,23 +127,47 @@ public class ByteDataWriter extends ByteDataReader
     aboffset = sizeoffset + size + datasize;
   }
 
-  public int writeVarLengthSigned( int v )
+  public final void writeVarLengthSigned( int v )
   {
-    return writeVarLengthUnsigned( v < 0 ? ( (-v) << 1 ) | 1 : v << 1 );
+    writeVarLengthUnsigned( v < 0 ? ( (-v) << 1 ) | 1 : v << 1 );
   }
 
-  public int writeVarLengthUnsigned( int v )
+  public final void writeVarLengthUnsigned( int v )
   {
-    int start = aboffset;
-    do
+    int i7 = v & 0x7f;
+    if ( ( v >>>= 7 ) == 0 )
     {
-      int i7 = v & 0x7f;
-      v >>= 7;
-      if ( v != 0 ) i7 |= 0x80;
-      ab[aboffset++] = (byte)( i7 & 0xff );
+      ab[aboffset++] = (byte) ( i7 );
+      return;
     }
-    while( v != 0 );
-    return aboffset - start;
+    ab[aboffset++] = (byte) ( i7 | 0x80 );
+
+    i7 = v & 0x7f;
+    if ( ( v >>>= 7 ) == 0 )
+    {
+      ab[aboffset++] = (byte) ( i7 );
+      return;
+    }
+    ab[aboffset++] = (byte) ( i7 | 0x80 );
+
+    i7 = v & 0x7f;
+    if ( ( v >>>= 7 ) == 0 )
+    {
+      ab[aboffset++] = (byte) ( i7 );
+      return;
+    }
+    ab[aboffset++] = (byte) ( i7 | 0x80 );
+
+    i7 = v & 0x7f;
+    if ( ( v >>>= 7 ) == 0 )
+    {
+      ab[aboffset++] = (byte) ( i7 );
+      return;
+    }
+    ab[aboffset++] = (byte) ( i7 | 0x80 );
+
+    ab[aboffset++] = (byte) ( v );
+    return;
   }
 
   public int size()

@@ -21,6 +21,7 @@ import java.util.TreeMap;
 import btools.util.BitCoderContext;
 import btools.util.Crc32;
 import btools.util.IByteArrayUnifier;
+import btools.util.LruMap;
 
 
 public abstract class BExpressionContext implements IByteArrayUnifier
@@ -49,10 +50,11 @@ public abstract class BExpressionContext implements IByteArrayUnifier
 
 
   // hash-cache for function results
-  private byte[][] _arrayBitmap;
-  private int[] _arrayCrc;
+  private CacheNode probeCacheNode = new CacheNode();
+  private LruMap cache;
 
-  private int currentHashBucket = -1;
+  private VarWrapper probeVarSet = new VarWrapper();
+  private LruMap resultVarCache;
 
   private List<BExpression> expressionList;
 
@@ -60,20 +62,21 @@ public abstract class BExpressionContext implements IByteArrayUnifier
 
   // build-in variable indexes for fast access
   private int[] buildInVariableIdx;
-
-  private float[][] arrayBuildInVariablesCache;
-  private float[] hashBucketVars;
+  private int nBuildInVars;
+  
+  private float[] currentVars;
+  private int currentVarOffset;
+  
+  protected void setInverseVars()
+  {
+    currentVarOffset = nBuildInVars;
+  }
 
   abstract String[] getBuildInVariableNames();
 
   protected final float getBuildInVariable( int idx ) 
   {
-    return hashBucketVars[idx];
-  }
-
-  protected final float getInverseBuildInVariable( int idx ) 
-  {
-    return arrayBuildInVariablesCache[currentHashBucket | 1][idx];
+    return currentVars[idx+currentVarOffset];
   }
 
   private int linenr;
@@ -102,9 +105,8 @@ public abstract class BExpressionContext implements IByteArrayUnifier
      if ( Boolean.getBoolean( "disableExpressionCache" ) ) hashSize = 1;
       
      // create the expression cache
-     _arrayBitmap = new byte[hashSize][];
-     _arrayCrc = new int[hashSize];
-     arrayBuildInVariablesCache = new float[hashSize << 1][];
+     cache = new LruMap( 4*hashSize, hashSize );
+     resultVarCache = new LruMap( 4096, 4096 );
   }
 
   /**
@@ -279,116 +281,112 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     return "requests=" + requests + " requests2=" + requests2 + " cachemisses=" + cachemisses;
   }
 
-  @Override
+  // @Override
   public final byte[] unify( byte[] ab, int offset, int len )
   {
-    int crc = Crc32.crc( ab, offset, len );
-    int hashSize = _arrayBitmap.length;
-    int idx = ( crc & 0xfffffff ) % hashSize;
-    byte[] abc = _arrayBitmap[idx];
-    if ( abc != null && abc.length == len )
+    probeCacheNode.ab = null; // crc based cache lookup only
+    probeCacheNode.crc = Crc32.crc( ab, offset, len );
+
+    CacheNode cn = (CacheNode)cache.get( probeCacheNode );
+    if ( cn != null )
     {
-      int i = 0;
-      while (i < len)
+      byte[] cab = cn.ab;
+      if ( cab.length == len )
       {
-        if ( ab[offset + i] != abc[i] )
-          break;
-        i++;
+        for( int i=0; i<len; i++ )
+        {
+          if ( cab[i] != ab[i+offset] )
+          {
+            cn = null;
+            break;
+          }
+        }
+        if ( cn != null )
+        {
+          return cn.ab;
+        }
       }
-      if ( i == len )
-        return abc;
     }
     byte[] nab = new byte[len];
     System.arraycopy( ab, offset, nab, 0, len );
     return nab;
   }
 
-  /**
-   * evaluates the data in the given byte array
-   * 
-   * @return true if the data is equivilant to the last calls data
-   */
+
   public final void evaluate( boolean inverseDirection, byte[] ab )
   {
     requests++;
     lookupDataValid = false; // this is an assertion for a nasty pifall
 
-    // calc hash bucket from crc
-    int crc = Crc32.crc( ab, 0, ab.length );
-    int hashSize = _arrayBitmap.length;
-    int hashBucket2 = ( crc & 0xfffffff ) % hashSize;
-    int hashBucket01 = hashBucket2 << 1;
-    int hashBucket02 = hashBucket01 | 1;
-    int hashBucket = inverseDirection ? hashBucket02 : hashBucket01;
+    probeCacheNode.ab = ab;
+    probeCacheNode.crc = Crc32.crc( ab, 0, ab.length );
 
-    if ( hashBucket != currentHashBucket )
+    CacheNode cn = (CacheNode)cache.get( probeCacheNode );
+    if ( cn == null )
     {
-      currentHashBucket = hashBucket;
-      hashBucketVars = arrayBuildInVariablesCache[hashBucket];
-      if ( hashBucketVars == null )
+      cachemisses++;
+    
+      cn = (CacheNode)cache.removeLru();
+      if ( cn == null )
       {
-        arrayBuildInVariablesCache[hashBucket01] = new float[buildInVariableIdx.length];
-        arrayBuildInVariablesCache[hashBucket02] = new float[buildInVariableIdx.length];
-        hashBucketVars = arrayBuildInVariablesCache[hashBucket];
+        cn = new CacheNode();
       }
-    }
-    if ( crc == _arrayCrc[hashBucket2] )
-    {
-      byte[] abBucket = _arrayBitmap[hashBucket2];
-      if ( ab == abBucket ) // fast identity check
-      {
-        return;
-      }
-      requests2++;
+      cn.crc = probeCacheNode.crc;
+      cn.ab = ab;
+      cache.put( cn );
 
-      // compare input value to hash bucket content
-      boolean hashBucketEquals = false;
-      int abLen = ab.length;
-      if ( abBucket != null && abBucket.length == abLen )
+      if ( probeVarSet.vars == null )
       {
-        hashBucketEquals = true;
-        for ( int i = 0; i < abLen; i++ )
+        probeVarSet.vars = new float[2*nBuildInVars];
+      }
+
+      // forward direction
+      decode( lookupData, false, ab );
+      evaluateInto( probeVarSet.vars, 0 );
+
+      // inverse direction
+      lookupData[0] = 2; // inverse shortcut: reuse decoding
+      evaluateInto( probeVarSet.vars, nBuildInVars );
+      
+      probeVarSet.hash = Arrays.hashCode( probeVarSet.vars );
+      
+      // unify the result variable set
+      VarWrapper vw = (VarWrapper)resultVarCache.get( probeVarSet );
+      if ( vw == null )
+      {
+        vw = (VarWrapper)resultVarCache.removeLru();
+        if ( vw == null )
         {
-          if ( abBucket[i] != ab[i] )
-          {
-            hashBucketEquals = false;
-            break;
-          }
+          vw = new VarWrapper();
         }
+        vw.hash = probeVarSet.hash;
+        vw.vars = probeVarSet.vars;
+        probeVarSet.vars = null;
+        resultVarCache.put( vw );
       }
-      if ( hashBucketEquals )
-      {
-        return;
-      }
+      cn.vars = vw.vars;
     }
-    cachemisses++;
-
-    _arrayBitmap[hashBucket2] = ab;
-    _arrayCrc[hashBucket2] = crc;
-
-    int nBuildInVars = buildInVariableIdx.length;
-
-    // forward direction
-    decode( lookupData, false, ab );
-    evaluate();
-    float[] vars = arrayBuildInVariablesCache[hashBucket01];
-    for ( int vi = 0; vi < nBuildInVars; vi++ )
+    else
     {
-      int idx = buildInVariableIdx[vi];
-      vars[vi] = idx == -1 ? 0.f : variableData[idx];
+      if ( ab == cn.ab ) requests2++;
+    
+      cache.touch( cn );
     }
 
-    // inverse direction
-    lookupData[0] = 2; // inverse shortcut: reuse decoding
-    evaluate();
-    vars = arrayBuildInVariablesCache[hashBucket02];
-    for ( int vi = 0; vi < nBuildInVars; vi++ )
-    {
-      int idx = buildInVariableIdx[vi];
-      vars[vi] = idx == -1 ? 0.f : variableData[idx];
-    }
-
+    currentVars = cn.vars;
+    currentVarOffset = inverseDirection ? nBuildInVars : 0;
   }
+
+  private void evaluateInto( float[] vars, int offset )
+  {
+      evaluate();
+      for ( int vi = 0; vi < nBuildInVars; vi++ )
+      {
+        int idx = buildInVariableIdx[vi];
+        vars[vi+offset] = idx == -1 ? 0.f : variableData[idx];
+      }
+  }
+
 
   public void dumpStatistics()
   {
@@ -650,7 +648,8 @@ public abstract class BExpressionContext implements IByteArrayUnifier
 
       // determine the build-in variable indices
       String[] varNames = getBuildInVariableNames();
-      buildInVariableIdx = new int[varNames.length];
+      nBuildInVars = varNames.length;
+      buildInVariableIdx = new int[nBuildInVars];
       for( int vi=0; vi<varNames.length; vi++ )
       {
         buildInVariableIdx[vi] = getVariableIdx( varNames[vi], false );
