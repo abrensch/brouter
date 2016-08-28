@@ -1,21 +1,27 @@
 package btools.routingapp;
 
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
 
 import android.os.Bundle;
-import btools.router.RoutingEngine;
 import btools.router.OsmNodeNamed;
+import btools.router.OsmPathElement;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
+import btools.router.RoutingEngine;
 
 public class BRouterWorker
 {
+  public String baseDir;
   public String segmentDir;
+  public String profileName;
   public String profilePath;
   public String rawTrackPath;
+  public List<OsmNodeNamed> waypoints;
   public List<OsmNodeNamed> nogoList;
 
   public String getTrackFromParams(Bundle params)
@@ -60,9 +66,10 @@ public class BRouterWorker
       rc.nogopoints = nogoList;
     }
 
-    readNogos( params ); // add interface provides nogos
+    readNogos( params ); // add interface provided nogos
+    waypoints = readPositions(params);
 
-    RoutingEngine cr = new RoutingEngine( null, null, segmentDir, readPositions(params), rc );
+    RoutingEngine cr = new RoutingEngine( null, null, segmentDir, waypoints, rc );
     cr.quite = true;
     cr.doRun( maxRunningTime );
 	
@@ -79,6 +86,14 @@ public class BRouterWorker
     
     if ( cr.getErrorMessage() != null )
     {
+      if ( cr.getErrorMessage().indexOf( "timeout" ) >= 0 )
+      {
+        try
+        {
+          writeTimeoutData( rc );
+        }
+        catch( Exception e ) {}
+      }
       return cr.getErrorMessage();
     }
     
@@ -149,5 +164,29 @@ public class BRouterWorker
       n.isNogo = true;
       nogoList.add( n );
 	}
+  }
+  
+  private void writeTimeoutData( RoutingContext rc ) throws Exception
+  {
+    String timeoutFile = baseDir + "/brouter/modes/timeoutdata.txt";
+    
+    BufferedWriter bw = new BufferedWriter( new FileWriter( timeoutFile ) );
+    bw.write( profileName );
+    bw.write( "\n" );
+    bw.write( rc.rawTrackPath );
+    bw.write( "\n" );
+    writeWPList( bw, waypoints );
+    writeWPList( bw, nogoList );
+    bw.close();
+  }  
+
+  private void writeWPList( BufferedWriter bw, List<OsmNodeNamed> wps ) throws Exception
+  {
+    bw.write( wps.size() + "\n" );
+    for( OsmNodeNamed wp : wps )
+    {
+      bw.write( wp.toString() );
+      bw.write( "\n" );
+    }
   }
 }

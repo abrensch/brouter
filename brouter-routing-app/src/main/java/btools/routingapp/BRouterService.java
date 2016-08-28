@@ -52,6 +52,7 @@ public class BRouterService extends Service
       {
         if ( configInput != null ) try { configInput.close(); } catch (Exception ee) {}
       }
+      worker.baseDir = baseDir;
       worker.segmentDir = baseDir + "/brouter/segments4";
 
       String remoteProfile = params.getString( "remoteProfile" );
@@ -98,6 +99,7 @@ public class BRouterService extends Service
           ServiceModeConfig smc = new ServiceModeConfig( line );
           if ( !smc.mode.equals( mode_key ) )
             continue;
+          worker.profileName = smc.profile;
           worker.profilePath = baseDir + "/brouter/profiles2/" + smc.profile + ".brf";
           worker.rawTrackPath = baseDir + "/brouter/modes/" + mode_key + "_rawtrack.dat";
 
@@ -127,6 +129,7 @@ public class BRouterService extends Service
 
     private String getConfigForRemoteProfile( BRouterWorker worker, String baseDir, String remoteProfile )
     {
+      worker.profileName = "remote";
       worker.profilePath = baseDir + "/brouter/profiles2/remote.brf";
       worker.rawTrackPath = baseDir + "/brouter/modes/remote_rawtrack.dat";
 

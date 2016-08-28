@@ -61,6 +61,7 @@ public class BRouterView extends View
   private String profileName;
   private String sourceHint;
   private boolean waitingForSelection = false;
+  private String rawTrackPath;
 
   private boolean needsViaSelection;
   private boolean needsNogoSelection;
@@ -238,6 +239,15 @@ public class BRouterView extends View
         if ( fileName.equals( "lookups.dat" ) )
           lookupsFound = true;
       }
+      
+      // add a "last timeout" dummy profile
+      File lastTimeoutFile = new File( modesDir + "/timeoutdata.txt" );
+      long lastTimeoutTime = lastTimeoutFile.lastModified();
+      if ( lastTimeoutTime > 0 && System.currentTimeMillis() - lastTimeoutTime < 300000 )
+      {
+        profiles.add( 0, "<repeat timeout>" );
+      }
+      
       if ( !lookupsFound )
       {
         throw new IllegalArgumentException( "The profile-directory " + profileDir + " does not contain the lookups.dat file."
@@ -380,8 +390,46 @@ public class BRouterView extends View
     needsWaypointSelection = false;
   }
 
+  private List<OsmNodeNamed> readWpList( BufferedReader br, boolean isNogo ) throws Exception
+  {
+    int cnt = Integer.parseInt( br.readLine() );
+    List<OsmNodeNamed> res = new ArrayList<OsmNodeNamed>(cnt);
+    for( int i=0; i<cnt; i++ )
+    {
+      OsmNodeNamed wp = OsmNodeNamed.decodeNogo( br.readLine() );
+      wp.isNogo = isNogo;
+      res.add( wp );
+    }
+    return res;
+  }
+
   public void startProcessing( String profile )
   {
+    rawTrackPath = null;
+    if ( "<repeat timeout>".equals( profile ) )
+    {
+      needsViaSelection = needsNogoSelection = needsWaypointSelection = false;
+      try
+      {
+        File lastTimeoutFile = new File( modesDir + "/timeoutdata.txt" );
+        BufferedReader br = new BufferedReader( new FileReader( lastTimeoutFile ) );
+        profile = br.readLine();
+        rawTrackPath = br.readLine();
+        wpList = readWpList( br, false );
+        nogoList = readWpList( br, true );
+        br.close();
+      }
+      catch( Exception e )
+      {
+        AppLogger.log( AppLogger.formatThrowable( e ) );
+        ( (BRouterActivity) getContext() ).showErrorMessage( e.toString() );
+      }
+    }
+    else if ( "remote".equals( profileName ) )
+    {
+      rawTrackPath = modesDir + "/remote_rawtrack.dat";
+    }
+
     profilePath = profileDir + "/" + profile + ".brf";
     profileName = profile;
 
@@ -467,11 +515,8 @@ public class BRouterView extends View
       rc.prepareNogoPoints( nogoList );
       rc.nogopoints = nogoList;
 
-      // for profile remote, use ref-track logic same as service interface      
-      if ( "remote".equals( profileName ) )
-      {
-        rc.rawTrackPath = modesDir + "/remote_rawtrack.dat";
-      }
+      // for profile remote, use ref-track logic same as service interface 
+      rc.rawTrackPath = rawTrackPath;
 
       cr = new RoutingEngine( tracksDir + "/brouter", null, segmentDir, wpList, rc );
       cr.start();
@@ -709,12 +754,9 @@ public class BRouterView extends View
           rawTrack = cr.getFoundRawTrack();
 
           // for profile "remote", always persist referencetrack
-          if ( cr.getAlternativeIndex() == 0 )
+          if ( cr.getAlternativeIndex() == 0 && rawTrackPath != null )
           {
-            if ( "remote".equals( profileName ) )
-            {
-              writeRawTrackToMode( "remote" );
-            }
+            writeRawTrackToPath( rawTrackPath );
           }
 
           String title = "Success";
@@ -828,10 +870,13 @@ public class BRouterView extends View
     return basedir.getAbsolutePath();
   }
 
-  public void writeRawTrackToMode( String mode )
+  private void writeRawTrackToMode( String mode )
   {
-    // plus eventually the raw track for re-use
-    String rawTrackPath = modesDir + "/" + mode + "_rawtrack.dat";
+    writeRawTrackToPath( modesDir + "/" + mode + "_rawtrack.dat" );
+  }
+
+  private void writeRawTrackToPath( String rawTrackPath )
+  {
     if ( rawTrack != null )
     {
       try
