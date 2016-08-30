@@ -38,6 +38,7 @@ public class BRouterActivity extends Activity implements OnInitListener
   private static final int DIALOG_OLDDATAHINT_ID = 13;
   private static final int DIALOG_SHOW_WP_HELP_ID = 14;
   private static final int DIALOG_SHOW_WP_SCANRESULT_ID = 15;
+  private static final int DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID = 16;
 
   private BRouterView mBRouterView;
   private PowerManager mPowerManager;
@@ -138,6 +139,22 @@ public class BRouterActivity extends Activity implements OnInitListener
               mBRouterView.startWpDatabaseScan();
             }
           } ).setNegativeButton( "Exit", new DialogInterface.OnClickListener()
+          {
+            public void onClick( DialogInterface dialog, int id )
+            {
+              finish();
+            }
+          } );
+      return builder.create();
+    case DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID:
+      builder = new AlertDialog.Builder( this );
+      builder
+          .setTitle( "Successfully prepared a timeout-free calculation" )
+          .setMessage(
+              "You successfully repeated a calculation that previously run into a timeout "
+            + "when started from your map-tool. If you repeat the same request from your "
+            + "maptool, with the exact same destination point and a close-by starting point, "
+            + "this request is guaranteed not to time out." ).setNegativeButton( "Exit", new DialogInterface.OnClickListener()
           {
             public void onClick( DialogInterface dialog, int id )
             {
@@ -304,8 +321,8 @@ public class BRouterActivity extends Activity implements OnInitListener
       } );
       return builder.create();
     case DIALOG_SHOWRESULT_ID:
-      String leftLabel = wpCount < 0 ? ( wpCount == -1 ? "Exit" : "Help") : ( wpCount == 0 ? "Select from" : "Select to/via" );
-      String rightLabel = wpCount < 2 ? "Server-Mode" : "Calc Route";
+      String leftLabel = wpCount < 0 ? ( wpCount != -2 ? "Exit" : "Help") : ( wpCount == 0 ? "Select from" : "Select to/via" );
+      String rightLabel = wpCount < 2 ? ( wpCount == -3 ? "Help" : "Server-Mode" ) : "Calc Route";
       builder = new AlertDialog.Builder( this );
       builder.setTitle( title ).setMessage( errorMessage ).setPositiveButton( leftLabel, new DialogInterface.OnClickListener()
       {
@@ -328,8 +345,14 @@ public class BRouterActivity extends Activity implements OnInitListener
       {
         public void onClick( DialogInterface dialog, int id )
         {
-          if ( wpCount < 2 )
+          if ( wpCount == -3 )
+          {
+            showRepeatTimeoutHelp();
+          }
+          else if ( wpCount < 2 )
+          {
             mBRouterView.startConfigureService();
+          }
           else
           {
             mBRouterView.finishWaypointSelection();
@@ -502,6 +525,12 @@ public class BRouterActivity extends Activity implements OnInitListener
   public void showWaypointDatabaseHelp()
   {
     showNewDialog( DIALOG_SHOW_WP_HELP_ID );
+  }
+
+  @SuppressWarnings("deprecation")
+  public void showRepeatTimeoutHelp()
+  {
+    showNewDialog( DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID );
   }
 
   @SuppressWarnings("deprecation")

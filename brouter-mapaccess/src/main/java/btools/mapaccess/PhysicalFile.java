@@ -90,11 +90,6 @@ final public class PhysicalFile
         throw new IllegalArgumentException( "lookup version mismatch (old rd5?) lookups.dat="
                  + lookupVersion + " " + f. getAbsolutePath() + "=" + readVersion );
       }
-      if ( i == 1 && lookupMinorVersion != -1 && readVersion < lookupMinorVersion )
-      {
-        throw new IllegalArgumentException( "lookup minor version mismatch (old rd5?) lookups.dat="
-                 + lookupMinorVersion + " " + f. getAbsolutePath() + "=" + readVersion );
-      }
       fileIndex[i] = lv & 0xffffffffffffL;
     }
 

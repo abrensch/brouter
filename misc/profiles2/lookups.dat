@@ -1,5 +1,5 @@
 ---lookupversion:10
----minorversion:5
+---minorversion:6
 
 ---context:way
 
@@ -504,6 +504,13 @@ estimated_traffic_class;0000000001 4
 estimated_traffic_class;0000000001 5
 estimated_traffic_class;0000000001 6
 estimated_traffic_class;0000000001 7
+
+mtb:scale:uphill;0000018869 0 0+ 0-
+mtb:scale:uphill;0000015578 1 1+ 1-
+mtb:scale:uphill;0000012338 2 2+ 2-
+mtb:scale:uphill;0000009099 3 3+ 3-
+mtb:scale:uphill;0000005825 4 4+ 4-
+mtb:scale:uphill;0000004628 5 5+ 5-
 
 ---context:node
 
