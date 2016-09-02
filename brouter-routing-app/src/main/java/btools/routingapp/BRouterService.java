@@ -34,6 +34,8 @@ public class BRouterService extends Service
     @Override
     public String getTrackFromParams( Bundle params ) throws RemoteException
     {
+      logBundle( params );
+
       BRouterWorker worker = new BRouterWorker();
 
       // get base dir from private file
@@ -224,6 +226,19 @@ public class BRouterService extends Service
       finally
       {
         if ( br != null  ) try { br.close(); } catch( Exception ee ) {}
+      }
+    }
+
+    private void logBundle( Bundle params )
+    {
+      if ( AppLogger.isLogging() )
+      {
+        for( String k : params.keySet() )
+        {
+          Object val = "remoteProfile".equals( k ) ? "<..cut..>" : params.get(k);
+          String desc = "key=" + k + (val == null ? "" : " class=" + val.getClass() + " val=" + val.toString() );
+          AppLogger.log( desc );
+        }
       }
     }
 

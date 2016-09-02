@@ -67,11 +67,5 @@ public class MapcreatorTest
     File segments = new File( tmpdir, "segments" );
     segments.mkdir();
     new WayLinker().process( unodes55, waytiles55, bordernodes, lookupFile, profileAllFile, segments, "rd5" );
-
-    // run WayLinker, car subset
-    File carsubset = new File( segments, "carsubset" );
-    carsubset.mkdir();
-    File profileCarFile = new File( profileDir, "car-test.brf" );
-    new WayLinker().process( unodes55, waytiles55, bordernodes, lookupFile, profileCarFile, carsubset, "cd5" );
   }
 }

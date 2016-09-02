@@ -44,15 +44,6 @@ public final class RoutingHelper
         {
           if ( fileName.endsWith( ".rd5" ) ) return true;
         }
-        File carSubset = new File( dir, "carsubset" );
-        if ( carSubset.isDirectory() )
-        {
-          fileNames = carSubset.list();
-          for( String fileName : fileNames )
-          {
-            if ( fileName.endsWith( ".cd5" ) ) return true;
-          }
-        }
     	return false;
     }
 }

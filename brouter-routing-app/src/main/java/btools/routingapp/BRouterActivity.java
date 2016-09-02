@@ -332,7 +332,7 @@ public class BRouterActivity extends Activity implements OnInitListener
           {
             showWaypointDatabaseHelp();
           }
-          else if ( wpCount == -1 )
+          else if ( wpCount == -1 || wpCount == -3  )
           {
             finish();
           }

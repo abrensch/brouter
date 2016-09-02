@@ -25,7 +25,6 @@ public final class NodesCache
   private BExpressionContextWay expCtxWay;
   private int lookupVersion;
   private int lookupMinorVersion;
-  private boolean carMode;
   private boolean forceSecondaryData;
   private String currentFileName;
 
@@ -48,15 +47,13 @@ public final class NodesCache
     return "collecting=" + garbageCollectionEnabled + " cacheSum=" + cacheSum;
   }
 
-  public NodesCache( String segmentDir, OsmNodesMap nodesMap, BExpressionContextWay ctxWay, boolean carMode, boolean forceSecondaryData,
-      NodesCache oldCache )
+  public NodesCache( String segmentDir, OsmNodesMap nodesMap, BExpressionContextWay ctxWay, boolean forceSecondaryData, NodesCache oldCache )
   {
     this.segmentDir = new File( segmentDir );
     this.nodesMap = nodesMap;
     this.expCtxWay = ctxWay;
     this.lookupVersion = ctxWay.meta.lookupVersion;
     this.lookupMinorVersion = ctxWay.meta.lookupMinorVersion;
-    this.carMode = carMode;
     this.forceSecondaryData = forceSecondaryData;
 
     first_file_access_failed = false;
@@ -238,7 +235,7 @@ public final class NodesCache
     String slat = lat < 0 ? "S" + ( -lat ) : "N" + lat;
     String filenameBase = slon + "_" + slat;
 
-    currentFileName = filenameBase + ".rd5/cd5";
+    currentFileName = filenameBase + ".rd5";
 
     PhysicalFile ra = null;
     if ( !fileCache.containsKey( filenameBase ) )
@@ -254,21 +251,10 @@ public final class NodesCache
       }
       if ( f == null )
       {
-        if ( carMode ) // look for carsubset-files only in secondary (primaries are now good for car-mode)
+        File secondary = new File( secondarySegmentsDir, filenameBase + ".rd5" );
+        if ( secondary.exists() )
         {
-          File carFile = new File( secondarySegmentsDir, "carsubset/" + filenameBase + ".cd5" );
-          if ( carFile.exists() )
-          {
-            f = carFile;
-          }
-        }
-        if ( f == null )
-        {
-          File secondary = new File( secondarySegmentsDir, filenameBase + ".rd5" );
-          if ( secondary.exists() )
-          {
-            f = secondary;
-          }
+          f = secondary;
         }
       }
       if ( f != null )

@@ -68,30 +68,33 @@ public class RoutingEngine extends Thread
     this.infoLogEnabled = outfileBase != null;
     this.routingContext = rc;
 
-    File baseFolder = new File( routingContext.localFunction ).getParentFile().getParentFile();
-    try
+    File baseFolder = new File( routingContext.localFunction ).getParentFile();
+    baseFolder = baseFolder == null ? null : baseFolder.getParentFile();
+    if ( baseFolder != null )
     {
-      File debugLog = new File( baseFolder, "debug.txt" );
-      if ( debugLog.exists() )
+      try
       {
-        infoLogWriter = new FileWriter( debugLog, true );
-        logInfo( "********** start request at " );
-        logInfo( "********** " + new Date() );
+        File debugLog = new File( baseFolder, "debug.txt" );
+        if ( debugLog.exists() )
+        {
+          infoLogWriter = new FileWriter( debugLog, true );
+          logInfo( "********** start request at " );
+          logInfo( "********** " + new Date() );
+        }
+      }
+      catch( IOException ioe )
+      {
+        throw new RuntimeException( "cannot open debug-log:" + ioe );
+      }
+
+      File stackLog = new File( baseFolder, "stacks.txt" );
+      if ( stackLog.exists() )
+      {
+        stackSampler = new StackSampler( stackLog, 1000 );
+        stackSampler.start();
+        logInfo( "********** started stacksampling" );
       }
     }
-    catch( IOException ioe )
-    {
-      throw new RuntimeException( "cannot open debug-log:" + ioe );
-    }
-
-    File stackLog = new File( baseFolder, "stacks.txt" );
-    if ( stackLog.exists() )
-    {
-      stackSampler = new StackSampler( stackLog, 1000 );
-      stackSampler.start();
-      logInfo( "********** started stacksampling" );
-    }
-
     boolean cachedProfile = ProfileCache.parseProfile( rc );
     if ( hasInfo() )
     {
@@ -406,6 +409,18 @@ public class RoutingEngine extends Thread
     {
       preloadPosition( mwp.waypoint );
     }
+
+    if ( nodesCache.first_file_access_failed )
+    {
+      throw new IllegalArgumentException( "datafile " + nodesCache.first_file_access_name + " not found" );
+    }
+    for( MatchedWaypoint mwp : unmatchedWaypoints )
+    {
+      if ( mwp.crosspoint == null )
+      {
+        throw new IllegalArgumentException( mwp.waypoint.name + "-position not mapped in existing datafile" );
+      }
+    }
   }
 
   private void preloadPosition( OsmNode n )
@@ -558,7 +573,7 @@ public class RoutingEngine extends Thread
       logInfo( "NodesCache status before reset=" + nodesCache.formatStatus() );
     }
     nodesMap = new OsmNodesMap();
-    nodesCache = new NodesCache(segmentDir, nodesMap, routingContext.expctxWay, routingContext.carMode, routingContext.forceSecondaryData, nodesCache );
+    nodesCache = new NodesCache(segmentDir, nodesMap, routingContext.expctxWay, routingContext.forceSecondaryData, nodesCache );
   }
 
   private OsmNode getStartNode( long startId )
@@ -988,16 +1003,6 @@ public class RoutingEngine extends Thread
     {
       openSet.add( path.cost + (int)(path.airdistance*airDistanceCostFactor), path );
       path.registerUpTree();
-    }
-  }
-
-  private void preloadPosition( OsmNode n, int minRingWidth, int minCount )
-  {
-    int c = 0;
-    int ring = 0;
-    while( ring <= minRingWidth || ( c < minCount && ring <= 5 ) )
-    {
-      c += preloadRing( n, ring++ );
     }
   }
 

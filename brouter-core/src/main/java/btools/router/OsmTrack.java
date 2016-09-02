@@ -729,7 +729,7 @@ public final class OsmTrack
         return e.message;
       }
       e = e.origin;
-      if ( cnt++ == 10000 )
+      if ( cnt++ == 1000000 )
       {
         throw new IllegalArgumentException( "ups?" );
       }
