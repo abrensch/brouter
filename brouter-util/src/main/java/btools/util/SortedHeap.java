@@ -2,28 +2,25 @@ package btools.util;
 
 import java.util.ArrayList;
 import java.util.List;
-
-
+import java.util.Random;
 
 /**
- * Memory efficient Heap to get the lowest-key value
- * of a set of key-object pairs
- *
+ * Memory efficient Heap to get the lowest-key value of a set of key-object pairs
+ * 
  * @author ab
  */
-public class SortedHeap<V>
+public final class SortedHeap<V>
 {
   private int[][] al;
-  private int[] pa;
   private int[] lp; // the low pointers
-  
+
   private Object[][] vla; // value list array
 
-  protected static final int MAXLISTS = 31; // enough for size Integer.MAX_VALUE
+  protected static final int MAXLISTS = 28; // enough for size = ca Integer.MAX_VALUE
 
   private int size;
   private boolean isClear = false;
-  
+
   public SortedHeap()
   {
     clear();
@@ -34,230 +31,247 @@ public class SortedHeap<V>
    */
   public V popLowestKeyValue()
   {
-      int minId = 0;
-      int minIdx = -1;
-      for ( int i=1;; i++ )
+    int minId = 0;
+    int minIdx = -1;
+    for ( int i = 0;; i++ )
+    {
+      int[] ali = al[i];
+      if ( ali == null )
+        break;
+      int lpi = lp[i];
+      if ( lpi < 4 << i )
       {
-    	int[] ali = al[i];
-    	if ( ali == null ) break;
-        int lpi = lp[i];
-        if ( lpi < ali.length )
+        int currentId = ali[lpi];
+        if ( minIdx < 0 || currentId < minId )
         {
-          int currentId = ali[lpi];
-          if ( minIdx < 0 || currentId < minId )
-          {
-            minIdx = i;
-            minId = currentId;
-          }
+          minIdx = i;
+          minId = currentId;
         }
       }
-      
-      if ( minIdx == -1 ) return null;
-      
-      int lp_minIdx = lp[minIdx]++;
-      Object[] vla_minIdx = vla[minIdx];
-      V res =(V)vla_minIdx[lp_minIdx];
-      vla_minIdx[lp_minIdx] = null;
-      size--;
-      return res;
+    }
+
+    if ( minIdx == -1 )
+      return null;
+
+    int lp_minIdx = lp[minIdx]++;
+    Object[] vla_minIdx = vla[minIdx];
+    V res = (V) vla_minIdx[lp_minIdx];
+    vla_minIdx[lp_minIdx] = null;
+    size--;
+    return res;
   }
 
   /**
    * add a key value pair to the heap
-   *
-   * @param id the key to insert
-   * @param value the value to insert object
+   * 
+   * @param id
+   *          the key to insert
+   * @param value
+   *          the value to insert object
    */
   public void add( int key, V value )
   {
-	isClear = false;
-	size++;
-	
-	// trivial shortcut if first array empty
-	if ( lp[1] == 1)
-	{
-	  al[1][0] = key;
-	  vla[1][0] = value;
-	  lp[1] = 0;
-	  return;
-	}
-	// trivial shortcut if second array empty
-	if ( lp[2] > 0 )
-	{
-      int[] al2 = al[2];
-	  Object[] vla2 = vla[2];
-	  int key1;
-	  Object val1;
-	  if ( lp[2] == 2 )
-	  {
-	    key1 = al[1][0];
-	    val1 = vla[1][0];
-		lp[1] = 1;
-	  }
-	  else // == 1
-	  {
-	    key1 = al2[1];
-	    val1 = vla2[1];
-	  }
-	  lp[2] = 0;
-	  if ( key1 < key )
-	  {
-	    al2[0] = key1;
-	    vla2[0] = val1;
-		al2[1] = key;
-		vla2[1] = value;
-	  }
-	  else
-	  {
-        al2[1] = key1;
-		vla2[1] = val1;
-		al2[0] = key;
-		vla2[0] = value;
-	  }
-	  return;
-	}
-	  
-    // put the new entry in the first array
-    al[0][0] = key;
-    vla[0][0] = value;
+    isClear = false;
+    size++;
 
-    pa[0] = 1;
-    pa[1] = 1;
-    pa[2] = 2;
-
-    // determine the first array big enough to take them all
-    int cnt = 4; // value count up to idx
-    int idx = 3;
-    int n = 4;
-
+    if ( lp[0] == 0 )
+    {
+      sortUp();
+    }
+    int lp0 = lp[0];
+    
+    int[] al0 = al[0];
+    Object[] vla0 = vla[0];
+      
     for(;;)
     {
-      cnt += n-lp[idx];
-      if ( cnt <= n ) break;
-      pa[idx++] = n;
+      if ( lp0 == 4 || key < al0[lp0] )
+      {
+        al0[lp0-1] = key;
+        vla0[lp0-1] = value;
+        lp[0]--;
+        return;
+      }
+      al0[lp0-1] = al0[lp0];
+      vla0[lp0-1] = vla0[lp0];
+      lp0++;
+    }
+  }
+  
+  private void sortUp()
+  {
+    // determine the first array big enough to take them all
+    int cnt = 4; // value count up to idx
+    int idx = 1;
+    int n = 8;
+    int firstNonEmptyIdx = 0;
+    int nonEmptyCount = 1;
+
+    for ( ;; )
+    {
+      int nentries = n - lp[idx];
+      if ( nentries > 0 )
+      {
+        cnt += n - lp[idx];
+        nonEmptyCount++;
+      }
+      if ( cnt <= n )
+      {
+        break;
+      }
+      idx++;
       n <<= 1;
     }
 
-    if ( idx == MAXLISTS )
-    {
-      throw new IllegalArgumentException( "overflow" );
-    }
-    
     // create it if not existant
     if ( al[idx] == null )
     {
       al[idx] = new int[n];
       vla[idx] = new Object[n];
     }
-    
+
     int[] al_t = al[idx];
     Object[] vla_t = vla[idx];
-    int lp_t = lp[idx];
-    
-    // shift down content if any
-    if ( lp_t < n )
-    {
-        System.arraycopy(al_t, lp_t, al_t, 0, n-lp_t);
-        System.arraycopy(vla_t, lp_t, vla_t, 0, n-lp_t);
-    }
-    lp[idx] = 0;
-    pa[idx] = n - lp_t;
-    
+    int tp = n-cnt; // target pointer
 
-    // now merge the contents of arrays 0...idx-1 into idx
-    while ( cnt > 0 )
+    // now merge the contents of arrays 0...idx into idx
+    while( nonEmptyCount > 1 )
     {
-      int i=0;
-      while( pa[i] == lp[i] )
-      {
-        i++;
-      }
-      int maxId = al[i][pa[i]-1];
-      int maxIdx = i;
+      int i = firstNonEmptyIdx;
+      int minId = al[i][lp[i]];
+      int minIdx = i;
 
-      for ( i++; i<=idx; i++ )
+      for ( i++; i <= idx; i++ )
       {
-        int p = pa[i];
-        if ( p > lp[i] )
+        if ( 4 << i > lp[i] )
         {
-          int currentId = al[i][p-1];
-          if ( currentId > maxId )
+          int currentId = al[i][lp[i]];
+          if ( currentId < minId )
           {
-            maxIdx = i;
-            maxId = currentId;
+            minIdx = i;
+            minId = currentId;
           }
         }
       }
 
-      // current maximum found, copy to target array
-      --n;
-      al[idx][n] = maxId;
-      vla[idx][n] = vla[maxIdx][pa[maxIdx]-1];
-
-      --cnt;
-      --pa[maxIdx];
+      // current minimum found, copy to target array
+      int sp = lp[minIdx]; // source-pointer
+      al_t[tp] = minId;      
+      vla_t[tp++] = vla[minIdx][sp];
+      if ( minIdx != idx )
+      {
+        vla[minIdx][sp] = null;
+      }
+      if ( ++lp[minIdx] ==  4 << minIdx )
+      {
+        nonEmptyCount--;
+        if ( minIdx == firstNonEmptyIdx )
+        {
+          while( lp[firstNonEmptyIdx] == 4 << firstNonEmptyIdx )
+          {
+            firstNonEmptyIdx++;
+          }
+        }
+      }
     }
-    lp[idx] = n;
-    while(--idx > 0) lp[idx] = al[idx].length;
+
+    // only one non-empty index left, so just copy the remaining entries
+    if ( firstNonEmptyIdx != idx ) // no self-copy needed
+    {
+      int[] al_s = al[firstNonEmptyIdx];
+      Object[] vla_s = vla[firstNonEmptyIdx];
+      int sp = lp[firstNonEmptyIdx]; // source-pointer      
+      while( sp < 4 << firstNonEmptyIdx )
+      {
+        al_t[tp] = al_s[sp];     
+        vla_t[tp++] = vla_s[sp];
+        vla_s[sp++] = null;
+      }
+      lp[firstNonEmptyIdx] = sp;
+    }
+    lp[idx] = n-cnt; // new target low pointer
   }
 
   public void clear()
   {
-	  if ( !isClear )
-	  {
-		isClear = true;
-		size = 0;
-		
-	    // pointer array
-	    pa = new int[MAXLISTS];
+    if ( !isClear )
+    {
+      isClear = true;
+      size = 0;
 
-	    lp = new int[MAXLISTS];
+      lp = new int[MAXLISTS];
 
-	    // allocate key lists
-	    al = new int[MAXLISTS][];
-	    al[0] = new int[1]; // make the first arrays
-	    al[1] = new int[1];
-	    al[2] = new int[2];
+      // allocate key lists
+      al = new int[MAXLISTS][];
+      al[0] = new int[4]; // make the first array
 
-	    // same for the values
-	    vla = new Object[MAXLISTS][];
-	    vla[0] = new Object[1];
-	    vla[1] = new Object[1];
-	    vla[2] = new Object[2];
-	    
-	    int n = 1;
-	    lp[0] = 0;
-	    for( int idx=1; idx < MAXLISTS; idx++ )
-	    {
-	      lp[idx] = n;
-	      n <<= 1;
-	    }
-	  }
+      // same for the values
+      vla = new Object[MAXLISTS][];
+      vla[0] = new Object[4];
+
+      int n = 4;
+      for ( int idx = 0; idx < MAXLISTS; idx++ )
+      {
+        lp[idx] = n;
+        n <<= 1;
+      }
+    }
   }
 
   public List<V> getExtract()
   {
-	  int div = size / 1000 + 1;
-	  
-	  ArrayList<V> res = new ArrayList<V>(size / div );
-      int cnt = 0;
-      for ( int i=1;; i++ )
+    int div = size / 1000 + 1;
+
+    ArrayList<V> res = new ArrayList<V>( size / div );
+    int cnt = 0;
+    for ( int i = 1;; i++ )
+    {
+      int[] ali = al[i];
+      if ( ali == null )
+        break;
+      int lpi = lp[i];
+      Object[] vlai = vla[i];
+      int n = 4 << i;
+      while (lpi < n)
       {
-    	int[] ali = al[i];
-    	if ( ali == null ) break;
-        int lpi = lp[i];
-        Object[] vlai = vla[i];
-        int n = ali.length;
-        while ( lpi < n )
+        if ( ( ++cnt ) % div == 0 )
         {
-        	if ( (++cnt) % div == 0 )
-        	{
-              res.add( (V)vla[i][lpi] );
-        	}
-        	lpi++;
+          res.add( (V) vla[i][lpi] );
         }
+        lpi++;
       }
-      return res;
+    }
+    return res;
   }
+  
+  public static void main(String[] args)
+  {
+    SortedHeap<String> sh = new SortedHeap<String>();
+    Random rnd = new Random();
+    for( int i = 0; i< 6; i++ )
+    {
+      int val = rnd.nextInt( 1000000 );
+      sh.add( val, "" + val );
+      val = rnd.nextInt( 1000000 );
+      sh.add( val, "" + val );
+      sh.popLowestKeyValue();
+    }
+
+    int cnt = 0;
+    int lastval = 0;
+    for(;;)
+    {
+      String s = sh.popLowestKeyValue();
+      if ( s == null ) break;
+      cnt ++;
+      int val = Integer.parseInt( s );
+System.out.println( "popLowestKeyValue: " + val);
+//      Assert.assertTrue( "sorting test", val >= lastval );
+      lastval = val;
+    }
+//    Assert.assertTrue( "total count test", cnt == 100000 );
+
+  }
+  
 
 }
