@@ -722,16 +722,16 @@ public final class OsmTrack
   {
     OsmPathElement e = element;
     int cnt = 0;
-    while( e != null )
+    while( e != null && e.origin != null )
     {
-      if ( e.origin == root )
+      if ( e.origin.getILat() == root.getILat() && e.origin.getILon() == root.getILon() )
       {
         return e.message;
       }
       e = e.origin;
       if ( cnt++ == 1000000 )
       {
-        throw new IllegalArgumentException( "ups?" );
+        throw new IllegalArgumentException( "ups: " + root + "->" + element );
       }
     }
     return null;
