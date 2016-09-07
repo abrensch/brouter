@@ -11,7 +11,7 @@ import btools.util.ByteArrayUnifier;
 
 public final class OsmNodesMap
 {
-  private HashMap<OsmNode,OsmNode> hmap = new HashMap<OsmNode,OsmNode>();
+  private HashMap<OsmNode,OsmNode> hmap = new HashMap<OsmNode,OsmNode>(4096);
   
   private ByteArrayUnifier abUnifier = new ByteArrayUnifier( 16384, false );
 

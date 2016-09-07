@@ -55,24 +55,24 @@ public class MicroCache extends ByteDataWriter
       p2size >>= 1;
   }
 
-  public void finishNode( long id )
+  public final void finishNode( long id )
   {
     fapos[size] = aboffset;
     faid[size] = shrinkId( id );
     size++;
   }
 
-  public void discardNode()
+  public final void discardNode()
   {
     aboffset = startPos( size );
   }
 
-  public int getSize()
+  public final int getSize()
   {
     return size;
   }
 
-  public int getDataSize()
+  public final int getDataSize()
   {
     return ab == null ? 0 : ab.length;
   }
@@ -91,7 +91,7 @@ public class MicroCache extends ByteDataWriter
    *
    * @return true if id was found
    */
-  public boolean getAndClear( long id64 )
+  public final boolean getAndClear( long id64 )
   {
     if ( size == 0 )
     {
@@ -130,12 +130,12 @@ public class MicroCache extends ByteDataWriter
     return false;
   }
 
-  protected int startPos( int n )
+  protected final int startPos( int n )
   {
     return n > 0 ? fapos[n - 1] & 0x7fffffff : 0;
   }
 
-  public void collect( int threshold )
+  public final void collect( int threshold )
   {
     if ( delcount > threshold )
     {
@@ -178,7 +178,7 @@ public class MicroCache extends ByteDataWriter
     }
   }
 
-  public void unGhost()
+  public final void unGhost()
   {
     ghost = false;
     delcount = 0;
@@ -192,7 +192,7 @@ public class MicroCache extends ByteDataWriter
   /**
    * @return the 64-bit global id for the given cache-position
    */
-  public long getIdForIndex( int i )
+  public final long getIdForIndex( int i )
   {
     int id32 = faid[i];
     return expandId( id32 );

@@ -71,13 +71,13 @@ public class ByteDataReader
    *
    * @return the pointer to the first byte after that section
    */
-  public int getEndPointer()
+  public final int getEndPointer()
   {
     int size = readVarLengthUnsigned();
     return aboffset + size;
   }
 
-  public byte[] readDataUntil( int endPointer )
+  public final byte[] readDataUntil( int endPointer )
   {
     int size = endPointer - aboffset;
     if ( size == 0 )
@@ -89,7 +89,7 @@ public class ByteDataReader
     return data;
   }
 
-  public byte[] readVarBytes()
+  public final byte[] readVarBytes()
   {
     int len = readVarLengthUnsigned();
     if ( len == 0 )
@@ -128,7 +128,7 @@ public class ByteDataReader
 	  aboffset += ta.length;
   }
 
-  public boolean hasMoreData()
+  public final boolean hasMoreData()
   {
     return aboffset < aboffsetEnd;
   }
