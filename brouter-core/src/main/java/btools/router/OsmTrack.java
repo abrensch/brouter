@@ -17,6 +17,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -327,14 +329,28 @@ public final class OsmTrack
   public void writeGpx( String filename ) throws Exception
   {
     BufferedWriter bw = new BufferedWriter( new FileWriter( filename ) );
-
-    bw.write( formatAsGpx() );
+    formatAsGpx( bw );
     bw.close();
   }
 
   public String formatAsGpx()
   {
-    StringBuilder sb = new StringBuilder( 8192 );
+    try
+    {
+      StringWriter sw = new StringWriter( 8192 );
+      BufferedWriter bw = new BufferedWriter( sw );
+      formatAsGpx( bw );
+      bw.close();
+      return sw.toString();
+    }
+    catch( Exception e )
+    {
+      throw new RuntimeException( e );
+    }
+  }
+
+  public String formatAsGpx( BufferedWriter sb ) throws IOException
+  {
     int turnInstructionMode = voiceHints != null ? voiceHints.turnInstructionMode : 0;
 
     sb.append( "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" );
@@ -385,8 +401,8 @@ public final class OsmTrack
         sb.append("  <rtept lat=\"").append( formatILat( hint.ilat ) ).append( "\" lon=\"" )
           .append( formatILon( hint.ilon ) ).append( "\">\n" )
           .append ( "   <desc>" ).append( hint.getMessageString() ).append( "</desc>\n   <extensions>\n   <turn>" )
-          .append( hint.getCommandString() ).append("</turn>\n   <turn-angle>").append( hint.angle )
-          .append("</turn-angle>\n   <offset>").append( hint.indexInTrack ).append("</offset>\n  </extensions>\n </rtept>\n");
+          .append( hint.getCommandString() ).append("</turn>\n   <turn-angle>").append( "" + hint.angle )
+          .append("</turn-angle>\n   <offset>").append( "" + hint.indexInTrack ).append("</offset>\n  </extensions>\n </rtept>\n");
       }
       sb.append("</rte>\n");
     }
@@ -399,8 +415,8 @@ public final class OsmTrack
           .append( formatILat( hint.ilat ) ).append( "\">" )
           .append( hint.selev == Short.MIN_VALUE ? "" : "<ele>" + (hint.selev / 4.) + "</ele>" )
           .append( "<name>" ).append( hint.getMessageString() ).append( "</name>" )
-          .append( "<extensions><locus:rteDistance>" ).append( hint.distanceToNext ).append( "</locus:rteDistance>" )
-          .append( "<locus:rtePointAction>" ).append( hint.getLocusAction() ).append( "</locus:rtePointAction></extensions>" )
+          .append( "<extensions><locus:rteDistance>" ).append( "" + hint.distanceToNext ).append( "</locus:rteDistance>" )
+          .append( "<locus:rtePointAction>" ).append( "" + hint.getLocusAction() ).append( "</locus:rtePointAction></extensions>" )
           .append( "</wpt>\n" );
       }
     }
@@ -425,7 +441,7 @@ public final class OsmTrack
 
     if ( turnInstructionMode == 2 )
     {
-      sb.append( "  <extensions><locus:rteComputeType>" ).append( voiceHints.getLocusRouteType() ).append( "</locus:rteComputeType></extensions>\n" );
+      sb.append( "  <extensions><locus:rteComputeType>" ).append( "" + voiceHints.getLocusRouteType() ).append( "</locus:rteComputeType></extensions>\n" );
       sb.append( "  <extensions><locus:rteSimpleRoundabouts>1</locus:rteSimpleRoundabouts></extensions>\n" );
     }
 

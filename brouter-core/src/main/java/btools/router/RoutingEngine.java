@@ -173,6 +173,7 @@ public class RoutingEngine extends Thread
           {
             continue;
           }
+          oldTrack = null;
           track.writeGpx( filename );
           foundTrack = track;
           alternativeIndex = i;
@@ -573,7 +574,10 @@ public class RoutingEngine extends Thread
       logInfo( "NodesCache status before reset=" + nodesCache.formatStatus() );
     }
     nodesMap = new OsmNodesMap();
-    nodesCache = new NodesCache(segmentDir, nodesMap, routingContext.expctxWay, routingContext.forceSecondaryData, nodesCache );
+    
+    long maxmem = routingContext.memoryclass * 131072L; // 1/4 of total
+    
+    nodesCache = new NodesCache(segmentDir, nodesMap, routingContext.expctxWay, routingContext.forceSecondaryData, maxmem, nodesCache );
   }
 
   private OsmNode getStartNode( long startId )
@@ -700,6 +704,20 @@ public class RoutingEngine extends Thread
 
   private OsmTrack findTrack( String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack, boolean fastPartialRecalc )
   {
+    try
+    {
+      resetCache();
+      return _findTrack( operationName, startWp, endWp, costCuttingTrack, refTrack, fastPartialRecalc );
+    }
+    finally
+    {
+      nodesCache.cleanNonVirgin();
+    }
+  }
+
+
+  private OsmTrack _findTrack( String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack, boolean fastPartialRecalc )
+  {
     boolean verbose = guideTrack != null;
 
     int maxTotalCost = 1000000000;
@@ -711,7 +729,6 @@ public class RoutingEngine extends Thread
     matchPath = null;
     int nodesVisited = 0;
 
-    resetCache();
     long endNodeId1 = endWp == null ? -1L : endWp.node1.getIdFromPos();
     long endNodeId2 = endWp == null ? -1L : endWp.node2.getIdFromPos();
     long startNodeId1 = startWp.node1.getIdFromPos();

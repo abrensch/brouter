@@ -99,7 +99,12 @@ public final class TagValueCoder
       node.child2 = decodeTree( bc, buffer, validator );
       return node;
     }
-    int startpos = bc.getReadingBitPosition();
+
+	  BitCoderContext ctx = new BitCoderContext( buffer );
+
+    int inum = 0;
+    int lastEncodedInum = 0;
+
     boolean hasdata = false;
     for ( ;; )
     {
@@ -110,22 +115,36 @@ public final class TagValueCoder
         {
           return null;
         }
-        hasdata = true;
       }
       if ( delta == 0 )
       {
+        ctx.encodeVarBits( 0 );
         break;
       }
-      bc.decodeVarBits();
+      inum += delta;
+      
+      int data = bc.decodeVarBits();
+      
+      if ( validator == null || validator.isLookupIdxUsed( inum ) )
+      {
+        hasdata = true;
+        ctx.encodeVarBits( inum - lastEncodedInum );
+        ctx.encodeVarBits( data );
+        lastEncodedInum = inum;
+      }
     }
-    int endpos = bc.getReadingBitPosition();
-    
-    int bitcount = endpos - startpos;
-    int bytecount = ( bitcount + 7 ) >> 3;
 
-    bc.setReadingBitPosition( startpos );
-    byte[] res = new byte[bytecount];
-    bc.copyBitsTo( res, bitcount );
+    byte[] res;
+    int len = ctx.getEncodedLength();
+    if ( validator == null )
+    {
+      res = new byte[len];
+      System.arraycopy( buffer, 0, res, 0, len );
+    }
+    else
+    {
+      res = validator.unify( buffer, 0, len );
+    }
 
     int accessType = validator == null ? 2 : validator.accessType( res );
     if ( accessType > 0 )

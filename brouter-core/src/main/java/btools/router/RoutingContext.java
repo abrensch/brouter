@@ -41,7 +41,7 @@ public final class RoutingContext
   public BExpressionContextWay expctxWay;
   public BExpressionContextNode expctxNode;
 
-  public boolean serversizing = false;
+  public int memoryclass = 64;
   
   public int downhillcostdiv;
   public int downhillcutoff;

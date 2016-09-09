@@ -34,35 +34,6 @@ public final class SortedHeap<V>
   /**
    * @return the lowest key value, or null if none
    */
-  public V popLowestKeyValue2()
-  {
-    int minId = 0;
-    int minIdx = -1;
-    for ( int i = 0;; i++ )
-    {
-      int[] ali = al[i];
-      if ( ali == null )
-        break;
-      int lpi = lp[i];
-      if ( lpi < 4 << i )
-      {
-        int currentId = ali[lpi];
-        if ( minIdx < 0 || currentId < minId )
-        {
-          minIdx = i;
-          minId = currentId;
-        }
-      }
-    }
-
-    if ( minIdx == -1 )
-      return null;
-
-    size--;
-
-    return dropLowest( minIdx );
-  }
-
   public V popLowestKeyValue()
   {
     int idx = firstNonEmpty;
@@ -286,24 +257,22 @@ public final class SortedHeap<V>
   {
     int div = size / 1000 + 1;
 
-    ArrayList<V> res = new ArrayList<V>( size / div );
-    int cnt = 0;
+    ArrayList<V> res = new ArrayList<V>( size / div + 1 );
+    int lpi = 0;
     for ( int i = 1;; i++ )
     {
       int[] ali = al[i];
       if ( ali == null )
         break;
-      int lpi = lp[i];
+      lpi += lp[i];
       Object[] vlai = vla[i];
       int n = 4 << i;
       while (lpi < n)
       {
-        if ( ( ++cnt ) % div == 0 )
-        {
-          res.add( (V) vla[i][lpi] );
-        }
-        lpi++;
+        res.add( (V) vla[i][lpi] );
+        lpi += div;
       }
+      lpi -= n;
     }
     return res;
   }

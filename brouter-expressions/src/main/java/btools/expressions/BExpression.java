@@ -160,6 +160,7 @@ final class BExpression
             {
               throw new IllegalArgumentException( "unknown lookup name: " + name );
             }
+            ctx.markLookupIdxUsed( exp.lookupNameIdx );
             StringTokenizer tk = new StringTokenizer( values, "|" );
             int nt = tk.countTokens();
             int nt2 = nt == 0 ? 1 : nt;

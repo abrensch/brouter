@@ -75,14 +75,17 @@ public class BRouterView extends View
 
   private int[] imgPixels;
 
+  private int memoryClass;
+
   public void stopRouting()
   {
     if ( cr != null ) cr.terminate();
   }
 
-  public BRouterView( Context context )
+  public BRouterView( Context context, int memoryClass )
   {
     super( context );
+    this.memoryClass = memoryClass;
   }
 
   public void init()
@@ -221,9 +224,13 @@ public class BRouterView extends View
           }
           catch( Exception e )
           {
-            tracksDir = basedir + "/brouter";
+            tracksDir = null;
           }
         }
+      }
+      if ( tracksDir == null )
+      {
+        tracksDir = basedir + "/brouter"; // fallback
       }
 
       String[] fileNames = new File( profileDir ).list();
@@ -514,6 +521,17 @@ public class BRouterView extends View
       startTime = System.currentTimeMillis();
       rc.prepareNogoPoints( nogoList );
       rc.nogopoints = nogoList;
+      
+      rc.memoryclass = memoryClass;
+      if ( memoryClass < 16 )
+      {
+        rc.memoryclass = 16;
+      }
+      else if ( memoryClass > 256 )
+      {
+        rc.memoryclass = 256;
+      }
+        
 
       // for profile remote, use ref-track logic same as service interface 
       rc.rawTrackPath = rawTrackPath;
@@ -748,7 +766,7 @@ public class BRouterView extends View
         }
         else
         {
-          String result = "version = BRouter-1.4.4\n" + "distance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
+          String result = "version = BRouter-1.4.4\n" + "memory-class = " + memoryClass + "\ndistance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
               + " m\n" + "plain ascend = " + cr.getPlainAscend();
 
           rawTrack = cr.getFoundRawTrack();

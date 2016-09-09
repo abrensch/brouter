@@ -37,6 +37,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   private ArrayList<BExpressionLookupValue[]> lookupValues = new ArrayList<BExpressionLookupValue[]>();
   private ArrayList<String> lookupNames = new ArrayList<String>();
   private ArrayList<int[]> lookupHistograms = new ArrayList<int[]>();
+  private boolean[] lookupIdxUsed;
 
   private boolean lookupDataFrozen = false;
 
@@ -255,6 +256,8 @@ public abstract class BExpressionContext implements IByteArrayUnifier
 
     // post-process metadata:
     lookupDataFrozen = true;
+    
+    lookupIdxUsed = new boolean[lookupValues.size()];
   }
 
   public final void evaluate( int[] lookupData2 )
@@ -280,6 +283,8 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   {
     return "requests=" + requests + " requests2=" + requests2 + " cachemisses=" + cachemisses;
   }
+  
+  private CacheNode lastCacheNode = new CacheNode();
 
   // @Override
   public final byte[] unify( byte[] ab, int offset, int len )
@@ -303,6 +308,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
         }
         if ( cn != null )
         {
+          lastCacheNode = cn;
           return cn.ab;
         }
       }
@@ -318,10 +324,18 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     requests++;
     lookupDataValid = false; // this is an assertion for a nasty pifall
 
-    probeCacheNode.ab = ab;
-    probeCacheNode.crc = Crc32.crc( ab, 0, ab.length );
+    CacheNode cn;
+    if ( lastCacheNode.ab == ab )
+    {
+      cn = lastCacheNode;
+    }
+    else
+    {
+      probeCacheNode.ab = ab;
+      probeCacheNode.crc = Crc32.crc( ab, 0, ab.length );
+      cn = (CacheNode)cache.get( probeCacheNode );
+    }
 
-    CacheNode cn = (CacheNode)cache.get( probeCacheNode );
     if ( cn == null )
     {
       cachemisses++;
@@ -744,6 +758,16 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   {
     Integer num = lookupNumbers.get( name );
     return num == null ? -1 : num.intValue();
+  }
+
+  public final void markLookupIdxUsed( int idx )
+  {
+    lookupIdxUsed[ idx ] = true;
+  }
+  
+  public final boolean isLookupIdxUsed( int idx )
+  {
+    return idx < lookupIdxUsed.length ? lookupIdxUsed[idx] : false;
   }
 
   int getLookupValueIdx( int nameIdx, String value )

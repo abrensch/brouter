@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
@@ -57,8 +58,11 @@ public class BRouterActivity extends Activity implements OnInitListener
     // Create a bright wake lock
     mWakeLock = mPowerManager.newWakeLock( PowerManager.SCREEN_BRIGHT_WAKE_LOCK, getClass().getName() );
 
+    ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+    int memoryClass = am.getMemoryClass();
+
     // instantiate our simulation view and set it as the activity's content
-    mBRouterView = new BRouterView( this );
+    mBRouterView = new BRouterView( this, memoryClass );
     mBRouterView.init();
     setContentView( mBRouterView );
   }

@@ -32,7 +32,6 @@ public final class NodesCache
   private DataBuffers dataBuffers;
 
   private OsmFile[][] fileRows;
-  private ArrayList<MicroCache> segmentList = new ArrayList<MicroCache>();
 
   public WaypointMatcher waypointMatcher;
 
@@ -40,14 +39,17 @@ public final class NodesCache
   public String first_file_access_name;
 
   private long cacheSum = 0;
+  private long maxmem;
+  
   private boolean garbageCollectionEnabled = false;
+  private boolean ghostCleaningDone = false;
   
   public String formatStatus()
   {
-    return "collecting=" + garbageCollectionEnabled + " cacheSum=" + cacheSum;
+    return "collecting=" + garbageCollectionEnabled + " noGhosts=" + ghostCleaningDone + " cacheSum=" + cacheSum;
   }
 
-  public NodesCache( String segmentDir, OsmNodesMap nodesMap, BExpressionContextWay ctxWay, boolean forceSecondaryData, NodesCache oldCache )
+  public NodesCache( String segmentDir, OsmNodesMap nodesMap, BExpressionContextWay ctxWay, boolean forceSecondaryData, long maxmem, NodesCache oldCache )
   {
     this.segmentDir = new File( segmentDir );
     this.nodesMap = nodesMap;
@@ -55,6 +57,7 @@ public final class NodesCache
     this.lookupVersion = ctxWay.meta.lookupVersion;
     this.lookupMinorVersion = ctxWay.meta.lookupMinorVersion;
     this.forceSecondaryData = forceSecondaryData;
+    this.maxmem = maxmem;
 
     first_file_access_failed = false;
     first_file_access_name = null;
@@ -88,12 +91,25 @@ public final class NodesCache
       secondarySegmentsDir = StorageConfigHelper.getSecondarySegmentDir( segmentDir );
     }
   }
+  
+  public void cleanNonVirgin()
+  {
+      for ( OsmFile[] fileRow : fileRows )
+      {
+        if ( fileRow == null )
+          continue;
+        for ( OsmFile osmf : fileRow )
+        {
+          osmf.cleanNonVirgin();
+        }
+      }
+  }
 
   // if the cache sum exceeded a threshold,
   // clean all ghosts and enable garbage collection
   private void checkEnableCacheCleaning()
   {
-    if ( cacheSum < 3000000 || garbageCollectionEnabled )
+    if ( cacheSum < maxmem || ghostCleaningDone )
       return;
 
     for ( int i = 0; i < fileRows.length; i++ )
@@ -104,10 +120,17 @@ public final class NodesCache
       int nghosts = 0;
       for ( OsmFile osmf : fileRow )
       {
-        if ( osmf.ghost )
-          nghosts++;
+        if ( garbageCollectionEnabled )
+        {
+          if ( osmf.ghost )
+          {
+            nghosts++;
+          }
+        }
         else
+        {
           osmf.cleanAll();
+        }
       }
       if ( nghosts == 0 )
         continue;
@@ -121,7 +144,15 @@ public final class NodesCache
       }
       fileRows[i] = frow;
     }
-    garbageCollectionEnabled = true;
+    
+    if ( garbageCollectionEnabled )
+    {
+      ghostCleaningDone = true;
+    }
+    else
+    {    
+      garbageCollectionEnabled = true;
+    }
   }
 
   public int loadSegmentFor( int ilon, int ilat )
@@ -173,18 +204,10 @@ public final class NodesCache
         segment = osmf.createMicroCache( ilon, ilat, dataBuffers, expCtxWay, waypointMatcher );
 
         cacheSum += segment.getDataSize();
-        if ( segment.getSize() > 0 )
-        {
-          segmentList.add( segment );
-        }
       }
       else if ( segment.ghost )
       {
         segment.unGhost();
-        if ( segment.getSize() > 0 )
-        {
-          segmentList.add( segment );
-        }
       }
       return segment;
     }
@@ -217,7 +240,7 @@ public final class NodesCache
 
     if ( garbageCollectionEnabled ) // garbage collection
     {
-      segment.collect( segment.getSize() >> 1 );
+      segment.collect( segment.getSize() >> 2 ); // threshold = 1/4 of size is deleted
     }
 
     return !node.isHollow();
@@ -274,27 +297,6 @@ public final class NodesCache
     }
 
     return osmf;
-  }
-
-  public List<OsmNode> getAllNodes()
-  {
-    List<OsmNode> all = new ArrayList<OsmNode>();
-    for ( MicroCache segment : segmentList )
-    {
-      ArrayList<OsmNode> positions = new ArrayList<OsmNode>();
-      int size = segment.getSize();
-
-      for ( int i = 0; i < size; i++ )
-      {
-        long id = segment.getIdForIndex( i );
-        OsmNode n = new OsmNode( id );
-        n.setHollow();
-        nodesMap.put( n );
-        positions.add( n );
-      }
-      all.addAll( positions );
-    }
-    return all;
   }
 
   public void close()
