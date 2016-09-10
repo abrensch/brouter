@@ -24,6 +24,14 @@ public class ByteDataReader
 	 aboffset = offset;
 	 aboffsetEnd = ab == null ? 0 : ab.length;
   }
+  
+  public final void reset( byte[] byteArray )
+  {
+    ab = byteArray;
+    aboffset = 0;
+    aboffsetEnd = ab == null ? 0 : ab.length;
+  }
+  
 
   public final int readInt()
   {

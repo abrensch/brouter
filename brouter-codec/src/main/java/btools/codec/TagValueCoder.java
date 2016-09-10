@@ -78,9 +78,9 @@ public final class TagValueCoder
     this.bc = bc;
   }
 
-  public TagValueCoder( BitCoderContext bc, byte[] buffer, TagValueValidator validator )
+  public TagValueCoder( BitCoderContext bc, DataBuffers buffers, TagValueValidator validator )
   {
-    tree = decodeTree( bc, buffer, validator );
+    tree = decodeTree( bc, buffers, validator );
     this.bc = bc;
   }
 
@@ -89,18 +89,20 @@ public final class TagValueCoder
     identityMap = new HashMap<TagValueSet, TagValueSet>();
   }
 
-  private Object decodeTree( BitCoderContext bc, byte[] buffer, TagValueValidator validator )
+  private Object decodeTree( BitCoderContext bc, DataBuffers buffers, TagValueValidator validator )
   {
     boolean isNode = bc.decodeBit();
     if ( isNode )
     {
       TreeNode node = new TreeNode();
-      node.child1 = decodeTree( bc, buffer, validator );
-      node.child2 = decodeTree( bc, buffer, validator );
+      node.child1 = decodeTree( bc, buffers, validator );
+      node.child2 = decodeTree( bc, buffers, validator );
       return node;
     }
 
-	  BitCoderContext ctx = new BitCoderContext( buffer );
+    byte[] buffer = buffers.tagbuf1;
+	  BitCoderContext ctx = buffers.bctx1;
+	  ctx.reset( buffer );
 
     int inum = 0;
     int lastEncodedInum = 0;

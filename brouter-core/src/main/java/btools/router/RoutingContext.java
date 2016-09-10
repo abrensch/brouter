@@ -12,6 +12,7 @@ import java.util.List;
 import btools.expressions.BExpressionContext;
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
+import btools.mapaccess.GeometryDecoder;
 
 public final class RoutingContext
 {
@@ -40,6 +41,8 @@ public final class RoutingContext
 
   public BExpressionContextWay expctxWay;
   public BExpressionContextNode expctxNode;
+  
+  public GeometryDecoder geometryDecoder = new GeometryDecoder();
 
   public int memoryclass = 64;
   

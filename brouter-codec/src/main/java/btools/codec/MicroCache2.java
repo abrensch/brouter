@@ -44,8 +44,8 @@ public final class MicroCache2 extends MicroCache
 
     StatCoderContext bc = new StatCoderContext( dataBuffers.iobuffer );
 
-    TagValueCoder wayTagCoder = new TagValueCoder( bc, dataBuffers.tagbuf1, wayValidator );
-    TagValueCoder nodeTagCoder = new TagValueCoder( bc, dataBuffers.tagbuf1, null );
+    TagValueCoder wayTagCoder = new TagValueCoder( bc, dataBuffers, wayValidator );
+    TagValueCoder nodeTagCoder = new TagValueCoder( bc, dataBuffers, null );
     NoisyDiffCoder nodeIdxDiff = new NoisyDiffCoder( bc );
     NoisyDiffCoder nodeEleDiff = new NoisyDiffCoder( bc );
     NoisyDiffCoder extLonDiff = new NoisyDiffCoder(bc);

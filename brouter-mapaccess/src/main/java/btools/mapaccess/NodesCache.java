@@ -7,9 +7,7 @@ package btools.mapaccess;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import btools.codec.DataBuffers;
 import btools.codec.MicroCache;
@@ -43,10 +41,15 @@ public final class NodesCache
   
   private boolean garbageCollectionEnabled = false;
   private boolean ghostCleaningDone = false;
+
+
+  private long cacheSumClean = 0;
+  private long ghostSum = 0;
+  private long ghostWakeup = 0;
   
   public String formatStatus()
   {
-    return "collecting=" + garbageCollectionEnabled + " noGhosts=" + ghostCleaningDone + " cacheSum=" + cacheSum;
+    return "collecting=" + garbageCollectionEnabled + " noGhosts=" + ghostCleaningDone + " cacheSum=" + cacheSum + " cacheSumClean=" + cacheSumClean + " ghostSum=" + ghostSum + " ghostWakeup=" + ghostWakeup ;
   }
 
   public NodesCache( String segmentDir, OsmNodesMap nodesMap, BExpressionContextWay ctxWay, boolean forceSecondaryData, long maxmem, NodesCache oldCache )
@@ -90,6 +93,7 @@ public final class NodesCache
       dataBuffers = new DataBuffers();
       secondarySegmentsDir = StorageConfigHelper.getSecondarySegmentDir( segmentDir );
     }
+    ghostSum = cacheSum;
   }
   
   public void cleanNonVirgin()
@@ -110,39 +114,28 @@ public final class NodesCache
   private void checkEnableCacheCleaning()
   {
     if ( cacheSum < maxmem || ghostCleaningDone )
+    {
       return;
+    }
 
     for ( int i = 0; i < fileRows.length; i++ )
     {
       OsmFile[] fileRow = fileRows[i];
       if ( fileRow == null )
+      {
         continue;
-      int nghosts = 0;
+      }
       for ( OsmFile osmf : fileRow )
       {
         if ( garbageCollectionEnabled )
         {
-          if ( osmf.ghost )
-          {
-            nghosts++;
-          }
+          cacheSum -= osmf.cleanGhosts();
         }
         else
         {
-          osmf.cleanAll();
+          cacheSum -= osmf.collectAll();
         }
       }
-      if ( nghosts == 0 )
-        continue;
-      int j = 0;
-      OsmFile[] frow = new OsmFile[fileRow.length - nghosts];
-      for ( OsmFile osmf : fileRow )
-      {
-        if ( osmf.ghost )
-          continue;
-        frow[j++] = osmf;
-      }
-      fileRows[i] = frow;
     }
     
     if ( garbageCollectionEnabled )
@@ -150,7 +143,8 @@ public final class NodesCache
       ghostCleaningDone = true;
     }
     else
-    {    
+    {
+      cacheSumClean = cacheSum;
       garbageCollectionEnabled = true;
     }
   }
@@ -189,7 +183,6 @@ public final class NodesCache
         newFileRow[ndegrees] = osmf;
         fileRows[latDegree] = newFileRow;
       }
-      osmf.ghost = false;
       currentFileName = osmf.filename;
 
       if ( !osmf.hasData() )
@@ -208,6 +201,7 @@ public final class NodesCache
       else if ( segment.ghost )
       {
         segment.unGhost();
+        ghostWakeup += segment.getDataSize();
       }
       return segment;
     }
@@ -240,7 +234,7 @@ public final class NodesCache
 
     if ( garbageCollectionEnabled ) // garbage collection
     {
-      segment.collect( segment.getSize() >> 2 ); // threshold = 1/4 of size is deleted
+      cacheSum -= segment.collect( segment.getSize() >> 1 ); // threshold = 1/2 of size is deleted
     }
 
     return !node.isHollow();

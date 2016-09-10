@@ -29,8 +29,6 @@ final class OsmFile
 
   public String filename;
 
-  public boolean ghost = false;
-
   private int divisor;
   private int cellsize;
   private int ncaches;
@@ -162,7 +160,6 @@ final class OsmFile
   long setGhostState()
   {
     long sum = 0;
-    ghost = true;
     int nc = microCaches == null ? 0 : microCaches.length;
     for ( int i = 0; i < nc; i++ )
     {
@@ -182,8 +179,26 @@ final class OsmFile
     return sum;
   }
 
-  void cleanAll()
+  long collectAll()
   {
+    long deleted = 0;
+    int nc = microCaches == null ? 0 : microCaches.length;
+    for ( int i = 0; i < nc; i++ )
+    {
+      MicroCache mc = microCaches[i];
+      if ( mc == null )
+        continue;
+      if ( !mc.ghost )
+      {
+        deleted += mc.collect( 0 );
+      }
+    }
+    return deleted;
+  }
+
+  long cleanGhosts()
+  {
+    long deleted = 0;
     int nc = microCaches == null ? 0 : microCaches.length;
     for ( int i = 0; i < nc; i++ )
     {
@@ -194,11 +209,8 @@ final class OsmFile
       {
         microCaches[i] = null;
       }
-      else
-      {
-        mc.collect( 0 );
-      }
     }
+    return deleted;
   }
 
   void cleanNonVirgin()

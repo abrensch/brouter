@@ -15,6 +15,21 @@ public class BitCoderContext
     this.ab = ab;
     idxMax = ab.length-1;
   }
+  
+  public final void reset( byte[] ab )
+  {
+    this.ab = ab;
+    idxMax = ab.length-1;
+    reset();
+  }    
+
+  public final void reset()
+  {
+    idx = -1;
+    bm = 0x100;
+    bits = 0;
+    b = 0;
+  }    
 
   /**
    * encode a distance with a variable bit length

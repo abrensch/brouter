@@ -160,7 +160,11 @@ final class OsmPath implements OsmLinkHolder
       cost += iicost;
     }
 
-    OsmTransferNode transferNode = link.decodeFirsttransfer( p1 );
+//    OsmTransferNode transferNode = link.decodeGeometry( p1, rc.byteDataReaderGeometry, rc.transferNodeCache  );
+
+    OsmTransferNode transferNode = link.geometry == null ? null
+                  : rc.geometryDecoder.decodeGeometry( link.geometry, p1, link.targetNode, link.counterLinkWritten );
+
     OsmNode targetNode = link.targetNode;
     for(;;)
     {

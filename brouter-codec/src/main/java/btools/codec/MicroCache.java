@@ -135,47 +135,51 @@ public class MicroCache extends ByteDataWriter
     return n > 0 ? fapos[n - 1] & 0x7fffffff : 0;
   }
 
-  public final void collect( int threshold )
+  public final int collect( int threshold )
   {
-    if ( delcount > threshold )
+    if ( delcount <= threshold )
     {
-      virgin = false;
-
-      int nsize = size - delcount;
-      if ( nsize == 0 )
-      {
-        faid = null;
-        fapos = null;
-      }
-      else
-      {
-        int[] nfaid = new int[nsize];
-        int[] nfapos = new int[nsize];
-        int idx = 0;
-
-        byte[] nab = new byte[ab.length - delbytes];
-        int nab_off = 0;
-        for ( int i = 0; i < size; i++ )
-        {
-          int pos = fapos[i];
-          if ( ( pos & 0x80000000 ) == 0 )
-          {
-            int start = startPos( i );
-            int end = fapos[i];
-            int len = end - start;
-            System.arraycopy( ab, start, nab, nab_off, len );
-            nfaid[idx] = faid[i];
-            nab_off += len;
-            nfapos[idx] = nab_off;
-            idx++;
-          }
-        }
-        faid = nfaid;
-        fapos = nfapos;
-        ab = nab;
-      }
-      init( nsize );
+      return 0;
     }
+
+    virgin = false;
+
+    int nsize = size - delcount;
+    if ( nsize == 0 )
+    {
+      faid = null;
+      fapos = null;
+    }
+    else
+    {
+      int[] nfaid = new int[nsize];
+      int[] nfapos = new int[nsize];
+      int idx = 0;
+
+      byte[] nab = new byte[ab.length - delbytes];
+      int nab_off = 0;
+      for ( int i = 0; i < size; i++ )
+      {
+        int pos = fapos[i];
+        if ( ( pos & 0x80000000 ) == 0 )
+        {
+          int start = startPos( i );
+          int end = fapos[i];
+          int len = end - start;
+          System.arraycopy( ab, start, nab, nab_off, len );
+          nfaid[idx] = faid[i];
+          nab_off += len;
+          nfapos[idx] = nab_off;
+          idx++;
+        }
+      }
+      faid = nfaid;
+      fapos = nfapos;
+      ab = nab;
+    }
+    int deleted = delbytes;
+    init( nsize );
+    return deleted;
   }
 
   public final void unGhost()

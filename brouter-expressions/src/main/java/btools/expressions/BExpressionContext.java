@@ -44,6 +44,8 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   private int[] lookupData = new int[0];
 
   private byte[] abBuf = new byte[256];
+  private BitCoderContext ctxEndode  = new BitCoderContext( abBuf );
+  private BitCoderContext ctxDecode = new BitCoderContext( new byte[0] );
   
   private Map<String,Integer> variableNumbers = new HashMap<String,Integer>();
 
@@ -121,11 +123,13 @@ public abstract class BExpressionContext implements IByteArrayUnifier
 
   public byte[] encode( int[] ld )
   {
-	// start with first bit hardwired ("reversedirection")
-	BitCoderContext ctx = new BitCoderContext( abBuf );
+    BitCoderContext ctx = ctxEndode;
+    ctx.reset();
 	
-	int skippedTags = 0;
-	int nonNullTags= 0;
+    int skippedTags = 0;
+    int nonNullTags= 0;
+
+    // (skip first bit ("reversedirection") )
   	
     // all others are generic
     for( int inum = 1; inum < lookupValues.size(); inum++ ) // loop over lookup names
@@ -174,13 +178,16 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     decode( lookupData, false, ab );
     lookupDataValid = true;
   }
+  
+
 
   /**
    * decode a byte-array into a lookup data array
    */
   private void decode( int[] ld, boolean inverseDirection, byte[] ab )
   {
-    BitCoderContext ctx = new BitCoderContext(ab);
+    BitCoderContext ctx = ctxDecode;
+    ctx.reset( ab );
 	  
     // start with first bit hardwired ("reversedirection")
     ld[0] = inverseDirection ? 2 : 0;
