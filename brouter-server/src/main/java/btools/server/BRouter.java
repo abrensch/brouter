@@ -88,7 +88,7 @@ public class BRouter
       }
       System.exit(0);
     }
-    System.out.println("BRouter 1.4.4 / 29082016 / abrensch");
+    System.out.println("BRouter 1.4.6 / 30092016 / abrensch");
     if ( args.length < 6 )
     {
       System.out.println("Find routes in an OSM map");
@@ -155,6 +155,7 @@ public class BRouter
         c.setAlternativeIdx( Integer.parseInt( args[6] ) );
       }
     }
+    c.memoryclass = (int) ( Runtime.getRuntime().maxMemory() / 1024 / 1024 );
     return c;
   }
 }

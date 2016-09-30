@@ -11,8 +11,33 @@ import btools.expressions.BExpressionContextWay;
 import btools.util.ByteArrayUnifier;
 import btools.util.IByteArrayUnifier;
 
-public class OsmNode implements OsmPos
+public class OsmNode extends OsmLink implements OsmPos
 {
+  /**
+   * The latitude
+   */
+  public int ilat;
+
+  /**
+   * The longitude
+   */
+  public int ilon;
+
+  /**
+   * The elevation
+   */
+  public short selev;
+
+  /**
+   * The node-tags, if any
+   */
+  public byte[] nodeDescription;
+
+  /**
+   * The links to other nodes
+   */
+  public OsmLink firstlink = null;
+
   public OsmNode()
   {
   }
@@ -29,22 +54,6 @@ public class OsmNode implements OsmPos
     ilat = (int) ( id & 0xffffffff );
   }
 
-  /**
-   * The latitude
-   */
-  public int ilat;
-
-  /**
-   * The longitude
-   */
-  public int ilon;
-
-  /**
-   * The elevation
-   */
-  public short selev;
-
-  public byte[] nodeDescription;
 
   // interface OsmPos
   public final int getILat()
@@ -67,56 +76,26 @@ public class OsmNode implements OsmPos
     return selev / 4.;
   }
 
-  /**
-   * The links to other nodes
-   */
-  public OsmLink firstlink = null;
-
-  // preliminry in forward order to avoid regressions
-  public final void addLink( OsmLink link )
+  private void addLink( OsmLink link, boolean isReverse, OsmNode tn )
   {
-    if ( firstlink == null )
+    if ( isReverse )
     {
+      link.n1 = tn;
+      link.n2 = this;
+      link.next = tn.firstlink;
+      link.previous = firstlink;
+      tn.firstlink = link;
       firstlink = link;
     }
     else
     {
-      OsmLink l = firstlink;
-      while (l.next != null)
-        l = l.next;
-      l.next = link;
+      link.n1 = this;
+      link.n2 = tn;
+      link.next = firstlink;
+      link.previous = tn.firstlink;
+      tn.firstlink = link;
+      firstlink = link;
     }
-  }
-
-  private OsmLink getCompatibleLink( int ilon, int ilat, boolean counterLinkWritten, int state )
-  {
-    for ( OsmLink l = firstlink; l != null; l = l.next )
-    {
-      if ( counterLinkWritten == l.counterLinkWritten && l.state == state )
-      {
-        OsmNode t = l.targetNode;
-        if ( t.ilon == ilon && t.ilat == ilat )
-        {
-          l.state = 0;
-          return l;
-        }
-      }
-    }
-    // second try ignoring counterLinkWritten
-    // (border links are written in both directions)
-    for ( OsmLink l = firstlink; l != null; l = l.next )
-    {
-      if ( l.state == state )
-      {
-        OsmNode t = l.targetNode;
-        if ( t.ilon == ilon && t.ilat == ilat )
-        {
-          l.state = 0;
-          return l;
-        }
-      }
-    }
-    return null;
   }
 
   public final int calcDistance( OsmPos p )
@@ -154,6 +133,8 @@ public class OsmNode implements OsmPos
     selev = mc.readShort();
     int nodeDescSize = mc.readVarLengthUnsigned();
     nodeDescription = nodeDescSize == 0 ? null : mc.readUnified( nodeDescSize, abUnifier );
+    
+    OsmLink link0 = firstlink;
 
     while (mc.hasMoreData())
     {
@@ -176,47 +157,42 @@ public class OsmNode implements OsmPos
         continue; // skip self-ref
       }
 
-      // first check the known links for that target
-      OsmLink link = getCompatibleLink( linklon, linklat, isReverse, 2 );
-      if ( link == null ) // .. not found, then check the hollow nodes
+      OsmNode tn = null; // find the target node
+      OsmLink link = null;
+
+      // ...in our known links
+      for ( OsmLink l = link0; l != null; l = l.getNext( this ) )
       {
-        OsmNode tn = hollowNodes.get( linklon, linklat ); // target node
+        OsmNode t = l.getTarget( this );
+        if ( t.ilon == linklon && t.ilat == linklat )
+        {
+          tn = t;
+          if ( isReverse || ( l.descriptionBitmap == null && !l.isReverse( this ) ) )
+          {
+            link = l; // the correct one that needs our data
+            break;
+          }
+        }
+      }
+      if ( tn == null ) // .. not found, then check the hollow nodes
+      {
+        tn = hollowNodes.get( linklon, linklat ); // target node
         if ( tn == null ) // node not yet known, create a new hollow proxy
         {
           tn = new OsmNode( linklon, linklat );
           tn.setHollow();
           hollowNodes.put( tn );
+          addLink( link = tn, isReverse, tn ); // technical inheritance: link instance in node
         }
-        link = new OsmLink();
-        link.targetNode = tn;
-        link.counterLinkWritten = isReverse;
-        link.state = 1;
-        addLink( link );
       }
-
-      // now we have a link with a target node -> get the reverse link
-      OsmLink rlink = link.targetNode.getCompatibleLink( ilon, ilat, !isReverse, 1 );
-      if ( rlink == null ) // .. not found, create it
+      if ( link == null )
       {
-        rlink = new OsmLink();
-        rlink.targetNode = this;
-        rlink.counterLinkWritten = !isReverse;
-        rlink.state = 2;
-        link.targetNode.addLink( rlink );
+        addLink( link = new OsmLink(), isReverse, tn );
       }
-
       if ( !isReverse )
       {
-        // we have the data for that link, so fill both the link ..
         link.descriptionBitmap = description;
-        link.setGeometry( geometry );
-
-        // .. and the reverse
-        if ( rlink.counterLinkWritten )
-        {
-          rlink.descriptionBitmap = description;
-          rlink.setGeometry( geometry );
-        }
+        link.geometry = geometry;
       }
     }
     hollowNodes.remove( this );
@@ -240,20 +216,40 @@ public class OsmNode implements OsmPos
 
   public final void unlinkLink( OsmLink link )
   {
+    OsmLink n = link.clear( this );
+  
     if ( link == firstlink )
     {
-      firstlink = link.next;
+      firstlink = n;
       return;
     }
-    for ( OsmLink l = firstlink; l != null; l = l.next )
+    OsmLink l = firstlink;
+    while( l != null )
     {
-      if ( l.next == link )
+      // if ( l.isReverse( this ) )
+      if ( l.n1 != this && l.n1 != null ) // isReverse inline
       {
-        l.next = link.next;
-        return;
+        OsmLink nl = l.previous;
+        if ( nl == link )
+        {
+          l.previous = n;
+          return;
+        }
+        l = nl;
+      }
+      else
+      {
+        OsmLink nl = l.next;
+        if ( nl == link )
+        {
+          l.next = n;
+          return;
+        }
+        l = nl;
       }
     }
   }
+
 
   @Override
   public final boolean equals( Object o )

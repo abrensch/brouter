@@ -31,7 +31,9 @@ final class OsmPath implements OsmLinkHolder
 
   public int airdistance = 0; // distance to endpos
   
-  private OsmNode sourcenode;
+  private OsmNode sourceNode;
+  private OsmNode targetNode;
+
   private OsmLink link;
   public OsmPathElement originElement;
   public OsmPathElement myElement;
@@ -86,10 +88,11 @@ final class OsmPath implements OsmLinkHolder
   {
     this();
     this.link = link;
-    this.selev = link.targetNode.getSElev();
+    targetNode = link.getTarget( null );
+    selev = targetNode.getSElev();
   }
 
-  OsmPath( OsmNode sourcenode, OsmPath origin, OsmLink link, OsmTrack refTrack, boolean detailMode, RoutingContext rc )
+  OsmPath( OsmPath origin, OsmLink link, OsmTrack refTrack, boolean detailMode, RoutingContext rc )
   {
     this();
     if ( origin.myElement == null )
@@ -98,7 +101,8 @@ final class OsmPath implements OsmLinkHolder
     }
     this.originElement = origin.myElement;
     this.link = link;
-    this.sourcenode = sourcenode;
+    this.sourceNode = origin.targetNode;
+    this.targetNode = link.getTarget( sourceNode );
     this.cost = origin.cost;
     this.ehbd = origin.ehbd;
     this.ehbu = origin.ehbu;
@@ -120,7 +124,7 @@ final class OsmPath implements OsmLinkHolder
     int lon0 = origin.originLon;
     int lat0 = origin.originLat;
 
-    OsmNode p1 = origin.link.targetNode;
+    OsmNode p1 = sourceNode;
     int lon1 = p1.getILon();
     int lat1 = p1.getILat();
     short ele1 = origin.selev;
@@ -129,8 +133,10 @@ final class OsmPath implements OsmLinkHolder
 
     MessageData msgData = recordMessageData ? new MessageData() : null;
 
+    boolean isReverse = link.isReverse( sourceNode );
+
     // evaluate the way tags
-    rc.expctxWay.evaluate( rc.inverseDirection ^ link.counterLinkWritten, description );
+    rc.expctxWay.evaluate( rc.inverseDirection ^ isReverse, description );
 
     // calculate the costfactor inputs
     boolean isTrafficBackbone = cost == 0 && rc.expctxWay.getIsTrafficBackbone() > 0.f;
@@ -163,9 +169,8 @@ final class OsmPath implements OsmLinkHolder
 //    OsmTransferNode transferNode = link.decodeGeometry( p1, rc.byteDataReaderGeometry, rc.transferNodeCache  );
 
     OsmTransferNode transferNode = link.geometry == null ? null
-                  : rc.geometryDecoder.decodeGeometry( link.geometry, p1, link.targetNode, link.counterLinkWritten );
+                  : rc.geometryDecoder.decodeGeometry( link.geometry, p1, targetNode, isReverse );
 
-    OsmNode targetNode = link.targetNode;
     for(;;)
     {
       originLon = lon1;
@@ -355,7 +360,7 @@ final class OsmPath implements OsmLinkHolder
         msgData.lon = lon2;
         msgData.lat = lat2;
         msgData.ele = ele2;
-        msgData.wayKeyValues = rc.expctxWay.getKeyValueDescription( link.counterLinkWritten, description );
+        msgData.wayKeyValues = rc.expctxWay.getKeyValueDescription( isReverse, description );
       }
 
       if ( stopAtEndpoint )
@@ -379,7 +384,7 @@ final class OsmPath implements OsmLinkHolder
       if ( transferNode == null )
       {
         // *** penalty for being part of the reference track
-        if ( refTrack != null && refTrack.containsNode( targetNode ) && refTrack.containsNode( origin.link.targetNode ) )
+        if ( refTrack != null && refTrack.containsNode( targetNode ) && refTrack.containsNode( sourceNode ) )
         {
           int reftrackcost = linkdisttotal;
           cost += reftrackcost;
@@ -465,7 +470,12 @@ final class OsmPath implements OsmLinkHolder
 
   public OsmNode getSourceNode()
   {
-    return sourcenode;
+    return sourceNode;
+  }
+
+  public OsmNode getTargetNode()
+  {
+    return targetNode;
   }
 
   public OsmLink getLink()

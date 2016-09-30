@@ -38,6 +38,7 @@ public final class NodesCache
 
   private long cacheSum = 0;
   private long maxmem;
+  private boolean detailed;
   
   private boolean garbageCollectionEnabled = false;
   private boolean ghostCleaningDone = false;
@@ -52,7 +53,7 @@ public final class NodesCache
     return "collecting=" + garbageCollectionEnabled + " noGhosts=" + ghostCleaningDone + " cacheSum=" + cacheSum + " cacheSumClean=" + cacheSumClean + " ghostSum=" + ghostSum + " ghostWakeup=" + ghostWakeup ;
   }
 
-  public NodesCache( String segmentDir, OsmNodesMap nodesMap, BExpressionContextWay ctxWay, boolean forceSecondaryData, long maxmem, NodesCache oldCache )
+  public NodesCache( String segmentDir, OsmNodesMap nodesMap, BExpressionContextWay ctxWay, boolean forceSecondaryData, long maxmem, NodesCache oldCache, boolean detailed )
   {
     this.segmentDir = new File( segmentDir );
     this.nodesMap = nodesMap;
@@ -61,6 +62,12 @@ public final class NodesCache
     this.lookupMinorVersion = ctxWay.meta.lookupMinorVersion;
     this.forceSecondaryData = forceSecondaryData;
     this.maxmem = maxmem;
+    this.detailed = detailed;
+    
+    if ( ctxWay != null )
+    {
+      ctxWay.setDecodeForbidden( detailed );
+    }
 
     first_file_access_failed = false;
     first_file_access_name = null;
@@ -74,16 +81,23 @@ public final class NodesCache
       dataBuffers = oldCache.dataBuffers;
       secondarySegmentsDir = oldCache.secondarySegmentsDir;
 
-      // re-use old, virgin caches
-      fileRows = oldCache.fileRows;
-      for ( OsmFile[] fileRow : fileRows )
+      // re-use old, virgin caches (if same detail-mode)
+      if ( oldCache.detailed == detailed)
       {
-        if ( fileRow == null )
-          continue;
-        for ( OsmFile osmf : fileRow )
+        fileRows = oldCache.fileRows;
+        for ( OsmFile[] fileRow : fileRows )
         {
-          cacheSum += osmf.setGhostState();
+          if ( fileRow == null )
+            continue;
+          for ( OsmFile osmf : fileRow )
+          {
+            cacheSum += osmf.setGhostState();
+          }
         }
+      }
+      else
+      {
+        fileRows = new OsmFile[180][];
       }
     }
     else
@@ -113,7 +127,7 @@ public final class NodesCache
   // clean all ghosts and enable garbage collection
   private void checkEnableCacheCleaning()
   {
-    if ( cacheSum < maxmem || ghostCleaningDone )
+    if ( cacheSum < maxmem )
     {
       return;
     }
@@ -127,7 +141,7 @@ public final class NodesCache
       }
       for ( OsmFile osmf : fileRow )
       {
-        if ( garbageCollectionEnabled )
+        if ( garbageCollectionEnabled && !ghostCleaningDone )
         {
           cacheSum -= osmf.cleanGhosts();
         }
@@ -141,6 +155,7 @@ public final class NodesCache
     if ( garbageCollectionEnabled )
     {
       ghostCleaningDone = true;
+      maxmem *= 2;
     }
     else
     {

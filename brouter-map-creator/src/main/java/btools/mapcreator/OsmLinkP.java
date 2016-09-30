@@ -68,7 +68,7 @@ public class OsmLinkP
       return next;
     }
     else if ( targetNode == source )
-	{
+	  {
       return previous;
     }
     else

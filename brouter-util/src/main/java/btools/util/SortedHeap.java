@@ -1,30 +1,19 @@
 package btools.util;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
 /**
- * Memory efficient Heap to get the lowest-key value of a set of key-object pairs
+ * Memory efficient and lightning fast heap to get the lowest-key value of a set of key-object pairs
  * 
  * @author ab
  */
 public final class SortedHeap<V>
 {
-  private int[][] al;
-  private int[] lv; // low values
-
-  private int[] nextNonEmpty;
-  private int firstNonEmpty;
-  
-  private int[] lp; // the low pointers
-
-  private Object[][] vla; // value list array
-
-  protected static final int MAXLISTS = 28; // enough for size = ca Integer.MAX_VALUE
-
   private int size;
-  private boolean isClear = false;
+  private int peaksize;
+  private SortedBin first;
+  private SortedBin second;
+  private SortedBin firstNonEmpty;
 
   public SortedHeap()
   {
@@ -36,66 +25,111 @@ public final class SortedHeap<V>
    */
   public V popLowestKeyValue()
   {
-    int idx = firstNonEmpty;
-    if ( idx < 0 )
+    SortedBin bin = firstNonEmpty;
+    if ( bin == null )
     {
       return null;
     }
     size--;
-    int minId = lv[idx];
-    int minIdx = idx;
-    for (;;)
+    int minId = bin.lv;
+    SortedBin minBin = bin;
+    while( ( bin = bin.nextNonEmpty ) != null )
     {
-      idx = nextNonEmpty[idx];
-      if ( idx < 0 )
+      if ( bin.lv < minId )
       {
-        return dropLowest( minIdx );
-      }
-      if ( lv[idx] < minId )
-      {
-        minId = lv[idx];
-        minIdx = idx;
+        minId = bin.lv;
+        minBin = bin;
       }
     }
+    return (V) minBin.dropLowest();
   }
 
-  private V dropLowest( int idx )
+  private static final class SortedBin
   {
-    int lp_old = lp[idx]++;
-    int lp_new = lp_old+1;
-    if ( lp_new == 4 << idx )
+    SortedHeap parent;
+    SortedBin next;
+    SortedBin nextNonEmpty;
+    int binsize;
+    int[] al; // key array
+    Object[] vla; // value array
+    int lv; // low value
+    int lp; // low pointer
+    
+    SortedBin( int binsize, SortedHeap parent )
     {
-      unlinkIdx( idx );
+      this.binsize = binsize;
+      this.parent = parent;
+      al = new int[binsize];
+      vla = new Object[binsize];
+      lp = binsize;
     }
-    else
+    
+    SortedBin next()
     {
-      lv[idx] = al[idx][lp_new];
-    }
-    Object[] vlai = vla[idx];
-    V res = (V) vlai[lp_old];
-    vlai[lp_old] = null;
-    return res;
-  }
-  
-  private void unlinkIdx( int idx )
-  {
-    if ( idx == firstNonEmpty )
-    {
-      firstNonEmpty = nextNonEmpty[idx];
-      return;
-    }
-    int i = firstNonEmpty;
-    for(;;)
-    {
-      if ( nextNonEmpty[i] == idx )
+      if ( next == null )
       {
-        nextNonEmpty[i] = nextNonEmpty[idx];
+        next = new SortedBin( binsize << 1, parent );
+      }
+      return next;
+    }
+
+    Object dropLowest()
+    {
+      int lpOld = lp;
+      if ( ++lp == binsize )
+      {
+        unlink();
+      }
+      else
+      {
+        lv = al[lp];
+      }
+      Object res = vla[lpOld];
+      vla[lpOld] = null;
+      return res;
+    }
+
+    void unlink()
+    {
+      SortedBin neBin = parent.firstNonEmpty;
+      if ( neBin == this )
+      {
+        parent.firstNonEmpty = nextNonEmpty;
         return;
       }
-      i = nextNonEmpty[i];
+      for(;;)
+      {
+        SortedBin next = neBin.nextNonEmpty;
+        if ( next == this )
+        {
+          neBin.nextNonEmpty = nextNonEmpty;
+          return;
+        }
+        neBin = next;
+      }
     }
-  }
     
+    void add( int key, Object value )
+    {
+      int p = lp;
+      for(;;)
+      {
+        if ( p == binsize || key < al[p] )
+        {
+          al[p-1] = key;
+          vla[p-1] = value;
+          lv = al[--lp];
+          return;
+        }
+        al[p-1] = al[p];
+        vla[p-1] = vla[p];
+        p++;
+      }
+    }
+    
+
+  }
+      
   /**
    * add a key value pair to the heap
    * 
@@ -106,182 +140,139 @@ public final class SortedHeap<V>
    */
   public void add( int key, V value )
   {
-    isClear = false;
     size++;
 
-    if ( lp[0] == 0 )
+    if ( first.lp == 0 && second.lp == 0) // both full ?
     {
       sortUp();
     }
-    int lp0 = lp[0];
-    
-    int[] al0 = al[0];
-    Object[] vla0 = vla[0];
-      
-    for(;;)
+    if ( first.lp > 0 )
     {
-      if ( lp0 == 4 || key < al0[lp0] )
+      first.add( key, value );
+      if ( firstNonEmpty != first )
       {
-        al0[lp0-1] = key;
-        vla0[lp0-1] = value;
-        lv[0] = al0[--lp[0]];
-        if ( firstNonEmpty != 0 )
-        {
-          nextNonEmpty[0] = firstNonEmpty;
-          firstNonEmpty = 0;
-        }
-        return;
+        first.nextNonEmpty = firstNonEmpty;
+        firstNonEmpty = first;
       }
-      al0[lp0-1] = al0[lp0];
-      vla0[lp0-1] = vla0[lp0];
-      lp0++;
     }
+    else // second bin not full
+    {
+      second.add( key, value );
+      if ( first.nextNonEmpty != second )
+      {
+        second.nextNonEmpty = first.nextNonEmpty;
+        first.nextNonEmpty = second;
+      }
+    }
+      
   }
   
   private void sortUp()
   {
-    // determine the first array big enough to take them all
-    int cnt = 4; // value count up to idx
-    int idx = 1;
-    int n = 8;
-    int nonEmptyCount = 1;
-
-    for ( ;; )
+    if ( size > peaksize )
     {
-      int nentries = n - lp[idx];
+      peaksize = size;
+    }
+  
+    // determine the first array big enough to take them all
+    int cnt = 8; // value count of first 2 bins is always 8
+    SortedBin tbin = second; // target bin
+    SortedBin lastNonEmpty = second;
+    do
+    {
+      tbin = tbin.next();
+      int nentries = tbin.binsize - tbin.lp;
       if ( nentries > 0 )
       {
-        cnt += n - lp[idx];
-        nonEmptyCount++;
+        cnt += nentries;
+        lastNonEmpty = tbin;
       }
-      if ( cnt <= n )
-      {
-        break;
-      }
-      idx++;
-      n <<= 1;
     }
+    while( cnt > tbin.binsize );
 
-    // create, if not yet
-    if ( al[idx] == null )
+    int[] al_t = tbin.al;
+    Object[] vla_t = tbin.vla;
+    int tp = tbin.binsize-cnt; // target pointer
+    
+    // unlink any higher, non-empty arrays
+    SortedBin otherNonEmpty = lastNonEmpty.nextNonEmpty;
+    lastNonEmpty.nextNonEmpty = null;    
+
+    // now merge the content of these non-empty bins into the target bin
+    while( firstNonEmpty != null )
     {
-      al[idx] = new int[n];
-      vla[idx] = new Object[n];
-    }
+      SortedBin ne = firstNonEmpty;
+      SortedBin minBin = ne;
+      int minId = minBin.lv;
 
-    int[] al_t = al[idx];
-    Object[] vla_t = vla[idx];
-    int tp = n-cnt; // target pointer
-
-    // now merge the contents of arrays 0...idx into idx
-    while( nonEmptyCount > 1 )
-    {
-      int neIdx = firstNonEmpty;
-      int minIdx = neIdx;
-      int minId = lv[minIdx];
-
-      for ( int i = 1; i < nonEmptyCount; i++ )
+      while ( ( ne = ne.nextNonEmpty ) != null )
       {
-        neIdx = nextNonEmpty[neIdx];
-        if ( lv[neIdx] < minId )
+        if ( ne.lv < minId )
         {
-          minIdx = neIdx;
-          minId = lv[neIdx];
+          minBin = ne;
+          minId = minBin.lv;
         }
       }
 
       // current minimum found, copy to target array
       al_t[tp] = minId;      
-      vla_t[tp++] = dropLowest( minIdx );
-
-      if ( lp[minIdx] ==  4 << minIdx )
-      {
-        nonEmptyCount--;
-      }
+      vla_t[tp++] = minBin.dropLowest();
     }
 
-    // only one non-empty index left, so just copy the remaining entries
-    if ( firstNonEmpty != idx ) // no self-copy needed
-    {
-      int[] al_s = al[firstNonEmpty];
-      Object[] vla_s = vla[firstNonEmpty];
-      int sp = lp[firstNonEmpty]; // source-pointer      
-      while( sp < 4 << firstNonEmpty )
-      {
-        al_t[tp] = al_s[sp];     
-        vla_t[tp++] = vla_s[sp];
-        vla_s[sp++] = null;
-      }
-      lp[firstNonEmpty] = sp;
-    }
-    unlinkIdx( firstNonEmpty );
-    lp[idx] = n-cnt; // new target low pointer
-    lv[idx] = al[idx][lp[idx]];
-    nextNonEmpty[idx] = firstNonEmpty;
-    firstNonEmpty = idx;
+    tp = tbin.binsize-cnt;
+    tbin.lp = tp; // new target low pointer
+    tbin.lv = tbin.al[tp];
+    tbin.nextNonEmpty = otherNonEmpty;
+    firstNonEmpty = tbin;
   }
 
   public void clear()
   {
-    if ( !isClear )
-    {
-      isClear = true;
-      size = 0;
-
-      lp = new int[MAXLISTS];
-
-      // allocate key lists
-      al = new int[MAXLISTS][];
-      al[0] = new int[4]; // make the first array
-
-      // same for the values
-      vla = new Object[MAXLISTS][];
-      vla[0] = new Object[4];
-
-      lv = new int[MAXLISTS];
-      nextNonEmpty = new int[MAXLISTS];
-
-      firstNonEmpty = -1;
-
-      int n = 4;
-      for ( int idx = 0; idx < MAXLISTS; idx++ )
-      {
-        lp[idx] = n;
-        n <<= 1;
-        nextNonEmpty[idx] = -1; // no next
-      }
-    }
+    size = 0;
+    first = new SortedBin( 4, this );
+    second = new SortedBin( 4, this );
+    firstNonEmpty = null;
+  }
+  
+  public int getSize()
+  {
+    return size;
   }
 
-  public List<V> getExtract()
+  public int getPeakSize()
   {
-    int div = size / 1000 + 1;
+    return peaksize;
+  }
 
-    ArrayList<V> res = new ArrayList<V>( size / div + 1 );
+  public int getExtract( Object[] targetArray )
+  {
+    int tsize = targetArray.length;
+    int div = size / tsize + 1;
+    int tp = 0;
+
     int lpi = 0;
-    for ( int i = 1;; i++ )
+    SortedBin bin = firstNonEmpty;
+    while( bin != null )
     {
-      int[] ali = al[i];
-      if ( ali == null )
-        break;
-      lpi += lp[i];
-      Object[] vlai = vla[i];
-      int n = 4 << i;
+      lpi += bin.lp;
+      Object[] vlai = bin.vla;
+      int n = bin.binsize;
       while (lpi < n)
       {
-        res.add( (V) vla[i][lpi] );
+        targetArray[tp++] = vlai[lpi];
         lpi += div;
       }
       lpi -= n;
+      bin = bin.nextNonEmpty;
     }
-    return res;
+    return tp;
   }
   
   public static void main(String[] args)
   {
     SortedHeap<String> sh = new SortedHeap<String>();
     Random rnd = new Random();
-    for( int i = 0; i< 100; i++ )
+    for( int i = 0; i< 1000; i++ )
     {
       int val = rnd.nextInt( 1000000 );
       sh.add( val, "" + val );

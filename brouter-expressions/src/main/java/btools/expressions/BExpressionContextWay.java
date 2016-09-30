@@ -8,10 +8,10 @@ package btools.expressions;
 
 import btools.codec.TagValueValidator;
 
-
-
 public final class BExpressionContextWay extends BExpressionContext implements TagValueValidator
 {
+  private boolean decodeForbidden = true;
+
   private static String[] buildInVariables =
 	  { "costfactor", "turncost", "uphillcostfactor", "downhillcostfactor", "initialcost", "nodeaccessgranted", "initialclassifier", "trafficsourcedensity", "istrafficbackbone", "priorityclassifier", "classifiermask" };
 	  
@@ -61,6 +61,12 @@ public final class BExpressionContextWay extends BExpressionContext implements T
         minCostFactor = reverseCostFactor;
       }
     }
-    return minCostFactor < 9999.f ? 2 : minCostFactor < 10000.f ? 1 : 0;
+    return minCostFactor < 9999.f ? 2 : decodeForbidden ? (minCostFactor < 10000.f ? 1 : 0) : 0;
+  }
+  
+  @Override
+  public void setDecodeForbidden( boolean decodeForbidden )
+  {
+    this.decodeForbidden= decodeForbidden;
   }
 }

@@ -175,7 +175,7 @@ public final class RoutingContext
       }
       if ( goodGuy ) nogos.add( nogo );
     }
-    nogopoints = nogos;
+    nogopoints = nogos.isEmpty() ? null : nogos;
   }
 
   public long[] getNogoChecksums()

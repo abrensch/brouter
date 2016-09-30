@@ -13,4 +13,5 @@ public interface TagValueValidator
 
   public boolean isLookupIdxUsed( int idx );
 
+  public void setDecodeForbidden( boolean decodeForbidden );
 }

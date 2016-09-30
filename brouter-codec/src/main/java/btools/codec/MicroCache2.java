@@ -56,6 +56,8 @@ public final class MicroCache2 extends MicroCache
     faid = size > dataBuffers.ibuf2.length ? new int[size] : dataBuffers.ibuf2;
     fapos = size > dataBuffers.ibuf3.length ? new int[size] : dataBuffers.ibuf3;
     
+    
+    
     int[] alon =  size > dataBuffers.alon.length ? new int[size] : dataBuffers.alon;
     int[] alat =  size > dataBuffers.alat.length ? new int[size] : dataBuffers.alat;
 
@@ -73,7 +75,9 @@ public final class MicroCache2 extends MicroCache
     int netdatasize = bc.decodeNoisyNumber( 10 );
     ab = netdatasize > dataBuffers.bbuf1.length ? new byte[netdatasize] : dataBuffers.bbuf1;
     aboffset = 0;
-    BitSet validNodes = new BitSet( size );
+
+    int[] validBits = new int[(size+31)>>5];
+
     int finaldatasize = 0;
 
     LinkedListContainer reverseLinks = new LinkedListContainer( size, dataBuffers.ibuf1 );
@@ -130,12 +134,12 @@ public final class MicroCache2 extends MicroCache
           writeVarLengthSigned( dlon_remaining );
           writeVarLengthSigned( dlat_remaining );
 
-          validNodes.set( n, true ); // mark source-node valid
+          validBits[ n >> 5 ] |= 1 << n; // mark source-node valid
           if ( nodeIdx != n ) // valid internal (forward-) link
           {
             reverseLinks.addDataElement( nodeIdx, n ); // register reverse link
             finaldatasize += 1 + aboffset-startPointer; // reserve place for reverse
-            validNodes.set( nodeIdx, true ); // mark target-node valid
+            validBits[ nodeIdx >> 5 ] |= 1 << nodeIdx; // mark target-node valid
           }
           writeModeAndDesc( isReverse, wayTags.data );
         }
@@ -179,15 +183,16 @@ public final class MicroCache2 extends MicroCache
     
     // calculate final data size
     int finalsize = 0;
+    int startpos = 0;
     for( int i=0; i<size; i++ )
     {
-      int startpos = i > 0 ? fapos[i-1] : 0;
       int endpos = fapos[i];
-      if ( validNodes.get( i ) )
+      if ( ( validBits[ i >> 5 ] & (1 << i ) ) != 0 )
       {
       	finaldatasize += endpos-startpos;
       	finalsize++;
       }
+      startpos = endpos;
     }
     // append the reverse links at the end of each node
     byte[] abOld = ab;
@@ -200,34 +205,36 @@ public final class MicroCache2 extends MicroCache
     aboffset = 0;
     size = 0;
 
-    for( int n=0; n<sizeOld; n++ )
+    startpos = 0;
+    for ( int n = 0; n < sizeOld; n++ )
     {
-      if ( !validNodes.get( n ) )
-      {
-      	continue;
-      }
-      int startpos = n > 0 ? faposOld[n-1] : 0;
       int endpos = faposOld[n];
-      int len = endpos-startpos;
-      System.arraycopy( abOld, startpos, ab, aboffset, len );
-      if ( debug ) System.out.println( "*** copied " + len + " bytes from " + aboffset + " for node " + n );
-      aboffset += len;
-
-      int cnt = reverseLinks.initList( n );
-      if ( debug ) System.out.println( "*** appending " + cnt + " reverse links for node " + n );
-
-      for( int ri = 0; ri < cnt; ri++ )
+      if ( ( validBits[ n >> 5 ] & (1 << n ) ) != 0 )
       {
-        int nodeIdx = reverseLinks.getDataElement();
-        int sizeoffset = writeSizePlaceHolder();
-        writeVarLengthSigned( alon[nodeIdx] - alon[n] );
-        writeVarLengthSigned( alat[nodeIdx] - alat[n] );
-        writeModeAndDesc( true, null );
-        injectSize( sizeoffset );
+        int len = endpos - startpos;
+        System.arraycopy( abOld, startpos, ab, aboffset, len );
+        if ( debug )
+          System.out.println( "*** copied " + len + " bytes from " + aboffset + " for node " + n );
+        aboffset += len;
+
+        int cnt = reverseLinks.initList( n );
+        if ( debug )
+          System.out.println( "*** appending " + cnt + " reverse links for node " + n );
+
+        for ( int ri = 0; ri < cnt; ri++ )
+        {
+          int nodeIdx = reverseLinks.getDataElement();
+          int sizeoffset = writeSizePlaceHolder();
+          writeVarLengthSigned( alon[nodeIdx] - alon[n] );
+          writeVarLengthSigned( alat[nodeIdx] - alat[n] );
+          writeModeAndDesc( true, null );
+          injectSize( sizeoffset );
+        }
+        faid[size] = faidOld[n];
+        fapos[size] = aboffset;
+        size++;
       }
-      faid[size] = faidOld[n];
-      fapos[size] = aboffset;
-      size++;
+      startpos = endpos;
     }
     init( size );
   }
