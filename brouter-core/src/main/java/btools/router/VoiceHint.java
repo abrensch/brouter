@@ -148,19 +148,22 @@ public class VoiceHint
   {
     float lowerBadWayAngle = -181;
     float higherBadWayAngle = 181;
-    for ( MessageData badWay : badWays )
+    if ( badWays != null )
     {
-      if ( badWay.isBadOneway() )
+      for ( MessageData badWay : badWays )
       {
-        continue;
-      }
-      if ( lowerBadWayAngle < badWay.turnangle && badWay.turnangle < goodWay.turnangle )
-      {
-        lowerBadWayAngle = badWay.turnangle;
-      }
-      if ( higherBadWayAngle > badWay.turnangle && badWay.turnangle > goodWay.turnangle )
-      {
-        higherBadWayAngle = badWay.turnangle;
+        if ( badWay.isBadOneway() )
+        {
+          continue;
+        }
+        if ( lowerBadWayAngle < badWay.turnangle && badWay.turnangle < goodWay.turnangle )
+        {
+          lowerBadWayAngle = badWay.turnangle;
+        }
+        if ( higherBadWayAngle > badWay.turnangle && badWay.turnangle > goodWay.turnangle )
+        {
+          higherBadWayAngle = badWay.turnangle;
+        }
       }
     }
 
