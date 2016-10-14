@@ -795,6 +795,8 @@ public class RoutingEngine extends Thread
         throw new IllegalArgumentException( "operation killed by thread-priority-watchdog after " + ( System.currentTimeMillis() - startTime)/1000 + " seconds" );
       }
       
+      
+      
       if ( maxRunningTime > 0 )
       {
         long timeout = ( matchPath == null && fastPartialRecalc ) ? maxRunningTime/3 : maxRunningTime;
@@ -815,11 +817,21 @@ public class RoutingEngine extends Thread
         continue;
       }
 
-      if ( matchPath != null && fastPartialRecalc && firstMatchCost < 500 && path.cost > 30L*firstMatchCost
-          && !costCuttingTrack.isDirty )
+      if ( fastPartialRecalc && matchPath != null && path.cost > 30L*firstMatchCost && !costCuttingTrack.isDirty )
       {
         logInfo( "early exit: firstMatchCost=" + firstMatchCost + " path.cost=" + path.cost );
-        throw new IllegalArgumentException( "early exit for a close recalc" );
+
+        // use an early exit, unless there's a realistc chance to complete within the timeout
+        if ( path.cost > maxTotalCost/2 &&  System.currentTimeMillis() - startTime < maxRunningTime/3  )
+        {
+          logInfo( "early exit supressed, running for completion, resetting timeout" );
+          startTime = System.currentTimeMillis();
+          fastPartialRecalc = false;
+        }
+        else
+        {
+          throw new IllegalArgumentException( "early exit for a close recalc" );
+        }
       }
       
       if ( nodeLimit > 0 ) // check node-limit for target island search
