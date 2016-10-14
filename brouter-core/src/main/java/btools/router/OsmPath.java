@@ -90,6 +90,9 @@ final class OsmPath implements OsmLinkHolder
     this.link = link;
     targetNode = link.getTarget( null );
     selev = targetNode.getSElev();
+
+    originLon = -1;
+    originLat = -1;
   }
 
   OsmPath( OsmPath origin, OsmLink link, OsmTrack refTrack, boolean detailMode, RoutingContext rc )
@@ -217,6 +220,9 @@ final class OsmPath implements OsmLinkHolder
           cost = 0;
           ehbd = 0;
           ehbu = 0;
+          lon0 = -1; // reset turncost-pipe
+          lat0 = -1;
+
           if ( recordTransferNodes )
           {
             if (  rc.wayfraction > 0. )
@@ -237,8 +243,20 @@ final class OsmPath implements OsmLinkHolder
       }
       linkdisttotal += dist;
 
+      // apply a start-direction if appropriate (by faking the origin position)
+      if ( lon0 == -1 && lat0 == -1 )
+      {
+        double coslat = Math.cos( ( lat1 - 90000000 ) * 0.00000001234134 );
+        if ( rc.startDirectionValid && coslat > 0. )
+        {
+          double dir = rc.startDirection.intValue() / 57.29578;
+          lon0 = lon1 - (int) ( 1000. * Math.sin( dir ) / coslat );
+          lat0 = lat1 - (int) ( 1000. * Math.cos( dir ) );
+        }
+      }
+
       // *** penalty for turning angles
-      if ( !isTrafficBackbone && origin.originElement != null )
+      if ( !isTrafficBackbone && lon0 != -1 && lat0 != -1 )
       {
         // penalty proportional to direction change
         double cos = rc.calcCosAngle( lon0, lat0, lon1, lat1, lon2, lat2 );

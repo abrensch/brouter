@@ -115,6 +115,9 @@ public final class RoutingContext
   public List<OsmNodeNamed> nogopoints = null;
   private List<OsmNodeNamed> keepnogopoints = null;
 
+  public Integer startDirection;
+  public boolean startDirectionValid;
+
   private double coslat;
   public boolean nogomatch = false;
   public boolean isEndpoint = false;

@@ -60,6 +60,12 @@ public class BRouterWorker
         rc.turnInstructionMode = 2;
       }
     }
+
+    if ( params.containsKey( "direction" ) )
+    {
+      rc.startDirection = Integer.valueOf( params.getInt( "direction" ) );
+    }
+
     if ( nogoList != null )
     {
       rc.prepareNogoPoints( nogoList );

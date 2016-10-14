@@ -156,6 +156,7 @@ public class BRouter
       }
     }
     c.memoryclass = (int) ( Runtime.getRuntime().maxMemory() / 1024 / 1024 );
+    // c.startDirection= Integer.valueOf( 150 );
     return c;
   }
 }

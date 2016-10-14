@@ -760,6 +760,11 @@ public class RoutingEngine extends Thread
 
     if ( start1 == null || start2 == null ) return null;
 
+    if ( routingContext.startDirectionValid = ( fastPartialRecalc && routingContext.startDirection != null ) )
+    {
+      logInfo( "using start direction " + routingContext.startDirection );
+    }
+
     OsmPath startPath1 = getStartPath( start1, start2, startWp, endPos, sameSegmentSearch );
     OsmPath startPath2 = getStartPath( start2, start1, startWp, endPos, sameSegmentSearch );
 
