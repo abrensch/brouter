@@ -6,6 +6,7 @@
 package btools.router;
 
 import java.io.DataOutput;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +35,7 @@ public final class RoutingContext
   {
     String name = localFunction == null ? "unknown" : localFunction;
     if ( name.endsWith( ".brf" ) ) name = name.substring( 0, localFunction.length() - 4 );
-    int idx = name.lastIndexOf( '/' );
+    int idx = name.lastIndexOf( File.separatorChar );
     if ( idx >= 0 ) name = name.substring( idx+1 );
     return name;
   }
