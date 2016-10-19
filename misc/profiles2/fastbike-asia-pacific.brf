@@ -94,21 +94,27 @@ assign accesspenalty
 #
 # handle one-ways. On primary roads, wrong-oneways should
 # be close to forbidden, while on other ways we just add
-# 4 to the costfactor (making it at least 5 - you are allowed
+# 6 to the costfactor (making it at least 7 - you are allowed
 # to push your bike)
 #
-assign oneway
-       switch oneway=
-              junction=roundabout
-              or oneway=yes or oneway=true oneway=1
-assign onewaypenalty
-       switch switch reversedirection=yes oneway oneway=-1
-        switch or cycleway=opposite or cycleway=opposite_lane or cycleway=opposite_track oneway:bicycle=no 0
-        switch or highway=primary highway=primary_link 50
-        switch or highway=secondary highway=secondary_link 30
-        switch or highway=tertiary highway=tertiary_link 20
-        6.0
-       0.0
+assign badoneway =
+       if reversedirection=yes then
+         if oneway:bicycle=yes then true
+         else if oneway= then junction=roundabout
+         else oneway=yes|true|1
+       else oneway=-1
+
+assign onewaypenalty =
+       if ( badoneway ) then
+       (
+         if ( cycleway=opposite|opposite_lane|opposite_track ) then 0
+         else if ( oneway:bicycle=no                         ) then 0
+         else if ( highway=primary|primary_link              ) then 50
+         else if ( highway=secondary|secondary_link          ) then 30
+         else if ( highway=tertiary|tertiary_link            ) then 20
+         else 6.0
+       )
+       else 0.0
 
 assign costfactor
 
