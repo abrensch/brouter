@@ -133,7 +133,9 @@ assign accesspenalty =
 #
 assign badoneway =
        if reversedirection=yes then
-         if oneway= then junction=roundabout else oneway=yes|true|1
+         if oneway:bicycle=yes then true
+         else if oneway= then junction=roundabout
+         else oneway=yes|true|1
        else oneway=-1
 
 assign onewaypenalty =
