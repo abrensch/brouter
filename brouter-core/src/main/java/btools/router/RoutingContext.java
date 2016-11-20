@@ -53,6 +53,7 @@ public final class RoutingContext
   public int uphillcutoff;
   public boolean carMode;
   public boolean bikeMode;
+  public boolean considerTurnRestrictions;
   public boolean forceSecondaryData;
   public double pass1coefficient;
   public double pass2coefficient;
@@ -79,6 +80,9 @@ public final class RoutingContext
     if ( uphillcostdiv != 0 ) uphillcostdiv = 1000000/uphillcostdiv;
     carMode = 0.f != expctxGlobal.getVariableValue( "validForCars", 0.f );
     bikeMode = 0.f != expctxGlobal.getVariableValue( "validForBikes", 0.f );
+
+    // turn-restrictions used per default for car profiles
+    considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue( "considerTurnRestrictions", carMode ? 1.f : 0.f );
 
     forceSecondaryData = 0.f != expctxGlobal.getVariableValue( "forceSecondaryData", 0.f );
     pass1coefficient = expctxGlobal.getVariableValue( "pass1coefficient", 1.5f );

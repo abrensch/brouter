@@ -164,4 +164,8 @@ public abstract class MapCreatorBase implements WayListener, NodeListener, Relat
 
   @Override
   public void nextRelation( RelationData data ) throws Exception {}
+
+  @Override
+  public void nextRestriction( RelationData data, long fromWid, long toWid, long viaNid ) throws Exception {}
+
 }

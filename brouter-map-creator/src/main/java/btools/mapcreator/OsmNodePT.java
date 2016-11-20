@@ -1,5 +1,5 @@
 /**
- * Container for an osm node with tags (pre-pocessor version)
+ * Container for an osm node with tags or restrictions (pre-pocessor version)
  *
  * @author ab
  */
@@ -10,8 +10,18 @@ public class OsmNodePT extends OsmNodeP
 {
     public byte[] descriptionBits;
 
+    public RestrictionData firstRestriction;
+    
     public OsmNodePT()
     {
+    }
+
+    public OsmNodePT( OsmNodeP n )
+    {
+      ilat = n.ilat;
+      ilon = n.ilon;
+      selev = n.selev;
+      bits = n.bits;
     }
 
     public OsmNodePT( byte[] descriptionBits )
@@ -23,6 +33,12 @@ public class OsmNodePT extends OsmNodeP
     public final byte[] getNodeDecsription()
     {
       return descriptionBits;
+    }
+
+    @Override
+    public final RestrictionData getFirstRestriction()
+    {
+      return firstRestriction;
     }
 
     @Override

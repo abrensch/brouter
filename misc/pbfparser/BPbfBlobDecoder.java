@@ -210,12 +210,17 @@ public class BPbfBlobDecoder
         }
     }
 
+    private long fromWid;
+    private long toWid;
+    private long viaNid;
+
     private LongList buildRelationMembers(
             List<Long> memberIds, List<Integer> memberRoles, List<Osmformat.Relation.MemberType> memberTypes,
             BPbfFieldDecoder fieldDecoder )
     {
         LongList wayIds = new LongList( 16 );
 
+        fromWid = toWid = viaNid = 0;
 
         Iterator<Long> memberIdIterator = memberIds.iterator();
         Iterator<Integer> memberRoleIterator = memberRoles.iterator();
@@ -235,6 +240,12 @@ public class BPbfBlobDecoder
             if ( memberType == Osmformat.Relation.MemberType.WAY ) // currently just waymembers
             {
               wayIds.add( refId );
+              if ( "from".equals( role ) ) fromWid = refId;
+              if ( "to".equals( role ) ) toWid = refId;
+            }
+            if ( memberType == Osmformat.Relation.MemberType.NODE ) // currently just waymembers
+            {
+              if ( "via".equals( role ) ) viaNid = refId;
             }
         }
         return wayIds;
@@ -249,7 +260,7 @@ public class BPbfBlobDecoder
             LongList wayIds = buildRelationMembers( relation.getMemidsList(), relation.getRolesSidList(),
                     relation.getTypesList(), fieldDecoder);
 
-            parser.addRelation( relation.getId(), tags, wayIds );
+            parser.addRelation( relation.getId(), tags, wayIds, fromWid, toWid, viaNid );
         }
     }
 

@@ -92,7 +92,7 @@ public class OsmParser extends MapCreatorBase
     } 
   }
 
-  public void addRelation( long rid, Map<String, String> tags, LongList wayIds )
+  public void addRelation( long rid, Map<String, String> tags, LongList wayIds, long fromWid, long toWid, long viaNid )
   {
     RelationData r = new RelationData( rid, wayIds );
     r.setTags( (HashMap<String,String>)tags );
@@ -100,6 +100,7 @@ public class OsmParser extends MapCreatorBase
     try
     {
       rListener.nextRelation( r );
+      rListener.nextRestriction( r, fromWid, toWid, viaNid );
     }
     catch( Exception e )
     {

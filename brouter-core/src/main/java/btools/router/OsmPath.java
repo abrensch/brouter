@@ -11,6 +11,7 @@ import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmTransferNode;
+import btools.mapaccess.TurnRestriction;
 
 final class OsmPath implements OsmLinkHolder
 {
@@ -174,6 +175,8 @@ final class OsmPath implements OsmLinkHolder
     OsmTransferNode transferNode = link.geometry == null ? null
                   : rc.geometryDecoder.decodeGeometry( link.geometry, p1, targetNode, isReverse );
 
+    boolean isFirstSection = true;
+
     for(;;)
     {
       originLon = lon1;
@@ -195,7 +198,44 @@ final class OsmPath implements OsmLinkHolder
         lat2 = transferNode.ilat;
         ele2 = transferNode.selev;
       }
-      
+
+      // check turn restrictions: do we have one with that origin?
+      if ( isFirstSection && rc.considerTurnRestrictions )
+      {
+        isFirstSection = false;
+        boolean hasAnyPositive = false;
+        boolean hasPositive = false;
+        boolean hasNegative = false;
+        TurnRestriction tr = sourceNode.firstRestriction;
+        while( tr != null )
+        {
+          if ( tr.fromLon == lon0 && tr.fromLat == lat0 )
+          {
+            if ( tr.isPositive )
+            {
+              hasAnyPositive = true;
+            }
+            if ( tr.toLon == lon2 && tr.toLat == lat2 )
+            {
+              if ( tr.isPositive )
+              {
+                hasPositive = true;
+              }
+              else
+              {
+                hasNegative = true;
+              }
+            }
+          }
+          tr = tr.next;
+        }
+        if ( !hasPositive && ( hasAnyPositive || hasNegative ) )
+        {
+          cost = -1;
+          return;
+        }
+      }
+
       // if recording, new MessageData for each section (needed for turn-instructions)
       if ( recordMessageData && msgData.wayKeyValues != null )
       {

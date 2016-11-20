@@ -96,6 +96,11 @@ public class OsmNodeP extends OsmLinkP
     return null;
   }
 
+  public RestrictionData getFirstRestriction()
+  {
+    return null;
+  }
+
   public void writeNodeData( MicroCache mc ) throws IOException
   {
     boolean valid = true;
@@ -164,6 +169,21 @@ public class OsmNodeP extends OsmLinkP
   public boolean writeNodeData2( MicroCache2 mc ) throws IOException
   {
     boolean hasLinks = false;
+    
+    // write turn restrictions
+    RestrictionData r = getFirstRestriction();
+    while( r != null )
+    {
+      mc.writeBoolean( true ); // restriction follows
+      mc.writeBoolean( r.isPositive );
+      mc.writeInt( r.fromLon );
+      mc.writeInt( r.fromLat );
+      mc.writeInt( r.toLon );
+      mc.writeInt( r.toLat );
+      r = r.next;
+    }
+    mc.writeBoolean( false ); // end restritions
+
     mc.writeShort( getSElev() );
     mc.writeVarBytes( getNodeDecsription() );
 

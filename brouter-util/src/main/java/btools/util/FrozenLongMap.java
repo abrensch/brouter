@@ -33,9 +33,22 @@ public class FrozenLongMap<V> extends CompactLongMap<V>
   @Override
   public boolean put( long id, V value )
   {
-    throw new RuntimeException( "cannot put on FrozenLongIntMap" );
+    try
+    {    
+      value_in = value;
+      if ( contains( id, true ) )
+      {
+        return true;
+      }
+      throw new RuntimeException( "cannot only put on existing key in FrozenLongIntMap" );
+    }
+    finally
+    {
+      value_in = null;
+      value_out = null;
+    }
   }
-
+    
   @Override
   public void fastPut( long id, V value )
   {
@@ -79,14 +92,17 @@ public class FrozenLongMap<V> extends CompactLongMap<V>
     if ( a[n] == id )
     {
       value_out = flv.get(n);
+      if ( doPut )
+      {
+        flv.set( n, value_in );
+      }
       return true;
     }
     return false;
   }
 
   /**
-   * @return the value for "id",
-   * Throw an exception if not contained in the map.
+   * @return the value for "id", or null if key unknown
    */
   @Override
   public V get( long id )

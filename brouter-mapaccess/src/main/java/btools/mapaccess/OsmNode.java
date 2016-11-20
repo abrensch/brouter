@@ -32,6 +32,8 @@ public class OsmNode extends OsmLink implements OsmPos
    * The node-tags, if any
    */
   public byte[] nodeDescription;
+  
+  public TurnRestriction firstRestriction;
 
   /**
    * The links to other nodes
@@ -129,6 +131,22 @@ public class OsmNode extends OsmLink implements OsmPos
   public final void parseNodeBody2( MicroCache2 mc, OsmNodesMap hollowNodes, IByteArrayUnifier expCtxWay )
   {
     ByteArrayUnifier abUnifier = hollowNodes.getByteArrayUnifier();
+    
+    // read turn restrictions
+    while( mc.readBoolean() )
+    {
+      TurnRestriction tr = new TurnRestriction();
+      tr.isPositive =  mc.readBoolean();
+      tr.fromLon = mc.readInt();
+      tr.fromLat = mc.readInt();
+      tr.toLon = mc.readInt();
+      tr.toLat = mc.readInt();
+      tr.next = firstRestriction;
+      firstRestriction = tr;
+
+System.out.println( "decoded tr: " + tr ); 
+
+    }
 
     selev = mc.readShort();
     int nodeDescSize = mc.readVarLengthUnsigned();

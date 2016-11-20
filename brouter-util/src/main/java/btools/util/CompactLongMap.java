@@ -21,7 +21,7 @@ public class CompactLongMap<V>
   private int size = 0;
   private int _maxKeepExponent = 14; // the maximum exponent to keep the invalid arrays
 
-  private V value_in;
+  protected V value_in;
   protected V value_out;
 
   protected static final int MAXLISTS = 31; // enough for size Integer.MAX_VALUE

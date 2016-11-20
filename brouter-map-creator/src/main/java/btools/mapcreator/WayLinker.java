@@ -1,8 +1,12 @@
 package btools.mapcreator;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.RandomAccessFile;
 import java.util.List;
 import java.util.TreeMap;
@@ -34,6 +38,7 @@ public class WayLinker extends MapCreatorBase
   private File trafficTilesIn;
   private File dataTilesOut;
   private File borderFileIn;
+  private File restrictionsFileIn;
 
   private String dataTilesSuffix;
 
@@ -70,23 +75,24 @@ public class WayLinker extends MapCreatorBase
   public static void main( String[] args ) throws Exception
   {
     System.out.println( "*** WayLinker: Format a region of an OSM map for routing" );
-    if ( args.length != 7 )
+    if ( args.length != 8 )
     {
       System.out
-          .println( "usage: java WayLinker <node-tiles-in> <way-tiles-in> <bordernodes> <lookup-file> <profile-file> <data-tiles-out> <data-tiles-suffix> " );
+          .println( "usage: java WayLinker <node-tiles-in> <way-tiles-in> <bordernodes> <restrictions> <lookup-file> <profile-file> <data-tiles-out> <data-tiles-suffix> " );
       return;
     }
-    new WayLinker().process( new File( args[0] ), new File( args[1] ), new File( args[2] ), new File( args[3] ), new File( args[4] ), new File(
-        args[5] ), args[6] );
+    new WayLinker().process( new File( args[0] ), new File( args[1] ), new File( args[2] ), new File( args[3] ), new File( args[4] ), new File( args[5] ), new File(
+        args[6] ), args[7] );
   }
 
-  public void process( File nodeTilesIn, File wayTilesIn, File borderFileIn, File lookupFile, File profileFile, File dataTilesOut,
+  public void process( File nodeTilesIn, File wayTilesIn, File borderFileIn, File restrictionsFileIn, File lookupFile, File profileFile, File dataTilesOut,
       String dataTilesSuffix ) throws Exception
   {
     this.nodeTilesIn = nodeTilesIn;
     this.trafficTilesIn = new File( "traffic" );
     this.dataTilesOut = dataTilesOut;
     this.borderFileIn = borderFileIn;
+    this.restrictionsFileIn = restrictionsFileIn;
     this.dataTilesSuffix = dataTilesSuffix;
 
     BExpressionMetaData meta = new BExpressionMetaData();
@@ -135,6 +141,36 @@ public class WayLinker extends MapCreatorBase
       // freeze the nodes-map
       FrozenLongMap<OsmNodeP> nodesMapFrozen = new FrozenLongMap<OsmNodeP>( nodesMap );
       nodesMap = nodesMapFrozen;
+
+      // read restrictions for nodes in nodesMap
+      DataInputStream di = new DataInputStream( new BufferedInputStream ( new FileInputStream( restrictionsFileIn ) ) );
+      int ntr = 0;
+      try
+      {
+        for(;;)
+        {
+          RestrictionData res = new RestrictionData( di );
+          OsmNodeP n = nodesMap.get( res.viaNid );
+          if ( n != null )
+          {
+            if ( ! ( n instanceof OsmNodePT ) )
+            {
+              n = new OsmNodePT( n );
+              nodesMap.put( res.viaNid, n );
+            }
+            OsmNodePT nt = (OsmNodePT) n;
+            res.next = nt.firstRestriction;
+            nt.firstRestriction = res;
+            ntr++;
+          }
+        }
+      }
+      catch( EOFException eof )
+      {
+        di.close();
+      }
+      System.out.println( "read " + ntr + " turn-restrictions" );
+
       nodesList = nodesMapFrozen.getValueList();
     }
 
@@ -178,6 +214,43 @@ public class WayLinker extends MapCreatorBase
       throw new IllegalArgumentException( "inconsistent node: " + n.ilon + " " + n.ilat );
   }
 
+  // check if one of the nodes has a turn-restriction with
+  // the current way as from or to member.
+  // It seems to be required, that each member of a turn-restriction
+  // starts or ends at it's via node. However, we allow
+  // ways not ending at the via node, and in this case we take
+  // the leg according to the mapped direction
+  private void checkRestriction( OsmNodeP n1, OsmNodeP n2, WayData w )
+  {
+    checkRestriction( n1, n2, w.wid, true );
+    checkRestriction( n2, n1, w.wid, false );
+  }
+
+  private void checkRestriction( OsmNodeP n1, OsmNodeP n2, long wid, boolean checkFrom )
+  {
+    RestrictionData r = n2.getFirstRestriction();
+    while ( r != null )
+    {
+      if ( r.fromWid == wid )
+      {
+        if ( r.fromLon == 0 || checkFrom )
+        {
+          r.fromLon = n1.ilon;
+          r.fromLat = n1.ilat;
+        }
+      }
+      if ( r.toWid == wid )
+      {
+        if ( r.toLon == 0 || !checkFrom )
+        {
+          r.toLon = n1.ilon;
+          r.toLat = n1.ilat;
+        }
+      }
+      r = r.next;
+    }
+  }
+
   @Override
   public void nextWay( WayData way ) throws Exception
   {
@@ -209,6 +282,8 @@ public class WayLinker extends MapCreatorBase
 
       if ( n1 != null && n2 != null && n1 != n2 )
       {
+        checkRestriction( n1, n2, way );
+      
         OsmLinkP link = n2.createLink( n1 );
 
         int traffic = trafficMap == null ? 0 : trafficMap.getTrafficClass( n1.getIdFromPos(), n2.getIdFromPos() );

@@ -27,14 +27,15 @@ public class OsmCutter extends MapCreatorBase
 
   private DataOutputStream wayDos;
   private DataOutputStream cyclewayDos;
+  private DataOutputStream restrictionsDos;
 
   public static void main(String[] args) throws Exception
   {
     System.out.println("*** OsmCutter: cut an osm map in node-tiles + a way file");
-    if (args.length != 5 && args.length != 6)
+    if (args.length != 6 && args.length != 7)
     {
-      System.out.println("usage: bzip2 -dc <map> | java OsmCutter <lookup-file> <out-tile-dir> <out-way-file> <out-rel-file> <filter-profile>");
-      System.out.println("or   : java OsmCutter <lookup-file> <out-tile-dir> <out-way-file> <out-rel-file> <filter-profile> <inputfile> ");
+      System.out.println("usage: bzip2 -dc <map> | java OsmCutter <lookup-file> <out-tile-dir> <out-way-file> <out-rel-file> <out-res-file> <filter-profile>");
+      System.out.println("or   : java OsmCutter <lookup-file> <out-tile-dir> <out-way-file> <out-rel-file> <out-res-file> <filter-profile> <inputfile> ");
       return;
     }
 
@@ -44,7 +45,8 @@ public class OsmCutter extends MapCreatorBase
                  , new File( args[2] )
                  , new File( args[3] )
                  , new File( args[4] )
-                 , args.length > 5 ? new File( args[5] ) : null
+                 , new File( args[5] )
+                 , args.length > 6 ? new File( args[6] ) : null
                 		 );
   }
 
@@ -54,7 +56,7 @@ public class OsmCutter extends MapCreatorBase
   private BExpressionContextWay _expctxWayStat;
   private BExpressionContextNode _expctxNodeStat;
 
-  public void process (File lookupFile, File outTileDir, File wayFile, File relFile, File profileFile, File mapFile ) throws Exception
+  public void process (File lookupFile, File outTileDir, File wayFile, File relFile, File resFile, File profileFile, File mapFile ) throws Exception
   {
     if ( !lookupFile.exists() )
     {
@@ -77,6 +79,7 @@ public class OsmCutter extends MapCreatorBase
 
     wayDos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( wayFile ) ) );
     cyclewayDos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( relFile ) ) );
+    restrictionsDos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( resFile ) ) );
 
     // read the osm map into memory
     long t0 = System.currentTimeMillis();
@@ -89,11 +92,12 @@ public class OsmCutter extends MapCreatorBase
     closeTileOutStreams();
     wayDos.close();
     cyclewayDos.close();
+    restrictionsDos.close();
 
-    System.out.println( "-------- way-statistics -------- " );
-    _expctxWayStat.dumpStatistics();
-    System.out.println( "-------- node-statistics -------- " );
-    _expctxNodeStat.dumpStatistics();
+//    System.out.println( "-------- way-statistics -------- " );
+//    _expctxWayStat.dumpStatistics();
+//    System.out.println( "-------- node-statistics -------- " );
+//    _expctxNodeStat.dumpStatistics();
 
     System.out.println( statsLine() );
   }
@@ -194,6 +198,41 @@ public class OsmCutter extends MapCreatorBase
     writeId( cyclewayDos, -1 );
   }
 
+  @Override
+  public void nextRestriction( RelationData r, long fromWid, long toWid, long viaNid ) throws Exception
+  {
+    if ( fromWid == 0 || toWid == 0 || viaNid == 0 )
+    {
+      return;
+    }
+    String type = r.getTag( "type" );
+    if ( type == null || !"restriction".equals( type ) )
+    {
+      return;
+    }
+    String restriction = r.getTag( "restriction" );
+    if ( restriction == null )
+    {
+      return;
+    }
+    boolean isPositive = true;
+    if ( restriction.startsWith( "no_" ) )
+    {
+      isPositive = false;
+    }
+    else if ( !restriction.startsWith( "only_" ) )
+    {
+      return;
+    }
+    // System.out.println( "restriction id = " + r.rid + " isPositive=" + isPositive + " fromWid = " + fromWid + " toWid = " + toWid+ " viaNid = " + viaNid );
+    RestrictionData res = new RestrictionData();
+    res.isPositive = isPositive;
+    res.fromWid = fromWid;
+    res.toWid = toWid;
+    res.viaNid = viaNid;
+    res.writeTo( restrictionsDos );
+    
+  }
 
   private int getTileIndex( int ilon, int ilat )
   {

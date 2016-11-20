@@ -1,6 +1,5 @@
 package btools.codec;
 
-import java.util.BitSet;
 import java.util.HashMap;
 
 import btools.util.ByteDataReader;
@@ -88,14 +87,33 @@ public final class MicroCache2 extends MicroCache
       int ilon = alon[n];
       int ilat = alat[n];
     
-      // future feature escape (turn restrictions?)
+      // future escapes (turn restrictions?)
       for(;;)
       {
         int featureId = bc.decodeVarBits();
         if ( featureId == 0 ) break;
         int bitsize = bc.decodeNoisyNumber( 5 );
-        for( int i=0; i< bitsize; i++ ) bc.decodeBit(); // just skip
+
+        if ( featureId == 1 ) // turn-restriction
+        {
+          if ( bitsize !=  1 + 4*29 )
+          {
+            throw new RuntimeException( "turn-restriction of unexpected bit-size: " + bitsize );
+          }
+          writeBoolean( true );
+          writeBoolean( bc.decodeBit() ); // isPositive
+          int max = (1 << 29) - 1;
+          writeInt( bc.decodeBounded( max ) ); // fromLon, ...
+          writeInt( bc.decodeBounded( max ) );
+          writeInt( bc.decodeBounded( max ) );
+          writeInt( bc.decodeBounded( max ) );
+        }
+        else
+        {
+          for( int i=0; i< bitsize; i++ ) bc.decodeBit(); // unknown feature, just skip
+        }
       }
+      writeBoolean( false );
 
       selev += nodeEleDiff.decodeSignedValue();
       writeShort( (short) selev );
@@ -341,9 +359,23 @@ public final class MicroCache2 extends MicroCache
         aboffset = startPos( n );
         aboffsetEnd = fapos[n];
         if ( dodebug ) System.out.println( "*** encoding node " + n + " from " + aboffset + " to " + aboffsetEnd );
-   
-        // future feature escape (turn restrictions?)
-        bc.encodeVarBits( 0 );
+
+        // write turn restrictions
+        while( readBoolean() )
+        {
+          bc.encodeVarBits( 1 ); // 1 = extra-data type : turn-restriction
+          bc.encodeNoisyNumber( 1 + 4*29, 5 );
+
+          bc.encodeBit( readBoolean() ); // isPositive
+          int max = (1 << 29) - 1;
+          bc.encodeBounded( max, readInt() ); // fromLon
+          bc.encodeBounded( max, readInt() ); // fromLat
+          bc.encodeBounded( max, readInt() ); // toLon
+          bc.encodeBounded( max, readInt() ); // toLat
+        }
+        bc.encodeVarBits( 0 ); // end of extra data
+
+        if ( dostats ) bc.assignBits( "extradata" );
 
         int selev = readShort();
         nodeEleDiff.encodeSignedValue( selev - lastSelev );
