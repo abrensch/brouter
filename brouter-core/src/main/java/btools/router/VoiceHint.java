@@ -127,7 +127,7 @@ public class VoiceHint
   {
     switch ( cmd )
     {
-      case TU   : return 12;
+      case TU   : return 13;
       case TSHL : return 5;
       case TL   : return 4;
       case TSLL : return 3;
@@ -137,7 +137,7 @@ public class VoiceHint
       case TSLR : return 6;
       case TR   : return 7;
       case TSHR : return 8;
-      case TRU  : return 12;
+      case TRU  : return 14;
       case RNDB : return 26 + roundaboutExit;
       case RNLB : return 26 - roundaboutExit;
       default : throw new IllegalArgumentException( "unknown command: " + cmd );
