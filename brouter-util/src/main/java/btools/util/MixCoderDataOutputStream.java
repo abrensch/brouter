@@ -12,54 +12,41 @@ import java.io.OutputStream;
 
 public final class MixCoderDataOutputStream extends DataOutputStream
 {
-  private long lastValue;
-  private long lastLastValue;
-  private long repCount;
-  private boolean doFlush;
+  private int lastValue;
+  private int lastLastValue;
+  private int repCount;
+  private int diffshift;
+
+  private int bm = 1; // byte mask (write mode)
+  private int b = 0;
+
+  public static int[] diffs = new int[100];
+  public static int[] counts = new int[100];
 
   public MixCoderDataOutputStream( OutputStream os )
   {
      super( os );
   }
 
-  public void writeSigned( long v ) throws IOException
-  {
-    writeUnsigned( v < 0 ? ( (-v) << 1 ) | 1 : v << 1 );
-  }
-
-  public void writeUnsigned( long v ) throws IOException
-  {
-    if ( v < 0 ) throw new IllegalArgumentException(  "writeUnsigned: " + v );
-    do
-    {
-      long i7 = v & 0x7f;
-      v >>= 7;
-      if ( v != 0 ) i7 |= 0x80;
-      writeByte( (byte)( i7 & 0xff ) );
-    }
-    while( v != 0 );
-  }
-
-  public void writeMixed( long v ) throws IOException
+  public void writeMixed( int v ) throws IOException
   {
     if ( v != lastValue && repCount > 0 )
     {
-      long d = lastValue - lastLastValue;
+      int d = lastValue - lastLastValue;
       lastLastValue = lastValue;
-
-      // if diff fits within 6 bits and rep-count < 4, write a single byte
-      int repCode = repCount < 4 ? (int)repCount : 0;
-      int diffcode = (int)(d > -32 && d < 32 ? d+32 : 0);
-
-      writeByte( (byte)( diffcode | repCode << 6 ) );
-      if ( repCode == 0)
+      
+      encodeBit( d < 0 );
+      if ( d < 0 )
       {
-        writeUnsigned( repCount );
+        d = -d;
       }
-      if ( diffcode == 0)
-      {
-        writeSigned( d );
-      }
+      encodeVarBits( d-diffshift );
+      encodeVarBits( repCount-1 );
+      
+      if ( d < 100 ) diffs[d]++;
+      if ( repCount < 100 ) counts[repCount]++;
+
+      diffshift = 1;
       repCount = 0;
     }
     lastValue = v;
@@ -69,11 +56,68 @@ public final class MixCoderDataOutputStream extends DataOutputStream
   @Override
   public void flush() throws IOException
   {
-    // todo: does this keep stream consistency after flush ?
-    long v = lastValue;
+    int v = lastValue;
     writeMixed( v+1 );
     lastValue = v;
     repCount = 0;
+    if ( bm > 1 )
+    {
+      writeByte( (byte)b ); // flush bit-coding
+    }
   }
 
+  public final void encodeBit( boolean value ) throws IOException
+  {
+    if ( bm == 0x100 )
+    {
+      writeByte( (byte)b );
+      bm = 1;
+      b = 0;
+    }
+    if ( value )
+    {
+      b |= bm;
+    }
+    bm <<= 1;
+  }
+
+  public final void encodeVarBits( int value ) throws IOException
+  {
+    int range = 0;
+    while (value > range)
+    {
+      encodeBit( false );
+      value -= range + 1;
+      range = 2 * range + 1;
+    }
+    encodeBit( true );
+    encodeBounded( range, value );
+  }
+
+  public final void encodeBounded( int max, int value ) throws IOException
+  {
+    int im = 1; // integer mask
+    while (im <= max)
+    {
+      if ( bm == 0x100 )
+      {
+        writeByte( (byte)b );
+        bm = 1;
+        b = 0;
+      }
+      if ( ( value & im ) != 0 )
+      {
+        b |= bm;
+        max -= im;
+      }
+      bm <<= 1;
+      im <<= 1;
+    }
+  }
+
+  public static void stats()
+  {  
+    for(int i=1; i<100;i++) System.out.println( "diff[" + i + "] = " + diffs[i] ); 
+    for(int i=1; i<100;i++) System.out.println( "counts[" + i + "] = " + counts[i] ); 
+  }
 }

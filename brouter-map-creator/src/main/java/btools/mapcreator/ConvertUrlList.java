@@ -42,11 +42,6 @@ public class ConvertUrlList
       int ilon_base = ( srtmLonIdx - 1 ) * 5 - 180;
       int ilat_base = 150 - srtmLatIdx * 5 - 90;
 
-      if ( ilon_base < 5 || ilon_base > 10 || ilat_base < 45 || ilat_base > 50 )
-      {
-        continue;
-      }
-
       SrtmRaster raster90 = null;
 
       File file90 = new File( new File( args[1] ), filename90 );
@@ -56,7 +51,7 @@ public class ConvertUrlList
         raster90 = new SrtmData( file90 ).getRaster();
       }
       
-      ConvertSrtmTile.doConvert( args[2], ilon_base, ilat_base, filename30, raster90 );
+      ConvertSrtmTile.doConvert( args[2], args[3], ilon_base, ilat_base, filename30, raster90 );
     }
     br.close();
   }

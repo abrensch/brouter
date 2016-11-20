@@ -45,7 +45,7 @@ public class MixCoderTest
     }
   }
 
-  private void checkEncodeDecode( long v, MixCoderDataOutputStream mco, MixCoderDataInputStream mci ) throws IOException
+  private void checkEncodeDecode( int v, MixCoderDataOutputStream mco, MixCoderDataInputStream mci ) throws IOException
   {
     if ( mco != null )
     {

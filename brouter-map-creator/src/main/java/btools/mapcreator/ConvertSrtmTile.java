@@ -8,6 +8,7 @@ public class ConvertSrtmTile
   public static int NROWS;
   public static int NCOLS;
 
+  public static final short SKIPDATA = -32766; // >50 degree skipped pixel
   public static final short NODATA2 = -32767; // bil-formats nodata
   public static final short NODATA = Short.MIN_VALUE;
 
@@ -17,8 +18,6 @@ public class ConvertSrtmTile
 
   private static void readBilZip( String filename, int rowOffset, int colOffset, boolean halfCols ) throws Exception
   {
-    int fileRows = 3601;
-    int fileCols = 3601;
     ZipInputStream zis = new ZipInputStream( new BufferedInputStream( new FileInputStream( filename ) ) );
     try
     {
@@ -27,7 +26,7 @@ public class ConvertSrtmTile
         ZipEntry ze = zis.getNextEntry();
         if ( ze.getName().endsWith( ".bil" ) )
         {
-          readBilFromStream( zis, rowOffset, colOffset, fileRows, fileCols, halfCols );
+          readBilFromStream( zis, rowOffset, colOffset, halfCols );
           return;
         }
       }
@@ -38,80 +37,69 @@ public class ConvertSrtmTile
     }
   }
 
-  private static void readBilFromStream( InputStream is, int rowOffset, int colOffset, int fileRows, int fileCols, boolean halfCols )
+  private static void readBilFromStream( InputStream is, int rowOffset, int colOffset, boolean halfCols )
       throws Exception
   {
     DataInputStream dis = new DataInputStream( new BufferedInputStream( is ) );
-    for ( int ir = 0; ir < fileRows; ir++ )
+    for ( int ir = 0; ir < 3601; ir++ )
     {
       int row = rowOffset + ir;
 
-      short lastVal = 0;
-      boolean fillGap = false;
-
-      for ( int ic = 0; ic < fileCols; ic++ )
+      for ( int ic = 0; ic < 3601; ic++ )
       {
         int col = colOffset + ic;
-        short val;
+
         if ( ( ic % 2 ) == 1 && halfCols )
         {
-          fillGap = true;
+          if ( getPixel( row, col ) == NODATA )
+          {
+            setPixel( row, col, SKIPDATA );
+          }
+          continue;
         }
-        else
+
+        int i0 = dis.read();
+        int i1 = dis.read();
+
+        if ( i0 == -1 || i1 == -1 )
+          throw new RuntimeException( "unexcepted end of file reading bil entry!" );
+
+        short val = (short) ( ( i1 << 8 ) | i0 );
+
+        if ( val == NODATA2 )
         {
-          int i0 = dis.read();
-          int i1 = dis.read();
-
-          if ( i0 == -1 || i1 == -1 )
-            throw new RuntimeException( "unexcepted end of file reading bil entry!" );
-
-          val = (short) ( ( i1 << 8 ) | i0 );
-          
-          if ( val == NODATA2 )
-          {
-            val = NODATA;
-          }
-
-          if ( fillGap )
-          {
-            setPixel( row, col - 1, val, lastVal );
-            fillGap = false;
-          }
-
-if ( row == 18010 ) System.out.print( val + " " );
-
-          setPixel( row, col, val, val );
-          lastVal = val;
+          val = NODATA;
         }
+
+        setPixel( row, col, val );
       }
     }
   }
 
-  private static void setPixel( int row, int col, short val1, short val2 )
+
+  private static void setPixel( int row, int col, short val )
   {
     if ( row >= 0 && row < NROWS && col >= 0 && col < NCOLS )
     {
-      if ( val1 != NODATA && val2 != NODATA )
-      {
-        int val = val1 + val2;
-        if ( val < -32768 || val > 32767 )
-          throw new IllegalArgumentException( "val1=" + val1 + " val2=" + val2 );
-
-        imagePixels[row * NCOLS + col] = (short) ( val );
-      }
+      imagePixels[row * NCOLS + col] = val;
     }
   }
 
-  public static void main( String[] args ) throws Exception
+  private static short getPixel( int row, int col )
   {
-    doConvert( args[0], Integer.parseInt( args[1] ), Integer.parseInt( args[2] ), args[3], null );
+    if ( row >= 0 && row < NROWS && col >= 0 && col < NCOLS )
+    {
+      return imagePixels[row * NCOLS + col];
+    }
+    return NODATA;
   }
 
-  public static void doConvert( String inputDir, int lonDegreeStart, int latDegreeStart, String outputFile, SrtmRaster raster90 ) throws Exception
+
+  public static void doConvert( String inputDir, String v1Dir, int lonDegreeStart, int latDegreeStart, String outputFile, SrtmRaster raster90 ) throws Exception
   {
     int extraBorder = 10;
     int datacells = 0;
-    int matchingdatacells = 0;
+    int mismatches = 0;
 
     NROWS = 5 * 3600 + 1 + 2 * extraBorder;
     NCOLS = 5 * 3600 + 1 + 2 * extraBorder;
@@ -152,59 +140,63 @@ if ( row == 18010 ) System.out.print( val + " " );
       }
     }
 
-    if ( raster90 != null )
-    {
-      for ( int row90 = 0; row90 < 6001; row90++ )
-      {
-        int crow = 3 * row90 + extraBorder; // center row of 3x3
-        for ( int col90 = 0; col90 < 6001; col90++ )
-        {
-          int ccol = 3 * col90 + extraBorder; // center col of 3x3
+    boolean halfCol5 = latDegreeStart >= 50 || latDegreeStart < -50;
 
+    for ( int row90 = 0; row90 < 6001; row90++ )
+    {
+      int crow = 3 * row90 + extraBorder; // center row of 3x3
+      for ( int col90 = 0; col90 < 6001; col90++ )
+      {
+        int ccol = 3 * col90 + extraBorder; // center col of 3x3
+
+        // evaluate 3x3 area
+        if ( raster90 != null && (!halfCol5 || (col90 % 2) == 0 ) )
+        {
           short v90 = raster90.eval_array[row90 * 6001 + col90];
 
-          // evaluate 3x3 area
           int sum = 0;
           int nodatas = 0;
+          int datas = 0;
+          int colstep = halfCol5 ? 2 : 1;
           for ( int row = crow - 1; row <= crow + 1; row++ )
           {
-            for ( int col = ccol - 1; col <= ccol + 1; col++ )
+            for ( int col = ccol - colstep; col <= ccol + colstep; col += colstep )
             {
               short v30 = imagePixels[row * NCOLS + col];
-              sum += v30;
               if ( v30 == NODATA )
               {
                 nodatas++;
               }
+              else if ( v30 != SKIPDATA )
+              {
+                sum += v30;
+                datas++;
+              }
             }
           }
-          boolean doReplace = nodatas > 0 || v90 == NODATA;
-          short replaceValue = NODATA;
+          boolean doReplace = nodatas > 0 || v90 == NODATA || datas < 7;
           if ( !doReplace )
           {
             datacells++;
-            int diff = sum - 9 * v90;
-            replaceValue= (short)(diff / 9);
-            doReplace = true;
-            if ( diff < -9 || diff > 9 )
+            int diff = sum - datas * v90;
+            if ( diff < -4 || diff > 4 )
             {
-//              System.out.println( "replacing due to median missmatch: sum=" + sum + " v90=" + v90 );
               doReplace = true;
+              mismatches++;
             }
-            if ( diff > -50 && diff < 50 )
+
+            if ( diff > -50 && diff < 50 && ( row90 % 1200 ) != 0 && ( col90 % 1200 ) != 0 )
             {
-              matchingdatacells++;
-              diffs[diff+50]++;
+              diffs[diff + 50]++;
             }
           }
           if ( doReplace )
           {
             for ( int row = crow - 1; row <= crow + 1; row++ )
             {
-              for ( int col = ccol - 1; col <= ccol + 1; col++ )
+              for ( int col = ccol - colstep; col <= ccol + colstep; col += colstep )
               {
-//                imagePixels[row * NCOLS + col] = v90;
-                imagePixels[row * NCOLS + col] = replaceValue;
+                imagePixels[row * NCOLS + col] = v90;
               }
             }
           }
@@ -215,6 +207,7 @@ if ( row == 18010 ) System.out.print( val + " " );
     SrtmRaster raster = new SrtmRaster();
     raster.nrows = NROWS;
     raster.ncols = NCOLS;
+    raster.halfcol = halfCol5;
     raster.noDataValue = NODATA;
     raster.cellsize = 1 / 3600.;
     raster.xllcorner = lonDegreeStart - ( 0.5 + extraBorder ) * raster.cellsize;
@@ -235,16 +228,32 @@ if ( row == 18010 ) System.out.print( val + " " );
     if ( pix2.length != imagePixels.length )
       throw new RuntimeException( "length mismatch!" );
 
-    for ( int i = 0; i < pix2.length; i++ )
+    // compare decoding result
+    for ( int row = 0; row < NROWS; row++ )
     {
-      if ( pix2[i] != imagePixels[i] )
+      int colstep = halfCol5 ? 2 : 1;
+      for ( int col = 0; col < NCOLS; col += colstep )
       {
-        throw new RuntimeException( "content mismatch!" );
+        int idx = row * NCOLS + col;
+        if ( imagePixels[idx] == SKIPDATA )
+        {
+          continue;
+        }
+        short p2 = pix2[idx];
+        if ( p2 > SKIPDATA )
+        {
+          p2 /= 2;
+        }
+        if ( p2 != imagePixels[idx] )
+        {
+          throw new RuntimeException( "content mismatch!" );
+        }
       }
     }
     
-    for(int i=0; i<100;i++) System.out.println( "diff[" + (i-50) + "] = " + diffs[i] ); 
-    System.out.println( "datacells=" + datacells + " mismatch%=" + 100.*(datacells-matchingdatacells)/datacells );
+    for(int i=1; i<100;i++) System.out.println( "diff[" + (i-50) + "] = " + diffs[i] ); 
+    System.out.println( "datacells=" + datacells + " mismatch%=" + (100.*mismatches)/datacells );
+btools.util.MixCoderDataOutputStream.stats();    
     // test( raster );
     // raster.calcWeights( 50. );
     // test( raster );

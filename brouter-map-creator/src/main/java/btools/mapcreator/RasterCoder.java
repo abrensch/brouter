@@ -17,6 +17,7 @@ public class RasterCoder
 
     dos.writeInt(raster.ncols);
     dos.writeInt(raster.nrows);
+    dos.writeBoolean(raster.halfcol);
     dos.writeDouble(raster.xllcorner);
     dos.writeDouble(raster.yllcorner);
     dos.writeDouble(raster.cellsize);
@@ -37,6 +38,7 @@ public class RasterCoder
     SrtmRaster raster = new SrtmRaster();
     raster.ncols = dis.readInt();
     raster.nrows = dis.readInt();
+    raster.halfcol = dis.readBoolean();
     raster.xllcorner = dis.readDouble();
     raster.yllcorner = dis.readDouble();
     raster.cellsize = dis.readDouble();
@@ -59,12 +61,26 @@ public class RasterCoder
     int nrows = raster.nrows;
     int ncols = raster.ncols;
     short[] pixels = raster.eval_array;
+    int colstep = raster.halfcol ? 2 : 1;
 
     for (int row = 0; row < nrows; row++)
     {
-      for (int col = 0; col < ncols; col++)
+      short lastval = Short.MIN_VALUE; // nodata
+      for (int col = 0; col < ncols; col += colstep )
       {
-        mco.writeMixed(pixels[row * ncols + col]);
+        short val = pixels[row * ncols + col];
+        if ( val == -32766 )
+        {
+          val = lastval; // replace remaining (border) skips
+        }
+        else
+        {
+          lastval = val;
+        }
+        
+        // remap nodata
+        int code = val == Short.MIN_VALUE ? -1 : ( val < 0 ? val-1 : val );
+        mco.writeMixed( code );
       }
     }
     mco.flush();
@@ -76,12 +92,35 @@ public class RasterCoder
     int nrows = raster.nrows;
     int ncols = raster.ncols;
     short[] pixels = raster.eval_array;
+    int colstep = raster.halfcol ? 2 : 1;
 
     for (int row = 0; row < nrows; row++)
     {
-      for (int col = 0; col < ncols; col++)
+      for (int col = 0; col < ncols; col += colstep )
       {
-        pixels[row * ncols + col] = (short) mci.readMixed();
+        int code = mci.readMixed();
+        
+        // remap nodata
+        int v30 = code == -1 ? Short.MIN_VALUE : ( code < 0 ? code + 1 : code ); 
+        if ( v30 > -32766 )
+        {
+          v30 *= 2;
+        } 
+        pixels[row * ncols + col] = (short) ( v30 );
+      }
+      if ( raster.halfcol )
+      {
+        for (int col = 1; col < ncols-1; col += colstep )
+        {
+          int l = (int)pixels[row * ncols + col - 1];
+          int r = (int)pixels[row * ncols + col + 1];
+          short v30 = Short.MIN_VALUE; // nodata
+          if ( l > -32766 && r > -32766 )
+          {
+            v30 = (short)((l+r)/2);
+          }
+          pixels[row * ncols + col] = v30;
+        }
       }
     }
   }

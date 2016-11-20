@@ -11,6 +11,7 @@ public class SrtmRaster
 {
   public int ncols;
   public int nrows;
+  public boolean halfcol;
   public double xllcorner;
   public double yllcorner;
   public double cellsize;
@@ -50,7 +51,7 @@ public class SrtmRaster
              + (1.-wrow)*(   wcol)*get(row  ,col+1)
              + (   wrow)*(   wcol)*get(row+1,col+1);
 // System.out.println( "eval=" + eval );    
-    return missingData ? Short.MIN_VALUE : (short)(eval*2);
+    return missingData ? Short.MIN_VALUE : (short)(eval*4);
   }
 
   private short get( int r, int c )
@@ -72,10 +73,7 @@ public class SrtmRaster
     double drow = (lat - yllcorner)/cellsize;
     int row = (int)drow;
     int col = (int)dcol;
-    if ( col < 9 || col >= ncols-9 || row < 9 || row >= nrows-9 )
-    {
-      throw new IllegalArgumentException( "out of boundary range: col=" + col + " row=" + row );
-    }
+
     double dgx = (dcol-col)*gridSteps;
     double dgy = (drow-row)*gridSteps;
 
@@ -110,6 +108,8 @@ public class SrtmRaster
     double m = (1.-wlat) * m0 + wlat * m1;
     return (short)(m * 2);
   }
+
+  private ReducedMedianFilter rmf = new ReducedMedianFilter( 256 );
   
   private double getElevation( Weights w, int row, int col )
   {
@@ -122,9 +122,9 @@ public class SrtmRaster
     int mx = nx / 2; // mean pixels
     int my = ny / 2;
 
-    System.out.println( "nx="+ nx + " ny=" + ny );
-    
-    ReducedMedianFilter rmf = new ReducedMedianFilter( nx * ny );
+    // System.out.println( "nx="+ nx + " ny=" + ny );
+
+    rmf.reset();
 
     for( int ix = 0; ix < nx; ix ++ )
     {
@@ -134,7 +134,7 @@ public class SrtmRaster
         rmf.addSample( w.getWeight( ix, iy ), val );
       }
     }
-    return missingData ?  rmf.calcEdgeReducedMedian( filterCenterFraction ) : 0.;
+    return missingData ?  0. : rmf.calcEdgeReducedMedian( filterCenterFraction );
   }
 
 
@@ -190,8 +190,8 @@ public class SrtmRaster
   private static int gridSteps = 10;
   private static Weights[][][] allShiftWeights = new Weights[17][][];
 
-  private static double filterCenterFraction = 0.5;
-  private static double filterDiscRadius = 2.9; // in pixels
+  private static double filterCenterFraction = 0.2;
+  private static double filterDiscRadius = 4.999; // in pixels
 
   static
   {

@@ -101,7 +101,7 @@ public class SrtmData
           {
             if ( negative )
               n = -n;
-            short val = n < -250 ? Short.MIN_VALUE : (short) (n*2);
+            short val = n < -250 ? Short.MIN_VALUE : (short) (n);
 
             raster.eval_array[row * raster.ncols + col] = val;
             if ( ++col == raster.ncols )

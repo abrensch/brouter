@@ -24,6 +24,14 @@ public final class ReducedMedianFilter
   {
     if ( weight > 0. )
     {
+      for( int i=0; i<nsamples; i++ )
+      {
+        if ( values[i] == value )
+        {
+          weights[i] += weight;
+          return;
+        }
+      }
       weights[nsamples] = weight;
       values[nsamples] = value;
       nsamples++;
