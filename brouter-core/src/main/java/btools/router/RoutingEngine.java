@@ -902,7 +902,7 @@ public class RoutingEngine extends Thread
       sourceNode.unlinkLink ( currentLink );
 
       // if the counterlink is alive and does not yet have a path, remove it
-      if ( isBidir && currentLink.getFirstLinkHolder( currentNode ) == null )
+      if ( isBidir && currentLink.getFirstLinkHolder( currentNode ) == null && !routingContext.considerTurnRestrictions )
       {
         currentNode.unlinkLink(currentLink);
       }
