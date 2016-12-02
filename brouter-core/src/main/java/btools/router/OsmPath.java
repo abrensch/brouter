@@ -170,8 +170,6 @@ final class OsmPath implements OsmLinkHolder
       cost += iicost;
     }
 
-//    OsmTransferNode transferNode = link.decodeGeometry( p1, rc.byteDataReaderGeometry, rc.transferNodeCache  );
-
     OsmTransferNode transferNode = link.geometry == null ? null
                   : rc.geometryDecoder.decodeGeometry( link.geometry, p1, targetNode, isReverse );
 
@@ -200,9 +198,18 @@ final class OsmPath implements OsmLinkHolder
       }
 
       // check turn restrictions: do we have one with that origin?
-      if ( isFirstSection && rc.considerTurnRestrictions )
+      boolean checkTRs = false;
+      if ( isFirstSection )
       {
         isFirstSection = false;
+
+        // TODO: TRs for inverse routing would need inverse TR logic,
+        // inverse routing for now just for target island check, so don't care (?)
+        checkTRs = rc.considerTurnRestrictions && !rc.inverseDirection;
+      }
+
+      if ( checkTRs )
+      {
         boolean hasAnyPositive = false;
         boolean hasPositive = false;
         boolean hasNegative = false;
@@ -244,15 +251,13 @@ final class OsmPath implements OsmLinkHolder
       }
 
       int dist = rc.calcDistance( lon1, lat1, lon2, lat2 );
-      int elefactor = 250000;
       boolean stopAtEndpoint = false;
       if ( rc.shortestmatch )
       {
-        elefactor = (int)(elefactor*rc.wayfraction);
-
         if ( rc.isEndpoint )
         {
           stopAtEndpoint = true;
+          ele2 = interpolateEle( ele1, ele2, rc.wayfraction );
         }
         else
         {
@@ -267,7 +272,8 @@ final class OsmPath implements OsmLinkHolder
           {
             if (  rc.wayfraction > 0. )
             {
-              originElement = OsmPathElement.create( rc.ilonshortest, rc.ilatshortest, ele2, null, rc.countTraffic );
+              ele1 = interpolateEle( ele1, ele2, 1. - rc.wayfraction );
+              originElement = OsmPathElement.create( rc.ilonshortest, rc.ilatshortest, ele1, null, rc.countTraffic );
             }
             else
             {
@@ -313,6 +319,7 @@ final class OsmPath implements OsmLinkHolder
       // only the part of the descend that does not fit into the elevation-hysteresis-buffer
       // leads to an immediate penalty
 
+      int elefactor = 250000;
       if ( ele2 == Short.MIN_VALUE ) ele2 = ele1;
       if ( ele1 != Short.MIN_VALUE )
       {
@@ -500,6 +507,15 @@ final class OsmPath implements OsmLinkHolder
       message = msgData;
     }
 
+  }
+
+  public short interpolateEle( short e1, short e2, double fraction )
+  {
+    if ( e1 == Short.MIN_VALUE || e2 == Short.MIN_VALUE )
+    {
+      return Short.MIN_VALUE;
+    }
+    return (short)( e1*(1.-fraction) + e2*fraction );
   }
 
   public int elevationCorrection( RoutingContext rc )

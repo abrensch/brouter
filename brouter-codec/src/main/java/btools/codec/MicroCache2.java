@@ -96,17 +96,12 @@ public final class MicroCache2 extends MicroCache
 
         if ( featureId == 1 ) // turn-restriction
         {
-          if ( bitsize !=  1 + 4*29 )
-          {
-            throw new RuntimeException( "turn-restriction of unexpected bit-size: " + bitsize );
-          }
           writeBoolean( true );
           writeBoolean( bc.decodeBit() ); // isPositive
-          int max = (1 << 29) - 1;
-          writeInt( bc.decodeBounded( max ) ); // fromLon, ...
-          writeInt( bc.decodeBounded( max ) );
-          writeInt( bc.decodeBounded( max ) );
-          writeInt( bc.decodeBounded( max ) );
+          writeInt( ilon + bc.decodeNoisyDiff( 10 ) ); // fromLon
+          writeInt( ilat + bc.decodeNoisyDiff( 10 ) ); // fromLat
+          writeInt( ilon + bc.decodeNoisyDiff( 10 ) ); // toLon
+          writeInt( ilat + bc.decodeNoisyDiff( 10 ) ); // toLat
         }
         else
         {
@@ -312,6 +307,7 @@ public final class MicroCache2 extends MicroCache
 
     IntegerFifo3Pass linkCounts = new IntegerFifo3Pass( 256 );
     IntegerFifo3Pass transCounts = new IntegerFifo3Pass( 256 );
+    IntegerFifo3Pass restrictionBits = new IntegerFifo3Pass( 16 );
 
     TagValueCoder wayTagCoder = new TagValueCoder();
     TagValueCoder nodeTagCoder = new TagValueCoder();
@@ -334,6 +330,7 @@ public final class MicroCache2 extends MicroCache
 
       linkCounts.init();
       transCounts.init();
+      restrictionBits.init();
 
       wayTagCoder.encodeDictionary( bc );
       if ( dostats ) bc.assignBits( "wayTagDictionary" );
@@ -360,18 +357,22 @@ public final class MicroCache2 extends MicroCache
         aboffsetEnd = fapos[n];
         if ( dodebug ) System.out.println( "*** encoding node " + n + " from " + aboffset + " to " + aboffsetEnd );
 
+        long id64 = expandId( faid[n] );
+        int ilon = (int)(id64 >> 32);
+        int ilat = (int)(id64 & 0xffffffff);
+
         // write turn restrictions
         while( readBoolean() )
         {
           bc.encodeVarBits( 1 ); // 1 = extra-data type : turn-restriction
-          bc.encodeNoisyNumber( 1 + 4*29, 5 );
-
+          bc.encodeNoisyNumber( restrictionBits.getNext(), 5 ); // bit-count using looku-ahead fifo
+          long b0 = bc.getWritingBitPosition();
           bc.encodeBit( readBoolean() ); // isPositive
-          int max = (1 << 29) - 1;
-          bc.encodeBounded( max, readInt() ); // fromLon
-          bc.encodeBounded( max, readInt() ); // fromLat
-          bc.encodeBounded( max, readInt() ); // toLon
-          bc.encodeBounded( max, readInt() ); // toLat
+          bc.encodeNoisyDiff( readInt() - ilon, 10 ); // fromLon
+          bc.encodeNoisyDiff( readInt() - ilat, 10 ); // fromLat
+          bc.encodeNoisyDiff( readInt() - ilon, 10 ); // toLon
+          bc.encodeNoisyDiff( readInt() - ilat, 10 ); // toLat
+          restrictionBits.add( (int)( bc.getWritingBitPosition() - b0 ) );
         }
         bc.encodeVarBits( 0 ); // end of extra data
 
@@ -387,11 +388,7 @@ public final class MicroCache2 extends MicroCache
         if ( dodebug ) System.out.println( "*** nlinks=" + nlinks );
         bc.encodeNoisyNumber( nlinks, 1 );
         if ( dostats ) bc.assignBits( "link-counts" );
-   
-        long id64 = expandId( faid[n] );
-        int ilon = (int)(id64 >> 32);
-        int ilat = (int)(id64 & 0xffffffff);
-   
+      
         nlinks = 0;
         while( hasMoreData() ) // loop over links
         {

@@ -143,9 +143,6 @@ public class OsmNode extends OsmLink implements OsmPos
       tr.toLat = mc.readInt();
       tr.next = firstRestriction;
       firstRestriction = tr;
-
-System.out.println( "decoded tr: " + tr ); 
-
     }
 
     selev = mc.readShort();
