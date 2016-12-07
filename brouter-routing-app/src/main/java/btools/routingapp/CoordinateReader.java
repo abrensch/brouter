@@ -25,6 +25,8 @@ public abstract class CoordinateReader
   public String rootdir;
   public String tracksdir;
 
+  private boolean nogosOnly;
+
   private Map<String,Map<String, OsmNodeNamed>> allpointsMap;
   public List<OsmNodeNamed> allpoints;
   
@@ -129,7 +131,10 @@ public abstract class CoordinateReader
     {
       if ( pointmap.put( n.name, n ) != null )
       {
-        throw new IllegalArgumentException( "multiple " + n.name + "-positions!" );
+        if ( !nogosOnly )
+        {
+          throw new IllegalArgumentException( "multiple " + n.name + "-positions!" );
+        }
       }
     }
     else if ( n.name != null && n.name.startsWith( "nogo" ) )
@@ -144,6 +149,11 @@ public abstract class CoordinateReader
   
 
   public static CoordinateReader obtainValidReader( String basedir, String segmentDir ) throws Exception
+  {
+    return obtainValidReader( basedir, segmentDir, false );
+  }
+
+  public static CoordinateReader obtainValidReader( String basedir, String segmentDir, boolean nogosOnly ) throws Exception
   {
     CoordinateReader cor = null;
     ArrayList<CoordinateReader> rl = new ArrayList<CoordinateReader>();
@@ -209,6 +219,7 @@ public abstract class CoordinateReader
     {
       cor = new CoordinateReaderNone();
     }
+    cor.nogosOnly = nogosOnly;
     cor.readFromTo();
     return cor;
   }

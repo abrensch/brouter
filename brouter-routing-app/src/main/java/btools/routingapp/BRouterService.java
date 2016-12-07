@@ -105,7 +105,7 @@ public class BRouterService extends Service
           worker.profilePath = baseDir + "/brouter/profiles2/" + smc.profile + ".brf";
           worker.rawTrackPath = baseDir + "/brouter/modes/" + mode_key + "_rawtrack.dat";
 
-          CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir );
+          CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir, true );
           worker.nogoList = new ArrayList<OsmNodeNamed>();
           // veto nogos by profiles veto list
           for ( OsmNodeNamed nogo : cor.nogopoints )
@@ -142,7 +142,7 @@ public class BRouterService extends Service
       try
       {
         // add nogos from waypoint database
-        CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir );
+        CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir, true );
         worker.nogoList = new ArrayList<OsmNodeNamed>( cor.nogopoints );
 
         if ( !fileEqual( profileBytes, profileFile ) )
