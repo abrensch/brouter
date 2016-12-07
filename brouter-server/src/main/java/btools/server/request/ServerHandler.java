@@ -72,12 +72,19 @@ public class ServerHandler extends RequestHandler {
     if (lonLats == null) throw new IllegalArgumentException( "lonlats parameter not set" );
 
     String[] coords = lonLats.split("\\|");
-    if (coords.length < 2) throw new IllegalArgumentException( "we need two lat/lon points at least!" );
+    if (coords.length < 2) 
+      coords = lonLats.split("%7C");
+      if (coords.length < 2) 
+        throw new IllegalArgumentException( "we need two lat/lon points at least!" );
     
     List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
     for (int i = 0; i < coords.length; i++)
     {
       String[] lonLat = coords[i].split(",");
+      if (lonLat.length < 2) 
+        lonLat = coords[i].split("%2C");
+        if (lonLat.length < 2) 
+          throw new IllegalArgumentException( "we need two lat/lon points at least!" );
       wplist.add( readPosition( lonLat[0], lonLat[1], "via" + i ) );
     }
 
