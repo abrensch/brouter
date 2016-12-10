@@ -149,7 +149,11 @@ final class OsmFile
 
     int crcData = Crc32.crc( ab, 0, asize - 4 );
     int crcFooter = new ByteDataReader( ab, asize - 4 ).readInt();
-    if ( ( crcData ^ 2 ) == crcFooter )
+    if ( crcData == crcFooter )
+    {
+      throw new IOException( "old, unsupported data-format" );
+    }
+    else if ( ( crcData ^ 2 ) == crcFooter )
     {
       return reallyDecode ? new MicroCache2( dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher ) : null;
     }

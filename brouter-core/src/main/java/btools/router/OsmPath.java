@@ -216,7 +216,8 @@ final class OsmPath implements OsmLinkHolder
         TurnRestriction tr = sourceNode.firstRestriction;
         while( tr != null )
         {
-          if ( tr.fromLon == lon0 && tr.fromLat == lat0 )
+          boolean trValid = ! (tr.exceptBikes() && rc.bikeMode);
+          if ( trValid && tr.fromLon == lon0 && tr.fromLat == lat0 )
           {
             if ( tr.isPositive )
             {

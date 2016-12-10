@@ -224,14 +224,33 @@ public class OsmCutter extends MapCreatorBase
     {
       return;
     }
+
+    short exceptions = 0;
+    String except = r.getTag( "except" );
+    if ( except != null )
+    {
+      exceptions |= toBit( "bicycle"      , 0, except );
+      exceptions |= toBit( "motorcar"     , 1, except );
+      exceptions |= toBit( "agricultural" , 2, except );
+      exceptions |= toBit( "forestry"     , 2, except );
+      exceptions |= toBit( "psv"          , 3, except );
+      exceptions |= toBit( "hgv"          , 4, except );
+    }
+
     // System.out.println( "restriction id = " + r.rid + " isPositive=" + isPositive + " fromWid = " + fromWid + " toWid = " + toWid+ " viaNid = " + viaNid );
     RestrictionData res = new RestrictionData();
     res.isPositive = isPositive;
+    res.exceptions = exceptions;
     res.fromWid = fromWid;
     res.toWid = toWid;
     res.viaNid = viaNid;
     res.writeTo( restrictionsDos );
     
+  }
+
+  private static short toBit( String tag, int bitpos, String s )
+  {
+    return (short) ( s.indexOf( tag ) < 0 ? 0 : 1 << bitpos );
   }
 
   private int getTileIndex( int ilon, int ilat )

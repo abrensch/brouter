@@ -136,6 +136,7 @@ public class OsmNode extends OsmLink implements OsmPos
     while( mc.readBoolean() )
     {
       TurnRestriction tr = new TurnRestriction();
+      tr.exceptions =  mc.readShort();
       tr.isPositive =  mc.readBoolean();
       tr.fromLon = mc.readInt();
       tr.fromLat = mc.readInt();

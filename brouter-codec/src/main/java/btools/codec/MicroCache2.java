@@ -88,15 +88,23 @@ public final class MicroCache2 extends MicroCache
       int ilat = alat[n];
     
       // future escapes (turn restrictions?)
+      short trExceptions = 0;
       for(;;)
       {
         int featureId = bc.decodeVarBits();
         if ( featureId == 0 ) break;
         int bitsize = bc.decodeNoisyNumber( 5 );
 
-        if ( featureId == 1 ) // turn-restriction
+        if ( featureId == 2 ) // exceptions to turn-restriction
+        {
+          trExceptions = (short)bc.decodeBounded( 1023 );
+        }
+        else if ( featureId == 1 ) // turn-restriction
         {
           writeBoolean( true );
+          writeShort( trExceptions ); // exceptions from previous feature
+          trExceptions = 0;
+
           writeBoolean( bc.decodeBit() ); // isPositive
           writeInt( ilon + bc.decodeNoisyDiff( 10 ) ); // fromLon
           writeInt( ilat + bc.decodeNoisyDiff( 10 ) ); // fromLat
@@ -364,8 +372,15 @@ public final class MicroCache2 extends MicroCache
         // write turn restrictions
         while( readBoolean() )
         {
-          bc.encodeVarBits( 1 ); // 1 = extra-data type : turn-restriction
-          bc.encodeNoisyNumber( restrictionBits.getNext(), 5 ); // bit-count using looku-ahead fifo
+          short exceptions = readShort(); // except bikes, psv, ...
+          if ( exceptions != 0 )
+          {
+            bc.encodeVarBits( 2 ); // 2 = tr exceptions 
+            bc.encodeNoisyNumber( 10 , 5 ); // bit-count
+            bc.encodeBounded( 1023 , exceptions & 1023 );
+          }
+          bc.encodeVarBits( 1 ); // 1 = turn restriction
+          bc.encodeNoisyNumber( restrictionBits.getNext(), 5 ); // bit-count using look-ahead fifo
           long b0 = bc.getWritingBitPosition();
           bc.encodeBit( readBoolean() ); // isPositive
           bc.encodeNoisyDiff( readInt() - ilon, 10 ); // fromLon

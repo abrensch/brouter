@@ -8,6 +8,7 @@ package btools.mapaccess;
 public final class TurnRestriction
 {
   public boolean isPositive;
+  public short exceptions;
 
   public int fromLon;
   public int fromLat;
@@ -17,6 +18,11 @@ public final class TurnRestriction
 
   public TurnRestriction next;
   
+  public boolean exceptBikes()
+  {
+    return ( exceptions & 1 ) != 0;
+  }
+
   @Override
   public String toString()
   {

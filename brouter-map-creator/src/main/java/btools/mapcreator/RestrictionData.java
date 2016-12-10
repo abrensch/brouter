@@ -13,6 +13,7 @@ import btools.util.LongList;
 public class RestrictionData extends MapCreatorBase
 {
   public boolean isPositive;
+  public short exceptions;
   public long fromWid;
   public long toWid;
   public long viaNid;
@@ -31,6 +32,7 @@ public class RestrictionData extends MapCreatorBase
   public RestrictionData( DataInputStream di ) throws Exception
   {
     isPositive = di.readBoolean();
+    exceptions = di.readShort();
     fromWid = readId( di );
     toWid = readId( di );
     viaNid = readId( di );
@@ -39,6 +41,7 @@ public class RestrictionData extends MapCreatorBase
   public void writeTo( DataOutputStream dos ) throws Exception  
   {
     dos.writeBoolean( isPositive );
+    dos.writeShort( exceptions );
     writeId( dos, fromWid );
     writeId( dos, toWid );
     writeId( dos, viaNid );

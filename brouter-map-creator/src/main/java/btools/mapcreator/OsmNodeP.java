@@ -175,6 +175,7 @@ public class OsmNodeP extends OsmLinkP
     while( r != null )
     {
       mc.writeBoolean( true ); // restriction follows
+      mc.writeShort( r.exceptions );
       mc.writeBoolean( r.isPositive );
       mc.writeInt( r.fromLon );
       mc.writeInt( r.fromLat );
