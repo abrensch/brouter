@@ -88,7 +88,7 @@ public class BRouter
       }
       System.exit(0);
     }
-    System.out.println("BRouter 1.4.7 / 19102016 / abrensch");
+    System.out.println("BRouter 1.4.8 / 10122016 / abrensch");
     if ( args.length < 6 )
     {
       System.out.println("Find routes in an OSM map");
