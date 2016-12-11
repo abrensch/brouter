@@ -3,7 +3,7 @@
 #
 # DO NOT USE FOR ACTUAL NAVIGATION
 #
-# Turn restrictions are missing, leading to wrong routes
+# Turn restrictions are not complete, leading to wrong routes
 #
 
 ---context:global
