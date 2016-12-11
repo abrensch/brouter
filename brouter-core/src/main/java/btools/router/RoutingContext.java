@@ -54,6 +54,7 @@ public final class RoutingContext
   public boolean carMode;
   public boolean bikeMode;
   public boolean considerTurnRestrictions;
+  public boolean processUnusedTags;
   public boolean forceSecondaryData;
   public double pass1coefficient;
   public double pass2coefficient;
@@ -83,6 +84,9 @@ public final class RoutingContext
 
     // turn-restrictions used per default for car profiles
     considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue( "considerTurnRestrictions", carMode ? 1.f : 0.f );
+
+    // process tags not used in the profile (to have them in the data-tab)
+    processUnusedTags = 0.f != expctxGlobal.getVariableValue( "processUnusedTags", 0.f );
 
     forceSecondaryData = 0.f != expctxGlobal.getVariableValue( "forceSecondaryData", 0.f );
     pass1coefficient = expctxGlobal.getVariableValue( "pass1coefficient", 1.5f );

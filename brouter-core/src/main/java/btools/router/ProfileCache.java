@@ -75,6 +75,11 @@ public final class ProfileCache
       rc.expctxWay.parseFile( profileFile, "global" );
       rc.expctxNode.parseFile( profileFile, "global" );
       
+      if ( rc.processUnusedTags )
+      {
+        rc.expctxWay.setAllTagsUsed();
+      }
+
       lastProfileTimestamp = profileFile.lastModified();
       lastLookupTimestamp = lookupFile.lastModified();
       lastProfileFile = profileFile;

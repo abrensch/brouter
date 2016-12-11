@@ -14,6 +14,7 @@ assign uphillcost 0
 assign uphillcutoff 0
 
 assign validForCars 1
+assign considerTurnRestrictions = false
 
 assign pass1coefficient 0.
 assign pass2coefficient -1

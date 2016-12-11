@@ -777,6 +777,14 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     return idx < lookupIdxUsed.length ? lookupIdxUsed[idx] : false;
   }
 
+  public final void setAllTagsUsed()
+  {
+    for( int i=0; i<lookupIdxUsed.length; i++ )
+    {
+      lookupIdxUsed[i] = true;
+    }
+  }
+
   int getLookupValueIdx( int nameIdx, String value )
   {
     BExpressionLookupValue[] values = lookupValues.get( nameIdx );
