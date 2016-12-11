@@ -806,6 +806,7 @@ public class RoutingEngine extends Thread
         }
       }
       OsmPath path = null;
+
       synchronized( openSet )
       {
         path = openSet.popLowestKeyValue();
@@ -892,6 +893,7 @@ public class RoutingEngine extends Thread
         }
       }
 
+      int keepPathAirdistance = path.airdistance;
       OsmLinkHolder firstLinkHolder = currentLink.getFirstLinkHolder( sourceNode );
       for( OsmLinkHolder linkHolder = firstLinkHolder; linkHolder != null; linkHolder = linkHolder.getNextForLink() )
       {
@@ -992,7 +994,7 @@ public class RoutingEngine extends Thread
         {
           boolean trafficSim = endPos == null;
 
-          bestPath.airdistance = trafficSim ? path.airdistance : ( isFinalLink ? 0 : nextNode.calcDistance( endPos ) );
+          bestPath.airdistance = trafficSim ? keepPathAirdistance : ( isFinalLink ? 0 : nextNode.calcDistance( endPos ) );
           
           boolean inRadius = boundary == null || boundary.isInBoundary( nextNode, bestPath.cost );
 
