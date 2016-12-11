@@ -205,7 +205,8 @@ final class OsmPath implements OsmLinkHolder
 
         // TODO: TRs for inverse routing would need inverse TR logic,
         // inverse routing for now just for target island check, so don't care (?)
-        checkTRs = rc.considerTurnRestrictions && !rc.inverseDirection;
+        // in detail mode (=final pass) no TR to not mess up voice hints
+        checkTRs = rc.considerTurnRestrictions && !rc.inverseDirection && !detailMode;
       }
 
       if ( checkTRs )
