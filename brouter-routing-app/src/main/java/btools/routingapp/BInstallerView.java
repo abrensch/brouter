@@ -203,8 +203,13 @@ public class BInstallerView extends View
           scanExistingFiles( secondary );
       }
 
-      StatFs stat = new StatFs(baseDir);
-      availableSize = (long)stat.getAvailableBlocks()*stat.getBlockSize();
+      availableSize = -1;
+      try
+      {
+        StatFs stat = new StatFs(baseDir);
+        availableSize = (long)stat.getAvailableBlocks()*stat.getBlockSize();
+      }
+      catch (Exception e) { /* ignore */ }
     }
 
     private void scanExistingFiles( File dir )
@@ -361,7 +366,7 @@ public class BInstallerView extends View
             
             
             String totmb = ((totalSize + mb-1)/mb) + " MB";
-            String freemb = ((availableSize + mb-1)/mb) + " MB";
+            String freemb = availableSize >= 0 ? ((availableSize + mb-1)/mb) + " MB" : "?";
             canvas.drawText( "Selected segments=" + rd5Tiles, 10, 25, paint );
             canvas.drawText( "Size=" + totmb + " Free=" + freemb , 10, 45, paint );
 
@@ -591,7 +596,7 @@ float tx, ty;
                     // might be -1: server did not report the length
                     int fileLength = connection.getContentLength();
                     currentDownloadSize = fileLength;
-                    if ( fileLength > availableSize ) return "not enough space on sd-card";
+                    if ( availableSize >= 0 && fileLength > availableSize ) return "not enough space on sd-card";
                     
                     // download the file
                     input = connection.getInputStream();

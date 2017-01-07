@@ -467,17 +467,18 @@ public class BRouterActivity extends Activity implements OnInitListener
     ArrayList<Long> dirFreeSizes = new ArrayList<Long>();
     for ( String d : items )
     {
+      long size = 0L;
       try
       {
         StatFs stat = new StatFs( d );
-        long size = (long) stat.getAvailableBlocks() * stat.getBlockSize();
-        int idx = 0;
-        while (idx < availableBasedirs.size() && dirFreeSizes.get( idx ).longValue() > size)
-          idx++;
-        availableBasedirs.add( idx, d );
-        dirFreeSizes.add( idx, Long.valueOf( size ) );
+        size = (long) stat.getAvailableBlocks() * stat.getBlockSize();
       }
       catch (Exception e) { /* ignore */ }
+      int idx = 0;
+      while (idx < availableBasedirs.size() && dirFreeSizes.get( idx ).longValue() > size)
+      idx++;
+      availableBasedirs.add( idx, d );
+      dirFreeSizes.add( idx, Long.valueOf( size ) );
     }
 
     basedirOptions = new String[items.size() + 1];
