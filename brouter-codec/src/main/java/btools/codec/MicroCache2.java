@@ -168,7 +168,7 @@ public final class MicroCache2 extends MicroCache
         if ( !isReverse ) // write geometry for forward links only
         {
           WaypointMatcher matcher = wayTags == null || wayTags.accessType < 2 ? null : waypointMatcher;
-          if ( matcher != null ) matcher.startNode( ilon, ilat );
+          if ( matcher != null ) matcher.startNode( ilon, ilat, wayTags.data );
           int ilontarget = ilon + dlon_remaining;
           int ilattarget = ilat + dlat_remaining;
           

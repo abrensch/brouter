@@ -105,7 +105,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher
   }
 
   @Override
-  public void startNode( int ilon, int ilat )
+  public void startNode( int ilon, int ilat, byte[] wayTags )
   {
     lonLast = lonStart = ilon;
     latLast = latStart = ilat;
