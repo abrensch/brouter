@@ -228,6 +228,23 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     return sb.toString();
   }
 
+  public List<String> getKeyValueList( boolean inverseDirection, byte[] ab )
+  {
+	  ArrayList<String> res = new ArrayList<String>();
+    decode( lookupData, inverseDirection, ab );
+    for( int inum = 0; inum < lookupValues.size(); inum++ ) // loop over lookup names
+    {
+      BExpressionLookupValue[] va = lookupValues.get(inum);
+      String value = va[lookupData[inum]].toString();
+      if ( value != null && value.length() > 0 )
+      {
+        res.add( lookupNames.get( inum ) );
+        res.add( value );
+      }
+    }
+    return res;
+  }
+
   private int parsedLines = 0;
   private boolean fixTagsWritten = false;
   
