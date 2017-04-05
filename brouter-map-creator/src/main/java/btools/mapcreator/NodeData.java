@@ -29,7 +29,7 @@ public class NodeData extends MapCreatorBase
     ilon = (int)dis.readDiffed( 1 );
     ilat = (int)dis.readDiffed( 2 );
     int mode = dis.readByte();
-    if ( ( mode & 1 ) != 0 ) { int dlen = dis.read(); description = new byte[dlen]; dis.readFully( description ); }
+    if ( ( mode & 1 ) != 0 ) { int dlen = dis.readShort(); description = new byte[dlen]; dis.readFully( description ); }
     if ( ( mode & 2 ) != 0 ) selev = dis.readShort();
   }
 
@@ -43,10 +43,10 @@ public class NodeData extends MapCreatorBase
       System.out.printf("Node id (%s): description length (%d) is longer then maximum allowed (%d). The description will NOT be written.", nid, description.length, Byte.MAX_VALUE);
       dos.writeByte((byte) 0);
     } else {
-      int mode = (description == null ? 0 : 1) | (selev == Short.MIN_VALUE ? 0 : 2);
-      dos.writeByte((byte) mode);
-      if ((mode & 1) != 0) { dos.write(description.length); dos.write(description); }
-      if ((mode & 2) != 0) dos.writeShort(selev);
+      int mode = (description == null ? 0 : 1 ) | ( selev == Short.MIN_VALUE ? 0 : 2 );
+      dos.writeShort( (byte) mode);
+      if ( ( mode & 1 ) != 0 ) { dos.write( description.length ); dos.write( description ); }
+      if ( ( mode & 2 ) != 0 ) dos.writeShort( selev );
     }
   }
 }
