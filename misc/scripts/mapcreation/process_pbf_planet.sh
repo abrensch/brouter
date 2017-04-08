@@ -35,7 +35,7 @@ mkdir unodes55
 
 mkdir segments
 
-/java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -DuseDenseMaps=true btools.mapcreator.WayLinker unodes55 waytiles55 bordernodes.dat ../lookups.dat ../all.brf segments rd5
+/java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -DuseDenseMaps=true btools.mapcreator.WayLinker unodes55 waytiles55 bordernodes.dat restrictions.dat ../lookups.dat ../all.brf segments rd5
 
 mkdir traffic
 
@@ -51,7 +51,7 @@ mkdir traffic
 
 /java/bin/java -Xmx2600m -Xms2600m -Xmn32m -jar ../brouter.jar segments 16.917636 51.040949 seed 0 ../car-traffic_analysis.brf
 
-/java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -DuseDenseMaps=true btools.mapcreator.WayLinker unodes55 waytiles55 bordernodes.dat ../lookups.dat ../all.brf segments rd5
+/java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -DuseDenseMaps=true btools.mapcreator.WayLinker unodes55 waytiles55 bordernodes.dat restrictions.dat ../lookups.dat ../all.brf segments rd5
 
 cd ..
 rm -rf segments
