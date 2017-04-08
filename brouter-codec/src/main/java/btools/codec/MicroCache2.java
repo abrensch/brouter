@@ -60,7 +60,7 @@ public final class MicroCache2 extends MicroCache
     int[] alon =  size > dataBuffers.alon.length ? new int[size] : dataBuffers.alon;
     int[] alat =  size > dataBuffers.alat.length ? new int[size] : dataBuffers.alat;
 
-    if ( debug ) System.out.println( "*** decoding cache of size=" + size );
+    if ( debug ) System.out.println( "*** decoding cache of size=" + size + " for lonIdx=" + lonIdx + " latIdx=" + latIdx );
 
     bc.decodeSortedArray( faid, 0, size, 0x20000000, 0 );
     
@@ -124,7 +124,7 @@ public final class MicroCache2 extends MicroCache
       writeVarBytes( nodeTags == null ? null : nodeTags.data );
 
       int links = bc.decodeNoisyNumber( 1 );
-      if ( debug ) System.out.println( "*** decoding node with links=" + links );
+      if ( debug ) System.out.println( "***   decoding node " + ilon + "/" + ilat + " with links=" + links );
       for( int li=0; li<links; li++ )
       {
         int sizeoffset = 0;
@@ -145,6 +145,8 @@ public final class MicroCache2 extends MicroCache
           dlon_remaining = extLonDiff.decodeSignedValue();
           dlat_remaining = extLatDiff.decodeSignedValue();
         }
+        if ( debug ) System.out.println( "***     decoding link to " + (ilon+dlon_remaining) + "/" + (ilat+dlat_remaining) + " extern=" + (nodeIdx == n) );
+
         TagValueWrapper wayTags = wayTagCoder.decodeTagValueSet();
 
         if ( wayTags != null )
@@ -173,7 +175,7 @@ public final class MicroCache2 extends MicroCache
           int ilattarget = ilat + dlat_remaining;
           
           int transcount = bc.decodeVarBits();
-          if ( debug ) System.out.println( "*** decoding geometry with count=" + transcount );
+          if ( debug ) System.out.println( "***       decoding geometry with count=" + transcount );
           int count = transcount+1;
           for( int i=0; i<transcount; i++ )
           {

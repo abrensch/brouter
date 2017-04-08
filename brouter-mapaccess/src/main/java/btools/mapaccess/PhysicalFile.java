@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 import btools.codec.DataBuffers;
+import btools.codec.MicroCache;
 import btools.util.ByteDataReader;
 import btools.util.Crc32;
 
@@ -25,6 +26,20 @@ final public class PhysicalFile
   String fileName;
   
   public int divisor = 80;
+
+  public static void main( String[] args )
+  {
+    MicroCache.debug = true;
+
+    String message = checkFileIntegrity( new File( args[0] ) );
+
+    if ( message != null )
+    {
+      System.out.println( "************************************" );
+      System.out.println( message );
+      System.out.println( "************************************" );
+    }
+  }
 
   /**
    * Checks the integrity of the file using the build-in checksums
@@ -47,7 +62,7 @@ final public class PhysicalFile
           if ( osmf.hasData() )
             for ( int lonIdx = 0; lonIdx < div; lonIdx++ )
               for ( int latIdx = 0; latIdx < div; latIdx++ )
-                osmf.createMicroCache( lonDegree * div + lonIdx, latDegree * div + latIdx, dataBuffers, null, null, false );
+                osmf.createMicroCache( lonDegree * div + lonIdx, latDegree * div + latIdx, dataBuffers, null, null, MicroCache.debug );
         }
       }
     }
