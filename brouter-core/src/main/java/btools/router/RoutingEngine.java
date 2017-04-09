@@ -634,6 +634,7 @@ public class RoutingEngine extends Thread
     	    pe.originElement = startElement;
     	  }
     	}
+    	  pe.treedepth = 0; // hack: mark for the final-check
         return pe;
       }
     }
@@ -851,8 +852,13 @@ public class RoutingEngine extends Thread
       OsmNode currentNode = path.getTargetNode();
 
       long currentNodeId = currentNode.getIdFromPos();
-      if ( sourceNode != null )
+      if ( path.treedepth != 1 )
       {
+        if ( path.treedepth == 0 ) // hack: sameSegment Paths marked treedepth=0 to pass above check
+        {
+          path.treedepth = 1;
+        }
+      
         long sourceNodeId = sourceNode.getIdFromPos();
         if ( ( sourceNodeId == endNodeId1 && currentNodeId == endNodeId2 )
           || ( sourceNodeId == endNodeId2 && currentNodeId == endNodeId1 ) )
