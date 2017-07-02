@@ -24,6 +24,7 @@ final class BExpression
   private static final int LOOKUP_EXP = 32;
   private static final int NUMBER_EXP = 33;
   private static final int VARIABLE_EXP = 34;
+  private static final int FOREIGN_VARIABLE_EXP = 35;
 
   private int typ;
   private BExpression op1;
@@ -138,6 +139,8 @@ final class BExpression
           exp.typ = ASSIGN_EXP;
           String variable = ctx.parseToken();
           if ( variable == null ) throw new IllegalArgumentException( "unexpected end of file" );
+          if ( variable.indexOf( '=' ) >= 0 ) throw new IllegalArgumentException( "variable name cannot contain '=': " + variable );
+          if ( variable.indexOf( ':' ) >= 0 ) throw new IllegalArgumentException( "cannot assign context-prefixed variable: " + variable );
           exp.variableIdx = ctx.getVariableIdx( variable, true );
           if ( exp.variableIdx < ctx.getMinWriteIdx() ) throw new IllegalArgumentException( "cannot assign to readonly variable " + variable );
         }
@@ -174,6 +177,13 @@ final class BExpression
                 throw new IllegalArgumentException( "unknown lookup value: " + value );
               }
             }
+          }
+          else if ( ( idx = operator.indexOf( ':' ) ) >= 0 )
+          {
+            String context = operator.substring( 0, idx );
+            String varname = operator.substring( idx+1 );
+            exp.typ = FOREIGN_VARIABLE_EXP;
+            exp.variableIdx = ctx.getForeignVariableIdx( context, varname );
           }
           else if ( (idx = ctx.getVariableIdx( operator, false )) >= 0 )
           {
@@ -257,6 +267,7 @@ final class BExpression
       case LOOKUP_EXP: return ctx.getLookupMatch( lookupNameIdx, lookupValueIdxArray );
       case NUMBER_EXP: return numberValue;
       case VARIABLE_EXP: return ctx.getVariableValue( variableIdx );
+      case FOREIGN_VARIABLE_EXP: return ctx.getForeignVariableValue( variableIdx );
       case NOT_EXP: return op1.evaluate(ctx) == 0.f ? 1.f : 0.f;
       default: throw new IllegalArgumentException( "unknown op-code: " + typ );
     }

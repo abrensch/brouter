@@ -70,6 +70,8 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   private float[] currentVars;
   private int currentVarOffset;
   
+  private BExpressionContext foreignContext;
+  
   protected void setInverseVars()
   {
     currentVarOffset = nBuildInVars;
@@ -108,8 +110,11 @@ public abstract class BExpressionContext implements IByteArrayUnifier
      if ( Boolean.getBoolean( "disableExpressionCache" ) ) hashSize = 1;
       
      // create the expression cache
-     cache = new LruMap( 4*hashSize, hashSize );
-     resultVarCache = new LruMap( 4096, 4096 );
+     if ( hashSize > 0 )
+     {
+       cache = new LruMap( 4*hashSize, hashSize );
+       resultVarCache = new LruMap( 4096, 4096 );
+     }
   }
 
   /**
@@ -347,6 +352,18 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   {
     requests++;
     lookupDataValid = false; // this is an assertion for a nasty pifall
+    
+    if ( cache == null )
+    {
+      decode( lookupData, inverseDirection, ab );
+      if ( currentVars == null || currentVars.length != nBuildInVars )
+      {
+        currentVars = new float[nBuildInVars];
+      }
+      evaluateInto( currentVars, 0 );
+      currentVarOffset = 0;
+      return;
+    }
 
     CacheNode cn;
     if ( lastCacheNode.ab == ab )
@@ -659,6 +676,50 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   {
     Integer num = lookupNumbers.get( name );
     return num != null && lookupData[num.intValue()] == 2;
+  }
+  
+  public int getOutputVariableIndex( String name )
+  {
+    int idx = getVariableIdx( name, false );
+    if ( idx < 0 )
+    {
+      throw new IllegalArgumentException( "unknown variable: " + name );
+    }
+    if ( idx < minWriteIdx )
+    {
+      throw new IllegalArgumentException( "bad access to global variable: " + name );
+    }
+    for( int i=0; i<nBuildInVars; i++ )
+    {
+      if ( buildInVariableIdx[i] == idx )
+      {
+        return i;
+      }
+    }
+    int[] extended = new int[nBuildInVars + 1];
+    System.arraycopy( buildInVariableIdx, 0, extended, 0, nBuildInVars );
+    extended[nBuildInVars] = idx;
+    buildInVariableIdx = extended;
+    return nBuildInVars++;
+  }
+  
+  public void setForeignContext( BExpressionContext foreignContext )
+  {
+    this.foreignContext = foreignContext;
+  }
+
+  public float getForeignVariableValue( int foreignIndex )
+  {
+    return foreignContext.getBuildInVariable( foreignIndex );
+  }
+
+  public int getForeignVariableIdx( String context, String name )
+  {
+    if ( foreignContext == null || !context.equals( foreignContext.context ) )
+    {
+      throw new IllegalArgumentException( "unknown foreign context: " + context );
+    }
+    return foreignContext.getOutputVariableIndex( name );
   }
 
   public void parseFile( File file, String readOnlyContext )
