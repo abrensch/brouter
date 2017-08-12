@@ -66,13 +66,10 @@ public class BRouterWorker
       rc.startDirection = Integer.valueOf( params.getInt( "direction" ) );
     }
 
-    if ( nogoList != null )
-    {
-      rc.prepareNogoPoints( nogoList );
-      rc.nogopoints = nogoList;
-    }
-
     readNogos( params ); // add interface provided nogos
+    rc.prepareNogoPoints( nogoList );
+    rc.nogopoints = nogoList;
+
     waypoints = readPositions(params);
 
     RoutingEngine cr = new RoutingEngine( null, null, segmentDir, waypoints, rc );
