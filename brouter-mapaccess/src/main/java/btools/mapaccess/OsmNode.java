@@ -109,7 +109,7 @@ public class OsmNode extends OsmLink implements OsmPos
 
     double dlat = ( ilat - p.getILat() ) / 1000000.;
     double dlon = ( ilon - p.getILon() ) / 1000000. * coslat;
-    double d = Math.sqrt( dlat * dlat + dlon * dlon ) * ( 6378000. / 57.3 );
+    double d = Math.sqrt( dlat * dlat + dlon * dlon ) * 110984.; //  6378000. / 57.3;
     return (int) ( d + 1.0 );
   }
 

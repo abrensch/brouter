@@ -14,6 +14,11 @@ public final class GeometryDecoder
   private OsmTransferNode[] cachedNodes;
   private int nCachedNodes = 128;
 
+  // result-cache  
+  private OsmTransferNode firstTransferNode;
+  private boolean lastReverse;
+  private byte[] lastGeometry;
+
   public GeometryDecoder()
   {
     // create some caches
@@ -24,11 +29,14 @@ public final class GeometryDecoder
     }
   }
 
-
-
   public OsmTransferNode decodeGeometry( byte[] geometry, OsmNode sourceNode, OsmNode targetNode, boolean reverseLink )
   {
-      OsmTransferNode firstTransferNode = null;
+      if ( ( lastGeometry == geometry ) && ( lastReverse == reverseLink ) )
+      {
+        return firstTransferNode;
+      }
+  
+      firstTransferNode = null;
       OsmTransferNode lastTransferNode = null;
       OsmNode startnode =  reverseLink ? targetNode : sourceNode;
       r.reset( geometry );
@@ -64,6 +72,10 @@ public final class GeometryDecoder
           lastTransferNode = trans;
         }
       }
+      
+      lastReverse = reverseLink;
+      lastGeometry = geometry;
+      
       return firstTransferNode;
   }
 }

@@ -27,7 +27,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher
     this.waypoints = waypoints;
     for ( MatchedWaypoint mwp : waypoints )
     {
-      mwp.radius = maxDistance / 111894.; // 6378000. / 57.;
+      mwp.radius = maxDistance * 110984.; //  6378000. / 57.3;
     }
   }
 

@@ -28,10 +28,9 @@ import android.os.Environment;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.Toast;
-import btools.expressions.BExpressionContextGlobal;
+import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.OsmNode;
-import btools.mapaccess.StorageConfigHelper;
 import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
@@ -171,7 +170,7 @@ public class BRouterView extends View
       String basedir = fbd.getAbsolutePath();
       AppLogger.log( "using basedir: " + basedir );
 
-      String version = "v1.4.7";
+      String version = "v1.4.9";
 
       // create missing directories
       assertDirectoryExists( "project directory", basedir + "/brouter", null, null );
@@ -185,7 +184,7 @@ public class BRouterView extends View
       profileDir = basedir + "/brouter/profiles2";
       assertDirectoryExists( "profile directory", profileDir, "profiles2.zip", version );
       modesDir = basedir + "/brouter/modes";
-      assertDirectoryExists( "modes directory", modesDir, "modes.zip", null );
+      assertDirectoryExists( "modes directory", modesDir, "modes.zip", version );
       assertDirectoryExists( "readmes directory", basedir + "/brouter/readmes", "readmes.zip", version );
 
       cor = CoordinateReader.obtainValidReader( basedir, segmentDir );
@@ -564,7 +563,7 @@ public class BRouterView extends View
       {
         exists = !vtag.createNewFile();
       }
-      catch( IOException io ) { throw new RuntimeException( "error checking version tag " + vtag ); }
+      catch( IOException io ) { } // well..
     }
 
     if ( !exists )
@@ -767,7 +766,7 @@ public class BRouterView extends View
         else
         {
           String memstat =  memoryClass + "mb pathPeak " + ((cr.getPathPeak()+500)/1000) + "k";
-          String result = "version = BRouter-1.4.8\n" + "mem = " + memstat + "\ndistance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
+          String result = "version = BRouter-1.4.9\n" + "mem = " + memstat + "\ndistance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
               + " m\n" + "plain ascend = " + cr.getPlainAscend();
 
           rawTrack = cr.getFoundRawTrack();
@@ -920,13 +919,13 @@ public class BRouterView extends View
 
     // parse global section of profile for mode preselection
     BExpressionMetaData meta = new BExpressionMetaData();
-    BExpressionContextGlobal expctxGlobal = new BExpressionContextGlobal( meta );
+    BExpressionContextWay expctx = new BExpressionContextWay( meta );
     meta.readMetaData( new File( profileDir, "lookups.dat" ) );
-    expctxGlobal.parseFile( new File( profilePath ), null );
-    expctxGlobal.evaluate( new int[0] );
-    boolean isFoot = 0.f != expctxGlobal.getVariableValue( "validForFoot", 0.f );
-    boolean isBike = 0.f != expctxGlobal.getVariableValue( "validForBikes", 0.f );
-    boolean isCar = 0.f != expctxGlobal.getVariableValue( "validForCars", 0.f );
+    expctx.parseFile( new File( profilePath ), "global" );
+
+    boolean isFoot = 0.f != expctx.getVariableValue( "validForFoot", 0.f );
+    boolean isBike = 0.f != expctx.getVariableValue( "validForBikes", 0.f );
+    boolean isCar = 0.f != expctx.getVariableValue( "validForCars", 0.f );
 
     if ( isFoot || isBike || isCar )
     {

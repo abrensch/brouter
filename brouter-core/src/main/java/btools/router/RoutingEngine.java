@@ -163,6 +163,10 @@ public class RoutingEngine extends Thread
         track = findTrack( refTracks, lastTracks );
         track.message = "track-length = " + track.distance + " filtered ascend = " + track.ascend
         + " plain-ascend = " +  track.plainAscend + " cost=" + track.cost;
+        if ( track.energy != 0 )
+        {
+          track.message += " energy=" + track.getFormattedEnergy() + " time=" + track.getFormattedTime();
+        }
         track.name = "brouter_" + routingContext.getProfileName() + "_" + i;
 
         messageList.add( track.message );
@@ -369,15 +373,26 @@ public class RoutingEngine extends Thread
       matchWaypointsToNodes( matchedWaypoints );
 
       // detect target islands: restricted search in inverse direction
-      routingContext.inverseDirection = true;
+      routingContext.inverseDirection = !routingContext.inverseRouting;
       airDistanceCostFactor = 0.;
       for( int i=0; i<matchedWaypoints.size() -1; i++ )
       {
         nodeLimit = 200;
-        OsmTrack seg = findTrack( "target-island-check", matchedWaypoints.get(i+1), matchedWaypoints.get(i), null, null, false );
-        if ( seg == null && nodeLimit > 0 )
+        if ( routingContext.inverseRouting )
         {
-          throw new IllegalArgumentException( "target island detected for section " + i );
+          OsmTrack seg = findTrack( "start-island-check", matchedWaypoints.get(i), matchedWaypoints.get(i+1), null, null, false );
+          if ( seg == null && nodeLimit > 0 )
+          {
+            throw new IllegalArgumentException( "start island detected for section " + i );
+          }
+        }
+        else
+        {
+          OsmTrack seg = findTrack( "target-island-check", matchedWaypoints.get(i+1), matchedWaypoints.get(i), null, null, false );
+          if ( seg == null && nodeLimit > 0 )
+          {
+            throw new IllegalArgumentException( "target island detected for section " + i );
+          }
         }
       }
       routingContext.inverseDirection = false;
@@ -397,7 +412,18 @@ public class RoutingEngine extends Thread
         refTracks[i].addNodes( lastTracks[i] );
       }
 
-      OsmTrack seg = searchTrack( matchedWaypoints.get(i), matchedWaypoints.get(i+1), i == matchedWaypoints.size()-2 ? nearbyTrack : null, refTracks[i] );
+      OsmTrack seg;
+      if ( routingContext.inverseRouting )
+      {
+        routingContext.inverseDirection = true;
+        seg = searchTrack( matchedWaypoints.get(i+1), matchedWaypoints.get(i),  null, refTracks[i] );
+        routingContext.inverseDirection = false;
+      }
+      else
+      {
+        seg = searchTrack( matchedWaypoints.get(i), matchedWaypoints.get(i+1), i == matchedWaypoints.size()-2 ? nearbyTrack : null, refTracks[i] );
+      }
+
       if ( seg == null ) return null;
       totaltrack.appendTrack( seg );
       lastTracks[i] = seg;
@@ -651,7 +677,7 @@ public class RoutingEngine extends Thread
       OsmPath bestPath = null;
       OsmLink bestLink = null;
       OsmLink startLink = new OsmLink( null, n1 );
-      OsmPath startPath = new OsmPath( startLink );
+      OsmPath startPath = routingContext.createPath( startLink );
       startLink.addLinkHolder( startPath, null );
       double minradius = 1e10;
       for( OsmLink link = n1.firstlink; link != null; link = link.getNext( n1 ) )
@@ -663,7 +689,7 @@ public class RoutingEngine extends Thread
         if ( nextNode != n2 ) continue; // just that link
 
          wp.radius = 1e9;
-         OsmPath testPath = new OsmPath( startPath, link, null, guideTrack != null, routingContext );
+         OsmPath testPath = routingContext.createPath( startPath, link, null, guideTrack != null );
          testPath.airdistance = endPos == null ? 0 : nextNode.calcDistance( endPos );
          if ( wp.radius < minradius )
          {
@@ -692,12 +718,12 @@ public class RoutingEngine extends Thread
     {
       if ( wp != null ) routingContext.setWaypoint( wp, true );
       OsmLink startLink = new OsmLink( null, n1 );
-      OsmPath startPath = new OsmPath( startLink );
+      OsmPath startPath = routingContext.createPath( startLink );
       startLink.addLinkHolder( startPath, null );
 
       if ( wp != null ) wp.radius = 1e-5;
      
-      return new OsmPath( startPath, link, null, guideTrack != null, routingContext );
+      return routingContext.createPath( startPath, link, null, guideTrack != null );
     }
     finally
     {
@@ -761,7 +787,7 @@ public class RoutingEngine extends Thread
 
     if ( start1 == null || start2 == null ) return null;
 
-    if ( routingContext.startDirectionValid = ( fastPartialRecalc && routingContext.startDirection != null ) )
+    if ( routingContext.startDirectionValid = ( fastPartialRecalc && routingContext.startDirection != null && !routingContext.inverseDirection ) )
     {
       logInfo( "using start direction " + routingContext.startDirection );
     }
@@ -865,7 +891,9 @@ public class RoutingEngine extends Thread
         {
           // track found, compile
           logInfo( "found track at cost " + path.cost +  " nodesVisited = " + nodesVisited );
-          return compileTrack( path, verbose );
+          OsmTrack t = compileTrack( path, verbose );
+          t.showspeed = routingContext.showspeed;
+          return t;
         }
         
         // check for a match with the cost-cutting-track
@@ -916,10 +944,37 @@ public class RoutingEngine extends Thread
       }
 
       // recheck cutoff before doing expensive stuff
-      if ( path.cost + path.airdistance > maxTotalCost + 10 )
+      if ( path.cost + path.airdistance > maxTotalCost + 100 )
       {
         path.unregisterUpTree( routingContext );
         continue;
+      }
+      
+      routingContext.firstPrePath = null;
+
+      for( OsmLink link = currentNode.firstlink; link != null; link = link.getNext( currentNode) )
+      {
+        OsmNode nextNode = link.getTarget( currentNode );
+
+        if ( ! nodesCache.obtainNonHollowNode( nextNode ) )
+        {
+          continue; // border node?
+        }
+        if ( nextNode.firstlink == null )
+        {
+          continue; // don't care about dead ends
+        }
+        if ( nextNode == sourceNode )
+        {
+          continue; // border node?
+        }
+
+        OsmPrePath prePath = routingContext.createPrePath( path, link );
+        if ( prePath != null )
+        {
+          prePath.next = routingContext.firstPrePath;
+          routingContext.firstPrePath = prePath;
+        }
       }
 
       for( OsmLink link = currentNode.firstlink; link != null; link = link.getNext( currentNode) )
@@ -946,14 +1001,14 @@ public class RoutingEngine extends Thread
           {
             continue;
           }
-          OsmPathElement guideNode = guideTrack.nodes.get( gidx );
+          OsmPathElement guideNode = guideTrack.nodes.get( routingContext.inverseRouting ? guideTrack.nodes.size() - 1 - gidx : gidx );
           long nextId = nextNode.getIdFromPos();
           if ( nextId != guideNode.getIdFromPos() )
           {
             // not along the guide-track, discard, but register for voice-hint processing
             if ( routingContext.turnInstructionMode > 0 )
             {
-              OsmPath detour = new OsmPath( path, link, refTrack, true, routingContext );
+              OsmPath detour = routingContext.createPath( path, link, refTrack, true );
               if ( detour.cost >= 0. && nextId != startNodeId1 && nextId != startNodeId2 )
               {
                 guideTrack.registerDetourForId( currentNode.getIdFromPos(), OsmPathElement.create( detour, false ) );
@@ -985,7 +1040,7 @@ public class RoutingEngine extends Thread
               endPos.radius = 1e-5;
               routingContext.setWaypoint( endPos, true );
             }
-            OsmPath testPath = new OsmPath( otherPath, link, refTrack, guideTrack != null, routingContext );
+            OsmPath testPath = routingContext.createPath( otherPath, link, refTrack, guideTrack != null );
             if ( testPath.cost >= 0 && ( bestPath == null || testPath.cost < bestPath.cost ) )
             {
               bestPath = testPath;
@@ -1004,7 +1059,7 @@ public class RoutingEngine extends Thread
           
           boolean inRadius = boundary == null || boundary.isInBoundary( nextNode, bestPath.cost );
 
-          if ( inRadius && ( isFinalLink || bestPath.cost + bestPath.airdistance <= maxTotalCost + 10 ) )
+          if ( inRadius && ( isFinalLink || bestPath.cost + bestPath.airdistance <= maxTotalCost + 100 ) )
           {
             // add only if this may beat an existing path for that link
             OsmLinkHolder dominator = link.getFirstLinkHolder( currentNode );
@@ -1052,12 +1107,18 @@ public class RoutingEngine extends Thread
   private OsmTrack compileTrack( OsmPath path, boolean verbose )
   {
     OsmPathElement element = OsmPathElement.create( path, false );
-
+    
     // for final track, cut endnode
-    if ( guideTrack != null ) element = element.origin;
+    if ( guideTrack != null )
+    {
+      element = element.origin;
+    }
+
+    float totalTime = element.getTime();
 
     OsmTrack track = new OsmTrack();
     track.cost = path.cost;
+    track.energy = (int)path.getTotalEnergy();
 
     int distance = 0;
     double ascend = 0;
@@ -1066,9 +1127,24 @@ public class RoutingEngine extends Thread
     short ele_start = Short.MIN_VALUE;
     short ele_end = Short.MIN_VALUE;
     
+    double eleFactor = routingContext.inverseRouting ? -0.25 : 0.25;
     while ( element != null )
     {
-      track.addNode( element );
+      if ( guideTrack != null && element.message == null )
+      {
+        element.message = new MessageData();
+      }
+    
+      if ( routingContext.inverseRouting )
+      {
+        element.setTime( totalTime - element.getTime() );
+        track.nodes.add( element );
+      }
+      else
+      {
+        track.nodes.add( 0, element );
+      }
+      
       OsmPathElement nextElement = element.origin;
       
       short ele = element.getSElev();
@@ -1081,7 +1157,7 @@ public class RoutingEngine extends Thread
         short ele_next = nextElement.getSElev();
         if ( ele_next != Short.MIN_VALUE )
         {
-          ehb = ehb + (ele - ele_next)/4.;
+          ehb = ehb + (ele - ele_next)*eleFactor;
         }
         if ( ehb > 10. )
         {
@@ -1098,7 +1174,7 @@ public class RoutingEngine extends Thread
     ascend += ehb;
     track.distance = distance;
     track.ascend = (int)ascend;
-    track.plainAscend = ( ele_end - ele_start ) / 4;
+    track.plainAscend = (int)(( ele_end - ele_start )*eleFactor+0.5);
     logInfo( "track-length = " + track.distance );
     logInfo( "filtered ascend = " + track.ascend );
     track.buildMap();

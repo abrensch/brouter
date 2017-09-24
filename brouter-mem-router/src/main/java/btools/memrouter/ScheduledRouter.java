@@ -379,7 +379,9 @@ System.out.println( "*** finishedOffsets = " + finishedOffsets );
       if ( trip.originNode != null )
       {
         // penalty proportional to direction change
-        double cos = rc.calcCosAngle( trip.originNode.ilon, trip.originNode.ilat, currentNode.ilon, currentNode.ilat, node.ilon, node.ilat );
+        double angle = rc.calcAngle( trip.originNode.ilon, trip.originNode.ilat, currentNode.ilon, currentNode.ilat, node.ilon, node.ilat );
+        double cos = 1. - rc.getCosAngle();
+
         int turncost = (int) ( cos * rc.expctxWay.getTurncost() + 0.2 ); // e.g. turncost=90 -> 90 degree = 90m penalty
         waycost += turncost;
       }

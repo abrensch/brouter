@@ -26,6 +26,9 @@ final class MessageData implements Cloneable
   int lat;
   short ele;
   
+  float time;
+  float energy;
+
   String toMessage()
   {
     if ( wayKeyValues == null )

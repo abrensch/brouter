@@ -13,18 +13,12 @@ import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmTransferNode;
 import btools.mapaccess.TurnRestriction;
 
-final class OsmPath implements OsmLinkHolder
+abstract class OsmPath implements OsmLinkHolder
 {
   /**
    * The cost of that path (a modified distance)
    */
   public int cost = 0;
-
-  /**
-   * The elevation-hysteresis-buffer (0-10 m)
-   */
-  private int ehbd; // in micrometer
-  private int ehbu; // in micrometer
 
   // the elevation assumed for that path can have a value
   // if the corresponding node has not
@@ -32,14 +26,14 @@ final class OsmPath implements OsmLinkHolder
 
   public int airdistance = 0; // distance to endpos
   
-  private OsmNode sourceNode;
-  private OsmNode targetNode;
+  protected OsmNode sourceNode;
+  protected OsmNode targetNode;
 
-  private OsmLink link;
+  protected OsmLink link;
   public OsmPathElement originElement;
   public OsmPathElement myElement;
 
-  private float traffic;
+  protected float traffic;
 
   private OsmLinkHolder nextForLink = null;
 
@@ -51,7 +45,9 @@ final class OsmPath implements OsmLinkHolder
   public int originLat;
 
   // the classifier of the segment just before this paths position
-  public float lastClassifier;
+  protected float lastClassifier;
+
+  protected int priorityclassifier;
 
   public MessageData message;
 
@@ -81,13 +77,8 @@ final class OsmPath implements OsmLinkHolder
     }
   }
 
-  OsmPath()
+  public void init( OsmLink link )
   {
-  }
-
-  OsmPath( OsmLink link )
-  {
-    this();
     this.link = link;
     targetNode = link.getTarget( null );
     selev = targetNode.getSElev();
@@ -96,9 +87,8 @@ final class OsmPath implements OsmLinkHolder
     originLat = -1;
   }
 
-  OsmPath( OsmPath origin, OsmLink link, OsmTrack refTrack, boolean detailMode, RoutingContext rc )
+  public void init( OsmPath origin, OsmLink link, OsmTrack refTrack, boolean detailMode, RoutingContext rc )
   {
-    this();
     if ( origin.myElement == null )
     {
       origin.myElement = OsmPathElement.create( origin, rc.countTraffic );
@@ -108,19 +98,22 @@ final class OsmPath implements OsmLinkHolder
     this.sourceNode = origin.targetNode;
     this.targetNode = link.getTarget( sourceNode );
     this.cost = origin.cost;
-    this.ehbd = origin.ehbd;
-    this.ehbu = origin.ehbu;
     this.lastClassifier = origin.lastClassifier;
+    init( origin );
     addAddionalPenalty(refTrack, detailMode, origin, link, rc );
   }
+  
+  protected abstract void init( OsmPath orig );
 
-  private void addAddionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, OsmLink link, RoutingContext rc )
+  protected abstract void resetState();
+
+
+  protected void addAddionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, OsmLink link, RoutingContext rc )
   {
     byte[] description = link.descriptionBitmap;
-	  if ( description == null ) throw new IllegalArgumentException( "null description for: " + link );
+    if ( description == null ) throw new IllegalArgumentException( "null description for: " + link );
 
     boolean recordTransferNodes = detailMode || rc.countTraffic;
-    boolean recordMessageData = detailMode;
 
     rc.nogomatch = false;
 
@@ -128,55 +121,48 @@ final class OsmPath implements OsmLinkHolder
     int lon0 = origin.originLon;
     int lat0 = origin.originLat;
 
-    OsmNode p1 = sourceNode;
-    int lon1 = p1.getILon();
-    int lat1 = p1.getILat();
+    int lon1 = sourceNode.getILon();
+    int lat1 = sourceNode.getILat();
     short ele1 = origin.selev;
 
     int linkdisttotal = 0;
 
-    MessageData msgData = recordMessageData ? new MessageData() : null;
+    message = detailMode ? new MessageData() : null;
 
     boolean isReverse = link.isReverse( sourceNode );
 
     // evaluate the way tags
     rc.expctxWay.evaluate( rc.inverseDirection ^ isReverse, description );
 
+
     // calculate the costfactor inputs
+    float costfactor = rc.expctxWay.getCostfactor();
     boolean isTrafficBackbone = cost == 0 && rc.expctxWay.getIsTrafficBackbone() > 0.f;
-    float turncostbase = rc.expctxWay.getTurncost();
-    float cfup = rc.expctxWay.getUphillCostfactor();
-    float cfdown = rc.expctxWay.getDownhillCostfactor();
-    float cf = rc.expctxWay.getCostfactor();
-    cfup = cfup == 0.f ? cf : cfup;
-    cfdown = cfdown == 0.f ? cf : cfdown;
+    int lastpriorityclassifier = priorityclassifier;
+    priorityclassifier = (int)rc.expctxWay.getPriorityClassifier();
+    int classifiermask = (int)rc.expctxWay.getClassifierMask();
 
     // *** add initial cost if the classifier changed
     float newClassifier = rc.expctxWay.getInitialClassifier();
-    if ( newClassifier == 0. )
-    {
-      newClassifier = (cfup + cfdown + cf)/3;
-    }
     float classifierDiff = newClassifier - lastClassifier;
     if ( classifierDiff > 0.0005 || classifierDiff < -0.0005 )
     {
       lastClassifier = newClassifier;
       float initialcost = rc.expctxWay.getInitialcost();
       int iicost = (int)initialcost;
-      if ( recordMessageData )
+      if ( message != null )
       {
-        msgData.linkinitcost += iicost;
+        message.linkinitcost += iicost;
       }
       cost += iicost;
     }
 
     OsmTransferNode transferNode = link.geometry == null ? null
-                  : rc.geometryDecoder.decodeGeometry( link.geometry, p1, targetNode, isReverse );
+                  : rc.geometryDecoder.decodeGeometry( link.geometry, sourceNode, targetNode, isReverse );
 
-    boolean isFirstSection = true;
-
-    for(;;)
+    for(int nsection=0; ;nsection++)
     {
+    
       originLon = lon1;
       originLat = lat1;
 
@@ -197,19 +183,8 @@ final class OsmPath implements OsmLinkHolder
         ele2 = transferNode.selev;
       }
 
-      // check turn restrictions: do we have one with that origin?
-      boolean checkTRs = false;
-      if ( isFirstSection )
-      {
-        isFirstSection = false;
-
-        // TODO: TRs for inverse routing would need inverse TR logic,
-        // inverse routing for now just for target island check, so don't care (?)
-        // in detail mode (=final pass) no TR to not mess up voice hints
-        checkTRs = rc.considerTurnRestrictions && !rc.inverseDirection && !detailMode;
-      }
-
-      if ( checkTRs )
+      // check turn restrictions (n detail mode (=final pass) no TR to not mess up voice hints)
+      if ( nsection == 0 && rc.considerTurnRestrictions && !detailMode )
       {
         boolean hasAnyPositive = false;
         boolean hasPositive = false;
@@ -217,14 +192,22 @@ final class OsmPath implements OsmLinkHolder
         TurnRestriction tr = sourceNode.firstRestriction;
         while( tr != null )
         {
-          boolean trValid = ! (tr.exceptBikes() && rc.bikeMode);
-          if ( trValid && tr.fromLon == lon0 && tr.fromLat == lat0 )
+          if ( tr.exceptBikes() && rc.bikeMode )
+          {
+            tr = tr.next;
+            continue;
+          }
+          int fromLon = rc.inverseDirection ? lon2 : lon0;
+          int fromLat = rc.inverseDirection ? lat2 : lat0;
+          int toLon = rc.inverseDirection ? lon0 : lon2;
+          int toLat = rc.inverseDirection ? lat0 : lat2;
+          if ( tr.fromLon == fromLon && tr.fromLat == fromLat )
           {
             if ( tr.isPositive )
             {
               hasAnyPositive = true;
             }
-            if ( tr.toLon == lon2 && tr.toLat == lat2 )
+            if ( tr.toLon == toLon && tr.toLat == toLat )
             {
               if ( tr.isPositive )
               {
@@ -246,13 +229,14 @@ final class OsmPath implements OsmLinkHolder
       }
 
       // if recording, new MessageData for each section (needed for turn-instructions)
-      if ( recordMessageData && msgData.wayKeyValues != null )
+      if ( message != null && message.wayKeyValues != null )
       {
-        originElement.message = msgData;
-        msgData = new MessageData();
+        originElement.message = message;
+        message = new MessageData();
       }
 
       int dist = rc.calcDistance( lon1, lat1, lon2, lat2 );
+      
       boolean stopAtEndpoint = false;
       if ( rc.shortestmatch )
       {
@@ -263,10 +247,9 @@ final class OsmPath implements OsmLinkHolder
         }
         else
         {
-          // we just start here, reset cost
+          // we just start here, reset everything
           cost = 0;
-          ehbd = 0;
-          ehbu = 0;
+          resetState();
           lon0 = -1; // reset turncost-pipe
           lat0 = -1;
 
@@ -285,131 +268,57 @@ final class OsmPath implements OsmLinkHolder
         }
       }
 
-      if ( recordMessageData )
+      if ( message != null )
       {
-        msgData.linkdist += dist;
+        message.linkdist += dist;
       }
       linkdisttotal += dist;
 
       // apply a start-direction if appropriate (by faking the origin position)
-      if ( lon0 == -1 && lat0 == -1 )
+      boolean isStartpoint = lon0 == -1 && lat0 == -1;
+      if ( isStartpoint )
       {
-        double coslat = Math.cos( ( lat1 - 90000000 ) * 0.00000001234134 );
-        if ( rc.startDirectionValid && coslat > 0. )
+        if ( rc.startDirectionValid )
         {
           double dir = rc.startDirection.intValue() / 57.29578;
-          lon0 = lon1 - (int) ( 1000. * Math.sin( dir ) / coslat );
+          lon0 = lon1 - (int) ( 1000. * Math.sin( dir ) / rc.getCosLat() );
           lat0 = lat1 - (int) ( 1000. * Math.cos( dir ) );
         }
-      }
-
-      // *** penalty for turning angles
-      if ( !isTrafficBackbone && lon0 != -1 && lat0 != -1 )
-      {
-        // penalty proportional to direction change
-        double cos = rc.calcCosAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
-        int actualturncost = (int)(cos * turncostbase + 0.2 ); // e.g. turncost=90 -> 90 degree = 90m penalty
-        cost += actualturncost;
-        if ( recordMessageData )
+        else
         {
-          msgData.linkturncost += actualturncost;
-          msgData.turnangle = (float)rc.calcAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
+          lon0 = lon1 - (lon2-lon1);
+          lat0 = lat1 - (lat2-lat1);
         }
       }
+      double angle = rc.calcAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
+      double cosangle = rc.getCosAngle();
 
-      // *** penalty for elevation (penalty is for descend! in a way that slow descends give no penalty)
-      // only the part of the descend that does not fit into the elevation-hysteresis-buffer
-      // leads to an immediate penalty
-
-      int elefactor = 250000;
+      // *** elevation stuff
+      double delta_h = 0.;
       if ( ele2 == Short.MIN_VALUE ) ele2 = ele1;
       if ( ele1 != Short.MIN_VALUE )
       {
-        ehbd += (ele1 - ele2)*elefactor - dist * rc.downhillcutoff;
-        ehbu += (ele2 - ele1)*elefactor - dist * rc.uphillcutoff;
-      }
-
-      float downweight = 0.f;
-      if ( ehbd > rc.elevationpenaltybuffer )
-      {
-         downweight = 1.f;
-
-         int excess = ehbd - rc.elevationpenaltybuffer;
-         int reduce = dist * rc.elevationbufferreduce;
-         if ( reduce > excess )
-         {
-           downweight = ((float)excess)/reduce;
-           reduce = excess;
-         }
-         excess = ehbd - rc.elevationmaxbuffer;
-         if ( reduce < excess )
-         {
-           reduce = excess;
-         }
-         ehbd -= reduce;
-         if ( rc.downhillcostdiv > 0 )
-         {
-           int elevationCost = reduce/rc.downhillcostdiv;
-           cost += elevationCost;
-           if ( recordMessageData )
-           {
-             msgData.linkelevationcost += elevationCost;
-           }
-         }
-      }
-      else if ( ehbd < 0 )
-      {
-        ehbd = 0;
-      }
-
-      float upweight = 0.f;
-      if ( ehbu > rc.elevationpenaltybuffer )
-      {
-        upweight = 1.f;
-
-        int excess = ehbu - rc.elevationpenaltybuffer;
-        int reduce = dist * rc.elevationbufferreduce;
-        if ( reduce > excess )
+        delta_h = (ele2 - ele1)/4.;
+        if ( rc.inverseDirection )
         {
-          upweight = ((float)excess)/reduce;
-          reduce = excess;
-        }
-        excess = ehbu - rc.elevationmaxbuffer;
-        if ( reduce < excess )
-        {
-          reduce = excess;
-        }
-        ehbu -= reduce;
-        if ( rc.uphillcostdiv > 0 )
-        {
-          int elevationCost = reduce/rc.uphillcostdiv;
-          cost += elevationCost;
-          if ( recordMessageData )
-          {
-            msgData.linkelevationcost += elevationCost;
-          }
+          delta_h = -delta_h;
         }
       }
-      else if ( ehbu < 0 )
-      {
-        ehbu = 0;
-      }
 
-      // get the effective costfactor (slope dependent)
-      float costfactor = cfup*upweight + cf*(1.f - upweight - downweight) + cfdown*downweight;
-      if ( isTrafficBackbone )
-      {
-        costfactor = 0.f;
-      }
 
-      float fcost = dist * costfactor + 0.5f;
-      if ( ( costfactor > 9998. && !detailMode ) || fcost + cost >= 2000000000. )
+      double sectionCost = processWaySection( rc, dist, delta_h, angle, cosangle, isStartpoint, nsection, lastpriorityclassifier );
+      if ( ( sectionCost < 0. || costfactor > 9998. && !detailMode ) || sectionCost + cost >= 2000000000. )
       {
         cost = -1;
         return;
       }
-      int waycost = (int)(fcost);
-      cost += waycost;
+
+      if ( isTrafficBackbone )
+      {
+        sectionCost = 0.;
+      }
+
+      cost += (int)sectionCost;
 
       // calculate traffic
       if ( rc.countTraffic )
@@ -419,15 +328,17 @@ final class OsmPath implements OsmLinkHolder
         traffic += dist*rc.expctxWay.getTrafficSourceDensity()*Math.pow(cost2/10000.f,rc.trafficSourceExponent);
       }
 
-      if ( recordMessageData )
+      if ( message != null )
       {
-        msgData.costfactor = costfactor;
-        msgData.priorityclassifier = (int)rc.expctxWay.getPriorityClassifier();
-        msgData.classifiermask = (int)rc.expctxWay.getClassifierMask();
-        msgData.lon = lon2;
-        msgData.lat = lat2;
-        msgData.ele = ele2;
-        msgData.wayKeyValues = rc.expctxWay.getKeyValueDescription( isReverse, description );
+        message.turnangle = (float)angle;
+        message.time = (float)getTotalTime();
+        message.energy = (float)getTotalEnergy();
+        message.priorityclassifier = priorityclassifier;
+        message.classifiermask = classifiermask;
+        message.lon = lon2;
+        message.lat = lat2;
+        message.ele = ele2;
+        message.wayKeyValues = rc.expctxWay.getKeyValueDescription( isReverse, description );
       }
 
       if ( stopAtEndpoint )
@@ -436,9 +347,9 @@ final class OsmPath implements OsmLinkHolder
         {
           originElement = OsmPathElement.create( rc.ilonshortest, rc.ilatshortest, ele2, originElement, rc.countTraffic );
           originElement.cost = cost;
-          if ( recordMessageData )
+          if ( message != null )
           {
-            originElement.message = msgData;
+            originElement.message = message;
           }
         }
         if ( rc.nogomatch )
@@ -473,43 +384,25 @@ final class OsmPath implements OsmLinkHolder
       lon1 = lon2;
       lat1 = lat2;
       ele1 = ele2;
-
     }
 
     // check for nogo-matches (after the *actual* start of segment)
     if ( rc.nogomatch )
     {
-        cost = -1;
-        return;
+      cost = -1;
+      return;
     }
 
-    // finally add node-costs for target node
-    if ( targetNode.nodeDescription != null )
+    // add target-node costs
+    double targetCost = processTargetNode( rc );
+    if ( targetCost < 0. || targetCost + cost >= 2000000000. )
     {
-        boolean nodeAccessGranted = rc.expctxWay.getNodeAccessGranted() != 0.;
-        rc.expctxNode.evaluate( nodeAccessGranted , targetNode.nodeDescription );
-        float initialcost = rc.expctxNode.getInitialcost();
-        if ( initialcost >= 1000000. )
-        {
-          cost = -1;
-          return;
-        }
-        int iicost = (int)initialcost;
-
-        cost += iicost;
-
-        if ( recordMessageData )
-        {
-          msgData.linknodecost += iicost;
-          msgData.nodeKeyValues = rc.expctxNode.getKeyValueDescription( nodeAccessGranted, targetNode.nodeDescription );
-        }
+      cost = -1;
+      return;
     }
-    if ( recordMessageData )
-    {
-      message = msgData;
-    }
-
+    cost += (int)targetCost;
   }
+
 
   public short interpolateEle( short e1, short e2, double fraction )
   {
@@ -520,29 +413,13 @@ final class OsmPath implements OsmLinkHolder
     return (short)( e1*(1.-fraction) + e2*fraction );
   }
 
-  public int elevationCorrection( RoutingContext rc )
-  {
-    return ( rc.downhillcostdiv > 0 ? ehbd/rc.downhillcostdiv : 0 )
-         + ( rc.uphillcostdiv > 0 ? ehbu/rc.uphillcostdiv : 0 );
-  }
+  protected abstract double processWaySection( RoutingContext rc, double dist, double delta_h, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier );
 
-  public boolean definitlyWorseThan( OsmPath p, RoutingContext rc )
-  {
-	  int c = p.cost;
-	  if ( rc.downhillcostdiv > 0 )
-	  {
-	    int delta = p.ehbd - ehbd;
-	    if ( delta > 0 ) c += delta/rc.downhillcostdiv;
-	  }
-	  if ( rc.uphillcostdiv > 0 )
-	  {
-	    int delta = p.ehbu - ehbu;
-	    if ( delta > 0 ) c += delta/rc.uphillcostdiv;
-	  }
-	  
-	  return cost > c;
-  }
- 
+  protected abstract double processTargetNode( RoutingContext rc );
+
+  public abstract int elevationCorrection( RoutingContext rc );
+
+  public abstract boolean definitlyWorseThan( OsmPath p, RoutingContext rc );
 
   public OsmNode getSourceNode()
   {
@@ -568,5 +445,15 @@ final class OsmPath implements OsmLinkHolder
   public OsmLinkHolder getNextForLink()
   {
     return nextForLink;
+  }
+
+  public double getTotalTime()
+  {
+    return 0.;
+  }
+  
+  public double getTotalEnergy()
+  {
+    return 0.;
   }
 }

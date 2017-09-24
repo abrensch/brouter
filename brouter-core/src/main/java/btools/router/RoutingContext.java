@@ -14,6 +14,7 @@ import btools.expressions.BExpressionContext;
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.mapaccess.GeometryDecoder;
+import btools.mapaccess.OsmLink;
 
 public final class RoutingContext
 {
@@ -71,8 +72,34 @@ public final class RoutingContext
   public double starttimeoffset;
   public boolean transitonly;
   
-  public void readGlobalConfig( BExpressionContext expctxGlobal )
+  
+  private void setModel( String className )
   {
+    if ( className == null )
+    {
+      pm = new StdModel();
+    }
+    else
+    {
+      try
+      {
+        Class clazz = Class.forName( className );
+        pm = (OsmPathModel) clazz.newInstance();
+      }
+      catch( Exception e )
+      {
+        throw new RuntimeException( "Cannot create path-model: " + e );
+      }
+    }
+    pm.init( expctxWay, expctxNode );
+  }
+  
+  public void readGlobalConfig()
+  {
+    BExpressionContext expctxGlobal = expctxWay; // just one of them...
+
+    setModel( expctxGlobal._modelClass );
+  
     downhillcostdiv = (int)expctxGlobal.getVariableValue( "downhillcost", 0.f );
     downhillcutoff = (int)(expctxGlobal.getVariableValue( "downhillcutoff", 0.f )*10000);
     uphillcostdiv = (int)expctxGlobal.getVariableValue( "uphillcost", 0.f );
@@ -112,6 +139,9 @@ public final class RoutingContext
     trafficSourceExponent      = expctxGlobal.getVariableValue( "trafficSourceExponent", -0.7f );
     trafficSourceMinDist      = expctxGlobal.getVariableValue( "trafficSourceMinDist", 3000.f );
 
+    showspeed = 0.f != expctxGlobal.getVariableValue( "showspeed", 0.f );
+    inverseRouting = 0.f != expctxGlobal.getVariableValue( "inverseRouting", 0.f );
+
     int tiMode = (int)expctxGlobal.getVariableValue( "turnInstructionMode", 0.f );
     if ( tiMode != 1 ) // automatic selection from coordinate source
     {
@@ -128,6 +158,7 @@ public final class RoutingContext
   public boolean startDirectionValid;
 
   private double coslat;
+  private double cosangle;
   public boolean nogomatch = false;
   public boolean isEndpoint = false;
 
@@ -148,6 +179,11 @@ public final class RoutingContext
   public double trafficSourceExponent;
   public double trafficSourceMinDist;
 
+  public boolean showspeed;
+  public boolean inverseRouting;
+  
+  public OsmPrePath firstPrePath;
+
   public int turnInstructionMode; // 0=none, 1=auto, 2=locus, 3=osmand, 4=comment-style, 5=gpsies-style
   public double turnInstructionCatchingRange;
   public boolean turnInstructionRoundabouts;
@@ -165,7 +201,7 @@ public final class RoutingContext
           try { ir = Integer.parseInt( s.substring( 4 ) ); }
           catch( Exception e ) { /* ignore */ }
         }
-        nogo.radius = ir / 111894.; //  6378000. / 57.;
+        nogo.radius = ir / 110984.; //  6378000. / 57.3;
     }
   }
 
@@ -308,22 +344,19 @@ public final class RoutingContext
         }
       }
     }
-    double dd = d * 111894.7368; //  6378000. / 57.;
+    double dd = d * 110984.; //  6378000. / 57.3;
     return (int)(dd + 1.0 );
   }
 
   // assumes that calcDistance/calcCosAngle called in sequence, so coslat valid
-  public double calcCosAngle( int lon0, int lat0,  int lon1, int lat1, int lon2, int lat2 )
+  public double getCosAngle()
   {
-    double dlat1 = (lat1 - lat0);
-    double dlon1 = (lon1 - lon0) * coslat;
-    double dlat2 = (lat2 - lat1);
-    double dlon2 = (lon2 - lon1) * coslat;
+    return cosangle;
+  }
 
-    double dd = Math.sqrt( (dlat1*dlat1 + dlon1*dlon1)*(dlat2*dlat2 + dlon2*dlon2) );
-    if ( dd == 0. ) return 0.;
-    double cosp = (dlat1*dlat2 + dlon1*dlon2)/dd;
-    return 1.-cosp; // don't care to really do acos..
+  public double getCosLat()
+  {
+    return coslat;
   }
 
   public double calcAngle( int lon0, int lat0,  int lon1, int lat1, int lon2, int lat2 )
@@ -334,14 +367,15 @@ public final class RoutingContext
     double dlon2 = (lon2 - lon1) * coslat;
 
     double dd = Math.sqrt( (dlat1*dlat1 + dlon1*dlon1)*(dlat2*dlat2 + dlon2*dlon2) );
-    if ( dd == 0. ) return 0.;
+    if ( dd == 0. ) { cosangle = 1.; return 0.; }
     double sinp = (dlat1*dlon2 - dlon1*dlat2)/dd;
     double cosp = (dlat1*dlat2 + dlon1*dlon2)/dd;
+    cosangle = cosp;
 
     double p;
-    if ( sinp > -0.7 && sinp < 0.7 )
+    if ( sinp > -0.7071 && sinp < 0.7071 )
     {
-      p = Math.asin( sinp )*57.3;
+      p = asin( sinp );
       if ( cosp < 0. )
       {
         p = 180. - p;
@@ -349,7 +383,7 @@ public final class RoutingContext
     }
     else
     {
-      p = Math.acos( cosp )*57.3;
+      p = 90. - asin( cosp );
       if ( sinp < 0. )
       {
         p = - p;
@@ -362,4 +396,37 @@ public final class RoutingContext
     return p;
   }
 
+  private static double asin( double x )
+  {
+    double x2 = x*x;
+    double x4 = x2*x2;
+    return x * ( 57.4539 + 9.57565 * x2 + 4.30904 * x4 + 2.56491 * x2*x4 );
+  }
+  
+  public OsmPathModel pm;
+  
+  public OsmPrePath createPrePath( OsmPath origin, OsmLink link )
+  {
+    OsmPrePath p = pm.createPrePath();
+    if ( p != null )
+    {
+      p.init( origin, link, this );
+    }
+    return p;
+  }
+
+  public OsmPath createPath( OsmLink link )
+  {
+    OsmPath p = pm.createPath();
+    p.init( link );
+    return p;
+  }
+
+  public OsmPath createPath( OsmPath origin, OsmLink link, OsmTrack refTrack, boolean detailMode )
+  {
+    OsmPath p = pm.createPath();
+    p.init( origin, link, refTrack, detailMode, this );
+    return p;
+  }
+  
 }

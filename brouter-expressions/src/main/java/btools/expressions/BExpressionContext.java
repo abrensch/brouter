@@ -27,11 +27,14 @@ import btools.util.LruMap;
 public abstract class BExpressionContext implements IByteArrayUnifier
 {
   private  static final String CONTEXT_TAG = "---context:";
+  private  static final String MODEL_TAG = "---model:";
 	
   private String context;
   private boolean _inOurContext = false;
   private BufferedReader _br = null;
   private boolean _readerDone = false;
+  
+  public String _modelClass;
 
   private Map<String,Integer> lookupNumbers = new HashMap<String,Integer>();
   private ArrayList<BExpressionLookupValue[]> lookupValues = new ArrayList<BExpressionLookupValue[]>();
@@ -79,7 +82,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
 
   abstract String[] getBuildInVariableNames();
 
-  protected final float getBuildInVariable( int idx ) 
+  public final float getBuildInVariable( int idx ) 
   {
     return currentVars[idx+currentVarOffset];
   }
@@ -678,14 +681,17 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     return num != null && lookupData[num.intValue()] == 2;
   }
   
-  public int getOutputVariableIndex( String name )
+  public int getOutputVariableIndex( String name, boolean mustExist )
   {
     int idx = getVariableIdx( name, false );
     if ( idx < 0 )
     {
-      throw new IllegalArgumentException( "unknown variable: " + name );
+      if ( mustExist )
+      {
+        throw new IllegalArgumentException( "unknown variable: " + name );
+      }
     }
-    if ( idx < minWriteIdx )
+    else if ( idx < minWriteIdx )
     {
       throw new IllegalArgumentException( "bad access to global variable: " + name );
     }
@@ -719,7 +725,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     {
       throw new IllegalArgumentException( "unknown foreign context: " + context );
     }
-    return foreignContext.getOutputVariableIndex( name );
+    return foreignContext.getOutputVariableIndex( name, true );
   }
 
   public void parseFile( File file, String readOnlyContext )
@@ -883,6 +889,10 @@ public abstract class BExpressionContext implements IByteArrayUnifier
       if ( token.startsWith( CONTEXT_TAG ) )
       {
         _inOurContext = token.substring( CONTEXT_TAG.length() ).equals( context );
+      }
+      else if ( token.startsWith( MODEL_TAG ) )
+      {
+        _modelClass = token.substring( MODEL_TAG.length() ).trim();
       }
       else if ( _inOurContext )
       {

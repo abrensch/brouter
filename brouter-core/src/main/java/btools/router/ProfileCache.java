@@ -7,7 +7,6 @@ package btools.router;
 
 import java.io.File;
 
-import btools.expressions.BExpressionContextGlobal;
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
@@ -54,7 +53,7 @@ public final class ProfileCache
             rc.expctxWay = expctxWay;
             rc.expctxNode = expctxNode;
             profilesBusy = true;
-            rc.readGlobalConfig(expctxWay);
+            rc.readGlobalConfig();
             return true;
           }
         }
@@ -62,19 +61,16 @@ public final class ProfileCache
       
       BExpressionMetaData meta = new BExpressionMetaData();
       
-      BExpressionContextGlobal expctxGlobal = new BExpressionContextGlobal( meta );
       rc.expctxWay = new BExpressionContextWay( rc.memoryclass * 512, meta );
       rc.expctxNode = new BExpressionContextNode( 0, meta );
       rc.expctxNode.setForeignContext( rc.expctxWay );
       
       meta.readMetaData( new File( profileDir, "lookups.dat" ) );
 
-      expctxGlobal.parseFile( profileFile, null );
-      expctxGlobal.evaluate( new int[0] );
-      rc.readGlobalConfig(expctxGlobal);
-
       rc.expctxWay.parseFile( profileFile, "global" );
       rc.expctxNode.parseFile( profileFile, "global" );
+
+      rc.readGlobalConfig();
       
       if ( rc.processUnusedTags )
       {

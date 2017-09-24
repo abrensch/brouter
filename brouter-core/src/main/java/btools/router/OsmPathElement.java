@@ -18,7 +18,7 @@ public class OsmPathElement implements OsmPos
   private int ilat; // latitude
   private int ilon; // longitude
   private short selev; // longitude
-
+  
   public MessageData message = null; // description
 
   public int cost;
@@ -44,6 +44,19 @@ public class OsmPathElement implements OsmPos
     return selev / 4.;
   }
 
+  public final float getTime()
+  {
+    return message == null ? 0.f : message.time;
+  }
+
+  public final void setTime( float t )
+  {
+    if ( message != null )
+    {
+      message.time = t;
+    }
+  }
+
   public final long getIdFromPos()
   {
     return ((long)ilon)<<32 | ilat;
@@ -58,7 +71,7 @@ public class OsmPathElement implements OsmPos
 
     double dlat = (ilat - p.getILat() )/1000000.;
     double dlon = (ilon - p.getILon() )/1000000. * coslat;
-    double d = Math.sqrt( dlat*dlat + dlon*dlon ) * (6378000. / 57.);
+    double d = Math.sqrt( dlat*dlat + dlon*dlon ) * 110984.; //  6378000. / 57.3;
     return (int)(d + 1.0 );
   }
 

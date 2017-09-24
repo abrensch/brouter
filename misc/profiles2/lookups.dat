@@ -1,5 +1,5 @@
 ---lookupversion:10
----minorversion:6
+---minorversion:7
 
 ---context:way
 
@@ -35,6 +35,12 @@ highway;0000002631 services
 highway;0000002133 corridor
 highway;0000002093 crossing
 highway;0000001440 bus_stop
+highway;0000001274 yes
+highway;0000000679 unsurfaced
+highway;0000000108 byway
+highway;0000000037 driveway
+highway;0000000021 mini_roundabout
+highway;0000000020 turning_loop
 
 tracktype;0000887965 grade2
 tracktype;0000868414 grade3
@@ -512,6 +518,35 @@ mtb:scale:uphill;0000009099 3 3+ 3-
 mtb:scale:uphill;0000005825 4 4+ 4-
 mtb:scale:uphill;0000004628 5 5+ 5-
 
+crossing;0000101049 zebra
+crossing;0000017509 unmarked
+crossing;0000013817 traffic_signals
+crossing;0000011062 uncontrolled
+crossing;0000001722 yes
+crossing;0000001678 island
+crossing;0000000457 marked
+crossing;0000000131 pedestrian_signals
+crossing;0000000122 no
+
+informal;0000002424 yes
+
+indoor;0000058418 yes
+indoor;0000025038 room
+indoor;0000005295 wall
+indoor;0000004322 corridor
+indoor;0000002410 area
+indoor;0000000816 column
+indoor;0000000568 no
+indoor;0000000129 shop
+indoor;0000000099 steps
+
+4wd_only;0000008129 yes Yes
+4wd_only;0000000487 recommended
+4wd_only;0000000041 no
+
+concrete;0000000043 plates
+concrete;0000000013 lanes
+
 ---context:node
 
 highway;0001314954 bus_stop
@@ -565,6 +600,8 @@ highway;0000000113 culvert
 highway;0000000100 <residential>
 highway;0000000046 toll_bridge
 highway;0000000037 city_entry
+highway;0000002967 traffic_mirror
+highway;0000001724 priority
 
 barrier;0000606512 gate
 barrier;0000164120 bollard

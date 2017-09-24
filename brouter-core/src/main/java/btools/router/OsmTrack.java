@@ -37,6 +37,8 @@ public final class OsmTrack
   public long profileTimestamp;
   public boolean isDirty;
 
+  public boolean showspeed;
+
   private static class OsmPathElementHolder
   {
     public OsmPathElement node;
@@ -120,7 +122,7 @@ public final class OsmTrack
     MessageData current = null;
     for ( OsmPathElement n : nodes )
     {
-      if ( n.message != null )
+      if ( n.message != null && n.message.wayKeyValues != null )
       {
         MessageData md = n.message.copy();
         if ( current != null )
@@ -289,11 +291,15 @@ public final class OsmTrack
 
   public void appendTrack( OsmTrack t )
   {
+    int ourSize = nodes.size();
+    float t0 = ourSize > 0 ? nodes.get(ourSize - 1 ).getTime() : 0; 
     for ( int i = 0; i < t.nodes.size(); i++ )
     {
-      if ( i > 0 || nodes.size() == 0 )
+      if ( i > 0 || ourSize == 0 )
       {
-        nodes.add( t.nodes.get( i ) );
+        OsmPathElement e = t.nodes.get( i );
+        e.setTime( e.getTime() + t0 );
+        nodes.add( e );
       }
     }
 
@@ -313,12 +319,16 @@ public final class OsmTrack
     ascend += t.ascend;
     plainAscend += t.plainAscend;
     cost += t.cost;
+    energy += t.energy;
+
+    showspeed |= t.showspeed;
   }
 
   public int distance;
   public int ascend;
   public int plainAscend;
   public int cost;
+  public int energy;
 
   /**
    * writes the track in gpx-format to a file
@@ -390,7 +400,7 @@ public final class OsmTrack
     }
     else
     {
-      sb.append( " creator=\"BRouter-1.4.8\" version=\"1.1\">\n" );
+      sb.append( " creator=\"BRouter-1.4.9\" version=\"1.1\">\n" );
     }
 
     if ( turnInstructionMode == 3) // osmand style
@@ -537,6 +547,8 @@ public final class OsmTrack
     sb.append( "        \"track-length\": \"" ).append( distance ).append( "\",\n" );
     sb.append( "        \"filtered ascend\": \"" ).append( ascend ).append( "\",\n" );
     sb.append( "        \"plain-ascend\": \"" ).append( plainAscend ).append( "\",\n" );
+    sb.append( "        \"total-time\": \"" ).append( getTotalSeconds() ).append( "\",\n" );
+    sb.append( "        \"total-energy\": \"" ).append( energy ).append( "\",\n" );
     sb.append( "        \"cost\": \"" ).append( cost ).append( "\",\n" );
     sb.append( "        \"messages\": [\n" );
     sb.append( "          [\"" ).append( MESSAGES_HEADER.replaceAll( "\t", "\", \"" ) ).append( "\"],\n" );
@@ -563,11 +575,27 @@ public final class OsmTrack
     sb.append( "        \"type\": \"LineString\",\n" );
     sb.append( "        \"coordinates\": [\n" );
 
+    OsmPathElement nn = null;
     for ( OsmPathElement n : nodes )
     {
       String sele = n.getSElev() == Short.MIN_VALUE ? "" : ", " + n.getElev();
+      if ( showspeed ) // hack: show speed instead of elevation
+      {
+        int speed = 0;
+        if ( nn != null )
+        {
+          int dist = n.calcDistance( nn );
+          float dt = n.getTime()-nn.getTime();
+          if ( dt != 0.f )
+          {
+            speed = (int)((3.6f*dist)/dt + 0.5);
+          }
+        }
+        sele = ", " + speed;
+      }
       sb.append( "          [" ).append( formatILon( n.getILon() ) ).append( ", " ).append( formatILat( n.getILat() ) )
           .append( sele ).append( "],\n" );
+      nn = n;
     }
     sb.deleteCharAt( sb.lastIndexOf( "," ) );
 
@@ -578,6 +606,22 @@ public final class OsmTrack
     sb.append( "}\n" );
 
     return sb.toString();
+  }
+
+  private int getTotalSeconds()
+  {
+    float s = nodes.size() < 2 ? 0 : nodes.get( nodes.size()-1 ).getTime() - nodes.get( 0 ).getTime();
+    return (int)(s + 0.5);
+  }
+
+  public String getFormattedTime()
+  {
+    return format1( getTotalSeconds()/60. ) + "m";
+  }
+
+  public String getFormattedEnergy()
+  {
+    return format1( energy/3600000. ) + "kwh";
   }
 
   private static String formatILon( int ilon )
@@ -607,6 +651,13 @@ public final class OsmTrack
     if ( negative )
       ac[i--] = '-';
     return new String( ac, i + 1, 11 - i );
+  }
+  
+  private String format1( double n )
+  {
+    String s = "" + (long)(n*10 + 0.5);
+    int len = s.length();
+    return s.substring( 0, len-1 ) + "." + s.charAt( len-1 );
   }
 
   public void dumpMessages( String filename, RoutingContext rc ) throws Exception
