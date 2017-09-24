@@ -11,8 +11,8 @@ import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.HashMap;
 
-import btools.expressions.BExpressionContext;
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
@@ -139,6 +139,33 @@ public class OsmCutter extends MapCreatorBase
   }
 
 
+  private void generatePseudoTags( HashMap<String,String> map )
+  {
+    // add pseudo.tags for concrete:lanes and concrete:plates
+  
+    String concrete = null;
+    for( String key : map.keySet() )
+    {
+      if ( "concrete".equals( key ) )
+      {
+        return;
+      }
+      if ( "surface".equals( key ) )
+      {
+        String value = map.get( key );
+        if ( value.startsWith( "concrete:" ) )
+        {
+          concrete = value.substring( "concrete:".length() );
+        }
+      }
+    }
+    if ( concrete != null )
+    {
+      map.put( "concrete", concrete );
+    }
+  }
+
+
   @Override
   public void nextWay( WayData w ) throws Exception
   {
@@ -147,6 +174,8 @@ public class OsmCutter extends MapCreatorBase
 
     // encode tags
     if ( w.getTagsOrNull() == null ) return;
+
+    generatePseudoTags( w.getTagsOrNull() );
 
     int[] lookupData = _expctxWay.createNewLookupData();
     for( String key : w.getTagsOrNull().keySet() )
