@@ -72,6 +72,10 @@ public class BitCoderContext
     int range = 1;
     int cnt = 1;
     fillBuffer();
+    if ( (b & 0xffffff ) == 0 )
+    {
+      return decodeVarBits2(); // fast version limited to 24 bit
+    }
     while ((b & range) == 0)
     {
       range = (range << 1) | 1;
