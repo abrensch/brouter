@@ -111,7 +111,8 @@ assign maxspeed =
 
 # added test for toll roads
 # assign costfactor = if equal maxspeed 0 then 10000 else 0
-assign costfactor = if or ( and avoid_tolls toll=yes )  ( equal maxspeed 0 ) then 10000 else 0
+assign costfactor = if equal maxspeed 0  then 10000 
+                    else if and avoid_tolls toll=yes then 9999 else 0
 
 assign minspeed =
     switch highway=motorway|trunk  75 0
