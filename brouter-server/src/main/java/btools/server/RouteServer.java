@@ -5,9 +5,11 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URLDecoder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -216,10 +218,11 @@ public class RouteServer extends Thread
   }
 
 
-  private static HashMap<String,String> getUrlParams( String url )
+  private static HashMap<String,String> getUrlParams( String url ) throws UnsupportedEncodingException
   {
 	  HashMap<String,String> params = new HashMap<String,String>();
-	  StringTokenizer tk = new StringTokenizer( url, "?&" );
+	  String decoded = URLDecoder.decode( url, "UTF-8" );
+	  StringTokenizer tk = new StringTokenizer( decoded, "?&" );
 	  while( tk.hasMoreTokens() )
 	  {
 	    String t = tk.nextToken();
