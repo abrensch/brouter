@@ -156,10 +156,10 @@ public class RouteServer extends Thread
   public static void main(String[] args) throws Exception
   {
         System.out.println("BRouter 1.4.9 / 24092017");
-        if ( args.length != 5 )
+        if ( args.length != 5 && args.length != 6)
         {
           System.out.println("serve BRouter protocol");
-          System.out.println("usage: java RouteServer <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads>");
+          System.out.println("usage: java RouteServer <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads> [bindaddress]");
           return;
         }
 
@@ -173,7 +173,7 @@ public class RouteServer extends Thread
 
         TreeMap<Long,RouteServer> threadMap = new TreeMap<Long,RouteServer>();
 
-        ServerSocket serverSocket = new ServerSocket(Integer.parseInt(args[3]));
+        ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]),50,InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
         long last_ts = 0;
         for (;;)
         {
