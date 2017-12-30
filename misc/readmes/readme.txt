@@ -193,9 +193,9 @@ The other option is using the BRouter-App to calculate a route. This is the pref
 when calculating long-distance-routes that would not finish within the 60 seconds timout
 if calculated via the service-interface.
 
-To do this, start the BRouter-App, select two or more wayoints from the waypoint-database
+To do this, start the BRouter-App, select two or more waypoints from the waypoint-database
 of your map-tool and then start the route calculation. These waypoints are called "Favorites"
-in OsmAnd, "POI"s in Locus or "Wayoints" in Oruxmaps and allow to store a location
+in OsmAnd, "POI"s in Locus or "Waypoints" in Oruxmaps and allow to store a location
 on the map and give it a name.
 
 No need anymore to create special "to", "from", "via1..via9" points, but they are still supported
@@ -256,3 +256,8 @@ re-calculating that you used for the initial calculation.
 
 This way you can follow a long distance route via the service interface, enjoying
 automatic recalculations if you get off the track.
+
+
+Issues and bugs:
+================
+<https://github.com/abrensch/brouter/issues>
