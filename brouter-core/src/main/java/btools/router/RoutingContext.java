@@ -294,7 +294,12 @@ public final class RoutingContext
             radius = Math.sqrt( s1 < s2 ? r12 : r22 );
             if ( radius > nogo.radius ) continue; // 20m ^ 2
           }
-          if ( nogo.isNogo ) nogomatch = true;
+          if ( nogo.isNogo 
+              && (!(nogo instanceof OsmNogoPolygon) 
+                  || ((OsmNogoPolygon)nogo).intersectsOrIsWithin(lon1, lat1, lon2, lat2)))
+          {
+            nogomatch = true;
+          }
           else
           {
             shortestmatch = true;
