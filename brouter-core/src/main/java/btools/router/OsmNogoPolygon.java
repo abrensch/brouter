@@ -55,22 +55,22 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return 1.- l2 + l4 / 6.; // - l6 / 90;
   }
 
-/**
- * method calcBoundingCircle is inspired by the algorithm described on
- * http://geomalgorithms.com/a08-_containers.html
- * (fast computation of bounding circly in c). It is not as fast (the original
- * algorithm runs in linear time), as it may do more iterations but it takes
- * into account the coslat-factor being used for the linear approximation that
- * is also used in other places of brouter does change when moving the centerpoint
- * with each iteration.
- * This is done to ensure the calculated radius being used
- * in RoutingContext.calcDistance will actually contain the whole polygon.
- * 
- * For reasonable distributed vertices the implemented algorithm runs in O(n*ln(n)).
- * As this is only run once on initialization of OsmNogoPolygon this methods
- * overall usage of cpu is neglegible in comparism to the cpu-usage of the
- * actual routing algoritm.
- */
+ /**
+  * calcBoundingCircle is inspired by the algorithm described on
+  * http://geomalgorithms.com/a08-_containers.html
+  * (fast computation of bounding circly in c). It is not as fast (the original
+  * algorithm runs in linear time), as it may do more iterations but it takes
+  * into account the coslat-factor being used for the linear approximation that
+  * is also used in other places of brouter does change when moving the centerpoint
+  * with each iteration.
+  * This is done to ensure the calculated radius being used
+  * in RoutingContext.calcDistance will actually contain the whole polygon.
+  * 
+  * For reasonable distributed vertices the implemented algorithm runs in O(n*ln(n)).
+  * As this is only run once on initialization of OsmNogoPolygon this methods
+  * overall usage of cpu is neglegible in comparism to the cpu-usage of the
+  * actual routing algoritm.
+  */
   public void calcBoundingCircle()
   {
     int cxmin, cxmax, cymin, cymax;
@@ -159,6 +159,22 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return;
   }
 
+ /**
+  * intersectsOrIsWithin
+  * 
+  * tests whether a segment defined by lon and lat of two points does either
+  * intersect the polygon or any of the endpoints (or both) are enclosed by
+  * the polygon. Any point being positioned on any of the polygons edges is
+  * defined as being 'inside'. For this test the winding-number algorithm is
+  * being used. That means a point being within an overlapping region of the
+  * polygon is also taken as being 'inside' the polygon.
+  * 
+  * @param lon0 longitude of start point
+  * @param lat0 latitude of start point
+  * @param lon1 longitude of end point
+  * @param lat1 latitude of start point
+  * @return true if segment or any of it's points are 'inside' of polygon
+  */
   public boolean intersectsOrIsWithin(int lon0, int lat0, int lon1, int lat1)
   {
     Point p0 = new Point (lon0,lat0);
@@ -183,18 +199,22 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return false;
   }
 
-/**
- * Copyright 2001 softSurfer, 2012 Dan Sunday
- * This code may be freely used and modified for any purpose providing that
- * this copyright notice is included with it. SoftSurfer makes no warranty for
- * this code, and cannot be held liable for any real or imagined damage
- * resulting from its use. Users of this code must verify correctness for
- * their application.
- *
- * cn_PnPoly(): crossing number test for a point in a polygon Input: P = a
- * point, V[] = vertex points of a polygon V[n+1] with V[n]=V[0] Return: 0 =
- * outside, 1 = inside This code is patterned after [Franklin, 2000]
- */
+/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchses
+   This code may be freely used and modified for any purpose providing that
+   this copyright notice is included with it. SoftSurfer makes no warranty for
+   this code, and cannot be held liable for any real or imagined damage
+   resulting from its use. Users of this code must verify correctness for
+   their application. */
+ /**
+  * cn_PnPoly(): crossing number test for a point in a polygon
+  * 
+  * @param p a point
+  * @param v list of vertex points forming a polygon. This polygon
+  *          is implicitly closed connecting the last and first point.
+  * @return 0 = outside, 1 = inside.
+  * 
+  * This code is patterned after [Franklin, 2000]
+  */
   private static boolean cn_PnPoly(final Point p, final List<Point> v)
   {
     int cn = 0; // the crossing number counter
@@ -222,19 +242,20 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return ((cn & 1) > 0);                     // 0 if even (out), and 1 if odd (in)
   }
 
-/**
- * Copyright 2001 softSurfer, 2012 Dan Sunday
- * This code may be freely used and modified for any purpose providing that
- * this copyright notice is included with it. SoftSurfer makes no warranty for
- * this code, and cannot be held liable for any real or imagined damage
- * resulting from its use. Users of this code must verify correctness for
- * their application.
- *
- * wn_PnPoly(): winding number test for a point in a polygon Input: P = a
- * point, V = vertex points of a polygon V[n+1] with V[n]=V[0] Return: wn =
- * the winding number (=0 only when P is outside)
- */
-
+/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchses
+   This code may be freely used and modified for any purpose providing that
+   this copyright notice is included with it. SoftSurfer makes no warranty for
+   this code, and cannot be held liable for any real or imagined damage
+   resulting from its use. Users of this code must verify correctness for
+   their application. */
+ /**
+  * winding number test for a point in a polygon
+  * 
+  * @param p a point
+  * @param v list of vertex points forming a polygon. This polygon
+  *          is implicitly closed connecting the last and first point.
+  * @return the winding number (=0 only when P is outside)
+  */
   private static int wn_PnPoly(final Point p, final List<Point> v) {
     int wn = 0; // the winding number counter
     
@@ -277,19 +298,21 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return wn;
   }
 
-/**
- * Copyright 2001 softSurfer, 2012 Dan Sunday
- * This code may be freely used and modified for any purpose providing that
- * this copyright notice is included with it. SoftSurfer makes no warranty for
- * this code, and cannot be held liable for any real or imagined damage
- * resulting from its use. Users of this code must verify correctness for
- * their application.
- *
- * inSegment(): determine if a point is inside a segment
- * Input:  a point P, and a collinear segment S
- * Return: 1 = P is inside S
- *         0 = P is not inside S
- */
+/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchses
+   This code may be freely used and modified for any purpose providing that
+   this copyright notice is included with it. SoftSurfer makes no warranty for
+   this code, and cannot be held liable for any real or imagined damage
+   resulting from its use. Users of this code must verify correctness for
+   their application. */
+ /**
+  * inSegment(): determine if a point is inside a segment
+  * 
+  * @param p a point
+  * @param seg_p0 starting point of segment
+  * @param seg_p1 ending point of segment
+  * @return 1 = P is inside S
+  *         0 = P is not inside S
+  */
   private static boolean inSegment( final Point p, final Point seg_p0, final Point seg_p1)
   {
     final int sp0x = seg_p0.x;
@@ -325,20 +348,22 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return false;
   }
   
-/**
- * Copyright 2001 softSurfer, 2012 Dan Sunday
- * This code may be freely used and modified for any purpose providing that
- * this copyright notice is included with it. SoftSurfer makes no warranty for
- * this code, and cannot be held liable for any real or imagined damage
- * resulting from its use. Users of this code must verify correctness for
- * their application.
- *
- * intersect2D_2Segments(): find the 2D intersection of 2 finite segments 
- * Input:  two finite segments S1 and S2
- * Return: 0=disjoint (no intersect)
- *         1=intersect in unique point I0
- *         2=overlap in segment from I0 to I1
- */
+/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchses
+   This code may be freely used and modified for any purpose providing that
+   this copyright notice is included with it. SoftSurfer makes no warranty for
+   this code, and cannot be held liable for any real or imagined damage
+   resulting from its use. Users of this code must verify correctness for
+   their application. */
+ /**
+  * intersect2D_2Segments(): find the 2D intersection of 2 finite segments 
+  * @param s1p0 start point of segment 1
+  * @param s1p1 end point of segment 1
+  * @param s2p0 start point of segment 2
+  * @param s2p1 end point of segment 2
+  * @return 0=disjoint (no intersect)
+  *         1=intersect in unique point I0
+  *         2=overlap in segment from I0 to I1
+  */
   private static int intersect2D_2Segments( final Point s1p0, final Point s1p1, final Point s2p0, final Point s2p1 )
   {     
     final long ux = s1p1.x - s1p0.x; // vector u = S1P1-S1P0 (segment 1)
