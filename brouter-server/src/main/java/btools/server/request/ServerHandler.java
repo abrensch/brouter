@@ -1,6 +1,7 @@
 package btools.server.request;
 
 import btools.router.OsmNodeNamed;
+import btools.router.OsmNogoPolygon;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.server.ServiceContext;
@@ -57,8 +58,14 @@ public class ServerHandler extends RequestHandler {
     List<OsmNodeNamed> nogoList = readNogoList();
     if ( nogoList != null )
     {
-      rc.prepareNogoPoints( nogoList );
+      RoutingContext.prepareNogoPoints( nogoList );
       rc.nogopoints = nogoList;
+    }
+
+    List<OsmNogoPolygon> nogoPolygonsList = readNogoPolygons();
+    if ( nogoPolygonsList != null )
+    {
+      rc.nogopoints.addAll(nogoPolygonsList);
     }
 
     return rc;
@@ -224,5 +231,31 @@ public class ServerHandler extends RequestHandler {
     n.ilat = (int)( ( lat +  90. ) *1000000. + 0.5);
     n.isNogo = true;
     return n;
-  }  
+  }
+
+  private List<OsmNogoPolygon> readNogoPolygons()
+  {
+    String polygons = params.get( "polygons" );
+    if ( polygons == null ) return null;
+
+    String[] polygonList = polygons.split("\\|");
+
+    List<OsmNogoPolygon> nogoPolygonList = new ArrayList<OsmNogoPolygon>();
+    for (int i = 0; i < polygonList.length; i++)
+    {
+      String[] lonLatList = polygonList[i].split(",");
+      OsmNogoPolygon polygon = new OsmNogoPolygon();
+      for (int j = 0; j < lonLatList.length; j++)
+      {
+        String slon = lonLatList[i++];
+        String slat = lonLatList[i];
+        int lon = (int)( ( Double.parseDouble(slon) + 180. ) *1000000. + 0.5);
+        int lat = (int)( ( Double.parseDouble(slat) +  90. ) *1000000. + 0.5);
+        polygon.addVertex(lon, lat);
+      }
+      polygon.calcBoundingCircle();
+      nogoPolygonList.add(polygon);
+    }
+    return nogoPolygonList;
+  }
 }

@@ -67,7 +67,7 @@ public class BRouterWorker
     }
 
     readNogos( params ); // add interface provided nogos
-    rc.prepareNogoPoints( nogoList );
+    RoutingContext.prepareNogoPoints( nogoList );
     rc.nogopoints = nogoList;
 
     waypoints = readPositions(params);
