@@ -1,19 +1,25 @@
-/*
- * Copyright 2018 Norbert Truchsess <norbert.truchsess@t-online.de>
- * 
- * this code is based on work of Dan Sunday published at:
- * http://geomalgorithms.com/a03-_inclusion.html
- * (implementation of winding number algorithm in c)
- * http://geomalgorithms.com/a08-_containers.html
- * (fast computation of bounding circly in c)
- * 
- * Copyright 2001 softSurfer, 2012 Dan Sunday
- * This code may be freely used and modified for any purpose providing that
- * this copyright notice is included with it. SoftSurfer makes no warranty for
- * this code, and cannot be held liable for any real or imagined damage
- * resulting from its use. Users of this code must verify correctness for
- * their application.
- */
+/**********************************************************************************************
+   Copyright (C) 2018 Norbert Truchsess norbert.truchsess@t-online.de
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   The following methods are based on work of Dan Sunday published at:
+   http://geomalgorithms.com/a03-_inclusion.html
+
+   cn_PnPoly, wn_PnPoly, inSegment, intersect2D_2Segments
+
+**********************************************************************************************/
 package btools.router;
 
 import java.util.ArrayList;
@@ -21,266 +27,297 @@ import java.util.List;
 
 public class OsmNogoPolygon extends OsmNodeNamed
 {
-  public final class Point {
-    /**
-     * The latitude
-     */
-    public final int y;
+  private final static class Point
+  {
+    final int y;
+    final int x;
 
-    /**
-     * The longitude
-     */
-    public final int x;
-
-    public Point(final int lon, final int lat)
+    Point(final int lon, final int lat)
     {
       x = lon;
       y = lat;
     }
   }
 
-  public List<Point> P = new ArrayList<Point>();
+  private final List<Point> points = new ArrayList<Point>();
 
-  public void addVertex(int lon, int lat)
+  public final void addVertex(int lon, int lat)
   {
-    P.add(new Point(lon, lat));
+    points.add(new Point(lon, lat));
   }
 
+  private final static double coslat(double lat)
+  {
+    final double l = (lat - 90000000) * 0.00000001234134; // 0.01234134 = Pi/(sqrt(2)*180)
+    final double l2 = l*l;
+    final double l4 = l2*l2;
+//    final double l6 = l4*l2;
+    return 1.- l2 + l4 / 6.; // - l6 / 90;
+  }
+
+/**
+ * method calcBoundingCircle is inspired by the algorithm described on
+ * http://geomalgorithms.com/a08-_containers.html
+ * (fast computation of bounding circly in c). It is not as fast (the original
+ * algorithm runs in linear time), as it may do more iterations but it takes
+ * into account the coslat-factor being used for the linear approximation that
+ * is also used in other places of brouter does change when moving the centerpoint
+ * with each iteration.
+ * This is done to ensure the calculated radius being used
+ * in RoutingContext.calcDistance will actually contain the whole polygon.
+ * 
+ * For reasonable distributed vertices the implemented algorithm runs in O(n*ln(n)).
+ * As this is only run once on initialization of OsmNogoPolygon this methods
+ * overall usage of cpu is neglegible in comparism to the cpu-usage of the
+ * actual routing algoritm.
+ */
   public void calcBoundingCircle()
   {
-    double Cx, Cy;    // Center of ball
-    double rad, rad2; // radius and radius squared
-    double xmin, xmax, ymin, ymax; // bounding box extremes
-    int i_xmin, i_xmax, i_ymin, i_ymax; // index of P[] at box extreme
-
-    // find a large diameter to start with
-    // first get the bounding box and P[] extreme points for it
-    xmin = xmax = P.get(0).x;
-    ymin = ymax = P.get(0).y;
-    i_xmin = i_xmax = i_ymin = i_ymax = 0;
-    for (int i = 1; i < P.size(); i++)
-    {
-      Point Pi = P.get(i);
-      if (Pi.x < xmin)
-      {
-        xmin = Pi.x;
-        i_xmin = i;
-      }
-      else if (Pi.x > xmax)
-      {
-        xmax = Pi.x;
-        i_xmax = i;
-      }
-      if (Pi.y < ymin)
-      {
-        ymin = Pi.y;
-        i_ymin = i;
-      }
-      else if (Pi.y > ymax)
-      {
-        ymax = Pi.y;
-        i_ymax = i;
-      }
-    }
-    // select the largest extent as an initial diameter for the ball
-    Point Pi_xmax = P.get(i_xmax);
-    Point Pi_xmin = P.get(i_xmin);
-    Point Pi_ymax = P.get(i_ymax);
-    Point Pi_ymin = P.get(i_ymin);
+    int cxmin, cxmax, cymin, cymax;
+    cxmin = cymin = Integer.MAX_VALUE;
+    cxmax = cymax = Integer.MIN_VALUE;
     
-    int dPx_x = (Pi_xmax.x - Pi_xmin.x); // diff of Px max and min
-    int dPx_y = Pi_xmax.y - Pi_xmin.y;
-    
-    int dPy_x = Pi_ymax.x - Pi_ymin.x; // diff of Py max and min
-    int dPy_y = Pi_ymax.y - Pi_ymin.y;
-
-    int dx2 = dPx_x * dPx_x + dPx_y * dPx_y; // Px diff squared
-    int dy2 = dPy_x * dPy_x + dPy_y * dPy_y; // Py diff squared
-    
-    if (dx2 >= dy2) // x direction is largest extent
+    // first calculate a starting center point as center of boundingbox
+    for (int i = 0; i < points.size(); i++)
     {
-      Cx = Pi_xmin.x + dPx_x / 2.0; // Center = midpoint of extremes
-      Cy = Pi_xmin.y + dPx_x / 2.0;
-      
-      double dPC_x = Pi_xmax.x - Cx;
-      double dPC_y = Pi_xmax.y - Cy;
-      
-      rad2 = dPC_x * dPC_x + dPC_y * dPC_y; // radius squared
-      
-    }
-    else // y direction is largest extent
-    {
-      Cx = Pi_ymin.x + dPy_x / 2.0; // Center = midpoint of extremes
-      Cy = Pi_ymin.y + dPy_y / 2.0;
-      
-      double dPC_x = Pi_ymax.x - Cx;
-      double dPC_y = Pi_ymax.y - Cy;
-      
-      rad2 = dPC_x * dPC_x + dPC_y * dPC_y; // radius squared
-    }
-    rad = Math.sqrt(rad2);
-
-    // now check that all points P[i] are in the ball
-    // and if not, expand the ball just enough to include them
-    double dist, dist2;
-    for (int i = 0; i < P.size(); i++)
-    {  
-      Point Pi = P.get(i);
-      
-      double dPC_x = Pi.x - Cx;
-      double dPC_y = Pi.y - Cy;
-      
-      dist2 = dPC_x * dPC_x + dPC_y * dPC_y;
-
-      if (dist2 <= rad2) // P[i] is inside the ball already
+      final Point p = points.get(i);
+      if (p.x < cxmin)
       {
-        continue;
+        cxmin = p.x;
       }
-      // P[i] not in ball, so expand ball to include it
-      dist = Math.sqrt(dist2);
-      rad = (rad + dist) / 2.0; // enlarge radius just enough
-      rad2 = rad * rad;
-      
-      double dd = (dist - rad) / dist;
-      
-      Cx = Cx + dd * dPC_x; // shift Center toward
-      Cy = Cy + dd * dPC_y;
+      else if (p.x > cxmax)
+      {
+        cxmax = p.x;
+      }
+      if (p.y < cymin)
+      {
+        cymin = p.y;
+      }
+      else if (p.y > cymax)
+      {
+        cymax = p.y;
+      }
     }
-    ilon = (int) Math.round(Cx);
-    ilat = (int) Math.round(Cy);
+
+    double cx = (cxmax+cxmin) / 2.0; // center of circle
+    double cy = (cymax+cymin) / 2.0;
+    double ccoslat = coslat(cy); // cosin at latitude of center
+    double rad = 0;  // radius
+    double rad2 = 0; // radius squared;
+
+    double dpx = 0; // x-xomponent of vector from center to point
+    double dpy = 0; // y-component
+    double dmax2 = 0; // squared lenght of vector from center to point
+    int i_max = -1;
+
+    do
+    { // now identify the point outside of the circle that has the greatest distance 
+      for (int i = 0; i < points.size();i++)
+      {
+        final Point p = points.get(i);
+        final double dpix = (p.x - cx) * ccoslat;
+        final double dpiy = p.y-cy;
+        final double dist2 = dpix * dpix + dpiy * dpiy;
+        if (dist2 <= rad2)
+        {
+          continue;
+        }
+        if (dist2 > dmax2)
+        {
+          dmax2 = dist2; // new maximum distance found
+          dpx = dpix;
+          dpy = dpiy;
+          i_max = i;
+        }
+      }
+      if (i_max < 0)
+      {
+    	  break; // leave loop when no point outside the circle is found any more.
+      }
+      final double dist = Math.sqrt(dmax2);
+      final double dd = 0.5 * (dist - rad) / dist;
+  
+      cx = cx + dd * dpx; // shift center toward point
+      cy = cy + dd * dpy;
+      ccoslat = coslat(cy);
+
+      final Point p = points.get(i_max); // calculate new radius to just include this point
+      final double dpix = (p.x - cx) * ccoslat;
+      final double dpiy = p.y-cy;
+      dmax2 = rad2 = dpix * dpix + dpiy * dpiy;
+      rad = Math.sqrt(rad2);
+      i_max = -1;
+    }
+    while (true);
+    
+    ilon = (int) Math.round(cx);
+    ilat = (int) Math.round(cy);
+    dpx = cx - ilon; // rounding error
+    dpy = cy - ilat;
     // compensate rounding error of center-point
-    radius = rad + Math.max(Math.abs(Cx - ilon), Math.abs(Cy - ilat));
+    radius = rad + Math.sqrt(dpx * dpx + dpy * dpy);
     return;
   }
 
   public boolean intersectsOrIsWithin(int lon0, int lat0, int lon1, int lat1)
   {
-    Point P0 = new Point (lon0,lat0);
-    Point P1 = new Point (lon1,lat1);
+    Point p0 = new Point (lon0,lat0);
+    Point p1 = new Point (lon1,lat1);
     // is start or endpoint within polygon?
-    if ((wn_PnPoly(P0, P) > 0) || (wn_PnPoly(P1, P) > 0))
+    if ((wn_PnPoly(p0, points) > 0) || (wn_PnPoly(p1, points) > 0))
     {
       return true;
     }
-    Point P2 = P.get(0);
-    for (int i = 1; i < P.size(); i++)
+    int i_last = points.size()-1;
+    Point p2 = points.get(i_last);
+    for (int i = 0; i <= i_last; i++)
     {
-      Point P3 = P.get(i);
+      Point p3 = points.get(i);
       // does it intersect with at least one of the polygon's segments?
-      if (intersect2D_2Segments(P0,P1,P2,P3) > 0)
+      if (intersect2D_2Segments(p0,p1,p2,p3) > 0)
       {
         return true;
       }
-      P2 = P3;
+      p2 = p3;
     }
     return false;
   }
 
-  /**
-   * isLeft(): tests if a point is Left|On|Right of an infinite line. Input:
-   * three points P0, P1, and P2 Return: >0 for P2 left of the line through P0
-   * and P1 =0 for P2 on the line <0 for P2 right of the line See: Algorithm 1
-   * "Area of Triangles and Polygons"
-   */
-
-  private static int isLeft(Point P0, Point P1, Point P2) {
-    return ((P1.x - P0.x) * (P2.y - P0.y) - (P2.x - P0.x) * (P1.y - P0.y));
-  }
-
-  /**
-   * cn_PnPoly(): crossing number test for a point in a polygon Input: P = a
-   * point, V[] = vertex points of a polygon V[n+1] with V[n]=V[0] Return: 0 =
-   * outside, 1 = inside This code is patterned after [Franklin, 2000]
-   */
-
-  private static boolean cn_PnPoly(Point P, List<Point> V)
+/**
+ * Copyright 2001 softSurfer, 2012 Dan Sunday
+ * This code may be freely used and modified for any purpose providing that
+ * this copyright notice is included with it. SoftSurfer makes no warranty for
+ * this code, and cannot be held liable for any real or imagined damage
+ * resulting from its use. Users of this code must verify correctness for
+ * their application.
+ *
+ * cn_PnPoly(): crossing number test for a point in a polygon Input: P = a
+ * point, V[] = vertex points of a polygon V[n+1] with V[n]=V[0] Return: 0 =
+ * outside, 1 = inside This code is patterned after [Franklin, 2000]
+ */
+  private static boolean cn_PnPoly(final Point p, final List<Point> v)
   {
     int cn = 0; // the crossing number counter
 
     // loop through all edges of the polygon
-    int last = V.size()-1;
-    Point Vi = V.get(last);
+    int last = v.size()-1;
+    Point v0 = v.get(last);
     for (int i = 0; i <= last; i++)            // edge from V[i] to V[i+1]
     {
-      Point Vi1 = V.get(i);
+      Point v1 = v.get(i);
 
-      if (((Vi.y <= P.y) && (Vi1.y > P.y))     // an upward crossing
-          || ((Vi.y > P.y) && (Vi1.y <= P.y))) // a downward crossing
+      if (((v0.y <= p.y) && (v1.y > p.y))     // an upward crossing
+          || ((v0.y > p.y) && (v1.y <= p.y))) // a downward crossing
       {
         // compute the actual edge-ray intersect x-coordinate
-        float vt = (float) (P.y - Vi.y) / (Vi1.y - Vi.y);
+        double vt = (double) (p.y - v0.y) / (v1.y - v0.y);
 
-        if (P.x < Vi.x + vt * (Vi1.x - Vi.x))  // P.x < intersect
+        if (p.x < v0.x + vt * (v1.x - v0.x))  // P.x < intersect
         {
           ++cn;                                // a valid crossing of y=P.y right of P.x
         }
       }
-      Vi = Vi1;
+      v0 = v1;
     }
     return ((cn & 1) > 0);                     // 0 if even (out), and 1 if odd (in)
   }
 
-  /**
-   * wn_PnPoly(): winding number test for a point in a polygon Input: P = a
-   * point, V = vertex points of a polygon V[n+1] with V[n]=V[0] Return: wn =
-   * the winding number (=0 only when P is outside)
-   */
+/**
+ * Copyright 2001 softSurfer, 2012 Dan Sunday
+ * This code may be freely used and modified for any purpose providing that
+ * this copyright notice is included with it. SoftSurfer makes no warranty for
+ * this code, and cannot be held liable for any real or imagined damage
+ * resulting from its use. Users of this code must verify correctness for
+ * their application.
+ *
+ * wn_PnPoly(): winding number test for a point in a polygon Input: P = a
+ * point, V = vertex points of a polygon V[n+1] with V[n]=V[0] Return: wn =
+ * the winding number (=0 only when P is outside)
+ */
 
-  private static int wn_PnPoly(Point P, List<Point> V) {
+  private static int wn_PnPoly(final Point p, final List<Point> v) {
     int wn = 0; // the winding number counter
-
+    
+    final int px = p.x;
+    final int py = p.y;
+    
     // loop through all edges of the polygon
-    int last = V.size()-1;
-    Point Vi = V.get(last);
-    for (int i = 0; i <= last; i++)      // edge from V[i] to V[i+1]
+    final int i_last = v.size()-1;
+    final Point p0 = v.get(i_last);
+    long p0x = p0.x; // need to use long to avoid overflow in products
+    long p0y = p0.y;
+    
+    for (int i = 0; i <= i_last; i++) // edge from v[i] to v[i+1]
     {
-      Point Vi1 = V.get(i);
+      final Point p1 = v.get(i);
+      final long p1x = p1.x;
+      final long p1y = p1.y;
 
-      if (Vi.y <= P.y) {                 // start y <= P.y
-        if (Vi1.y > P.y) {               // an upward crossing
-          if (isLeft(Vi, Vi1, P) > 0) {  // P left of edge
-            ++wn;                        // have a valid up intersect
+      if (p0y <= py)  // start y <= p.y
+      {
+        if (p1y > py) // an upward crossing
+        {             // p left of edge
+          if (((p1x - p0x) * (py - p0y) - (px - p0x) * (p1y - p0y)) > 0)
+          {
+            ++wn;     // have a valid up intersect
           }
         }
-      } else {                           // start y > P.y (no test needed)
-        if (Vi1.y <= P.y) {              // a downward crossing
-          if (isLeft(Vi, Vi1, P) < 0) {  // P right of edge
-            --wn;                        // have a valid down intersect
+      } else {         // start y > p.y (no test needed)
+        if (p1y <= py) // a downward crossing
+        {              // p right of edge
+          if (((p1x - p0x) * (py - p0y) - (px - p0x) * (p1y - p0y)) < 0)
+          {
+            --wn;      // have a valid down intersect
           }
         }
       }
-      Vi = Vi1;
+      p0x = p1x;
+      p0y = p1y;
     }
     return wn;
   }
 
-  /**
-   * inSegment(): determine if a point is inside a segment
-   * Input:  a point P, and a collinear segment S
-   * Return: 1 = P is inside S
-   *         0 = P is not inside S
-   */
-  
-  private static boolean inSegment( Point P, Point SP0, Point SP1)
+/**
+ * Copyright 2001 softSurfer, 2012 Dan Sunday
+ * This code may be freely used and modified for any purpose providing that
+ * this copyright notice is included with it. SoftSurfer makes no warranty for
+ * this code, and cannot be held liable for any real or imagined damage
+ * resulting from its use. Users of this code must verify correctness for
+ * their application.
+ *
+ * inSegment(): determine if a point is inside a segment
+ * Input:  a point P, and a collinear segment S
+ * Return: 1 = P is inside S
+ *         0 = P is not inside S
+ */
+  private static boolean inSegment( final Point p, final Point seg_p0, final Point seg_p1)
   {
-    if (SP0.x != SP1.x)    // S is not  vertical
+    final int sp0x = seg_p0.x;
+    final int sp1x = seg_p1.x;
+    
+    if (sp0x != sp1x) // S is not vertical
     {
-      if (SP0.x <= P.x && P.x <= SP1.x)
+      final int px = p.x;
+      if (sp0x <= px && px <= sp1x)
       {
         return true;
       }
-      if (SP0.x >= P.x && P.x >= SP1.x)
+      if (sp0x >= px && px >= sp1x)
       {
         return true;
       }
     }
-    else    // S is vertical, so test y  coordinate
+    else // S is vertical, so test y coordinate
     {
-      if (SP0.y <= P.y && P.y <= SP1.y)
+      final int sp0y = seg_p0.y;
+      final int sp1y = seg_p1.y;
+      final int py = p.y;
+      
+      if (sp0y <= py && py <= sp1y)
       {
         return true;
       }
-      if (SP0.y >= P.y && P.y >= SP1.y)
+      if (sp0y >= py && py >= sp1y)
       {
         return true;
       }
@@ -288,26 +325,33 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return false;
   }
   
-  /**
-   * intersect2D_2Segments(): find the 2D intersection of 2 finite segments 
-   * Input:  two finite segments S1 and S2
-   * Return: 0=disjoint (no intersect)
-   *         1=intersect in unique point I0
-   *         2=overlap in segment from I0 to I1
-   */
-  private static int intersect2D_2Segments( Point S1P0, Point S1P1, Point S2P0, Point S2P1 )
+/**
+ * Copyright 2001 softSurfer, 2012 Dan Sunday
+ * This code may be freely used and modified for any purpose providing that
+ * this copyright notice is included with it. SoftSurfer makes no warranty for
+ * this code, and cannot be held liable for any real or imagined damage
+ * resulting from its use. Users of this code must verify correctness for
+ * their application.
+ *
+ * intersect2D_2Segments(): find the 2D intersection of 2 finite segments 
+ * Input:  two finite segments S1 and S2
+ * Return: 0=disjoint (no intersect)
+ *         1=intersect in unique point I0
+ *         2=overlap in segment from I0 to I1
+ */
+  private static int intersect2D_2Segments( final Point s1p0, final Point s1p1, final Point s2p0, final Point s2p1 )
   {     
-    int ux = S1P1.x - S1P0.x; // vector u = S1P1-S1P0 (segment 1)
-    int uy = S1P1.y - S1P0.y;
-    int vx = S2P1.x - S2P0.x; // vector v = S2P1-S2P0 (segment 2)
-    int vy = S2P1.y - S2P0.y;
-    int wx = S1P0.x - S2P0.x; // vector w = S1P0-S2P0 (from start of segment 2 to start of segment 1
-    int wy = S1P0.y - S2P0.y;
+    final long ux = s1p1.x - s1p0.x; // vector u = S1P1-S1P0 (segment 1)
+    final long uy = s1p1.y - s1p0.y;
+    final long vx = s2p1.x - s2p0.x; // vector v = S2P1-S2P0 (segment 2)
+    final long vy = s2p1.y - s2p0.y;
+    final long wx = s1p0.x - s2p0.x; // vector w = S1P0-S2P0 (from start of segment 2 to start of segment 1
+    final long wy = s1p0.y - s2p0.y;
     
-    int D = ux * vy - uy * vx;
+    final double d = ux * vy - uy * vx;
 
     // test if  they are parallel (includes either being a point)
-    if (D == 0)           // S1 and S2 are parallel
+    if (d == 0)           // S1 and S2 are parallel
     {
       if ((ux * wy - uy * wx) != 0 || (vx * wy - vy * wx) != 0)
       {
@@ -316,24 +360,24 @@ public class OsmNogoPolygon extends OsmNodeNamed
 
       // they are collinear or degenerate
       // check if they are degenerate  points
-      boolean du = ux == 0 && uy == 0;
-      boolean dv = vx == 0 && vy == 0;
+      final boolean du = ((ux == 0) && (uy == 0));
+      final boolean dv = ((vx == 0) && (vy == 0));
       if (du && dv)            // both segments are points
       {
         return (wx == 0 && wy == 0) ? 0 : 1; // return 0 if they are distinct points
       }
       if (du)                     // S1 is a single point
       {
-        return inSegment(S1P0, S2P0, S2P1) ? 1 : 0; // is it part of S2?
+        return inSegment(s1p0, s2p0, s2p1) ? 1 : 0; // is it part of S2?
       }
       if (dv)                     // S2 a single point
       {
-        return inSegment(S2P0, S1P0, S1P1) ? 1 : 0;  // is it part of S1?
+        return inSegment(s2p0, s1p0, s1p1) ? 1 : 0;  // is it part of S1?
       }
       // they are collinear segments - get  overlap (or not)
-      float t0, t1;                    // endpoints of S1 in eqn for S2
-      int w2x = S1P1.x - S2P0.x; // vector w2 = S1P1-S2P0 (from start of segment 2 to end of segment 1)
-      int w2y = S1P1.y - S2P0.y;
+      double t0, t1;                    // endpoints of S1 in eqn for S2
+      final int w2x = s1p1.x - s2p0.x; // vector w2 = S1P1-S2P0 (from start of segment 2 to end of segment 1)
+      final int w2y = s1p1.y - s2p0.y;
       if (vx != 0)
       {
         t0 = wx / vx;
@@ -346,7 +390,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
       }
       if (t0 > t1)                   // must have t0 smaller than t1
       {
-        float t=t0;     // swap if not
+        final double t=t0;     // swap if not
         t0=t1;
         t1=t;
       }
@@ -363,14 +407,14 @@ public class OsmNogoPolygon extends OsmNodeNamed
     // the segments are skew and may intersect in a point
     // get the intersect parameter for S1
     
-    double sI = (vx * wy - vy * wx) / D;
+    final double sI = (vx * wy - vy * wx) / d;
     if (sI < 0 || sI > 1)               // no intersect with S1
     {
       return 0;
     }
 
     // get the intersect parameter for S2
-    double tI = (ux * wy - uy * wx) / D;
+    final double tI = (ux * wy - uy * wx) / d;
     return (tI < 0 || tI > 1) ? 0 : 1; // return 0 if no intersect with S2
   }
 }
