@@ -215,7 +215,9 @@ public final class RoutingContext
       boolean goodGuy = true;
       for( OsmNodeNamed wp : waypoints )
       {
-        if ( wp.calcDistance( nogo ) < radiusInMeter )
+        if ( wp.calcDistance( nogo ) < radiusInMeter
+            && (!(nogo instanceof OsmNogoPolygon)
+                || ((OsmNogoPolygon)nogo).isWithin(wp.ilon, wp.ilat)))
         {
           goodGuy = false;
           break;

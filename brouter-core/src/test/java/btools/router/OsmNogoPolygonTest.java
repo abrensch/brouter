@@ -69,13 +69,26 @@ public class OsmNogoPolygonTest {
   }
 
   @Test
+  public void testIsWithin() {
+	  // for points exactly on the edge of the polygon the result is not the same for all directions.
+	  // that doesn't have a major impact on routing though.
+    double[] plons   = {  0.0,   0.5,   1.0,  -1.5,  -0.5, }; //  1.0,   1.0,   0.5,   0.5,   0.5, 
+    double[] plats   = {  0.0,   1.5,   0.0,   0.5,  -1.5, }; // -1.0,  -0.1,  -0.1,   0.0,   0.1,
+    boolean[] within = { true, false, false, false, false, }; // false, false, false, false, false, 
+
+    for (int i=0; i<plons.length; i++) {
+      assertEquals("("+plons[i]+","+plats[i]+")",within[i],p.isWithin(toOsmLon(plons[i]), toOsmLat(plats[i])));
+    }
+  }
+
+  @Test
   public void testIntersectsOrIsWithin() {
     double[] p0lons  = {  0.0,   1.0, -0.5,  0.5,  0.7,  0.7,  0.7,  -1.5, };
     double[] p0lats  = {  0.0,   0.0,  0.5,  0.5,  0.5,  0.05, 0.05, -1.5, };
     double[] p1lons  = {  0.0,   1.0,  0.5,  1.0,  0.7,  0.7,  0.7,  -0.5, };
     double[] p1lats  = {  0.0,   0.0,  0.5,  0.5, -0.5, -0.5, -0.05, -0.5, };
     boolean[] within = { true, false, true, true, true, true, false, true, };
-    
+
     for (int i=0; i<p0lons.length; i++) {
       assertEquals("("+p0lons[i]+","+p0lats[i]+")-("+p1lons[i]+","+p1lats[i]+")",within[i],p.intersectsOrIsWithin(toOsmLon(p0lons[i]), toOsmLat(p0lats[i]), toOsmLon(p1lons[i]), toOsmLat(p1lats[i])));
     }

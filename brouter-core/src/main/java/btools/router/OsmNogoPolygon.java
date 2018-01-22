@@ -160,12 +160,26 @@ public class OsmNogoPolygon extends OsmNodeNamed
   }
 
  /**
-  * intersectsOrIsWithin
-  * 
+  * tests whether a point is within the polygon. 
+  * The current implementation doesn't produce consistent results for points
+  * being located exactly on the edge of the polygon. That doesn't have
+  * major impact on the routing-results though.
+  * For this method the winding-number algorithm is being used. That means a 
+  * point being within an overlapping region of the polygon is also taken as
+  * being 'inside' the polygon.
+  * @param lon longitude of point
+  * @param lat latitude of point
+  * @return true if point is inside of polygon, false otherwise
+  */
+  public boolean isWithin(int lon, int lat)
+  {
+	  return wn_PnPoly(new Point(lon,lat),points) > 0;
+  }
+  
+ /**
   * tests whether a segment defined by lon and lat of two points does either
   * intersect the polygon or any of the endpoints (or both) are enclosed by
-  * the polygon. Any point being positioned on any of the polygons edges is
-  * defined as being 'inside'. For this test the winding-number algorithm is
+  * the polygon. For this test the winding-number algorithm is
   * being used. That means a point being within an overlapping region of the
   * polygon is also taken as being 'inside' the polygon.
   * 
@@ -177,8 +191,8 @@ public class OsmNogoPolygon extends OsmNodeNamed
   */
   public boolean intersectsOrIsWithin(int lon0, int lat0, int lon1, int lat1)
   {
-    Point p0 = new Point (lon0,lat0);
-    Point p1 = new Point (lon1,lat1);
+    final Point p0 = new Point (lon0,lat0);
+    final Point p1 = new Point (lon1,lat1);
     // is start or endpoint within polygon?
     if ((wn_PnPoly(p0, points) > 0) || (wn_PnPoly(p1, points) > 0))
     {
@@ -199,7 +213,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return false;
   }
 
-/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchses
+/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchsess
    This code may be freely used and modified for any purpose providing that
    this copyright notice is included with it. SoftSurfer makes no warranty for
    this code, and cannot be held liable for any real or imagined damage
@@ -242,7 +256,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return ((cn & 1) > 0);                     // 0 if even (out), and 1 if odd (in)
   }
 
-/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchses
+/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchsess
    This code may be freely used and modified for any purpose providing that
    this copyright notice is included with it. SoftSurfer makes no warranty for
    this code, and cannot be held liable for any real or imagined damage
@@ -259,8 +273,8 @@ public class OsmNogoPolygon extends OsmNodeNamed
   private static int wn_PnPoly(final Point p, final List<Point> v) {
     int wn = 0; // the winding number counter
     
-    final int px = p.x;
-    final int py = p.y;
+    final long px = p.x;
+    final long py = p.y;
     
     // loop through all edges of the polygon
     final int i_last = v.size()-1;
@@ -283,7 +297,9 @@ public class OsmNogoPolygon extends OsmNodeNamed
             ++wn;     // have a valid up intersect
           }
         }
-      } else {         // start y > p.y (no test needed)
+      }
+      else // start y > p.y (no test needed)
+      {         
         if (p1y <= py) // a downward crossing
         {              // p right of edge
           if (((p1x - p0x) * (py - p0y) - (px - p0x) * (p1y - p0y)) < 0)
@@ -298,7 +314,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return wn;
   }
 
-/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchses
+/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchsess
    This code may be freely used and modified for any purpose providing that
    this copyright notice is included with it. SoftSurfer makes no warranty for
    this code, and cannot be held liable for any real or imagined damage
@@ -348,7 +364,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return false;
   }
   
-/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchses
+/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchsess
    This code may be freely used and modified for any purpose providing that
    this copyright notice is included with it. SoftSurfer makes no warranty for
    this code, and cannot be held liable for any real or imagined damage
