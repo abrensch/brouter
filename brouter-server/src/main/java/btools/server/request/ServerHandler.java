@@ -62,10 +62,17 @@ public class ServerHandler extends RequestHandler {
       rc.nogopoints = nogoList;
     }
 
-    List<OsmNogoPolygon> nogoPolygonsList = readNogoPolygons();
+    List<OsmNodeNamed> nogoPolygonsList = readNogoPolygons();
     if ( nogoPolygonsList != null )
     {
-      rc.nogopoints.addAll(nogoPolygonsList);
+      if (rc.nogopoints == null)
+      {
+        rc.nogopoints = nogoPolygonsList;
+      }
+      else
+      {
+        rc.nogopoints.addAll(nogoPolygonsList);
+      }
     }
 
     return rc;
@@ -233,22 +240,22 @@ public class ServerHandler extends RequestHandler {
     return n;
   }
 
-  private List<OsmNogoPolygon> readNogoPolygons()
+  private List<OsmNodeNamed> readNogoPolygons()
   {
     String polygons = params.get( "polygons" );
     if ( polygons == null ) return null;
 
     String[] polygonList = polygons.split("\\|");
 
-    List<OsmNogoPolygon> nogoPolygonList = new ArrayList<OsmNogoPolygon>();
+    List<OsmNodeNamed> nogoPolygonList = new ArrayList<OsmNodeNamed>();
     for (int i = 0; i < polygonList.length; i++)
     {
       String[] lonLatList = polygonList[i].split(",");
       OsmNogoPolygon polygon = new OsmNogoPolygon();
-      for (int j = 0; j < lonLatList.length; j++)
+      for (int j = 0; j < lonLatList.length-1;)
       {
-        String slon = lonLatList[i++];
-        String slat = lonLatList[i];
+        String slon = lonLatList[j++];
+        String slat = lonLatList[j++];
         int lon = (int)( ( Double.parseDouble(slon) + 180. ) *1000000. + 0.5);
         int lat = (int)( ( Double.parseDouble(slat) +  90. ) *1000000. + 0.5);
         polygon.addVertex(lon, lat);
