@@ -27,6 +27,11 @@ import java.util.List;
 
 public class OsmNogoPolygon extends OsmNodeNamed
 {
+  public OsmNogoPolygon()
+  {
+    isNogo = true;
+  }
+
   private final static class Point
   {
     final int y;
