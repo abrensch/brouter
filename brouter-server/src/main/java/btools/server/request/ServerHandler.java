@@ -56,23 +56,21 @@ public class ServerHandler extends RequestHandler {
     rc.setAlternativeIdx(Integer.parseInt(params.get( "alternativeidx" )));
     
     List<OsmNodeNamed> nogoList = readNogoList();
+    List<OsmNodeNamed> nogoPolygonsList = readNogoPolygons();
+
     if ( nogoList != null )
     {
       RoutingContext.prepareNogoPoints( nogoList );
       rc.nogopoints = nogoList;
     }
 
-    List<OsmNodeNamed> nogoPolygonsList = readNogoPolygons();
-    if ( nogoPolygonsList != null )
+    if (rc.nogopoints == null)
     {
-      if (rc.nogopoints == null)
-      {
-        rc.nogopoints = nogoPolygonsList;
-      }
-      else
-      {
-        rc.nogopoints.addAll(nogoPolygonsList);
-      }
+      rc.nogopoints = nogoPolygonsList;
+    }
+    else if ( nogoPolygonsList != null )
+    {
+      rc.nogopoints.addAll(nogoPolygonsList);
     }
 
     return rc;
@@ -251,17 +249,25 @@ public class ServerHandler extends RequestHandler {
     for (int i = 0; i < polygonList.length; i++)
     {
       String[] lonLatList = polygonList[i].split(",");
-      OsmNogoPolygon polygon = new OsmNogoPolygon();
-      for (int j = 0; j < lonLatList.length-1;)
+      if ( lonLatList.length > 1 )
       {
-        String slon = lonLatList[j++];
-        String slat = lonLatList[j++];
-        int lon = (int)( ( Double.parseDouble(slon) + 180. ) *1000000. + 0.5);
-        int lat = (int)( ( Double.parseDouble(slat) +  90. ) *1000000. + 0.5);
-        polygon.addVertex(lon, lat);
+        OsmNogoPolygon polygon = new OsmNogoPolygon();
+        for (int j = 0; j < lonLatList.length-1;)
+        {
+          String slon = lonLatList[j++];
+          String slat = lonLatList[j++];
+          int lon = (int)( ( Double.parseDouble(slon) + 180. ) *1000000. + 0.5);
+          int lat = (int)( ( Double.parseDouble(slat) +  90. ) *1000000. + 0.5);
+          polygon.addVertex(lon, lat);
+        }
+        if ( polygon.points.size() > 0 )
+        {
+          polygon.name = "";
+          polygon.isNogo = true;
+          polygon.calcBoundingCircle();
+          nogoPolygonList.add(polygon);
+        }
       }
-      polygon.calcBoundingCircle();
-      nogoPolygonList.add(polygon);
     }
     return nogoPolygonList;
   }

@@ -62,7 +62,7 @@ public class OsmNogoPolygonTest {
       double py = toOsmLat(lats[i]);
       double dpx = (toOsmLon(lons[i]) - p.ilon) * coslat(p.ilat);
       double dpy = py - p.ilat;
-      double r1 = Math.sqrt(dpx * dpx + dpy * dpy);
+      double r1 = Math.sqrt(dpx * dpx + dpy * dpy) * 0.000001;
       double diff = r-r1;
       assertTrue("i: "+i+" r("+r+") >= r1("+r1+")", diff >= 0);
     }
