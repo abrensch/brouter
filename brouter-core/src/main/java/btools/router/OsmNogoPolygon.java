@@ -27,11 +27,6 @@ import java.util.List;
 
 public class OsmNogoPolygon extends OsmNodeNamed
 {
-  public OsmNogoPolygon()
-  {
-    isNogo = true;
-  }
-
   private final static class Point
   {
     final int y;
@@ -44,7 +39,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
     }
   }
 
-  private final List<Point> points = new ArrayList<Point>();
+  public final List<Point> points = new ArrayList<Point>();
 
   public final void addVertex(int lon, int lat)
   {
@@ -160,12 +155,12 @@ public class OsmNogoPolygon extends OsmNodeNamed
     dpx = cx - ilon; // rounding error
     dpy = cy - ilat;
     // compensate rounding error of center-point
-    radius = rad + Math.sqrt(dpx * dpx + dpy * dpy);
+    radius = (rad + Math.sqrt(dpx * dpx + dpy * dpy)) * 0.000001;
     return;
   }
 
  /**
-  * tests whether a point is within the polygon. 
+  * tests whether a point is within the polygon.
   * The current implementation doesn't produce consistent results for points
   * being located exactly on the edge of the polygon. That doesn't have
   * major impact on the routing-results though.
@@ -178,9 +173,9 @@ public class OsmNogoPolygon extends OsmNodeNamed
   */
   public boolean isWithin(int lon, int lat)
   {
-	  return wn_PnPoly(new Point(lon,lat),points) > 0;
+    return wn_PnPoly(lon,lat,points) != 0;
   }
-  
+
  /**
   * tests whether a segment defined by lon and lat of two points does either
   * intersect the polygon or any of the endpoints (or both) are enclosed by
@@ -196,13 +191,13 @@ public class OsmNogoPolygon extends OsmNodeNamed
   */
   public boolean intersectsOrIsWithin(int lon0, int lat0, int lon1, int lat1)
   {
-    final Point p0 = new Point (lon0,lat0);
-    final Point p1 = new Point (lon1,lat1);
     // is start or endpoint within polygon?
-    if ((wn_PnPoly(p0, points) > 0) || (wn_PnPoly(p1, points) > 0))
+    if ((wn_PnPoly(lon0,lat0, points) != 0) || (wn_PnPoly(lon1,lat1, points) != 0))
     {
       return true;
     }
+    final Point p0 = new Point (lon0,lat0);
+    final Point p1 = new Point (lon1,lat1);
     int i_last = points.size()-1;
     Point p2 = points.get(i_last);
     for (int i = 0; i <= i_last; i++)
@@ -275,12 +270,9 @@ public class OsmNogoPolygon extends OsmNodeNamed
   *          is implicitly closed connecting the last and first point.
   * @return the winding number (=0 only when P is outside)
   */
-  private static int wn_PnPoly(final Point p, final List<Point> v) {
+  private static int wn_PnPoly(final long px, final long py, final List<Point> v) {
     int wn = 0; // the winding number counter
-    
-    final long px = p.x;
-    final long py = p.y;
-    
+
     // loop through all edges of the polygon
     final int i_last = v.size()-1;
     final Point p0 = v.get(i_last);
