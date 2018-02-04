@@ -61,7 +61,6 @@ public class OsmNogoPolygonTest {
   
   @AfterClass
   public static void tearDown() throws Exception {
-    polygon.waitForTracker();
   }
 
   @Test
