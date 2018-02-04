@@ -17,27 +17,32 @@
 **********************************************************************************************/
 package btools.router;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class OsmNogoPolygonTest {
 
-  OsmNogoPolygon p;
+  static final int offset_x = 11000000;
+  static final int offset_y = 50000000;
+  
+  static OsmNogoPolygon polygon;
 
-  final double[] lons = {  1.0,  1.0,  0.5, 0.5, 1.0, 1.0, -1.0, -1.0 };
-  final double[] lats = { -1.0, -0.1, -0.1, 0.1, 0.1, 1.0,  1.0, -1.0 };
+  static final double[] lons = {  1.0,  1.0,  0.5, 0.5, 1.0, 1.0, -1.1, -1.0 };
+  static final double[] lats = { -1.0, -0.1, -0.1, 0.1, 0.1, 1.0,  1.1, -1.0 };
 
-  int toOsmLon(double lon) {
-    return (int)( ( lon + 180. ) *1000000. + 0.5); // see ServerHandler.readPosition()
+  static int toOsmLon(double lon) {
+    return (int)( ( lon + 180. ) *1000000. + 0.5)+offset_x; // see ServerHandler.readPosition()
   }
   
-  int toOsmLat(double lat) {
-    return (int)( ( lat +  90. ) *1000000. + 0.5);
+  static int toOsmLat(double lat) {
+    return (int)( ( lat +  90. ) *1000000. + 0.5)+offset_y;
   }
   
-  double coslat(int lat) // see RoutingContext.calcDistance()
+  static double coslat(int lat) // see RoutingContext.calcDistance()
   {
     final double l = (lat - 90000000) * 0.00000001234134; // 0.01234134 = Pi/(sqrt(2)*180)
     final double l2 = l*l;
@@ -46,22 +51,27 @@ public class OsmNogoPolygonTest {
     return 1.- l2 + l4 / 6.; // - l6 / 90;
   }
   
-  @Before
-  public void setUp() throws Exception {
-    p = new OsmNogoPolygon();
+  @BeforeClass
+  public static void setUp() throws Exception {
+    polygon = new OsmNogoPolygon();
     for (int i = 0; i<lons.length; i++) {
-      p.addVertex(toOsmLon(lons[i]),toOsmLat(lats[i]));
+      polygon.addVertex(toOsmLon(lons[i]),toOsmLat(lats[i]));
     }
+  }
+  
+  @AfterClass
+  public static void tearDown() throws Exception {
+    polygon.waitForTracker();
   }
 
   @Test
   public void testCalcBoundingCircle() {
-    p.calcBoundingCircle();
-    double r = p.radius;
+    polygon.calcBoundingCircle();
+    double r = polygon.radius;
     for (int i=0; i<lons.length; i++) {
       double py = toOsmLat(lats[i]);
-      double dpx = (toOsmLon(lons[i]) - p.ilon) * coslat(p.ilat);
-      double dpy = py - p.ilat;
+      double dpx = (toOsmLon(lons[i]) - polygon.ilon) * coslat(polygon.ilat);
+      double dpy = py - polygon.ilat;
       double r1 = Math.sqrt(dpx * dpx + dpy * dpy) * 0.000001;
       double diff = r-r1;
       assertTrue("i: "+i+" r("+r+") >= r1("+r1+")", diff >= 0);
@@ -77,20 +87,20 @@ public class OsmNogoPolygonTest {
     boolean[] within = { true, false, false, false, false, }; // false, false, false, false, false, 
 
     for (int i=0; i<plons.length; i++) {
-      assertEquals("("+plons[i]+","+plats[i]+")",within[i],p.isWithin(toOsmLon(plons[i]), toOsmLat(plats[i])));
+      assertEquals("("+plons[i]+","+plats[i]+")",within[i],polygon.isWithin(toOsmLon(plons[i]), toOsmLat(plats[i])));
     }
   }
 
   @Test
   public void testIntersectsOrIsWithin() {
-    double[] p0lons  = {  0.0,   1.0, -0.5,  0.5,  0.7,  0.7,  0.7,  -1.5, };
-    double[] p0lats  = {  0.0,   0.0,  0.5,  0.5,  0.5,  0.05, 0.05, -1.5, };
-    double[] p1lons  = {  0.0,   1.0,  0.5,  1.0,  0.7,  0.7,  0.7,  -0.5, };
-    double[] p1lats  = {  0.0,   0.0,  0.5,  0.5, -0.5, -0.5, -0.05, -0.5, };
-    boolean[] within = { true, false, true, true, true, true, false, true, };
+    double[] p0lons  = {  0.0,   1.0, -0.5,  0.5,  0.7,  0.7,  0.7,  -1.5, -1.5, };
+    double[] p0lats  = {  0.0,   0.0,  0.5,  0.5,  0.5,  0.05, 0.05, -1.5,  0.2, };
+    double[] p1lons  = {  0.0,   1.0,  0.5,  1.0,  0.7,  0.7,  0.7,  -0.5, -0.2, };
+    double[] p1lats  = {  0.0,   0.0,  0.5,  0.5, -0.5, -0.5, -0.05, -0.5,  1.5, };
+    boolean[] within = { true, false, true, true, true, true, false, true, true, };
 
     for (int i=0; i<p0lons.length; i++) {
-      assertEquals("("+p0lons[i]+","+p0lats[i]+")-("+p1lons[i]+","+p1lats[i]+")",within[i],p.intersectsOrIsWithin(toOsmLon(p0lons[i]), toOsmLat(p0lats[i]), toOsmLon(p1lons[i]), toOsmLat(p1lats[i])));
+      assertEquals("("+p0lons[i]+","+p0lats[i]+")-("+p1lons[i]+","+p1lats[i]+")",within[i],polygon.intersectsOrIsWithin(toOsmLon(p0lons[i]), toOsmLat(p0lats[i]), toOsmLon(p1lons[i]), toOsmLat(p1lats[i])));
     }
   }
 
