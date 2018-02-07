@@ -18,11 +18,14 @@
 package btools.router;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import btools.router.OsmNogoPolygon.Point;
 
 public class OsmNogoPolygonTest {
 
@@ -30,6 +33,7 @@ public class OsmNogoPolygonTest {
   static final int offset_y = 50000000;
   
   static OsmNogoPolygon polygon;
+  static OsmNogoPolygon polyline;
 
   static final double[] lons = {  1.0,  1.0,  0.5, 0.5, 1.0, 1.0, -1.1, -1.0 };
   static final double[] lats = { -1.0, -0.1, -0.1, 0.1, 0.1, 1.0,  1.1, -1.0 };
@@ -53,9 +57,13 @@ public class OsmNogoPolygonTest {
   
   @BeforeClass
   public static void setUp() throws Exception {
-    polygon = new OsmNogoPolygon();
+    polygon = new OsmNogoPolygon(true);
     for (int i = 0; i<lons.length; i++) {
       polygon.addVertex(toOsmLon(lons[i]),toOsmLat(lats[i]));
+    }
+    polyline = new OsmNogoPolygon(false);
+    for (int i = 0; i<lons.length; i++) {
+      polyline.addVertex(toOsmLon(lons[i]),toOsmLat(lats[i]));
     }
   }
   
@@ -75,15 +83,23 @@ public class OsmNogoPolygonTest {
       double diff = r-r1;
       assertTrue("i: "+i+" r("+r+") >= r1("+r1+")", diff >= 0);
     }
+    polyline.calcBoundingCircle();
+    r = polyline.radius;
+    for (int i=0; i<lons.length; i++) {
+      double py = toOsmLat(lats[i]);
+      double dpx = (toOsmLon(lons[i]) - polyline.ilon) * coslat(polyline.ilat);
+      double dpy = py - polyline.ilat;
+      double r1 = Math.sqrt(dpx * dpx + dpy * dpy) * 0.000001;
+      double diff = r-r1;
+      assertTrue("i: "+i+" r("+r+") >= r1("+r1+")", diff >= 0);
+    }
   }
 
   @Test
   public void testIsWithin() {
-	  // for points exactly on the edge of the polygon the result is not the same for all directions.
-	  // that doesn't have a major impact on routing though.
-    double[] plons   = {  0.0,   0.5,   1.0,  -1.5,  -0.5, }; //  1.0,   1.0,   0.5,   0.5,   0.5, 
-    double[] plats   = {  0.0,   1.5,   0.0,   0.5,  -1.5, }; // -1.0,  -0.1,  -0.1,   0.0,   0.1,
-    boolean[] within = { true, false, false, false, false, }; // false, false, false, false, false, 
+    double[] plons   = {  0.0,   0.5,   1.0,  -1.5,  -0.5,  1.0,  1.0,  0.5,  0.5,  0.5, }; 
+    double[] plats   = {  0.0,   1.5,   0.0,   0.5,  -1.5, -1.0, -0.1, -0.1,  0.0,  0.1, };
+    boolean[] within = { true, false, false, false, false, true, true, true, true, true, };
 
     for (int i=0; i<plons.length; i++) {
       assertEquals("("+plons[i]+","+plats[i]+")",within[i],polygon.isWithin(toOsmLon(plons[i]), toOsmLat(plats[i])));
@@ -91,16 +107,47 @@ public class OsmNogoPolygonTest {
   }
 
   @Test
-  public void testIntersectsOrIsWithin() {
-    double[] p0lons  = {  0.0,   1.0, -0.5,  0.5,  0.7,  0.7,  0.7,  -1.5, -1.5, };
-    double[] p0lats  = {  0.0,   0.0,  0.5,  0.5,  0.5,  0.05, 0.05, -1.5,  0.2, };
-    double[] p1lons  = {  0.0,   1.0,  0.5,  1.0,  0.7,  0.7,  0.7,  -0.5, -0.2, };
-    double[] p1lats  = {  0.0,   0.0,  0.5,  0.5, -0.5, -0.5, -0.05, -0.5,  1.5, };
-    boolean[] within = { true, false, true, true, true, true, false, true, true, };
+  public void testIntersectsPolygon() {
+    double[] p0lons  = {   0.0,   1.0,  -0.5,  0.5,  0.7,  0.7,  0.7,  -1.5, -1.5,  0.0 };
+    double[] p0lats  = {   0.0,   0.0,   0.5,  0.5,  0.5,  0.05, 0.05, -1.5,  0.2,  0.0 };
+    double[] p1lons  = {   0.0,   1.0,   0.5,  1.0,  0.7,  0.7,  0.7,  -0.5, -0.2,  0.5 };
+    double[] p1lats  = {   0.0,   0.0,   0.5,  0.5, -0.5, -0.5, -0.05, -0.5,  1.5, -1.5 };
+    boolean[] within = { false, false, false, true, true, true, false, true, true, true };
 
     for (int i=0; i<p0lons.length; i++) {
-      assertEquals("("+p0lons[i]+","+p0lats[i]+")-("+p1lons[i]+","+p1lats[i]+")",within[i],polygon.intersectsOrIsWithin(toOsmLon(p0lons[i]), toOsmLat(p0lats[i]), toOsmLon(p1lons[i]), toOsmLat(p1lats[i])));
+      assertEquals("("+p0lons[i]+","+p0lats[i]+")-("+p1lons[i]+","+p1lats[i]+")",within[i],polygon.intersects(toOsmLon(p0lons[i]), toOsmLat(p0lats[i]), toOsmLon(p1lons[i]), toOsmLat(p1lats[i])));
     }
   }
 
+  @Test
+  public void testIntersectsPolyline() {
+    double[] p0lons  = {   0.0,   1.0,  -0.5,  0.5,  0.7,  0.7,  0.7,  -1.5, -1.5,   0.0 };
+    double[] p0lats  = {   0.0,   0.0,   0.5,  0.5,  0.5,  0.05, 0.05, -1.5,  0.2,   0.0 };
+    double[] p1lons  = {   0.0,   1.0,   0.5,  1.0,  0.7,  0.7,  0.7,  -0.5, -0.2,   0.5 };
+    double[] p1lats  = {   0.0,   0.0,   0.5,  0.5, -0.5, -0.5, -0.05, -0.5,  1.5,  -1.5 };
+    boolean[] within = { false, false, false, true, true, true, false, true, true, false };
+
+    for (int i=0; i<p0lons.length; i++) {
+      assertEquals("("+p0lons[i]+","+p0lats[i]+")-("+p1lons[i]+","+p1lats[i]+")",within[i],polyline.intersects(toOsmLon(p0lons[i]), toOsmLat(p0lats[i]), toOsmLon(p1lons[i]), toOsmLat(p1lats[i])));
+    }
+  }
+
+  @Test
+  public void testBelongsToLine() {
+    assertTrue(OsmNogoPolygon.isOnLine(10,10, 10,10, 10,20));
+    assertTrue(OsmNogoPolygon.isOnLine(10,10, 10,10, 20,10));
+    assertTrue(OsmNogoPolygon.isOnLine(10,10, 20,10, 10,10));
+    assertTrue(OsmNogoPolygon.isOnLine(10,10, 10,20, 10,10));
+    assertTrue(OsmNogoPolygon.isOnLine(10,15, 10,10, 10,20));
+    assertTrue(OsmNogoPolygon.isOnLine(15,10, 10,10, 20,10));
+    assertTrue(OsmNogoPolygon.isOnLine(10,10, 10,10, 20,30));
+    assertTrue(OsmNogoPolygon.isOnLine(20,30, 10,10, 20,30));
+    assertTrue(OsmNogoPolygon.isOnLine(15,20, 10,10, 20,30));
+    assertFalse(OsmNogoPolygon.isOnLine(11,11, 10,10, 10,20));
+    assertFalse(OsmNogoPolygon.isOnLine(11,11, 10,10, 20,10));
+    assertFalse(OsmNogoPolygon.isOnLine(15,21, 10,10, 20,30));
+    assertFalse(OsmNogoPolygon.isOnLine(15,19, 10,10, 20,30));
+    assertFalse(OsmNogoPolygon.isOnLine(0,-10, 10,10, 20,30));
+    assertFalse(OsmNogoPolygon.isOnLine(30,50, 10,10, 20,30));
+  }
 }
