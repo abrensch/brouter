@@ -27,7 +27,7 @@ import java.util.List;
 
 public class OsmNogoPolygon extends OsmNodeNamed
 {
-  private final static class Point
+  public final static class Point
   {
     final int y;
     final int x;
@@ -40,6 +40,15 @@ public class OsmNogoPolygon extends OsmNodeNamed
   }
 
   public final List<Point> points = new ArrayList<Point>();
+  
+  public final boolean isClosed;
+  
+  public OsmNogoPolygon(boolean closed)
+  {
+    this.isClosed = closed;
+    this.isNogo = true;
+    this.name = "";
+  }
 
   public final void addVertex(int lon, int lat)
   {
@@ -171,11 +180,11 @@ public class OsmNogoPolygon extends OsmNodeNamed
   * @param lat latitude of point
   * @return true if point is inside of polygon, false otherwise
   */
-  public boolean isWithin(int lon, int lat)
-  {
-    return wn_PnPoly(lon,lat,points) != 0;
-  }
-
+//  public boolean isWithin(int lon, int lat)
+//  {
+//    return wn_PnPoly(lon,lat,points) != 0;
+//  }
+  
  /**
   * tests whether a segment defined by lon and lat of two points does either
   * intersect the polygon or any of the endpoints (or both) are enclosed by
@@ -189,18 +198,25 @@ public class OsmNogoPolygon extends OsmNodeNamed
   * @param lat1 latitude of start point
   * @return true if segment or any of it's points are 'inside' of polygon
   */
-  public boolean intersectsOrIsWithin(int lon0, int lat0, int lon1, int lat1)
+  public boolean intersects(int lon0, int lat0, int lon1, int lat1)
   {
-    // is start or endpoint within polygon?
-    if ((wn_PnPoly(lon0,lat0, points) != 0) || (wn_PnPoly(lon1,lat1, points) != 0))
-    {
-      return true;
-    }
+    // is start or endpoint within closed polygon?
+//    if (isClosed)
+//    {
+//      if (wn_PnPoly(lon1,lat1, points) != 0)
+//      {
+//        return true;
+//      }
+      // check of wn_PnPoly(lon0,lat0, points) would return true only very few times.
+      // in the majority of cases (point within bounding-circle but outside of
+      // polygon both wn_PnPoly and intersect would both run, but intersect-check
+      // will catch all points inside the polygon as well.
+//    }
     final Point p0 = new Point (lon0,lat0);
     final Point p1 = new Point (lon1,lat1);
     int i_last = points.size()-1;
-    Point p2 = points.get(i_last);
-    for (int i = 0; i <= i_last; i++)
+    Point p2 = points.get(isClosed ? i_last : 0 );
+    for (int i = isClosed ? 0 : 1 ; i <= i_last; i++)
     {
       Point p3 = points.get(i);
       // does it intersect with at least one of the polygon's segments?
@@ -213,47 +229,56 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return false;
   }
 
-/* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchsess
-   This code may be freely used and modified for any purpose providing that
-   this copyright notice is included with it. SoftSurfer makes no warranty for
-   this code, and cannot be held liable for any real or imagined damage
-   resulting from its use. Users of this code must verify correctness for
-   their application. */
- /**
-  * cn_PnPoly(): crossing number test for a point in a polygon
-  * 
-  * @param p a point
-  * @param v list of vertex points forming a polygon. This polygon
-  *          is implicitly closed connecting the last and first point.
-  * @return 0 = outside, 1 = inside.
-  * 
-  * This code is patterned after [Franklin, 2000]
-  */
-  private static boolean cn_PnPoly(final Point p, final List<Point> v)
+  public boolean isOnPolyline( long px, long py )
   {
-    int cn = 0; // the crossing number counter
-
-    // loop through all edges of the polygon
-    int last = v.size()-1;
-    Point v0 = v.get(last);
-    for (int i = 0; i <= last; i++)            // edge from V[i] to V[i+1]
+    int i_last = points.size()-1;
+    Point p1 = points.get(0);
+    for (int i = 1 ; i <= i_last; i++)
     {
-      Point v1 = v.get(i);
-
-      if (((v0.y <= p.y) && (v1.y > p.y))     // an upward crossing
-          || ((v0.y > p.y) && (v1.y <= p.y))) // a downward crossing
+      final Point p2 = points.get(i);
+      if (OsmNogoPolygon.isOnLine(px,py,p1.x,p1.y,p2.x,p2.y))
       {
-        // compute the actual edge-ray intersect x-coordinate
-        double vt = (double) (p.y - v0.y) / (v1.y - v0.y);
-
-        if (p.x < v0.x + vt * (v1.x - v0.x))  // P.x < intersect
-        {
-          ++cn;                                // a valid crossing of y=P.y right of P.x
-        }
+        return true;
       }
-      v0 = v1;
+      p1 = p2;
     }
-    return ((cn & 1) > 0);                     // 0 if even (out), and 1 if odd (in)
+    return false;
+  }
+  
+  public static boolean isOnLine( long px, long py, long p0x, long p0y, long p1x, long p1y )
+  {
+    final double v10x = px-p0x;
+    final double v10y = py-p0y;
+    final double v12x = p1x-p0x;
+    final double v12y = p1y-p0y;
+    
+    if ( v10x == 0 ) // P0->P1 vertical?
+    {
+      if ( v10y == 0 ) // P0 == P1?
+      {
+        return true;
+      }
+      if ( v12x != 0 ) // P1->P2 not vertical?
+      {
+        return false; 
+      }
+      return ( v12y / v10y ) >= 1; // P1->P2 at least as long as P1->P0?
+    }
+    if ( v10y == 0 ) // P0->P1 horizontal?
+    {
+      if ( v12y != 0 ) // P1->P2 not horizontal?
+      {
+        return false; 
+      }
+      // if ( P10x == 0 ) // P0 == P1? already tested
+      return ( v12x / v10x ) >= 1; // P1->P2 at least as long as P1->P0?
+    }
+    final double kx = v12x / v10x;
+    if ( kx < 1 )
+    {
+      return false;
+    }
+    return kx == v12y / v10y;
   }
 
 /* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchsess
@@ -270,20 +295,27 @@ public class OsmNogoPolygon extends OsmNodeNamed
   *          is implicitly closed connecting the last and first point.
   * @return the winding number (=0 only when P is outside)
   */
-  private static int wn_PnPoly(final long px, final long py, final List<Point> v) {
+  public boolean isWithin(final long px, final long py)
+  {
     int wn = 0; // the winding number counter
 
     // loop through all edges of the polygon
-    final int i_last = v.size()-1;
-    final Point p0 = v.get(i_last);
+    final int i_last = points.size()-1;
+    final Point p0 = points.get(isClosed ? i_last : 0);
     long p0x = p0.x; // need to use long to avoid overflow in products
     long p0y = p0.y;
     
-    for (int i = 0; i <= i_last; i++) // edge from v[i] to v[i+1]
+    for (int i = isClosed ? 0 : 1; i <= i_last; i++) // edge from v[i] to v[i+1]
     {
-      final Point p1 = v.get(i);
+      final Point p1 = points.get(i);
+
       final long p1x = p1.x;
       final long p1y = p1.y;
+
+      if (OsmNogoPolygon.isOnLine(px, py, p0x, p0y, p1x, p1y))
+      {
+        return true;
+      }
 
       if (p0y <= py)  // start y <= p.y
       {
@@ -308,7 +340,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
       p0x = p1x;
       p0y = p1y;
     }
-    return wn;
+    return wn != 0;
   }
 
 /* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchsess

@@ -240,35 +240,38 @@ public class ServerHandler extends RequestHandler {
 
   private List<OsmNodeNamed> readNogoPolygons()
   {
-    String polygons = params.get( "polygons" );
-    if ( polygons == null ) return null;
-
-    String[] polygonList = polygons.split("\\|");
-
-    List<OsmNodeNamed> nogoPolygonList = new ArrayList<OsmNodeNamed>();
-    for (int i = 0; i < polygonList.length; i++)
+    List<OsmNodeNamed> result = new ArrayList<OsmNodeNamed>();
+    parseNogoPolygons( params.get("polylines"), result, false );
+    parseNogoPolygons( params.get("polygons"), result, true );
+    return result.size() > 0 ? result : null;
+  }
+  
+  private static void parseNogoPolygons(String polygons, List<OsmNodeNamed> result, boolean closed )
+  {
+    if ( polygons != null )
     {
-      String[] lonLatList = polygonList[i].split(",");
-      if ( lonLatList.length > 1 )
+      String[] polygonList = polygons.split("\\|");
+      for (int i = 0; i < polygonList.length; i++)
       {
-        OsmNogoPolygon polygon = new OsmNogoPolygon();
-        for (int j = 0; j < lonLatList.length-1;)
+        String[] lonLatList = polygonList[i].split(",");
+        if ( lonLatList.length > 1 )
         {
-          String slon = lonLatList[j++];
-          String slat = lonLatList[j++];
-          int lon = (int)( ( Double.parseDouble(slon) + 180. ) *1000000. + 0.5);
-          int lat = (int)( ( Double.parseDouble(slat) +  90. ) *1000000. + 0.5);
-          polygon.addVertex(lon, lat);
-        }
-        if ( polygon.points.size() > 0 )
-        {
-          polygon.name = "";
-          polygon.isNogo = true;
-          polygon.calcBoundingCircle();
-          nogoPolygonList.add(polygon);
+          OsmNogoPolygon polygon = new OsmNogoPolygon(closed);
+          for (int j = 0; j < lonLatList.length-1;)
+          {
+            String slon = lonLatList[j++];
+            String slat = lonLatList[j++];
+            int lon = (int)( ( Double.parseDouble(slon) + 180. ) *1000000. + 0.5);
+            int lat = (int)( ( Double.parseDouble(slat) +  90. ) *1000000. + 0.5);
+            polygon.addVertex(lon, lat);
+          }
+          if ( polygon.points.size() > 0 )
+          {
+            polygon.calcBoundingCircle();
+            result.add(polygon);
+          }
         }
       }
-    }
-    return nogoPolygonList;
+    }  
   }
 }

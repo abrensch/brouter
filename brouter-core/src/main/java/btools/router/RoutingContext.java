@@ -217,7 +217,9 @@ public final class RoutingContext
       {
         if ( wp.calcDistance( nogo ) < radiusInMeter
             && (!(nogo instanceof OsmNogoPolygon)
-                || ((OsmNogoPolygon)nogo).isWithin(wp.ilon, wp.ilat)))
+                || (((OsmNogoPolygon)nogo).isClosed 
+                    ? ((OsmNogoPolygon)nogo).isWithin(wp.ilon, wp.ilat)
+                        : ((OsmNogoPolygon)nogo).isOnPolyline(wp.ilon, wp.ilat))))
         {
           goodGuy = false;
           break;
@@ -299,7 +301,7 @@ public final class RoutingContext
           if ( nogo.isNogo )
           {
             if (!(nogo instanceof OsmNogoPolygon)
-                || ((OsmNogoPolygon)nogo).intersectsOrIsWithin(lon1, lat1, lon2, lat2))
+                || ((OsmNogoPolygon)nogo).intersects(lon1, lat1, lon2, lat2))
             {
               nogomatch = true;
             }
