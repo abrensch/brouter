@@ -169,23 +169,6 @@ public class OsmNogoPolygon extends OsmNodeNamed
   }
 
  /**
-  * tests whether a point is within the polygon.
-  * The current implementation doesn't produce consistent results for points
-  * being located exactly on the edge of the polygon. That doesn't have
-  * major impact on the routing-results though.
-  * For this method the winding-number algorithm is being used. That means a 
-  * point being within an overlapping region of the polygon is also taken as
-  * being 'inside' the polygon.
-  * @param lon longitude of point
-  * @param lat latitude of point
-  * @return true if point is inside of polygon, false otherwise
-  */
-//  public boolean isWithin(int lon, int lat)
-//  {
-//    return wn_PnPoly(lon,lat,points) != 0;
-//  }
-  
- /**
   * tests whether a segment defined by lon and lat of two points does either
   * intersect the polygon or any of the endpoints (or both) are enclosed by
   * the polygon. For this test the winding-number algorithm is
@@ -200,18 +183,6 @@ public class OsmNogoPolygon extends OsmNodeNamed
   */
   public boolean intersects(int lon0, int lat0, int lon1, int lat1)
   {
-    // is start or endpoint within closed polygon?
-//    if (isClosed)
-//    {
-//      if (wn_PnPoly(lon1,lat1, points) != 0)
-//      {
-//        return true;
-//      }
-      // check of wn_PnPoly(lon0,lat0, points) would return true only very few times.
-      // in the majority of cases (point within bounding-circle but outside of
-      // polygon both wn_PnPoly and intersect would both run, but intersect-check
-      // will catch all points inside the polygon as well.
-//    }
     final Point p0 = new Point (lon0,lat0);
     final Point p1 = new Point (lon1,lat1);
     int i_last = points.size()-1;
