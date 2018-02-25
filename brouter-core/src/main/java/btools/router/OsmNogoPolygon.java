@@ -29,8 +29,8 @@ public class OsmNogoPolygon extends OsmNodeNamed
 {
   public final static class Point
   {
-    final int y;
-    final int x;
+    public final int y;
+    public final int x;
 
     Point(final int lon, final int lat)
     {
