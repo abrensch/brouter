@@ -32,6 +32,8 @@ import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.OsmNode;
 import btools.router.OsmNodeNamed;
+import btools.router.OsmNogoPolygon;
+import btools.router.OsmNogoPolygon.Point;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
@@ -518,7 +520,7 @@ public class BRouterView extends View
         scaleLon = scaleLat * coslat;
 
       startTime = System.currentTimeMillis();
-      rc.prepareNogoPoints( nogoList );
+      RoutingContext.prepareNogoPoints( nogoList );
       rc.nogopoints = nogoList;
       
       rc.memoryclass = memoryClass;
@@ -638,6 +640,41 @@ public class BRouterView extends View
       paint.setColor( Color.RED );
       paint.setStyle( Paint.Style.STROKE );
       canvas.drawCircle( (float) x, (float) y, (float) ir, paint );
+    }
+  }
+  
+  private void paintLine( Canvas canvas, final int ilon0, final int ilat0, final int ilon1, final int ilat1, final Paint paint )
+  {
+    final int lon0 = ilon0 - centerLon;
+    final int lat0 = ilat0 - centerLat;
+    final int lon1 = ilon1 - centerLon;
+    final int lat1 = ilat1 - centerLat;
+    final int x0 = imgw / 2 + (int) ( scaleLon * lon0 );
+    final int y0 = imgh / 2 - (int) ( scaleLat * lat0 );
+    final int x1 = imgw / 2 + (int) ( scaleLon * lon1 );
+    final int y1 = imgh / 2 - (int) ( scaleLat * lat1 );
+    canvas.drawLine( (float) x0, (float) y0,  (float) x1,  (float) y1, paint );
+  }
+  
+  private void paintPolygon( Canvas canvas, OsmNogoPolygon p, int minradius )
+  {
+    final int ir = (int) ( p.radius * 1000000. * scaleLat );
+    if ( ir > minradius )
+    {
+      Paint paint = new Paint();
+      paint.setColor( Color.RED );
+      paint.setStyle( Paint.Style.STROKE );
+
+      Point p0 = p.isClosed ? p.points.get(p.points.size()-1) : null;
+  
+      for ( final Point p1 : p.points )
+      {
+        if (p0 != null)
+        {
+          paintLine( canvas, p0.x, p0.y, p1.x, p1.y, paint );
+        }
+        p0 = p1;
+      }
     }
   }
 
@@ -824,8 +861,15 @@ public class BRouterView extends View
       for ( int ngi = 0; ngi < nogoList.size(); ngi++ )
       {
         OsmNodeNamed n = nogoList.get( ngi );
-        int color = 0xff0000;
-        paintCircle( canvas, n, color, 4 );
+        if (n instanceof OsmNogoPolygon)
+        {
+          paintPolygon( canvas, (OsmNogoPolygon)n, 4 );
+        }
+        else 
+        {
+          int color = 0xff0000;
+          paintCircle( canvas, n, color, 4 );
+        }
       }
 
       Paint paint = new Paint();
