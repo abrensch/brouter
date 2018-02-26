@@ -152,7 +152,7 @@ public class CoordinateReaderOsmAnd extends CoordinateReader
     XmlPullParser xpp = factory.newPullParser();
 
     xpp.setInput(new FileReader(file));
-    OsmNogoPolygon nogo = new OsmNogoPolygon(true);
+    OsmNogoPolygon nogo = new OsmNogoPolygon(false);
     int eventType = xpp.getEventType();
     int numSeg = 0;
     while (eventType != XmlPullParser.END_DOCUMENT) {
