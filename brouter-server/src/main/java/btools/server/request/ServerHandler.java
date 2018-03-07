@@ -1,6 +1,7 @@
 package btools.server.request;
 
 import btools.router.OsmNodeNamed;
+import btools.router.OsmNogoPolygon;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.server.ServiceContext;
@@ -55,10 +56,21 @@ public class ServerHandler extends RequestHandler {
     rc.setAlternativeIdx(Integer.parseInt(params.get( "alternativeidx" )));
     
     List<OsmNodeNamed> nogoList = readNogoList();
+    List<OsmNodeNamed> nogoPolygonsList = readNogoPolygons();
+
     if ( nogoList != null )
     {
-      rc.prepareNogoPoints( nogoList );
+      RoutingContext.prepareNogoPoints( nogoList );
       rc.nogopoints = nogoList;
+    }
+
+    if (rc.nogopoints == null)
+    {
+      rc.nogopoints = nogoPolygonsList;
+    }
+    else if ( nogoPolygonsList != null )
+    {
+      rc.nogopoints.addAll(nogoPolygonsList);
     }
 
     return rc;
@@ -224,5 +236,42 @@ public class ServerHandler extends RequestHandler {
     n.ilat = (int)( ( lat +  90. ) *1000000. + 0.5);
     n.isNogo = true;
     return n;
-  }  
+  }
+
+  private List<OsmNodeNamed> readNogoPolygons()
+  {
+    List<OsmNodeNamed> result = new ArrayList<OsmNodeNamed>();
+    parseNogoPolygons( params.get("polylines"), result, false );
+    parseNogoPolygons( params.get("polygons"), result, true );
+    return result.size() > 0 ? result : null;
+  }
+  
+  private static void parseNogoPolygons(String polygons, List<OsmNodeNamed> result, boolean closed )
+  {
+    if ( polygons != null )
+    {
+      String[] polygonList = polygons.split("\\|");
+      for (int i = 0; i < polygonList.length; i++)
+      {
+        String[] lonLatList = polygonList[i].split(",");
+        if ( lonLatList.length > 1 )
+        {
+          OsmNogoPolygon polygon = new OsmNogoPolygon(closed);
+          for (int j = 0; j < lonLatList.length-1;)
+          {
+            String slon = lonLatList[j++];
+            String slat = lonLatList[j++];
+            int lon = (int)( ( Double.parseDouble(slon) + 180. ) *1000000. + 0.5);
+            int lat = (int)( ( Double.parseDouble(slat) +  90. ) *1000000. + 0.5);
+            polygon.addVertex(lon, lat);
+          }
+          if ( polygon.points.size() > 0 )
+          {
+            polygon.calcBoundingCircle();
+            result.add(polygon);
+          }
+        }
+      }
+    }  
+  }
 }
