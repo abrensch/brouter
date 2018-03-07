@@ -23,6 +23,11 @@ public final class TurnRestriction
     return ( exceptions & 1 ) != 0;
   }
 
+  public boolean exceptMotorcars()
+  {
+    return ( exceptions & 2 ) != 0;
+  }
+
   @Override
   public String toString()
   {
