@@ -112,12 +112,23 @@ public class RouteServer extends Thread
                 return;
               }
             }
+            else if ( url.startsWith( "/brouter/suspects" ) )
+            {
+              writeHttpHeader(bw, "text/html");
+              SuspectManager.process( url, bw );
+              return;
+            }
             else
             {
             	throw new IllegalArgumentException( "unknown request syntax: " + getline );
             }
             RoutingContext rc = handler.readRoutingContext();
             List<OsmNodeNamed> wplist = handler.readWayPointList();
+
+            if ( wplist.size() < 10 )
+            {
+              NearRecentWps.add( wplist );
+            }
 
             cr = new RoutingEngine( null, null, serviceContext.segmentDir, wplist, rc );
             cr.quite = true;
