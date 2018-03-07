@@ -28,6 +28,11 @@
             <name>Arndt Brenschede</name>
             <email>Arndt.Brenschede@web.de</email>
         </developer>
+        <developer>
+            <id>norbert.truchsess</id>
+            <name>Norbert Truchsess</name>
+            <email>norbert.truchsess@t-online.de</email>
+        </developer>
     </developers>
 
     <properties>
@@ -146,7 +151,7 @@
 			<dependency>
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
-				<version>4.11</version>
+				<version>4.12</version>
 				<scope>test</scope>
 			</dependency>
 		</dependencies>

@@ -192,16 +192,20 @@ public final class RoutingContext
   {
     for( OsmNodeNamed nogo : nogos )
     {
-        String s = nogo.name;
-        int idx = s.indexOf( ' ' );
-        if ( idx > 0 ) s = s.substring( 0 , idx );
-        int ir = 20; // default radius
-        if ( s.length() > 4 )
-        {
-          try { ir = Integer.parseInt( s.substring( 4 ) ); }
-          catch( Exception e ) { /* ignore */ }
-        }
-        nogo.radius = ir / 110984.; //  6378000. / 57.3;
+      if (nogo instanceof OsmNogoPolygon)
+      {
+        continue;
+      }
+      String s = nogo.name;
+      int idx = s.indexOf( ' ' );
+      if ( idx > 0 ) s = s.substring( 0 , idx );
+      int ir = 20; // default radius
+      if ( s.length() > 4 )
+      {
+        try { ir = Integer.parseInt( s.substring( 4 ) ); }
+        catch( Exception e ) { /* ignore */ }
+      }
+      nogo.radius = ir / 110984.; //  6378000. / 57.3;
     }
   }
 
@@ -215,7 +219,11 @@ public final class RoutingContext
       boolean goodGuy = true;
       for( OsmNodeNamed wp : waypoints )
       {
-        if ( wp.calcDistance( nogo ) < radiusInMeter )
+        if ( wp.calcDistance( nogo ) < radiusInMeter
+            && (!(nogo instanceof OsmNogoPolygon)
+                || (((OsmNogoPolygon)nogo).isClosed 
+                    ? ((OsmNogoPolygon)nogo).isWithin(wp.ilon, wp.ilat)
+                        : ((OsmNogoPolygon)nogo).isOnPolyline(wp.ilon, wp.ilat))))
         {
           goodGuy = false;
           break;
@@ -294,7 +302,14 @@ public final class RoutingContext
             radius = Math.sqrt( s1 < s2 ? r12 : r22 );
             if ( radius > nogo.radius ) continue; // 20m ^ 2
           }
-          if ( nogo.isNogo ) nogomatch = true;
+          if ( nogo.isNogo )
+          {
+            if (!(nogo instanceof OsmNogoPolygon)
+                || ((OsmNogoPolygon)nogo).intersects(lon1, lat1, lon2, lat2))
+            {
+              nogomatch = true;
+            }
+          }
           else
           {
             shortestmatch = true;

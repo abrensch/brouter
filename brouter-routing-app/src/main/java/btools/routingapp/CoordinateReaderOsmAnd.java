@@ -3,9 +3,15 @@ package btools.routingapp;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserFactory;
+
 import btools.router.OsmNodeNamed;
+import btools.router.OsmNogoPolygon;
 
 /**
  * Read coordinates from a gpx-file
@@ -65,6 +71,13 @@ public class CoordinateReaderOsmAnd extends CoordinateReader
     {
       _readPointmap( osmandDir + "/favourites.gpx" );
     }
+    try
+    {
+      _readNogoLines( basedir+tracksdir );
+    }
+    catch( IOException ioe )
+    {    
+    }
   }
 
   private void _readPointmap( String filename ) throws Exception
@@ -106,5 +119,72 @@ public class CoordinateReaderOsmAnd extends CoordinateReader
         }
       }
       br.close();
+  }
+  
+  private void _readNogoLines( String dirname ) throws IOException
+  {
+    
+    File dir = new File( dirname );
+    
+    if (dir.exists() && dir.isDirectory())
+    {
+      for (final File file : dir.listFiles())
+      {
+        final String name = file.getName();
+        if (name.startsWith("nogo") && name.endsWith(".gpx"))
+        {
+          try
+          {
+            _readNogoLine(file);
+          }
+          catch (Exception e)
+          {
+          }
+        }
+      }
+    }
+  }
+  
+  private void _readNogoLine( File file ) throws Exception
+  {
+    XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+    factory.setNamespaceAware(false);
+    XmlPullParser xpp = factory.newPullParser();
+
+    xpp.setInput(new FileReader(file));
+    OsmNogoPolygon nogo = new OsmNogoPolygon(false);
+    int eventType = xpp.getEventType();
+    int numSeg = 0;
+    while (eventType != XmlPullParser.END_DOCUMENT) {
+      switch(eventType) {
+      case XmlPullParser.START_TAG: {
+        if (xpp.getName().equals("trkpt")) {
+          final String lon = xpp.getAttributeValue(null,"lon");
+          final String lat = xpp.getAttributeValue(null,"lat");
+          if (lon != null && lat != null) {
+            nogo.addVertex(
+                (int)( ( Double.parseDouble(lon) + 180. ) *1000000. + 0.5),
+                (int)( ( Double.parseDouble(lat) +  90. ) *1000000. + 0.5));
+          }
+        }
+        break;
+      }
+      case XmlPullParser.END_TAG: {
+        if (xpp.getName().equals("trkseg")) {
+          nogo.calcBoundingCircle();
+          final String name = file.getName();
+          nogo.name = name.substring(0, name.length()-4);
+          if (numSeg > 0)
+          {
+            nogo.name += Integer.toString(numSeg+1);
+          }
+          numSeg++;
+          checkAddPoint( "(one-for-all)", nogo );
+        }
+        break;
+      }
+      }
+      eventType = xpp.next();
+    }
   }
 }
