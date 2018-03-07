@@ -172,7 +172,7 @@ public class BRouterView extends View
       String basedir = fbd.getAbsolutePath();
       AppLogger.log( "using basedir: " + basedir );
 
-      String version = "v1.4.9";
+      String version = "v1.4.10";
 
       // create missing directories
       assertDirectoryExists( "project directory", basedir + "/brouter", null, null );
