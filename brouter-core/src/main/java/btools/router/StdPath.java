@@ -34,7 +34,7 @@ final class StdPath extends OsmPath
   }
 
   @Override
-  protected double processWaySection( RoutingContext rc, double distance, double delta_h, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier )
+  protected double processWaySection( RoutingContext rc, double distance, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier )
   {
     // calculate the costfactor inputs
     float turncostbase = rc.expctxWay.getTurncost();

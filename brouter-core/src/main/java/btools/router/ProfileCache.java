@@ -39,7 +39,8 @@ public final class ProfileCache
         profileDir = new File( profileBaseDir );
         profileFile = new File( profileDir, rc.localFunction + ".brf" ) ;
       }
-      rc.profileTimestamp = profileFile.lastModified();
+
+      rc.profileTimestamp = profileFile.lastModified() + rc.getKeyValueChecksum()<<24;
       File lookupFile = new File( profileDir, "lookups.dat" );
 
       // check for re-use

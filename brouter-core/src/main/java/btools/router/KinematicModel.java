@@ -5,7 +5,8 @@
  */
 package btools.router;
 
-import btools.expressions.BExpressionContext;
+import java.util.Map;
+
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 
@@ -27,6 +28,7 @@ class KinematicModel extends OsmPathModel
   public double f_air;
   public double f_recup;
   public double p_standby;
+  public double outside_temp;
   public double recup_efficiency;
   public double totalweight;
   public double vmax;
@@ -44,34 +46,51 @@ class KinematicModel extends OsmPathModel
 
   protected BExpressionContextWay ctxWay;
   protected BExpressionContextNode ctxNode;
+  protected Map<String,String> params;
 
+  private boolean initDone = false;
 
   @Override
-  public void init( BExpressionContextWay expctxWay, BExpressionContextNode expctxNode )
+  public void init( BExpressionContextWay expctxWay, BExpressionContextNode expctxNode, Map<String,String> extraParams )
   {
-    ctxWay = expctxWay;
-    ctxNode = expctxNode;
-  
-    BExpressionContext expctxGlobal = expctxWay; // just one of them...
+    if ( !initDone )
+    {
+      ctxWay = expctxWay;
+      ctxNode = expctxNode;
+      wayIdxMaxspeed = ctxWay.getOutputVariableIndex( "maxspeed", false );
+      wayIdxMinspeed = ctxWay.getOutputVariableIndex( "minspeed", false );
+      nodeIdxMaxspeed = ctxNode.getOutputVariableIndex( "maxspeed", false );
+      initDone = true;
+    }
 
-    turnAngleDecayLength = expctxGlobal.getVariableValue( "turnAngleDecayLength", 50.f );
-    f_roll = expctxGlobal.getVariableValue( "f_roll", 232.f );
-    f_air = expctxGlobal.getVariableValue( "f_air", 0.4f );
-    f_recup = expctxGlobal.getVariableValue( "f_recup", 400.f );
-    p_standby = expctxGlobal.getVariableValue( "p_standby", 250.f );
-    recup_efficiency = expctxGlobal.getVariableValue( "recup_efficiency", 0.7f );
-    totalweight = expctxGlobal.getVariableValue( "totalweight", 1640.f );
-    vmax = expctxGlobal.getVariableValue( "vmax", 80.f ) / 3.6;
-    leftWaySpeed = expctxGlobal.getVariableValue( "leftWaySpeed", 12.f ) / 3.6;
-    rightWaySpeed = expctxGlobal.getVariableValue( "rightWaySpeed", 12.f ) / 3.6;
+    params = extraParams;
+  
+    turnAngleDecayLength = getParam( "turnAngleDecayLength", 50.f );
+    f_roll = getParam( "f_roll", 232.f );
+    f_air = getParam( "f_air", 0.4f );
+    f_recup = getParam( "f_recup", 400.f );
+    p_standby = getParam( "p_standby", 250.f );
+    outside_temp = getParam( "outside_temp", 20.f );
+    recup_efficiency = getParam( "recup_efficiency", 0.7f );
+    totalweight = getParam( "totalweight", 1640.f );
+    vmax = getParam( "vmax", 80.f ) / 3.6;
+    leftWaySpeed = getParam( "leftWaySpeed", 12.f ) / 3.6;
+    rightWaySpeed = getParam( "rightWaySpeed", 12.f ) / 3.6;
 
     xweight = 1./( 2. * f_air * vmax * vmax * vmax - p_standby );
     timecost0 = 1./vmax + xweight*(f_roll + f_air*vmax*vmax + p_standby/vmax );
-  
-    wayIdxMaxspeed = ctxWay.getOutputVariableIndex( "maxspeed", false );
-    wayIdxMinspeed = ctxWay.getOutputVariableIndex( "minspeed", false );
+  }
 
-    nodeIdxMaxspeed = ctxNode.getOutputVariableIndex( "maxspeed", false );
+  protected float getParam( String name, float defaultValue )
+  {
+    String sval = params == null ? null : params.get( name );
+    if ( sval != null )
+    {
+      return Float.parseFloat( sval );
+    }
+    float v = ctxWay.getVariableValue( name, defaultValue );
+    params.put( name, "" + v );
+    return v;
   }
   
   public float getWayMaxspeed()

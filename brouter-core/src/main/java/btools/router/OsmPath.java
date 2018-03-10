@@ -305,8 +305,9 @@ abstract class OsmPath implements OsmLinkHolder
         }
       }
 
+      double elevation = ele2 == Short.MIN_VALUE ? 100. : ele2/4.;
 
-      double sectionCost = processWaySection( rc, dist, delta_h, angle, cosangle, isStartpoint, nsection, lastpriorityclassifier );
+      double sectionCost = processWaySection( rc, dist, delta_h, elevation, angle, cosangle, isStartpoint, nsection, lastpriorityclassifier );
       if ( ( sectionCost < 0. || costfactor > 9998. && !detailMode ) || sectionCost + cost >= 2000000000. )
       {
         cost = -1;
@@ -413,7 +414,7 @@ abstract class OsmPath implements OsmLinkHolder
     return (short)( e1*(1.-fraction) + e2*fraction );
   }
 
-  protected abstract double processWaySection( RoutingContext rc, double dist, double delta_h, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier );
+  protected abstract double processWaySection( RoutingContext rc, double dist, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier );
 
   protected abstract double processTargetNode( RoutingContext rc );
 

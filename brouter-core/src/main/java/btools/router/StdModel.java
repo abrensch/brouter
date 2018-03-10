@@ -5,6 +5,8 @@
  */
 package btools.router;
 
+import java.util.Map;
+
 import btools.expressions.BExpressionContext;
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
@@ -27,7 +29,7 @@ final class StdModel extends OsmPathModel
 
 
   @Override
-  public void init( BExpressionContextWay expctxWay, BExpressionContextNode expctxNode )
+  public void init( BExpressionContextWay expctxWay, BExpressionContextNode expctxNode, Map<String,String> keyValues )
   {
     ctxWay = expctxWay;
     ctxNode = expctxNode;

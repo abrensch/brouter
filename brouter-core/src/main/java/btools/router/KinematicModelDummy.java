@@ -5,6 +5,8 @@
  */
 package btools.router;
 
+import java.util.Map;
+
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 
@@ -41,7 +43,7 @@ final class KinematicModelDummy extends KinematicModel
   public double  timecost0 = 1./vmax + xweight*(f_roll + f_air*vmax*vmax + p_standby/vmax );
   
   @Override
-  public void init( BExpressionContextWay expctxWay, BExpressionContextNode expctxNode )
+  public void init( BExpressionContextWay expctxWay, BExpressionContextNode expctxNode, Map<String,String> extraParams )
   {
   }
   

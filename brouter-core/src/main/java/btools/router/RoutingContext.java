@@ -9,6 +9,7 @@ import java.io.DataOutput;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import btools.expressions.BExpressionContext;
 import btools.expressions.BExpressionContextNode;
@@ -29,6 +30,8 @@ public final class RoutingContext
   public int alternativeIdx = 0;
   public String localFunction;
   public long profileTimestamp;
+
+  public Map<String,String> keyValues;
 
   public String rawTrackPath;
   
@@ -91,9 +94,27 @@ public final class RoutingContext
         throw new RuntimeException( "Cannot create path-model: " + e );
       }
     }
-    pm.init( expctxWay, expctxNode );
+    initModel();
   }
   
+  public void initModel()
+  {
+    pm.init( expctxWay, expctxNode, keyValues );
+  }
+
+  public long getKeyValueChecksum()
+  {
+    long s = 0L;
+    if ( keyValues != null )
+    {
+      for( Map.Entry<String,String> e : keyValues.entrySet() )
+      {
+        s += e.getKey().hashCode() + e.getValue().hashCode();
+      }
+    }
+    return s;
+  }
+
   public void readGlobalConfig()
   {
     BExpressionContext expctxGlobal = expctxWay; // just one of them...
