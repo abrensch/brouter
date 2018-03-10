@@ -8,6 +8,7 @@ package btools.router;
 import java.io.DataOutput;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,8 +33,15 @@ public final class RoutingContext
   public long profileTimestamp;
 
   public Map<String,String> keyValues;
-
+  
   public String rawTrackPath;
+
+  public Map<Long,Integer> suspectNodes;
+  public Map<Long,Integer> suspectTRs;
+  public boolean foundNodeBlock;
+  public int foundWayBlock;
+  
+  public int maxcost;
   
   public String getProfileName()
   {
@@ -57,7 +65,7 @@ public final class RoutingContext
   public int uphillcutoff;
   public boolean carMode;
   public boolean bikeMode;
-  public boolean considerTurnRestrictions;
+  public boolean considerTurnRestrictions = true;
   public boolean processUnusedTags;
   public boolean forceSecondaryData;
   public double pass1coefficient;
@@ -100,7 +108,7 @@ public final class RoutingContext
   public void initModel()
   {
     pm.init( expctxWay, expctxNode, keyValues );
-  }
+  }  
 
   public long getKeyValueChecksum()
   {
@@ -131,7 +139,7 @@ public final class RoutingContext
     bikeMode = 0.f != expctxGlobal.getVariableValue( "validForBikes", 0.f );
 
     // turn-restrictions used per default for car profiles
-    considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue( "considerTurnRestrictions", carMode ? 1.f : 0.f );
+    considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue( "considerTurnRestrictions", carMode && considerTurnRestrictions ? 1.f : 0.f );
 
     // process tags not used in the profile (to have them in the data-tab)
     processUnusedTags = 0.f != expctxGlobal.getVariableValue( "processUnusedTags", 0.f );

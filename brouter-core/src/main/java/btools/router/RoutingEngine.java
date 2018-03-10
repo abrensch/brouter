@@ -9,6 +9,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import btools.mapaccess.NodesCache;
 import btools.mapaccess.OsmLink;
@@ -951,6 +952,7 @@ public class RoutingEngine extends Thread
       }
       
       routingContext.firstPrePath = null;
+      routingContext.maxcost = maxTotalCost;
 
       for( OsmLink link = currentNode.firstlink; link != null; link = link.getNext( currentNode) )
       {
@@ -977,6 +979,10 @@ public class RoutingEngine extends Thread
         }
       }
 
+      int nPathPossible = 0;
+      routingContext.foundNodeBlock = false;
+      routingContext.foundWayBlock = 0;
+
       for( OsmLink link = currentNode.firstlink; link != null; link = link.getNext( currentNode) )
       {
         OsmNode nextNode = link.getTarget( currentNode );
@@ -985,13 +991,14 @@ public class RoutingEngine extends Thread
         {
           continue; // border node?
         }
-        if ( nextNode.firstlink == null )
-        {
-          continue; // don't care about dead ends
-        }
         if ( nextNode == sourceNode )
         {
           continue; // border node?
+        }
+        if ( nextNode.firstlink == null )
+        {
+          nPathPossible++;
+          continue; // don't care about dead ends
         }
 
         if ( guideTrack != null )
@@ -1008,11 +1015,14 @@ public class RoutingEngine extends Thread
             // not along the guide-track, discard, but register for voice-hint processing
             if ( routingContext.turnInstructionMode > 0 )
             {
+              Map<Long,Integer> trSuspects = routingContext.suspectTRs;
+              routingContext.suspectTRs = null;
               OsmPath detour = routingContext.createPath( path, link, refTrack, true );
               if ( detour.cost >= 0. && nextId != startNodeId1 && nextId != startNodeId2 )
               {
                 guideTrack.registerDetourForId( currentNode.getIdFromPos(), OsmPathElement.create( detour, false ) );
               }
+              routingContext.suspectTRs = trSuspects;
             }
             continue;
           }
@@ -1053,6 +1063,8 @@ public class RoutingEngine extends Thread
         }
         if ( bestPath != null )
         {
+          nPathPossible++;
+
           boolean trafficSim = endPos == null;
 
           bestPath.airdistance = trafficSim ? keepPathAirdistance : ( isFinalLink ? 0 : nextNode.calcDistance( endPos ) );
@@ -1078,7 +1090,6 @@ public class RoutingEngine extends Thread
               {
                 bestPath.airdistance += boundary.getBoundaryDistance( nextNode );
               }
-
               bestPath.treedepth = path.treedepth + 1;
               link.addLinkHolder( bestPath, currentNode );
               synchronized( openSet )
@@ -1090,6 +1101,29 @@ public class RoutingEngine extends Thread
         }
       }
             
+      // report oneway dead-ends as suspects
+      if ( routingContext.suspectNodes != null && path.priorityclassifier > 20 && currentNode.virgin && path.cost > 2000 && !routingContext.inverseDirection )
+      {
+        int suspectPrio = 0;
+        if ( nPathPossible == 0 && (!routingContext.foundNodeBlock) )
+        {
+          suspectPrio = path.priorityclassifier;
+        }
+        else if ( routingContext.foundWayBlock != 0 )
+        {
+          suspectPrio = routingContext.foundWayBlock;
+        }
+        if ( suspectPrio > 20 )
+        {
+          Long id = Long.valueOf( currentNode.getIdFromPos() );
+          Integer val = routingContext.suspectNodes.get( id );
+          if ( val == null || suspectPrio > val.intValue() )
+          {
+            routingContext.suspectNodes.put( id, Integer.valueOf( suspectPrio ) );
+          }
+        }
+      }
+
       path.unregisterUpTree( routingContext );
     }
     return null;
@@ -1180,7 +1214,7 @@ public class RoutingEngine extends Thread
     track.buildMap();
 
     // for final track..
-    if ( guideTrack != null )
+    if ( guideTrack != null && routingContext.turnInstructionMode > 0 )
     {
       track.copyDetours( guideTrack );
       track.processVoiceHints( routingContext );

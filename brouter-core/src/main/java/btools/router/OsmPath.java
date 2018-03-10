@@ -184,7 +184,7 @@ abstract class OsmPath implements OsmLinkHolder
       }
 
       // check turn restrictions (n detail mode (=final pass) no TR to not mess up voice hints)
-      if ( nsection == 0 && rc.considerTurnRestrictions && !detailMode )
+      if ( nsection == 0 )
       {
         boolean hasAnyPositive = false;
         boolean hasPositive = false;
@@ -223,8 +223,23 @@ abstract class OsmPath implements OsmLinkHolder
         }
         if ( !hasPositive && ( hasAnyPositive || hasNegative ) )
         {
-          cost = -1;
-          return;
+          if ( rc.considerTurnRestrictions && !detailMode )
+          {
+            cost = -1;
+            return;
+          }
+          if ( !rc.considerTurnRestrictions && detailMode ) // detect effective (=suspect) TRs
+          {
+            if ( rc.suspectTRs != null && priorityclassifier > 20 && cost > 2000 && cost < rc.maxcost - 2000 )
+            {
+              Long id = Long.valueOf( sourceNode.getIdFromPos() );
+              if ( rc.suspectTRs.get( id ) == null )
+              {
+System.out.println( "bad TR candidate: " + id );
+                rc.suspectTRs.put( id, Integer.valueOf( priorityclassifier ) );
+              }
+            }
+          }
         }
       }
 
@@ -308,8 +323,12 @@ abstract class OsmPath implements OsmLinkHolder
       double elevation = ele2 == Short.MIN_VALUE ? 100. : ele2/4.;
 
       double sectionCost = processWaySection( rc, dist, delta_h, elevation, angle, cosangle, isStartpoint, nsection, lastpriorityclassifier );
-      if ( ( sectionCost < 0. || costfactor > 9998. && !detailMode ) || sectionCost + cost >= 2000000000. )
+      if ( ( sectionCost < 0. || costfactor > 9996. && !detailMode ) || sectionCost + cost >= 2000000000. )
       {
+        if ( ( costfactor == 9998. && priorityclassifier == lastpriorityclassifier ) || costfactor == 9997. )
+        {
+          rc.foundWayBlock = Math.max( rc.foundWayBlock, priorityclassifier );
+        }
         cost = -1;
         return;
       }
@@ -398,6 +417,17 @@ abstract class OsmPath implements OsmLinkHolder
     double targetCost = processTargetNode( rc );
     if ( targetCost < 0. || targetCost + cost >= 2000000000. )
     {
+      if ( rc.suspectNodes != null && priorityclassifier > 20 && !rc.inverseDirection )
+      {
+        rc.foundNodeBlock = true;
+        Long id = Long.valueOf( targetNode.getIdFromPos() );
+        Integer val = rc.suspectNodes.get( id );
+        if ( val == null || priorityclassifier > val.intValue() )
+        {
+          rc.suspectNodes.put( id, Integer.valueOf( priorityclassifier ) );
+        }
+      }
+
       cost = -1;
       return;
     }

@@ -39,6 +39,8 @@ public class OsmNode extends OsmLink implements OsmPos
    * The links to other nodes
    */
   public OsmLink firstlink = null;
+  
+  public boolean virgin = true;
 
   public OsmNode()
   {
@@ -232,6 +234,8 @@ public class OsmNode extends OsmLink implements OsmPos
 
   public final void unlinkLink( OsmLink link )
   {
+    virgin = false;
+  
     OsmLink n = link.clear( this );
   
     if ( link == firstlink )

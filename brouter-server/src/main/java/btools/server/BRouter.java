@@ -135,7 +135,7 @@ public class BRouter
   }
 
 
-  private static OsmNodeNamed readPosition( String[] args, int idx, String name )
+  public static OsmNodeNamed readPosition( String[] args, int idx, String name )
   {
     OsmNodeNamed n = new OsmNodeNamed();
     n.name = name;
