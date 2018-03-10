@@ -192,7 +192,7 @@ abstract class OsmPath implements OsmLinkHolder
         TurnRestriction tr = sourceNode.firstRestriction;
         while( tr != null )
         {
-          if ( tr.exceptBikes() && rc.bikeMode )
+          if ( ( tr.exceptBikes() && rc.bikeMode ) || tr.exceptMotorcars() && rc.carMode )
           {
             tr = tr.next;
             continue;
