@@ -37,7 +37,7 @@ final class KinematicPath extends OsmPath
   }
   
   @Override
-  protected double processWaySection( RoutingContext rc, double dist, double delta_h, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier )
+  protected double processWaySection( RoutingContext rc, double dist, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier )
   {
     KinematicModel km = (KinematicModel)rc.pm;
     
@@ -113,7 +113,15 @@ final class KinematicPath extends OsmPath
       cutEkin( km.totalweight, turnspeed ); // apply turnspeed
     }
 
-    double distanceCost = evolveDistance( km, dist, delta_h );
+    // linear temperature correction
+    double tcorr = (20.-km.outside_temp)*0.0035;
+
+    // air_pressure down 1mb/8m
+    double ecorr = 0.0001375 * (elevation - 100.);
+
+    double f_air = km.f_air * ( 1. + tcorr - ecorr );
+
+    double distanceCost = evolveDistance( km, dist, delta_h, f_air );
 
     if ( message != null )
     {
@@ -124,7 +132,7 @@ final class KinematicPath extends OsmPath
   }
 
 
-  protected double evolveDistance( KinematicModel km, double dist, double delta_h )
+  protected double evolveDistance( KinematicModel km, double dist, double delta_h, double f_air )
   {  
     // elevation force
     double fh = delta_h * km.totalweight * 9.81 / dist;
@@ -134,7 +142,7 @@ final class KinematicPath extends OsmPath
     {
       return -1.;
     }
-    double elow = 0.5*emax; // recup phase below half energy (=70% vmax)
+    double elow = 0.7*emax; // recup phase below 70% energy (=84% vmax)
 
     double elapsedTime = 0.; 
     double dissipatedEnergy = 0.;
@@ -146,23 +154,24 @@ final class KinematicPath extends OsmPath
       boolean slow = ekin < elow;
       boolean fast = ekin >= emax;
       double etarget = slow ? elow : emax;
-      double f = km.f_roll + km.f_air*v*v + fh;
+      double f = km.f_roll + f_air*v*v + fh;
       double f_recup = Math.max( 0., fast ? -f : (slow ? km.f_recup :0 ) -fh ); // additional recup for slow part
       f += f_recup;
    
       double delta_ekin;
+      double timeStep;
       double x;
       if ( fast )
       {
         x = d;
         delta_ekin = x*f;
-        elapsedTime += x/v;
+        timeStep = x/v;
         ekin = etarget;
       }
       else
       {
         delta_ekin = etarget-ekin;
-        double b = 2.*km.f_air / km.totalweight;
+        double b = 2.*f_air / km.totalweight;
         double x0 = delta_ekin/f;
         double x0b = x0*b;
         x = x0*(1. - x0b*(0.5 + x0b*(0.333333333-x0b*0.25 ) ) ); // = ln( delta_ekin*b/f + 1.) / b;
@@ -180,13 +189,19 @@ final class KinematicPath extends OsmPath
         }
         double v2 = Math.sqrt( 2. * ekin / km.totalweight );
         double a = f / km.totalweight; // TODO: average force?
-        elapsedTime += (v2-v)/a;
+        timeStep = (v2-v)/a;
         v = v2;
       }
       d -= x;
+      elapsedTime += timeStep;
 
       // dissipated energy does not contain elevation and efficient recup
       dissipatedEnergy += delta_ekin - x*(fh +  f_recup*km.recup_efficiency);
+
+      // correction: inefficient recup going into heating is half efficient
+      double ieRecup = x*f_recup*(1.-km.recup_efficiency);
+      double eaux = timeStep*km.p_standby;
+      dissipatedEnergy -= Math.max( ieRecup, eaux ) * 0.5;
     }
 
     dissipatedEnergy += elapsedTime * km.p_standby;

@@ -5,7 +5,8 @@
  */
 package btools.router;
 
-import btools.expressions.BExpressionContext;
+import java.util.Map;
+
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 
@@ -16,5 +17,5 @@ abstract class OsmPathModel
 
   public abstract OsmPath createPath();
 
-  public abstract void init( BExpressionContextWay expctxWay, BExpressionContextNode expctxNode );
+  public abstract void init( BExpressionContextWay expctxWay, BExpressionContextNode expctxNode, Map<String,String> keyValues );
 }
