@@ -89,7 +89,10 @@ class KinematicModel extends OsmPathModel
       return Float.parseFloat( sval );
     }
     float v = ctxWay.getVariableValue( name, defaultValue );
-    params.put( name, "" + v );
+    if ( params != null )
+    {
+      params.put( name, "" + v );
+    }
     return v;
   }
   
