@@ -57,6 +57,19 @@ public class OsmPathElement implements OsmPos
     }
   }
 
+  public final float getEnergy()
+  {
+    return message == null ? 0.f : message.energy;
+  }
+
+  public final void setEnergy( float e )
+  {
+    if ( message != null )
+    {
+      message.energy = e;
+    }
+  }
+
   public final long getIdFromPos()
   {
     return ((long)ilon)<<32 | ilat;

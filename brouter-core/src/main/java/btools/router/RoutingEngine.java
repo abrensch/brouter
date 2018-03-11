@@ -1115,6 +1115,7 @@ public class RoutingEngine extends Thread
     }
 
     float totalTime = element.getTime();
+    float totalEnergy = element.getEnergy();
 
     OsmTrack track = new OsmTrack();
     track.cost = path.cost;
@@ -1138,6 +1139,7 @@ public class RoutingEngine extends Thread
       if ( routingContext.inverseRouting )
       {
         element.setTime( totalTime - element.getTime() );
+        element.setEnergy( totalEnergy - element.getEnergy() );
         track.nodes.add( element );
       }
       else
