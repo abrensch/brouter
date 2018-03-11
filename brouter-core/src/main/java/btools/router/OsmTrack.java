@@ -293,12 +293,14 @@ public final class OsmTrack
   {
     int ourSize = nodes.size();
     float t0 = ourSize > 0 ? nodes.get(ourSize - 1 ).getTime() : 0; 
+    float e0 = ourSize > 0 ? nodes.get(ourSize - 1 ).getEnergy() : 0; 
     for ( int i = 0; i < t.nodes.size(); i++ )
     {
       if ( i > 0 || ourSize == 0 )
       {
         OsmPathElement e = t.nodes.get( i );
         e.setTime( e.getTime() + t0 );
+        e.setEnergy( e.getEnergy() + e0 );
         nodes.add( e );
       }
     }
