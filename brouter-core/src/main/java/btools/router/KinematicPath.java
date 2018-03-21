@@ -42,13 +42,14 @@ final class KinematicPath extends OsmPath
     KinematicModel km = (KinematicModel)rc.pm;
     
     double cost = 0.;
+    double extraTime = 0.;
 
     if ( isStartpoint )
     {
       // for forward direction, we start with target speed
       if ( !rc.inverseDirection )
       {
-        cost = 0.5 * (1. - cosangle ) * 40. /  km.timecost0; // 40 seconds turn penalty
+        extraTime = 0.5 * (1. - cosangle ) * 40.; // 40 seconds turn penalty
       }
     }
     else
@@ -107,7 +108,11 @@ final class KinematicPath extends OsmPath
         if ( hasLeftWay && turnspeed > km.leftWaySpeed ) turnspeed = km.leftWaySpeed;
         if ( hasRightWay && turnspeed > km.rightWaySpeed ) turnspeed = km.rightWaySpeed;
         if ( hasResidential && turnspeed > residentialSpeed ) turnspeed = residentialSpeed;
-        if ( (lastpriorityclassifier < 20) ^ (priorityclassifier < 20) ) turnspeed = 0; // full stop for entering or leaving road network
+        if ( (lastpriorityclassifier < 20) ^ (priorityclassifier < 20) )
+        {
+          extraTime += 10.;
+          turnspeed = 0; // full stop for entering or leaving road network
+        }
       }
 
       cutEkin( km.totalweight, turnspeed ); // apply turnspeed
@@ -128,6 +133,9 @@ final class KinematicPath extends OsmPath
       message.costfactor = (float)(distanceCost/dist);
     }
 
+    cost += extraTime * km.pw /  km.cost0;
+    totalTime += extraTime;
+
     return cost + distanceCost;
   }
 
@@ -137,12 +145,14 @@ final class KinematicPath extends OsmPath
     // elevation force
     double fh = delta_h * km.totalweight * 9.81 / dist;
 
-    double emax = km.getMaxKineticEnergy();
+    double effectiveSpeedLimit = km.getEffectiveSpeedLimit();
+    double emax = 0.5*km.totalweight*effectiveSpeedLimit*effectiveSpeedLimit;
     if ( emax <= 0. )
     {
       return -1.;
     }
-    double elow = 0.7*emax; // recup phase below 70% energy (=84% vmax)
+    double vb = km.getBreakingSpeed( effectiveSpeedLimit );
+    double elow = 0.5*km.totalweight*vb*vb;
 
     double elapsedTime = 0.; 
     double dissipatedEnergy = 0.;
@@ -209,7 +219,7 @@ final class KinematicPath extends OsmPath
     totalTime += elapsedTime;
     totalEnergy += dissipatedEnergy + dist*fh;
 
-    return (elapsedTime + km.xweight * dissipatedEnergy)/km.timecost0; // =cost
+    return (km.pw * elapsedTime + dissipatedEnergy)/km.cost0; // =cost
   }
 
   @Override
