@@ -177,5 +177,10 @@ assign initialcost =
 
 assign maxspeed =
 
-       if or crossing=traffic_signals highway=traffic_signals then 0
+       if or crossing=traffic_signals highway=traffic_signals
+       then
+         switch greater way:priorityclassifier 24 5
+         switch greater way:priorityclassifier 22 3
+         switch greater way:priorityclassifier 20 1
+         0
        else 999
