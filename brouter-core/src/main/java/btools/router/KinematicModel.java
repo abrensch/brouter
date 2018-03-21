@@ -36,8 +36,8 @@ class KinematicModel extends OsmPathModel
   public double rightWaySpeed;
 
   // derived values
-  public double xweight; // the weight-factor between time and energy for cost calculation
-  public double timecost0; // minimum possible "energy-adjusted-time" per meter
+  public double pw; // balance power
+  public double cost0; // minimum possible cost per meter
   
   private int wayIdxMaxspeed;
   private int wayIdxMinspeed;
@@ -49,6 +49,9 @@ class KinematicModel extends OsmPathModel
   protected Map<String,String> params;
 
   private boolean initDone = false;
+
+  private double lastEffectiveLimit;
+  private double lastBreakingSpeed;
 
   @Override
   public void init( BExpressionContextWay expctxWay, BExpressionContextNode expctxNode, Map<String,String> extraParams )
@@ -77,8 +80,8 @@ class KinematicModel extends OsmPathModel
     leftWaySpeed = getParam( "leftWaySpeed", 12.f ) / 3.6;
     rightWaySpeed = getParam( "rightWaySpeed", 12.f ) / 3.6;
 
-    xweight = 1./( 2. * f_air * vmax * vmax * vmax - p_standby );
-    timecost0 = 1./vmax + xweight*(f_roll + f_air*vmax*vmax + p_standby/vmax );
+    pw = 2. * f_air * vmax * vmax * vmax - p_standby;
+    cost0 = (pw+p_standby)/vmax + f_roll + f_air*vmax*vmax;
   }
 
   protected float getParam( String name, float defaultValue )
@@ -111,10 +114,39 @@ class KinematicModel extends OsmPathModel
     return ctxNode.getBuildInVariable( nodeIdxMaxspeed ) / 3.6f;
   }
 
-  public double getMaxKineticEnergy()
+ /**
+  * get the effective speed limit from the way-limit and vmax/vmin
+  */
+  public double getEffectiveSpeedLimit( )
   {
-    // determine maximum possible speed and kinetic energy
-    double mspeed = Math.min( getWayMaxspeed(), Math.max( getWayMinspeed(), vmax ) );
-    return 0.5*totalweight*mspeed*mspeed;
+    return Math.min( getWayMaxspeed(), Math.max( getWayMinspeed(), vmax ) );
   }
+
+ /**
+  * get the breaking speed for current balance-power (pw) and effective speed limit (vl)
+  */
+  public double getBreakingSpeed( double vl )
+  {
+    if ( vl == lastEffectiveLimit )
+    {
+      return lastBreakingSpeed;
+    }
+
+    double v = vl*0.8;
+    double pw2 = pw+p_standby;
+    double e = recup_efficiency;
+    double x0 = pw2/vl+f_air*e*vl*vl+(1.-e)*f_roll;
+    for(int i=0;i<5;i++)
+    { 
+      double v2 = v*v;
+      double x = pw2/v+f_air*e*v2 - x0;
+      double dx = 2.*e*f_air*v - pw2/v2;
+      v -= x/dx;
+    }
+    lastEffectiveLimit = vl;
+    lastBreakingSpeed = v;
+    
+    return v;
+  }
+
 }
