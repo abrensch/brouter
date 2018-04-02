@@ -170,9 +170,15 @@ public final class MicroCache2 extends MicroCache
         if ( !isReverse ) // write geometry for forward links only
         {
           WaypointMatcher matcher = wayTags == null || wayTags.accessType < 2 ? null : waypointMatcher;
-          if ( matcher != null ) matcher.startNode( ilon, ilat, wayTags.data );
           int ilontarget = ilon + dlon_remaining;
           int ilattarget = ilat + dlat_remaining;
+          if ( matcher != null )
+          {
+            if ( !matcher.start( ilon, ilat, ilontarget, ilattarget ) )
+            {
+              matcher = null;
+            }
+          }
           
           int transcount = bc.decodeVarBits();
           if ( debug ) System.out.println( "***       decoding geometry with count=" + transcount );
@@ -194,7 +200,7 @@ public final class MicroCache2 extends MicroCache
             
             if ( matcher != null ) matcher.transferNode( ilontarget - dlon_remaining, ilattarget - dlat_remaining );
           }
-          if ( matcher != null ) matcher.endNode( ilontarget, ilattarget );
+          if ( matcher != null ) matcher.end();
         }
         if ( wayTags != null )
         {

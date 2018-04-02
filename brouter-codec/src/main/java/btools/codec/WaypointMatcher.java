@@ -7,7 +7,7 @@ package btools.codec;
  */
 public interface WaypointMatcher
 {
-  void startNode( int ilon, int ilat, byte[] wayTags );
+  boolean start( int ilonStart, int ilatStart, int ilonTarget, int ilatTarget );
   void transferNode( int ilon, int ilat );
-  void endNode( int ilon, int ilat );
+  void end();
 }

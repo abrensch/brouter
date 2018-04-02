@@ -217,7 +217,7 @@ final class OsmFile
     return deleted;
   }
 
-  void cleanNonVirgin()
+  void clean( boolean all )
   {
     int nc = microCaches == null ? 0 : microCaches.length;
     for ( int i = 0; i < nc; i++ )
@@ -225,7 +225,7 @@ final class OsmFile
       MicroCache mc = microCaches[i];
       if ( mc == null )
         continue;
-      if ( !mc.virgin )
+      if ( all || !mc.virgin )
       {
         microCaches[i] = null;
       }

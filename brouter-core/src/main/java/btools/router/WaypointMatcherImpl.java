@@ -4,6 +4,7 @@ import java.util.List;
 
 import btools.codec.WaypointMatcher;
 import btools.mapaccess.OsmNode;
+import btools.mapaccess.OsmNodePairSet;
 
 /**
  * the WaypointMatcher is feeded by the decoder with geoemtries of ways that are
@@ -15,16 +16,20 @@ import btools.mapaccess.OsmNode;
 public final class WaypointMatcherImpl implements WaypointMatcher
 {
   private List<MatchedWaypoint> waypoints;
+  private OsmNodePairSet islandPairs;
 
   private int lonStart;
   private int latStart;
+  private int lonTarget;
+  private int latTarget;
   private boolean anyUpdate;
   private int lonLast;
   private int latLast;
 
-  public WaypointMatcherImpl( List<MatchedWaypoint> waypoints, double maxDistance )
+  public WaypointMatcherImpl( List<MatchedWaypoint> waypoints, double maxDistance, OsmNodePairSet islandPairs )
   {
     this.waypoints = waypoints;
+    this.islandPairs = islandPairs;
     for ( MatchedWaypoint mwp : waypoints )
     {
       mwp.radius = maxDistance * 110984.; //  6378000. / 57.3;
@@ -105,11 +110,23 @@ public final class WaypointMatcherImpl implements WaypointMatcher
   }
 
   @Override
-  public void startNode( int ilon, int ilat, byte[] wayTags )
+  public boolean start( int ilonStart, int ilatStart, int ilonTarget, int ilatTarget )
   {
-    lonLast = lonStart = ilon;
-    latLast = latStart = ilat;
+    if ( islandPairs.size() > 0 )
+    {
+      long n1 = ( (long) ilonStart ) << 32 | ilatStart;
+      long n2 = ( (long) ilonTarget ) << 32 | ilatTarget;
+      if ( islandPairs.hasPair( n1, n2 ) )
+      {
+        return false;
+      }
+    }
+    lonLast = lonStart = ilonStart;
+    latLast = latStart = ilatStart;
+    lonTarget = ilonTarget;
+    latTarget = ilatTarget;
     anyUpdate = false;
+    return true;
   }
 
   @Override
@@ -121,9 +138,9 @@ public final class WaypointMatcherImpl implements WaypointMatcher
   }
 
   @Override
-  public void endNode( int ilon, int ilat )
+  public void end()
   {
-    checkSegment( lonLast, latLast, ilon, ilat );
+    checkSegment( lonLast, latLast, lonTarget, latTarget );
     if ( anyUpdate )
     {
       for ( MatchedWaypoint mwp : waypoints )
@@ -132,7 +149,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher
         {
           mwp.hasUpdate = false;
           mwp.node1 = new OsmNode( lonStart, latStart );
-          mwp.node2 = new OsmNode( ilon, ilat );
+          mwp.node2 = new OsmNode( lonTarget, latTarget );
         }
       }
     }
