@@ -14,6 +14,7 @@ import btools.mapaccess.NodesCache;
 import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
+import btools.mapaccess.OsmNodePairSet;
 import btools.mapaccess.OsmNodesMap;
 import btools.util.SortedHeap;
 import btools.util.StackSampler;
@@ -30,6 +31,8 @@ public class RoutingEngine extends Thread
   private int linksProcessed = 0;
 
   private int nodeLimit; // used for target island search
+  private int MAXNODES_ISLAND_CHECK = 500;
+  private OsmNodePairSet islandNodePairs = new OsmNodePairSet(MAXNODES_ISLAND_CHECK);
 
   protected OsmTrack foundTrack = new OsmTrack();
   private OsmTrack foundRawTrack = null;
@@ -328,9 +331,24 @@ public class RoutingEngine extends Thread
       terminate();
   }      
   
-  
-
   private OsmTrack findTrack( OsmTrack[] refTracks, OsmTrack[] lastTracks )
+  {
+    for(;;)
+    {
+      try
+      {
+        return tryFindTrack( refTracks, lastTracks );
+      }
+      catch( RoutingIslandException rie )
+      {
+        islandNodePairs.freezeTempPairs();
+        nodesCache.clean( true );
+        matchedWaypoints = null;
+      }
+    }
+  }  
+
+  private OsmTrack tryFindTrack( OsmTrack[] refTracks, OsmTrack[] lastTracks )
   {
     OsmTrack totaltrack = new OsmTrack();
     int nUnmatched = waypoints.size();
@@ -377,7 +395,7 @@ public class RoutingEngine extends Thread
       airDistanceCostFactor = 0.;
       for( int i=0; i<matchedWaypoints.size() -1; i++ )
       {
-        nodeLimit = 200;
+        nodeLimit = MAXNODES_ISLAND_CHECK;
         if ( routingContext.inverseRouting )
         {
           OsmTrack seg = findTrack( "start-island-check", matchedWaypoints.get(i), matchedWaypoints.get(i+1), null, null, false );
@@ -435,7 +453,7 @@ public class RoutingEngine extends Thread
   private void matchWaypointsToNodes( List<MatchedWaypoint> unmatchedWaypoints )
   {
     resetCache( false );
-    nodesCache.waypointMatcher = new WaypointMatcherImpl( unmatchedWaypoints, 250. );
+    nodesCache.waypointMatcher = new WaypointMatcherImpl( unmatchedWaypoints, 250., islandNodePairs );
     for( MatchedWaypoint mwp : unmatchedWaypoints )
     {
       preloadPosition( mwp.waypoint );
@@ -467,7 +485,10 @@ public class RoutingEngine extends Thread
     for( int idxLat=-1; idxLat<=1; idxLat++ )
       for( int idxLon=-1; idxLon<=1; idxLon++ )
       {
-        nodesCache.loadSegmentFor( n.ilon + d*idxLon , n.ilat +d*idxLat );
+        if ( idxLon != 0 || idxLat != 0 )
+        {
+          nodesCache.loadSegmentFor( n.ilon + d*idxLon , n.ilat +d*idxLat );
+        }
       }
   }
 
@@ -608,6 +629,7 @@ public class RoutingEngine extends Thread
     long maxmem = routingContext.memoryclass * 131072L; // 1/8 of total
     
     nodesCache = new NodesCache(segmentDir, nodesMap, routingContext.expctxWay, routingContext.forceSecondaryData, maxmem, nodesCache, detailed );
+    islandNodePairs.clearTempPairs();
   }
 
   private OsmNode getStartNode( long startId )
@@ -741,7 +763,7 @@ public class RoutingEngine extends Thread
     }
     finally
     {
-      nodesCache.cleanNonVirgin();
+      nodesCache.clean( false ); // clean only non-virgin caches
     }
   }
 
@@ -878,6 +900,10 @@ public class RoutingEngine extends Thread
       OsmNode currentNode = path.getTargetNode();
 
       long currentNodeId = currentNode.getIdFromPos();
+      long sourceNodeId = sourceNode.getIdFromPos();
+      
+      islandNodePairs.addTempPair( sourceNodeId, currentNodeId );
+      
       if ( path.treedepth != 1 )
       {
         if ( path.treedepth == 0 ) // hack: sameSegment Paths marked treedepth=0 to pass above check
@@ -885,7 +911,6 @@ public class RoutingEngine extends Thread
           path.treedepth = 1;
         }
       
-        long sourceNodeId = sourceNode.getIdFromPos();
         if ( ( sourceNodeId == endNodeId1 && currentNodeId == endNodeId2 )
           || ( sourceNodeId == endNodeId2 && currentNodeId == endNodeId1 ) )
         {
@@ -1078,7 +1103,6 @@ public class RoutingEngine extends Thread
               {
                 bestPath.airdistance += boundary.getBoundaryDistance( nextNode );
               }
-
               bestPath.treedepth = path.treedepth + 1;
               link.addLinkHolder( bestPath, currentNode );
               synchronized( openSet )
@@ -1092,6 +1116,12 @@ public class RoutingEngine extends Thread
             
       path.unregisterUpTree( routingContext );
     }
+    
+    if ( nodesVisited < MAXNODES_ISLAND_CHECK && islandNodePairs.getFreezeCount() < 5 )
+    {
+      throw new RoutingIslandException();
+    }
+    
     return null;
   }
   
