@@ -110,7 +110,7 @@ public final class NodesCache
     ghostSum = cacheSum;
   }
   
-  public void cleanNonVirgin()
+  public void clean( boolean all )
   {
       for ( OsmFile[] fileRow : fileRows )
       {
@@ -118,7 +118,7 @@ public final class NodesCache
           continue;
         for ( OsmFile osmf : fileRow )
         {
-          osmf.cleanNonVirgin();
+          osmf.clean( all);
         }
       }
   }
