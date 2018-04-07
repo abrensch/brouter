@@ -183,8 +183,10 @@ abstract class OsmPath implements OsmLinkHolder
         ele2 = transferNode.selev;
       }
 
+      boolean isStartpoint = lon0 == -1 && lat0 == -1;
+
       // check turn restrictions (n detail mode (=final pass) no TR to not mess up voice hints)
-      if ( nsection == 0 )
+      if ( nsection == 0 && !isStartpoint )
       {
         boolean hasAnyPositive = false;
         boolean hasPositive = false;
@@ -267,6 +269,7 @@ System.out.println( "bad TR candidate: " + id );
           resetState();
           lon0 = -1; // reset turncost-pipe
           lat0 = -1;
+          isStartpoint = true;
 
           if ( recordTransferNodes )
           {
@@ -290,7 +293,6 @@ System.out.println( "bad TR candidate: " + id );
       linkdisttotal += dist;
 
       // apply a start-direction if appropriate (by faking the origin position)
-      boolean isStartpoint = lon0 == -1 && lat0 == -1;
       if ( isStartpoint )
       {
         if ( rc.startDirectionValid )
