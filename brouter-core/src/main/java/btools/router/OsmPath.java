@@ -46,8 +46,33 @@ abstract class OsmPath implements OsmLinkHolder
 
   // the classifier of the segment just before this paths position
   protected float lastClassifier;
+  protected float lastInitialCost;
 
   protected int priorityclassifier;
+
+  private static final int PATH_START_BIT = 1;
+  private static final int CAN_LEAVE_DESTINATION_BIT = 2;
+  private static final int IS_ON_DESTINATION_BIT = 4;
+  private static final int HAD_DESTINATION_START_BIT = 8;
+  protected int bitfield = PATH_START_BIT;
+
+  private boolean getBit( int mask )
+  {
+    return (bitfield & mask ) != 0;
+  }
+
+  private void setBit( int mask, boolean bit )
+  {
+    if ( getBit( mask ) != bit )
+    {
+      bitfield ^= mask;
+    }
+  }
+
+  public boolean didEnterDestinationArea()
+  {
+    return !getBit( HAD_DESTINATION_START_BIT ) && getBit( IS_ON_DESTINATION_BIT );
+  }
 
   public MessageData message;
 
@@ -99,6 +124,8 @@ abstract class OsmPath implements OsmLinkHolder
     this.targetNode = link.getTarget( sourceNode );
     this.cost = origin.cost;
     this.lastClassifier = origin.lastClassifier;
+    this.lastInitialCost = origin.lastInitialCost;
+    this.bitfield = origin.bitfield;
     init( origin );
     addAddionalPenalty(refTrack, detailMode, origin, link, rc );
   }
@@ -140,15 +167,20 @@ abstract class OsmPath implements OsmLinkHolder
     boolean isTrafficBackbone = cost == 0 && rc.expctxWay.getIsTrafficBackbone() > 0.f;
     int lastpriorityclassifier = priorityclassifier;
     priorityclassifier = (int)rc.expctxWay.getPriorityClassifier();
-    int classifiermask = (int)rc.expctxWay.getClassifierMask();
 
     // *** add initial cost if the classifier changed
     float newClassifier = rc.expctxWay.getInitialClassifier();
+    float newInitialCost = rc.expctxWay.getInitialcost();
     float classifierDiff = newClassifier - lastClassifier;
-    if ( classifierDiff > 0.0005 || classifierDiff < -0.0005 )
+    if ( newClassifier != 0. && lastClassifier != 0. && ( classifierDiff > 0.0005 || classifierDiff < -0.0005 ) )
     {
-      lastClassifier = newClassifier;
-      float initialcost = rc.expctxWay.getInitialcost();
+      float initialcost = rc.inverseDirection ? lastInitialCost : newInitialCost;
+      if ( initialcost >= 1000000. )
+      {
+        cost = -1;
+        return;
+      }
+
       int iicost = (int)initialcost;
       if ( message != null )
       {
@@ -156,6 +188,36 @@ abstract class OsmPath implements OsmLinkHolder
       }
       cost += iicost;
     }
+    lastClassifier = newClassifier;
+    lastInitialCost = newInitialCost;
+
+    // *** destination logic: no destination access in between 
+    int classifiermask = (int)rc.expctxWay.getClassifierMask();
+    boolean newDestination = (classifiermask & 64) != 0;
+    boolean oldDestination = getBit( IS_ON_DESTINATION_BIT );
+    if ( getBit( PATH_START_BIT ) )
+    {
+      setBit( PATH_START_BIT, false );
+      setBit( CAN_LEAVE_DESTINATION_BIT, newDestination );
+      setBit( HAD_DESTINATION_START_BIT, newDestination );
+    }
+    else
+    {
+      if ( oldDestination && !newDestination )
+      {
+        if ( getBit( CAN_LEAVE_DESTINATION_BIT ) )
+        {
+          setBit( CAN_LEAVE_DESTINATION_BIT, false );
+        }
+        else
+        {
+          cost = -1;
+          return;
+        }
+      }
+    }
+    setBit( IS_ON_DESTINATION_BIT, newDestination );
+    
 
     OsmTransferNode transferNode = link.geometry == null ? null
                   : rc.geometryDecoder.decodeGeometry( link.geometry, sourceNode, targetNode, isReverse );

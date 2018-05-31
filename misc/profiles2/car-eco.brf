@@ -52,6 +52,15 @@ assign caraccess
                      motor_vehicle=yes|permissive|designated|destination
               motorcar=yes|permissive|designated|destination
 
+assign caraccess_destination
+       switch motorcar=
+              switch motor_vehicle=
+                     switch vehicle=
+                            access=destination
+                            vehicle=destination
+                     motor_vehicle=destination
+              motorcar=destination
+
 assign accessspeedlimit = if caraccess then 999 else 0
 
 assign isbadoneway = if reversedirection=yes then ( if oneway= then junction=roundabout else oneway=yes|true|1 ) else oneway=-1
@@ -150,7 +159,8 @@ assign classifiermask add          isbadoneway
                       add multiply isroundabout   4
                       add multiply islinktype     8
                       add multiply isgoodforcars 16
-                          multiply highway=residential|living_street 32
+                      add multiply highway=residential|living_street 32
+                          multiply caraccess_destination 64
 
 
 ---context:node  # following code refers to node tags
