@@ -903,7 +903,10 @@ public class RoutingEngine extends Thread
       long currentNodeId = currentNode.getIdFromPos();
       long sourceNodeId = sourceNode.getIdFromPos();
       
-      islandNodePairs.addTempPair( sourceNodeId, currentNodeId );
+      if ( !path.didEnterDestinationArea() )
+      {
+        islandNodePairs.addTempPair( sourceNodeId, currentNodeId );
+      }
       
       if ( path.treedepth != 1 )
       {
