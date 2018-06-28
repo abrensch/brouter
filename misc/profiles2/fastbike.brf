@@ -1,6 +1,6 @@
 #
 # A fastbike could be a racing bike or a speed pedelec.
-# But also at night or in rainy whether you might want
+# But also at night or in rainy weather you might want
 # to fallback to this one.
 #
 # Structure is similar to trekking.brf, see this for documenation.
