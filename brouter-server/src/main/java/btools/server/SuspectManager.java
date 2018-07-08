@@ -185,8 +185,17 @@ public class SuspectManager extends Thread
       double dlon = ( ilon - 180000000 ) / 1000000.;
       double dlat = ( ilat - 90000000 ) / 1000000.;
 
+      String profile = "car-eco";
+      File configFile = new File( "configs/" + country + ".cfg" );
+      if ( configFile.exists() )
+      {
+        BufferedReader br = new BufferedReader( new FileReader( configFile ) );
+        profile = br.readLine();
+        br.close();
+      }
+
       String url1 = "http://brouter.de/brouter-web/#zoom=18&lat=" + dlat + "&lon=" + dlon
-          + "&layer=OpenStreetMap&lonlats=" + dlon + "," + dlat + "&profile=car-eco-de";
+          + "&layer=OpenStreetMap&lonlats=" + dlon + "," + dlat + "&profile=" + profile;
 
       // String url1 = "http://localhost:8080/brouter-web/#map=18/" + dlat + "/"
       // + dlon + "/Mapsforge Tile Server&lonlats=" + dlon + "," + dlat;
