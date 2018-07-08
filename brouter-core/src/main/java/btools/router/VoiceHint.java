@@ -36,6 +36,11 @@ public class VoiceHint
   double distanceToNext;
   int indexInTrack;
 
+  public float getTime()
+  {
+    return goodWay == null ? 0.f : goodWay.time;
+  }
+
   float angle;
   boolean turnAngleConsumed;
   boolean needsRealTurn;
