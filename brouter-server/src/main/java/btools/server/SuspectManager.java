@@ -43,12 +43,14 @@ public class SuspectManager extends Thread
   public static void process( String url, BufferedWriter bw ) throws IOException
   {
     bw.write( "<html><body>\n" );
+    bw.write( "BRouter suspect manager. <a href=\"http://brouter.de/brouter/suspect_manager_help.html\">Help</a> " );
 
     StringTokenizer tk = new StringTokenizer( url, "/" );
     tk.nextToken();
     tk.nextToken();
     long id = 0L;
     String country = null;
+    String filter = null;
 
     if ( tk.hasMoreTokens() )
     {
@@ -56,10 +58,16 @@ public class SuspectManager extends Thread
       if ( new File( "suspects/suspects_" + ctry + ".txt" ).exists() )
       {
         country = ctry;
+
+        if ( tk.hasMoreTokens() )
+        {
+          filter = tk.nextToken();
+        }
       }
     }
     if ( country == null ) // generate country list
     {
+      bw.write( "<table>\n" );
       File[] files = new File( "suspects" ).listFiles();
       TreeSet<String> names = new TreeSet<String>();
       for ( File f : files )
@@ -73,8 +81,9 @@ public class SuspectManager extends Thread
       for ( String ctry : names )
       {
         String url2 = "/brouter/suspects/" + ctry;
-        bw.write( "<a href=\"" + url2 + "\">" + ctry + "</a><br>\n" );
+        bw.write( "<tr><td>" + ctry + "</td><td><a href=\"" + url2 + "/new\">new</a></td><td><a href=\"" + url2 + "/all\">all</a></td>\n" );
       }
+      bw.write( "</table>\n" );
       bw.write( "</body></html>\n" );
       bw.flush();
       return;
@@ -109,7 +118,7 @@ public class SuspectManager extends Thread
             break;
           StringTokenizer tk2 = new StringTokenizer( line );
           id = Long.parseLong( tk2.nextToken() );
-          String countryId = country + "/" + id;
+          String countryId = country + "/" + filter + "/" + id;
 
           if ( new File( "falsepositives/" + id ).exists() )
           {
@@ -150,7 +159,7 @@ public class SuspectManager extends Thread
         int wps = NearRecentWps.count( id );
         if ( wps < 8 )
         {
-          message = "marking false-positive requires at least 10 recent nearby waypoints from BRouter-Web, found: " + wps;
+          message = "marking false-positive requires at least 8 recent nearby waypoints from BRouter-Web, found: " + wps;
         }
         else
         {
@@ -178,7 +187,7 @@ public class SuspectManager extends Thread
     }
     if ( id != 0L )
     {
-      String countryId = country + "/" + id;
+      String countryId = country + "/" + filter + "/" + id;
 
       int ilon = (int) ( id >> 32 );
       int ilat = (int) ( id & 0xffffffff );
@@ -217,7 +226,7 @@ public class SuspectManager extends Thread
       File fixedEntry = new File( "fixedsuspects/" + id );
       if ( fixedEntry.exists() )
       {
-        bw.write( "<br><br><a href=\"/brouter/suspects/" + country + "/watchlist\">back to watchlist</a><br><br>\n" );
+        bw.write( "<br><br><a href=\"/brouter/suspects/" + country + "/" + filter + "/watchlist\">back to watchlist</a><br><br>\n" );
       }
       else
       {
@@ -231,14 +240,14 @@ public class SuspectManager extends Thread
         {
           bw.write( "<a href=\"/brouter/suspects/" + countryId + "/confirm\">mark as a confirmed issue</a><br><br>\n" );
         }
-        bw.write( "<br><br><a href=\"/brouter/suspects/" + country + "\">back to issue list</a><br><br>\n" );
+        bw.write( "<br><br><a href=\"/brouter/suspects/" + country + "/" + filter + "\">back to issue list</a><br><br>\n" );
       }
     }
     else
     {
       File suspects = new File( "suspects/suspects_" + country + ".txt" );
-      bw.write( "suspect list for " + country + "\n" );
-      bw.write( "<br><a href=\"/brouter/suspects/" + country + "/watchlist\">see watchlist</a>\n" );
+      bw.write( filter + " suspect list for " + country + "\n" );
+      bw.write( "<br><a href=\"/brouter/suspects/" + country + "/" + filter + "/watchlist\">see watchlist</a>\n" );
       bw.write( "<br><a href=\"/brouter/suspects\">back to country list</a><br><br>\n" );
       if ( suspects.exists() )
       {
@@ -258,9 +267,10 @@ public class SuspectManager extends Thread
               break;
             StringTokenizer tk2 = new StringTokenizer( line );
             id = Long.parseLong( tk2.nextToken() );
+
             int prio = Integer.parseInt( tk2.nextToken() );
             prio = ( ( prio + 1 ) / 2 ) * 2; // normalize (no link prios)
-            String countryId = country + "/" + id;
+            String countryId = country + "/" + filter + "/" + id;
 
             String hint = "";
 
@@ -269,6 +279,10 @@ public class SuspectManager extends Thread
               continue; // known false positive
             }
             if ( new File( "fixedsuspects/" + id ).exists() )
+            {
+              continue; // known fixed
+            }
+            if ( "new".equals( filter ) && new File( "suspectarchive/" + id ).exists() )
             {
               continue; // known fixed
             }
