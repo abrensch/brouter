@@ -5,11 +5,23 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
 public class SuspectManager extends Thread
 {
+  private static SimpleDateFormat dfTimestampZ = new SimpleDateFormat( "yyyy-MM-dd'T'HH:mm:ss" );
+
+  private static String formatZ( Date date )
+  {
+    synchronized( dfTimestampZ )
+    {
+      return dfTimestampZ.format( date );
+    }
+  }
+
   private static String formatAge( File f )
   {
     long age = System.currentTimeMillis() - f.lastModified();
@@ -43,7 +55,7 @@ public class SuspectManager extends Thread
   public static void process( String url, BufferedWriter bw ) throws IOException
   {
     bw.write( "<html><body>\n" );
-    bw.write( "BRouter suspect manager. <a href=\"http://brouter.de/brouter/suspect_manager_help.html\">Help</a> " );
+    bw.write( "BRouter suspect manager. <a href=\"http://brouter.de/brouter/suspect_manager_help.html\">Help</a><br><br>\n" );
 
     StringTokenizer tk = new StringTokenizer( url, "/" );
     tk.nextToken();
@@ -81,7 +93,7 @@ public class SuspectManager extends Thread
       for ( String ctry : names )
       {
         String url2 = "/brouter/suspects/" + ctry;
-        bw.write( "<tr><td>" + ctry + "</td><td><a href=\"" + url2 + "/new\">new</a></td><td><a href=\"" + url2 + "/all\">all</a></td>\n" );
+        bw.write( "<tr><td>" + ctry + "</td><td>&nbsp;<a href=\"" + url2 + "/new\">new</a>&nbsp;</td><td>&nbsp;<a href=\"" + url2 + "/all\">all</a>&nbsp;</td>\n" );
       }
       bw.write( "</table>\n" );
       bw.write( "</body></html>\n" );
@@ -204,7 +216,7 @@ public class SuspectManager extends Thread
       }
 
       String url1 = "http://brouter.de/brouter-web/#zoom=18&lat=" + dlat + "&lon=" + dlon
-          + "&layer=OpenStreetMap&lonlats=" + dlon + "," + dlat + "&profile=" + profile;
+          + "&lonlats=" + dlon + "," + dlat + "&profile=" + profile;
 
       // String url1 = "http://localhost:8080/brouter-web/#map=18/" + dlat + "/"
       // + dlon + "/Mapsforge Tile Server&lonlats=" + dlon + "," + dlat;
@@ -213,8 +225,12 @@ public class SuspectManager extends Thread
 
       double slon = 0.00156;
       double slat = 0.001;
-      String url3 = "http://osmose.openstreetmap.fr/de/josm_proxy?load_and_zoom?left=" + ( dlon - slon )
+      String url3 = "http://127.0.0.1:8111/load_and_zoom?left=" + ( dlon - slon )
           + "&bottom=" + ( dlat - slat ) + "&right=" + ( dlon + slon ) + "&top=" + ( dlat + slat );
+
+      Date weekAgo = new Date( System.currentTimeMillis() - 604800000L );
+      String url4 = "https://overpass-turbo.eu/?Q=[date:&quot;" + formatZ( weekAgo ) + "Z&quot;];way[highway]({{bbox}});out meta geom;&C="
+                  + dlat + ";" + dlon + ";18";
 
       if ( message != null )
       {
@@ -223,6 +239,8 @@ public class SuspectManager extends Thread
       bw.write( "<a href=\"" + url1 + "\">Open in BRouter-Web</a><br><br>\n" );
       bw.write( "<a href=\"" + url2 + "\">Open in OpenStreetmap</a><br><br>\n" );
       bw.write( "<a href=\"" + url3 + "\">Open in JOSM (via remote control)</a><br><br>\n" );
+      bw.write( "<a href=\"" + url4 + "\">Open in Overpass / minus one week</a><br><br>\n" );
+      bw.write( "<br>\n" );
       File fixedEntry = new File( "fixedsuspects/" + id );
       if ( fixedEntry.exists() )
       {
