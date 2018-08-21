@@ -481,7 +481,7 @@ System.out.println( "bad TR candidate: " + id );
     double targetCost = processTargetNode( rc );
     if ( targetCost < 0. || targetCost + cost >= 2000000000. )
     {
-      if ( rc.suspectNodes != null && priorityclassifier > 20 && !rc.inverseDirection )
+      if ( rc.suspectNodes != null && priorityclassifier > 20 && rc.inverseDirection == rc.inverseRouting )
       {
         rc.foundNodeBlock = true;
         Long id = Long.valueOf( targetNode.getIdFromPos() );

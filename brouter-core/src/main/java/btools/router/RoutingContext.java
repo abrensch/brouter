@@ -169,7 +169,7 @@ public final class RoutingContext
     trafficSourceMinDist      = expctxGlobal.getVariableValue( "trafficSourceMinDist", 3000.f );
 
     showspeed = 0.f != expctxGlobal.getVariableValue( "showspeed", 0.f );
-    inverseRouting = 0.f != expctxGlobal.getVariableValue( "inverseRouting", 0.f );
+    inverseRouting = 0.f != expctxGlobal.getVariableValue( "inverseRouting", inverseRouting ? 1.f : 0.f );
 
     int tiMode = (int)expctxGlobal.getVariableValue( "turnInstructionMode", 0.f );
     if ( tiMode != 1 ) // automatic selection from coordinate source

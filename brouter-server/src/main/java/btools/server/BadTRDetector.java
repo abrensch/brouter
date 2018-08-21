@@ -71,6 +71,7 @@ public class BadTRDetector
       else
       {
         rc.suspectNodes = suspectTRs;
+        rc.inverseRouting = rand.nextBoolean();
       }
       
       RoutingEngine re = new RoutingEngine( "mytrack", "mylog", args[0], wplist, rc );

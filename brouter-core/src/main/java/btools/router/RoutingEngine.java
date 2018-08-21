@@ -1017,6 +1017,7 @@ public class RoutingEngine extends Thread
 
         if ( ! nodesCache.obtainNonHollowNode( nextNode ) )
         {
+          nPathPossible++;
           continue; // border node?
         }
         if ( nextNode == sourceNode )
@@ -1034,6 +1035,7 @@ public class RoutingEngine extends Thread
           int gidx = path.treedepth + 1;
           if ( gidx >= guideTrack.nodes.size() )
           {
+            nPathPossible++;
             continue;
           }
           OsmPathElement guideNode = guideTrack.nodes.get( routingContext.inverseRouting ? guideTrack.nodes.size() - 1 - gidx : gidx );
@@ -1130,7 +1132,7 @@ public class RoutingEngine extends Thread
       }
             
       // report oneway dead-ends as suspects
-      if ( routingContext.suspectNodes != null && path.priorityclassifier > 20 && currentNode.virgin && path.cost > 2000 && !routingContext.inverseDirection )
+      if ( routingContext.suspectNodes != null && path.priorityclassifier > 20 && currentNode.virgin && path.cost > 2000 && routingContext.inverseDirection == routingContext.inverseRouting && guideTrack == null )
       {
         int suspectPrio = 0;
         if ( nPathPossible == 0 && (!routingContext.foundNodeBlock) )
