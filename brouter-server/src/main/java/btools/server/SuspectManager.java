@@ -193,8 +193,16 @@ public class SuspectManager extends Thread
       }
       if ( "fixed".equals( command ) )
       {
-        new File( "fixedsuspects/" + id ).createNewFile();
+        File fixedMarker = new File( "fixedsuspects/" + id );
+        fixedMarker.createNewFile();
         id = 0L;
+
+        if ( tk.hasMoreTokens() )
+        {
+          String param = tk.nextToken();
+          int hideDays = Integer.parseInt( param );
+          fixedMarker.setLastModified( System.currentTimeMillis() + hideDays*86400000L );
+        }
       }
     }
     if ( id != 0L )
@@ -232,6 +240,8 @@ public class SuspectManager extends Thread
       String url4 = "https://overpass-turbo.eu/?Q=[date:&quot;" + formatZ( weekAgo ) + "Z&quot;];way[highway]({{bbox}});out meta geom;&C="
                   + dlat + ";" + dlon + ";18";
 
+      String url5 = "https://simon04.dev.openstreetmap.org/whodidit/?zoom=13&lat=" + dlat + "&lon=" + dlon + "&layers=BTT";
+
       if ( message != null )
       {
         bw.write( "<strong>" + message + "</strong><br><br>\n" );
@@ -240,6 +250,7 @@ public class SuspectManager extends Thread
       bw.write( "<a href=\"" + url2 + "\">Open in OpenStreetmap</a><br><br>\n" );
       bw.write( "<a href=\"" + url3 + "\">Open in JOSM (via remote control)</a><br><br>\n" );
       bw.write( "<a href=\"" + url4 + "\">Open in Overpass / minus one week</a><br><br>\n" );
+      bw.write( "<a href=\"" + url5 + "\">Open in Who-Did-It / last week</a><br><br>\n" );
       bw.write( "<br>\n" );
       File fixedEntry = new File( "fixedsuspects/" + id );
       if ( fixedEntry.exists() )
@@ -252,7 +263,14 @@ public class SuspectManager extends Thread
         File confirmedEntry = new File( "confirmednegatives/" + id );
         if ( confirmedEntry.exists() )
         {
-          bw.write( "<a href=\"/brouter/suspects/" + countryId + "/fixed\">mark as fixed</a><br><br>\n" );
+          String prefix = "<a href=\"/brouter/suspects/" + countryId + "/fixed";
+          String prefix2 = " &nbsp;&nbsp;" + prefix;
+          bw.write( prefix + "\">mark as fixed</a><br><br>\n" );
+          bw.write( "hide for " );
+          bw.write( prefix2 + "/7\">1 week</a>" );
+          bw.write( prefix2 + "/30\">1 month</a>" );
+          bw.write( prefix2 + "/91\">3 months</a>" );
+          bw.write( prefix2 + "/182\">6 months</a><br><br>\n" );
         }
         else
         {
