@@ -16,30 +16,40 @@ public class IssueArchiver
 {
   public static void main(String[] args) throws Exception
   {
-    if ( args.length < 2 )
+    if ( args.length < 3 )
     {
-      System.out.println( "usage : IssueArchiver <suspect-dir> <suspect-archive>" );
+      System.out.println( "usage : IssueArchiver <new-suspect-dir> <old-suspect-dir> <suspect-archive>" );
       System.exit(1);
     }
 
-    File suspectDir = new File( args[0] );
-    if ( !suspectDir.isDirectory() )
+    File newSuspectDir = new File( args[0] );
+    if ( !newSuspectDir.isDirectory() )
     {
-      throw new IllegalArgumentException( "not a directory: " + suspectDir );
+      throw new IllegalArgumentException( "not a directory: " + newSuspectDir );
     } 
-    File suspectArchive = new File( args[1] );
+    File oldSuspectDir = new File( args[1] );
+    if ( !oldSuspectDir.isDirectory() )
+    {
+      throw new IllegalArgumentException( "not a directory: " + oldSuspectDir );
+    } 
+    File suspectArchive = new File( args[2] );
     if ( !suspectArchive.isDirectory() )
     {
       throw new IllegalArgumentException( "not a directory: " + suspectArchive );
     }
     
-    File[] files = suspectDir.listFiles();
-    for ( File f : files )
+    File[] newFiles = newSuspectDir.listFiles();
+    for ( File newFile : newFiles )
     {
-      String name = f.getName();
+      String name = newFile.getName();
       if ( name.startsWith( "suspects_" ) && name.endsWith( ".txt" ) )
       {
-        BufferedReader br = new BufferedReader( new FileReader( f ) );
+        File oldFile = new File( oldSuspectDir, name );
+        if ( !oldFile.exists() ) continue;
+
+        System.out.println( "archiving " + oldFile );
+
+        BufferedReader br = new BufferedReader( new FileReader( oldFile ) );
         for(;;)
         {
           String line = br.readLine();
