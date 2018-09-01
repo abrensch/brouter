@@ -102,7 +102,7 @@ public class SuspectManager extends Thread
     }
 
     File suspectFile = new File( "suspects/suspects_" + country + ".txt" );
-    if ( suspectFile.exists() )
+    if ( !suspectFile.exists() )
     {
       bw.write( "suspect file for country '" + country + "' not found\n" );
       bw.write( "</body></html>\n" );
