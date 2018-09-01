@@ -101,6 +101,15 @@ public class SuspectManager extends Thread
       return;
     }
 
+    File suspectFile = new File( "suspects/suspects_" + country + ".txt" );
+    if ( suspectFile.exists() )
+    {
+      bw.write( "suspect file for country '" + country + "' not found\n" );
+      bw.write( "</body></html>\n" );
+      bw.flush();
+      return;
+    }
+
     boolean showWatchList = false;
     if ( tk.hasMoreTokens() )
     {
@@ -117,46 +126,41 @@ public class SuspectManager extends Thread
 
     if ( showWatchList )
     {
-      File suspects = new File( "suspects/suspects_" + country + ".txt" );
       bw.write( "watchlist for " + country + "\n" );
       bw.write( "<br><a href=\"/brouter/suspects\">back to country list</a><br><br>\n" );
-      if ( suspects.exists() )
+      BufferedReader r = new BufferedReader( new FileReader( suspectFile ) );
+      for ( ;; )
       {
-        BufferedReader r = new BufferedReader( new FileReader( suspects ) );
-        for ( ;; )
-        {
-          String line = r.readLine();
-          if ( line == null )
-            break;
-          StringTokenizer tk2 = new StringTokenizer( line );
-          id = Long.parseLong( tk2.nextToken() );
-          String countryId = country + "/" + filter + "/" + id;
+        String line = r.readLine();
+        if ( line == null )
+          break;
+        StringTokenizer tk2 = new StringTokenizer( line );
+        id = Long.parseLong( tk2.nextToken() );
+        String countryId = country + "/" + filter + "/" + id;
 
-          if ( new File( "falsepositives/" + id ).exists() )
-          {
-            continue; // known false positive
-          }
-          File fixedEntry = new File( "fixedsuspects/" + id );
-          File confirmedEntry = new File( "confirmednegatives/" + id );
-          if ( !( fixedEntry.exists() && confirmedEntry.exists() ) )
-          {
-            continue;
-          }
-          long age = System.currentTimeMillis() - confirmedEntry.lastModified();
-          if ( age / 1000 < 3600 * 24 * 8 )
-          {
-            continue;
-          }
-          String hint = "&nbsp;&nbsp;&nbsp;confirmed " + formatAge( confirmedEntry ) + " ago";
-          int ilon = (int) ( id >> 32 );
-          int ilat = (int) ( id & 0xffffffff );
-          double dlon = ( ilon - 180000000 ) / 1000000.;
-          double dlat = ( ilat - 90000000 ) / 1000000.;
-          String url2 = "/brouter/suspects/" + countryId;
-          bw.write( "<a href=\"" + url2 + "\">" + dlon + "," + dlat + "</a>" + hint + "<br>\n" );
+        if ( new File( "falsepositives/" + id ).exists() )
+        {
+          continue; // known false positive
         }
-        r.close();
+        File confirmedEntry = new File( "confirmednegatives/" + id );
+        if ( !( isFixed( id, suspectFile ) && confirmedEntry.exists() ) )
+        {
+          continue;
+        }
+        long age = System.currentTimeMillis() - confirmedEntry.lastModified();
+        if ( age / 1000 < 3600 * 24 * 8 )
+        {
+          continue;
+        }
+        String hint = "&nbsp;&nbsp;&nbsp;confirmed " + formatAge( confirmedEntry ) + " ago";
+        int ilon = (int) ( id >> 32 );
+        int ilat = (int) ( id & 0xffffffff );
+        double dlon = ( ilon - 180000000 ) / 1000000.;
+        double dlat = ( ilat - 90000000 ) / 1000000.;
+        String url2 = "/brouter/suspects/" + countryId;
+        bw.write( "<a href=\"" + url2 + "\">" + dlon + "," + dlat + "</a>" + hint + "<br>\n" );
       }
+      r.close();
       bw.write( "</body></html>\n" );
       bw.flush();
       return;
@@ -194,15 +198,20 @@ public class SuspectManager extends Thread
       if ( "fixed".equals( command ) )
       {
         File fixedMarker = new File( "fixedsuspects/" + id );
-        fixedMarker.createNewFile();
+        if ( !fixedMarker.exists() )
+        {
+          fixedMarker.createNewFile();
+        }
         id = 0L;
 
+        int hideDays = 0;
         if ( tk.hasMoreTokens() )
         {
           String param = tk.nextToken();
-          int hideDays = Integer.parseInt( param );
+          hideDays = Integer.parseInt( param );
           fixedMarker.setLastModified( System.currentTimeMillis() + hideDays*86400000L );
         }
+        fixedMarker.setLastModified( System.currentTimeMillis() + hideDays*86400000L );
       }
     }
     if ( id != 0L )
@@ -252,8 +261,7 @@ public class SuspectManager extends Thread
       bw.write( "<a href=\"" + url4 + "\">Open in Overpass / minus one week</a><br><br>\n" );
       bw.write( "<a href=\"" + url5 + "\">Open in Who-Did-It / last week</a><br><br>\n" );
       bw.write( "<br>\n" );
-      File fixedEntry = new File( "fixedsuspects/" + id );
-      if ( fixedEntry.exists() )
+      if ( isFixed( id, suspectFile ) )
       {
         bw.write( "<br><br><a href=\"/brouter/suspects/" + country + "/" + filter + "/watchlist\">back to watchlist</a><br><br>\n" );
       }
@@ -281,77 +289,80 @@ public class SuspectManager extends Thread
     }
     else
     {
-      File suspects = new File( "suspects/suspects_" + country + ".txt" );
       bw.write( filter + " suspect list for " + country + "\n" );
       bw.write( "<br><a href=\"/brouter/suspects/" + country + "/" + filter + "/watchlist\">see watchlist</a>\n" );
       bw.write( "<br><a href=\"/brouter/suspects\">back to country list</a><br><br>\n" );
-      if ( suspects.exists() )
+      int maxprio = 0;
+      for ( int pass = 1; pass <= 2; pass++ )
       {
-        int maxprio = 0;
-        for ( int pass = 1; pass <= 2; pass++ )
+        if ( pass == 2 )
         {
-          if ( pass == 2 )
-          {
-            bw.write( "current level: " + getLevelDecsription( maxprio ) + "<br><br>\n" );
-          }
-
-          BufferedReader r = new BufferedReader( new FileReader( suspects ) );
-          for ( ;; )
-          {
-            String line = r.readLine();
-            if ( line == null )
-              break;
-            StringTokenizer tk2 = new StringTokenizer( line );
-            id = Long.parseLong( tk2.nextToken() );
-
-            int prio = Integer.parseInt( tk2.nextToken() );
-            prio = ( ( prio + 1 ) / 2 ) * 2; // normalize (no link prios)
-            String countryId = country + "/" + filter + "/" + id;
-
-            String hint = "";
-
-            if ( new File( "falsepositives/" + id ).exists() )
-            {
-              continue; // known false positive
-            }
-            if ( new File( "fixedsuspects/" + id ).exists() )
-            {
-              continue; // known fixed
-            }
-            if ( "new".equals( filter ) && new File( "suspectarchive/" + id ).exists() )
-            {
-              continue; // known fixed
-            }
-            if ( pass == 1 )
-            {
-              if ( prio > maxprio )
-                maxprio = prio;
-              continue;
-            }
-            else
-            {
-              if ( prio < maxprio )
-                continue;
-            }
-            File confirmedEntry = new File( "confirmednegatives/" + id );
-            if ( confirmedEntry.exists() )
-            {
-              hint = "&nbsp;&nbsp;&nbsp;confirmed " + formatAge( confirmedEntry ) + " ago";
-            }
-            int ilon = (int) ( id >> 32 );
-            int ilat = (int) ( id & 0xffffffff );
-            double dlon = ( ilon - 180000000 ) / 1000000.;
-            double dlat = ( ilat - 90000000 ) / 1000000.;
-            String url2 = "/brouter/suspects/" + countryId;
-            bw.write( "<a href=\"" + url2 + "\">" + dlon + "," + dlat + "</a>" + hint + "<br>\n" );
-          }
-          r.close();
+          bw.write( "current level: " + getLevelDecsription( maxprio ) + "<br><br>\n" );
         }
+
+        BufferedReader r = new BufferedReader( new FileReader( suspectFile ) );
+        for ( ;; )
+        {
+          String line = r.readLine();
+          if ( line == null )
+            break;
+          StringTokenizer tk2 = new StringTokenizer( line );
+          id = Long.parseLong( tk2.nextToken() );
+
+          int prio = Integer.parseInt( tk2.nextToken() );
+          prio = ( ( prio + 1 ) / 2 ) * 2; // normalize (no link prios)
+          String countryId = country + "/" + filter + "/" + id;
+
+          String hint = "";
+
+          if ( new File( "falsepositives/" + id ).exists() )
+          {
+            continue; // known false positive
+          }
+          if ( isFixed( id, suspectFile ) )
+          {
+            continue; // known fixed
+          }
+          if ( "new".equals( filter ) && new File( "suspectarchive/" + id ).exists() )
+          {
+            continue; // known fixed
+          }
+          if ( pass == 1 )
+          {
+            if ( prio > maxprio )
+              maxprio = prio;
+            continue;
+          }
+          else
+          {
+            if ( prio < maxprio )
+              continue;
+          }
+          File confirmedEntry = new File( "confirmednegatives/" + id );
+          if ( confirmedEntry.exists() )
+          {
+            hint = "&nbsp;&nbsp;&nbsp;confirmed " + formatAge( confirmedEntry ) + " ago";
+          }
+          int ilon = (int) ( id >> 32 );
+          int ilat = (int) ( id & 0xffffffff );
+          double dlon = ( ilon - 180000000 ) / 1000000.;
+          double dlat = ( ilat - 90000000 ) / 1000000.;
+          String url2 = "/brouter/suspects/" + countryId;
+          bw.write( "<a href=\"" + url2 + "\">" + dlon + "," + dlat + "</a>" + hint + "<br>\n" );
+        }
+        r.close();
       }
     }
     bw.write( "</body></html>\n" );
     bw.flush();
     return;
+  }
+  
+
+  private static boolean isFixed( long id, File suspectFile )
+  {
+    File fixedEntry = new File( "fixedsuspects/" + id );
+    return fixedEntry.exists() && fixedEntry.lastModified() > suspectFile.lastModified();
   }
   
 }
