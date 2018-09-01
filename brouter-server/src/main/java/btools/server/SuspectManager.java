@@ -249,7 +249,7 @@ public class SuspectManager extends Thread
       String url4 = "https://overpass-turbo.eu/?Q=[date:&quot;" + formatZ( weekAgo ) + "Z&quot;];way[highway]({{bbox}});out meta geom;&C="
                   + dlat + ";" + dlon + ";18";
 
-      String url5 = "https://simon04.dev.openstreetmap.org/whodidit/?zoom=13&lat=" + dlat + "&lon=" + dlon + "&layers=BTT";
+      String url5 = "https://tyrasd.github.io/latest-changes/#16/" + dlat + "/" + dlon;
 
       if ( message != null )
       {
@@ -259,7 +259,7 @@ public class SuspectManager extends Thread
       bw.write( "<a href=\"" + url2 + "\">Open in OpenStreetmap</a><br><br>\n" );
       bw.write( "<a href=\"" + url3 + "\">Open in JOSM (via remote control)</a><br><br>\n" );
       bw.write( "<a href=\"" + url4 + "\">Open in Overpass / minus one week</a><br><br>\n" );
-      bw.write( "<a href=\"" + url5 + "\">Open in Who-Did-It / last week</a><br><br>\n" );
+      bw.write( "<a href=\"" + url5 + "\">Open in Latest-Changes / last week</a><br><br>\n" );
       bw.write( "<br>\n" );
       if ( isFixed( id, suspectFile ) )
       {
