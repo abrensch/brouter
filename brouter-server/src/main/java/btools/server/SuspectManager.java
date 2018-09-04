@@ -246,8 +246,11 @@ public class SuspectManager extends Thread
           + "&bottom=" + ( dlat - slat ) + "&right=" + ( dlon + slon ) + "&top=" + ( dlat + slat );
 
       Date weekAgo = new Date( System.currentTimeMillis() - 604800000L );
-      String url4 = "https://overpass-turbo.eu/?Q=[date:&quot;" + formatZ( weekAgo ) + "Z&quot;];way[highway]({{bbox}});out meta geom;&C="
-                  + dlat + ";" + dlon + ";18";
+      String url4a = "https://overpass-turbo.eu/?Q=[date:&quot;" + formatZ( weekAgo ) + "Z&quot;];way[highway]({{bbox}});out meta geom;&C="
+                  + dlat + ";" + dlon + ";18&R";
+
+      String url4b = "https://overpass-turbo.eu/?Q=(node(around%3A1%2C%7B%7Bcenter%7D%7D)-%3E.n%3Bway(bn.n)%3Brel(bn.n%3A%22via%22)%5Btype%3Drestriction%5D%3B)%3Bout%20meta%3B%3E%3Bout%20skel%20qt%3B&C="
+                  + dlat + ";" + dlon + ";18&R";
 
       String url5 = "https://tyrasd.github.io/latest-changes/#16/" + dlat + "/" + dlon;
 
@@ -258,7 +261,7 @@ public class SuspectManager extends Thread
       bw.write( "<a href=\"" + url1 + "\">Open in BRouter-Web</a><br><br>\n" );
       bw.write( "<a href=\"" + url2 + "\">Open in OpenStreetmap</a><br><br>\n" );
       bw.write( "<a href=\"" + url3 + "\">Open in JOSM (via remote control)</a><br><br>\n" );
-      bw.write( "<a href=\"" + url4 + "\">Open in Overpass / minus one week</a><br><br>\n" );
+      bw.write( "Overpass: <a href=\"" + url4a + "\">minus one week</a> &nbsp;&nbsp; <a href=\"" + url4b + "\">node context</a><br><br>\n" );
       bw.write( "<a href=\"" + url5 + "\">Open in Latest-Changes / last week</a><br><br>\n" );
       bw.write( "<br>\n" );
       if ( isFixed( id, suspectFile ) )
@@ -307,12 +310,24 @@ public class SuspectManager extends Thread
           if ( line == null )
             break;
           StringTokenizer tk2 = new StringTokenizer( line );
-          id = Long.parseLong( tk2.nextToken() );
+          String idString = tk2.nextToken();
 
           int prio = Integer.parseInt( tk2.nextToken() );
           prio = ( ( prio + 1 ) / 2 ) * 2; // normalize (no link prios)
-          String countryId = country + "/" + filter + "/" + id;
 
+          if ( pass == 1 )
+          {
+            if ( prio <= maxprio )
+              continue;
+          }
+          else
+          {
+            if ( prio < maxprio )
+              continue;
+          }
+
+          id = Long.parseLong( idString );
+          String countryId = country + "/" + filter + "/" + id;
           String hint = "";
 
           if ( new File( "falsepositives/" + id ).exists() )
@@ -329,14 +344,8 @@ public class SuspectManager extends Thread
           }
           if ( pass == 1 )
           {
-            if ( prio > maxprio )
-              maxprio = prio;
+            maxprio = prio;
             continue;
-          }
-          else
-          {
-            if ( prio < maxprio )
-              continue;
           }
           File confirmedEntry = new File( "confirmednegatives/" + id );
           if ( confirmedEntry.exists() )
