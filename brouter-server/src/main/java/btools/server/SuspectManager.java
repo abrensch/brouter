@@ -61,39 +61,46 @@ public class SuspectManager extends Thread
     tk.nextToken();
     tk.nextToken();
     long id = 0L;
-    String country = null;
+    String country = "";
     String filter = null;
 
-    if ( tk.hasMoreTokens() )
+    while ( tk.hasMoreTokens() )
     {
-      String ctry = tk.nextToken();
-      if ( new File( "suspects/suspects_" + ctry + ".txt" ).exists() )
+      String c = tk.nextToken();
+      if ( "all".equals( c ) || "new".equals( c ) )
       {
-        country = ctry;
-
-        if ( tk.hasMoreTokens() )
-        {
-          filter = tk.nextToken();
-        }
+        filter = c;
+        break;
       }
+      country += "/" + c;
     }
-    if ( country == null ) // generate country list
+    
+    if ( filter == null ) // generate country list
     {
       bw.write( "<table>\n" );
-      File[] files = new File( "suspects" ).listFiles();
+      File countryParent = new File( "worldpolys" + country );
+      File[] files = countryParent.listFiles();
       TreeSet<String> names = new TreeSet<String>();
       for ( File f : files )
       {
         String name = f.getName();
-        if ( name.startsWith( "suspects_" ) && name.endsWith( ".txt" ) )
+        if ( name.endsWith( ".poly" ) )
         {
-          names.add( name.substring( 9, name.length() - 4 ) );
+          names.add( name.substring( 0, name.length() - 5 ) );
         }
       }
-      for ( String ctry : names )
+      for ( String c : names )
       {
-        String url2 = "/brouter/suspects/" + ctry;
-        bw.write( "<tr><td>" + ctry + "</td><td>&nbsp;<a href=\"" + url2 + "/new\">new</a>&nbsp;</td><td>&nbsp;<a href=\"" + url2 + "/all\">all</a>&nbsp;</td>\n" );
+        String url2 = "/brouter/suspects" + country + "/" + c;
+        String linkNew = "<td>&nbsp;<a href=\"" + url2 + "/new\">new</a>&nbsp;</td>";
+        String linkAll = "<td>&nbsp;<a href=\"" + url2 + "/all\">all</a>&nbsp;</td>";
+        
+        String linkSub = "";
+        if ( new File( countryParent, c ).exists() )
+        {
+          linkSub = "<td>&nbsp;<a href=\"" + url2 + "\">sub-regions</a>&nbsp;</td>";
+        }
+        bw.write( "<tr><td>" + c + "</td>" + linkNew + linkAll + linkSub + "\n" );
       }
       bw.write( "</table>\n" );
       bw.write( "</body></html>\n" );
@@ -101,10 +108,21 @@ public class SuspectManager extends Thread
       return;
     }
 
-    File suspectFile = new File( "suspects/suspects_" + country + ".txt" );
+    File polyFile = new File( "worldpolys" + country + ".poly" );
+    if ( !polyFile.exists() )
+    {
+      bw.write( "polygon file for country '" + country + "' not found\n" );
+      bw.write( "</body></html>\n" );
+      bw.flush();
+      return;
+    }
+    
+    Area polygon = new Area( polyFile );
+
+    File suspectFile = new File( "worldsuspects.txt" );
     if ( !suspectFile.exists() )
     {
-      bw.write( "suspect file for country '" + country + "' not found\n" );
+      bw.write( "suspect file worldsuspects.txt not found\n" );
       bw.write( "</body></html>\n" );
       bw.flush();
       return;
@@ -152,12 +170,16 @@ public class SuspectManager extends Thread
         {
           continue;
         }
+        if ( !polygon.isInArea( id ) )
+        {
+          continue; // not in selected polygon
+        }
         String hint = "&nbsp;&nbsp;&nbsp;confirmed " + formatAge( confirmedEntry ) + " ago";
         int ilon = (int) ( id >> 32 );
         int ilat = (int) ( id & 0xffffffff );
         double dlon = ( ilon - 180000000 ) / 1000000.;
         double dlat = ( ilat - 90000000 ) / 1000000.;
-        String url2 = "/brouter/suspects/" + countryId;
+        String url2 = "/brouter/suspects" + countryId;
         bw.write( "<a href=\"" + url2 + "\">" + dlon + "," + dlat + "</a>" + hint + "<br>\n" );
       }
       r.close();
@@ -270,11 +292,11 @@ public class SuspectManager extends Thread
       }
       else
       {
-        bw.write( "<a href=\"/brouter/suspects/" + countryId + "/falsepositive\">mark false positive (=not an issue)</a><br><br>\n" );
+        bw.write( "<a href=\"/brouter/suspects" + countryId + "/falsepositive\">mark false positive (=not an issue)</a><br><br>\n" );
         File confirmedEntry = new File( "confirmednegatives/" + id );
         if ( confirmedEntry.exists() )
         {
-          String prefix = "<a href=\"/brouter/suspects/" + countryId + "/fixed";
+          String prefix = "<a href=\"/brouter/suspects" + countryId + "/fixed";
           String prefix2 = " &nbsp;&nbsp;" + prefix;
           bw.write( prefix + "\">mark as fixed</a><br><br>\n" );
           bw.write( "hide for " );
@@ -285,15 +307,15 @@ public class SuspectManager extends Thread
         }
         else
         {
-          bw.write( "<a href=\"/brouter/suspects/" + countryId + "/confirm\">mark as a confirmed issue</a><br><br>\n" );
+          bw.write( "<a href=\"/brouter/suspects" + countryId + "/confirm\">mark as a confirmed issue</a><br><br>\n" );
         }
-        bw.write( "<br><br><a href=\"/brouter/suspects/" + country + "/" + filter + "\">back to issue list</a><br><br>\n" );
+        bw.write( "<br><br><a href=\"/brouter/suspects" + country + "/" + filter + "\">back to issue list</a><br><br>\n" );
       }
     }
     else
     {
       bw.write( filter + " suspect list for " + country + "\n" );
-      bw.write( "<br><a href=\"/brouter/suspects/" + country + "/" + filter + "/watchlist\">see watchlist</a>\n" );
+      bw.write( "<br><a href=\"/brouter/suspects" + country + "/" + filter + "/watchlist\">see watchlist</a>\n" );
       bw.write( "<br><a href=\"/brouter/suspects\">back to country list</a><br><br>\n" );
       int maxprio = 0;
       for ( int pass = 1; pass <= 2; pass++ )
@@ -327,9 +349,11 @@ public class SuspectManager extends Thread
           }
 
           id = Long.parseLong( idString );
-          String countryId = country + "/" + filter + "/" + id;
-          String hint = "";
 
+          if ( !polygon.isInBoundingBox( id ) )
+          {
+            continue; // not in selected polygon (pre-check)
+          }
           if ( new File( "falsepositives/" + id ).exists() )
           {
             continue; // known false positive
@@ -342,12 +366,18 @@ public class SuspectManager extends Thread
           {
             continue; // known fixed
           }
+          if ( !polygon.isInArea( id ) )
+          {
+            continue; // not in selected polygon
+          }
           if ( pass == 1 )
           {
             maxprio = prio;
             continue;
           }
+          String countryId = country + "/" + filter + "/" + id;
           File confirmedEntry = new File( "confirmednegatives/" + id );
+          String hint = "";
           if ( confirmedEntry.exists() )
           {
             hint = "&nbsp;&nbsp;&nbsp;confirmed " + formatAge( confirmedEntry ) + " ago";
@@ -356,7 +386,7 @@ public class SuspectManager extends Thread
           int ilat = (int) ( id & 0xffffffff );
           double dlon = ( ilon - 180000000 ) / 1000000.;
           double dlat = ( ilat - 90000000 ) / 1000000.;
-          String url2 = "/brouter/suspects/" + countryId;
+          String url2 = "/brouter/suspects" + countryId;
           bw.write( "<a href=\"" + url2 + "\">" + dlon + "," + dlat + "</a>" + hint + "<br>\n" );
         }
         r.close();
