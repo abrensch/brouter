@@ -78,7 +78,7 @@ public final class ProfileCache
         rc.expctxWay.setAllTagsUsed();
       }
 
-      lastProfileTimestamp = profileFile.lastModified();
+      lastProfileTimestamp = rc.profileTimestamp;
       lastLookupTimestamp = lookupFile.lastModified();
       lastProfileFile = profileFile;
       lastLookupFile = lookupFile;
