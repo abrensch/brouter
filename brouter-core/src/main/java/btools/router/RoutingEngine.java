@@ -289,8 +289,6 @@ public class RoutingEngine extends Thread
       listOne.add( seedPoint );
       matchWaypointsToNodes( listOne );
 
-      routingContext.countTraffic = true;
-
       findTrack( "seededSearch", seedPoint, null, null, null, false );
     }
     catch( IllegalArgumentException e)
@@ -310,6 +308,7 @@ public class RoutingEngine extends Thread
     }
     finally
     {
+      ProfileCache.releaseProfile( routingContext );
       if ( nodesCache != null )
       {
         nodesCache.close();

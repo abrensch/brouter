@@ -114,6 +114,7 @@ public class BRouter
         re = new RoutingEngine( "mytrack", "mylog", args[0], wplist, rc );
         re.boundary = boundary;
         re.airDistanceCostFactor = rc.trafficDirectionFactor;
+        rc.countTraffic = true;
         re.doSearch();
         if ( re.getErrorMessage() != null )
         {
