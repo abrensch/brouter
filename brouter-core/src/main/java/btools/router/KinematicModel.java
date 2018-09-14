@@ -11,7 +11,7 @@ import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 
 
-class KinematicModel extends OsmPathModel
+final class KinematicModel extends OsmPathModel
 {
   public OsmPrePath createPrePath()
   {
@@ -119,7 +119,11 @@ class KinematicModel extends OsmPathModel
   */
   public double getEffectiveSpeedLimit( )
   {
-    return Math.min( getWayMaxspeed(), Math.max( getWayMinspeed(), vmax ) );
+    // performance related inline coding
+    double minspeed = getWayMinspeed();
+    double espeed = minspeed > vmax ? minspeed : vmax;
+    double maxspeed = getWayMaxspeed();
+    return maxspeed < espeed ? maxspeed : espeed;
   }
 
  /**
