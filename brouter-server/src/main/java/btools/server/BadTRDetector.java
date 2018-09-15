@@ -12,12 +12,13 @@ import java.util.Random;
 import btools.router.OsmNodeNamed;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
+import btools.router.SearchBoundary;
 
 public class BadTRDetector
 {
   public static void main(String[] args) throws Exception
   {
-    System.out.println("BadTRDetector / 15102017 / abrensch");
+    System.out.println("BadTRDetector / 12092018 / abrensch");
     if ( args.length < 7 )
     {
       System.out.println("Find bad TR candidates in OSM");
@@ -48,17 +49,10 @@ public class BadTRDetector
       n.ilon = lowerLeft.ilon + (int)(rand.nextDouble() * ( uppperRight.ilon - lowerLeft.ilon ) );
       n.ilat = lowerLeft.ilat + (int)(rand.nextDouble() * ( uppperRight.ilat - lowerLeft.ilat ) );
       
-      // target ca 10km weg
-
-      OsmNodeNamed t = new OsmNodeNamed();
-      n.name = "to";
-      double dir = rand.nextDouble() + 2. * Math.PI;
-      t.ilon = n.ilon + (int)( 300000. * Math.sin( dir ) );
-      t.ilat = n.ilat + (int)( 200000. * Math.cos( dir ) );
-
       List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
       wplist.add( n );
-      wplist.add( t );
+
+      SearchBoundary boundary = new SearchBoundary( n, 100000, 0 );
       
       RoutingContext rc = new RoutingContext();
       rc.localFunction = args[5];
@@ -75,7 +69,9 @@ public class BadTRDetector
       }
       
       RoutingEngine re = new RoutingEngine( "mytrack", "mylog", args[0], wplist, rc );
-      re.doRun( 5000 );
+      re.boundary = boundary;
+
+      re.doSearch();
       if ( re.getErrorMessage() != null )
       {
         System.out.println( re.getErrorMessage() );
