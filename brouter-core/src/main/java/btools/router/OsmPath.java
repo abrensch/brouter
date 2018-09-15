@@ -248,7 +248,7 @@ abstract class OsmPath implements OsmLinkHolder
       boolean isStartpoint = lon0 == -1 && lat0 == -1;
 
       // check turn restrictions (n detail mode (=final pass) no TR to not mess up voice hints)
-      if ( nsection == 0 && !isStartpoint )
+      if ( nsection == 0 && rc.considerTurnRestrictions && !detailMode&& !isStartpoint )
       {
         boolean hasAnyPositive = false;
         boolean hasPositive = false;

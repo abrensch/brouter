@@ -421,14 +421,25 @@ public final class OsmTrack
 
     if ( turnInstructionMode == 2 ) // locus style
     {
+      float lastRteTime = 0.f;
+
       for( VoiceHint hint: voiceHints.list )
       {
         sb.append( " <wpt lon=\"" ).append( formatILon( hint.ilon ) ).append( "\" lat=\"" )
           .append( formatILat( hint.ilat ) ).append( "\">" )
           .append( hint.selev == Short.MIN_VALUE ? "" : "<ele>" + (hint.selev / 4.) + "</ele>" )
           .append( "<name>" ).append( hint.getMessageString() ).append( "</name>" )
-          .append( "<extensions><locus:rteDistance>" ).append( "" + hint.distanceToNext ).append( "</locus:rteDistance>" )
-          .append( "<locus:rtePointAction>" ).append( "" + hint.getLocusAction() ).append( "</locus:rtePointAction></extensions>" )
+          .append( "<extensions><locus:rteDistance>" ).append( "" + hint.distanceToNext ).append( "</locus:rteDistance>" );
+        float rteTime = hint.getTime();
+        if ( rteTime != lastRteTime ) // add timing only if available
+        {
+          double t = rteTime - lastRteTime;
+          double speed = hint.distanceToNext / t;
+          sb.append( "<locus:rteTime>" ).append( "" + t ).append( "</locus:rteTime>" )
+            .append( "<locus:rteSpeed>" ).append( "" + speed ).append( "</locus:rteSpeed>" );
+          lastRteTime = rteTime;
+        }
+        sb.append( "<locus:rtePointAction>" ).append( "" + hint.getLocusAction() ).append( "</locus:rtePointAction></extensions>" )
           .append( "</wpt>\n" );
       }
     }
