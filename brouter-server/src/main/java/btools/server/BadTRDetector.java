@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import btools.mapaccess.OsmNode;
 import btools.router.OsmNodeNamed;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
@@ -26,56 +27,55 @@ public class BadTRDetector
       return;
     }
     
-    int nshots = Integer.parseInt( args[6] );
-    boolean findTrs = false;
-    if ( nshots < 0 )
-    {
-      findTrs = true;
-      nshots = -nshots;
-    }
-
-    OsmNodeNamed lowerLeft = BRouter.readPosition( args, 1, "lowerLeft" );
-    OsmNodeNamed uppperRight = BRouter.readPosition( args, 3, "uppperRight" );
+    int x0 = Integer.parseInt( args[1]);
+    int y0 = Integer.parseInt( args[2]);
+    int x1 = Integer.parseInt( args[3]);
+    int y1 = Integer.parseInt( args[4]);
+    String profile = args[5];
+    int radius = Integer.parseInt( args[6] );
+    double overlap = Double.parseDouble( args[7] );
+    
     
     Random rand = new Random();
-    Map<Long,Integer> suspectTRs = new HashMap<Long,Integer>();
-
-     
+    Map<Long,Integer> suspectTRs = new HashMap<Long,Integer>();    
     
-    for( int nshot = 0; nshot < nshots; nshot++ )
-    {
-      OsmNodeNamed n = new OsmNodeNamed();
-      n.name = "from";
-      n.ilon = lowerLeft.ilon + (int)(rand.nextDouble() * ( uppperRight.ilon - lowerLeft.ilon ) );
-      n.ilat = lowerLeft.ilat + (int)(rand.nextDouble() * ( uppperRight.ilat - lowerLeft.ilat ) );
-      
+    for( int y = y0; y < y1; y++ )
+    {    
+     for( int x = x0; x < x1; x++ )
+     {
+      // calculate n-circles for this latitude
+      int lon0 = 1000000 * ( x + 180 );
+      int lat0 = 1000000 * ( y +  90 );
+      OsmNode n0 = new OsmNode( lon0, lat0 );
+      double arect = n0.calcDistance( new OsmNode( lon0, lat0 + 1000000 ) );
+      arect *= n0.calcDistance( new OsmNode( lon0 + 1000000, lat0  ) );
+      double adisc = ( Math.PI * radius ) * radius;
+      int shots = (int)(1. + overlap * arect / adisc);
+
+System.out.println( "shots for y=" + y + " x=" + x + " -> " + shots );
+
       List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
-      wplist.add( n );
-
-      SearchBoundary boundary = new SearchBoundary( n, 100000, 0 );
-      
+      for( int shot=0; shot<shots; shot++ )
+      {
+        OsmNodeNamed n = new OsmNodeNamed();
+        n.name = "from";
+        n.ilon = lon0 + rand.nextInt( 1000000 );
+        n.ilat = lat0 + rand.nextInt( 1000000 );
+        wplist.add( n );
+      }
       RoutingContext rc = new RoutingContext();
-      rc.localFunction = args[5];
+      rc.localFunction = profile;
       rc.memoryclass = (int) ( Runtime.getRuntime().maxMemory() / 1024 / 1024 );
-      if ( findTrs )
-      {
-        rc.suspectTRs = suspectTRs;
-        rc.considerTurnRestrictions = false;
-      }
-      else
-      {
-        rc.suspectNodes = suspectTRs;
-        rc.inverseRouting = rand.nextBoolean();
-      }
-      
-      RoutingEngine re = new RoutingEngine( "mytrack", "mylog", args[0], wplist, rc );
-      re.boundary = boundary;
+      rc.suspectNodes = suspectTRs;
+      rc.inverseRouting = rand.nextBoolean();
 
-      re.doSearch();
+      RoutingEngine re = new RoutingEngine( "mytrack", "mylog", args[0], wplist, rc );
+      re.doSearch( radius );
       if ( re.getErrorMessage() != null )
       {
         System.out.println( re.getErrorMessage() );
       }
+     }
     }
       // write tr-suspects to file      
       String suspectsFile = "deadend.suspects";

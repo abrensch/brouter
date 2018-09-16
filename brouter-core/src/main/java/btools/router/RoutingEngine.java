@@ -281,15 +281,42 @@ public class RoutingEngine extends Thread
 
   public void doSearch()
   {
+    doSearch(0);
+  }
+
+  public void doSearch( int radius )
+  {
     try
     {
-      MatchedWaypoint seedPoint = new MatchedWaypoint();
-      seedPoint.waypoint = waypoints.get(0);
-      List<MatchedWaypoint> listOne = new ArrayList<MatchedWaypoint>();
-      listOne.add( seedPoint );
-      matchWaypointsToNodes( listOne );
+      List<MatchedWaypoint> wpList = new ArrayList<MatchedWaypoint>();
+      for( OsmNodeNamed wp : waypoints )
+      {
+        MatchedWaypoint seedPoint = new MatchedWaypoint();
+        seedPoint.waypoint = wp;
+        wpList.add( seedPoint );
+      }
+      
+      resetCache( false );
+      nodesCache.waypointMatcher = new WaypointMatcherImpl( wpList, 250., islandNodePairs );
+      for( MatchedWaypoint mwp : wpList )
+      {
+        preloadPosition( mwp.waypoint );
+      }
 
-      findTrack( "seededSearch", seedPoint, null, null, null, false );
+      for( MatchedWaypoint mwp : wpList )
+      {
+        if ( mwp.crosspoint != null )
+        {
+          if ( radius > 0 )
+          {
+            boundary = new SearchBoundary( mwp.waypoint, radius, 0 );
+            routingContext.inverseRouting = !routingContext.inverseRouting; // hack
+            routingContext.inverseDirection = routingContext.inverseRouting;
+          }
+          MAXNODES_ISLAND_CHECK = -1;
+          findTrack( "seededSearch", mwp, null, null, null, false );
+        }
+      }
     }
     catch( IllegalArgumentException e)
     {
