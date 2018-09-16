@@ -51,7 +51,7 @@ public class Area
       {
         for( int j=0; j<neglist.size(); j++)
         {
-          if ( neglist.get(i).isInPolygon( id ) )
+          if ( neglist.get(j).isInPolygon( id ) )
           {
             return false;
           }

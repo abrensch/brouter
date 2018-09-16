@@ -146,16 +146,16 @@ public class SuspectManager extends Thread
     {
       bw.write( "watchlist for " + country + "\n" );
       bw.write( "<br><a href=\"/brouter/suspects\">back to country list</a><br><br>\n" );
-      BufferedReader r = new BufferedReader( new FileReader( suspectFile ) );
-      for ( ;; )
-      {
-        String line = r.readLine();
-        if ( line == null )
-          break;
-        StringTokenizer tk2 = new StringTokenizer( line );
-        id = Long.parseLong( tk2.nextToken() );
-        String countryId = country + "/" + filter + "/" + id;
 
+      SuspectList suspects = getAllSuspects( suspectFile );
+      for( int isuspect = 0; isuspect<suspects.cnt; isuspect++ )
+      {
+        id = suspects.ids[isuspect];
+
+        if ( !polygon.isInBoundingBox( id ) )
+        {
+          continue; // not in selected polygon (pre-check)
+        }
         if ( new File( "falsepositives/" + id ).exists() )
         {
           continue; // known false positive
@@ -174,6 +174,7 @@ public class SuspectManager extends Thread
         {
           continue; // not in selected polygon
         }
+        String countryId = country + "/" + filter + "/" + id;
         String hint = "&nbsp;&nbsp;&nbsp;confirmed " + formatAge( confirmedEntry ) + " ago";
         int ilon = (int) ( id >> 32 );
         int ilat = (int) ( id & 0xffffffff );
@@ -182,7 +183,6 @@ public class SuspectManager extends Thread
         String url2 = "/brouter/suspects" + countryId;
         bw.write( "<a href=\"" + url2 + "\">" + dlon + "," + dlat + "</a>" + hint + "<br>\n" );
       }
-      r.close();
       bw.write( "</body></html>\n" );
       bw.flush();
       return;
@@ -246,7 +246,7 @@ public class SuspectManager extends Thread
       double dlat = ( ilat - 90000000 ) / 1000000.;
 
       String profile = "car-eco";
-      File configFile = new File( "configs/" + country + ".cfg" );
+      File configFile = new File( "configs/profile.cfg" );
       if ( configFile.exists() )
       {
         BufferedReader br = new BufferedReader( new FileReader( configFile ) );
@@ -318,38 +318,21 @@ public class SuspectManager extends Thread
       bw.write( "<br><a href=\"/brouter/suspects" + country + "/" + filter + "/watchlist\">see watchlist</a>\n" );
       bw.write( "<br><a href=\"/brouter/suspects\">back to country list</a><br><br>\n" );
       int maxprio = 0;
-      for ( int pass = 1; pass <= 2; pass++ )
       {
-        if ( pass == 2 )
+        SuspectList suspects = getAllSuspects( suspectFile );
+        for( int isuspect = 0; isuspect<suspects.cnt; isuspect++ )
         {
-          bw.write( "current level: " + getLevelDecsription( maxprio ) + "<br><br>\n" );
-        }
-
-        BufferedReader r = new BufferedReader( new FileReader( suspectFile ) );
-        for ( ;; )
-        {
-          String line = r.readLine();
-          if ( line == null )
+          id = suspects.ids[isuspect];
+          int prio = suspects.prios[isuspect];
+          int nprio = ( ( prio + 1 ) / 2 ) * 2; // normalize (no link prios)
+          if ( nprio < maxprio )
+          {
+            if ( maxprio == 0 )
+            {
+              bw.write( "current level: " + getLevelDecsription( maxprio ) + "<br><br>\n" );
+            }
             break;
-          StringTokenizer tk2 = new StringTokenizer( line );
-          String idString = tk2.nextToken();
-
-          int prio = Integer.parseInt( tk2.nextToken() );
-          prio = ( ( prio + 1 ) / 2 ) * 2; // normalize (no link prios)
-
-          if ( pass == 1 )
-          {
-            if ( prio <= maxprio )
-              continue;
           }
-          else
-          {
-            if ( prio < maxprio )
-              continue;
-          }
-
-          id = Long.parseLong( idString );
-
           if ( !polygon.isInBoundingBox( id ) )
           {
             continue; // not in selected polygon (pre-check)
@@ -364,16 +347,16 @@ public class SuspectManager extends Thread
           }
           if ( "new".equals( filter ) && new File( "suspectarchive/" + id ).exists() )
           {
-            continue; // known fixed
+            continue; // known archived
           }
           if ( !polygon.isInArea( id ) )
           {
             continue; // not in selected polygon
           }
-          if ( pass == 1 )
+          if ( maxprio == 0 )
           {
-            maxprio = prio;
-            continue;
+            maxprio = nprio;
+            bw.write( "current level: " + getLevelDecsription( maxprio ) + "<br><br>\n" );
           }
           String countryId = country + "/" + filter + "/" + id;
           File confirmedEntry = new File( "confirmednegatives/" + id );
@@ -389,7 +372,6 @@ public class SuspectManager extends Thread
           String url2 = "/brouter/suspects" + countryId;
           bw.write( "<a href=\"" + url2 + "\">" + dlon + "," + dlat + "</a>" + hint + "<br>\n" );
         }
-        r.close();
       }
     }
     bw.write( "</body></html>\n" );
@@ -404,4 +386,76 @@ public class SuspectManager extends Thread
     return fixedEntry.exists() && fixedEntry.lastModified() > suspectFile.lastModified();
   }
   
+  
+  private static final class SuspectList
+  {
+    int cnt;
+    long[] ids;
+    int[] prios;
+    
+    SuspectList( int count )
+    {
+      cnt = count;
+      ids = new long[cnt];
+      prios = new int[cnt];
+    }
+  }
+
+  private static SuspectList allSuspects;
+  private static Object allSuspectsSync = new Object();
+  private static long allSuspectsTimestamp;
+  
+  private static SuspectList getAllSuspects( File suspectFile ) throws IOException
+  {
+    synchronized( allSuspectsSync )
+    {
+      if ( suspectFile.lastModified() == allSuspectsTimestamp )
+      {
+        return allSuspects;
+      }
+      allSuspectsTimestamp = suspectFile.lastModified();
+
+      // count prios
+      int[] prioCount = new int[100];
+      BufferedReader r = new BufferedReader( new FileReader( suspectFile ) );
+      for ( ;; )
+      {
+        String line = r.readLine();
+        if ( line == null ) break;
+        StringTokenizer tk2 = new StringTokenizer( line );
+        tk2.nextToken();
+        int prio = Integer.parseInt( tk2.nextToken() );
+        int nprio = ( ( prio + 1 ) / 2 ) * 2; // normalize (no link prios)
+        prioCount[nprio]++;
+      }
+      r.close();
+
+      // sum up
+      int pointer = 0;
+      for( int i=99; i>=0; i-- )
+      {
+        int cnt = prioCount[i];
+        prioCount[i] = pointer;
+        pointer += cnt;
+      }
+
+      // sort into suspect list
+      allSuspects = new SuspectList( pointer );
+      r = new BufferedReader( new FileReader( suspectFile ) );
+      for ( ;; )
+      {
+        String line = r.readLine();
+        if ( line == null ) break;
+        StringTokenizer tk2 = new StringTokenizer( line );
+        long id = Long.parseLong( tk2.nextToken() );
+        int prio = Integer.parseInt( tk2.nextToken() );
+        int nprio = ( ( prio + 1 ) / 2 ) * 2; // normalize (no link prios)
+        pointer = prioCount[nprio]++;
+        allSuspects.ids[pointer] = id;
+        allSuspects.prios[pointer] = prio;
+      }
+      r.close();
+      return allSuspects;
+    }  
+  }  
 }
