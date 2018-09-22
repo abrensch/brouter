@@ -24,7 +24,11 @@ public class SuspectManager extends Thread
 
   private static String formatAge( File f )
   {
-    long age = System.currentTimeMillis() - f.lastModified();
+    return formatAge( System.currentTimeMillis() - f.lastModified() );
+  }
+
+  private static String formatAge( long age )
+  {
     long minutes = age / 60000;
     if ( minutes < 60 )
     {
@@ -67,7 +71,7 @@ public class SuspectManager extends Thread
     while ( tk.hasMoreTokens() )
     {
       String c = tk.nextToken();
-      if ( "all".equals( c ) || "new".equals( c ) )
+      if ( "all".equals( c ) || "new".equals( c ) || "confirmed".equals( c ) )
       {
         filter = c;
         break;
@@ -93,6 +97,7 @@ public class SuspectManager extends Thread
       {
         String url2 = "/brouter/suspects" + country + "/" + c;
         String linkNew = "<td>&nbsp;<a href=\"" + url2 + "/new\">new</a>&nbsp;</td>";
+        String linkCnf = "<td>&nbsp;<a href=\"" + url2 + "/confirmed\">confirmed</a>&nbsp;</td>";
         String linkAll = "<td>&nbsp;<a href=\"" + url2 + "/all\">all</a>&nbsp;</td>";
         
         String linkSub = "";
@@ -100,7 +105,7 @@ public class SuspectManager extends Thread
         {
           linkSub = "<td>&nbsp;<a href=\"" + url2 + "\">sub-regions</a>&nbsp;</td>";
         }
-        bw.write( "<tr><td>" + c + "</td>" + linkNew + linkAll + linkSub + "\n" );
+        bw.write( "<tr><td>" + c + "</td>" + linkNew + linkCnf + linkAll + linkSub + "\n" );
       }
       bw.write( "</table>\n" );
       bw.write( "</body></html>\n" );
@@ -127,6 +132,7 @@ public class SuspectManager extends Thread
       bw.flush();
       return;
     }
+    SuspectList suspects = getAllSuspects( suspectFile );
 
     boolean showWatchList = false;
     if ( tk.hasMoreTokens() )
@@ -146,8 +152,9 @@ public class SuspectManager extends Thread
     {
       bw.write( "watchlist for " + country + "\n" );
       bw.write( "<br><a href=\"/brouter/suspects\">back to country list</a><br><br>\n" );
+      
+      long timeNow = System.currentTimeMillis();
 
-      SuspectList suspects = getAllSuspects( suspectFile );
       for( int isuspect = 0; isuspect<suspects.cnt; isuspect++ )
       {
         id = suspects.ids[isuspect];
@@ -160,22 +167,33 @@ public class SuspectManager extends Thread
         {
           continue; // known false positive
         }
-        File confirmedEntry = new File( "confirmednegatives/" + id );
-        if ( !( isFixed( id, suspectFile ) && confirmedEntry.exists() ) )
+        File fixedEntry = new File( "fixedsuspects/" + id );
+        if ( !fixedEntry.exists() )
         {
           continue;
         }
-        long age = System.currentTimeMillis() - confirmedEntry.lastModified();
-        if ( age / 1000 < 3600 * 24 * 8 )
+        long fixedTs = fixedEntry.lastModified();
+        if ( fixedTs < suspects.timestamp )
         {
-          continue;
+          continue; // that would be under current suspects
+        }
+        long hideTime = fixedTs - timeNow;
+        if ( hideTime < 0 )
+        {
+          File confirmedEntry = new File( "confirmednegatives/" + id );
+          if ( confirmedEntry.exists() && confirmedEntry.lastModified() > suspects.timestamp )
+          {
+            continue; // that would be under current suspects
+          }
         }
         if ( !polygon.isInArea( id ) )
         {
           continue; // not in selected polygon
         }
+        
         String countryId = country + "/" + filter + "/" + id;
-        String hint = "&nbsp;&nbsp;&nbsp;confirmed " + formatAge( confirmedEntry ) + " ago";
+        String dueTime = hideTime < 0 ? "(asap)" : formatAge( hideTime + 43200000 );
+        String hint = "&nbsp;&nbsp;&nbsp;due in " + dueTime;
         int ilon = (int) ( id >> 32 );
         int ilat = (int) ( id & 0xffffffff );
         double dlon = ( ilon - 180000000 ) / 1000000.;
@@ -230,8 +248,15 @@ public class SuspectManager extends Thread
         if ( tk.hasMoreTokens() )
         {
           String param = tk.nextToken();
-          hideDays = Integer.parseInt( param );
-          fixedMarker.setLastModified( System.currentTimeMillis() + hideDays*86400000L );
+          hideDays = Integer.parseInt( param ); // hiding, not fixing
+        }
+        else // touch the confirmed entry when marking fixed
+        {
+          File confirmedEntry = new File( "confirmednegatives/" + id );
+          if ( confirmedEntry.exists() )
+          {
+            confirmedEntry.setLastModified( System.currentTimeMillis() );
+          }
         }
         fixedMarker.setLastModified( System.currentTimeMillis() + hideDays*86400000L );
       }
@@ -271,7 +296,7 @@ public class SuspectManager extends Thread
       String url4a = "https://overpass-turbo.eu/?Q=[date:&quot;" + formatZ( weekAgo ) + "Z&quot;];way[highway]({{bbox}});out meta geom;&C="
                   + dlat + ";" + dlon + ";18&R";
 
-      String url4b = "https://overpass-turbo.eu/?Q=(node(around%3A1%2C%7B%7Bcenter%7D%7D)-%3E.n%3Bway(bn.n)%3Brel(bn.n%3A%22via%22)%5Btype%3Drestriction%5D%3B)%3Bout%20meta%3B%3E%3Bout%20skel%20qt%3B&C="
+      String url4b = "https://overpass-turbo.eu/?Q=(node(around%3A1%2C%7B%7Bcenter%7D%7D)-%3E.n%3Bway(bn.n)%5Bhighway%5D%3Brel(bn.n%3A%22via%22)%5Btype%3Drestriction%5D%3B)%3Bout%20meta%3B%3E%3Bout%20skel%20qt%3B&C="
                   + dlat + ";" + dlon + ";18&R";
 
       String url5 = "https://tyrasd.github.io/latest-changes/#16/" + dlat + "/" + dlon;
@@ -286,7 +311,7 @@ public class SuspectManager extends Thread
       bw.write( "Overpass: <a href=\"" + url4a + "\">minus one week</a> &nbsp;&nbsp; <a href=\"" + url4b + "\">node context</a><br><br>\n" );
       bw.write( "<a href=\"" + url5 + "\">Open in Latest-Changes / last week</a><br><br>\n" );
       bw.write( "<br>\n" );
-      if ( isFixed( id, suspectFile ) )
+      if ( isFixed( id, suspects.timestamp ) )
       {
         bw.write( "<br><br><a href=\"/brouter/suspects/" + country + "/" + filter + "/watchlist\">back to watchlist</a><br><br>\n" );
       }
@@ -299,11 +324,17 @@ public class SuspectManager extends Thread
           String prefix = "<a href=\"/brouter/suspects" + countryId + "/fixed";
           String prefix2 = " &nbsp;&nbsp;" + prefix;
           bw.write( prefix + "\">mark as fixed</a><br><br>\n" );
-          bw.write( "hide for " );
-          bw.write( prefix2 + "/7\">1 week</a>" );
-          bw.write( prefix2 + "/30\">1 month</a>" );
-          bw.write( prefix2 + "/91\">3 months</a>" );
-          bw.write( prefix2 + "/182\">6 months</a><br><br>\n" );
+          bw.write( "hide for:  weeks:" );
+          bw.write( prefix2 + "/7\">1w</a>" );
+          bw.write( prefix2 + "/14\">2w</a>" );
+          bw.write( prefix2 + "/21\">3w</a>" );
+          bw.write( " &nbsp;&nbsp;&nbsp; months:" );
+          bw.write( prefix2 + "/30\">1m</a>" );
+          bw.write( prefix2 + "/61\">2m</a>" );
+          bw.write( prefix2 + "/91\">3m</a>" );
+          bw.write( prefix2 + "/122\">4m</a>" );
+          bw.write( prefix2 + "/152\">5m</a>" );
+          bw.write( prefix2 + "/183\">6m</a><br><br>\n" );
         }
         else
         {
@@ -319,7 +350,6 @@ public class SuspectManager extends Thread
       bw.write( "<br><a href=\"/brouter/suspects\">back to country list</a><br><br>\n" );
       int maxprio = 0;
       {
-        SuspectList suspects = getAllSuspects( suspectFile );
         for( int isuspect = 0; isuspect<suspects.cnt; isuspect++ )
         {
           id = suspects.ids[isuspect];
@@ -341,13 +371,17 @@ public class SuspectManager extends Thread
           {
             continue; // known false positive
           }
-          if ( isFixed( id, suspectFile ) )
+          if ( isFixed( id, suspects.timestamp ) )
           {
             continue; // known fixed
           }
           if ( "new".equals( filter ) && new File( "suspectarchive/" + id ).exists() )
           {
             continue; // known archived
+          }
+          if ( "confirmed".equals( filter ) && !new File( "confirmednegatives/" + id ).exists() )
+          {
+            continue; // showing confirmed suspects only
           }
           if ( !polygon.isInArea( id ) )
           {
@@ -380,10 +414,10 @@ public class SuspectManager extends Thread
   }
   
 
-  private static boolean isFixed( long id, File suspectFile )
+  private static boolean isFixed( long id, long timestamp )
   {
     File fixedEntry = new File( "fixedsuspects/" + id );
-    return fixedEntry.exists() && fixedEntry.lastModified() > suspectFile.lastModified();
+    return fixedEntry.exists() && fixedEntry.lastModified() > timestamp;
   }
   
   
@@ -392,8 +426,9 @@ public class SuspectManager extends Thread
     int cnt;
     long[] ids;
     int[] prios;
+    long timestamp;
     
-    SuspectList( int count )
+    SuspectList( int count, long time )
     {
       cnt = count;
       ids = new long[cnt];
@@ -403,17 +438,15 @@ public class SuspectManager extends Thread
 
   private static SuspectList allSuspects;
   private static Object allSuspectsSync = new Object();
-  private static long allSuspectsTimestamp;
   
   private static SuspectList getAllSuspects( File suspectFile ) throws IOException
   {
     synchronized( allSuspectsSync )
     {
-      if ( suspectFile.lastModified() == allSuspectsTimestamp )
+      if ( allSuspects != null && suspectFile.lastModified() == allSuspects.timestamp )
       {
         return allSuspects;
       }
-      allSuspectsTimestamp = suspectFile.lastModified();
 
       // count prios
       int[] prioCount = new int[100];
@@ -440,7 +473,7 @@ public class SuspectManager extends Thread
       }
 
       // sort into suspect list
-      allSuspects = new SuspectList( pointer );
+      allSuspects = new SuspectList( pointer, suspectFile.lastModified() );
       r = new BufferedReader( new FileReader( suspectFile ) );
       for ( ;; )
       {
