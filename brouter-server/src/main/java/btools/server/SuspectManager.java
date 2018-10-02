@@ -433,6 +433,7 @@ public class SuspectManager extends Thread
       cnt = count;
       ids = new long[cnt];
       prios = new int[cnt];
+      timestamp = time;
     }
   }
 
