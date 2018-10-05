@@ -1,5 +1,5 @@
 ---lookupversion:10
----minorversion:7
+---minorversion:8
 
 ---context:way
 
@@ -116,6 +116,8 @@ access;0000099899 agricultural forestry
 access;0000039934 designated official
 access;0000011813 customers
 access;0000004007 delivery
+access;0000000100 psv
+access;0000000100 hov
 
 foot;0001659694 yes allowed Yes
 foot;0000424847 designated official
@@ -144,6 +146,8 @@ motorcar;0000008733 private
 motorcar;0000005757 designated official
 motorcar;0000004116 permissive
 motorcar;0000000979 restricted
+motorcar;0000000100 psv
+motorcar;0000000100 hov
 
 motor_vehicle;0000212692 no
 motor_vehicle;0000184982 yes
@@ -152,7 +156,9 @@ motor_vehicle;0000032622 agricultural forestry agricultural;forestry agricultura
 motor_vehicle;0000025396 designated official
 motor_vehicle;0000025092 destination
 motor_vehicle;0000010895 permissive
-motor_vehicle;0000000175 emergency
+motor_vehicle;0000000175 emergency Emergency
+motor_vehicle;0000000100 psv
+motor_vehicle;0000000100 hov
 
 motorcycle;0000092079 no
 motorcycle;0000027978 yes
@@ -161,6 +167,8 @@ motorcycle;0000008862 destination
 motorcycle;0000004877 designated official
 motorcycle;0000003936 private
 motorcycle;0000002209 permissive
+motorcycle;0000000100 psv
+motorcycle;0000000100 hov
 
 vehicle;0000030218 no
 vehicle;0000013333 destination
@@ -169,6 +177,8 @@ vehicle;0000007147 agricultural forestry agricultural;forestry
 vehicle;0000006305 private
 vehicle;0000001294 permissive
 vehicle;0000000105 designated
+vehicle;0000000100 psv
+vehicle;0000000100 hov
 
 horse;0000227398 no
 horse;0000144432 yes
@@ -281,6 +291,7 @@ junction;0000321066 roundabout
 junction;0000002828 spui
 junction;0000002134 jughandle
 junction;0000001493 approach
+junction;0000000100 circular
 
 bridge;0001842517 yes viaduct true suspension
 
@@ -546,6 +557,12 @@ indoor;0000000099 steps
 
 concrete;0000000043 plates
 concrete;0000000013 lanes
+
+bus;0001178365 yes
+bus;0000006419 designated
+bus;0000005602 no
+bus;0000001424 urban
+
 
 ---context:node
 
