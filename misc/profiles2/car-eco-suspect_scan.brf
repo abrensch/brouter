@@ -52,14 +52,24 @@ assign caraccess
                      motor_vehicle=yes|permissive|designated|destination
               motorcar=yes|permissive|designated|destination
 
-assign caraccess_destination
+assign unknowncaraccess
        switch motorcar=
               switch motor_vehicle=
                      switch vehicle=
-                            access=destination
-                            vehicle=destination
-                     motor_vehicle=destination
-              motorcar=destination
+                            access=unknown
+                            vehicle=unknown
+                     motor_vehicle=unknown
+              motorcar=unknown
+
+assign psvaccess
+       or bus=yes|designated|urban
+       switch motorcar=
+              switch motor_vehicle=
+                     switch vehicle=
+                            access=psv|hov
+                            vehicle=psv|hov
+                     motor_vehicle=psv|hov
+              motorcar=psv|hov
 
 assign accessspeedlimit = if caraccess then 999 else 0
 
@@ -118,8 +128,6 @@ assign maxspeed =
   min maxspeed_implicit
   min maxspeed_surface maxspeed_tracktype
 
-assign costfactor = if equal maxspeed 0 then 10000 else 0
-
 assign minspeed =
     switch highway=motorway|trunk  75 0
 
@@ -144,6 +152,12 @@ assign priorityclassifier =
   else if ( highway=bridleway|road            ) then  2
   else 0
 
+assign costfactor = if equal maxspeed 0
+                      then ( if ( and equal accessspeedlimit 0 and greater onewayspeedlimit 0 and greater priorityclassifier 20 not psvaccess )
+                             then switch unknowncaraccess 9997 9998
+                             else 10000 )
+                      else 0
+
 # some more classifying bits used for voice hint generation...
 
 assign isgoodoneway = if reversedirection=yes then oneway=-1
@@ -160,8 +174,7 @@ assign classifiermask add          isbadoneway
                       add multiply isroundabout   4
                       add multiply islinktype     8
                       add multiply isgoodforcars 16
-                      add multiply highway=residential|living_street 32
-                          multiply caraccess_destination 64
+                          multiply highway=residential|living_street 32
 
 
 ---context:node  # following code refers to node tags
