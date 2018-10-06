@@ -63,7 +63,9 @@ assign caraccess_destination
 
 assign accessspeedlimit = if caraccess then 999 else 0
 
-assign isbadoneway = if reversedirection=yes then ( if oneway= then junction=roundabout else oneway=yes|true|1 ) else oneway=-1
+assign isroundabout = junction=roundabout|circular
+assign implicitoneway = or isroundabout highway=motorway
+assign isbadoneway = if reversedirection=yes then ( if oneway= then implicitoneway else oneway=yes|true|1 ) else oneway=-1
 assign onewayspeedlimit = if isbadoneway then 0 else 999
 
 assign islinktype = highway=motorway_link|trunk_link|primary_link|secondary_link|tertiary_link
@@ -145,8 +147,7 @@ assign priorityclassifier =
 # some more classifying bits used for voice hint generation...
 
 assign isgoodoneway = if reversedirection=yes then oneway=-1
-                      else if oneway= then junction=roundabout else oneway=yes|true|1
-assign isroundabout = junction=roundabout
+                      else if oneway= then implicitoneway else oneway=yes|true|1
 assign isgoodforcars = if greater priorityclassifier 6 then true
                   else if highway=residential|living_street|service then true
                   else if ( and highway=track tracktype=grade1 ) then true

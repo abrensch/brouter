@@ -60,9 +60,9 @@
                             <include>${project.build.directory}/${project.artifactId}.apk</include>
                         </includes>
                         <keystore>\sign\mystore</keystore>
-                        <alias>myalias</alias>
-                        <storepass>mypass</storepass>
-                        <keypass>mypass</keypass>
+                        <alias>abrensch</alias>
+                        <storepass>peru1511</storepass>
+                        <keypass>peru1511</keypass>
                         <verbose>true</verbose>
                     </configuration>
                 </execution>
