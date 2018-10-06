@@ -63,6 +63,8 @@ assign unknowncaraccess
 
 assign psvaccess
        or bus=yes|designated|urban
+       or psv=yes|designated
+       or hov=yes|designated
        switch motorcar=
               switch motor_vehicle=
                      switch vehicle=

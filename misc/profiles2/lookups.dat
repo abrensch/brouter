@@ -563,6 +563,14 @@ bus;0000006419 designated
 bus;0000005602 no
 bus;0000001424 urban
 
+psv;0000072077 yes
+psv;0000007456 no
+psv;0000007428 designated official
+
+hov;0000006684 lane
+hov;0000003258 designated
+hov;0000002162 no
+hov;0000001512 yes
 
 ---context:node
 
