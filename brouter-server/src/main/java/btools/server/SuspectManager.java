@@ -279,8 +279,8 @@ public class SuspectManager extends Thread
         br.close();
       }
 
-      String url1 = "http://brouter.de/brouter-web/#zoom=18&lat=" + dlat + "&lon=" + dlon
-          + "&lonlats=" + dlon + "," + dlat + "&profile=" + profile;
+      String url1 = "http://brouter.de/brouter-web/#map=18/" + dlat + "/" + dlon
+          + "/OpenStreetMap&lonlats=" + dlon + "," + dlat + "&profile=" + profile;
 
       // String url1 = "http://localhost:8080/brouter-web/#map=18/" + dlat + "/"
       // + dlon + "/Mapsforge Tile Server&lonlats=" + dlon + "," + dlat;
