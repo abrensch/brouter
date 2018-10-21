@@ -69,6 +69,14 @@ public class RouteServer extends Thread
             {
             	return;
             }
+            if ( getline.startsWith("GET /robots.txt") )
+            {
+              writeHttpHeader( bw );
+              bw.write( "User-agent: *\n" );
+              bw.write( "Disallow: /\n" );
+              bw.flush();
+              return;
+            }
 
             InetAddress ip = clientSocket.getInetAddress();
             System.out.println( formattedTimestamp() + " ip=" + (ip==null ? "null" : ip.toString() ) + " -> " + getline );
