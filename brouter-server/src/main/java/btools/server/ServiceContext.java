@@ -13,6 +13,7 @@ public class ServiceContext
   public String segmentDir;
   public String profileDir;
   public String customProfileDir;
+  public String sharedProfileDir;
   public Map<String,String> profileMap = null;
   public List<OsmNodeNamed> nogoList;
 }

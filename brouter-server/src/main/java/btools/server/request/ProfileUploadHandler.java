@@ -22,6 +22,7 @@ public class ProfileUploadHandler
 
   // prefix for custom profile id to distinguish from default profiles
   public static final String CUSTOM_PREFIX = "custom_";
+  public static final String SHARED_PREFIX = "shared_";
 
 	private ServiceContext serviceContext;
   
