@@ -51,6 +51,11 @@ public class ServerHandler extends RequestHandler {
       String customProfile = profile.substring( ProfileUploadHandler.CUSTOM_PREFIX.length() );
       profile = new File( serviceContext.customProfileDir, customProfile ).getPath();
     }
+    else if ( profile.startsWith( ProfileUploadHandler.SHARED_PREFIX ) )
+    {
+      String customProfile = profile.substring( ProfileUploadHandler.SHARED_PREFIX.length() );
+      profile = new File( serviceContext.sharedProfileDir, customProfile ).getPath();
+    }
     rc.localFunction = profile;
 
     rc.setAlternativeIdx(Integer.parseInt(params.get( "alternativeidx" )));

@@ -180,7 +180,10 @@ public class RouteServer extends Thread
         serviceContext.segmentDir = args[0];
         serviceContext.profileDir = args[1];
         System.setProperty( "profileBaseDir", serviceContext.profileDir );
-        serviceContext.customProfileDir = args[2];
+        String dirs = args[2];
+        StringTokenizer tk = new StringTokenizer( dirs, "," );
+        serviceContext.customProfileDir = tk.nextToken();
+        serviceContext.sharedProfileDir = tk.hasMoreTokens() ? tk.nextToken() : serviceContext.customProfileDir;
 
         int maxthreads = Integer.parseInt( args[4] );
 
