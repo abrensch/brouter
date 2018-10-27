@@ -84,36 +84,24 @@ public class ProfileUploadHandler
   {
     // Content-Type: text/plain;charset=UTF-8
 
+    int numChars = 0;
+
+    // Content-Length header is in bytes (!= characters for UTF8),
+    // but Reader reads characters, so don't know number of characters to read
     for(;;)
     {
-      // headers
-      String line = ir.readLine();
-      if ( line == null ) break;
-
-      // blank line before content after headers
-      if ( line.length() == 0 )
-      {
-        int numChars = 0;
-
-        // Content-Length header is in bytes (!= characters for UTF8),
-        // but Reader reads characters, so don't know number of characters to read
-        for(;;)
-        {
-          // read will block when false, occurs at end of stream rather than -1
-          if (!ir.ready()) {
-        	  try { Thread.sleep(1000); } catch( Exception e ) {}
-        	  if ( !ir.ready() ) break;
-          }
-          int c = ir.read();
-          if ( c == -1) break;
-          bw.write( c );
-          
-          numChars++;
-          if (numChars > MAX_LENGTH)
-            throw new IOException("Maximum number of characters exceeded (" + MAX_LENGTH + ", " + id + ")");
-        }
-        break;
+      // read will block when false, occurs at end of stream rather than -1
+      if (!ir.ready()) {
+        try { Thread.sleep(1000); } catch( Exception e ) {}
+        if ( !ir.ready() ) break;
       }
+      int c = ir.read();
+      if ( c == -1) break;
+      bw.write( c );
+          
+      numChars++;
+      if (numChars > MAX_LENGTH)
+        throw new IOException("Maximum number of characters exceeded (" + MAX_LENGTH + ", " + id + ")");
     }
   }
 

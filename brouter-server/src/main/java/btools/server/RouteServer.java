@@ -63,9 +63,50 @@ public class RouteServer extends Thread
             br = new BufferedReader( new InputStreamReader( clientSocket.getInputStream() , "UTF-8") );
             bw = new BufferedWriter( new OutputStreamWriter( clientSocket.getOutputStream(), "UTF-8" ) );
 
-            // we just read the first line
-            String getline = br.readLine();
-            if ( getline == null || getline.startsWith("GET /favicon.ico") )
+            // first line
+            String getline = null;
+            String agent = null;
+
+            // more headers until first empty line
+            for(;;)
+            {
+              // headers
+              String line = br.readLine();
+              if ( line == null )
+              {
+                return;
+              }
+              if ( line.length() == 0 )
+              {
+                break;
+              }
+              if ( getline == null )
+              {
+                getline = line;
+              }
+              if ( line.startsWith( "User-Agent: " ) )
+              {
+                agent = line.substring( "User-Agent: ".length() );
+              }
+            }
+            
+            String excludedAgents = System.getProperty( "excludedAgents" );
+            if ( agent != null && excludedAgents != null )
+            {
+              StringTokenizer tk = new StringTokenizer( excludedAgents, "," );
+              while( tk.hasMoreTokens() )
+              {
+                if ( agent.indexOf( tk.nextToken() ) >= 0 )
+                {
+                  writeHttpHeader( bw );
+                  bw.write( "Bad agent: " + agent );
+                  bw.flush();
+                  return;
+                }
+              }
+            }
+
+            if ( getline.startsWith("GET /favicon.ico") )
             {
             	return;
             }
