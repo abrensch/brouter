@@ -143,7 +143,7 @@ abstract class OsmPath implements OsmLinkHolder
 
     boolean recordTransferNodes = detailMode || rc.countTraffic;
 
-    rc.nogomatch = false;
+    rc.nogomatch = null;
 
     // extract the 3 positions of the first section
     int lon0 = origin.originLon;
@@ -425,9 +425,9 @@ abstract class OsmPath implements OsmLinkHolder
             originElement.message = message;
           }
         }
-        if ( rc.nogomatch )
+        if ( rc.nogomatch != null )
         {
-          cost = -1;
+          cost += rc.nogomatch.nogoWeight;
         }
         return;
       }
@@ -460,10 +460,9 @@ abstract class OsmPath implements OsmLinkHolder
     }
 
     // check for nogo-matches (after the *actual* start of segment)
-    if ( rc.nogomatch )
+    if ( rc.nogomatch != null )
     {
-      cost = -1;
-      return;
+      cost += rc.nogomatch.nogoWeight;
     }
 
     // add target-node costs

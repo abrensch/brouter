@@ -222,24 +222,29 @@ public class ServerHandler extends RequestHandler {
     for (int i = 0; i < lonLatRadList.length; i++)
     {
       String[] lonLatRad = lonLatRadList[i].split(",");
-      nogoList.add(readNogo(lonLatRad[0], lonLatRad[1], lonLatRad[2]));
+      String nogoWeight = "100000";
+      if (lonLatRad.length > 3) {
+          nogoWeight = lonLatRad[3];
+      }
+      nogoList.add(readNogo(lonLatRad[0], lonLatRad[1], lonLatRad[2], nogoWeight));
     }
 
     return nogoList;
   }
 
-  private static OsmNodeNamed readNogo( String lon, String lat, String radius )
+  private static OsmNodeNamed readNogo( String lon, String lat, String radius, String nogoWeight )
   {
-    return readNogo(Double.parseDouble( lon ), Double.parseDouble( lat ), Integer.parseInt( radius ) );
+    return readNogo(Double.parseDouble( lon ), Double.parseDouble( lat ), Integer.parseInt( radius ), Double.parseDouble( nogoWeight ));
   }
 
-  private static OsmNodeNamed readNogo( double lon, double lat, int radius )
+  private static OsmNodeNamed readNogo( double lon, double lat, int radius, double nogoWeight )
   {
     OsmNodeNamed n = new OsmNodeNamed();
     n.name = "nogo" + radius;
     n.ilon = (int)( ( lon + 180. ) *1000000. + 0.5);
     n.ilat = (int)( ( lat +  90. ) *1000000. + 0.5);
     n.isNogo = true;
+    n.nogoWeight = nogoWeight;
     return n;
   }
 

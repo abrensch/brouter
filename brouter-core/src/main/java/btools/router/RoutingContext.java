@@ -194,7 +194,7 @@ public final class RoutingContext
   public boolean startDirectionValid;
 
   private double cosangle;
-  public boolean nogomatch = false;
+  public OsmNodeNamed nogomatch = null;
   public boolean isEndpoint = false;
 
   public boolean shortestmatch = false;
@@ -347,7 +347,7 @@ public final class RoutingContext
             if (!(nogo instanceof OsmNogoPolygon)
                 || ((OsmNogoPolygon)nogo).intersects(lon1, lat1, lon2, lat2))
             {
-              nogomatch = true;
+              nogomatch = nogo;
             }
           }
           else
@@ -388,7 +388,7 @@ public final class RoutingContext
             }
             else
             {
-              nogomatch = false;
+              nogomatch = null;
               lon1 = ilonshortest;
               lat1 = ilatshortest;
             }
