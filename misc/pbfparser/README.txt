@@ -15,9 +15,8 @@ folder
 brouter.jar in this folder
 -> compile the PBF-Parser using:
    javac -d . -cp protobuf.jar:osmosis.jar:brouter.jar *.java
--> pack protobuf.jar + osmosis.jar + btools/**.class alltogether in a jar
-"pbfparser.jar" with "jar cf pbfparser.jar protobuf.jar osmosis.jar
-btools/**.class"
+-> pack all the compiled class files together in a jar
+"pbfparser.jar" with "jar cf pbfparser.jar btools/**/*.class"
 
 Alternatively, you can run the Mapcreator against a *xml.bz2 Database-Extract,
 then you don't need the pbf-parser.
