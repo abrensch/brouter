@@ -14,7 +14,7 @@ rm -rf /var/www/brouter/segments4_lastrun
 mkdir tmp
 cd tmp
 mkdir nodetiles
-/java/bin/java -Xmx2600m -Xms2600m -Xmn32m -cp ../pbfparser.jar:../brouter.jar btools.mapcreator.OsmCutter ../lookups.dat nodetiles ways.dat relations.dat ../all.brf ../planet-latest.osm.pbf
+/java/bin/java -Xmx2600m -Xms2600m -Xmn32m -cp ../pbfparser.jar:../brouter.jar btools.mapcreator.OsmCutter ../lookups.dat nodetiles ways.dat relations.dat restrictions.dat ../all.brf ../planet-latest.osm.pbf
 
 mkdir ftiles
 /java/bin/java -Xmx2600M -Xms2600M -Xmn32M -cp ../brouter.jar -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.NodeFilter nodetiles ways.dat ftiles
