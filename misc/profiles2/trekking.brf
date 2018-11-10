@@ -12,7 +12,9 @@ assign validForBikes = true
 assign allow_steps              = true   # %allow_steps% | Set to false to disallow steps | boolean
 assign allow_ferries            = true   # %allow_ferries% | set to false to disallow ferries | boolean
 assign ignore_cycleroutes       = false  # %ignore_cycleroutes% | Set to true for better elevation results | boolean
+assign ignore_access_tags_on_cycleroutes = false  # %ignore_access_tags_on_cycleroutes% | Set to true to ignore access restrictions on cycle routes | boolean
 assign stick_to_cycleroutes     = false  # %stick_to_cycleroutes% | Set to true to just follow cycleroutes | boolean
+assign is_right_side_driving    = true   # %is_right_side_driving% | Set to false if using in a left-side driving country | boolean
 assign avoid_unsafe             = false  # %avoid_unsafe% | Set to true to avoid standard highways | boolean
 assign considerTurnRestrictions = false  # %considerTurnRestrictions% | Set to true to take turn restrictions into account | boolean
 assign processUnusedTags        = false  # %processUnusedTags% | Set to true to output unused tags in data tab | boolean
@@ -65,7 +67,147 @@ assign is_ldcr =
      if ignore_cycleroutes then false
      else any_cycleroute
 
-assign isbike = or bicycle_road=yes or bicycle=yes or or bicycle=permissive bicycle=designated lcn=yes
+#
+# handle one-ways. On primary roads, wrong-not oneways should
+# be close to forbidden, while on other ways we just add
+# 4 to the costfactor (making it at least 5 - you are allowed
+# to push your bike)
+#
+assign badoneway =  # True if we are going against traffic in a one-way street
+       if reversedirection=yes then
+         if oneway:bicycle=yes then true
+         else if oneway= then junction=roundabout
+         else oneway=yes|true|1
+       else oneway=-1
+
+assign goodoneway = if reversedirection=yes then oneway=-1  # True if we are going along traffic in a one-way street
+                      else if oneway= then junction=roundabout else oneway=yes|true|1
+
+assign onewaypenalty =  # Penalty associated with going against traffic in a one-way stret
+       # Note: Can be zero if opposite traffic is allowed for bikes
+       if ( badoneway ) then
+       (
+         if ( cycleway=opposite|opposite_lane|opposite_track ) then 0
+         # No penalty if there is any cycleway in opposite direction
+         # Note: We are already contraflow, so no need for more checks.
+         else if ( cycleway:left=opposite|opposite_lane|opposite_track ) then 0
+         else if ( cycleway:right=opposite|opposite_lane|opposite_track ) then 0
+         else if ( cycleway:left:oneway=-1|no ) then 0
+         else if ( cycleway:right:oneway=-1|no ) then 0
+         # No penalty if shared_busway and busway in opposite direction
+         else if ( and cycleway=share_busway ( or busway=opposite ( or busway:left=opposite busway:right=opposite ) ) ) then 0
+         else if ( and cycleway:left=share_busway ( or busway:left=opposite busway=opposite ) ) then 0
+         else if ( and cycleway:right=share_busway ( or busway:right=opposite busway=opposite ) ) then 0
+         # Other cases
+         else if ( oneway:bicycle=no                         ) then 0
+         else if ( highway=primary|primary_link              ) then 50
+         else if ( highway=secondary|secondary_link          ) then 30
+         else if ( highway=tertiary|tertiary_link            ) then 20
+         else 4.0
+       )
+       else 0.0
+
+# Whether there is a penalty for going wrong way
+assign isbadoneway = not equal onewaypenalty 0
+
+assign has_cycleway =
+    # No cycleway hint
+    if or ( cycleway= ) ( cycleway=no|none ) then false
+    # Along a one way path (not contraflow), any cycleway which is not
+    # contraflow is a good hint.
+    else if goodoneway then ( and
+        ( not cycleway=opposite|opposite_lane|opposite_track )
+        ( or ( not cycleway=share_busway ) ( not busway=opposite ) )
+    )
+    # Along a one way path (contraflow), if we can go against traffic, there is
+    # necessarily a cycleway
+    else if badoneway then ( not isbadoneway )
+    # Any other case (two ways streets), any cycleway is fine
+    else true
+
+assign has_left_cycleway =
+    # No cycleway hint
+    if or ( cycleway:left= ) ( cycleway:left=no ) then false
+    # Along a one way path (not contraflow), any cycleway which is not
+    # contraflow is a good hint.
+    else if goodoneway then ( and
+        (
+            and
+            ( not cycleway:left=opposite|opposite_lane|opposite_track )
+            (
+                and
+                ( not ( and reversedirection=yes cycleway:left:oneway=yes ) )
+                ( not ( and ( not reversedirection=yes ) cycleway:left:oneway=-1 ) )
+            )
+        )
+        ( or ( not cycleway:left=share_busway ) ( or ( not busway:left=opposite ) ( not busway=opposite ) ) )
+    )
+    # Along a one way path (contraflow), if we can go against traffic, there is
+    # necessarily a cycleway
+    else if badoneway then ( not isbadoneway )
+    # Any other cases where we do have a cycleway tag (two way streets),
+    # it depends on the direction of the path wrt to traffic
+    else (
+        if is_right_side_driving then (
+            or
+            ( and ( not reversedirection=yes ) ( not cycleway:left:oneway=-1 ) )
+            ( and ( reversedirection=yes ) ( cycleway:left:oneway=-1|no ) )
+        )
+        else (
+            or
+            ( and ( reversedirection=yes ) ( not cycleway:left:oneway=-1 ) )
+            ( and ( not reversedirection=yes ) ( cycleway:left:oneway=-1|no ) )
+        )
+    )
+
+assign has_right_cycleway =
+    # No cycleway hint
+    if or ( cycleway:right= ) ( cycleway:right=no ) then false
+    # Along a one way path (not contraflow), any cycleway which is not
+    # contraflow is a good hint.
+    else if goodoneway then ( and
+        (
+            and
+            ( not cycleway:right=opposite|opposite_lane|opposite_track )
+            (
+                and
+                ( not ( and reversedirection=yes cycleway:right:oneway=yes ) )
+                ( not ( and ( not reversedirection=yes ) cycleway:right:oneway=-1 ) )
+            )
+        )
+        ( or ( not cycleway:right=share_busway ) ( or ( not busway:left=opposite ) ( not busway=opposite ) ) )
+    )
+    # Along a one way path (contraflow), if we can go against traffic, there is
+    # necessarily a cycleway
+    else if badoneway then ( not isbadoneway )
+    # Any other cases where we do have a cycleway tag (two way streets),
+    # it depends on the direction of the path wrt to traffic
+    else (
+        if is_right_side_driving then (
+            or
+            ( and ( not reversedirection=yes ) ( not cycleway:right:oneway=-1 ) )
+            ( and ( reversedirection=yes ) ( cycleway:right:oneway=-1|no ) )
+        )
+        else (
+            or
+            ( and ( reversedirection=yes ) ( not cycleway:right:oneway=-1 ) )
+            ( and ( not reversedirection=yes ) ( cycleway:right:oneway=-1|no ) )
+        )
+    )
+
+assign isbike =
+    if bicycle=yes|permissive|designated then true
+    else if lcn=yes then true
+    # Take into account cycleways
+    else if or has_cycleway ( or has_left_cycleway has_right_cycleway ) then true
+    else false
+
+# Add a penalty based on traffic speed, if there are no infrastructures
+assign speedpenalty =
+    if ( or maxspeed=20 zone:maxspeed=20 ) then 0.9
+    else if ( or maxspeed=30 zone:maxspeed=30 ) then 0.9
+    else 1.0
+
 assign ispaved = surface=paved|asphalt|concrete|paving_stones
 assign isunpaved = not or surface= or ispaved surface=fine_gravel|cobblestone
 assign probablyGood = or ispaved and ( or isbike highway=footway ) not isunpaved
@@ -79,7 +221,7 @@ assign probablyGood = or ispaved and ( or isbike highway=footway ) not isunpaved
 #
 assign turncost = if is_ldcr then 0
                   else if junction=roundabout then 0
-                  else 90
+                  else 80
 
 
 #
@@ -103,23 +245,30 @@ assign initialcost =
 # implicit access here just from the motorroad tag
 # (implicit access rules from highway tag handled elsewhere)
 #
-assign defaultaccess =
-       if access= then not motorroad=yes
-       else if access=private|no then false
-       else true
+assign defaultaccess = not ( access=private|no )
 
 #
 # calculate logical bike access
 #
 assign bikeaccess =
-       if any_cycleroute then true
-       else if bicycle= then
-       (
-         if bicycle_road=yes then true
-         else if vehicle= then ( if highway=footway then false else defaultaccess )
-         else not vehicle=private|no
-       )
-       else not bicycle=private|no|dismount
+       if and any_cycleroute ignore_access_tags_on_cycleroutes then true
+       else if ( not defaultaccess ) then (
+          if bicycle_road=yes then true
+          else
+            if bicycle= then
+            (
+                if vehicle= then
+                (
+                    if or ( and has_cycleway cycleway=share_busway ) ( or ( and has_left_cycleway cycleway:left=share_busway ) ( and has_right_cycleway cycleway:right=share_busway ) ) then bus=yes|designated
+                    else
+                        if highway=footway then false
+                        else defaultaccess
+                )
+                else not vehicle=private|no
+            )
+          else not bicycle=private|no|dismount
+      )
+      else true
 
 #
 # calculate logical foot access
@@ -135,34 +284,10 @@ assign footaccess =
 # otherwise access is forbidden
 #
 assign accesspenalty =
-       if bikeaccess then 0
-       else if footaccess then 4
+       if ( and bikeaccess ( not motorroad=yes ) ) then 0
+       else if ( and footaccess ( not motorroad=yes ) ) then 4
        else 10000
 
-#
-# handle one-ways. On primary roads, wrong-oneways should
-# be close to forbidden, while on other ways we just add
-# 4 to the costfactor (making it at least 5 - you are allowed
-# to push your bike)
-#
-assign badoneway =
-       if reversedirection=yes then
-         if oneway:bicycle=yes then true
-         else if oneway= then junction=roundabout
-         else oneway=yes|true|1
-       else oneway=-1
-
-assign onewaypenalty =
-       if ( badoneway ) then
-       (
-         if ( cycleway=opposite|opposite_lane|opposite_track ) then 0
-         else if ( oneway:bicycle=no                         ) then 0
-         else if ( highway=primary|primary_link              ) then 50
-         else if ( highway=secondary|secondary_link          ) then 30
-         else if ( highway=tertiary|tertiary_link            ) then 20
-         else 4.0
-       )
-       else 0.0
 
 #
 # calculate the cost-factor, which is the factor
@@ -184,6 +309,12 @@ assign costfactor
   #
   else if ( highway=motorway|motorway_link ) then   10000
   else if ( highway=proposed|abandoned     ) then   10000
+
+  #
+  # put a penalty on roads under constructions
+  # See https://github.com/abrensch/brouter/issues/106 and https://github.com/abrensch/brouter/issues/62
+  #
+  else if ( highway=construction     ) then   100
 
   #
   # all other exclusions below (access, steps, ferries,..)
@@ -244,11 +375,13 @@ assign costfactor
   #
   # actuals roads are o.k. if we have a bike hint
   #
-       if ( highway=trunk|trunk_link         ) then ( if isbike then 1.5 else 10  )
-  else if ( highway=primary|primary_link     ) then ( if isbike then 1.2 else  3  )
-  else if ( highway=secondary|secondary_link ) then ( if isbike then 1.1 else 1.6 )
-  else if ( highway=tertiary|tertiary_link   ) then ( if isbike then 1.0 else 1.4 )
-  else if ( highway=unclassified             ) then ( if isbike then 1.0 else 1.3 )
+       if ( highway=trunk|trunk_link         ) then ( if isbike then 1.5 else ( multiply speedpenalty 10 ) )
+  else if ( highway=primary|primary_link     ) then ( if isbike then 1.2 else ( multiply speedpenalty 4 ) )
+  else if ( highway=secondary|secondary_link ) then ( if isbike then 1.1 else ( multiply speedpenalty 1.6 ) )
+  else if ( highway=tertiary|tertiary_link   ) then ( if isbike then 1.0 else ( multiply speedpenalty 1.4 ) )
+  else if ( highway=unclassified             ) then ( if isbike then 1.0 else ( multiply speedpenalty 1.3 ) )
+  # avoid unknown highways with no bike hint
+  else if ( highway=unknown                  ) then ( if isbike then 1.0 else ( multiply speedpenalty 10 ) )
 
   #
   # default for any other highway type not handled above
@@ -283,9 +416,6 @@ assign priorityclassifier =
 
 # some more classifying bits used for voice hint generation...
 
-assign isbadoneway = not equal onewaypenalty 0
-assign isgoodoneway = if reversedirection=yes then oneway=-1
-                      else if oneway= then junction=roundabout else oneway=yes|true|1
 assign isroundabout = junction=roundabout
 assign islinktype = highway=motorway_link|trunk_link|primary_link|secondary_link|tertiary_link
 assign isgoodforcars = if greater priorityclassifier 6 then true
@@ -296,7 +426,7 @@ assign isgoodforcars = if greater priorityclassifier 6 then true
 # ... encoded into a bitmask
 
 assign classifiermask add          isbadoneway
-                      add multiply isgoodoneway   2
+                      add multiply goodoneway   2
                       add multiply isroundabout   4
                       add multiply islinktype     8
                           multiply isgoodforcars 16
@@ -325,6 +455,10 @@ assign footaccess =
        else if foot= then defaultaccess
        else not foot=private|no
 
+assign trafficsignalcost =
+        if highway=traffic_signals then 50
+        else 0
+
 assign initialcost =
-       if bikeaccess then 0
+       if bikeaccess then trafficsignalcost
        else ( if footaccess then 100 else 1000000 )
