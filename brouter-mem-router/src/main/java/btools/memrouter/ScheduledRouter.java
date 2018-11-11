@@ -45,7 +45,7 @@ final class ScheduledRouter
 
   private static List<Iternity> trips = new ArrayList<Iternity>();
   private static long oldChecksum = 0;
-  
+
   private String startEndText()
   {
     return (start == null ? "unmatched" : start.getName() ) + "->" + (end == null ? "unmatched" : end.getName() );
@@ -69,11 +69,11 @@ final class ScheduledRouter
 
     // check for identical params
     long[] nogocheck = rc.getNogoChecksums();
-    
+
     long checksum = nogocheck[0] + nogocheck[1] + nogocheck[2];
     checksum += startPos.getILat() + startPos.getILon() + endPos.getILat() + endPos.getILon();
     checksum += rc.localFunction.hashCode();
-    
+
     if ( checksum != oldChecksum )
     {
       trips = _findRoute( startPos, endPos, false );
@@ -86,7 +86,7 @@ final class ScheduledRouter
       if ( linksProcessed + linksReProcessed > 5000000 ) throw new RuntimeException( "5 million links limit reached" );
       else throw new RuntimeException( "no track found! (" + startEndText() + ")" );
     }
-    
+
     if ( alternativeIdx == 0 ) // = result overview
     {
       List<String> details = new ArrayList<String>();
@@ -101,15 +101,15 @@ final class ScheduledRouter
       t.iternity = details;
       return t;
     }
-    
+
     int idx = alternativeIdx > trips.size() ? trips.size()-1 : alternativeIdx-1;
     Iternity iternity = trips.get( idx );
     OsmTrack t = iternity.track;
     t.iternity = iternity.details;
     return t;
-  }    
-    
-    
+  }
+
+
   private List<Iternity> _findRoute( OsmPos startPos, OsmPos endPos, boolean fastStop ) throws Exception
   {
     List<Iternity> iternities = new ArrayList<Iternity>();
@@ -120,7 +120,7 @@ final class ScheduledRouter
     end = graph.matchNodeForPosition( endPos, rc.expctxWay, rc.transitonly );
     if ( end == null )
       throw new IllegalArgumentException( "unmatched end: " + endPos );
-      
+
     time0 = System.currentTimeMillis() + (long) ( rc.starttimeoffset * 60000L );
     long minutes0 = ( time0 + 59999L ) / 60000L;
     time0 = minutes0 * 60000L;
@@ -170,8 +170,8 @@ final class ScheduledRouter
       OffsetSet offsets = trip.offsets.ensureMaxOffset( maxOffset );
       if ( offsets == null )
         continue;
-     */ 
-      
+     */
+
       OffsetSet offsets = trip.offsets;
 
       // check global closure
@@ -240,7 +240,7 @@ System.out.println( "*** added track to result list !**** ");
           }
         }
 System.out.println( "*** finishedOffsets = " + finishedOffsets );
-          
+
       }
       for ( OsmLinkP link = currentNode.getFirstLink(); link != null; link = link.getNext( currentNode ) )
       {
@@ -305,9 +305,9 @@ System.out.println( "*** finishedOffsets = " + finishedOffsets );
     }
 
     // calc distance and check nogos
-    rc.nogomatch = false;
+    rc.nogomatch = null;
     int distance = rc.calcDistance( currentNode.ilon, currentNode.ilat, node.ilon, node.ilat );
-    if ( rc.nogomatch )
+    if ( rc.nogomatch != null )
     {
       return;
     }
@@ -483,7 +483,7 @@ System.out.println( "*** finishedOffsets = " + finishedOffsets );
 
     int distance = 0;
     long departure = 0;
-    
+
     ScheduledTrip itrip = null;
 
     String profile = extractProfile( rc.localFunction );
@@ -496,7 +496,7 @@ System.out.println( "*** finishedOffsets = " + finishedOffsets );
     while (current != null)
     {
       departure = current.departure;
-    
+
       // System.out.println( "trip=" + current );
       OsmNodeP node = current.getTargetNode();
       OsmPathElement pe = OsmPathElement.create( node.ilon, node.ilat, node.selev, null, false );
@@ -569,18 +569,18 @@ System.out.println( "*** finishedOffsets = " + finishedOffsets );
         iternity.details.add( "depart: " + df.format( d0 ) + " " + stationName );
         iternity.details.add( "                    --- " + lineName + " ---" );
         iternity.details.add( "arrive: " + df.format( d1 ) + " " + nextStationName );
-        
+
         if ( !iternity.lines.contains( lineName )  )
         {
           iternity.lines.add( lineName );
-        }    
+        }
       }
     }
 
     iternity.track = track;
     iternity.arrivaltime = time0 + 60000L * offset + trip.arrival;
     iternity.departtime = time0 + 60000L * offset + departure;
-    
+
     return iternity;
   }
 

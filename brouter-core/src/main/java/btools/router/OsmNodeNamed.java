@@ -17,7 +17,11 @@ public class OsmNodeNamed extends OsmNode
   @Override
   public String toString()
   {
-    return ilon + "," + ilat + "," + name + "," + nogoWeight;
+    if ( Double.isNaN(nogoWeight ) ) {
+      return ilon + "," + ilat + "," + name;
+    } else {
+      return ilon + "," + ilat + "," + name + "," + nogoWeight;
+    }
   }
 
   public static OsmNodeNamed decodeNogo( String s )
@@ -30,7 +34,7 @@ public class OsmNodeNamed extends OsmNode
     int idx3 = s.indexOf( ',', idx2+1 );
     if ( idx3 == -1) {
         n.name = s.substring( idx2 + 1 );
-        n.nogoWeight = 100000;
+        n.nogoWeight = Double.NaN;
     } else {
         n.name = s.substring( idx2+1, idx3 );
         n.nogoWeight = Double.parseDouble( s.substring( idx3 + 1 ) );
