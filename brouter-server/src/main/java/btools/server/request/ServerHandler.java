@@ -222,7 +222,7 @@ public class ServerHandler extends RequestHandler {
     for (int i = 0; i < lonLatRadList.length; i++)
     {
       String[] lonLatRad = lonLatRadList[i].split(",");
-      String nogoWeight = "100000";
+      String nogoWeight = "NaN";
       if (lonLatRad.length > 3) {
           nogoWeight = lonLatRad[3];
       }

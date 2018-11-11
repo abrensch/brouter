@@ -427,7 +427,11 @@ abstract class OsmPath implements OsmLinkHolder
         }
         if ( rc.nogomatch != null )
         {
-          cost += rc.nogomatch.nogoWeight;
+          if ( Double.isNaN(rc.nogomatch.nogoWeight) ) {
+            cost = -1;
+          } else {
+            cost += rc.nogomatch.nogoWeight;
+          }
         }
         return;
       }
@@ -462,7 +466,12 @@ abstract class OsmPath implements OsmLinkHolder
     // check for nogo-matches (after the *actual* start of segment)
     if ( rc.nogomatch != null )
     {
-      cost += rc.nogomatch.nogoWeight;
+      if ( Double.isNaN(rc.nogomatch.nogoWeight) ) {
+        cost = -1;
+        return;
+      } else {
+        cost += rc.nogomatch.nogoWeight;
+      }
     }
 
     // add target-node costs

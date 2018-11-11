@@ -180,7 +180,6 @@ final class StdPath extends OsmPath
     return 0.;
   }
 
-
   @Override
   public int elevationCorrection( RoutingContext rc )
   {
