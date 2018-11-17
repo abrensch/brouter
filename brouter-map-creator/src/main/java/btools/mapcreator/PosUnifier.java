@@ -28,8 +28,8 @@ public class PosUnifier extends MapCreatorBase
   private CompactLongSet positionSet;
 
   private HashMap<String, SrtmRaster> srtmmap;
-  private int lastStrmLonIdx;
-  private int lastStrmLatIdx;
+  private int lastSrtmLonIdx;
+  private int lastSrtmLatIdx;
   private SrtmRaster lastSrtmRaster;
   private String srtmdir;
 
@@ -40,7 +40,7 @@ public class PosUnifier extends MapCreatorBase
     System.out.println( "*** PosUnifier: Unify position values and enhance elevation" );
     if ( args.length != 5 )
     {
-      System.out.println( "usage: java PosUnifier <node-tiles-in> <node-tiles-out> <bordernids-in> <bordernodes-out> <strm-data-dir>" );
+      System.out.println( "usage: java PosUnifier <node-tiles-in> <node-tiles-out> <bordernids-in> <bordernodes-out> <srtm-data-dir>" );
       return;
     }
     new PosUnifier().process( new File( args[0] ), new File( args[1] ), new File( args[2] ), new File( args[3] ), args[4] );
@@ -145,12 +145,12 @@ public class PosUnifier extends MapCreatorBase
     {
       return null;
     }
-    if ( srtmLonIdx == lastStrmLonIdx && srtmLatIdx == lastStrmLatIdx )
+    if ( srtmLonIdx == lastSrtmLonIdx && srtmLatIdx == lastSrtmLatIdx )
     {
       return lastSrtmRaster;
     }
-    lastStrmLonIdx = srtmLonIdx;
-    lastStrmLatIdx = srtmLatIdx;
+    lastSrtmLonIdx = srtmLonIdx;
+    lastSrtmLatIdx = srtmLatIdx;
 
     StringBuilder sb = new StringBuilder( 16 );
     sb.append( "srtm_" );
@@ -201,8 +201,8 @@ public class PosUnifier extends MapCreatorBase
   private void resetSrtm()
   {
     srtmmap = new HashMap<String, SrtmRaster>();
-    lastStrmLonIdx = -1;
-    lastStrmLatIdx = -1;
+    lastSrtmLonIdx = -1;
+    lastSrtmLatIdx = -1;
     lastSrtmRaster = null;
   }
 
