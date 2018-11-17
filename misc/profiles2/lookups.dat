@@ -1,5 +1,5 @@
 ---lookupversion:10
----minorversion:8
+---minorversion:9
 
 ---context:way
 
@@ -449,7 +449,7 @@ class:bicycle;0000000516 -2
 class:bicycle;0000000245 -3
 class:bicycle;0000000170 0
 class:bicycle;0000000108 3 +3
-  
+
 route_bicycle_icn;0000088753 yes
 route_bicycle_icn;0000000001 proposed
 route_bicycle_ncn;0000268180 yes
@@ -571,6 +571,21 @@ hov;0000006684 lane
 hov;0000003258 designated
 hov;0000002162 no
 hov;0000001512 yes
+
+busway;0000000000 opposite opposite_lane opposite_track
+busway:left;0000000000 opposite opposite_lane opposite_track
+busway:right;0000000000 opposite opposite_lane opposite_track
+
+cycleway:left:oneway;0000000769 yes
+cycleway:left:oneway;0000001595 no
+cycleway:left:oneway;0000000927 -1
+
+cycleway:right:oneway;0000003084 yes
+cycleway:right:oneway;0000002499 no
+cycleway:right:oneway;0000000017 -1
+
+zone:maxspeed;0000001616 20 DE:20 FR:20
+zone:maxspeed;0000063721 30 DE:30 FR:30 BE:30 HU:30 NO:30 AT:30 ES:30 NL:30
 
 ---context:node
 
@@ -719,7 +734,7 @@ motor_vehicle;0000000469 no
 motorcycle;0000028697 yes
 motorcycle;0000007061 no
 motorcycle;0000000243 private
-motorcycle;0000000237 designated 
+motorcycle;0000000237 designated
 motorcycle;0000000117 destination
 motorcycle;0000000080 permissive
 motorcycle;0000000029 agricultural forestry
@@ -739,7 +754,7 @@ horse;0000000065 permissive
 horse;0000000053 designated official
 horse;0000000009 critical
 horse;0000000007 destination
-  
+
 wheelchair;0000203478 yes true
 wheelchair;0000100082 no false
 wheelchair;0000080430 limited
