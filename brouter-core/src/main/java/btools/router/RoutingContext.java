@@ -34,7 +34,7 @@ public final class RoutingContext
   public Map<String,String> keyValues;
 
   public String rawTrackPath;
-  
+
   public String getProfileName()
   {
     String name = localFunction == null ? "unknown" : localFunction;
@@ -46,17 +46,18 @@ public final class RoutingContext
 
   public BExpressionContextWay expctxWay;
   public BExpressionContextNode expctxNode;
-  
+
   public GeometryDecoder geometryDecoder = new GeometryDecoder();
 
   public int memoryclass = 64;
-  
+
   public int downhillcostdiv;
   public int downhillcutoff;
   public int uphillcostdiv;
   public int uphillcutoff;
   public boolean carMode;
   public boolean bikeMode;
+  public boolean footMode;
   public boolean considerTurnRestrictions;
   public boolean processUnusedTags;
   public boolean forceSecondaryData;
@@ -74,8 +75,8 @@ public final class RoutingContext
   public double inittimeadjustment;
   public double starttimeoffset;
   public boolean transitonly;
-  
-  
+
+
   private void setModel( String className )
   {
     if ( className == null )
@@ -96,7 +97,7 @@ public final class RoutingContext
     }
     initModel();
   }
-  
+
   public void initModel()
   {
     pm.init( expctxWay, expctxNode, keyValues );
@@ -120,7 +121,7 @@ public final class RoutingContext
     BExpressionContext expctxGlobal = expctxWay; // just one of them...
 
     setModel( expctxGlobal._modelClass );
-  
+
     downhillcostdiv = (int)expctxGlobal.getVariableValue( "downhillcost", 0.f );
     downhillcutoff = (int)(expctxGlobal.getVariableValue( "downhillcutoff", 0.f )*10000);
     uphillcostdiv = (int)expctxGlobal.getVariableValue( "uphillcost", 0.f );
@@ -129,6 +130,7 @@ public final class RoutingContext
     if ( uphillcostdiv != 0 ) uphillcostdiv = 1000000/uphillcostdiv;
     carMode = 0.f != expctxGlobal.getVariableValue( "validForCars", 0.f );
     bikeMode = 0.f != expctxGlobal.getVariableValue( "validForBikes", 0.f );
+    footMode = 0.f != expctxGlobal.getVariableValue( "validForFoot", 0.f );
 
     // turn-restrictions used per default for car profiles
     considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue( "considerTurnRestrictions", carMode ? 1.f : 0.f );
@@ -170,6 +172,20 @@ public final class RoutingContext
     }
     turnInstructionCatchingRange = expctxGlobal.getVariableValue( "turnInstructionCatchingRange", 40.f );
     turnInstructionRoundabouts = expctxGlobal.getVariableValue( "turnInstructionRoundabouts", 1.f ) != 0.f;
+
+    // Speed computation model (for bikes)
+    if (bikeMode) {
+      // Mass of the biker + bike + luggages, in kg
+      bikeMass = expctxGlobal.getVariableValue( "bikeMass", 90.f );
+      // Max speed (before braking), in km/h in profile and m/s in code
+      maxSpeed = expctxGlobal.getVariableValue( "maxSpeed", 45.f ) / 3.6;
+      // Equivalent surface for wind, S * C_x, F = -1/2 * S * C_x * v^2 = - S_C_x * v^2
+      S_C_x = expctxGlobal.getVariableValue( "S_C_x", 0.5f * 0.45f );
+      // Default resistance of the road, F = - m * g * C_r (for good quality road)
+      defaultC_r = expctxGlobal.getVariableValue( "C_r", 0.01f );
+      // Constant power of the biker (in W)
+      bikerPower = expctxGlobal.getVariableValue( "bikerPower", 100.f );
+    }
   }
 
   public List<OsmNodeNamed> nogopoints = null;
@@ -202,12 +218,19 @@ public final class RoutingContext
 
   public boolean showspeed;
   public boolean inverseRouting;
-  
+
   public OsmPrePath firstPrePath;
 
   public int turnInstructionMode; // 0=none, 1=auto, 2=locus, 3=osmand, 4=comment-style, 5=gpsies-style
   public double turnInstructionCatchingRange;
   public boolean turnInstructionRoundabouts;
+
+  // Speed computation model (for bikes)
+  public double bikeMass;
+  public double maxSpeed;
+  public double S_C_x;
+  public double defaultC_r;
+  public double bikerPower;
 
   public static void prepareNogoPoints( List<OsmNodeNamed> nogos )
   {
@@ -242,7 +265,7 @@ public final class RoutingContext
       {
         if ( wp.calcDistance( nogo ) < radiusInMeter
             && (!(nogo instanceof OsmNogoPolygon)
-                || (((OsmNogoPolygon)nogo).isClosed 
+                || (((OsmNogoPolygon)nogo).isClosed
                     ? ((OsmNogoPolygon)nogo).isWithin(wp.ilon, wp.ilat)
                         : ((OsmNogoPolygon)nogo).isOnPolyline(wp.ilon, wp.ilat))))
         {
@@ -268,7 +291,7 @@ public final class RoutingContext
     }
     return cs;
   }
-  
+
   public void setWaypoint( OsmNodeNamed wp, boolean endpoint )
   {
     keepnogopoints = nogopoints;
@@ -438,9 +461,9 @@ public final class RoutingContext
     double x4 = x2*x2;
     return x * ( 57.4539 + 9.57565 * x2 + 4.30904 * x4 + 2.56491 * x2*x4 );
   }
-  
+
   public OsmPathModel pm;
-  
+
   public OsmPrePath createPrePath( OsmPath origin, OsmLink link )
   {
     OsmPrePath p = pm.createPrePath();
@@ -464,5 +487,5 @@ public final class RoutingContext
     p.init( origin, link, refTrack, detailMode, this );
     return p;
   }
-  
+
 }
