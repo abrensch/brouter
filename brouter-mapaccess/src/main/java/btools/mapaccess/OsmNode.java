@@ -9,6 +9,7 @@ import btools.codec.MicroCache;
 import btools.codec.MicroCache2;
 import btools.expressions.BExpressionContextWay;
 import btools.util.ByteArrayUnifier;
+import btools.util.CheapRuler;
 import btools.util.IByteArrayUnifier;
 
 public class OsmNode extends OsmLink implements OsmPos
@@ -32,7 +33,7 @@ public class OsmNode extends OsmLink implements OsmPos
    * The node-tags, if any
    */
   public byte[] nodeDescription;
-  
+
   public TurnRestriction firstRestriction;
 
   /**
@@ -102,15 +103,7 @@ public class OsmNode extends OsmLink implements OsmPos
 
   public final int calcDistance( OsmPos p )
   {
-    double l = ( ilat - 90000000 ) * 0.00000001234134;
-    double l2 = l * l;
-    double l4 = l2 * l2;
-    double coslat = 1. - l2 + l4 / 6.;
-
-    double dlat = ( ilat - p.getILat() );
-    double dlon = ( ilon - p.getILon() ) * coslat;
-    double d = Math.sqrt( dlat * dlat + dlon * dlon ) * 0.110984; //  6378000. / 57.3;
-    return (int) ( d + 1.0 );
+    return (int) (CheapRuler.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0);
   }
 
   public String toString()
@@ -131,7 +124,7 @@ public class OsmNode extends OsmLink implements OsmPos
   public final void parseNodeBody2( MicroCache2 mc, OsmNodesMap hollowNodes, IByteArrayUnifier expCtxWay )
   {
     ByteArrayUnifier abUnifier = hollowNodes.getByteArrayUnifier();
-    
+
     // read turn restrictions
     while( mc.readBoolean() )
     {
@@ -149,7 +142,7 @@ public class OsmNode extends OsmLink implements OsmPos
     selev = mc.readShort();
     int nodeDescSize = mc.readVarLengthUnsigned();
     nodeDescription = nodeDescSize == 0 ? null : mc.readUnified( nodeDescSize, abUnifier );
-    
+
     OsmLink link0 = firstlink;
 
     while (mc.hasMoreData())
@@ -233,7 +226,7 @@ public class OsmNode extends OsmLink implements OsmPos
   public final void unlinkLink( OsmLink link )
   {
     OsmLink n = link.clear( this );
-  
+
     if ( link == firstlink )
     {
       firstlink = n;
