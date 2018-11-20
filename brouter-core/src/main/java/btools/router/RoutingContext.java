@@ -307,6 +307,7 @@ public final class RoutingContext
 
   public int calcDistance( int lon1, int lat1, int lon2, int lat2 )
   {
+    // TODO[Phyks]
     double l = (lat2 - 90000000) * 0.00000001234134;
     double l2 = l*l;
     double l4 = l2*l2;
