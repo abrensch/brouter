@@ -1,5 +1,6 @@
 package btools.mapcreator;
 
+import btools.util.CheapRulerSingleton;
 import btools.util.ReducedMedianFilter;
 
 /**
@@ -26,7 +27,7 @@ public class SrtmRaster
   {
     double lon = ilon / 1000000. - 180.;
     double lat = ilat / 1000000. - 90.;
-    
+
     if ( usingWeights )
     {
       return getElevationFromShiftWeights( lon, lat );
@@ -50,7 +51,7 @@ public class SrtmRaster
              + (   wrow)*(1.-wcol)*get(row+1,col  )
              + (1.-wrow)*(   wcol)*get(row  ,col+1)
              + (   wrow)*(   wcol)*get(row+1,col+1);
-// System.out.println( "eval=" + eval );    
+// System.out.println( "eval=" + eval );
     return missingData ? Short.MIN_VALUE : (short)(eval*4);
   }
 
@@ -60,7 +61,7 @@ public class SrtmRaster
     if ( e == Short.MIN_VALUE ) missingData = true;
     return e;
   }
-  
+
   private short getElevationFromShiftWeights( double lon, double lat )
   {
     // calc lat-idx and -weight
@@ -68,7 +69,7 @@ public class SrtmRaster
     alat /= 5.;
     int latIdx = (int)alat;
     double wlat = alat - latIdx;
-  
+
     double dcol = (lon - xllcorner)/cellsize;
     double drow = (lat - yllcorner)/cellsize;
     int row = (int)drow;
@@ -78,7 +79,7 @@ public class SrtmRaster
     double dgy = (drow-row)*gridSteps;
 
 //      System.out.println( "wrow=" + wrow + " wcol=" + wcol + " row=" + row + " col=" + col );
-      
+
     int gx = (int)(dgx);
     int gy = (int)(dgy);
 
@@ -89,12 +90,12 @@ public class SrtmRaster
     double w01 = (1.-wx)*(   wy);
     double w10 = (   wx)*(1.-wy);
     double w11 = (   wx)*(   wy);
-    
+
     Weights[][] w0 = getWeights( latIdx   );
     Weights[][] w1 = getWeights( latIdx+1 );
 
     missingData = false;
-    
+
     double m0 = w00*getElevation( w0[gx  ][gy  ], row, col )
               + w01*getElevation( w0[gx  ][gy+1], row, col )
               + w10*getElevation( w0[gx+1][gy  ], row, col )
@@ -110,7 +111,7 @@ public class SrtmRaster
   }
 
   private ReducedMedianFilter rmf = new ReducedMedianFilter( 256 );
-  
+
   private double getElevation( Weights w, int row, int col )
   {
     if ( missingData )
@@ -186,7 +187,7 @@ public class SrtmRaster
       return weights[ iy*nx + ix ];
     }
   }
-  
+
   private static int gridSteps = 10;
   private static Weights[][][] allShiftWeights = new Weights[17][][];
 
@@ -208,15 +209,15 @@ public class SrtmRaster
       System.out.println( "using filterCenterFraction = " + filterCenterFraction );
     }
   }
-  
-  
+
+
   // calculate interpolation weights from the overlap of a probe disc of given radius at given latitude
   // ( latIndex = 0 -> 0 deg, latIndex = 16 -> 80 degree)
 
   private static Weights[][] getWeights( int latIndex )
   {
     int idx = latIndex < 16 ? latIndex : 16;
-  
+
     Weights[][] res = allShiftWeights[idx];
     if ( res == null )
     {
@@ -228,23 +229,24 @@ public class SrtmRaster
 
   private static Weights[][] calcWeights( int latIndex )
   {
-    double coslat = Math.cos( latIndex * 5. / 57.3 );
-    
+    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
+    double coslat = cr.cosLat(latIndex * 5.);
+
     // radius in pixel units
     double ry = filterDiscRadius;
     double rx = ry / coslat;
-    
+
     // gridsize is 2*radius + 1 cell
     int nx = ((int)rx) *2 + 3;
     int ny = ((int)ry) *2 + 3;
 
     System.out.println( "nx="+ nx + " ny=" + ny );
-    
+
     int mx = nx / 2; // mean pixels
     int my = ny / 2;
 
     // create a matrix for the relative intergrid-position
-    
+
     Weights[][] shiftWeights = new Weights[gridSteps+1][];
 
     // loop the intergrid-position
@@ -262,11 +264,11 @@ public class SrtmRaster
         shiftWeights[gx][gy] = weights;
 
         double sampleStep = 0.001;
-        
+
         for( double x = -1. + sampleStep/2.; x < 1.; x += sampleStep )
         {
           double mx2 = 1. - x*x;
-          
+
           int  x_idx = (int)(x0 + x*rx);
 
           for( double y = -1. + sampleStep/2.; y < 1.; y += sampleStep )

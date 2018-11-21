@@ -15,9 +15,9 @@ public final class CheapRulerSingleton {
   private static volatile CheapRulerSingleton instance = null;
 
   // Conversion constants
-  private final static double ILATLNG_TO_LATLNG = 1e-6; // From integer to degrees
-  private final static int KILOMETERS_TO_METERS = 1000;
-  private final static double DEG_TO_RAD = Math.PI / 180.;
+  public final static double ILATLNG_TO_LATLNG = 1e-6; // From integer to degrees
+  public final static int KILOMETERS_TO_METERS = 1000;
+  public final static double DEG_TO_RAD = Math.PI / 180.;
 
   // Cosine cache constants
   private final static int COS_CACHE_LENGTH = 8192;
@@ -58,13 +58,23 @@ public final class CheapRulerSingleton {
   /**
    * Helper to compute the cosine of an integer latitude.
    */
-  private double cosLat(int ilat) {
+  public double cosIlat(int ilat) {
     double latDegrees = ilat * ILATLNG_TO_LATLNG;
     if (ilat > 90000000) {
         // Use the symmetry of the cosine.
         latDegrees -= 90;
     }
     return COS_CACHE[(int) (latDegrees * COS_CACHE_LENGTH / COS_CACHE_MAX_DEGREES)];
+  }
+
+  /**
+   * Helper to compute the cosine of a latitude (in degrees).
+   */
+  public double cosLat(double lat) {
+    if (lat < 0) {
+      lat += 90.;
+    }
+    return COS_CACHE[(int) (lat * COS_CACHE_LENGTH / COS_CACHE_MAX_DEGREES)];
   }
 
   /**
@@ -80,7 +90,7 @@ public final class CheapRulerSingleton {
    *                Integer latitude is ((latitude in degrees) + 90) * 1e6.
    */
   public double distance(int ilon1, int ilat1, int ilon2, int ilat2) {
-    double cos = cosLat(ilat1);
+    double cos = cosIlat(ilat1);
     double cos2 = 2 * cos * cos - 1;
     double cos3 = 2 * cos * cos2 - cos;
     double cos4 = 2 * cos * cos3 - cos2;

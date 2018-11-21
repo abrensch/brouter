@@ -26,12 +26,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import btools.router.OsmNogoPolygon.Point;
+import btools.util.CheapRulerSingleton;
 
 public class OsmNogoPolygonTest {
 
   static final int offset_x = 11000000;
   static final int offset_y = 50000000;
-  
+
   static OsmNogoPolygon polygon;
   static OsmNogoPolygon polyline;
 
@@ -41,20 +42,11 @@ public class OsmNogoPolygonTest {
   static int toOsmLon(double lon) {
     return (int)( ( lon + 180. ) *1000000. + 0.5)+offset_x; // see ServerHandler.readPosition()
   }
-  
+
   static int toOsmLat(double lat) {
     return (int)( ( lat +  90. ) *1000000. + 0.5)+offset_y;
   }
-  
-  static double coslat(int lat) // see RoutingContext.calcDistance()
-  {
-    final double l = (lat - 90000000) * 0.00000001234134; // 0.01234134 = Pi/(sqrt(2)*180)
-    final double l2 = l*l;
-    final double l4 = l2*l2;
-//    final double l6 = l4*l2;
-    return 1.- l2 + l4 / 6.; // - l6 / 90;
-  }
-  
+
   @BeforeClass
   public static void setUp() throws Exception {
     polygon = new OsmNogoPolygon(true);
@@ -66,20 +58,22 @@ public class OsmNogoPolygonTest {
       polyline.addVertex(toOsmLon(lons[i]),toOsmLat(lats[i]));
     }
   }
-  
+
   @AfterClass
   public static void tearDown() throws Exception {
   }
 
   @Test
   public void testCalcBoundingCircle() {
+    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
+
     polygon.calcBoundingCircle();
     double r = polygon.radius;
     for (int i=0; i<lons.length; i++) {
       double py = toOsmLat(lats[i]);
-      double dpx = (toOsmLon(lons[i]) - polygon.ilon) * coslat(polygon.ilat);
+      double dpx = (toOsmLon(lons[i]) - polygon.ilon) * cr.cosIlat(polygon.ilat);
       double dpy = py - polygon.ilat;
-      double r1 = Math.sqrt(dpx * dpx + dpy * dpy) * 0.000001;
+      double r1 = Math.sqrt(dpx * dpx + dpy * dpy) * cr.ILATLNG_TO_LATLNG;
       double diff = r-r1;
       assertTrue("i: "+i+" r("+r+") >= r1("+r1+")", diff >= 0);
     }
@@ -87,9 +81,9 @@ public class OsmNogoPolygonTest {
     r = polyline.radius;
     for (int i=0; i<lons.length; i++) {
       double py = toOsmLat(lats[i]);
-      double dpx = (toOsmLon(lons[i]) - polyline.ilon) * coslat(polyline.ilat);
+      double dpx = (toOsmLon(lons[i]) - polyline.ilon) * cr.cosIlat(polyline.ilat);
       double dpy = py - polyline.ilat;
-      double r1 = Math.sqrt(dpx * dpx + dpy * dpy) * 0.000001;
+      double r1 = Math.sqrt(dpx * dpx + dpy * dpy) * cr.ILATLNG_TO_LATLNG;
       double diff = r-r1;
       assertTrue("i: "+i+" r("+r+") >= r1("+r1+")", diff >= 0);
     }
@@ -97,7 +91,7 @@ public class OsmNogoPolygonTest {
 
   @Test
   public void testIsWithin() {
-    double[] plons   = {  0.0,   0.5,   1.0,  -1.5,  -0.5,  1.0,  1.0,  0.5,  0.5,  0.5, }; 
+    double[] plons   = {  0.0,   0.5,   1.0,  -1.5,  -0.5,  1.0,  1.0,  0.5,  0.5,  0.5, };
     double[] plats   = {  0.0,   1.5,   0.0,   0.5,  -1.5, -1.0, -0.1, -0.1,  0.0,  0.1, };
     boolean[] within = { true, false, false, false, false, true, true, true, true, true, };
 

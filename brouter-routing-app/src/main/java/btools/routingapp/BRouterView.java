@@ -38,6 +38,7 @@ import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
 import btools.router.RoutingHelper;
+import btools.util.CheapRulerSingleton;
 
 public class BRouterView extends View
 {
@@ -247,7 +248,7 @@ public class BRouterView extends View
         if ( fileName.equals( "lookups.dat" ) )
           lookupsFound = true;
       }
-      
+
       // add a "last timeout" dummy profile
       File lastTimeoutFile = new File( modesDir + "/timeoutdata.txt" );
       long lastTimeoutTime = lastTimeoutFile.lastModified();
@@ -255,7 +256,7 @@ public class BRouterView extends View
       {
         profiles.add( 0, "<repeat timeout>" );
       }
-      
+
       if ( !lookupsFound )
       {
         throw new IllegalArgumentException( "The profile-directory " + profileDir + " does not contain the lookups.dat file."
@@ -339,7 +340,7 @@ public class BRouterView extends View
       {
         msg = "Error reading waypoints: " + e.toString();
       }
-      
+
       int size = cor.allpoints.size();
       if ( size < 1 )
         msg = "coordinate source does not contain any waypoints!";
@@ -508,7 +509,8 @@ public class BRouterView extends View
       centerLon = ( maxlon + minlon ) / 2;
       centerLat = ( maxlat + minlat ) / 2;
 
-      double coslat = Math.cos( ( ( centerLat / 1000000. ) - 90. ) / 57.3 );
+      CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
+      double coslat = cr.cosIlat(centerLat);
       double difflon = maxlon - minlon;
       double difflat = maxlat - minlat;
 
@@ -522,7 +524,7 @@ public class BRouterView extends View
       startTime = System.currentTimeMillis();
       RoutingContext.prepareNogoPoints( nogoList );
       rc.nogopoints = nogoList;
-      
+
       rc.memoryclass = memoryClass;
       if ( memoryClass < 16 )
       {
@@ -532,9 +534,9 @@ public class BRouterView extends View
       {
         rc.memoryclass = 256;
       }
-        
 
-      // for profile remote, use ref-track logic same as service interface 
+
+      // for profile remote, use ref-track logic same as service interface
       rc.rawTrackPath = rawTrackPath;
 
       cr = new RoutingEngine( tracksDir + "/brouter", null, segmentDir, wpList, rc );
@@ -642,7 +644,7 @@ public class BRouterView extends View
       canvas.drawCircle( (float) x, (float) y, (float) ir, paint );
     }
   }
-  
+
   private void paintLine( Canvas canvas, final int ilon0, final int ilat0, final int ilon1, final int ilat1, final Paint paint )
   {
     final int lon0 = ilon0 - centerLon;
@@ -655,7 +657,7 @@ public class BRouterView extends View
     final int y1 = imgh / 2 - (int) ( scaleLat * lat1 );
     canvas.drawLine( (float) x0, (float) y0,  (float) x1,  (float) y1, paint );
   }
-  
+
   private void paintPolygon( Canvas canvas, OsmNogoPolygon p, int minradius )
   {
     final int ir = (int) ( p.radius * 1000000. * scaleLat );
@@ -666,7 +668,7 @@ public class BRouterView extends View
       paint.setStyle( Paint.Style.STROKE );
 
       Point p0 = p.isClosed ? p.points.get(p.points.size()-1) : null;
-  
+
       for ( final Point p1 : p.points )
       {
         if (p0 != null)
@@ -865,7 +867,7 @@ public class BRouterView extends View
         {
           paintPolygon( canvas, (OsmNogoPolygon)n, 4 );
         }
-        else 
+        else
         {
           int color = 0xff0000;
           paintCircle( canvas, n, color, 4 );
