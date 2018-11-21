@@ -12,6 +12,7 @@ import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmTransferNode;
 import btools.mapaccess.TurnRestriction;
+import btools.util.CheapRulerSingleton;
 
 abstract class OsmPath implements OsmLinkHolder
 {
@@ -344,7 +345,7 @@ abstract class OsmPath implements OsmLinkHolder
       {
         if ( rc.startDirectionValid )
         {
-          double dir = rc.startDirection.intValue() / 57.29578;
+          double dir = rc.startDirection.intValue() / CheapRulerSingleton.DEG_TO_RAD;
           lon0 = lon1 - (int) ( 1000. * Math.sin( dir ) / rc.getCosLat() );
           lat0 = lat1 - (int) ( 1000. * Math.cos( dir ) );
         }
