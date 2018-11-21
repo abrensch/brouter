@@ -6,7 +6,7 @@
 package btools.memrouter;
 
 import btools.mapaccess.OsmPos;
-import btools.util.CheapRuler;
+import btools.util.CheapRulerSingleton;
 
 public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>, OsmPos
 {
@@ -103,7 +103,8 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>, OsmPos
   @Override
   public int calcDistance( OsmPos p )
   {
-    return (int)(CheapRuler.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0 );
+    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
+    return (int)(cr.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0 );
   }
 
   @Override

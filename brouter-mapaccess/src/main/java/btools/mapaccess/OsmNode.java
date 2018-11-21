@@ -9,7 +9,7 @@ import btools.codec.MicroCache;
 import btools.codec.MicroCache2;
 import btools.expressions.BExpressionContextWay;
 import btools.util.ByteArrayUnifier;
-import btools.util.CheapRuler;
+import btools.util.CheapRulerSingleton;
 import btools.util.IByteArrayUnifier;
 
 public class OsmNode extends OsmLink implements OsmPos
@@ -103,7 +103,8 @@ public class OsmNode extends OsmLink implements OsmPos
 
   public final int calcDistance( OsmPos p )
   {
-    return (int) (CheapRuler.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0);
+    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
+    return (int) (cr.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0);
   }
 
   public String toString()
