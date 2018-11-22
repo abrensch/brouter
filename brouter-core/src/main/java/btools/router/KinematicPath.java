@@ -9,14 +9,10 @@ package btools.router;
 final class KinematicPath extends OsmPath
 {
   private double ekin; // kinetic energy (Joule)
+  private double totalTime;  // travel time (seconds)
   private double totalEnergy; // total route energy (Joule)
   private float floatingAngleLeft; // sliding average left bend (degree)
   private float floatingAngleRight; // sliding average right bend (degree)
-
-  KinematicPath() {
-    super();
-    computeTime = false;  // Time is already computed by the kinematic model.
-  }
 
   @Override
   protected void init( OsmPath orig )
@@ -258,18 +254,6 @@ final class KinematicPath extends OsmPath
     if ( ekin > e ) ekin = e;
   }
 
-  private static double exp( double e )
-  {
-    double x = e;
-    double f = 1.;
-    while( e < -1. )
-    {
-      e += 1.;
-      f *= 0.367879;
-    }
-    return f*( 1. + x*( 1. + x * ( 0.5 +  x * ( 0.166667 + 0.0416667 * x) ) ) );
-  }
-
 
   @Override
   public int elevationCorrection( RoutingContext rc )
@@ -286,13 +270,13 @@ final class KinematicPath extends OsmPath
 	  return cost > c + 100;
   }
 
-
-
+  @Override
   public double getTotalTime()
   {
     return totalTime;
   }
 
+  @Override
   public double getTotalEnergy()
   {
     return totalEnergy;

@@ -50,12 +50,6 @@ abstract class OsmPath implements OsmLinkHolder
 
   protected int priorityclassifier;
 
-  protected boolean computeTime = false;
-  protected double totalTime;  // travel time (seconds)
-  // Gravitational constant, g
-  private double GRAVITY = 9.81;  // in meters per second^(-2)
-
-
   private static final int PATH_START_BIT = 1;
   private static final int CAN_LEAVE_DESTINATION_BIT = 2;
   private static final int IS_ON_DESTINATION_BIT = 4;
@@ -375,6 +369,9 @@ abstract class OsmPath implements OsmLinkHolder
         }
       }
 
+      
+
+
       double elevation = ele2 == Short.MIN_VALUE ? 100. : ele2/4.;
 
       double sectionCost = processWaySection( rc, dist, delta_h, elevation, angle, cosangle, isStartpoint, nsection, lastpriorityclassifier );
@@ -402,68 +399,6 @@ abstract class OsmPath implements OsmLinkHolder
       String wayKeyValues = "";
       if ( message != null ) {
         wayKeyValues = rc.expctxWay.getKeyValueDescription( isReverse, description );
-      }
-
-      // Only do speed computation for detailMode (final) and bike or foot modes.
-      if (detailMode && computeTime)
-      {
-        // Travel speed
-        double speed = Double.NaN;
-        if (rc.footMode || (rc.bikeMode && wayKeyValues.contains("bicycle=dismount")))
-        {
-          // Use Tobler's hiking function for walking sections
-          speed = 6 * Math.exp(-3.5 * Math.abs(elevation / dist + 0.05)) / 3.6;
-        }
-        else if (rc.bikeMode)
-        {
-          // Uphill angle
-          double alpha = Math.atan2(delta_h, dist);
-
-          // Compute the speed assuming a basic kinematic model with constant
-          // power.
-          // Solves a * v^3 + b * v^2 + c * v + d = 0 with a Newton method to get
-          // the speed v for the section.
-          double a = rc.S_C_x;
-          double b = 0.0;
-          double c = (rc.bikeMass * GRAVITY * (rc.defaultC_r + Math.sin(alpha)));
-          double d = -1. * rc.bikerPower;
-
-          double tolerance = 1e-3;
-          int max_count = 10;
-
-          // Initial guess, this works rather well considering the allowed speeds.
-          speed = rc.maxSpeed;
-          double y = (a * speed * speed * speed) + (b * speed * speed) + (c * speed) + d;
-          double y_prime = (3 * a * speed * speed) + (2 * b * speed) + c;
-
-          int i = 0;
-          for (i = 0; (Math.abs(y) > tolerance) && (i < max_count); i++)  {
-            speed = speed - y / y_prime;
-            if (speed > rc.maxSpeed || speed <= 0) {
-              // No need to compute further, the speed is likely to be
-              // invalid or force set to maxspeed.
-              speed = rc.maxSpeed;
-              break;
-            }
-            y = (a * speed * speed * speed) + (b * speed * speed) + (c * speed) + d;
-            y_prime = (3 * a * speed * speed) + (2 * b * speed) + c;
-          }
-
-          if (i == max_count)
-          {
-            // Newton method did not converge, speed is invalid.
-            speed = Double.NaN;
-          }
-          else
-          {
-            // Speed cannot exceed max speed
-            speed = Math.min(speed, rc.maxSpeed);
-          }
-        }
-        if (!Double.isNaN(speed) && speed > 0)
-        {
-          totalTime += dist / speed;
-        }
       }
 
         if ( message != null )
@@ -555,6 +490,10 @@ abstract class OsmPath implements OsmLinkHolder
 
   protected abstract double processTargetNode( RoutingContext rc );
 
+  protected void computeKinematic( RoutingContext rc, double dist, double delta_h, boolean detailMode )
+  {
+  }
+
   public abstract int elevationCorrection( RoutingContext rc );
 
   public abstract boolean definitlyWorseThan( OsmPath p, RoutingContext rc );
@@ -587,11 +526,23 @@ abstract class OsmPath implements OsmLinkHolder
 
   public double getTotalTime()
   {
-    return totalTime;
+    return 0.;
   }
 
   public double getTotalEnergy()
   {
     return 0.;
+  }
+
+  protected static double exp( double e )
+  {
+    double x = e;
+    double f = 1.;
+    while( e < -1. )
+    {
+      e += 1.;
+      f *= 0.367879;
+    }
+    return f*( 1. + x*( 1. + x * ( 0.5 +  x * ( 0.166667 + 0.0416667 * x) ) ) );
   }
 }
