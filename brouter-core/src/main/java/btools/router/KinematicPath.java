@@ -9,10 +9,14 @@ package btools.router;
 final class KinematicPath extends OsmPath
 {
   private double ekin; // kinetic energy (Joule)
-  private double totalTime;  // travel time (seconds)
   private double totalEnergy; // total route energy (Joule)
   private float floatingAngleLeft; // sliding average left bend (degree)
   private float floatingAngleRight; // sliding average right bend (degree)
+
+  KinematicPath() {
+    super();
+    computeTime = false;  // Time is already computed by the kinematic model.
+  }
 
   @Override
   protected void init( OsmPath orig )
@@ -35,12 +39,12 @@ final class KinematicPath extends OsmPath
     floatingAngleLeft = 0.f;
     floatingAngleRight = 0.f;
   }
-  
+
   @Override
   protected double processWaySection( RoutingContext rc, double dist, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier )
   {
     KinematicModel km = (KinematicModel)rc.pm;
-    
+
     double cost = 0.;
     double extraTime = 0.;
 
@@ -64,7 +68,7 @@ final class KinematicPath extends OsmPath
         if ( angle < 0 ) floatingAngleLeft -= (float)angle;
         else             floatingAngleRight += (float)angle;
         float aa = Math.max( floatingAngleLeft, floatingAngleRight );
-          
+
         if       ( aa > 130. ) turnspeed = 0.;
         else if  ( aa > 100. ) turnspeed = 1.;
         else if  ( aa > 70. ) turnspeed = 2.;
@@ -73,9 +77,9 @@ final class KinematicPath extends OsmPath
         else if  ( aa > 20. ) turnspeed = 14.;
         else if  ( aa > 10. ) turnspeed = 20.;
       }
-       
+
       if ( nsection == 0 ) // process slowdown by crossing geometry
-      { 
+      {
         int classifiermask = (int)rc.expctxWay.getClassifierMask();
 
         // penalty for equal priority crossing
@@ -85,12 +89,12 @@ final class KinematicPath extends OsmPath
         for( OsmPrePath prePath = rc.firstPrePath; prePath != null; prePath = prePath.next )
         {
           KinematicPrePath pp = (KinematicPrePath)prePath;
-          
+
           if ( ( (pp.classifiermask ^ classifiermask) & 8 ) != 0 ) // exactly one is linktype
           {
             continue;
           }
-          
+
           if ( ( pp.classifiermask & 32 ) != 0 ) // touching a residential?
           {
             hasResidential = true;
@@ -104,7 +108,7 @@ final class KinematicPath extends OsmPath
           }
         }
         double residentialSpeed = 13.;
-          
+
         if ( hasLeftWay && turnspeed > km.leftWaySpeed ) turnspeed = km.leftWaySpeed;
         if ( hasRightWay && turnspeed > km.rightWaySpeed ) turnspeed = km.rightWaySpeed;
         if ( hasResidential && turnspeed > residentialSpeed ) turnspeed = residentialSpeed;
@@ -141,7 +145,7 @@ final class KinematicPath extends OsmPath
 
 
   protected double evolveDistance( KinematicModel km, double dist, double delta_h, double f_air )
-  {  
+  {
     // elevation force
     double fh = delta_h * km.totalweight * 9.81 / dist;
 
@@ -154,7 +158,7 @@ final class KinematicPath extends OsmPath
     double vb = km.getBreakingSpeed( effectiveSpeedLimit );
     double elow = 0.5*km.totalweight*vb*vb;
 
-    double elapsedTime = 0.; 
+    double elapsedTime = 0.;
     double dissipatedEnergy = 0.;
 
     double v = Math.sqrt( 2. * ekin / km.totalweight );
@@ -167,7 +171,7 @@ final class KinematicPath extends OsmPath
       double f = km.f_roll + f_air*v*v + fh;
       double f_recup = Math.max( 0., fast ? -f : (slow ? km.f_recup :0 ) -fh ); // additional recup for slow part
       f += f_recup;
-   
+
       double delta_ekin;
       double timeStep;
       double x;
@@ -215,7 +219,7 @@ final class KinematicPath extends OsmPath
     }
 
     dissipatedEnergy += elapsedTime * km.p_standby;
-      
+
     totalTime += elapsedTime;
     totalEnergy += dissipatedEnergy + dist*fh;
 
@@ -235,7 +239,7 @@ final class KinematicPath extends OsmPath
       if ( initialcost >= 1000000. )
       {
         return -1.;
-      }        
+      }
       cutEkin( km.totalweight, km.getNodeMaxspeed() ); // apply node maxspeed
 
       if ( message != null )
@@ -247,7 +251,7 @@ final class KinematicPath extends OsmPath
     }
     return 0.;
   }
-  
+
   private void cutEkin( double weight, double speed )
   {
     double e = 0.5*weight*speed*speed;
@@ -264,7 +268,7 @@ final class KinematicPath extends OsmPath
       f *= 0.367879;
     }
     return f*( 1. + x*( 1. + x * ( 0.5 +  x * ( 0.166667 + 0.0416667 * x) ) ) );
-  } 
+  }
 
 
   @Override
@@ -281,14 +285,14 @@ final class KinematicPath extends OsmPath
 	  int c = p.cost;
 	  return cost > c + 100;
   }
- 
+
 
 
   public double getTotalTime()
   {
     return totalTime;
   }
-  
+
   public double getTotalEnergy()
   {
     return totalEnergy;

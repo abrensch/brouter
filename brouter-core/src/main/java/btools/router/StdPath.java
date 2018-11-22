@@ -18,12 +18,18 @@ final class StdPath extends OsmPath
   private int ehbd; // in micrometer
   private int ehbu; // in micrometer
 
+  StdPath() {
+    super();
+    computeTime = true;
+  }
+
   @Override
   public void init( OsmPath orig )
   {
     StdPath origin = (StdPath)orig;
     this.ehbd = origin.ehbd;
     this.ehbu = origin.ehbu;
+    this.totalTime = origin.totalTime;
   }
 
   @Override
@@ -31,6 +37,7 @@ final class StdPath extends OsmPath
   {
     ehbd = 0;
     ehbu = 0;
+    totalTime = 0.;
   }
 
   @Override
@@ -139,7 +146,7 @@ final class StdPath extends OsmPath
     }
 
     sectionCost += dist * costfactor + 0.5f;
-      
+
     return sectionCost;
   }
 
@@ -589,8 +596,13 @@ final class StdPath extends OsmPath
 	    int delta = p.ehbu - ehbu;
 	    if ( delta > 0 ) c += delta/rc.uphillcostdiv;
 	  }
-	  
+
 	  return cost > c;
   }
- 
+
+  @Override
+  public double getTotalTime()
+  {
+    return totalTime;
+  }
 }
