@@ -12,15 +12,16 @@ import btools.mapaccess.TurnRestriction;
 
 final class StdPath extends OsmPath
 {
-  private double totalTime;  // travel time (seconds)
-  // Gravitational constant, g
-  private double GRAVITY = 9.81;  // in meters per second^(-2)
-
   /**
    * The elevation-hysteresis-buffer (0-10 m)
    */
   private int ehbd; // in micrometer
   private int ehbu; // in micrometer
+
+  StdPath() {
+    super();
+    computeTime = true;
+  }
 
   @Override
   public void init( OsmPath orig )
@@ -36,7 +37,7 @@ final class StdPath extends OsmPath
   {
     ehbd = 0;
     ehbu = 0;
-    totalTime = 0;
+    totalTime = 0.;
   }
 
   @Override
@@ -145,30 +146,6 @@ final class StdPath extends OsmPath
     }
 
     sectionCost += dist * costfactor + 0.5f;
-
-    if (rc.bikeMode || rc.footMode) {
-      // Uphill angle
-      double alpha = Math.atan2(delta_h, distance);
-
-      // Travel speed
-      double speed = Double.NaN;
-      if (rc.footMode) { // TODO: || tags['way'].search('bicycle=dismount') !== -1) {
-        // Use Tobler's hiking function for walking sections
-        speed = 6 * Math.exp(-3.5 * Math.abs(delta_h / distance + 0.05)) / 3.6;
-      } else {
-        // Compute the speed assuming a basic kinematic model with constant
-        // power.
-        Cubic speedEquation = new Cubic();
-        speedEquation.solve(rc.S_C_x, 0.0, (rc.bikeMass * GRAVITY * (rc.defaultC_r + Math.sin(alpha))), -1.0 * rc.bikerPower);
-        if (speedEquation.nRoots > 0 && speedEquation.x1 >= 0) {
-          // Roots are sorted in decreasing order
-          speed = Math.min(speedEquation.x1, rc.maxSpeed);
-        }
-      }
-      if (!Double.isNaN(speed) && speed > 0) {
-        totalTime += distance / speed;
-      }
-    }
 
     return sectionCost;
   }

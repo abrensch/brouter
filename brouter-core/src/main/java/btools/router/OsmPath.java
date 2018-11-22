@@ -25,7 +25,7 @@ abstract class OsmPath implements OsmLinkHolder
   public short selev;
 
   public int airdistance = 0; // distance to endpos
-  
+
   protected OsmNode sourceNode;
   protected OsmNode targetNode;
 
@@ -49,6 +49,12 @@ abstract class OsmPath implements OsmLinkHolder
   protected float lastInitialCost;
 
   protected int priorityclassifier;
+
+  protected boolean computeTime = false;
+  protected double totalTime;  // travel time (seconds)
+  // Gravitational constant, g
+  private double GRAVITY = 9.81;  // in meters per second^(-2)
+
 
   private static final int PATH_START_BIT = 1;
   private static final int CAN_LEAVE_DESTINATION_BIT = 2;
@@ -129,7 +135,7 @@ abstract class OsmPath implements OsmLinkHolder
     init( origin );
     addAddionalPenalty(refTrack, detailMode, origin, link, rc );
   }
-  
+
   protected abstract void init( OsmPath orig );
 
   protected abstract void resetState();
@@ -191,7 +197,7 @@ abstract class OsmPath implements OsmLinkHolder
     lastClassifier = newClassifier;
     lastInitialCost = newInitialCost;
 
-    // *** destination logic: no destination access in between 
+    // *** destination logic: no destination access in between
     int classifiermask = (int)rc.expctxWay.getClassifierMask();
     boolean newDestination = (classifiermask & 64) != 0;
     boolean oldDestination = getBit( IS_ON_DESTINATION_BIT );
@@ -217,14 +223,14 @@ abstract class OsmPath implements OsmLinkHolder
       }
     }
     setBit( IS_ON_DESTINATION_BIT, newDestination );
-    
+
 
     OsmTransferNode transferNode = link.geometry == null ? null
                   : rc.geometryDecoder.decodeGeometry( link.geometry, sourceNode, targetNode, isReverse );
 
     for(int nsection=0; ;nsection++)
     {
-    
+
       originLon = lon1;
       originLat = lat1;
 
@@ -300,7 +306,7 @@ abstract class OsmPath implements OsmLinkHolder
       }
 
       int dist = rc.calcDistance( lon1, lat1, lon2, lat2 );
-      
+
       boolean stopAtEndpoint = false;
       if ( rc.shortestmatch )
       {
@@ -393,63 +399,130 @@ abstract class OsmPath implements OsmLinkHolder
         traffic += dist*rc.expctxWay.getTrafficSourceDensity()*Math.pow(cost2/10000.f,rc.trafficSourceExponent);
       }
 
-      if ( message != null )
-      {
-        message.turnangle = (float)angle;
-        message.time = (float)getTotalTime();
-        message.energy = (float)getTotalEnergy();
-        message.priorityclassifier = priorityclassifier;
-        message.classifiermask = classifiermask;
-        message.lon = lon2;
-        message.lat = lat2;
-        message.ele = ele2;
-        message.wayKeyValues = rc.expctxWay.getKeyValueDescription( isReverse, description );
+      String wayKeyValues = "";
+      if ( message != null ) {
+        wayKeyValues = rc.expctxWay.getKeyValueDescription( isReverse, description );
       }
 
-      if ( stopAtEndpoint )
+      // Only do speed computation for detailMode (final) and bike or foot modes.
+      if (detailMode && computeTime)
       {
-        if ( recordTransferNodes )
+        // Travel speed
+        double speed = Double.NaN;
+        if (rc.footMode || (rc.bikeMode && wayKeyValues.contains("bicycle=dismount")))
         {
-          originElement = OsmPathElement.create( rc.ilonshortest, rc.ilatshortest, ele2, originElement, rc.countTraffic );
-          originElement.cost = cost;
-          if ( message != null )
+          // Use Tobler's hiking function for walking sections
+          speed = 6 * Math.exp(-3.5 * Math.abs(elevation / dist + 0.05)) / 3.6;
+        }
+        else if (rc.bikeMode)
+        {
+          // Uphill angle
+          double alpha = Math.atan2(delta_h, dist);
+
+          // Compute the speed assuming a basic kinematic model with constant
+          // power.
+          // Solves a * v^3 + b * v^2 + c * v + d = 0 with a Newton method to get
+          // the speed v for the section.
+          double a = rc.S_C_x;
+          double b = 0.0;
+          double c = (rc.bikeMass * GRAVITY * (rc.defaultC_r + Math.sin(alpha)));
+          double d = -1. * rc.bikerPower;
+
+          double tolerance = 1e-3;
+          int max_count = 10;
+
+          // Initial guess, this works rather well considering the allowed speeds.
+          speed = rc.maxSpeed;
+          double y = (a * speed * speed * speed) + (b * speed * speed) + (c * speed) + d;
+          double y_prime = (3 * a * speed * speed) + (2 * b * speed) + c;
+
+          int i = 0;
+          for (i = 0; (Math.abs(y) > tolerance) && (i < max_count); i++)  {
+            speed = speed - y / y_prime;
+            if (speed > rc.maxSpeed || speed <= 0) {
+              // No need to compute further, the speed is likely to be
+              // invalid or force set to maxspeed.
+              speed = rc.maxSpeed;
+              break;
+            }
+            y = (a * speed * speed * speed) + (b * speed * speed) + (c * speed) + d;
+            y_prime = (3 * a * speed * speed) + (2 * b * speed) + c;
+          }
+
+          if (i == max_count)
           {
-            originElement.message = message;
+            // Newton method did not converge, speed is invalid.
+            speed = Double.NaN;
+          }
+          else
+          {
+            // Speed cannot exceed max speed
+            speed = Math.min(speed, rc.maxSpeed);
           }
         }
-        if ( rc.nogomatch )
+        if (!Double.isNaN(speed) && speed > 0)
         {
-          cost = -1;
+          totalTime += dist / speed;
         }
-        return;
       }
 
-      if ( transferNode == null )
-      {
-        // *** penalty for being part of the reference track
-        if ( refTrack != null && refTrack.containsNode( targetNode ) && refTrack.containsNode( sourceNode ) )
+        if ( message != null )
         {
-          int reftrackcost = linkdisttotal;
-          cost += reftrackcost;
+          message.turnangle = (float)angle;
+          message.time = (float)getTotalTime();
+          message.energy = (float)getTotalEnergy();
+          message.priorityclassifier = priorityclassifier;
+          message.classifiermask = classifiermask;
+          message.lon = lon2;
+          message.lat = lat2;
+          message.ele = ele2;
+          message.wayKeyValues = wayKeyValues;
         }
-        selev = ele2;
-        break;
-      }
-      transferNode = transferNode.next;
 
-      if ( recordTransferNodes )
-      {
-        originElement = OsmPathElement.create( lon2, lat2, ele2, originElement, rc.countTraffic );
-        originElement.cost = cost;
-        originElement.addTraffic( traffic );
-        traffic = 0;
+        if ( stopAtEndpoint )
+        {
+          if ( recordTransferNodes )
+          {
+            originElement = OsmPathElement.create( rc.ilonshortest, rc.ilatshortest, ele2, originElement, rc.countTraffic );
+            originElement.cost = cost;
+            if ( message != null )
+            {
+              originElement.message = message;
+            }
+          }
+          if ( rc.nogomatch )
+          {
+            cost = -1;
+          }
+          return;
+        }
+
+        if ( transferNode == null )
+        {
+          // *** penalty for being part of the reference track
+          if ( refTrack != null && refTrack.containsNode( targetNode ) && refTrack.containsNode( sourceNode ) )
+          {
+            int reftrackcost = linkdisttotal;
+            cost += reftrackcost;
+          }
+          selev = ele2;
+          break;
+        }
+        transferNode = transferNode.next;
+
+        if ( recordTransferNodes )
+        {
+          originElement = OsmPathElement.create( lon2, lat2, ele2, originElement, rc.countTraffic );
+          originElement.cost = cost;
+          originElement.addTraffic( traffic );
+          traffic = 0;
+        }
+        lon0 = lon1;
+        lat0 = lat1;
+        lon1 = lon2;
+        lat1 = lat2;
+        ele1 = ele2;
       }
-      lon0 = lon1;
-      lat0 = lat1;
-      lon1 = lon2;
-      lat1 = lat2;
-      ele1 = ele2;
-    }
 
     // check for nogo-matches (after the *actual* start of segment)
     if ( rc.nogomatch )
@@ -514,9 +587,9 @@ abstract class OsmPath implements OsmLinkHolder
 
   public double getTotalTime()
   {
-    return 0.;
+    return totalTime;
   }
-  
+
   public double getTotalEnergy()
   {
     return 0.;
