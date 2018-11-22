@@ -18,10 +18,12 @@ final class StdPath extends OsmPath
   private int ehbd; // in micrometer
   private int ehbu; // in micrometer
 
-  StdPath() {
-    super();
-    computeTime = true;
-  }
+  private float totalTime;  // travel time (seconds)
+  private float totalEnergy; // total route energy (Joule)
+  private float elevation_buffer; // just another elevation buffer (for travel time)
+
+  // Gravitational constant, g
+  private static final double GRAVITY = 9.81;  // in meters per second^(-2)
 
   @Override
   public void init( OsmPath orig )
@@ -30,6 +32,8 @@ final class StdPath extends OsmPath
     this.ehbd = origin.ehbd;
     this.ehbu = origin.ehbu;
     this.totalTime = origin.totalTime;
+    this.totalEnergy = origin.totalEnergy;
+    this.elevation_buffer = origin.elevation_buffer;
   }
 
   @Override
@@ -37,7 +41,9 @@ final class StdPath extends OsmPath
   {
     ehbd = 0;
     ehbu = 0;
-    totalTime = 0.;
+    totalTime = 0.f;
+    totalEnergy = 0.f;
+    elevation_buffer = 0.f;
   }
 
   @Override
@@ -601,8 +607,75 @@ final class StdPath extends OsmPath
   }
 
   @Override
+  protected void computeKinematic( RoutingContext rc, double dist, double delta_h, boolean detailMode )
+  {
+    if ( !detailMode )
+    {
+      return;
+    }
+    
+    // compute incline
+    double decayFactor = exp( - dist / 100. );
+    elevation_buffer += delta_h;
+    float new_elevation_buffer = (float)( elevation_buffer * decayFactor );
+    double incline = ( elevation_buffer - new_elevation_buffer ) / dist;
+    elevation_buffer = new_elevation_buffer;
+    
+    double speed; // Travel speed
+    if (rc.footMode )
+    {
+      // Use Tobler's hiking function for walking sections
+      speed = 6 * Math.exp(-3.5 * Math.abs( incline + 0.05)) / 3.6;
+    }
+    else if (rc.bikeMode)
+    {
+      speed = solveCubic( rc.S_C_x, rc.bikeMass * GRAVITY * ( rc.defaultC_r + incline ), rc.bikerPower );
+      speed = Math.min(speed, rc.maxSpeed);
+    }
+    else
+    {
+      return;
+    }
+    float dt = (float) ( dist / speed );
+    totalTime += dt;
+    totalEnergy += dt*rc.bikerPower;
+  }
+
+  private static double solveCubic( double a, double c, double d )
+  {
+    // Solves a * v^3 + c * v = d with a Newton method
+    // to get the speed v for the section.
+
+    double v = 8.;
+    boolean findingStartvalue = true;
+    for ( int i = 0; i < 10; i++ )
+    {
+      double y = ( a * v * v + c ) * v - d;
+      if ( y < .1 )
+      {
+        if ( findingStartvalue )
+        {
+          v *= 2.;
+          continue;
+        }
+        break;
+      }
+      findingStartvalue = false;
+      double y_prime = 3 * a * v * v + c;
+      v -= y / y_prime;
+    }
+    return v;
+  }
+
+  @Override
   public double getTotalTime()
   {
     return totalTime;
+  }
+
+  @Override
+  public double getTotalEnergy()
+  {
+    return totalEnergy;
   }
 }
