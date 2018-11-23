@@ -613,14 +613,14 @@ final class StdPath extends OsmPath
     {
       return;
     }
-    
+
     // compute incline
     double decayFactor = exp( - dist / 100. );
     elevation_buffer += delta_h;
     float new_elevation_buffer = (float)( elevation_buffer * decayFactor );
     double incline = ( elevation_buffer - new_elevation_buffer ) / dist;
     elevation_buffer = new_elevation_buffer;
-    
+
     double speed; // Travel speed
     if (rc.footMode )
     {
