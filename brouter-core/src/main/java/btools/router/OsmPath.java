@@ -369,7 +369,7 @@ abstract class OsmPath implements OsmLinkHolder
         }
       }
 
-      
+
 
 
       double elevation = ele2 == Short.MIN_VALUE ? 100. : ele2/4.;
@@ -396,68 +396,66 @@ abstract class OsmPath implements OsmLinkHolder
         traffic += dist*rc.expctxWay.getTrafficSourceDensity()*Math.pow(cost2/10000.f,rc.trafficSourceExponent);
       }
 
-      String wayKeyValues = "";
-      if ( message != null ) {
-        wayKeyValues = rc.expctxWay.getKeyValueDescription( isReverse, description );
+      // compute kinematic
+      computeKinematic( rc, dist, delta_h, detailMode );
+
+      if ( message != null )
+      {
+        message.turnangle = (float)angle;
+        message.time = (float)getTotalTime();
+        message.energy = (float)getTotalEnergy();
+        message.priorityclassifier = priorityclassifier;
+        message.classifiermask = classifiermask;
+        message.lon = lon2;
+        message.lat = lat2;
+        message.ele = ele2;
+        message.wayKeyValues = rc.expctxWay.getKeyValueDescription( isReverse, description );
       }
 
-        if ( message != null )
-        {
-          message.turnangle = (float)angle;
-          message.time = (float)getTotalTime();
-          message.energy = (float)getTotalEnergy();
-          message.priorityclassifier = priorityclassifier;
-          message.classifiermask = classifiermask;
-          message.lon = lon2;
-          message.lat = lat2;
-          message.ele = ele2;
-          message.wayKeyValues = wayKeyValues;
-        }
-
-        if ( stopAtEndpoint )
-        {
-          if ( recordTransferNodes )
-          {
-            originElement = OsmPathElement.create( rc.ilonshortest, rc.ilatshortest, ele2, originElement, rc.countTraffic );
-            originElement.cost = cost;
-            if ( message != null )
-            {
-              originElement.message = message;
-            }
-          }
-          if ( rc.nogomatch )
-          {
-            cost = -1;
-          }
-          return;
-        }
-
-        if ( transferNode == null )
-        {
-          // *** penalty for being part of the reference track
-          if ( refTrack != null && refTrack.containsNode( targetNode ) && refTrack.containsNode( sourceNode ) )
-          {
-            int reftrackcost = linkdisttotal;
-            cost += reftrackcost;
-          }
-          selev = ele2;
-          break;
-        }
-        transferNode = transferNode.next;
-
+      if ( stopAtEndpoint )
+      {
         if ( recordTransferNodes )
         {
-          originElement = OsmPathElement.create( lon2, lat2, ele2, originElement, rc.countTraffic );
+          originElement = OsmPathElement.create( rc.ilonshortest, rc.ilatshortest, ele2, originElement, rc.countTraffic );
           originElement.cost = cost;
-          originElement.addTraffic( traffic );
-          traffic = 0;
+          if ( message != null )
+          {
+            originElement.message = message;
+          }
         }
-        lon0 = lon1;
-        lat0 = lat1;
-        lon1 = lon2;
-        lat1 = lat2;
-        ele1 = ele2;
+        if ( rc.nogomatch )
+        {
+          cost = -1;
+        }
+        return;
       }
+
+      if ( transferNode == null )
+      {
+        // *** penalty for being part of the reference track
+        if ( refTrack != null && refTrack.containsNode( targetNode ) && refTrack.containsNode( sourceNode ) )
+        {
+          int reftrackcost = linkdisttotal;
+          cost += reftrackcost;
+        }
+        selev = ele2;
+        break;
+      }
+      transferNode = transferNode.next;
+
+      if ( recordTransferNodes )
+      {
+        originElement = OsmPathElement.create( lon2, lat2, ele2, originElement, rc.countTraffic );
+        originElement.cost = cost;
+        originElement.addTraffic( traffic );
+        traffic = 0;
+      }
+      lon0 = lon1;
+      lat0 = lat1;
+      lon1 = lon2;
+      lat1 = lat2;
+      ele1 = ele2;
+    }
 
     // check for nogo-matches (after the *actual* start of segment)
     if ( rc.nogomatch )
