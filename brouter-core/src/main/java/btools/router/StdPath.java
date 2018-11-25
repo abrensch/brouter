@@ -650,7 +650,7 @@ final class StdPath extends OsmPath
     }
     else if (rc.bikeMode)
     {
-      speed = solveCubic( f_air, f_roll, rc.bikerPower );
+      speed = solveCubic( rc.S_C_x, f_roll, rc.bikerPower );
       speed = Math.min(speed, rc.maxSpeed);
     }
     else
