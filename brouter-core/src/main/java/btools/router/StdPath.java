@@ -606,6 +606,29 @@ final class StdPath extends OsmPath
 	  return cost > c;
   }
 
+  private double calcIncline( double dist )
+  {
+    double min_delta = 3.;
+    double shift;
+    if ( elevation_buffer > min_delta )
+    {
+      shift = -min_delta;
+    }
+    else if ( elevation_buffer < min_delta )
+    {
+      shift = -min_delta;
+    }
+    else
+    {
+      return 0.;
+    }
+    double decayFactor = exp( - dist / 100. );
+    float new_elevation_buffer = (float)( (elevation_buffer+shift) * decayFactor - shift);
+    double incline = ( elevation_buffer - new_elevation_buffer ) / dist;
+    elevation_buffer = new_elevation_buffer;
+    return incline;
+  }
+
   @Override
   protected void computeKinematic( RoutingContext rc, double dist, double delta_h, boolean detailMode )
   {
@@ -615,13 +638,11 @@ final class StdPath extends OsmPath
     }
 
     // compute incline
-    double decayFactor = exp( - dist / 100. );
     elevation_buffer += delta_h;
-    float new_elevation_buffer = (float)( elevation_buffer * decayFactor );
-    double incline = ( elevation_buffer - new_elevation_buffer ) / dist;
-    elevation_buffer = new_elevation_buffer;
+    double incline = calcIncline( dist );
 
     double speed; // Travel speed
+    double f_roll = rc.bikeMass * GRAVITY * ( rc.defaultC_r + incline );
     if (rc.footMode )
     {
       // Use Tobler's hiking function for walking sections
@@ -629,7 +650,7 @@ final class StdPath extends OsmPath
     }
     else if (rc.bikeMode)
     {
-      speed = solveCubic( rc.S_C_x, rc.bikeMass * GRAVITY * ( rc.defaultC_r + incline ), rc.bikerPower );
+      speed = solveCubic( f_air, f_roll, rc.bikerPower );
       speed = Math.min(speed, rc.maxSpeed);
     }
     else
@@ -638,7 +659,7 @@ final class StdPath extends OsmPath
     }
     float dt = (float) ( dist / speed );
     totalTime += dt;
-    totalEnergy += dt*rc.bikerPower;
+    totalEnergy += dist*(rc.S_C_x*speed*speed + f_roll);
   }
 
   private static double solveCubic( double a, double c, double d )
