@@ -175,8 +175,8 @@ public final class RoutingContext
     turnInstructionRoundabouts = expctxGlobal.getVariableValue( "turnInstructionRoundabouts", 1.f ) != 0.f;
 
     // Speed computation model (for bikes)
-    // Mass of the biker + bike + luggages, in kg
-    bikeMass = expctxGlobal.getVariableValue( "bikeMass", 90.f );
+    // Total mass (biker + bike + luggages or hiker), in kg
+    totalMass = expctxGlobal.getVariableValue( "totalMass", 90.f );
     // Max speed (before braking), in km/h in profile and m/s in code
     maxSpeed = expctxGlobal.getVariableValue( "maxSpeed", 45.f ) / 3.6;
     // Equivalent surface for wind, S * C_x, F = -1/2 * S * C_x * v^2 = - S_C_x * v^2
@@ -225,7 +225,7 @@ public final class RoutingContext
   public boolean turnInstructionRoundabouts;
 
   // Speed computation model (for bikes)
-  public double bikeMass;
+  public double totalMass;
   public double maxSpeed;
   public double S_C_x;
   public double defaultC_r;
