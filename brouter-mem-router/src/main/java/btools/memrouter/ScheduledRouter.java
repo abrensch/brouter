@@ -305,9 +305,9 @@ System.out.println( "*** finishedOffsets = " + finishedOffsets );
     }
 
     // calc distance and check nogos
-    rc.nogomatch = null;
+    rc.nogoCost = 0.;
     int distance = rc.calcDistance( currentNode.ilon, currentNode.ilat, node.ilon, node.ilat );
-    if ( rc.nogomatch != null )
+    if ( Math.abs(rc.nogoCost) > 0.)
     {
       return;
     }

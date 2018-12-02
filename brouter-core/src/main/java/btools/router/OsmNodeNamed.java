@@ -6,6 +6,7 @@
 package btools.router;
 
 import btools.mapaccess.OsmNode;
+import btools.util.CheapRulerSingleton;
 
 public class OsmNodeNamed extends OsmNode
 {
@@ -22,6 +23,55 @@ public class OsmNodeNamed extends OsmNode
     } else {
       return ilon + "," + ilat + "," + name + "," + nogoWeight;
     }
+  }
+
+  public double distanceWithinRadius(int lon1, int lat1, int lon2, int lat2, double totalSegmentLength) {
+    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( (lat1 + lat2) >> 1 );
+
+    double realRadius = radius * 110984.;
+    boolean isFirstPointWithinCircle = CheapRulerSingleton.distance(lon1, lat1, ilon, ilat) < realRadius;
+    boolean isLastPointWithinCircle = CheapRulerSingleton.distance(lon2, lat2, ilon, ilat) < realRadius;
+    // First point is within the circle
+    if (isFirstPointWithinCircle) {
+      // Last point is within the circle
+      if (isLastPointWithinCircle) {
+        return totalSegmentLength;
+      }
+      // Last point is not within the circle
+      // Just swap points and go on with first first point not within the
+      // circle now.
+      // Swap longitudes
+      int tmp = lon2;
+      lon2 = lon1;
+      lon1 = tmp;
+      // Swap latitudes
+      tmp = lat2;
+      lat2 = lat1;
+      lat1 = tmp;
+      // Fix boolean values
+      isLastPointWithinCircle = isFirstPointWithinCircle;
+      isFirstPointWithinCircle = false;
+    }
+    // Distance between the initial point and projection of center of
+    // the circle on the current segment.
+    double initialToProject = (
+      (lon2 - lon1) * (ilon - lon1) * lonlat2m[0] * lonlat2m[0]
+      + (lat2 - lat1) * (ilat - lat1) * lonlat2m[1] * lonlat2m[1]
+    ) / totalSegmentLength;
+    // Distance between the initial point and the center of the circle.
+    double initialToCenter = CheapRulerSingleton.distance(ilon, ilat, lon1, lat1);
+    // Half length of the segment within the circle
+    double halfDistanceWithin = Math.sqrt(
+      realRadius*realRadius - (
+        initialToCenter*initialToCenter -
+        initialToProject*initialToProject
+      )
+    );
+    // Last point is within the circle
+    if (isLastPointWithinCircle) {
+      return halfDistanceWithin + (totalSegmentLength - initialToProject);
+    }
+    return 2 * halfDistanceWithin;
   }
 
   public static OsmNodeNamed decodeNogo( String s )
