@@ -18,5 +18,6 @@ brouter.jar in this folder
 -> pack all the compiled class files together in a jar
 "pbfparser.jar" with "jar cf pbfparser.jar btools/**/*.class"
 
-Alternatively, you can run the Mapcreator against a *xml.bz2 Database-Extract,
-then you don't need the pbf-parser.
+Alternatively, just for testing you can run the Mapcreator against a *xml.bz2 Database-Extract,
+then you don't need the pbf-parser. However, the XML-Parser does not (yet) parse
+Turn-Restrictions, so really just for testing...

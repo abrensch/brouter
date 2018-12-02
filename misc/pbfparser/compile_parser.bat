@@ -1,1 +1,1 @@
-javac -d . -cp pbfparser.jar;brouter.jar BPbfFieldDecoder.java BPbfBlobDecoder.java OsmParser.java OsmParser2.java
+javac -d . -cp pbfparser.jar;brouter.jar BPbfFieldDecoder.java BPbfBlobDecoder.java OsmParser.java
