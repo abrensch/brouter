@@ -194,7 +194,7 @@ public final class RoutingContext
   public boolean startDirectionValid;
 
   private double cosangle;
-  public OsmNodeNamed nogomatch = null;
+  public double nogoCost = 0.;
   public boolean isEndpoint = false;
 
   public boolean shortestmatch = false;
@@ -344,10 +344,19 @@ public final class RoutingContext
           }
           if ( nogo.isNogo )
           {
-            if (!(nogo instanceof OsmNogoPolygon)
-                || ((OsmNogoPolygon)nogo).intersects(lon1, lat1, lon2, lat2))
+            if (Double.isNaN(nogo.nogoWeight))
             {
-              nogomatch = nogo;
+                // Nogo is default nogo (ignore completely)
+                nogoCost = -1;
+            }
+            else if (!(nogo instanceof OsmNogoPolygon)) {
+              // nogo is a circle, compute distance within the circle
+              nogoCost = nogo.distanceWithinRadius(lon1, lat1, lon2, lat2, d) * nogo.nogoWeight;
+            }
+            else if (((OsmNogoPolygon)nogo).intersects(lon1, lat1, lon2, lat2))
+            {
+              // nogo is a polygon, compute distance within the polygon
+              nogoCost = ((OsmNogoPolygon)nogo).distanceWithinPolygon(lon1, lat1, lon2, lat2) * nogo.nogoWeight;
             }
           }
           else
@@ -388,7 +397,7 @@ public final class RoutingContext
             }
             else
             {
-              nogomatch = null;
+              nogoCost = 0.;
               lon1 = ilonshortest;
               lat1 = ilatshortest;
             }
