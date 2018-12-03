@@ -9,6 +9,7 @@ import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmTransferNode;
 import btools.mapaccess.TurnRestriction;
+import btools.util.CheapRulerSingleton;
 
 final class StdPath extends OsmPath
 {
@@ -183,6 +184,8 @@ final class StdPath extends OsmPath
 //  @Override
   protected void xxxaddAddionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, OsmLink link, RoutingContext rc )
   {
+    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
+
     byte[] description = link.descriptionBitmap;
 	  if ( description == null ) throw new IllegalArgumentException( "null description for: " + link );
 
@@ -361,10 +364,10 @@ final class StdPath extends OsmPath
       // apply a start-direction if appropriate (by faking the origin position)
       if ( lon0 == -1 && lat0 == -1 )
       {
-        double coslat = Math.cos( ( lat1 - 90000000 ) * 0.00000001234134 );
+        double coslat = cr.cosIlat(lat1);
         if ( rc.startDirectionValid && coslat > 0. )
         {
-          double dir = rc.startDirection.intValue() / 57.29578;
+          double dir = rc.startDirection.intValue() * 180. / Math.PI;
           lon0 = lon1 - (int) ( 1000. * Math.sin( dir ) / coslat );
           lat0 = lat1 - (int) ( 1000. * Math.cos( dir ) );
         }
@@ -646,7 +649,7 @@ final class StdPath extends OsmPath
     if (rc.footMode )
     {
       // Use Tobler's hiking function for walking sections
-      speed = 6 * Math.exp(-3.5 * Math.abs( incline + 0.05)) / 3.6;
+      speed = 6 * exp(-3.5 * Math.abs( incline + 0.05)) / 3.6;
     }
     else if (rc.bikeMode)
     {

@@ -2,6 +2,7 @@ package btools.router;
 
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmPos;
+import btools.util.CheapRulerSingleton;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -18,7 +19,7 @@ public class OsmPathElement implements OsmPos
   private int ilat; // latitude
   private int ilon; // longitude
   private short selev; // longitude
-  
+
   public MessageData message = null; // description
 
   public int cost;
@@ -77,15 +78,8 @@ public class OsmPathElement implements OsmPos
 
   public final int calcDistance( OsmPos p )
   {
-    double l = (ilat-90000000) * 0.00000001234134;
-    double l2 = l*l;
-    double l4 = l2*l2;
-    double coslat = 1.- l2 + l4 / 6.;
-
-    double dlat = (ilat - p.getILat() )/1000000.;
-    double dlon = (ilon - p.getILon() )/1000000. * coslat;
-    double d = Math.sqrt( dlat*dlat + dlon*dlon ) * 110984.; //  6378000. / 57.3;
-    return (int)(d + 1.0 );
+    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
+    return (int)(cr.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0 );
   }
 
   public OsmPathElement origin;
@@ -109,7 +103,7 @@ public class OsmPathElement implements OsmPos
     pe.origin = origin;
     return pe;
   }
-  
+
   protected OsmPathElement()
   {
   }
@@ -122,7 +116,7 @@ public class OsmPathElement implements OsmPos
   {
     return ilon + "_" + ilat;
   }
-  
+
   public void writeToStream( DataOutput dos ) throws IOException
   {
     dos.writeInt( ilat );

@@ -5,11 +5,12 @@ import java.util.List;
 import btools.codec.WaypointMatcher;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmNodePairSet;
+import btools.util.CheapRulerSingleton;
 
 /**
  * the WaypointMatcher is feeded by the decoder with geoemtries of ways that are
  * already check for allowed access according to the current routing profile
- * 
+ *
  * It matches these geometries against the list of waypoints to find the best
  * match for each waypoint
  */
@@ -32,6 +33,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher
     this.islandPairs = islandPairs;
     for ( MatchedWaypoint mwp : waypoints )
     {
+      // TODO[Phyks]
       mwp.radius = maxDistance * 110984.; //  6378000. / 57.3;
     }
   }
@@ -40,14 +42,12 @@ public final class WaypointMatcherImpl implements WaypointMatcher
   {
     // todo: bounding-box pre-filter
 
-    double l = ( lat2 - 90000000 ) * 0.00000001234134;
-    double l2 = l * l;
-    double l4 = l2 * l2;
-    double coslat = 1. - l2 + l4 / 6.;
-    double coslat6 = coslat * 0.000001;
+    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
+    double coslat = cr.cosIlat(lat2);
+    double coslat6 = coslat * cr.ILATLNG_TO_LATLNG;
 
     double dx = ( lon2 - lon1 ) * coslat6;
-    double dy = ( lat2 - lat1 ) * 0.000001;
+    double dy = ( lat2 - lat1 ) * cr.ILATLNG_TO_LATLNG;
     double d = Math.sqrt( dy * dy + dx * dx );
     if ( d == 0. )
       return;
@@ -57,9 +57,9 @@ public final class WaypointMatcherImpl implements WaypointMatcher
       OsmNodeNamed wp = mwp.waypoint;
 
       double x1 = ( lon1 - wp.ilon ) * coslat6;
-      double y1 = ( lat1 - wp.ilat ) * 0.000001;
+      double y1 = ( lat1 - wp.ilat ) * cr.ILATLNG_TO_LATLNG;
       double x2 = ( lon2 - wp.ilon ) * coslat6;
-      double y2 = ( lat2 - wp.ilat ) * 0.000001;
+      double y2 = ( lat2 - wp.ilat ) * cr.ILATLNG_TO_LATLNG;
       double r12 = x1 * x1 + y1 * y1;
       double r22 = x2 * x2 + y2 * y2;
       double radius = Math.abs( r12 < r22 ? y1 * dx - x1 * dy : y2 * dx - x2 * dy ) / d;
@@ -93,7 +93,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher
           double xm = x2 - wayfraction * dx;
           double ym = y2 - wayfraction * dy;
           mwp.crosspoint.ilon = (int) ( xm / coslat6 + wp.ilon );
-          mwp.crosspoint.ilat = (int) ( ym / 0.000001 + wp.ilat );
+          mwp.crosspoint.ilat = (int) ( ym / cr.ILATLNG_TO_LATLNG + wp.ilat );
         }
         else if ( s1 > s2 )
         {
