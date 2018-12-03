@@ -6,6 +6,7 @@
 package btools.memrouter;
 
 import btools.mapaccess.OsmPos;
+import btools.util.CheapRulerSingleton;
 
 public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>, OsmPos
 {
@@ -17,7 +18,7 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>, OsmPos
  public OsmNodeP()
  {
  }
- 
+
  /**
    * The latitude
    */
@@ -36,7 +37,7 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>, OsmPos
 
   public final static int NO_BRIDGE_BIT = 1;
   public final static int NO_TUNNEL_BIT = 2;
-  
+
   public byte wayBits = 0;
 
   // interface OsmPos
@@ -102,15 +103,8 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>, OsmPos
   @Override
   public int calcDistance( OsmPos p )
   {
-    double l = (ilat-90000000) * 0.00000001234134;
-    double l2 = l*l;
-    double l4 = l2*l2;
-    double coslat = 1.- l2 + l4 / 6.;
-
-    double dlat = (ilat - p.getILat() )/1000000.;
-    double dlon = (ilon - p.getILon() )/1000000. * coslat;
-    double d = Math.sqrt( dlat*dlat + dlon*dlon ) * 110984.; //  6378000. / 57.3;
-    return (int)(d + 1.0 );
+    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
+    return (int)(cr.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0 );
   }
 
   @Override
@@ -150,7 +144,7 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>, OsmPos
   {
     return in; // do nothing (StationNode overrides)
   }
-  
+
   public String getName()
   {
     return "<waynode>";

@@ -25,6 +25,8 @@ package btools.router;
 import java.util.ArrayList;
 import java.util.List;
 
+import btools.util.CheapRulerSingleton;
+
 public class OsmNogoPolygon extends OsmNodeNamed
 {
   public final static class Point
@@ -40,9 +42,9 @@ public class OsmNogoPolygon extends OsmNodeNamed
   }
 
   public final List<Point> points = new ArrayList<Point>();
-  
+
   public final boolean isClosed;
-  
+
   public OsmNogoPolygon(boolean closed)
   {
     this.isClosed = closed;
@@ -55,15 +57,6 @@ public class OsmNogoPolygon extends OsmNodeNamed
     points.add(new Point(lon, lat));
   }
 
-  private final static double coslat(double lat)
-  {
-    final double l = (lat - 90000000) * 0.00000001234134; // 0.01234134 = Pi/(sqrt(2)*180)
-    final double l2 = l*l;
-    final double l4 = l2*l2;
-//    final double l6 = l4*l2;
-    return 1.- l2 + l4 / 6.; // - l6 / 90;
-  }
-
  /**
   * calcBoundingCircle is inspired by the algorithm described on
   * http://geomalgorithms.com/a08-_containers.html
@@ -74,7 +67,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
   * with each iteration.
   * This is done to ensure the calculated radius being used
   * in RoutingContext.calcDistance will actually contain the whole polygon.
-  * 
+  *
   * For reasonable distributed vertices the implemented algorithm runs in O(n*ln(n)).
   * As this is only run once on initialization of OsmNogoPolygon this methods
   * overall usage of cpu is neglegible in comparism to the cpu-usage of the
@@ -82,10 +75,12 @@ public class OsmNogoPolygon extends OsmNodeNamed
   */
   public void calcBoundingCircle()
   {
+    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
+
     int cxmin, cxmax, cymin, cymax;
     cxmin = cymin = Integer.MAX_VALUE;
     cxmax = cymax = Integer.MIN_VALUE;
-    
+
     // first calculate a starting center point as center of boundingbox
     for (int i = 0; i < points.size(); i++)
     {
@@ -110,7 +105,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
 
     double cx = (cxmax+cxmin) / 2.0; // center of circle
     double cy = (cymax+cymin) / 2.0;
-    double ccoslat = coslat(cy); // cosin at latitude of center
+    double ccoslat = cr.cosIlat((int) cy); // cosin at latitude of center
     double rad = 0;  // radius
     double rad2 = 0; // radius squared;
 
@@ -120,7 +115,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
     int i_max = -1;
 
     do
-    { // now identify the point outside of the circle that has the greatest distance 
+    { // now identify the point outside of the circle that has the greatest distance
       for (int i = 0; i < points.size();i++)
       {
         final Point p = points.get(i);
@@ -145,10 +140,10 @@ public class OsmNogoPolygon extends OsmNodeNamed
       }
       final double dist = Math.sqrt(dmax2);
       final double dd = 0.5 * (dist - rad) / dist;
-  
+
       cx = cx + dd * dpx; // shift center toward point
       cy = cy + dd * dpy;
-      ccoslat = coslat(cy);
+      ccoslat = cr.cosIlat((int) cy);
 
       final Point p = points.get(i_max); // calculate new radius to just include this point
       final double dpix = (p.x - cx) * ccoslat;
@@ -158,13 +153,13 @@ public class OsmNogoPolygon extends OsmNodeNamed
       i_max = -1;
     }
     while (true);
-    
+
     ilon = (int) Math.round(cx);
     ilat = (int) Math.round(cy);
     dpx = cx - ilon; // rounding error
     dpy = cy - ilat;
     // compensate rounding error of center-point
-    radius = (rad + Math.sqrt(dpx * dpx + dpy * dpy)) * 0.000001;
+    radius = (rad + Math.sqrt(dpx * dpx + dpy * dpy)) * cr.ILATLNG_TO_LATLNG;
     return;
   }
 
@@ -174,7 +169,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
   * the polygon. For this test the winding-number algorithm is
   * being used. That means a point being within an overlapping region of the
   * polygon is also taken as being 'inside' the polygon.
-  * 
+  *
   * @param lon0 longitude of start point
   * @param lat0 latitude of start point
   * @param lon1 longitude of end point
@@ -215,14 +210,14 @@ public class OsmNogoPolygon extends OsmNodeNamed
     }
     return false;
   }
-  
+
   public static boolean isOnLine( long px, long py, long p0x, long p0y, long p1x, long p1y )
   {
     final double v10x = px-p0x;
     final double v10y = py-p0y;
     final double v12x = p1x-p0x;
     final double v12y = p1y-p0y;
-    
+
     if ( v10x == 0 ) // P0->P1 vertical?
     {
       if ( v10y == 0 ) // P0 == P1?
@@ -231,7 +226,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
       }
       if ( v12x != 0 ) // P1->P2 not vertical?
       {
-        return false; 
+        return false;
       }
       return ( v12y / v10y ) >= 1; // P1->P2 at least as long as P1->P0?
     }
@@ -239,7 +234,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
     {
       if ( v12y != 0 ) // P1->P2 not horizontal?
       {
-        return false; 
+        return false;
       }
       // if ( P10x == 0 ) // P0 == P1? already tested
       return ( v12x / v10x ) >= 1; // P1->P2 at least as long as P1->P0?
@@ -260,7 +255,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
    their application. */
  /**
   * winding number test for a point in a polygon
-  * 
+  *
   * @param p a point
   * @param v list of vertex points forming a polygon. This polygon
   *          is implicitly closed connecting the last and first point.
@@ -275,7 +270,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
     final Point p0 = points.get(isClosed ? i_last : 0);
     long p0x = p0.x; // need to use long to avoid overflow in products
     long p0y = p0.y;
-    
+
     for (int i = isClosed ? 0 : 1; i <= i_last; i++) // edge from v[i] to v[i+1]
     {
       final Point p1 = points.get(i);
@@ -299,7 +294,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
         }
       }
       else // start y > p.y (no test needed)
-      {         
+      {
         if (p1y <= py) // a downward crossing
         {              // p right of edge
           if (((p1x - p0x) * (py - p0y) - (px - p0x) * (p1y - p0y)) < 0)
@@ -322,7 +317,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
    their application. */
  /**
   * inSegment(): determine if a point is inside a segment
-  * 
+  *
   * @param p a point
   * @param seg_p0 starting point of segment
   * @param seg_p1 ending point of segment
@@ -333,7 +328,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
   {
     final int sp0x = seg_p0.x;
     final int sp1x = seg_p1.x;
-    
+
     if (sp0x != sp1x) // S is not vertical
     {
       final int px = p.x;
@@ -351,7 +346,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
       final int sp0y = seg_p0.y;
       final int sp1y = seg_p1.y;
       final int py = p.y;
-      
+
       if (sp0y <= py && py <= sp1y)
       {
         return true;
@@ -363,7 +358,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
     }
     return false;
   }
-  
+
 /* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchsess
    This code may be freely used and modified for any purpose providing that
    this copyright notice is included with it. SoftSurfer makes no warranty for
@@ -371,7 +366,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
    resulting from its use. Users of this code must verify correctness for
    their application. */
  /**
-  * intersect2D_2Segments(): find the 2D intersection of 2 finite segments 
+  * intersect2D_2Segments(): find the 2D intersection of 2 finite segments
   * @param s1p0 start point of segment 1
   * @param s1p1 end point of segment 1
   * @param s2p0 start point of segment 2
@@ -381,14 +376,14 @@ public class OsmNogoPolygon extends OsmNodeNamed
   *         2=overlap in segment from I0 to I1
   */
   private static int intersect2D_2Segments( final Point s1p0, final Point s1p1, final Point s2p0, final Point s2p1 )
-  {     
+  {
     final long ux = s1p1.x - s1p0.x; // vector u = S1P1-S1P0 (segment 1)
     final long uy = s1p1.y - s1p0.y;
     final long vx = s2p1.x - s2p0.x; // vector v = S2P1-S2P0 (segment 2)
     final long vy = s2p1.y - s2p0.y;
     final long wx = s1p0.x - s2p0.x; // vector w = S1P0-S2P0 (from start of segment 2 to start of segment 1
     final long wy = s1p0.y - s2p0.y;
-    
+
     final double d = ux * vy - uy * vx;
 
     // test if  they are parallel (includes either being a point)
@@ -441,13 +436,13 @@ public class OsmNogoPolygon extends OsmNodeNamed
       }
       t0 = t0<0? 0 : t0;               // clip to min 0
       t1 = t1>1? 1 : t1;               // clip to max 1
-    
+
       return (t0 == t1) ? 1 : 2;        // return 1 if intersect is a point
     }
 
     // the segments are skew and may intersect in a point
     // get the intersect parameter for S1
-    
+
     final double sI = (vx * wy - vy * wx) / d;
     if (sI < 0 || sI > 1)               // no intersect with S1
     {
