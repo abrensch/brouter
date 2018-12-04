@@ -109,7 +109,6 @@ public class OsmNogoPolygon extends OsmNodeNamed
     double dlat2m = lonlat2m[1];
 
     double rad = 0;  // radius
-    double rad2 = 0; // radius squared;
 
     double dmax = 0; // length of vector from center to point
     int i_max = -1;
@@ -246,10 +245,9 @@ public class OsmNogoPolygon extends OsmNodeNamed
  /**
   * winding number test for a point in a polygon
   *
-  * @param p a point
-  * @param v list of vertex points forming a polygon. This polygon
-  *          is implicitly closed connecting the last and first point.
-  * @return the winding number (=0 only when P is outside)
+  * @param px longitude of the point to check
+  * @param py latitude of the point to check
+  * @return a boolean whether the point is within the polygon or not.
   */
   public boolean isWithin(final long px, final long py)
   {

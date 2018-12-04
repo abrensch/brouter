@@ -49,9 +49,9 @@ public final class CheapRulerSingleton {
   }
 
   /**
-   * Calculate the degree->meter scale for given latitude
+   * Calculate the degree-&gt;meter scale for given latitude
    *
-   * @result [lon-&gt;meter,lat-&gt;meter]
+   * @return [lon-&gt;meter,lat-&gt;meter]
    */
   public static double[] getLonLatToMeterScales( int ilat ) {
     return SCALE_CACHE[ ilat / SCALE_CACHE_INCREMENT ];
@@ -67,8 +67,9 @@ public final class CheapRulerSingleton {
    * @param ilat2   Integer latitude for the end point, this is (latitude + 90) * 1e6.
    * @return        The distance between the two points, in meters.
    *
-   * @note          Integer longitude is ((longitude in degrees) + 180) * 1e6.
-   *                Integer latitude is ((latitude in degrees) + 90) * 1e6.
+   * Note:
+   * Integer longitude is ((longitude in degrees) + 180) * 1e6.
+   * Integer latitude is ((latitude in degrees) + 90) * 1e6.
    */
   public static double distance(int ilon1, int ilat1, int ilon2, int ilat2) {
     double[] kxky = getLonLatToMeterScales( ( ilat1 + ilat2 ) >> 1  );

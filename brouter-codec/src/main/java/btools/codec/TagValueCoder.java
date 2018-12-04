@@ -12,7 +12,7 @@ import btools.util.BitCoderContext;
  * It detects identical descriptions and sorts them
  * into a huffman-tree according to their frequencies
  *
- * Adapted for 3-pass encoding (counters -> statistics -> encoding )
+ * Adapted for 3-pass encoding (counters -&gt; statistics -&gt; encoding )
  * but doesn't do anything at pass1
  */
 public final class TagValueCoder
@@ -124,9 +124,9 @@ public final class TagValueCoder
         break;
       }
       inum += delta;
-      
+
       int data = bc.decodeVarBits();
-      
+
       if ( validator == null || validator.isLookupIdxUsed( inum ) )
       {
         hasdata = true;
