@@ -346,7 +346,8 @@ abstract class OsmPath implements OsmLinkHolder
         if ( rc.startDirectionValid )
         {
           double dir = rc.startDirection.intValue() / CheapRulerSingleton.DEG_TO_RAD;
-          lon0 = lon1 - (int) ( 1000. * Math.sin( dir ) / rc.getCosLat() );
+          double coslat = Math.cos(lat1);
+          lon0 = lon1 - (int) ( 1000. * Math.sin( dir ) / coslat );
           lat0 = lat1 - (int) ( 1000. * Math.cos( dir ) );
         }
         else

@@ -33,8 +33,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher
     this.islandPairs = islandPairs;
     for ( MatchedWaypoint mwp : waypoints )
     {
-      // TODO[Phyks]
-      mwp.radius = maxDistance * 110984.; //  6378000. / 57.3;
+      mwp.radius = maxDistance;
     }
   }
 
@@ -49,6 +48,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher
     double dx = ( lon2 - lon1 ) * dlon2m;
     double dy = ( lat2 - lat1 ) * dlat2m;
     double d = Math.sqrt( dy * dy + dx * dx );
+
     if ( d == 0. )
       return;
 

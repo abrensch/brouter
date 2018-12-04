@@ -17,10 +17,10 @@ public final class CheapRulerSingleton {
   public final static int KILOMETERS_TO_METERS = 1000;
   public final static double DEG_TO_RAD = Math.PI / 180.;
 
-  // Cosine cache constants
+  // Scale cache constants
   private final static int SCALE_CACHE_LENGTH = 1800;
   private final static int SCALE_CACHE_INCREMENT = 100000;
-  // COS_CACHE_LENGTH cached values between 0 and COS_CACHE_MAX_DEGREES degrees.
+  // SCALE_CACHE_LENGTH cached values between 0 and COS_CACHE_MAX_DEGREES degrees.
   private final static double[][] SCALE_CACHE = new double[SCALE_CACHE_LENGTH][];
 
   /**
@@ -33,7 +33,7 @@ public final class CheapRulerSingleton {
   }
 
   private static double[] calcKxKyFromILat(int ilat) {
-    double lat = DEG_TO_RAD*(ilat-90000000)/1000000.;
+    double lat = DEG_TO_RAD*ilat*ILATLNG_TO_LATLNG - 90;
     double cos = Math.cos(lat);
     double cos2 = 2 * cos * cos - 1;
     double cos3 = 2 * cos * cos2 - cos;
@@ -50,8 +50,8 @@ public final class CheapRulerSingleton {
 
   /**
    * Calculate the degree->meter scale for given latitude
-   * 
-   * @result [lon->meter,lat->meter]
+   *
+   * @result [lon-&gt;meter,lat-&gt;meter]
    */
   public static double[] getLonLatToMeterScales( int ilat ) {
     return SCALE_CACHE[ ilat / SCALE_CACHE_INCREMENT ];
@@ -65,12 +65,13 @@ public final class CheapRulerSingleton {
    * @param ilat1   Integer latitude for the start point, this is (latitude + 90) * 1e6.
    * @param ilon2   Integer longitude for the end point, this is (longitude + 180) * 1e6.
    * @param ilat2   Integer latitude for the end point, this is (latitude + 90) * 1e6.
+   * @return        The distance between the two points, in meters.
    *
    * @note          Integer longitude is ((longitude in degrees) + 180) * 1e6.
    *                Integer latitude is ((latitude in degrees) + 90) * 1e6.
    */
   public static double distance(int ilon1, int ilat1, int ilon2, int ilat2) {
-    double[] kxky = getLonLatToMeterScales( ( ilat1 + ilat2 ) >> 1  ); 
+    double[] kxky = getLonLatToMeterScales( ( ilat1 + ilat2 ) >> 1  );
     double dlon = (ilon1 - ilon2) * kxky[0];
     double dlat = (ilat1 - ilat2) * kxky[1];
     return Math.sqrt(dlat * dlat + dlon * dlon); // in m
