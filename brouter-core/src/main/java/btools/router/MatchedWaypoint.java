@@ -17,7 +17,7 @@ final class MatchedWaypoint
   public OsmNode node2;
   public OsmNodeNamed crosspoint;
   public OsmNodeNamed waypoint;
-  public double radius;
+  public double radius;  // radius in meters
   public boolean hasUpdate;
 
   public void writeToStream( DataOutput dos ) throws IOException
@@ -40,7 +40,7 @@ final class MatchedWaypoint
 	mwp.node2 = new OsmNode();
 	mwp.crosspoint = new OsmNodeNamed();
 	mwp.waypoint = new OsmNodeNamed();
-	
+
 	mwp.node1.ilat = dis.readInt();
 	mwp.node1.ilon = dis.readInt();
 	mwp.node2.ilat = dis.readInt();

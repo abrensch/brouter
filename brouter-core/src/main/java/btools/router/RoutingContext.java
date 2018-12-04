@@ -193,7 +193,6 @@ public final class RoutingContext
   public Integer startDirection;
   public boolean startDirectionValid;
 
-  private double coslat;
   private double cosangle;
   public boolean nogomatch = false;
   public boolean isEndpoint = false;
@@ -248,8 +247,8 @@ public final class RoutingContext
         try { ir = Integer.parseInt( s.substring( 4 ) ); }
         catch( Exception e ) { /* ignore */ }
       }
-      // TODO[Phyks]
-      nogo.radius = ir / 110984.; //  6378000. / 57.3;
+      // Radius of the nogo point in meters
+      nogo.radius = ir;
     }
   }
 
@@ -259,12 +258,10 @@ public final class RoutingContext
     List<OsmNodeNamed> nogos = new ArrayList<OsmNodeNamed>();
     for( OsmNodeNamed nogo : nogopoints )
     {
-      // TODO[Phyks]
-      int radiusInMeter = (int)(nogo.radius * 111894.);
       boolean goodGuy = true;
       for( OsmNodeNamed wp : waypoints )
       {
-        if ( wp.calcDistance( nogo ) < radiusInMeter
+        if ( wp.calcDistance( nogo ) < nogo.radius
             && (!(nogo instanceof OsmNogoPolygon)
                 || (((OsmNogoPolygon)nogo).isClosed
                     ? ((OsmNogoPolygon)nogo).isWithin(wp.ilon, wp.ilat)
@@ -288,6 +285,7 @@ public final class RoutingContext
       OsmNodeNamed nogo = nogopoints.get(i);
       cs[0] += nogo.ilon;
       cs[1] += nogo.ilat;
+      // 10 is an arbitrary constant to get sub-integer precision in the checksum
       cs[2] += (long) ( nogo.radius*10.);
     }
     return cs;
@@ -342,7 +340,7 @@ public final class RoutingContext
           if ( s2 > 0. )
           {
             radius = Math.sqrt( s1 < s2 ? r12 : r22 );
-            if ( radius > nogo.radius ) continue; // 20m ^ 2
+            if ( radius > nogo.radius ) continue;
           }
           if ( nogo.isNogo )
           {
@@ -404,28 +402,23 @@ public final class RoutingContext
     return (int)(d + 1.0 );
   }
 
-  // assumes that calcDistance/calcCosAngle called in sequence, so coslat valid
   public double getCosAngle()
   {
     return cosangle;
   }
 
-  public double getCosLat()
-  {
-    return coslat;
-  }
-
   public double calcAngle( int lon0, int lat0,  int lon1, int lat1, int lon2, int lat2 )
   {
-    double dlat1 = (lat1 - lat0);
-    double dlon1 = (lon1 - lon0) * coslat;
-    double dlat2 = (lat2 - lat1);
-    double dlon2 = (lon2 - lon1) * coslat;
+    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( lat1 );
+    double dy10 = (lat1 - lat0) * lonlat2m[1];
+    double dx10 = (lon1 - lon0) * lonlat2m[0];
+    double dy21 = (lat2 - lat1) * lonlat2m[1];
+    double dx21 = (lon2 - lon1) * lonlat2m[0];
 
-    double dd = Math.sqrt( (dlat1*dlat1 + dlon1*dlon1)*(dlat2*dlat2 + dlon2*dlon2) );
+    double dd = Math.sqrt( (dx10*dx10 + dy10*dy10)*(dx21*dx21 + dy21*dy21) );
     if ( dd == 0. ) { cosangle = 1.; return 0.; }
-    double sinp = (dlat1*dlon2 - dlon1*dlat2)/dd;
-    double cosp = (dlat1*dlat2 + dlon1*dlon2)/dd;
+    double sinp = (dy10*dy21 - dx10*dx21)/dd;
+    double cosp = (dy10*dy21 + dx10*dx21)/dd;
     cosangle = cosp;
 
     double p;
