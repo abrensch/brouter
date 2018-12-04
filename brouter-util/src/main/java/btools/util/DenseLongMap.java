@@ -31,8 +31,6 @@ public class DenseLongMap
    * Creates a DenseLongMap for the default block size
    * ( 512 bytes per bitplane, covering a key range of 4096 keys )
    * Note that one value range is limited to 0..254
-   *
-   * @param valuebits number of bits to use per value
    */
   public DenseLongMap()
   {
@@ -85,7 +83,7 @@ public class DenseLongMap
       while (blocklist.size() < blockn+1 )
       {
         blocklist.add(null);
-      }      
+      }
       blocklist.set( blockn, block );
     }
     else
@@ -99,7 +97,7 @@ public class DenseLongMap
     int headersize = 1 << valuebits;
 
     byte v = (byte)(value + 1); // 0 is reserved (=unset)
-    
+
     // find the index in the lookup table or the first entry
     int idx = 1;
     while( idx < headersize )
@@ -122,7 +120,7 @@ public class DenseLongMap
     	valuebits++;
     	headersize = 1 << valuebits;
     }
-        
+
     int bitmask = 1 << (offset & 0x7);
     int invmask = bitmask ^ 0xff;
     int probebit = 1;
@@ -149,7 +147,7 @@ public class DenseLongMap
 	  // size is lookup table + datablocks
 	  return ( 1 << bits ) + blocksize * bits;
   }
-  
+
   private byte[] expandBlock( byte[] block, int valuebits )
   {
     bitplaneCount[valuebits] ++;
@@ -204,7 +202,7 @@ public class DenseLongMap
     {
       return -1;
     }
-    
+
     // check how many bitplanes we have from the arrayzize
     int valuebits = 1;
     while( sizeForBits( valuebits) < block.length )
@@ -212,7 +210,7 @@ public class DenseLongMap
       valuebits++;
     }
     int headersize = 1 << valuebits;
-    
+
     int bitmask = 1 << (offset & 7);
     int probebit = 1;
     int blockidx = (offset >> 3) + headersize;

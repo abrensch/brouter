@@ -10,7 +10,7 @@ import java.util.PriorityQueue;
  * It detects identical sets and sorts them
  * into a huffman-tree according to their frequencies
  *
- * Adapted for 3-pass encoding (counters -> statistics -> encoding )
+ * Adapted for 3-pass encoding (counters -&gt; statistics -&gt; encoding )
  * but doesn't do anything at pass1
  */
 public final class TagSetEncoder
@@ -131,7 +131,7 @@ public final class TagSetEncoder
         }
       }
     }
-    
+
     @Override
     public boolean equals( Object o )
     {

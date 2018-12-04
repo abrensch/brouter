@@ -4,8 +4,8 @@ package btools.codec;
  * Encoder/Decoder for signed integers that automatically detects the typical
  * range of these numbers to determine a noisy-bit count as a very simple
  * dictionary
- * 
- * Adapted for 3-pass encoding (counters -> statistics -> encoding )
+ *
+ * Adapted for 3-pass encoding (counters -&gt; statistics -&gt; encoding )
  * but doesn't do anything at pass1
  */
 public final class NoisyDiffCoder
