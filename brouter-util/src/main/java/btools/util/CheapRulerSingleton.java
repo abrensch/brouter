@@ -12,69 +12,49 @@ public final class CheapRulerSingleton {
    * This is implemented as a Singleton to have a unique cache for the cosine
    * values across all the code.
    */
-  private static volatile CheapRulerSingleton instance = null;
-
   // Conversion constants
   public final static double ILATLNG_TO_LATLNG = 1e-6; // From integer to degrees
   public final static int KILOMETERS_TO_METERS = 1000;
   public final static double DEG_TO_RAD = Math.PI / 180.;
 
   // Cosine cache constants
-  private final static int COS_CACHE_LENGTH = 8192;
-  private final static double COS_CACHE_MAX_DEGREES = 90.0;
+  private final static int SCALE_CACHE_LENGTH = 1800;
+  private final static int SCALE_CACHE_INCREMENT = 100000;
   // COS_CACHE_LENGTH cached values between 0 and COS_CACHE_MAX_DEGREES degrees.
-  double[] COS_CACHE = new double[COS_CACHE_LENGTH];
+  private final static double[][] SCALE_CACHE = new double[SCALE_CACHE_LENGTH][];
 
   /**
-   * Helper to build the cache of cosine values.
+   * build the cache of cosine values.
    */
-  private void buildCosCache() {
-    double increment = DEG_TO_RAD * COS_CACHE_MAX_DEGREES / COS_CACHE_LENGTH;
-    for (int i = 0; i < COS_CACHE_LENGTH; i++) {
-      COS_CACHE[i] = Math.cos(i * increment);
+  static {
+    for (int i = 0; i < SCALE_CACHE_LENGTH; i++) {
+      SCALE_CACHE[i] = calcKxKyFromILat( i*SCALE_CACHE_INCREMENT + SCALE_CACHE_INCREMENT/2 );
     }
   }
 
-  private CheapRulerSingleton() {
-    super();
-    // Build the cache of cosine values.
-    buildCosCache();
+  private static double[] calcKxKyFromILat(int ilat) {
+    double lat = DEG_TO_RAD*(ilat-90000000)/1000000.;
+    double cos = Math.cos(lat);
+    double cos2 = 2 * cos * cos - 1;
+    double cos3 = 2 * cos * cos2 - cos;
+    double cos4 = 2 * cos * cos3 - cos2;
+    double cos5 = 2 * cos * cos4 - cos3;
+
+    // Multipliers for converting integer longitude and latitude into distance
+    // (http://1.usa.gov/1Wb1bv7)
+    double[] kxky = new double[2];
+    kxky[0] = (111.41513 * cos - 0.09455 * cos3 + 0.00012 * cos5) * ILATLNG_TO_LATLNG * KILOMETERS_TO_METERS;
+    kxky[1] = (111.13209 - 0.56605 * cos2 + 0.0012 * cos4) * ILATLNG_TO_LATLNG * KILOMETERS_TO_METERS;
+    return kxky;
   }
 
   /**
-   * Get an instance of this singleton class.
+   * Calculate the degree->meter scale for given latitude
+   * 
+   * @result [lon->meter,lat->meter]
    */
-  public final static CheapRulerSingleton getInstance() {
-    if (CheapRulerSingleton.instance == null) {
-      synchronized(CheapRulerSingleton.class) {
-        if (CheapRulerSingleton.instance == null) {
-          CheapRulerSingleton.instance = new CheapRulerSingleton();
-        }
-      }
-    }
-    return CheapRulerSingleton.instance;
-  }
-
-  /**
-   * Helper to compute the cosine of an integer latitude.
-   */
-  public double cosIlat(int ilat) {
-    double latDegrees = ilat * ILATLNG_TO_LATLNG;
-    if (ilat > 90000000) {
-        // Use the symmetry of the cosine.
-        latDegrees -= 90;
-    }
-    return COS_CACHE[(int) (latDegrees * COS_CACHE_LENGTH / COS_CACHE_MAX_DEGREES)];
-  }
-
-  /**
-   * Helper to compute the cosine of a latitude (in degrees).
-   */
-  public double cosLat(double lat) {
-    if (lat < 0) {
-      lat += 90.;
-    }
-    return COS_CACHE[(int) (lat * COS_CACHE_LENGTH / COS_CACHE_MAX_DEGREES)];
+  public static double[] getLonLatToMeterScales( int ilat ) {
+    return SCALE_CACHE[ ilat / SCALE_CACHE_INCREMENT ];
   }
 
   /**
@@ -89,20 +69,10 @@ public final class CheapRulerSingleton {
    * @note          Integer longitude is ((longitude in degrees) + 180) * 1e6.
    *                Integer latitude is ((latitude in degrees) + 90) * 1e6.
    */
-  public double distance(int ilon1, int ilat1, int ilon2, int ilat2) {
-    double cos = cosIlat(ilat1);
-    double cos2 = 2 * cos * cos - 1;
-    double cos3 = 2 * cos * cos2 - cos;
-    double cos4 = 2 * cos * cos3 - cos2;
-    double cos5 = 2 * cos * cos4 - cos3;
-
-    // Multipliers for converting integer longitude and latitude into distance
-    // (http://1.usa.gov/1Wb1bv7)
-    double kx = (111.41513 * cos - 0.09455 * cos3 + 0.00012 * cos5) * ILATLNG_TO_LATLNG * KILOMETERS_TO_METERS;
-    double ky = (111.13209 - 0.56605 * cos2 + 0.0012 * cos4) * ILATLNG_TO_LATLNG * KILOMETERS_TO_METERS;
-
-    double dlat = (ilat1 - ilat2) * ky;
-    double dlon = (ilon1 - ilon2) * kx;
+  public static double distance(int ilon1, int ilat1, int ilon2, int ilat2) {
+    double[] kxky = getLonLatToMeterScales( ( ilat1 + ilat2 ) >> 1  ); 
+    double dlon = (ilon1 - ilon2) * kxky[0];
+    double dlat = (ilat1 - ilat2) * kxky[1];
     return Math.sqrt(dlat * dlat + dlon * dlon); // in m
   }
 }

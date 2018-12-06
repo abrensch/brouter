@@ -742,7 +742,7 @@ public class RoutingEngine extends Thread
       OsmPath startPath = routingContext.createPath( startLink );
       startLink.addLinkHolder( startPath, null );
 
-      if ( wp != null ) wp.radius = 1e-5;
+      if ( wp != null ) wp.radius = 0.1;
      
       return routingContext.createPath( startPath, link, null, guideTrack != null );
     }
@@ -1064,7 +1064,7 @@ public class RoutingEngine extends Thread
           {
             if ( isFinalLink )
             {
-              endPos.radius = 1e-5;
+              endPos.radius = 0.1;
               routingContext.setWaypoint( endPos, true );
             }
             OsmPath testPath = routingContext.createPath( otherPath, link, refTrack, guideTrack != null );

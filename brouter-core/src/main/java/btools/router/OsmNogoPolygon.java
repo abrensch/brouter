@@ -75,8 +75,6 @@ public class OsmNogoPolygon extends OsmNodeNamed
   */
   public void calcBoundingCircle()
   {
-    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
-
     int cxmin, cxmax, cymin, cymax;
     cxmin = cymin = Integer.MAX_VALUE;
     cxmax = cymax = Integer.MIN_VALUE;
@@ -103,9 +101,13 @@ public class OsmNogoPolygon extends OsmNodeNamed
       }
     }
 
-    double cx = (cxmax+cxmin) / 2.0; // center of circle
-    double cy = (cymax+cymin) / 2.0;
-    double ccoslat = cr.cosIlat((int) cy); // cosin at latitude of center
+    int cx = (cxmax+cxmin) / 2; // center of circle
+    int cy = (cymax+cymin) / 2;
+    
+    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( cy );
+    double dlon2m = lonlat2m[0];
+    double dlat2m = lonlat2m[1];
+
     double rad = 0;  // radius
     double rad2 = 0; // radius squared;
 
@@ -119,8 +121,8 @@ public class OsmNogoPolygon extends OsmNodeNamed
       for (int i = 0; i < points.size();i++)
       {
         final Point p = points.get(i);
-        final double dpix = (p.x - cx) * ccoslat;
-        final double dpiy = p.y-cy;
+        final double dpix = (p.x - cx) * dlon2m;
+        final double dpiy = (p.y - cy) * dlat2m;
         final double dist2 = dpix * dpix + dpiy * dpiy;
         if (dist2 <= rad2)
         {
@@ -129,8 +131,8 @@ public class OsmNogoPolygon extends OsmNodeNamed
         if (dist2 > dmax2)
         {
           dmax2 = dist2; // new maximum distance found
-          dpx = dpix;
-          dpy = dpiy;
+          dpx = dpix / dlon2m;
+          dpy = dpiy / dlat2m;
           i_max = i;
         }
       }
@@ -141,25 +143,21 @@ public class OsmNogoPolygon extends OsmNodeNamed
       final double dist = Math.sqrt(dmax2);
       final double dd = 0.5 * (dist - rad) / dist;
 
-      cx = cx + dd * dpx; // shift center toward point
-      cy = cy + dd * dpy;
-      ccoslat = cr.cosIlat((int) cy);
+      cx += (int)(dd * dpx + 0.5); // shift center toward point
+      cy += (int)(dd * dpy + 0.5);
 
       final Point p = points.get(i_max); // calculate new radius to just include this point
-      final double dpix = (p.x - cx) * ccoslat;
-      final double dpiy = p.y-cy;
+      final double dpix = (p.x - cx) * dlon2m;
+      final double dpiy = (p.y - cy) * dlat2m;
       dmax2 = rad2 = dpix * dpix + dpiy * dpiy;
       rad = Math.sqrt(rad2);
       i_max = -1;
     }
     while (true);
 
-    ilon = (int) Math.round(cx);
-    ilat = (int) Math.round(cy);
-    dpx = cx - ilon; // rounding error
-    dpy = cy - ilat;
-    // compensate rounding error of center-point
-    radius = (rad + Math.sqrt(dpx * dpx + dpy * dpy)) * cr.ILATLNG_TO_LATLNG;
+    ilon = cx;
+    ilat = cy;
+    radius = rad;
     return;
   }
 
