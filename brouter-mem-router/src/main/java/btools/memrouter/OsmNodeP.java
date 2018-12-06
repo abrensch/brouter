@@ -103,8 +103,7 @@ public class OsmNodeP extends OsmLinkP implements Comparable<OsmNodeP>, OsmPos
   @Override
   public int calcDistance( OsmPos p )
   {
-    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
-    return (int)(cr.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0 );
+    return (int)(CheapRulerSingleton.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0 );
   }
 
   @Override

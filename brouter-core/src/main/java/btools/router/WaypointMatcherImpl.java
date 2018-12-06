@@ -42,12 +42,12 @@ public final class WaypointMatcherImpl implements WaypointMatcher
   {
     // todo: bounding-box pre-filter
 
-    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
-    double coslat = cr.cosIlat(lat2);
-    double coslat6 = coslat * cr.ILATLNG_TO_LATLNG;
+    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( (lat1+lat2) >> 1 );
+    double dlon2m = lonlat2m[0];
+    double dlat2m = lonlat2m[1];
 
-    double dx = ( lon2 - lon1 ) * coslat6;
-    double dy = ( lat2 - lat1 ) * cr.ILATLNG_TO_LATLNG;
+    double dx = ( lon2 - lon1 ) * dlon2m;
+    double dy = ( lat2 - lat1 ) * dlat2m;
     double d = Math.sqrt( dy * dy + dx * dx );
     if ( d == 0. )
       return;
@@ -56,10 +56,10 @@ public final class WaypointMatcherImpl implements WaypointMatcher
     {
       OsmNodeNamed wp = mwp.waypoint;
 
-      double x1 = ( lon1 - wp.ilon ) * coslat6;
-      double y1 = ( lat1 - wp.ilat ) * cr.ILATLNG_TO_LATLNG;
-      double x2 = ( lon2 - wp.ilon ) * coslat6;
-      double y2 = ( lat2 - wp.ilat ) * cr.ILATLNG_TO_LATLNG;
+      double x1 = ( lon1 - wp.ilon ) * dlon2m;
+      double y1 = ( lat1 - wp.ilat ) * dlat2m;
+      double x2 = ( lon2 - wp.ilon ) * dlon2m;
+      double y2 = ( lat2 - wp.ilat ) * dlat2m;
       double r12 = x1 * x1 + y1 * y1;
       double r22 = x2 * x2 + y2 * y2;
       double radius = Math.abs( r12 < r22 ? y1 * dx - x1 * dy : y2 * dx - x2 * dy ) / d;
@@ -92,8 +92,8 @@ public final class WaypointMatcherImpl implements WaypointMatcher
           double wayfraction = -s2 / ( d * d );
           double xm = x2 - wayfraction * dx;
           double ym = y2 - wayfraction * dy;
-          mwp.crosspoint.ilon = (int) ( xm / coslat6 + wp.ilon );
-          mwp.crosspoint.ilat = (int) ( ym / cr.ILATLNG_TO_LATLNG + wp.ilat );
+          mwp.crosspoint.ilon = (int) ( xm / dlon2m + wp.ilon );
+          mwp.crosspoint.ilat = (int) ( ym / dlat2m + wp.ilat );
         }
         else if ( s1 > s2 )
         {

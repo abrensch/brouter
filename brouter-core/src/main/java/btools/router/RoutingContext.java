@@ -288,8 +288,7 @@ public final class RoutingContext
       OsmNodeNamed nogo = nogopoints.get(i);
       cs[0] += nogo.ilon;
       cs[1] += nogo.ilat;
-      // TODO[Phyks]
-      cs[2] += (long) ( nogo.radius*111894.*10.);
+      cs[2] += (long) ( nogo.radius*10.);
     }
     return cs;
   }
@@ -311,13 +310,11 @@ public final class RoutingContext
 
   public int calcDistance( int lon1, int lat1, int lon2, int lat2 )
   {
-    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
-
-    coslat = cr.cosIlat(lat2);
-    double coslat6 = coslat*cr.ILATLNG_TO_LATLNG;
-
-    double dx = (lon2 - lon1 ) * coslat6;
-    double dy = (lat2 - lat1 ) * cr.ILATLNG_TO_LATLNG;
+    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( (lat1+lat2) >> 1 );
+    double dlon2m = lonlat2m[0];
+    double dlat2m = lonlat2m[1];
+    double dx = (lon2 - lon1 ) * dlon2m;
+    double dy = (lat2 - lat1 ) * dlat2m;
     double d = Math.sqrt( dy*dy + dx*dx );
 
     shortestmatch = false;
@@ -327,10 +324,10 @@ public final class RoutingContext
       for( int ngidx = 0; ngidx < nogopoints.size(); ngidx++ )
       {
         OsmNodeNamed nogo = nogopoints.get(ngidx);
-        double x1 = (lon1 - nogo.ilon) * coslat6;
-        double y1 = (lat1 - nogo.ilat) * cr.ILATLNG_TO_LATLNG;
-        double x2 = (lon2 - nogo.ilon) * coslat6;
-        double y2 = (lat2 - nogo.ilat) * cr.ILATLNG_TO_LATLNG;
+        double x1 = (lon1 - nogo.ilon) * dlon2m;
+        double y1 = (lat1 - nogo.ilat) * dlat2m;
+        double x2 = (lon2 - nogo.ilon) * dlon2m;
+        double y2 = (lat2 - nogo.ilat) * dlat2m;
         double r12 = x1*x1 + y1*y1;
         double r22 = x2*x2 + y2*y2;
         double radius = Math.abs( r12 < r22 ? y1*dx - x1*dy : y2*dx - x2*dy ) / d;
@@ -365,8 +362,8 @@ public final class RoutingContext
               wayfraction = -s2 / (d*d);
               double xm = x2 - wayfraction*dx;
               double ym = y2 - wayfraction*dy;
-              ilonshortest = (int)(xm / coslat6 + nogo.ilon);
-              ilatshortest = (int)(ym / cr.ILATLNG_TO_LATLNG + nogo.ilat);
+              ilonshortest = (int)(xm / dlon2m + nogo.ilon);
+              ilatshortest = (int)(ym / dlat2m + nogo.ilat);
             }
             else if ( s1 > s2 )
             {
@@ -397,14 +394,14 @@ public final class RoutingContext
               lon1 = ilonshortest;
               lat1 = ilatshortest;
             }
-            dx = (lon2 - lon1 ) * coslat6;
-            dy = (lat2 - lat1 ) * cr.ILATLNG_TO_LATLNG;
+            dx = (lon2 - lon1 ) * dlon2m;
+            dy = (lat2 - lat1 ) * dlat2m;
             d = Math.sqrt( dy*dy + dx*dx );
           }
         }
       }
     }
-    return (int)(cr.distance(lon1, lat1, lon2, lat2) + 1.0 );
+    return (int)(d + 1.0 );
   }
 
   // assumes that calcDistance/calcCosAngle called in sequence, so coslat valid

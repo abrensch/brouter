@@ -1,6 +1,5 @@
 package btools.mapcreator;
 
-import btools.util.CheapRulerSingleton;
 import btools.util.ReducedMedianFilter;
 
 /**
@@ -229,8 +228,7 @@ public class SrtmRaster
 
   private static Weights[][] calcWeights( int latIndex )
   {
-    CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
-    double coslat = cr.cosLat(latIndex * 5.);
+    double coslat = Math.cos( latIndex * 5. / 57.3 );
 
     // radius in pixel units
     double ry = filterDiscRadius;

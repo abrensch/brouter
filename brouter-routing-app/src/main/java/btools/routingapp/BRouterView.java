@@ -509,17 +509,17 @@ public class BRouterView extends View
       centerLon = ( maxlon + minlon ) / 2;
       centerLat = ( maxlat + minlat ) / 2;
 
-      CheapRulerSingleton cr = CheapRulerSingleton.getInstance();
-      double coslat = cr.cosIlat(centerLat);
-      double difflon = maxlon - minlon;
-      double difflat = maxlat - minlat;
+      double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( centerLat );
+      double dlon2m = lonlat2m[0];
+      double dlat2m = lonlat2m[1];
+      double difflon = (maxlon - minlon)*dlon2m;
+      double difflat = (maxlat - minlat)*dlat2m;
 
       scaleLon = imgw / ( difflon * 1.5 );
       scaleLat = imgh / ( difflat * 1.5 );
-      if ( scaleLon < scaleLat * coslat )
-        scaleLat = scaleLon / coslat;
-      else
-        scaleLon = scaleLat * coslat;
+      double scaleMin = scaleLon < scaleLat ? scaleLon : scaleLat;
+      scaleLat *= dlon2m;
+      scaleLon *= dlat2m;
 
       startTime = System.currentTimeMillis();
       RoutingContext.prepareNogoPoints( nogoList );
