@@ -635,7 +635,9 @@ public class BRouterView extends View
     int lat = n.ilat - centerLat;
     int x = imgw / 2 + (int) ( scaleLon * lon );
     int y = imgh / 2 - (int) ( scaleLat * lat );
-    int ir = (int) ( n.radius * 1000000. * scaleLat );
+
+    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( centerLat );
+    int ir = (int) ( n.radius * scaleLat / lonlat2m[1]);
     if ( ir > minradius )
     {
       Paint paint = new Paint();
@@ -660,7 +662,8 @@ public class BRouterView extends View
 
   private void paintPolygon( Canvas canvas, OsmNogoPolygon p, int minradius )
   {
-    final int ir = (int) ( p.radius * 1000000. * scaleLat );
+    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( centerLat );
+    final int ir = (int) ( p.radius * scaleLat / lonlat2m[1] );
     if ( ir > minradius )
     {
       Paint paint = new Paint();

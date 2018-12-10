@@ -4,7 +4,7 @@ import java.util.Random;
 
 /**
  * Memory efficient and lightning fast heap to get the lowest-key value of a set of key-object pairs
- * 
+ *
  * @author ab
  */
 public final class SortedHeap<V>
@@ -54,7 +54,7 @@ public final class SortedHeap<V>
     Object[] vla; // value array
     int lv; // low value
     int lp; // low pointer
-    
+
     SortedBin( int binsize, SortedHeap parent )
     {
       this.binsize = binsize;
@@ -63,7 +63,7 @@ public final class SortedHeap<V>
       vla = new Object[binsize];
       lp = binsize;
     }
-    
+
     SortedBin next()
     {
       if ( next == null )
@@ -108,7 +108,7 @@ public final class SortedHeap<V>
         neBin = next;
       }
     }
-    
+
     void add( int key, Object value )
     {
       int p = lp;
@@ -126,17 +126,15 @@ public final class SortedHeap<V>
         p++;
       }
     }
-    
+
 
   }
-      
+
   /**
    * add a key value pair to the heap
-   * 
-   * @param id
-   *          the key to insert
-   * @param value
-   *          the value to insert object
+   *
+   * @param key     the key to insert
+   * @param value   the value to insert object
    */
   public void add( int key, V value )
   {
@@ -164,16 +162,16 @@ public final class SortedHeap<V>
         first.nextNonEmpty = second;
       }
     }
-      
+
   }
-  
+
   private void sortUp()
   {
     if ( size > peaksize )
     {
       peaksize = size;
     }
-  
+
     // determine the first array big enough to take them all
     int cnt = 8; // value count of first 2 bins is always 8
     SortedBin tbin = second; // target bin
@@ -193,10 +191,10 @@ public final class SortedHeap<V>
     int[] al_t = tbin.al;
     Object[] vla_t = tbin.vla;
     int tp = tbin.binsize-cnt; // target pointer
-    
+
     // unlink any higher, non-empty arrays
     SortedBin otherNonEmpty = lastNonEmpty.nextNonEmpty;
-    lastNonEmpty.nextNonEmpty = null;    
+    lastNonEmpty.nextNonEmpty = null;
 
     // now merge the content of these non-empty bins into the target bin
     while( firstNonEmpty != null )
@@ -215,7 +213,7 @@ public final class SortedHeap<V>
       }
 
       // current minimum found, copy to target array
-      al_t[tp] = minId;      
+      al_t[tp] = minId;
       vla_t[tp++] = minBin.dropLowest();
     }
 
@@ -233,7 +231,7 @@ public final class SortedHeap<V>
     second = new SortedBin( 4, this );
     firstNonEmpty = null;
   }
-  
+
   public int getSize()
   {
     return size;
@@ -267,7 +265,7 @@ public final class SortedHeap<V>
     }
     return tp;
   }
-  
+
   public static void main(String[] args)
   {
     SortedHeap<String> sh = new SortedHeap<String>();
@@ -296,6 +294,6 @@ System.out.println( "popLowestKeyValue: " + val);
 //    Assert.assertTrue( "total count test", cnt == 100000 );
 
   }
-  
+
 
 }

@@ -22,19 +22,22 @@ public final class SearchBoundary
     private int maxlat;
     private int radius;
     private OsmNode p;
-    
+
     int direction;
-    
+
+    /**
+     * @param radius    Search radius in meters.
+     */
     public SearchBoundary( OsmNode n, int radius, int direction )
     {
       this.radius = radius;
       this.direction = direction;
 
       p = new OsmNode( n.ilon, n.ilat );
-    
+
       int lon = (n.ilon / 5000000 ) * 5000000;
       int lat = (n.ilat / 5000000 ) * 5000000;
-      
+
       minlon0 = lon -  5000000;
       minlat0 = lat -  5000000;
       maxlon0 = lon + 10000000;
@@ -45,12 +48,12 @@ public final class SearchBoundary
       maxlon = lon +  6000000;
       maxlat = lat +  6000000;
     }
-    
+
     public static String getFileName( OsmNode n )
     {
       int lon = (n.ilon / 5000000 ) * 5000000;
       int lat = (n.ilat / 5000000 ) * 5000000;
-      
+
       int dlon = lon / 1000000 -180;
       int dlat = lat / 1000000 - 90;
 
@@ -58,7 +61,7 @@ public final class SearchBoundary
       String slat = dlat < 0 ? "S" + (-dlat) : "N" + dlat;
       return slon + "_" + slat + ".trf";
     }
-    
+
     public boolean isInBoundary( OsmNode n, int cost )
     {
       if ( radius > 0 )
@@ -83,5 +86,5 @@ public final class SearchBoundary
         default: throw new IllegalArgumentException( "undefined direction: "+ direction );
       }
     }
-    
+
 }

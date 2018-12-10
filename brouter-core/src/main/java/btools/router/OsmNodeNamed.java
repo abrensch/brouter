@@ -10,15 +10,15 @@ import btools.mapaccess.OsmNode;
 public class OsmNodeNamed extends OsmNode
 {
   public String name;
-  public double radius; // radius of nogopoint
+  public double radius; // radius of nogopoint (in meters)
   public boolean isNogo = false;
-  
+
   @Override
   public String toString()
   {
     return ilon + "," + ilat + "," + name;
   }
-  
+
   public static OsmNodeNamed decodeNogo( String s )
   {
     OsmNodeNamed n = new OsmNodeNamed();

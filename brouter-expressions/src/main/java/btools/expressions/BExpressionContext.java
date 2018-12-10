@@ -28,12 +28,12 @@ public abstract class BExpressionContext implements IByteArrayUnifier
 {
   private  static final String CONTEXT_TAG = "---context:";
   private  static final String MODEL_TAG = "---model:";
-	
+
   private String context;
   private boolean _inOurContext = false;
   private BufferedReader _br = null;
   private boolean _readerDone = false;
-  
+
   public String _modelClass;
 
   private Map<String,Integer> lookupNumbers = new HashMap<String,Integer>();
@@ -49,7 +49,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   private byte[] abBuf = new byte[256];
   private BitCoderContext ctxEndode  = new BitCoderContext( abBuf );
   private BitCoderContext ctxDecode = new BitCoderContext( new byte[0] );
-  
+
   private Map<String,Integer> variableNumbers = new HashMap<String,Integer>();
 
   private float[] variableData;
@@ -69,12 +69,12 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   // build-in variable indexes for fast access
   private int[] buildInVariableIdx;
   private int nBuildInVars;
-  
+
   private float[] currentVars;
   private int currentVarOffset;
-  
+
   private BExpressionContext foreignContext;
-  
+
   protected void setInverseVars()
   {
     currentVarOffset = nBuildInVars;
@@ -82,7 +82,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
 
   abstract String[] getBuildInVariableNames();
 
-  public final float getBuildInVariable( int idx ) 
+  public final float getBuildInVariable( int idx )
   {
     return currentVars[idx+currentVarOffset];
   }
@@ -107,11 +107,11 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   {
      this.context = context;
      this.meta = meta;
-     
+
      if ( meta != null ) meta.registerListener(context, this );
 
      if ( Boolean.getBoolean( "disableExpressionCache" ) ) hashSize = 1;
-      
+
      // create the expression cache
      if ( hashSize > 0 )
      {
@@ -133,12 +133,12 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   {
     BitCoderContext ctx = ctxEndode;
     ctx.reset();
-	
+
     int skippedTags = 0;
     int nonNullTags= 0;
 
     // (skip first bit ("reversedirection") )
-  	
+
     // all others are generic
     for( int inum = 1; inum < lookupValues.size(); inum++ ) // loop over lookup names
     {
@@ -151,29 +151,29 @@ public abstract class BExpressionContext implements IByteArrayUnifier
       ctx.encodeVarBits( skippedTags+1 );
       nonNullTags++;
       skippedTags = 0;
-      
+
       // 0 excluded already, 1 (=unknown) we rotate up to 8
       // to have the good code space for the popular values
       int dd = d < 2 ? 7 : ( d < 9 ? d - 2 : d - 1);
       ctx.encodeVarBits(  dd );
     }
     ctx.encodeVarBits( 0 );
-    
+
     if ( nonNullTags == 0) return null;
-    
+
     int len = ctx.getEncodedLength();
     byte[] ab = new byte[len];
     System.arraycopy( abBuf, 0, ab, 0, len );
-    
-    
+
+
     // crosscheck: decode and compare
     int[] ld2 = new int[lookupValues.size()];
     decode( ld2, false, ab );
     for( int inum = 1; inum < lookupValues.size(); inum++ ) // loop over lookup names (except reverse dir)
     {
       if ( ld2[inum] != ld[inum] ) throw new RuntimeException( "assertion failed encoding inum=" + inum + " val=" + ld[inum] + " " + getKeyValueDescription(false, ab) );
-    }    
-    
+    }
+
     return ab;
   }
 
@@ -186,7 +186,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     decode( lookupData, false, ab );
     lookupDataValid = true;
   }
-  
+
 
 
   /**
@@ -196,10 +196,10 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   {
     BitCoderContext ctx = ctxDecode;
     ctx.reset( ab );
-	  
+
     // start with first bit hardwired ("reversedirection")
     ld[0] = inverseDirection ? 2 : 0;
-  	
+
     // all others are generic
   	int inum = 1;
     for(;;)
@@ -207,7 +207,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
       int delta = ctx.decodeVarBits();
       if ( delta == 0) break;
       if ( inum + delta > ld.length ) break; // higher minor version is o.k.
-      
+
       while ( delta-- > 1 ) ld[inum++] = 0;
 
       // see encoder for value rotation
@@ -255,7 +255,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
 
   private int parsedLines = 0;
   private boolean fixTagsWritten = false;
-  
+
   public void parseMetaLine( String line )
   {
       parsedLines++;
@@ -278,7 +278,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
       // add aliases
       while( newValue != null && tk.hasMoreTokens() ) newValue.addAlias( tk.nextToken() );
   }
-  
+
   public void finishMetaParsing()
   {
     if ( parsedLines == 0 && !"global".equals(context) )
@@ -288,7 +288,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
 
     // post-process metadata:
     lookupDataFrozen = true;
-    
+
     lookupIdxUsed = new boolean[lookupValues.size()];
   }
 
@@ -310,12 +310,12 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   private long requests;
   private long requests2;
   private long cachemisses;
-  
+
   public String cacheStats()
   {
     return "requests=" + requests + " requests2=" + requests2 + " cachemisses=" + cachemisses;
   }
-  
+
   private CacheNode lastCacheNode = new CacheNode();
 
   // @Override
@@ -355,7 +355,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   {
     requests++;
     lookupDataValid = false; // this is an assertion for a nasty pifall
-    
+
     if ( cache == null )
     {
       decode( lookupData, inverseDirection, ab );
@@ -383,7 +383,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     if ( cn == null )
     {
       cachemisses++;
-    
+
       cn = (CacheNode)cache.removeLru();
       if ( cn == null )
       {
@@ -405,9 +405,9 @@ public abstract class BExpressionContext implements IByteArrayUnifier
       // inverse direction
       lookupData[0] = 2; // inverse shortcut: reuse decoding
       evaluateInto( probeVarSet.vars, nBuildInVars );
-      
+
       probeVarSet.hash = Arrays.hashCode( probeVarSet.vars );
-      
+
       // unify the result variable set
       VarWrapper vw = (VarWrapper)resultVarCache.get( probeVarSet );
       if ( vw == null )
@@ -427,7 +427,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     else
     {
       if ( ab == cn.ab ) requests2++;
-    
+
       cache.touch( cn );
     }
 
@@ -647,7 +647,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
 
   /**
    * special hack for yes/proposed relations:
-   * add a lookup value if not yet a smaller, >1 value was added
+   * add a lookup value if not yet a smaller, &gt; 1 value was added
    * add a 2=yes if the provided value is out of range
    * value-index means here 0=unknown, 1=other, 2=yes, 3=proposed
    */
@@ -680,7 +680,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     Integer num = lookupNumbers.get( name );
     return num != null && lookupData[num.intValue()] == 2;
   }
-  
+
   public int getOutputVariableIndex( String name, boolean mustExist )
   {
     int idx = getVariableIdx( name, false );
@@ -708,7 +708,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     buildInVariableIdx = extended;
     return nBuildInVars++;
   }
-  
+
   public void setForeignContext( BExpressionContext foreignContext )
   {
     this.foreignContext = foreignContext;
@@ -855,7 +855,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   {
     lookupIdxUsed[ idx ] = true;
   }
-  
+
   public final boolean isLookupIdxUsed( int idx )
   {
     return idx < lookupIdxUsed.length ? lookupIdxUsed[idx] : false;

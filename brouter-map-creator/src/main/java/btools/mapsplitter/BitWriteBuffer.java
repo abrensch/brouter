@@ -23,12 +23,13 @@ public final class BitWriteBuffer
   /**
    * encode a distance with a variable bit length
    * (poor mans huffman tree)
-   * 1 -> 0
-   * 01 -> 1 + following 1-bit word ( 1..2 )
-   * 001 -> 3 + following 2-bit word ( 3..6 )
-   * 0001 -> 7 + following 3-bit word ( 7..14 ) etc.
-   * 
-   * @see #decodeVarBits
+   * {@code 1 -> 0}
+   * {@code 01 -> 1} + following 1-bit word ( 1..2 )
+   * {@code 001 -> 3} + following 2-bit word ( 3..6 )
+   * {@code 0001 -> 7} + following 3-bit word ( 7..14 ) etc.
+   *
+   * @see btools.util.BitCoderContext#decodeVarBits
+   *
    */
   public void encodeInt( int value )
   {
@@ -39,7 +40,7 @@ public final class BitWriteBuffer
       value -= range + 1;
       range = 2 * range + 1;
     }
-    
+
     encodeBit( true );
     encodeBounded( range, value );
   }
@@ -127,7 +128,7 @@ public final class BitWriteBuffer
     if ( size == 0 )
     {
       return;
-    }      
+    }
     long maxValue = values[size-1];
     int nbits = 0;
     while ( maxValue > 0 )
@@ -187,7 +188,7 @@ public final class BitWriteBuffer
   /**
    * assign the de-/encoded bits since the last call assignBits to the given
    * name. Used for encoding statistics
-   * 
+   *
    * @see #getBitReport
    */
   public void assignBits( String name )
@@ -210,7 +211,7 @@ public final class BitWriteBuffer
 
   /**
    * Get a textual report on the bit-statistics
-   * 
+   *
    * @see #assignBits
    */
   public static String getBitReport()
