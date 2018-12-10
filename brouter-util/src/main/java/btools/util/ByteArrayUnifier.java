@@ -17,7 +17,7 @@ public final class ByteArrayUnifier implements IByteArrayUnifier
    * Unify a byte array in order to reuse instances when possible.
    * The byte arrays are assumed to be treated as immutable,
    * allowing the reuse
-   * @param the byte array to unify
+   * @param ab  the byte array to unify
    * @return the cached instance or the input instanced if not cached
    */
   public byte[] unify( byte[] ab )

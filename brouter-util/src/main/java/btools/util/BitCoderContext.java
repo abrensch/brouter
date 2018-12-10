@@ -15,13 +15,13 @@ public class BitCoderContext
     this.ab = ab;
     idxMax = ab.length-1;
   }
-  
+
   public final void reset( byte[] ab )
   {
     this.ab = ab;
     idxMax = ab.length-1;
     reset();
-  }    
+  }
 
   public final void reset()
   {
@@ -29,16 +29,16 @@ public class BitCoderContext
     bm = 0x100;
     bits = 0;
     b = 0;
-  }    
+  }
 
   /**
    * encode a distance with a variable bit length
    * (poor mans huffman tree)
-   * 1 -> 0
-   * 01 -> 1 + following 1-bit word ( 1..2 )
-   * 001 -> 3 + following 2-bit word ( 3..6 )
-   * 0001 -> 7 + following 3-bit word ( 7..14 ) etc.
-   * 
+   * {@code 1 -> 0}
+   * {@code 01 -> 1} + following 1-bit word ( 1..2 )
+   * {@code 001 -> 3} + following 2-bit word ( 3..6 )
+   * {@code 0001 -> 7} + following 3-bit word ( 7..14 ) etc.
+   *
    * @see #decodeVarBits
    */
   public final void encodeVarBits( int value )
@@ -175,7 +175,7 @@ public class BitCoderContext
     bits -= count;
     return value;
   }
-  
+
   private void fillBuffer()
   {
     while (bits < 24)
@@ -186,7 +186,7 @@ public class BitCoderContext
       }
       bits += 8;
     }
-  }    
+  }
 
   /**
    * @return the encoded length in bytes

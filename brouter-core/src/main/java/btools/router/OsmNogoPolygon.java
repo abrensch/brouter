@@ -103,36 +103,31 @@ public class OsmNogoPolygon extends OsmNodeNamed
 
     int cx = (cxmax+cxmin) / 2; // center of circle
     int cy = (cymax+cymin) / 2;
-    
+
     double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( cy );
     double dlon2m = lonlat2m[0];
     double dlat2m = lonlat2m[1];
 
     double rad = 0;  // radius
-    double rad2 = 0; // radius squared;
 
-    double dpx = 0; // x-xomponent of vector from center to point
-    double dpy = 0; // y-component
-    double dmax2 = 0; // squared lenght of vector from center to point
+    double dmax = 0; // length of vector from center to point
     int i_max = -1;
 
     do
-    { // now identify the point outside of the circle that has the greatest distance
-      for (int i = 0; i < points.size();i++)
+    {
+      // now identify the point outside of the circle that has the greatest distance
+      for (int i = 0; i < points.size(); i++)
       {
         final Point p = points.get(i);
-        final double dpix = (p.x - cx) * dlon2m;
-        final double dpiy = (p.y - cy) * dlat2m;
-        final double dist2 = dpix * dpix + dpiy * dpiy;
-        if (dist2 <= rad2)
+        final double dist = CheapRulerSingleton.distance(p.x, p.y, (int) cx, (int) cy);
+        if (dist <= rad)
         {
           continue;
         }
-        if (dist2 > dmax2)
+        if (dist > dmax)
         {
-          dmax2 = dist2; // new maximum distance found
-          dpx = dpix / dlon2m;
-          dpy = dpiy / dlat2m;
+          // new maximum distance found
+          dmax = dist;
           i_max = i;
         }
       }
@@ -140,17 +135,13 @@ public class OsmNogoPolygon extends OsmNodeNamed
       {
     	  break; // leave loop when no point outside the circle is found any more.
       }
-      final double dist = Math.sqrt(dmax2);
-      final double dd = 0.5 * (dist - rad) / dist;
-
-      cx += (int)(dd * dpx + 0.5); // shift center toward point
-      cy += (int)(dd * dpy + 0.5);
+      final double dd = 0.5 * (1 - rad / dmax);
 
       final Point p = points.get(i_max); // calculate new radius to just include this point
-      final double dpix = (p.x - cx) * dlon2m;
-      final double dpiy = (p.y - cy) * dlat2m;
-      dmax2 = rad2 = dpix * dpix + dpiy * dpiy;
-      rad = Math.sqrt(rad2);
+      cx += (int)(dd * (p.x - cx) + 0.5); // shift center toward point
+      cy += (int)(dd * (p.y - cy) + 0.5);
+
+      dmax = rad = CheapRulerSingleton.distance(p.x, p.y, (int) cx, (int) cy);
       i_max = -1;
     }
     while (true);
@@ -254,10 +245,9 @@ public class OsmNogoPolygon extends OsmNodeNamed
  /**
   * winding number test for a point in a polygon
   *
-  * @param p a point
-  * @param v list of vertex points forming a polygon. This polygon
-  *          is implicitly closed connecting the last and first point.
-  * @return the winding number (=0 only when P is outside)
+  * @param px longitude of the point to check
+  * @param py latitude of the point to check
+  * @return a boolean whether the point is within the polygon or not.
   */
   public boolean isWithin(final long px, final long py)
   {

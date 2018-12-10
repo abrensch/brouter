@@ -14,7 +14,7 @@ public final class BitReadBuffer
     this.ab = ab;
     idxMax = ab.length-1;
   }
-  
+
   public boolean decodeBit()
   {
     fillBuffer();
@@ -60,10 +60,10 @@ public final class BitReadBuffer
   /**
    * decode a small number with a variable bit length
    * (poor mans huffman tree)
-   * 1 -> 0
-   * 01 -> 1 + following 1-bit word ( 1..2 )
-   * 001 -> 3 + following 2-bit word ( 3..6 )
-   * 0001 -> 7 + following 3-bit word ( 7..14 ) etc.
+   * {@code 1 -> 0}
+   * {@code 01 -> 1} + following 1-bit word ( 1..2 )
+   * {@code 001 -> 3} + following 2-bit word ( 3..6 )
+   * {@code 0001 -> 7} + following 3-bit word ( 7..14 ) etc.
    */
   public int decodeInt()
   {
@@ -139,7 +139,7 @@ public final class BitReadBuffer
     }
   }
 
-  
+
   private void fillBuffer()
   {
     while (bits <= 56)
@@ -150,5 +150,5 @@ public final class BitReadBuffer
       }
       bits += 8;
     }
-  }    
+  }
 }
