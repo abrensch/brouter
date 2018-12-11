@@ -33,7 +33,7 @@ public final class CheapRulerSingleton {
   }
 
   private static double[] calcKxKyFromILat(int ilat) {
-    double lat = DEG_TO_RAD*ilat*ILATLNG_TO_LATLNG - 90;
+    double lat = DEG_TO_RAD*(ilat*ILATLNG_TO_LATLNG - 90);
     double cos = Math.cos(lat);
     double cos2 = 2 * cos * cos - 1;
     double cos3 = 2 * cos * cos2 - cos;

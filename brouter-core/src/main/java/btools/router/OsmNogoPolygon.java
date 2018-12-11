@@ -297,6 +297,90 @@ public class OsmNogoPolygon extends OsmNodeNamed
     return wn != 0;
   }
 
+  /**
+   * Compute the length of the segment within the polygon.
+   *
+   * @param lon1 Integer longitude of the first point of the segment.
+   * @param lat1 Integer latitude of the first point of the segment.
+   * @param lon2 Integer longitude of the last point of the segment.
+   * @param lat2 Integer latitude of the last point of the segment.
+   *
+   * @return The length, in meters, of the portion of the segment which is
+   *         included in the polygon.
+   */
+  public double distanceWithinPolygon(int lon1, int lat1, int lon2, int lat2) {
+    double distance = 0.;
+
+    // Extremities of the segments
+    final Point p1 = new Point (lon1, lat1);
+    final Point p2 = new Point (lon2, lat2);
+
+    Point previousIntersectionOnSegment = null;
+    if (isWithin(lon1, lat1))
+    {
+      // Start point of the segment is within the polygon, this is the first
+      // "intersection".
+      previousIntersectionOnSegment = p1;
+    }
+
+    // Loop over edges of the polygon to find intersections
+    int i_last = points.size() - 1;
+    for (int i = (isClosed ? 0 : 1), j = (isClosed ? i_last : 0); i <= i_last; j = i++)
+    {
+      Point edgePoint1 = points.get(j);
+      Point edgePoint2 = points.get(i);
+      int intersectsEdge = intersect2D_2Segments(p1, p2, edgePoint1, edgePoint2);
+      if (intersectsEdge == 1)
+      {
+        // Intersects in a single point
+        // Let's find this intersection point
+        int xdiffSegment = lon1 - lon2;
+        int xdiffEdge = edgePoint1.x - edgePoint2.x;
+        int ydiffSegment = lat1 - lat2;
+        int ydiffEdge = edgePoint1.y - edgePoint2.y;
+        int div = xdiffSegment * ydiffEdge - xdiffEdge * ydiffSegment;
+        long dSegment = (long) lon1 * (long) lat2 - (long) lon2 * (long) lat1;
+        long dEdge = (long) edgePoint1.x * (long) edgePoint2.y - (long) edgePoint2.x * (long) edgePoint1.y;
+        // Coordinates of the intersection
+        Point intersection = new Point(
+          (int) ((dSegment * xdiffEdge - dEdge * xdiffSegment) / div),
+          (int) ((dSegment * ydiffEdge - dEdge * ydiffSegment) / div)
+        );
+        if (
+          previousIntersectionOnSegment != null
+          && isWithin(
+            (intersection.x + previousIntersectionOnSegment.x) >> 1,
+            (intersection.y + previousIntersectionOnSegment.y) >> 1
+          )
+        ) {
+          // There was a previous match within the polygon and this part of the
+          // segment is within the polygon.
+          distance += CheapRulerSingleton.distance(
+            previousIntersectionOnSegment.x, previousIntersectionOnSegment.y,
+            intersection.x, intersection.y
+          );
+        }
+        previousIntersectionOnSegment = intersection;
+      }
+      else if (intersectsEdge == 2) {
+        // Segment and edge overlaps
+        distance += CheapRulerSingleton.distance(lon1, lat1, lon2, lat2);
+      }
+    }
+
+    if (
+      previousIntersectionOnSegment != null
+      && isWithin(lon2, lat2)
+    ) {
+      // Last point is within the polygon, add the remaining missing distance.
+      distance += CheapRulerSingleton.distance(
+        previousIntersectionOnSegment.x, previousIntersectionOnSegment.y,
+        lon2, lat2
+      );
+    }
+    return distance;
+  }
+
 /* Copyright 2001 softSurfer, 2012 Dan Sunday, 2018 Norbert Truchsess
    This code may be freely used and modified for any purpose providing that
    this copyright notice is included with it. SoftSurfer makes no warranty for
