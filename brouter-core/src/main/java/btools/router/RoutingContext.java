@@ -194,7 +194,7 @@ public final class RoutingContext
   public boolean startDirectionValid;
 
   private double cosangle;
-  public boolean nogomatch = false;
+  public double nogoCost = 0.;
   public boolean isEndpoint = false;
 
   public boolean shortestmatch = false;
@@ -344,10 +344,19 @@ public final class RoutingContext
           }
           if ( nogo.isNogo )
           {
-            if (!(nogo instanceof OsmNogoPolygon)
-                || ((OsmNogoPolygon)nogo).intersects(lon1, lat1, lon2, lat2))
+            if (Double.isNaN(nogo.nogoWeight))
             {
-              nogomatch = true;
+                // Nogo is default nogo (ignore completely)
+                nogoCost = -1;
+            }
+            else if (!(nogo instanceof OsmNogoPolygon)) {
+              // nogo is a circle, compute distance within the circle
+              nogoCost = nogo.distanceWithinRadius(lon1, lat1, lon2, lat2, d) * nogo.nogoWeight;
+            }
+            else if (((OsmNogoPolygon)nogo).intersects(lon1, lat1, lon2, lat2))
+            {
+              // nogo is a polygon, compute distance within the polygon
+              nogoCost = ((OsmNogoPolygon)nogo).distanceWithinPolygon(lon1, lat1, lon2, lat2) * nogo.nogoWeight;
             }
           }
           else
@@ -388,7 +397,7 @@ public final class RoutingContext
             }
             else
             {
-              nogomatch = false;
+              nogoCost = 0.;
               lon1 = ilonshortest;
               lat1 = ilatshortest;
             }
@@ -417,7 +426,7 @@ public final class RoutingContext
 
     double dd = Math.sqrt( (dx10*dx10 + dy10*dy10)*(dx21*dx21 + dy21*dy21) );
     if ( dd == 0. ) { cosangle = 1.; return 0.; }
-    double sinp = (dy10*dy21 - dx10*dx21)/dd;
+    double sinp = (dx10*dy21 - dy10*dx21)/dd;
     double cosp = (dy10*dy21 + dx10*dx21)/dd;
     cosangle = cosp;
 
