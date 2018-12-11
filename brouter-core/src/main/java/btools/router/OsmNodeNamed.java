@@ -28,9 +28,8 @@ public class OsmNodeNamed extends OsmNode
   public double distanceWithinRadius(int lon1, int lat1, int lon2, int lat2, double totalSegmentLength) {
     double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( (lat1 + lat2) >> 1 );
 
-    double realRadius = radius * 110984.;
-    boolean isFirstPointWithinCircle = CheapRulerSingleton.distance(lon1, lat1, ilon, ilat) < realRadius;
-    boolean isLastPointWithinCircle = CheapRulerSingleton.distance(lon2, lat2, ilon, ilat) < realRadius;
+    boolean isFirstPointWithinCircle = CheapRulerSingleton.distance(lon1, lat1, ilon, ilat) < radius;
+    boolean isLastPointWithinCircle = CheapRulerSingleton.distance(lon2, lat2, ilon, ilat) < radius;
     // First point is within the circle
     if (isFirstPointWithinCircle) {
       // Last point is within the circle
@@ -62,7 +61,7 @@ public class OsmNodeNamed extends OsmNode
     double initialToCenter = CheapRulerSingleton.distance(ilon, ilat, lon1, lat1);
     // Half length of the segment within the circle
     double halfDistanceWithin = Math.sqrt(
-      realRadius*realRadius - (
+      radius*radius - (
         initialToCenter*initialToCenter -
         initialToProject*initialToProject
       )

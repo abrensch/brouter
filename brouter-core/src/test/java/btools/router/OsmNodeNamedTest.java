@@ -29,7 +29,7 @@ public class OsmNodeNamedTest {
     node.ilon = toOsmLon(2.334243);
     node.ilat = toOsmLat(48.824017);
     // Radius
-    node.radius = 30 / 110984.;
+    node.radius = 30;
 
     // Check distance within radius is correctly computed if the segment passes through the center
     lon1 = toOsmLon(2.332559);
@@ -39,9 +39,9 @@ public class OsmNodeNamedTest {
     double totalSegmentLength = CheapRulerSingleton.distance(lon1, lat1, lon2, lat2);
     assertEquals(
       "Works for segment aligned with the nogo center",
-      2 * node.radius * 110984.,
+      2 * node.radius,
       node.distanceWithinRadius(lon1, lat1, lon2, lat2, totalSegmentLength),
-      0.01 * (2 * node.radius * 110984.)
+      0.01 * (2 * node.radius)
     );
 
     // Check distance within radius is correctly computed for a given circle
