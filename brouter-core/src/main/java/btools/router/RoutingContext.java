@@ -426,7 +426,7 @@ public final class RoutingContext
 
     double dd = Math.sqrt( (dx10*dx10 + dy10*dy10)*(dx21*dx21 + dy21*dy21) );
     if ( dd == 0. ) { cosangle = 1.; return 0.; }
-    double sinp = (dy10*dy21 - dx10*dx21)/dd;
+    double sinp = (dx10*dy21 - dy10*dx21)/dd;
     double cosp = (dy10*dy21 + dx10*dx21)/dd;
     cosangle = cosp;
 
