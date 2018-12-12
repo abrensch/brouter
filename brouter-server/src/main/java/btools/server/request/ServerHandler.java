@@ -113,7 +113,7 @@ public class ServerHandler extends RequestHandler {
     String result;
     // optional, may be null
     String format = params.get( "format" );
-    String trackName = params.get( "trackName" );
+    String trackName = params.get( "trackname" );
     if (trackName != null) {
       track.name = trackName;
     }

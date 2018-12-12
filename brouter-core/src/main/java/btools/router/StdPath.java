@@ -243,21 +243,16 @@ final class StdPath extends OsmPath
     double incline = calcIncline( dist );
 
     double speed; // Travel speed
-    double energy;
+    double f_roll = rc.totalMass * GRAVITY * ( rc.defaultC_r + incline );
     if (rc.footMode || rc.expctxWay.getCostfactor() > 5)
     {
       // Use Tobler's hiking function for walking sections
       speed = 6 * exp(-3.5 * Math.abs( incline + 0.05)) / 3.6;
-      energy = rc.totalMass * GRAVITY * incline * dist;
     }
     else if (rc.bikeMode)
     {
-      double f_roll = rc.totalMass * GRAVITY * ( rc.defaultC_r + incline );
       speed = solveCubic( rc.S_C_x, f_roll, rc.bikerPower );
       speed = Math.min(speed, rc.maxSpeed);
-      // Don't compute energy assuming constant biker power, as speed is capped
-      // to a max value.
-      energy = dist*(rc.S_C_x*speed*speed + f_roll);
     }
     else
     {
@@ -265,7 +260,13 @@ final class StdPath extends OsmPath
     }
     float dt = (float) ( dist / speed );
     totalTime += dt;
-    totalEnergy += energy;
+    // Calc energy assuming biking (no good model yet for hiking)
+    // (Count only positive, negative would mean breaking to enforce maxspeed)
+    double energy = dist*(rc.S_C_x*speed*speed + f_roll);
+    if ( energy > 0. )
+    {
+      totalEnergy += energy;
+    }
   }
 
   private static double solveCubic( double a, double c, double d )
