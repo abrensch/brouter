@@ -244,7 +244,7 @@ final class StdPath extends OsmPath
 
     double speed; // Travel speed
     double f_roll = rc.totalMass * GRAVITY * ( rc.defaultC_r + incline );
-    if (rc.footMode || rc.expctxWay.getCostfactor() > 5)
+    if (rc.footMode || rc.expctxWay.getCostfactor() > 4.9 )
     {
       // Use Tobler's hiking function for walking sections
       speed = 6 * exp(-3.5 * Math.abs( incline + 0.05)) / 3.6;
