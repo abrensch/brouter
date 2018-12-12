@@ -113,6 +113,10 @@ public class ServerHandler extends RequestHandler {
     String result;
     // optional, may be null
     String format = params.get( "format" );
+    String trackName = params.get( "trackName" );
+    if (trackName != null) {
+      track.name = trackName;
+    }
 
     if (format == null || "gpx".equals(format))
     {
