@@ -148,11 +148,15 @@ public class OsmNogoPolygonTest {
   @Test
   public void testDistanceWithinPolygon() {
       // Testing polygon
-      final double[] lons = { 2.333523, 2.333432, 2.333833, 2.333983, 2.334815, 2.334766, 2.333523 };
-      final double[] lats = { 48.823778, 48.824091, 48.82389, 48.824165, 48.824232, 48.82384, 48.823778 };
+      final double[] lons = { 2.333523, 2.333432, 2.333833, 2.333983, 2.334815, 2.334766 };
+      final double[] lats = { 48.823778, 48.824091, 48.82389, 48.824165, 48.824232, 48.82384 };
       OsmNogoPolygon polygon = new OsmNogoPolygon(true);
       for (int i = 0; i < lons.length; i++) {
           polygon.addVertex(toOsmLon(lons[i], 0), toOsmLat(lats[i], 0));
+      }
+      OsmNogoPolygon polyline = new OsmNogoPolygon(false);
+      for (int i = 0; i < lons.length; i++) {
+          polyline.addVertex(toOsmLon(lons[i], 0), toOsmLat(lats[i], 0));
       }
 
       // Check with a segment with a single intersection with the polygon
@@ -195,6 +199,28 @@ public class OsmNogoPolygonTest {
         35,
         polygon.distanceWithinPolygon(lon1, lat1, lon2, lat2),
         0.05 * 35
+      );
+
+      lon1 = toOsmLon(2.333523, 0);
+      lat1 = toOsmLat(48.823778, 0);
+      lon2 = toOsmLon(2.333432, 0);
+      lat2 = toOsmLat(48.824091, 0);
+      assertEquals(
+        "Should give the correct length if the segment overlaps with an edge of the polygon",
+        CheapRulerSingleton.distance(lon1, lat1, lon2, lat2),
+        polygon.distanceWithinPolygon(lon1, lat1, lon2, lat2),
+        0.05 * CheapRulerSingleton.distance(lon1, lat1, lon2, lat2)
+      );
+
+      lon1 = toOsmLon(2.333523, 0);
+      lat1 = toOsmLat(48.823778, 0);
+      lon2 = toOsmLon(2.3334775, 0);
+      lat2 = toOsmLat(48.8239345, 0);
+      assertEquals(
+        "Should give the correct length if the segment overlaps with a polyline",
+        CheapRulerSingleton.distance(lon1, lat1, lon2, lat2),
+        polyline.distanceWithinPolygon(lon1, lat1, lon2, lat2),
+        0.05 * CheapRulerSingleton.distance(lon1, lat1, lon2, lat2)
       );
   }
 }
