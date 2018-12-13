@@ -48,8 +48,9 @@ public class BRouterView extends View
 
   private int centerLon;
   private int centerLat;
-  private double scaleLon;
-  private double scaleLat;
+  private double scaleLon;  // ilon -> pixel
+  private double scaleLat;  // ilat -> pixel
+  private double scaleMeter2Pixel;
   private List<OsmNodeNamed> wpList;
   private List<OsmNodeNamed> nogoList;
   private List<OsmNodeNamed> nogoVetoList;
@@ -517,9 +518,9 @@ public class BRouterView extends View
 
       scaleLon = imgw / ( difflon * 1.5 );
       scaleLat = imgh / ( difflat * 1.5 );
-      double scaleMin = scaleLon < scaleLat ? scaleLon : scaleLat;
-      scaleLat *= dlon2m;
-      scaleLon *= dlat2m;
+      scaleMeter2Pixel = scaleLon < scaleLat ? scaleLon : scaleLat;
+      scaleLon = scaleMeter2Pixel*dlon2m;
+      scaleLat = scaleMeter2Pixel*dlat2m;
 
       startTime = System.currentTimeMillis();
       RoutingContext.prepareNogoPoints( nogoList );
@@ -636,8 +637,7 @@ public class BRouterView extends View
     int x = imgw / 2 + (int) ( scaleLon * lon );
     int y = imgh / 2 - (int) ( scaleLat * lat );
 
-    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( centerLat );
-    int ir = (int) ( n.radius * scaleLat / lonlat2m[1]);
+    int ir = (int) ( n.radius * scaleMeter2Pixel );
     if ( ir > minradius )
     {
       Paint paint = new Paint();
@@ -662,8 +662,7 @@ public class BRouterView extends View
 
   private void paintPolygon( Canvas canvas, OsmNogoPolygon p, int minradius )
   {
-    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( centerLat );
-    final int ir = (int) ( p.radius * scaleLat / lonlat2m[1] );
+    final int ir = (int) ( p.radius * scaleMeter2Pixel );
     if ( ir > minradius )
     {
       Paint paint = new Paint();
