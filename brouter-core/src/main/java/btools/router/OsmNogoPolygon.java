@@ -330,9 +330,11 @@ public class OsmNogoPolygon extends OsmNodeNamed
       Point edgePoint1 = points.get(j);
       Point edgePoint2 = points.get(i);
       int intersectsEdge = intersect2D_2Segments(p1, p2, edgePoint1, edgePoint2);
-      if (intersectsEdge == 1)
+
+      if (isClosed && intersectsEdge == 1)
       {
-        // Intersects in a single point
+        // Intersects with a (closed) polygon edge on a single point
+        // Distance is zero when crossing a polyline.
         // Let's find this intersection point
         int xdiffSegment = lon1 - lon2;
         int xdiffEdge = edgePoint1.x - edgePoint2.x;
@@ -364,7 +366,19 @@ public class OsmNogoPolygon extends OsmNodeNamed
       }
       else if (intersectsEdge == 2) {
         // Segment and edge overlaps
-        distance += CheapRulerSingleton.distance(lon1, lat1, lon2, lat2);
+        // FIXME: Could probably be done in a smarter way
+        distance += Math.min(
+          CheapRulerSingleton.distance(p1.x, p1.y, p2.x, p2.y),
+          Math.min(
+            CheapRulerSingleton.distance(edgePoint1.x, edgePoint1.y, edgePoint2.x, edgePoint2.y),
+            Math.min(
+              CheapRulerSingleton.distance(p1.x, p1.y, edgePoint2.x, edgePoint2.y),
+              CheapRulerSingleton.distance(edgePoint1.x, edgePoint1.y, p2.x, p2.y)
+            )
+          )
+        );
+        // FIXME: We could store intersection.
+        previousIntersectionOnSegment = null;
       }
     }
 
