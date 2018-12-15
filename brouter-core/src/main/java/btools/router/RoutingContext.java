@@ -419,46 +419,42 @@ public final class RoutingContext
   public double calcAngle( int lon0, int lat0,  int lon1, int lat1, int lon2, int lat2 )
   {
     double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( lat1 );
-    double dy10 = (lat1 - lat0) * lonlat2m[1];
-    double dx10 = (lon1 - lon0) * lonlat2m[0];
-    double dy21 = (lat2 - lat1) * lonlat2m[1];
-    double dx21 = (lon2 - lon1) * lonlat2m[0];
+    double lon2m = lonlat2m[0];
+    double lat2m = lonlat2m[1];
+    double dx10 = (lon1 - lon0) * lon2m;
+    double dy10 = (lat1 - lat0) * lat2m;
+    double dx21 = (lon2 - lon1) * lon2m;
+    double dy21 = (lat2 - lat1) * lat2m;
 
     double dd = Math.sqrt( (dx10*dx10 + dy10*dy10)*(dx21*dx21 + dy21*dy21) );
     if ( dd == 0. ) { cosangle = 1.; return 0.; }
-    double sinp = (dx10*dy21 - dy10*dx21)/dd;
+    double sinp = (dy10*dx21 - dx10*dy21)/dd;
     double cosp = (dy10*dy21 + dx10*dx21)/dd;
     cosangle = cosp;
 
-    double p;
-    if ( sinp > -0.7071 && sinp < 0.7071 )
+    double offset = 0.;
+    double s2 = sinp*sinp;
+    double c2 = cosp*cosp;
+    if ( c2 < s2 )
     {
-      p = asin( sinp );
-      if ( cosp < 0. )
+      if ( sinp > 0. )
       {
-        p = 180. - p;
+        offset = 90.;
+        sinp = -cosp;
       }
-    }
-    else
-    {
-      p = 90. - asin( cosp );
-      if ( sinp < 0. )
+      else
       {
-        p = - p;
+        offset = -90.;
+        sinp = cosp;
       }
+      s2 = c2;
     }
-    if ( p > 180. )
+    else if ( cosp < 0. )
     {
-      p -= 360.;
+      sinp = -sinp;
+      offset = sinp > 0. ? -180. : 180.;
     }
-    return p;
-  }
-
-  private static double asin( double x )
-  {
-    double x2 = x*x;
-    double x4 = x2*x2;
-    return x * ( 57.4539 + 9.57565 * x2 + 4.30904 * x4 + 2.56491 * x2*x4 );
+    return offset + sinp * ( 57.4539 + s2 * ( 9.57565 + s2 * ( 4.30904 + s2 * 2.56491 ) ) );
   }
 
   public OsmPathModel pm;
