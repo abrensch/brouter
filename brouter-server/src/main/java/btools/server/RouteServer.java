@@ -2,6 +2,7 @@ package btools.server;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -27,6 +28,7 @@ import btools.router.RoutingEngine;
 import btools.server.request.ProfileUploadHandler;
 import btools.server.request.RequestHandler;
 import btools.server.request.ServerHandler;
+import btools.util.StackSampler;
 
 public class RouteServer extends Thread
 {
@@ -239,6 +241,19 @@ public class RouteServer extends Thread
         TreeMap<Long,RouteServer> threadMap = new TreeMap<Long,RouteServer>();
 
         ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]),50,InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
+
+        // stacksample for performance profiling
+        // ( caution: start stacksampler only after successfully creating the server socket
+        //   because that thread prevents the process from terminating, so the start-attempt
+        //   by the watchdog cron would create zombies )
+        File stackLog = new File( "stacks.txt" );
+        if ( stackLog.exists() )
+        {
+          StackSampler stackSampler = new StackSampler( stackLog, 1000 );
+          stackSampler.start();
+          System.out.println( "*** sampling stacks into stacks.txt *** ");
+        }
+
         long last_ts = 0;
         for (;;)
         {
