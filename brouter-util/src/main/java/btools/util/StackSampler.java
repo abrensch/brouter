@@ -117,7 +117,7 @@ public class StackSampler extends Thread
       {
         positiveMatch = true;
       }
-      if ( s.indexOf( "Thread.sleep" ) >= 0 )
+      if ( s.indexOf( "Thread.sleep" ) >= 0 || s.indexOf( "PlainSocketImpl.socketAccept" ) >= 0 )
       {
         return false;
       }
