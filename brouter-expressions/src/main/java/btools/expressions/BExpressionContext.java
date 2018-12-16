@@ -322,7 +322,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
   public final byte[] unify( byte[] ab, int offset, int len )
   {
     probeCacheNode.ab = null; // crc based cache lookup only
-    probeCacheNode.crc = Crc32.crc( ab, offset, len );
+    probeCacheNode.hash = Crc32.crc( ab, offset, len );
 
     CacheNode cn = (CacheNode)cache.get( probeCacheNode );
     if ( cn != null )
@@ -376,7 +376,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     else
     {
       probeCacheNode.ab = ab;
-      probeCacheNode.crc = Crc32.crc( ab, 0, ab.length );
+      probeCacheNode.hash = Crc32.crc( ab, 0, ab.length );
       cn = (CacheNode)cache.get( probeCacheNode );
     }
 
@@ -389,7 +389,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
       {
         cn = new CacheNode();
       }
-      cn.crc = probeCacheNode.crc;
+      cn.hash = probeCacheNode.hash;
       cn.ab = ab;
       cache.put( cn );
 
