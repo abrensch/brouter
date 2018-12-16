@@ -6,21 +6,20 @@ import btools.util.LruMapNode;
 
 public final class CacheNode extends LruMapNode
 {
-  int crc;
   byte[] ab;
   float[] vars;
 
   @Override
   public int hashCode()
   {
-    return crc;
+    return hash;
   }
 
   @Override
   public boolean equals( Object o )
   {
     CacheNode n = (CacheNode) o;
-    if ( crc != n.crc )
+    if ( hash != n.hash )
     {
       return false;
     }

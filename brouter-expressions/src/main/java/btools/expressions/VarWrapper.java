@@ -6,7 +6,6 @@ import btools.util.LruMapNode;
 
 public final class VarWrapper extends LruMapNode
 {
-  int hash;
   float[] vars;
   
   @Override

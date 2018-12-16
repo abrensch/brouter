@@ -25,7 +25,7 @@ public final class LruMap
   
   public LruMapNode get( LruMapNode key )
   {
-    int bin = ( key.hashCode() & 0xfffffff ) % hashbins;
+    int bin = ( key.hash & 0xfffffff ) % hashbins;
     
     LruMapNode e = binArray[bin];
     while ( e != null )
