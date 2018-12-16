@@ -434,8 +434,7 @@ public final class RoutingContext
 
     double offset = 0.;
     double s2 = sinp*sinp;
-    double c2 = cosp*cosp;
-    if ( c2 < s2 )
+    if ( s2 > 0.5 )
     {
       if ( sinp > 0. )
       {
@@ -447,7 +446,7 @@ public final class RoutingContext
         offset = -90.;
         sinp = cosp;
       }
-      s2 = c2;
+      s2 = cosp*cosp;
     }
     else if ( cosp < 0. )
     {
