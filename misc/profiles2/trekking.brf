@@ -53,6 +53,13 @@ assign is_ldcr =
      else any_cycleroute
 
 assign isbike = or bicycle=yes or or bicycle=permissive bicycle=designated lcn=yes
+
+# Add a penalty based on traffic speed, if there are no infrastructures
+assign speedpenalty =
+    if ( or maxspeed=20 zone:maxspeed=20 ) then 0.9
+    else if ( or maxspeed=30 zone:maxspeed=30 ) then 0.9
+    else 1.0
+
 assign ispaved = surface=paved|asphalt|concrete|paving_stones
 assign isunpaved = not or surface= or ispaved surface=fine_gravel|cobblestone
 assign probablyGood = or ispaved and isbike not isunpaved
@@ -235,11 +242,13 @@ assign costfactor
   #
   # actuals roads are o.k. if we have a bike hint
   #
-       if ( highway=trunk|trunk_link         ) then ( if isbike then 1.5 else 10  )
-  else if ( highway=primary|primary_link     ) then ( if isbike then 1.2 else  3  )
-  else if ( highway=secondary|secondary_link ) then ( if isbike then 1.1 else 1.6 )
-  else if ( highway=tertiary|tertiary_link   ) then ( if isbike then 1.0 else 1.4 )
-  else if ( highway=unclassified             ) then ( if isbike then 1.0 else 1.3 )
+       if ( highway=trunk|trunk_link         ) then ( if isbike then 1.5 else ( multiply speedpenalty 10 ) )
+  else if ( highway=primary|primary_link     ) then ( if isbike then 1.2 else ( multiply speedpenalty 4 ) )
+  else if ( highway=secondary|secondary_link ) then ( if isbike then 1.1 else ( multiply speedpenalty 1.6 ) )
+  else if ( highway=tertiary|tertiary_link   ) then ( if isbike then 1.0 else ( multiply speedpenalty 1.4 ) )
+  else if ( highway=unclassified             ) then ( if isbike then 1.0 else ( multiply speedpenalty 1.3 ) )
+  # avoid unknown highways with no bike hint
+  else if ( highway=unknown                  ) then ( if isbike then 1.0 else ( multiply speedpenalty 10 ) )
 
   #
   # default for any other highway type not handled above
