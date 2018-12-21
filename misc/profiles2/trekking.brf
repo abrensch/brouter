@@ -171,6 +171,12 @@ assign costfactor
   else if ( highway=proposed|abandoned     ) then   10000
 
   #
+  # put a penalty on roads under constructions
+  # See https://github.com/abrensch/brouter/issues/106 and https://github.com/abrensch/brouter/issues/62
+  #
+  else if ( highway=construction     ) then   100
+
+  #
   # all other exclusions below (access, steps, ferries,..)
   # should not be deleted by the decoder, to be available
   # in voice-hint-processing
