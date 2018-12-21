@@ -66,7 +66,7 @@ assign probablyGood = or ispaved and isbike not isunpaved
 #
 assign turncost = if is_ldcr then 0
                   else if junction=roundabout then 0
-                  else 90
+                  else 80
 
 
 #
