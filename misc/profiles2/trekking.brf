@@ -87,19 +87,26 @@ assign onewaypenalty =  # Penalty associated with going against traffic in a one
        # Note: Can be zero if opposite traffic is allowed for bikes
        if ( badoneway ) then
        (
-         if ( cycleway=opposite|opposite_lane|opposite_track ) then 0
-         # No penalty if there is any cycleway in opposite direction
-         # Note: We are already contraflow, so no need for more checks.
+         # Not a oneway street for bikes
+         if ( oneway:bicycle=no ) then 0
+         # No penalty if there is any cycleway going against traffic
+         else if ( cycleway=opposite|opposite_lane|opposite_track ) then 0
+         # Otherwise, check the value of cycleway:oneway
+         else if ( and reversedirection=yes cycleway:oneway=-1|no ) then 0
+         else if ( and ( not reversedirection=yes ) cycleway:oneway=yes|no ) then 0
+         # No penalty if there is any left cycleway in opposite direction
          else if ( cycleway:left=opposite|opposite_lane|opposite_track ) then 0
+         else if ( and reversedirection=yes cycleway:left:oneway=-1|no ) then 0
+         else if ( and ( not reversedirection=yes ) cycleway:left:oneway=yes|no ) then 0
+         # No penalty if there is any right cycleway in opposite direction
          else if ( cycleway:right=opposite|opposite_lane|opposite_track ) then 0
-         else if ( cycleway:left:oneway=-1|no ) then 0
-         else if ( cycleway:right:oneway=-1|no ) then 0
+         else if ( and reversedirection=yes cycleway:right:oneway=-1|no ) then 0
+         else if ( and ( not reversedirection=yes ) cycleway:right:oneway=yes|no ) then 0
          # No penalty if shared_busway and busway in opposite direction
          else if ( and cycleway=share_busway ( or busway=opposite ( or busway:left=opposite busway:right=opposite ) ) ) then 0
          else if ( and cycleway:left=share_busway ( or busway:left=opposite busway=opposite ) ) then 0
          else if ( and cycleway:right=share_busway ( or busway:right=opposite busway=opposite ) ) then 0
          # Other cases
-         else if ( oneway:bicycle=no                         ) then 0
          else if ( highway=primary|primary_link              ) then 50
          else if ( highway=secondary|secondary_link          ) then 30
          else if ( highway=tertiary|tertiary_link            ) then 20
