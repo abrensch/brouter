@@ -2,11 +2,13 @@ package btools.server;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -20,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
+import java.util.zip.GZIPOutputStream;
 
 import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
@@ -68,6 +71,7 @@ public class RouteServer extends Thread
             // first line
             String getline = null;
             String agent = null;
+            String encodings = null;
 
             // more headers until first empty line
             for(;;)
@@ -89,6 +93,10 @@ public class RouteServer extends Thread
               if ( line.startsWith( "User-Agent: " ) )
               {
                 agent = line.substring( "User-Agent: ".length() );
+              }
+              if ( line.startsWith( "Accept-Encoding: " ) )
+              {
+                encodings = line.substring( "Accept-Encoding: ".length() );
               }
             }
             
@@ -194,10 +202,24 @@ public class RouteServer extends Thread
             else
             {
               OsmTrack track = cr.getFoundTrack();
-              writeHttpHeader(bw, handler.getMimeType(), handler.getFileName());
+              
+              String headers = encodings == null || encodings.indexOf( "gzip" ) < 0 ? null : "Content-Encoding: gzip\n";
+              writeHttpHeader(bw, handler.getMimeType(), handler.getFileName(), headers );
               if ( track != null )
               {
-                bw.write( handler.formatTrack(track) );
+                if ( headers != null ) // compressed
+                {
+                   java.io.ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                   Writer w = new OutputStreamWriter( new GZIPOutputStream( baos ), "UTF-8" );
+                   w.write( handler.formatTrack(track) );
+                   w.close();
+                   bw.flush();
+                   clientSocket.getOutputStream().write( baos.toByteArray() );
+                }
+                else
+                {
+                  bw.write( handler.formatTrack(track) );
+                }
               }
             }
             bw.flush();
