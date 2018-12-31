@@ -65,6 +65,16 @@ public class VoiceHint
     badWays.add( badWay );
   }
 
+  public int getCommand()
+  {
+    return cmd;
+  }
+
+  public int getExitNumber()
+  {
+    return roundaboutExit;
+  }
+
   public String getCommandString()
   {
     switch ( cmd )
