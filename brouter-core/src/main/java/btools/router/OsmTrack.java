@@ -563,6 +563,13 @@ public final class OsmTrack
     sb.append( "        \"total-time\": \"" ).append( getTotalSeconds() ).append( "\",\n" );
     sb.append( "        \"total-energy\": \"" ).append( energy ).append( "\",\n" );
     sb.append( "        \"cost\": \"" ).append( cost ).append( "\",\n" );
+    sb.append( "        \"voicehints\": [\n" );
+    for( VoiceHint hint: voiceHints.list )
+    {
+      sb.append( "          [" ).append( hint.indexInTrack ).append( ',' ).append( hint.getCommand() ).append( ',' ).append( hint.getExitNumber() ).append( "],\n" );
+    }
+    sb.deleteCharAt( sb.lastIndexOf( "," ) );
+    sb.append( "        ],\n" );
     sb.append( "        \"messages\": [\n" );
     sb.append( "          [\"" ).append( MESSAGES_HEADER.replaceAll( "\t", "\", \"" ) ).append( "\"],\n" );
     for ( String m : aggregateMessages() )
