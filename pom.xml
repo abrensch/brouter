@@ -17,7 +17,6 @@
         <module>brouter-mapaccess</module>
         <module>brouter-core</module>
         <module>brouter-map-creator</module>
-        <module>brouter-mem-router</module>
         <module>brouter-server</module>
         <module>brouter-routing-app</module>
     </modules>
