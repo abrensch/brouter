@@ -15,6 +15,7 @@ assign   ignore_cycleroutes   = false   # set to true for better elevation resul
 assign   stick_to_cycleroutes = false   # set to true to just follow cycleroutes
 assign   avoid_unsafe         = false   # set to true to avoid standard highways
 assign   turnInstructionMode  = 1  # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style
+assign   ignore_access_tags_on_cycleroutes = false   # set to true to ignore access tags on cycleroutes
 
 assign   validForBikes        = true
 
@@ -106,7 +107,7 @@ assign defaultaccess =
 # calculate logical bike access
 #
 assign bikeaccess =
-       if any_cycleroute then true
+       if ( and any_cycleroute ignore_access_tags_on_cycleroutes ) then true
        else if bicycle= then
        (
          if vehicle= then defaultaccess
@@ -198,7 +199,7 @@ assign costfactor
   #
   # steps and ferries are special. Note this is handled
   # before the cycleroute-switch, to be able
-  # to really exlude them be setting cost to infinity 
+  # to really exlude them be setting cost to infinity
   #
   if ( highway=steps ) then ( if allow_steps then 40 else 10000 )
   else if ( route=ferry   ) then ( if allow_ferries then 5.67 else 10000 )
