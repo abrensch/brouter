@@ -598,6 +598,38 @@ cycleway:surface;0000000013 compacted
 cycleway:surface;0000000006 fine_gravel
 cycleway:surface;0000000011 sett
 
+maxspeed:backward;0001058313 50 30_mph 30mph
+maxspeed:backward;0000860780 30 20_mph 20mph
+maxspeed:backward;0000025232 10 5 7 15
+maxspeed:backward;0000083989 20 10_mph 10mph 15_mph 15mph
+maxspeed:backward;0000195097 40 45 25_mph 25mph
+maxspeed:backward;0000204646 60 35_mph 35mph 40_mph 40mph
+maxspeed:backward;0000130108 70 45_mph 45mph
+maxspeed:backward;0000225071 80 50_mph 50mph
+maxspeed:backward;0000106719 90 55_mph 55mph
+maxspeed:backward;0000134522 100 60_mph 60mph 65_mph 65mph
+maxspeed:backward;0000025242 110 70_mph 70mph
+maxspeed:backward;0000038763 120 75_mph 75mph
+maxspeed:backward;0000026953 130
+maxspeed:backward;0000138654 urban RO:urban RU:urban FR:urban IT:urban AT:urban DE:urban UA:urban
+maxspeed:backward;0000138654 rural RO:rural RU:rural FR:rural IT:rural AT:rural DE:rural UA:rural
+
+maxspeed:forward;0001058313 50 30_mph 30mph
+maxspeed:forward;0000860780 30 20_mph 20mph
+maxspeed:forward;0000025232 10 5 7 15
+maxspeed:forward;0000083989 20 10_mph 10mph 15_mph 15mph
+maxspeed:forward;0000195097 40 45 25_mph 25mph
+maxspeed:forward;0000204646 60 35_mph 35mph 40_mph 40mph
+maxspeed:forward;0000130108 70 45_mph 45mph
+maxspeed:forward;0000225071 80 50_mph 50mph
+maxspeed:forward;0000106719 90 55_mph 55mph
+maxspeed:forward;0000134522 100 60_mph 60mph 65_mph 65mph
+maxspeed:forward;0000025242 110 70_mph 70mph
+maxspeed:forward;0000038763 120 75_mph 75mph
+maxspeed:forward;0000026953 130
+maxspeed:forward;0000138654 urban RO:urban RU:urban FR:urban IT:urban AT:urban DE:urban UA:urban
+maxspeed:forward;0000138654 rural RO:rural RU:rural FR:rural IT:rural AT:rural DE:rural UA:rural
+
 ---context:node
 
 highway;0001314954 bus_stop
