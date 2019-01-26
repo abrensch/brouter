@@ -76,6 +76,8 @@ final class KinematicPath extends OsmPath
 
       if ( nsection == 0 ) // process slowdown by crossing geometry
       {
+        double junctionspeed = 999.; // just high
+
         int classifiermask = (int)rc.expctxWay.getClassifierMask();
 
         // penalty for equal priority crossing
@@ -105,16 +107,27 @@ final class KinematicPath extends OsmPath
         }
         double residentialSpeed = 13.;
 
-        if ( hasLeftWay && turnspeed > km.leftWaySpeed ) turnspeed = km.leftWaySpeed;
-        if ( hasRightWay && turnspeed > km.rightWaySpeed ) turnspeed = km.rightWaySpeed;
-        if ( hasResidential && turnspeed > residentialSpeed ) turnspeed = residentialSpeed;
+        if ( hasLeftWay && junctionspeed > km.leftWaySpeed ) junctionspeed = km.leftWaySpeed;
+        if ( hasRightWay && junctionspeed > km.rightWaySpeed ) junctionspeed = km.rightWaySpeed;
+        if ( hasResidential && junctionspeed > residentialSpeed ) junctionspeed = residentialSpeed;
+
         if ( (lastpriorityclassifier < 20) ^ (priorityclassifier < 20) )
         {
           extraTime += 10.;
-          turnspeed = 0; // full stop for entering or leaving road network
+          junctionspeed = 0; // full stop for entering or leaving road network
+        }
+
+        if ( lastpriorityclassifier != priorityclassifier && (classifiermask & 8) != 0 )
+        {
+          extraTime += 2.; // two seconds for entering a link-type
+        }
+        turnspeed = turnspeed > junctionspeed ? junctionspeed : turnspeed;
+
+        if ( message != null )
+        {
+          message.vnode0 = (int) ( junctionspeed * 3.6 + 0.5 );
         }
       }
-
       cutEkin( km.totalweight, turnspeed ); // apply turnspeed
     }
 
@@ -131,6 +144,10 @@ final class KinematicPath extends OsmPath
     if ( message != null )
     {
       message.costfactor = (float)(distanceCost/dist);
+      message.vmax = (int) ( km.getWayMaxspeed() * 3.6 + 0.5 );
+      message.vmaxExplicit = (int) ( km.getWayMaxspeedExplicit() * 3.6 + 0.5 );
+      message.vmin = (int) ( km.getWayMinspeed() * 3.6 + 0.5 );
+      message.extraTime = (int)(extraTime*1000);
     }
 
     cost += extraTime * km.pw /  km.cost0;
@@ -242,6 +259,8 @@ final class KinematicPath extends OsmPath
       {
         message.linknodecost += (int)initialcost;
         message.nodeKeyValues = rc.expctxNode.getKeyValueDescription( false, targetNode.nodeDescription );
+
+        message.vnode1 = (int) ( km.getNodeMaxspeed() * 3.6 + 0.5 );
       }
       return initialcost;
     }

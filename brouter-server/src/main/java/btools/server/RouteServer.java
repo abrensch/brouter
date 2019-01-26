@@ -188,7 +188,26 @@ public class RouteServer extends Thread
             {
               NearRecentWps.add( wplist );
             }
-
+            for( Map.Entry<String,String> e : params.entrySet() )
+            {
+              if ( "timode".equals( e.getKey() ) )
+              {
+                rc.turnInstructionMode = Integer.parseInt( e.getValue() );
+              }
+              else if ( "heading".equals( e.getKey() ) )
+              {
+                rc.startDirection = Integer.valueOf( Integer.parseInt( e.getValue() ) );
+                rc.forceUseStartDirection = true;
+              }
+              else if ( e.getKey().startsWith( "profile:" ) )
+              {
+                if ( rc.keyValues == null )
+                {
+                  rc.keyValues = new HashMap<String,String>();
+                }
+                rc.keyValues.put( e.getKey().substring( 8 ), e.getValue() );
+              }
+            }
             cr = new RoutingEngine( null, null, serviceContext.segmentDir, wplist, rc );
             cr.quite = true;
             cr.doRun( maxRunningTime );

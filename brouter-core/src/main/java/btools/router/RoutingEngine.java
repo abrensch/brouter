@@ -808,7 +808,9 @@ public class RoutingEngine extends Thread
 
     if ( start1 == null || start2 == null ) return null;
 
-    if ( routingContext.startDirectionValid = ( fastPartialRecalc && routingContext.startDirection != null && !routingContext.inverseDirection ) )
+    routingContext.startDirectionValid = routingContext.forceUseStartDirection || fastPartialRecalc;
+    routingContext.startDirectionValid &= routingContext.startDirection != null && !routingContext.inverseDirection;
+    if ( routingContext.startDirectionValid )
     {
       logInfo( "using start direction " + routingContext.startDirection );
     }
@@ -1221,6 +1223,7 @@ public class RoutingEngine extends Thread
     {
       track.copyDetours( guideTrack );
       track.processVoiceHints( routingContext );
+      track.prepareSpeedProfile( routingContext );
     }
     return track;
   }

@@ -53,6 +53,8 @@ public final class OsmTrack
 
   private VoiceHintList voiceHints;
 
+  private boolean sendSpeedProfile;
+
   public String message = null;
   public ArrayList<String> messageList = null;
 
@@ -145,6 +147,31 @@ public final class OsmTrack
     }
     return res;
   }
+
+  private ArrayList<String> aggregateSpeedProfile()
+  {
+    ArrayList<String> res = new ArrayList<String>();
+    int vmax = -1;
+    int vmaxe = -1;
+    int vmin = -1;
+    int extraTime = 0;
+    for( int i = nodes.size()-1; i > 0; i-- )
+    {
+      OsmPathElement n = nodes.get(i);
+      MessageData m = n.message;
+      int vnode = getVNode( i );
+      if ( m != null && ( vmax != m.vmax || vmin != m.vmin || vmaxe != m.vmaxExplicit || vnode < m.vmax || extraTime != m.extraTime ) )
+      {
+        vmax = m.vmax;
+        vmin = m.vmin;
+        vmaxe = m.vmaxExplicit;
+        extraTime = m.extraTime;
+        res.add( i + "," + vmaxe + "," + vmax + "," + vmin + "," + vnode + "," + extraTime );
+      }
+    }
+    return res;
+  }
+
 
   /**
    * writes the track in binary-format to a file
@@ -324,6 +351,7 @@ public final class OsmTrack
     energy += t.energy;
 
     showspeed |= t.showspeed;
+    sendSpeedProfile |= t.sendSpeedProfile;
   }
 
   public int distance;
@@ -563,24 +591,41 @@ public final class OsmTrack
     sb.append( "        \"total-time\": \"" ).append( getTotalSeconds() ).append( "\",\n" );
     sb.append( "        \"total-energy\": \"" ).append( energy ).append( "\",\n" );
     sb.append( "        \"cost\": \"" ).append( cost ).append( "\",\n" );
-    sb.append( "        \"voicehints\": [\n" );
-    for( VoiceHint hint: voiceHints.list )
+    if ( voiceHints != null && !voiceHints.list.isEmpty() )
     {
-      sb.append( "          [" ).append( hint.indexInTrack ).append( ',' ).append( hint.getCommand() ).append( ',' ).append( hint.getExitNumber() ).append( "],\n" );
+      sb.append( "        \"voicehints\": [\n" );
+      for( VoiceHint hint: voiceHints.list )
+      {
+        sb.append( "          [" ).append( hint.indexInTrack ).append( ',' ).append( hint.getCommand() ).append( ',' ).append( hint.getExitNumber() ).append( "],\n" );
+      }
+      sb.deleteCharAt( sb.lastIndexOf( "," ) );
+      sb.append( "        ],\n" );
     }
-    sb.deleteCharAt( sb.lastIndexOf( "," ) );
-    sb.append( "        ],\n" );
-    sb.append( "        \"messages\": [\n" );
-    sb.append( "          [\"" ).append( MESSAGES_HEADER.replaceAll( "\t", "\", \"" ) ).append( "\"],\n" );
-    for ( String m : aggregateMessages() )
+    if ( sendSpeedProfile ) // true if vmax was send
     {
-      sb.append( "          [\"" ).append( m.replaceAll( "\t", "\", \"" ) ).append( "\"],\n" );
+      ArrayList<String> sp = aggregateSpeedProfile();
+      if ( sp.size() > 0 )
+      {
+        sb.append( "        \"speedprofile\": [\n" );
+        for( int i=sp.size()-1; i>=0; i-- )
+        {
+          sb.append( "          [" ).append( sp.get(i) ).append( i> 0 ? "],\n" : "]\n" );
+        }
+        sb.append( "        ]\n" );
+      }
     }
-    sb.deleteCharAt( sb.lastIndexOf( "," ) );
-    sb.append( "        ]\n" );
-
+    else // ... otherwise traditional message list
+    {
+      sb.append( "        \"messages\": [\n" );
+      sb.append( "          [\"" ).append( MESSAGES_HEADER.replaceAll( "\t", "\", \"" ) ).append( "\"],\n" );
+      for ( String m : aggregateMessages() )
+      {
+        sb.append( "          [\"" ).append( m.replaceAll( "\t", "\", \"" ) ).append( "\"],\n" );
+      }
+      sb.deleteCharAt( sb.lastIndexOf( "," ) );
+      sb.append( "        ]\n" );
+    }
     sb.append( "      },\n" );
-
     if ( iternity != null )
     {
       sb.append( "      \"iternity\": [\n" );
@@ -626,6 +671,15 @@ public final class OsmTrack
     sb.append( "}\n" );
 
     return sb.toString();
+  }
+
+  private int getVNode( int i )
+  {
+    MessageData m1 = i+1 < nodes.size() ? nodes.get(i+1).message : null;
+    MessageData m0 = i   < nodes.size() ? nodes.get(i  ).message : null;
+    int vnode0 = m1 == null ? 999 : m1.vnode0;
+    int vnode1 = m0 == null ? 999 : m0.vnode1;
+    return vnode0 < vnode1 ? vnode0 : vnode1;
   }
 
   private int getTotalSeconds()
@@ -753,6 +807,11 @@ public final class OsmTrack
         return false;
     }
     return true;
+  }
+
+  public void prepareSpeedProfile( RoutingContext rc )
+  {
+    sendSpeedProfile = rc.keyValues != null && rc.keyValues.containsKey( "vmax" );
   }
 
   public void processVoiceHints( RoutingContext rc )
