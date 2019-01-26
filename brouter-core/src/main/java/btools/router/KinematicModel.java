@@ -40,6 +40,7 @@ final class KinematicModel extends OsmPathModel
   public double cost0; // minimum possible cost per meter
   
   private int wayIdxMaxspeed;
+  private int wayIdxMaxspeedExplicit;
   private int wayIdxMinspeed;
 
   private int nodeIdxMaxspeed;
@@ -61,6 +62,7 @@ final class KinematicModel extends OsmPathModel
       ctxWay = expctxWay;
       ctxNode = expctxNode;
       wayIdxMaxspeed = ctxWay.getOutputVariableIndex( "maxspeed", false );
+      wayIdxMaxspeedExplicit = ctxWay.getOutputVariableIndex( "maxspeed_explicit", false );
       wayIdxMinspeed = ctxWay.getOutputVariableIndex( "minspeed", false );
       nodeIdxMaxspeed = ctxNode.getOutputVariableIndex( "maxspeed", false );
       initDone = true;
@@ -102,6 +104,11 @@ final class KinematicModel extends OsmPathModel
   public float getWayMaxspeed()
   {
     return ctxWay.getBuildInVariable( wayIdxMaxspeed ) / 3.6f;
+  }
+
+  public float getWayMaxspeedExplicit()
+  {
+    return ctxWay.getBuildInVariable( wayIdxMaxspeedExplicit ) / 3.6f;
   }
 
   public float getWayMinspeed()

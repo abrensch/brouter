@@ -192,6 +192,7 @@ public final class RoutingContext
 
   public Integer startDirection;
   public boolean startDirectionValid;
+  public boolean forceUseStartDirection;
 
   private double cosangle;
   public double nogoCost = 0.;

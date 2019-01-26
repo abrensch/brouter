@@ -29,6 +29,14 @@ final class MessageData implements Cloneable
   float time;
   float energy;
 
+  // speed profile
+  int vmaxExplicit = -1;
+  int vmax = -1;
+  int vmin = -1;
+  int vnode0 = 999;
+  int vnode1 = 999;
+  int extraTime = 0;
+
   String toMessage()
   {
     if ( wayKeyValues == null )
