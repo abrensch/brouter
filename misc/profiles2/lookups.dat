@@ -1,5 +1,5 @@
 ---lookupversion:10
----minorversion:10
+---minorversion:11
 
 ---context:way
 
@@ -629,6 +629,10 @@ maxspeed:forward;0000038763 120 75_mph 75mph
 maxspeed:forward;0000026953 130
 maxspeed:forward;0000138654 urban RO:urban RU:urban FR:urban IT:urban AT:urban DE:urban UA:urban
 maxspeed:forward;0000138654 rural RO:rural RU:rural FR:rural IT:rural AT:rural DE:rural UA:rural
+
+embedded_rails;0000000928 tram
+embedded_rails;0000000007 yes
+embedded_rails;0000000003 rail
 
 ---context:node
 
