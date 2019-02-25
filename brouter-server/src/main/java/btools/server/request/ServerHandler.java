@@ -271,13 +271,17 @@ public class ServerHandler extends RequestHandler {
         if ( lonLatList.length > 1 )
         {
           OsmNogoPolygon polygon = new OsmNogoPolygon(closed);
-          for (int j = 0; j < lonLatList.length-1;)
+          int j;
+          for (j = 0; j < 2 * (lonLatList.length / 2) - 1;)
           {
             String slon = lonLatList[j++];
             String slat = lonLatList[j++];
             int lon = (int)( ( Double.parseDouble(slon) + 180. ) *1000000. + 0.5);
             int lat = (int)( ( Double.parseDouble(slat) +  90. ) *1000000. + 0.5);
             polygon.addVertex(lon, lat);
+          }
+          if (j < lonLatList.length) {
+            polygon.nogoWeight = Double.parseDouble( lonLatList[j] );
           }
           if ( polygon.points.size() > 0 )
           {
