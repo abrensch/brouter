@@ -91,7 +91,7 @@ assign islinktype = highway=motorway_link|trunk_link|primary_link|secondary_link
 
 assign maxspeed_surface =
   switch or surface= surface=paved|asphalt|concrete 999
-  switch surface=paving_stones|cobblestone 30
+  switch surface=paving_stones|cobblestone|sett 30
   2
 
 assign maxspeed_tracktype =
