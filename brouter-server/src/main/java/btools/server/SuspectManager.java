@@ -106,7 +106,7 @@ public class SuspectManager extends Thread
       bw.write( "  \"id\": " + n + ",\n" );
       bw.write( "  \"type\": \"Feature\",\n" );
       bw.write( "  \"properties\": {\n" );
-      bw.write( "    \"issue_id\": " + id + ",\n" );
+      bw.write( "    \"issue_id\": \"" + id + "\",\n" );
       bw.write( "    \"Status\": \"" + status + "\",\n" );
       bw.write( "    \"Level\": \"" + level + "\"\n" );
       bw.write( "  },\n" );
