@@ -173,7 +173,7 @@ public class RouteServer extends Thread
             }
             else if ( url.startsWith( "/brouter/suspects" ) )
             {
-              writeHttpHeader(bw, "text/html");
+              writeHttpHeader(bw, url.endsWith( ".json" ) ? "application/json" : "text/html");
               SuspectManager.process( url, bw );
               return;
             }
