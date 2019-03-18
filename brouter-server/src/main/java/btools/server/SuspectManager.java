@@ -56,11 +56,79 @@ public class SuspectManager extends Thread
     }
   }
 
+  public static void newAndConfirmedJson( BufferedWriter bw ) throws IOException
+  {
+    SuspectList suspects = getAllSuspects( new File( "worldsuspects.txt" ) );
+    
+    bw.write( "{\n" );
+    bw.write( "\"type\": \"FeatureCollection\",\n" );
+    bw.write( "\"features\": [" );
+    
+    int n = 0;
+    
+    for( int isuspect = 0; isuspect<suspects.cnt; isuspect++ )
+    {
+      long id = suspects.ids[isuspect];
+      if ( !suspects.newOrConfirmed[isuspect] )
+      {
+        continue; // known archived
+      }
+      if ( new File( "falsepositives/" + id ).exists() )
+      {
+        continue; // known false positive
+      }
+      if ( isFixed( id, suspects.timestamp ) )
+      {
+        continue; // known fixed
+      }
+      File confirmedEntry = new File( "confirmednegatives/" + id );
+      String status = "new";
+      if ( confirmedEntry.exists() )
+      {
+        status = "confirmed " + formatAge( confirmedEntry ) + " ago";
+      }
+      
+      if ( n > 0 )
+      {
+        bw.write( "," );
+      }
+      
+      int ilon = (int) ( id >> 32 );
+      int ilat = (int) ( id & 0xffffffff );
+      double dlon = ( ilon - 180000000 ) / 1000000.;
+      double dlat = ( ilat - 90000000 ) / 1000000.;
+      
+      int prio = suspects.prios[isuspect];
+      int nprio = ( ( prio + 1 ) / 2 ) * 2; // normalize (no link prios)
+      String level = getLevelDecsription( nprio );      
+
+      bw.write( "\n{\n" );
+      bw.write( "  \"id\": " + n + ",\n" );
+      bw.write( "  \"type\": \"Feature\",\n" );
+      bw.write( "  \"properties\": {\n" );
+      bw.write( "    \"issue_id\": " + id + ",\n" );
+      bw.write( "    \"Status\": \"" + status + "\",\n" );
+      bw.write( "    \"Level\": \"" + level + "\"\n" );
+      bw.write( "  },\n" );
+      bw.write( "  \"geometry\": {\n" );
+      bw.write( "    \"type\": \"Point\",\n" );
+      bw.write( "    \"coordinates\": [\n" );
+      bw.write( "      " + dlon + ",\n" );
+      bw.write( "      " + dlat + "\n" );
+      bw.write( "    ]\n" );
+      bw.write( "  }\n" );
+      bw.write( "}" );
+      
+      n++;
+    }      
+      
+    bw.write( "\n  ]\n" );
+    bw.write( "}\n" );
+    bw.flush();
+  }
+  
   public static void process( String url, BufferedWriter bw ) throws IOException
   {
-    bw.write( "<html><body>\n" );
-    bw.write( "BRouter suspect manager. <a href=\"http://brouter.de/brouter/suspect_manager_help.html\">Help</a><br><br>\n" );
-
     StringTokenizer tk = new StringTokenizer( url, "/" );
     tk.nextToken();
     tk.nextToken();
@@ -71,7 +139,7 @@ public class SuspectManager extends Thread
     while ( tk.hasMoreTokens() )
     {
       String c = tk.nextToken();
-      if ( "all".equals( c ) || "new".equals( c ) || "confirmed".equals( c ) )
+      if ( "all".equals( c ) || "new".equals( c ) || "confirmed".equals( c ) || "newandconfirmed.json".equals( c ) )
       {
         filter = c;
         break;
@@ -79,6 +147,15 @@ public class SuspectManager extends Thread
       country += "/" + c;
     }
     
+    if ( "newandconfirmed.json".equals( filter ) )
+    {
+      newAndConfirmedJson( bw );
+      return;
+    }
+    
+    bw.write( "<html><body>\n" );
+    bw.write( "BRouter suspect manager. <a href=\"http://brouter.de/brouter/suspect_manager_help.html\">Help</a><br><br>\n" );
+
     if ( filter == null ) // generate country list
     {
       bw.write( "<table>\n" );
@@ -113,16 +190,19 @@ public class SuspectManager extends Thread
       return;
     }
 
-    File polyFile = new File( "worldpolys" + country + ".poly" );
-    if ( !polyFile.exists() )
-    {
-      bw.write( "polygon file for country '" + country + "' not found\n" );
-      bw.write( "</body></html>\n" );
-      bw.flush();
-      return;
+    Area polygon = null;
+    if ( !"/world".equals( country ) )
+    { 
+      File polyFile = new File( "worldpolys" + country + ".poly" );
+      if ( !polyFile.exists() )
+      {
+        bw.write( "polygon file for country '" + country + "' not found\n" );
+        bw.write( "</body></html>\n" );
+        bw.flush();
+        return;
+      }
+      polygon = new Area( polyFile );
     }
-    
-    Area polygon = new Area( polyFile );
 
     File suspectFile = new File( "worldsuspects.txt" );
     if ( !suspectFile.exists() )
@@ -159,7 +239,7 @@ public class SuspectManager extends Thread
       {
         id = suspects.ids[isuspect];
 
-        if ( !polygon.isInBoundingBox( id ) )
+        if ( polygon != null && !polygon.isInBoundingBox( id ) )
         {
           continue; // not in selected polygon (pre-check)
         }
@@ -186,7 +266,7 @@ public class SuspectManager extends Thread
             continue; // that would be under current suspects
           }
         }
-        if ( !polygon.isInArea( id ) )
+        if ( polygon != null && !polygon.isInArea( id ) )
         {
           continue; // not in selected polygon
         }
@@ -220,6 +300,7 @@ public class SuspectManager extends Thread
         else
         {
           new File( "falsepositives/" + id ).createNewFile();
+          message = "Marked issue " + id + " as false-positive";
           id = 0L;
         }
       }
@@ -242,22 +323,19 @@ public class SuspectManager extends Thread
         {
           fixedMarker.createNewFile();
         }
-        id = 0L;
 
         int hideDays = 0;
         if ( tk.hasMoreTokens() )
         {
           String param = tk.nextToken();
           hideDays = Integer.parseInt( param ); // hiding, not fixing
+          message = "Hide issue " + id + " for " + hideDays + " days";
         }
-        else // touch the confirmed entry when marking fixed
+        else
         {
-          File confirmedEntry = new File( "confirmednegatives/" + id );
-          if ( confirmedEntry.exists() )
-          {
-            confirmedEntry.setLastModified( System.currentTimeMillis() );
-          }
+          message = "Marked issue " + id + " as fixed";
         }
+        id = 0L;
         fixedMarker.setLastModified( System.currentTimeMillis() + hideDays*86400000L );
       }
     }
@@ -340,8 +418,15 @@ public class SuspectManager extends Thread
         {
           bw.write( "<a href=\"/brouter/suspects" + countryId + "/confirm\">mark as a confirmed issue</a><br><br>\n" );
         }
-        bw.write( "<br><br><a href=\"/brouter/suspects" + country + "/" + filter + "\">back to issue list</a><br><br>\n" );
+        if ( polygon != null )
+        {
+          bw.write( "<br><br><a href=\"/brouter/suspects" + country + "/" + filter + "\">back to issue list</a><br><br>\n" );
+        }
       }
+    }
+    else if ( polygon == null )
+    {
+      bw.write( message + "<br>\n" );
     }
     else
     {
@@ -363,7 +448,7 @@ public class SuspectManager extends Thread
             }
             break;
           }
-          if ( !polygon.isInBoundingBox( id ) )
+          if ( polygon != null && !polygon.isInBoundingBox( id ) )
           {
             continue; // not in selected polygon (pre-check)
           }
@@ -383,7 +468,7 @@ public class SuspectManager extends Thread
           {
             continue; // showing confirmed suspects only
           }
-          if ( !polygon.isInArea( id ) )
+          if ( polygon != null && !polygon.isInArea( id ) )
           {
             continue; // not in selected polygon
           }
@@ -426,6 +511,7 @@ public class SuspectManager extends Thread
     int cnt;
     long[] ids;
     int[] prios;
+    boolean[] newOrConfirmed;
     long timestamp;
     
     SuspectList( int count, long time )
@@ -433,6 +519,7 @@ public class SuspectManager extends Thread
       cnt = count;
       ids = new long[cnt];
       prios = new int[cnt];
+      newOrConfirmed = new boolean[cnt];
       timestamp = time;
     }
   }
@@ -472,6 +559,9 @@ public class SuspectManager extends Thread
         prioCount[i] = pointer;
         pointer += cnt;
       }
+      
+      
+      
 
       // sort into suspect list
       allSuspects = new SuspectList( pointer, suspectFile.lastModified() );
@@ -487,6 +577,7 @@ public class SuspectManager extends Thread
         pointer = prioCount[nprio]++;
         allSuspects.ids[pointer] = id;
         allSuspects.prios[pointer] = prio;
+        allSuspects.newOrConfirmed[pointer] = new File( "confirmednegatives/" + id ).exists() || !(new File( "suspectarchive/" + id ).exists() );
       }
       r.close();
       return allSuspects;
