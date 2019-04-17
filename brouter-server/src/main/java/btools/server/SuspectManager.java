@@ -55,8 +55,23 @@ public class SuspectManager extends Thread
       default: return "none";
     }
   }
+  
+  
+  private static void markFalsePositive( long id ) throws IOException
+  {
+    new File( "falsepositives/" + id ).createNewFile();
+    SuspectList suspects = getAllSuspects( new File( "worldsuspects.txt" ) );
+    for( int isuspect = 0; isuspect<suspects.cnt; isuspect++ )
+    {
+      if ( id == suspects.ids[isuspect] )
+      {
+        suspects.falsePositive[isuspect] = true;
+      }
+    }
 
-  public static void newAndConfirmedJson( BufferedWriter bw ) throws IOException
+  }
+
+  public static void newAndConfirmedJson( BufferedWriter bw, String filter, int level ) throws IOException
   {
     SuspectList suspects = getAllSuspects( new File( "worldsuspects.txt" ) );
     
@@ -69,25 +84,65 @@ public class SuspectManager extends Thread
     for( int isuspect = 0; isuspect<suspects.cnt; isuspect++ )
     {
       long id = suspects.ids[isuspect];
-      if ( !suspects.newOrConfirmed[isuspect] )
+      int prio = suspects.prios[isuspect];
+      int nprio = ( ( prio + 1 ) / 2 ) * 2; // normalize (no link prios)
+
+      if ( nprio < level )
+      {
+        continue; // not the given level
+      }
+      if ( ( "new".equals( filter ) || "deferred".equals( filter ) )  && !suspects.newOrConfirmed[isuspect] )
       {
         continue; // known archived
       }
-      if ( new File( "falsepositives/" + id ).exists() )
+      if ( "fp".equals( filter ) ^ suspects.falsePositive[isuspect] )
       {
-        continue; // known false positive
+        continue; // wrong false-positive state
       }
-      if ( isFixed( id, suspects.timestamp ) )
+
+      String dueTime = null;
+      if ( !"deferred".equals( filter ) )
       {
-        continue; // known fixed
+        if ( isFixed( id, suspects.timestamp ) )
+        {
+          continue; // known fixed
+        }
       }
+      else
+      {
+        File fixedEntry = new File( "fixedsuspects/" + id );
+        if ( !fixedEntry.exists() )
+        {
+          continue;
+        }
+        long fixedTs = fixedEntry.lastModified();
+        if ( fixedTs < suspects.timestamp )
+        {
+          continue; // that would be under current suspects
+        }
+        long hideTime = fixedTs - System.currentTimeMillis();
+        if ( hideTime < 0 )
+        {
+          File confirmedEntry = new File( "confirmednegatives/" + id );
+          if ( confirmedEntry.exists() && confirmedEntry.lastModified() > suspects.timestamp )
+          {
+            continue; // that would be under current suspects
+          }
+        }
+        dueTime = hideTime < 0 ? "(asap)" : formatAge( hideTime + 43200000 );
+      }
+
       File confirmedEntry = new File( "confirmednegatives/" + id );
-      String status = "new";
+      String status = suspects.newOrConfirmed[isuspect] ? "new" : "archived";
       if ( confirmedEntry.exists() )
       {
         status = "confirmed " + formatAge( confirmedEntry ) + " ago";
       }
       
+      if ( dueTime != null )
+      {
+        status = "deferred";
+      }
       if ( n > 0 )
       {
         bw.write( "," );
@@ -98,9 +153,7 @@ public class SuspectManager extends Thread
       double dlon = ( ilon - 180000000 ) / 1000000.;
       double dlat = ( ilat - 90000000 ) / 1000000.;
       
-      int prio = suspects.prios[isuspect];
-      int nprio = ( ( prio + 1 ) / 2 ) * 2; // normalize (no link prios)
-      String level = getLevelDecsription( nprio );      
+      String slevel = getLevelDecsription( nprio );      
 
       bw.write( "\n{\n" );
       bw.write( "  \"id\": " + n + ",\n" );
@@ -108,7 +161,11 @@ public class SuspectManager extends Thread
       bw.write( "  \"properties\": {\n" );
       bw.write( "    \"issue_id\": \"" + id + "\",\n" );
       bw.write( "    \"Status\": \"" + status + "\",\n" );
-      bw.write( "    \"Level\": \"" + level + "\"\n" );
+      if ( dueTime != null )
+      {
+        bw.write( "    \"DueTime\": \"" + dueTime + "\",\n" );
+      }
+      bw.write( "    \"Level\": \"" + slevel + "\"\n" );
       bw.write( "  },\n" );
       bw.write( "  \"geometry\": {\n" );
       bw.write( "    \"type\": \"Point\",\n" );
@@ -139,7 +196,7 @@ public class SuspectManager extends Thread
     while ( tk.hasMoreTokens() )
     {
       String c = tk.nextToken();
-      if ( "all".equals( c ) || "new".equals( c ) || "confirmed".equals( c ) || "newandconfirmed.json".equals( c ) )
+      if ( "all".equals( c ) || "new".equals( c ) || "confirmed".equals( c ) || "fp".equals( c ) || "deferred".equals( c ) )
       {
         filter = c;
         break;
@@ -147,9 +204,12 @@ public class SuspectManager extends Thread
       country += "/" + c;
     }
     
-    if ( "newandconfirmed.json".equals( filter ) )
+    if ( url.endsWith( ".json" ) )
     {
-      newAndConfirmedJson( bw );
+      StringTokenizer tk2 = new StringTokenizer( tk.nextToken(), "." );
+      int level = Integer.parseInt( tk2.nextToken() ); 
+      
+      newAndConfirmedJson( bw, filter, level );
       return;
     }
     
@@ -299,7 +359,7 @@ public class SuspectManager extends Thread
         }
         else
         {
-          new File( "falsepositives/" + id ).createNewFile();
+          markFalsePositive( id );
           message = "Marked issue " + id + " as false-positive";
           id = 0L;
         }
@@ -512,6 +572,7 @@ public class SuspectManager extends Thread
     long[] ids;
     int[] prios;
     boolean[] newOrConfirmed;
+    boolean[] falsePositive;
     long timestamp;
     
     SuspectList( int count, long time )
@@ -520,6 +581,7 @@ public class SuspectManager extends Thread
       ids = new long[cnt];
       prios = new int[cnt];
       newOrConfirmed = new boolean[cnt];
+      falsePositive = new boolean[cnt];
       timestamp = time;
     }
   }
@@ -578,6 +640,7 @@ public class SuspectManager extends Thread
         allSuspects.ids[pointer] = id;
         allSuspects.prios[pointer] = prio;
         allSuspects.newOrConfirmed[pointer] = new File( "confirmednegatives/" + id ).exists() || !(new File( "suspectarchive/" + id ).exists() );
+        allSuspects.falsePositive[pointer] = new File( "falsepositives/" + id ).exists();
       }
       r.close();
       return allSuspects;
