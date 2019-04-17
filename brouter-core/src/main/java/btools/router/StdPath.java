@@ -5,11 +5,7 @@
  */
 package btools.router;
 
-import btools.mapaccess.OsmLink;
-import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmTransferNode;
-import btools.mapaccess.TurnRestriction;
-import btools.util.CheapRulerSingleton;
+import btools.util.FastMath;
 
 final class StdPath extends OsmPath
 {
@@ -223,7 +219,7 @@ final class StdPath extends OsmPath
     {
       return 0.;
     }
-    double decayFactor = exp( - dist / 100. );
+    double decayFactor = FastMath.exp( - dist / 100. );
     float new_elevation_buffer = (float)( (elevation_buffer+shift) * decayFactor - shift);
     double incline = ( elevation_buffer - new_elevation_buffer ) / dist;
     elevation_buffer = new_elevation_buffer;
@@ -247,7 +243,7 @@ final class StdPath extends OsmPath
     if (rc.footMode || rc.expctxWay.getCostfactor() > 4.9 )
     {
       // Use Tobler's hiking function for walking sections
-      speed = 6 * exp(-3.5 * Math.abs( incline + 0.05)) / 3.6;
+      speed = 6 * FastMath.exp(-3.5 * Math.abs( incline + 0.05)) / 3.6;
     }
     else if (rc.bikeMode)
     {

@@ -16,7 +16,7 @@ import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.mapaccess.GeometryDecoder;
 import btools.mapaccess.OsmLink;
-import btools.util.CheapRulerSingleton;
+import btools.util.CheapRuler;
 
 public final class RoutingContext
 {
@@ -309,7 +309,7 @@ public final class RoutingContext
 
   public int calcDistance( int lon1, int lat1, int lon2, int lat2 )
   {
-    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( (lat1+lat2) >> 1 );
+    double[] lonlat2m = CheapRuler.getLonLatToMeterScales( (lat1+lat2) >> 1 );
     double dlon2m = lonlat2m[0];
     double dlat2m = lonlat2m[1];
     double dx = (lon2 - lon1 ) * dlon2m;
@@ -419,7 +419,7 @@ public final class RoutingContext
 
   public double calcAngle( int lon0, int lat0,  int lon1, int lat1, int lon2, int lat2 )
   {
-    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( lat1 );
+    double[] lonlat2m = CheapRuler.getLonLatToMeterScales( lat1 );
     double lon2m = lonlat2m[0];
     double lat2m = lonlat2m[1];
     double dx10 = (lon1 - lon0) * lon2m;

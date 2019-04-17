@@ -5,6 +5,8 @@
  */
 package btools.router;
 
+import btools.util.FastMath;
+
 
 final class KinematicPath extends OsmPath
 {
@@ -58,7 +60,7 @@ final class KinematicPath extends OsmPath
 
       if ( km.turnAngleDecayLength != 0. ) // process turn-angle slowdown
       {
-        double decayFactor = exp( - dist / km.turnAngleDecayLength );
+        double decayFactor = FastMath.exp( - dist / km.turnAngleDecayLength );
         floatingAngleLeft = (float)( floatingAngleLeft * decayFactor );
         floatingAngleRight = (float)( floatingAngleRight * decayFactor );
         if ( angle < 0 ) floatingAngleLeft -= (float)angle;

@@ -25,7 +25,7 @@ package btools.router;
 import java.util.ArrayList;
 import java.util.List;
 
-import btools.util.CheapRulerSingleton;
+import btools.util.CheapRuler;
 
 public class OsmNogoPolygon extends OsmNodeNamed
 {
@@ -104,7 +104,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
     int cx = (cxmax+cxmin) / 2; // center of circle
     int cy = (cymax+cymin) / 2;
 
-    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( cy );
+    double[] lonlat2m = CheapRuler.getLonLatToMeterScales( cy );
     double dlon2m = lonlat2m[0];
     double dlat2m = lonlat2m[1];
 
@@ -119,7 +119,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
       for (int i = 0; i < points.size(); i++)
       {
         final Point p = points.get(i);
-        final double dist = CheapRulerSingleton.distance(p.x, p.y, (int) cx, (int) cy);
+        final double dist = CheapRuler.distance(p.x, p.y, (int) cx, (int) cy);
         if (dist <= rad)
         {
           continue;
@@ -141,7 +141,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
       cx += (int)(dd * (p.x - cx) + 0.5); // shift center toward point
       cy += (int)(dd * (p.y - cy) + 0.5);
 
-      dmax = rad = CheapRulerSingleton.distance(p.x, p.y, (int) cx, (int) cy);
+      dmax = rad = CheapRuler.distance(p.x, p.y, (int) cx, (int) cy);
       i_max = -1;
     }
     while (true);
@@ -357,7 +357,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
         ) {
           // There was a previous match within the polygon and this part of the
           // segment is within the polygon.
-          distance += CheapRulerSingleton.distance(
+          distance += CheapRuler.distance(
             previousIntersectionOnSegment.x, previousIntersectionOnSegment.y,
             intersection.x, intersection.y
           );
@@ -368,12 +368,12 @@ public class OsmNogoPolygon extends OsmNodeNamed
         // Segment and edge overlaps
         // FIXME: Could probably be done in a smarter way
         distance += Math.min(
-          CheapRulerSingleton.distance(p1.x, p1.y, p2.x, p2.y),
+          CheapRuler.distance(p1.x, p1.y, p2.x, p2.y),
           Math.min(
-            CheapRulerSingleton.distance(edgePoint1.x, edgePoint1.y, edgePoint2.x, edgePoint2.y),
+            CheapRuler.distance(edgePoint1.x, edgePoint1.y, edgePoint2.x, edgePoint2.y),
             Math.min(
-              CheapRulerSingleton.distance(p1.x, p1.y, edgePoint2.x, edgePoint2.y),
-              CheapRulerSingleton.distance(edgePoint1.x, edgePoint1.y, p2.x, p2.y)
+              CheapRuler.distance(p1.x, p1.y, edgePoint2.x, edgePoint2.y),
+              CheapRuler.distance(edgePoint1.x, edgePoint1.y, p2.x, p2.y)
             )
           )
         );
@@ -387,7 +387,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
       && isWithin(lon2, lat2)
     ) {
       // Last point is within the polygon, add the remaining missing distance.
-      distance += CheapRulerSingleton.distance(
+      distance += CheapRuler.distance(
         previousIntersectionOnSegment.x, previousIntersectionOnSegment.y,
         lon2, lat2
       );

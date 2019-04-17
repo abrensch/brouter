@@ -8,15 +8,15 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import btools.util.CheapRulerSingleton;
+import btools.util.CheapRuler;
 
 public class RoutingContextTest {
   static int toOsmLon(double lon) {
-    return (int)( ( lon + 180. ) / CheapRulerSingleton.ILATLNG_TO_LATLNG + 0.5);
+    return (int)( ( lon + 180. ) / CheapRuler.ILATLNG_TO_LATLNG + 0.5);
   }
 
   static int toOsmLat(double lat) {
-    return (int)( ( lat +  90. ) / CheapRulerSingleton.ILATLNG_TO_LATLNG + 0.5);
+    return (int)( ( lat +  90. ) / CheapRuler.ILATLNG_TO_LATLNG + 0.5);
   }
 
   @Test
@@ -84,7 +84,7 @@ public class RoutingContextTest {
     int lon1 =  8500000;
     int lat1 = 49500000;
     
-    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( lat1 );
+    double[] lonlat2m = CheapRuler.getLonLatToMeterScales( lat1 );
     double lon2m = lonlat2m[0];
     double lat2m = lonlat2m[1];
 

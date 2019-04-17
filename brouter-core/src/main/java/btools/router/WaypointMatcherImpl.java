@@ -5,7 +5,7 @@ import java.util.List;
 import btools.codec.WaypointMatcher;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmNodePairSet;
-import btools.util.CheapRulerSingleton;
+import btools.util.CheapRuler;
 
 /**
  * the WaypointMatcher is feeded by the decoder with geoemtries of ways that are
@@ -41,7 +41,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher
   {
     // todo: bounding-box pre-filter
 
-    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( (lat1+lat2) >> 1 );
+    double[] lonlat2m = CheapRuler.getLonLatToMeterScales( (lat1+lat2) >> 1 );
     double dlon2m = lonlat2m[0];
     double dlat2m = lonlat2m[1];
 

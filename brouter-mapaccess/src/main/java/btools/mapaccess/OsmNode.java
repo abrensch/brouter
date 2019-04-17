@@ -8,7 +8,7 @@ package btools.mapaccess;
 import btools.codec.MicroCache;
 import btools.codec.MicroCache2;
 import btools.util.ByteArrayUnifier;
-import btools.util.CheapRulerSingleton;
+import btools.util.CheapRuler;
 import btools.util.IByteArrayUnifier;
 
 public class OsmNode extends OsmLink implements OsmPos
@@ -102,7 +102,7 @@ public class OsmNode extends OsmLink implements OsmPos
 
   public final int calcDistance( OsmPos p )
   {
-    return (int)(CheapRulerSingleton.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0 );
+    return (int)(CheapRuler.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0 );
   }
 
   public String toString()

@@ -8,15 +8,15 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import btools.util.CheapRulerSingleton;
+import btools.util.CheapRuler;
 
 public class OsmNodeNamedTest {
   static int toOsmLon(double lon) {
-    return (int)( ( lon + 180. ) / CheapRulerSingleton.ILATLNG_TO_LATLNG + 0.5);
+    return (int)( ( lon + 180. ) / CheapRuler.ILATLNG_TO_LATLNG + 0.5);
   }
 
   static int toOsmLat(double lat) {
-    return (int)( ( lat +  90. ) / CheapRulerSingleton.ILATLNG_TO_LATLNG + 0.5);
+    return (int)( ( lat +  90. ) / CheapRuler.ILATLNG_TO_LATLNG + 0.5);
   }
 
   @Test
@@ -36,7 +36,7 @@ public class OsmNodeNamedTest {
     lat1 = toOsmLat(48.823822);
     lon2 = toOsmLon(2.335018);
     lat2 = toOsmLat(48.824105);
-    double totalSegmentLength = CheapRulerSingleton.distance(lon1, lat1, lon2, lat2);
+    double totalSegmentLength = CheapRuler.distance(lon1, lat1, lon2, lat2);
     assertEquals(
       "Works for segment aligned with the nogo center",
       2 * node.radius,
@@ -65,7 +65,7 @@ public class OsmNodeNamedTest {
     // Check distance within radius is correctly computed if a point is inside the circle
     lon2 = toOsmLon(2.334495);
     lat2 = toOsmLat(48.824045);
-    totalSegmentLength = CheapRulerSingleton.distance(lon1, lat1, lon2, lat2);
+    totalSegmentLength = CheapRuler.distance(lon1, lat1, lon2, lat2);
     assertEquals(
       "Works if last point is within the circle",
       17,
@@ -77,7 +77,7 @@ public class OsmNodeNamedTest {
     lat1 = toOsmLat(48.824045);
     lon2 = toOsmLon(2.335018);
     lat2 = toOsmLat(48.824105);
-    totalSegmentLength = CheapRulerSingleton.distance(lon1, lat1, lon2, lat2);
+    totalSegmentLength = CheapRuler.distance(lon1, lat1, lon2, lat2);
     assertEquals(
       "Works if first point is within the circle",
       9,
@@ -89,7 +89,7 @@ public class OsmNodeNamedTest {
     lat1 = toOsmLat(48.82402);
     lon2 = toOsmLon(2.334587);
     lat2 = toOsmLat(48.824061);
-    totalSegmentLength = CheapRulerSingleton.distance(lon1, lat1, lon2, lat2);
+    totalSegmentLength = CheapRuler.distance(lon1, lat1, lon2, lat2);
     assertEquals(
       "Works if both points are within the circle",
       25,
@@ -106,7 +106,7 @@ public class OsmNodeNamedTest {
     lat1 = toOsmLat(48.823822);
     lon2 = toOsmLon(2.33431);
     lat2 = toOsmLat(48.824027);
-    totalSegmentLength = CheapRulerSingleton.distance(lon1, lat1, lon2, lat2);
+    totalSegmentLength = CheapRuler.distance(lon1, lat1, lon2, lat2);
     assertEquals(
       "Works if both points are on the same side of the circle center",
       5,
