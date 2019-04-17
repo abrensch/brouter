@@ -15,6 +15,15 @@ public class OsmNodeNamed extends OsmNode
   public double nogoWeight;  // weight for nogopoint
   public boolean isNogo = false;
 
+  public OsmNodeNamed()
+  {
+  }
+  
+  public OsmNodeNamed( OsmNode n)
+  {
+    super( n.ilon, n.ilat );
+  }
+
   @Override
   public String toString()
   {
