@@ -807,8 +807,8 @@ public class BRouterView extends View
         else
         {
           String memstat =  memoryClass + "mb pathPeak " + ((cr.getPathPeak()+500)/1000) + "k";
-          String result = "version = BRouter-1.4.9\n" + "mem = " + memstat + "\ndistance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
-              + " m\n" + "plain ascend = " + cr.getPlainAscend();
+          String result = "version = BRouter-1.4.11\n" + "mem = " + memstat + "\ndistance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
+              + " m\n" + "plain ascend = " + cr.getPlainAscend() + " m\n" + "estimated time = " + cr.getTime();
 
           rawTrack = cr.getFoundRawTrack();
 
