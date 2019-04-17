@@ -10,18 +10,17 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.NodesCache;
 import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmNodePairSet;
-import btools.mapaccess.OsmNodesMap;
 import btools.util.SortedHeap;
 import btools.util.StackSampler;
 
 public class RoutingEngine extends Thread
 {
-  private OsmNodesMap nodesMap;
   private NodesCache nodesCache;
   private SortedHeap<OsmPath> openSet = new SortedHeap<OsmPath>();
   private boolean finished = false;
@@ -326,7 +325,6 @@ public class RoutingEngine extends Thread
 
   public void cleanOnOOM()
   {
-      nodesMap = null;
       terminate();
   }      
   
@@ -385,6 +383,7 @@ public class RoutingEngine extends Thread
       {
         MatchedWaypoint mwp = new MatchedWaypoint();
         mwp.waypoint = waypoints.get(i);
+        mwp.name = waypoints.get(i).name;
         matchedWaypoints.add( mwp );
       }
       matchWaypointsToNodes( matchedWaypoints );
@@ -452,45 +451,8 @@ public class RoutingEngine extends Thread
   private void matchWaypointsToNodes( List<MatchedWaypoint> unmatchedWaypoints )
   {
     resetCache( false );
-    nodesCache.waypointMatcher = new WaypointMatcherImpl( unmatchedWaypoints, 250., islandNodePairs );
-    for( MatchedWaypoint mwp : unmatchedWaypoints )
-    {
-      preloadPosition( mwp.waypoint );
-    }
-
-    if ( nodesCache.first_file_access_failed )
-    {
-      throw new IllegalArgumentException( "datafile " + nodesCache.first_file_access_name + " not found" );
-    }
-    for( MatchedWaypoint mwp : unmatchedWaypoints )
-    {
-      if ( mwp.crosspoint == null )
-      {
-        throw new IllegalArgumentException( mwp.waypoint.name + "-position not mapped in existing datafile" );
-      }
-    }
+    nodesCache.matchWaypointsToNodes( unmatchedWaypoints, 250., islandNodePairs );
   }
-
-  private void preloadPosition( OsmNode n )
-  {
-    int d = 12500;
-    nodesCache.first_file_access_failed = false;
-    nodesCache.first_file_access_name = null;
-    nodesCache.loadSegmentFor( n.ilon, n.ilat );
-    if ( nodesCache.first_file_access_failed )
-    {
-      throw new IllegalArgumentException( "datafile " + nodesCache.first_file_access_name + " not found" );
-    }
-    for( int idxLat=-1; idxLat<=1; idxLat++ )
-      for( int idxLon=-1; idxLon<=1; idxLon++ )
-      {
-        if ( idxLon != 0 || idxLat != 0 )
-        {
-          nodesCache.loadSegmentFor( n.ilon + d*idxLon , n.ilat +d*idxLat );
-        }
-      }
-  }
-
 
   private OsmTrack searchTrack( MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack )
   {
@@ -613,30 +575,15 @@ public class RoutingEngine extends Thread
     {
       logInfo( "NodesCache status before reset=" + nodesCache.formatStatus() );
     }
-    nodesMap = new OsmNodesMap();
-    
     long maxmem = routingContext.memoryclass * 131072L; // 1/8 of total
     
-    nodesCache = new NodesCache(segmentDir, nodesMap, routingContext.expctxWay, routingContext.forceSecondaryData, maxmem, nodesCache, detailed );
+    nodesCache = new NodesCache(segmentDir, routingContext.expctxWay, routingContext.forceSecondaryData, maxmem, nodesCache, detailed );
     islandNodePairs.clearTempPairs();
-  }
-
-  private OsmNode getStartNode( long startId )
-  {
-    // initialize the start-node
-    OsmNode start = new OsmNode( startId );
-    start.setHollow();
-    if ( !nodesCache.obtainNonHollowNode( start ) )
-    {
-      return null;
-    }
-    nodesCache.expandHollowLinkTargets( start );
-    return start;
   }
 
   private OsmPath getStartPath( OsmNode n1, OsmNode n2, MatchedWaypoint mwp, OsmNodeNamed endPos, boolean sameSegmentSearch )
   {
-    OsmPath p = getStartPath( n1, n2, mwp.waypoint, endPos );
+    OsmPath p = getStartPath( n1, n2, new OsmNodeNamed( mwp.waypoint ), endPos );
     
     // special case: start+end on same segment
     if ( sameSegmentSearch )
@@ -680,7 +627,7 @@ public class RoutingEngine extends Thread
 
     
     
-  private OsmPath getStartPath( OsmNode n1, OsmNode n2, OsmNodeNamed wp, OsmNode endPos )
+  private OsmPath getStartPath( OsmNode n1, OsmNode n2, OsmNodeNamed wp, OsmNodeNamed endPos )
   {
     try
     {
@@ -775,12 +722,12 @@ public class RoutingEngine extends Thread
     long startNodeId1 = startWp.node1.getIdFromPos();
     long startNodeId2 = startWp.node2.getIdFromPos();
 
-    OsmNodeNamed endPos = endWp == null ? null : endWp.crosspoint;
+    OsmNodeNamed endPos = endWp == null ? null : new OsmNodeNamed( endWp.crosspoint );
     
     boolean sameSegmentSearch = ( startNodeId1 == endNodeId1 && startNodeId2 == endNodeId2 )
                              || ( startNodeId1 == endNodeId2 && startNodeId2 == endNodeId1 );
     
-    OsmNode start1 = getStartNode( startNodeId1 );
+    OsmNode start1 = nodesCache.getStartNode( startNodeId1 );
     if ( start1 == null ) return null;
     OsmNode start2 = null;
     for( OsmLink link = start1.firstlink; link != null; link = link.getNext( start1 ) )
@@ -792,11 +739,6 @@ public class RoutingEngine extends Thread
     	}
     }
     if ( start2 == null ) return null;
-
-
-    
-
-    if ( start1 == null || start2 == null ) return null;
 
     routingContext.startDirectionValid = routingContext.forceUseStartDirection || fastPartialRecalc;
     routingContext.startDirectionValid &= routingContext.startDirection != null && !routingContext.inverseDirection;

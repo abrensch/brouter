@@ -16,13 +16,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
+import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.OsmPos;
 import btools.util.CompactLongMap;
 import btools.util.FrozenLongMap;

@@ -1,4 +1,4 @@
-package btools.router;
+package btools.mapaccess;
 
 import java.util.List;
 
@@ -54,7 +54,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher
 
     for ( MatchedWaypoint mwp : waypoints )
     {
-      OsmNodeNamed wp = mwp.waypoint;
+      OsmNode wp = mwp.waypoint;
 
       double x1 = ( lon1 - wp.ilon ) * dlon2m;
       double y1 = ( lat1 - wp.ilat ) * dlat2m;
@@ -86,7 +86,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher
         anyUpdate = true;
         // calculate crosspoint
         if ( mwp.crosspoint == null )
-          mwp.crosspoint = new OsmNodeNamed();
+          mwp.crosspoint = new OsmNode();
         if ( s2 < 0. )
         {
           double wayfraction = -s2 / ( d * d );

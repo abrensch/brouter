@@ -8,6 +8,7 @@ package btools.mapaccess;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 
 import btools.codec.DataBuffers;
 import btools.codec.MicroCache;
@@ -53,10 +54,10 @@ public final class NodesCache
     return "collecting=" + garbageCollectionEnabled + " noGhosts=" + ghostCleaningDone + " cacheSum=" + cacheSum + " cacheSumClean=" + cacheSumClean + " ghostSum=" + ghostSum + " ghostWakeup=" + ghostWakeup ;
   }
 
-  public NodesCache( String segmentDir, OsmNodesMap nodesMap, BExpressionContextWay ctxWay, boolean forceSecondaryData, long maxmem, NodesCache oldCache, boolean detailed )
+  public NodesCache( String segmentDir, BExpressionContextWay ctxWay, boolean forceSecondaryData, long maxmem, NodesCache oldCache, boolean detailed )
   {
     this.segmentDir = new File( segmentDir );
-    this.nodesMap = nodesMap;
+    this.nodesMap = new OsmNodesMap();
     this.expCtxWay = ctxWay;
     this.lookupVersion = ctxWay.meta.lookupVersion;
     this.lookupMinorVersion = ctxWay.meta.lookupMinorVersion;
@@ -273,6 +274,71 @@ public final class NodesCache
     {
       obtainNonHollowNode( link.getTarget( n ) );
     }
+  }
+
+  /**
+   * get a node for the given id with all link-targets also non-hollow
+   * 
+   * It is required that an instance of the start-node does not yet
+   * exist, not even a hollow instance, so getStartNode should only
+   * be called once right after resetting the cache
+   * 
+   * @param id the id of the node to load
+   * 
+   * @return the fully expanded node for id, or null if it was not found
+   */
+  public OsmNode getStartNode( long id )
+  {
+    // initialize the start-node
+    OsmNode n = new OsmNode( id );
+    n.setHollow();
+    if ( !obtainNonHollowNode( n ) )
+    {
+      return null;
+    }
+    expandHollowLinkTargets( n );
+    return n;
+  }
+
+  public void matchWaypointsToNodes( List<MatchedWaypoint> unmatchedWaypoints, double maxDistance, OsmNodePairSet islandNodePairs )
+  {
+    waypointMatcher = new WaypointMatcherImpl( unmatchedWaypoints, 250., islandNodePairs );
+    for( MatchedWaypoint mwp : unmatchedWaypoints )
+    {
+      preloadPosition( mwp.waypoint );
+    }
+
+    if ( first_file_access_failed )
+    {
+      throw new IllegalArgumentException( "datafile " + first_file_access_name + " not found" );
+    }
+    for( MatchedWaypoint mwp : unmatchedWaypoints )
+    {
+      if ( mwp.crosspoint == null )
+      {
+        throw new IllegalArgumentException( mwp.name + "-position not mapped in existing datafile" );
+      }
+    }
+  }
+
+  private void preloadPosition( OsmNode n )
+  {
+    int d = 12500;
+    first_file_access_failed = false;
+    first_file_access_name = null;
+    loadSegmentFor( n.ilon, n.ilat );
+    if ( first_file_access_failed )
+    {
+      throw new IllegalArgumentException( "datafile " + first_file_access_name + " not found" );
+    }
+    for( int idxLat=-1; idxLat<=1; idxLat++ )
+      for( int idxLon=-1; idxLon<=1; idxLon++ )
+      {
+        if ( idxLon != 0 || idxLat != 0 )
+        {
+          loadSegmentFor( n.ilon + d*idxLon , n.ilat +d*idxLat );
+        }
+      }
   }
 
   private OsmFile fileForSegment( int lonDegree, int latDegree ) throws Exception
