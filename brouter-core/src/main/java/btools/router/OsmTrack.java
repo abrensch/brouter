@@ -334,6 +334,11 @@ public final class OsmTrack
 
     if ( t.voiceHints != null )
     {
+      if (ourSize > 0){
+          for (VoiceHint hint : t.voiceHints.list) {
+              hint.indexInTrack = hint.indexInTrack + ourSize -1;
+          }
+      }
       if ( voiceHints == null )
       {
         voiceHints = t.voiceHints;
@@ -435,14 +440,32 @@ public final class OsmTrack
 
     if ( turnInstructionMode == 3) // osmand style
     {
+      float lastRteTime = voiceHints.list.get(0).getTime();
+      
       sb.append(" <rte>\n");
-      for( VoiceHint hint: voiceHints.list )
+
+      for( int i = 0 ; i < voiceHints.list.size(); i++ )
       {
+          VoiceHint hint = voiceHints.list.get(i);
         sb.append("  <rtept lat=\"").append( formatILat( hint.ilat ) ).append( "\" lon=\"" )
           .append( formatILon( hint.ilon ) ).append( "\">\n" )
-          .append ( "   <desc>" ).append( hint.getMessageString() ).append( "</desc>\n   <extensions>\n   <turn>" )
-          .append( hint.getCommandString() ).append("</turn>\n   <turn-angle>").append( "" + hint.angle )
-          .append("</turn-angle>\n   <offset>").append( "" + hint.indexInTrack ).append("</offset>\n  </extensions>\n </rtept>\n");
+          .append ( "   <desc>" ).append( hint.getMessageString() ).append( "</desc>\n   <extensions>\n");
+
+          float rteTime;
+          if (i < voiceHints.list.size() -1) {
+              rteTime = voiceHints.list.get(i + 1).getTime();
+          } else {
+              rteTime = nodes.get(nodes.size() - 1).getTime();
+          }
+          
+          if ( rteTime != lastRteTime ) // add timing only if available
+          {
+              double t = rteTime - lastRteTime;
+              sb.append( "    <time>" ).append( "" + (int)(t+0.5) ).append( "</time>\n" );
+              lastRteTime = rteTime;
+          }
+          sb.append("    <turn>" ).append( hint.getCommandString() ).append("</turn>\n    <turn-angle>").append( "" + (int)hint.angle )
+          .append("</turn-angle>\n    <offset>").append( "" + hint.indexInTrack ).append("</offset>\n  </extensions>\n </rtept>\n");
       }
       sb.append("</rte>\n");
     }
@@ -691,6 +714,22 @@ public final class OsmTrack
   public String getFormattedTime()
   {
     return format1( getTotalSeconds()/60. ) + "m";
+  }
+  
+  public String getFormattedTime2()
+  {
+      int seconds = (int)(getTotalSeconds() + 0.5);
+      int hours = seconds/3600;
+      int minutes = (seconds - hours * 3600) / 60;
+      seconds = seconds - hours * 3600 - minutes * 60;
+      String time = "";
+      if (hours != 0)
+          time = "" + hours + "h ";
+      if (minutes != 0)
+          time = time + minutes + "m ";
+      if (seconds != 0)
+          time = time + seconds + "s";
+      return time;
   }
 
   public String getFormattedEnergy()

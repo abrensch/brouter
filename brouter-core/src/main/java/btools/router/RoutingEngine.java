@@ -168,7 +168,7 @@ public class RoutingEngine extends Thread
         + " plain-ascend = " +  track.plainAscend + " cost=" + track.cost;
         if ( track.energy != 0 )
         {
-          track.message += " energy=" + track.getFormattedEnergy() + " time=" + track.getFormattedTime();
+          track.message += " energy=" + track.getFormattedEnergy() + " time=" + track.getFormattedTime2();
         }
         track.name = "brouter_" + routingContext.getProfileName() + "_" + i;
 
@@ -1320,6 +1320,11 @@ public class RoutingEngine extends Thread
   public int getPlainAscend()
   {
     return foundTrack.plainAscend;
+  }
+  
+  public String getTime()
+  {
+      return foundTrack.getFormattedTime2();
   }
 
   public OsmTrack getFoundTrack()

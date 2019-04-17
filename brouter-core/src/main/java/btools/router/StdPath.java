@@ -238,6 +238,15 @@ final class StdPath extends OsmPath
     elevation_buffer += delta_h;
     double incline = calcIncline( dist );
 
+    double wayMaxspeed;
+   
+    wayMaxspeed = rc.expctxWay.getMaxspeed() / 3.6f;
+    if (wayMaxspeed == 0)
+    {
+        wayMaxspeed = rc.maxSpeed;
+    }
+    wayMaxspeed = Math.min(wayMaxspeed,rc.maxSpeed);
+    
     double speed; // Travel speed
     double f_roll = rc.totalMass * GRAVITY * ( rc.defaultC_r + incline );
     if (rc.footMode || rc.expctxWay.getCostfactor() > 4.9 )
@@ -248,7 +257,7 @@ final class StdPath extends OsmPath
     else if (rc.bikeMode)
     {
       speed = solveCubic( rc.S_C_x, f_roll, rc.bikerPower );
-      speed = Math.min(speed, rc.maxSpeed);
+      speed = Math.min(speed, wayMaxspeed);
     }
     else
     {
