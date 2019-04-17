@@ -6,7 +6,7 @@ import java.io.IOException;
 
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmPos;
-import btools.util.CheapRulerSingleton;
+import btools.util.CheapRuler;
 
 /**
  * Container for link between two Osm nodes
@@ -78,7 +78,7 @@ public class OsmPathElement implements OsmPos
 
   public final int calcDistance( OsmPos p )
   {
-    return (int)(CheapRulerSingleton.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0 );
+    return (int)(CheapRuler.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0 );
   }
 
   public OsmPathElement origin;

@@ -1,6 +1,6 @@
 package btools.util;
 
-public final class CheapRulerSingleton {
+public final class CheapRuler {
   /**
    * Cheap-Ruler Java implementation
    * See

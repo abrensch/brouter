@@ -6,7 +6,7 @@
 package btools.router;
 
 import btools.mapaccess.OsmNode;
-import btools.util.CheapRulerSingleton;
+import btools.util.CheapRuler;
 
 public class OsmNodeNamed extends OsmNode
 {
@@ -26,10 +26,10 @@ public class OsmNodeNamed extends OsmNode
   }
 
   public double distanceWithinRadius(int lon1, int lat1, int lon2, int lat2, double totalSegmentLength) {
-    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( (lat1 + lat2) >> 1 );
+    double[] lonlat2m = CheapRuler.getLonLatToMeterScales( (lat1 + lat2) >> 1 );
 
-    boolean isFirstPointWithinCircle = CheapRulerSingleton.distance(lon1, lat1, ilon, ilat) < radius;
-    boolean isLastPointWithinCircle = CheapRulerSingleton.distance(lon2, lat2, ilon, ilat) < radius;
+    boolean isFirstPointWithinCircle = CheapRuler.distance(lon1, lat1, ilon, ilat) < radius;
+    boolean isLastPointWithinCircle = CheapRuler.distance(lon2, lat2, ilon, ilat) < radius;
     // First point is within the circle
     if (isFirstPointWithinCircle) {
       // Last point is within the circle
@@ -58,7 +58,7 @@ public class OsmNodeNamed extends OsmNode
       + (lat2 - lat1) * (ilat - lat1) * lonlat2m[1] * lonlat2m[1]
     ) / totalSegmentLength;
     // Distance between the initial point and the center of the circle.
-    double initialToCenter = CheapRulerSingleton.distance(ilon, ilat, lon1, lat1);
+    double initialToCenter = CheapRuler.distance(ilon, ilat, lon1, lat1);
     // Half length of the segment within the circle
     double halfDistanceWithin = Math.sqrt(
       radius*radius - (

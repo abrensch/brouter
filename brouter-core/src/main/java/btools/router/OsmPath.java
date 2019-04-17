@@ -12,7 +12,7 @@ import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmTransferNode;
 import btools.mapaccess.TurnRestriction;
-import btools.util.CheapRulerSingleton;
+import btools.util.CheapRuler;
 
 abstract class OsmPath implements OsmLinkHolder
 {
@@ -251,42 +251,9 @@ abstract class OsmPath implements OsmLinkHolder
       // check turn restrictions (n detail mode (=final pass) no TR to not mess up voice hints)
       if ( nsection == 0 && rc.considerTurnRestrictions && !detailMode&& !isStartpoint )
       {
-        boolean hasAnyPositive = false;
-        boolean hasPositive = false;
-        boolean hasNegative = false;
-        TurnRestriction tr = sourceNode.firstRestriction;
-        while( tr != null )
-        {
-          if ( ( tr.exceptBikes() && rc.bikeMode ) || tr.exceptMotorcars() && rc.carMode )
-          {
-            tr = tr.next;
-            continue;
-          }
-          int fromLon = rc.inverseDirection ? lon2 : lon0;
-          int fromLat = rc.inverseDirection ? lat2 : lat0;
-          int toLon = rc.inverseDirection ? lon0 : lon2;
-          int toLat = rc.inverseDirection ? lat0 : lat2;
-          if ( tr.fromLon == fromLon && tr.fromLat == fromLat )
-          {
-            if ( tr.isPositive )
-            {
-              hasAnyPositive = true;
-            }
-            if ( tr.toLon == toLon && tr.toLat == toLat )
-            {
-              if ( tr.isPositive )
-              {
-                hasPositive = true;
-              }
-              else
-              {
-                hasNegative = true;
-              }
-            }
-          }
-          tr = tr.next;
-        }
-        if ( !hasPositive && ( hasAnyPositive || hasNegative ) )
+        if ( rc.inverseDirection
+           ? TurnRestriction.isTurnForbidden( sourceNode.firstRestriction, lon2, lat2, lon0, lat0, rc.bikeMode, rc.carMode )
+           : TurnRestriction.isTurnForbidden( sourceNode.firstRestriction, lon0, lat0, lon2, lat2, rc.bikeMode, rc.carMode ) )
         {
           cost = -1;
           return;
@@ -345,8 +312,8 @@ abstract class OsmPath implements OsmLinkHolder
       {
         if ( rc.startDirectionValid )
         {
-          double dir = rc.startDirection.intValue() * CheapRulerSingleton.DEG_TO_RAD;
-          double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( (lon0 + lat1) >> 1 );
+          double dir = rc.startDirection.intValue() * CheapRuler.DEG_TO_RAD;
+          double[] lonlat2m = CheapRuler.getLonLatToMeterScales( (lon0 + lat1) >> 1 );
           lon0 = lon1 - (int) ( 1000. * Math.sin( dir ) / lonlat2m[0] );
           lat0 = lat1 - (int) ( 1000. * Math.cos( dir ) / lonlat2m[1] );
         }
@@ -540,17 +507,5 @@ abstract class OsmPath implements OsmLinkHolder
   public double getTotalEnergy()
   {
     return 0.;
-  }
-
-  protected static double exp( double e )
-  {
-    double x = e;
-    double f = 1.;
-    while( e < -1. )
-    {
-      e += 1.;
-      f *= 0.367879;
-    }
-    return f*( 1. + x*( 1. + x * ( 0.5 +  x * ( 0.166667 + 0.0416667 * x) ) ) );
   }
 }

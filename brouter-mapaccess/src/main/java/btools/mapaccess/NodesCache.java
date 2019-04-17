@@ -230,6 +230,13 @@ public final class NodesCache
     }
   }
 
+  /**
+   * make sure the given node is non-hollow,
+   * which means it contains not just the id,
+   * but also the actual data
+   * 
+   * @return true if successfull, false if node is still hollow
+   */
   public boolean obtainNonHollowNode( OsmNode node )
   {
     if ( !node.isHollow() )
@@ -253,6 +260,19 @@ public final class NodesCache
     }
 
     return !node.isHollow();
+  }
+
+
+
+  /**
+   * make sure all link targets of the given node are non-hollow
+   */
+  public void expandHollowLinkTargets( OsmNode n )
+  {
+    for( OsmLink link = n.firstlink; link != null; link = link.getNext( n ) )
+    {
+      obtainNonHollowNode( link.getTarget( n ) );
+    }
   }
 
   private OsmFile fileForSegment( int lonDegree, int latDegree ) throws Exception

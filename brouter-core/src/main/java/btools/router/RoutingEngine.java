@@ -492,16 +492,6 @@ public class RoutingEngine extends Thread
   }
 
 
-
-  // expand hollow link targets and resolve reverse links
-  private void expandHollowLinkTargets( OsmNode n )
-  {
-    for( OsmLink link = n.firstlink; link != null; link = link.getNext( n ) )
-    {
-      nodesCache.obtainNonHollowNode( link.getTarget( n ) );
-    }
-  }
-
   private OsmTrack searchTrack( MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack )
   {
     OsmTrack track = null;
@@ -640,7 +630,7 @@ public class RoutingEngine extends Thread
     {
       return null;
     }
-    expandHollowLinkTargets( start );
+    nodesCache.expandHollowLinkTargets( start );
     return start;
   }
 

@@ -26,7 +26,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import btools.router.OsmNogoPolygon.Point;
-import btools.util.CheapRulerSingleton;
+import btools.util.CheapRuler;
 
 public class OsmNogoPolygonTest {
 
@@ -65,7 +65,7 @@ public class OsmNogoPolygonTest {
 
   @Test
   public void testCalcBoundingCircle() {
-    double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( polygon.ilat );
+    double[] lonlat2m = CheapRuler.getLonLatToMeterScales( polygon.ilat );
     double dlon2m = lonlat2m[0];
     double dlat2m = lonlat2m[1];
 
@@ -207,9 +207,9 @@ public class OsmNogoPolygonTest {
       lat2 = toOsmLat(48.824091, 0);
       assertEquals(
         "Should give the correct length if the segment overlaps with an edge of the polygon",
-        CheapRulerSingleton.distance(lon1, lat1, lon2, lat2),
+        CheapRuler.distance(lon1, lat1, lon2, lat2),
         polygon.distanceWithinPolygon(lon1, lat1, lon2, lat2),
-        0.05 * CheapRulerSingleton.distance(lon1, lat1, lon2, lat2)
+        0.05 * CheapRuler.distance(lon1, lat1, lon2, lat2)
       );
 
       lon1 = toOsmLon(2.333523, 0);
@@ -218,9 +218,9 @@ public class OsmNogoPolygonTest {
       lat2 = toOsmLat(48.8239345, 0);
       assertEquals(
         "Should give the correct length if the segment overlaps with a polyline",
-        CheapRulerSingleton.distance(lon1, lat1, lon2, lat2),
+        CheapRuler.distance(lon1, lat1, lon2, lat2),
         polyline.distanceWithinPolygon(lon1, lat1, lon2, lat2),
-        0.05 * CheapRulerSingleton.distance(lon1, lat1, lon2, lat2)
+        0.05 * CheapRuler.distance(lon1, lat1, lon2, lat2)
       );
   }
 }

@@ -38,7 +38,7 @@ import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
 import btools.router.RoutingHelper;
-import btools.util.CheapRulerSingleton;
+import btools.util.CheapRuler;
 
 public class BRouterView extends View
 {
@@ -510,7 +510,7 @@ public class BRouterView extends View
       centerLon = ( maxlon + minlon ) / 2;
       centerLat = ( maxlat + minlat ) / 2;
 
-      double[] lonlat2m = CheapRulerSingleton.getLonLatToMeterScales( centerLat );
+      double[] lonlat2m = CheapRuler.getLonLatToMeterScales( centerLat );
       double dlon2m = lonlat2m[0];
       double dlat2m = lonlat2m[1];
       double difflon = (maxlon - minlon)*dlon2m;
