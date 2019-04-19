@@ -51,7 +51,7 @@ final class KinematicPrePath extends OsmPrePath
 
     int dist = rc.calcDistance( lon1, lat1, lon2, lat2 );
 
-    angle = rc.calcAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
+    angle = rc.anglemeter.calcAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
     priorityclassifier = (int)rc.expctxWay.getPriorityClassifier();
     classifiermask = (int)rc.expctxWay.getClassifierMask();
   }

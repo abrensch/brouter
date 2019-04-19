@@ -1,4 +1,4 @@
-package btools.router;
+package btools.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -8,9 +8,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import btools.util.CheapRuler;
-
-public class RoutingContextTest {
+public class CheapAngleMeterTest {
   static int toOsmLon(double lon) {
     return (int)( ( lon + 180. ) / CheapRuler.ILATLNG_TO_LATLNG + 0.5);
   }
@@ -21,7 +19,7 @@ public class RoutingContextTest {
 
   @Test
   public void testCalcAngle() {
-    RoutingContext rc = new RoutingContext();
+    CheapAngleMeter am = new CheapAngleMeter();
     // Segment ends
     int lon0, lat0, lon1, lat1, lon2, lat2;
 
@@ -34,7 +32,7 @@ public class RoutingContextTest {
     assertEquals(
       "Works for an angle between -pi/4 and pi/4",
       -10.,
-      rc.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2),
+      am.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2),
       0.05 * 10.
     );
 
@@ -47,7 +45,7 @@ public class RoutingContextTest {
     assertEquals(
       "Works for an angle between 3*pi/4 and 5*pi/4",
       180.,
-      rc.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2),
+      am.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2),
       0.05 * 180.
     );
 
@@ -60,7 +58,7 @@ public class RoutingContextTest {
     assertEquals(
       "Works for an angle between -3*pi/4 and -pi/4",
       100.,
-      rc.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2),
+      am.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2),
       0.1 * 100.
     );
 
@@ -73,14 +71,14 @@ public class RoutingContextTest {
     assertEquals(
       "Works for an angle between pi/4 and 3*pi/4",
       -100.,
-      rc.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2),
+      am.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2),
       0.1 * 100.
     );
   }
 
   @Test
   public void testCalcAngle2() {
-    RoutingContext rc = new RoutingContext();
+    CheapAngleMeter am = new CheapAngleMeter();
     int lon1 =  8500000;
     int lat1 = 49500000;
     
@@ -107,9 +105,9 @@ public class RoutingContextTest {
         double a1 = afrom - ato;
         if ( a1 > 180. ) a1 -= 360.;
         if ( a1 < -180. ) a1 += 360.;
-        double a2 = rc.calcAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
+        double a2 = am.calcAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
         double c1 = Math.cos( a1 * Math.PI / 180. );
-        double c2 = rc.getCosAngle();
+        double c2 = am.getCosAngle();
 
         assertEquals( "angle mismatch for afrom=" + afrom + " ato=" + ato, a1, a2, 0.2 );        
         assertEquals( "cosinus mismatch for afrom=" + afrom + " ato=" + ato, c1, c2, 0.001 );        
