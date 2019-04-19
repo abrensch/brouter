@@ -323,8 +323,8 @@ abstract class OsmPath implements OsmLinkHolder
           lat0 = lat1 - (lat2-lat1);
         }
       }
-      double angle = rc.calcAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
-      double cosangle = rc.getCosAngle();
+      double angle = rc.anglemeter.calcAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
+      double cosangle = rc.anglemeter.getCosAngle();
 
       // *** elevation stuff
       double delta_h = 0.;
