@@ -51,11 +51,6 @@
             <artifactId>brouter-map-creator</artifactId>
             <version>${project.version}</version>
 		</dependency>
-        <dependency>
-            <groupId>org.btools</groupId>
-            <artifactId>brouter-mem-router</artifactId>
-            <version>${project.version}</version>
-        </dependency>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
