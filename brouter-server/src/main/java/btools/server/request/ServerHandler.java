@@ -191,7 +191,7 @@ public class ServerHandler extends RequestHandler {
 
     if ( format != null )
     {
-      fileName = (params.get( "trackname" ) || "brouter") + "." + format;
+      fileName = ( params.get( "trackname" ) == null ? "brouter" : params.get( "trackname" ) ) + "." + format;
     }
 
     return fileName;
