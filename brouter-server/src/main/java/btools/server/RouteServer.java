@@ -392,7 +392,7 @@ public class RouteServer extends Thread
     bw.write( "Content-Type: " + mimeType + "; charset=utf-8\n" );
     if ( fileName != null )
     {
-      bw.write( "Content-Disposition: attachment; filename=" + fileName + "\n" );
+      bw.write( "Content-Disposition: attachment; filename=\"" + fileName + "\"\n" );
     }
     bw.write( "Access-Control-Allow-Origin: *\n" );
     if ( headers != null )
