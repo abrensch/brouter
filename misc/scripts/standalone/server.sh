@@ -1,5 +1,6 @@
 #!/bin/sh
 
+cd "$(dirname "$0")"
 # BRouter standalone server
 # java -cp brouter.jar btools.brouter.RouteServer <segmentdir> <profile-map> <customprofiledir> <port> <maxthreads>
 
