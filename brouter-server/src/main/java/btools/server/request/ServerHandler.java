@@ -280,9 +280,13 @@ public class ServerHandler extends RequestHandler {
             int lat = (int)( ( Double.parseDouble(slat) +  90. ) *1000000. + 0.5);
             polygon.addVertex(lon, lat);
           }
+
+          String nogoWeight = "NaN";
           if (j < lonLatList.length) {
-            polygon.nogoWeight = Double.parseDouble( lonLatList[j] );
+            nogoWeight = lonLatList[j];
           }
+          polygon.nogoWeight = Double.parseDouble( nogoWeight );
+
           if ( polygon.points.size() > 0 )
           {
             polygon.calcBoundingCircle();
