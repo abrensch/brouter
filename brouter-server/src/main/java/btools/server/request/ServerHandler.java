@@ -238,7 +238,8 @@ public class ServerHandler extends RequestHandler {
 
   private static OsmNodeNamed readNogo( String lon, String lat, String radius, String nogoWeight )
   {
-    return readNogo(Double.parseDouble( lon ), Double.parseDouble( lat ), Integer.parseInt( radius ), Double.parseDouble( nogoWeight ));
+    double weight = "undefined".equals( nogoWeight ) ? Double.NaN : Double.parseDouble( nogoWeight );
+    return readNogo(Double.parseDouble( lon ), Double.parseDouble( lat ), Integer.parseInt( radius ), weight );
   }
 
   private static OsmNodeNamed readNogo( double lon, double lat, int radius, double nogoWeight )
