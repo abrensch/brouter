@@ -113,7 +113,7 @@ public class ServerHandler extends RequestHandler {
     String result;
     // optional, may be null
     String format = params.get( "format" );
-    String trackName = params.get( "trackname" );
+    String trackName = getTrackName();
     if (trackName != null) {
       track.name = trackName;
     }
@@ -188,13 +188,19 @@ public class ServerHandler extends RequestHandler {
   {
     String fileName = null;
     String format = params.get( "format" );
+    String trackName = getTrackName();
 
     if ( format != null )
     {
-      fileName = ( params.get( "trackname" ) == null ? "brouter" : params.get( "trackname" ).replaceAll("[^a-zA-Z0-9 \\._\\-]+", "") ) + "." + format;
+      fileName = ( trackName == null ? "brouter" : trackName ) + "." + format;
     }
 
     return fileName;
+  }
+
+  private String getTrackName()
+  {
+    return params.get( "trackname" ) == null ? null : params.get( "trackname" ).replaceAll("[^a-zA-Z0-9 \\._\\-]+", "");
   }
 
   private static OsmNodeNamed readPosition( String vlon, String vlat, String name )
