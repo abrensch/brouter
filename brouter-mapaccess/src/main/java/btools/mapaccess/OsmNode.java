@@ -35,6 +35,12 @@ public class OsmNode extends OsmLink implements OsmPos
 
   public TurnRestriction firstRestriction;
 
+  public void addTurnRestriction( TurnRestriction tr )
+  {
+    tr.next = firstRestriction;
+    firstRestriction = tr;
+  }
+
   /**
    * The links to other nodes
    */
@@ -78,8 +84,13 @@ public class OsmNode extends OsmLink implements OsmPos
     return selev / 4.;
   }
 
-  private void addLink( OsmLink link, boolean isReverse, OsmNode tn )
+  public final void addLink( OsmLink link, boolean isReverse, OsmNode tn )
   {
+    if ( link == firstlink )
+    {
+      throw new IllegalArgumentException( "UUUUPS" );
+    }
+  
     if ( isReverse )
     {
       link.n1 = tn;
@@ -107,7 +118,7 @@ public class OsmNode extends OsmLink implements OsmPos
 
   public String toString()
   {
-    return "" + getIdFromPos();
+    return "n_" + (ilon-180000000) + "_" + (ilat-90000000);
   }
 
   public final void parseNodeBody( MicroCache mc, OsmNodesMap hollowNodes, IByteArrayUnifier expCtxWay )
@@ -134,15 +145,12 @@ public class OsmNode extends OsmLink implements OsmPos
       tr.fromLat = mc.readInt();
       tr.toLon = mc.readInt();
       tr.toLat = mc.readInt();
-      tr.next = firstRestriction;
-      firstRestriction = tr;
+      addTurnRestriction( tr );
     }
 
     selev = mc.readShort();
     int nodeDescSize = mc.readVarLengthUnsigned();
     nodeDescription = nodeDescSize == 0 ? null : mc.readUnified( nodeDescSize, abUnifier );
-
-    OsmLink link0 = firstlink;
 
     while (mc.hasMoreData())
     {
@@ -160,16 +168,23 @@ public class OsmNode extends OsmLink implements OsmPos
       }
       byte[] geometry = mc.readDataUntil( endPointer );
 
+      addLink( linklon, linklat, description, geometry, hollowNodes, isReverse );
+    }
+    hollowNodes.remove( this );
+  }
+
+  public void addLink( int linklon, int linklat, byte[] description, byte[] geometry, OsmNodesMap hollowNodes, boolean isReverse )
+  {
       if ( linklon == ilon && linklat == ilat )
       {
-        continue; // skip self-ref
+        return; // skip self-ref
       }
 
       OsmNode tn = null; // find the target node
       OsmLink link = null;
 
       // ...in our known links
-      for ( OsmLink l = link0; l != null; l = l.getNext( this ) )
+      for ( OsmLink l = firstlink; l != null; l = l.getNext( this ) )
       {
         OsmNode t = l.getTarget( this );
         if ( t.ilon == linklon && t.ilat == linklat )
@@ -202,8 +217,6 @@ public class OsmNode extends OsmLink implements OsmPos
         link.descriptionBitmap = description;
         link.geometry = geometry;
       }
-    }
-    hollowNodes.remove( this );
   }
 
 

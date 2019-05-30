@@ -49,6 +49,8 @@ public final class NodesCache
   private long ghostSum = 0;
   private long ghostWakeup = 0;
   
+  private boolean directWeaving = Boolean.getBoolean( "directWeaving" );
+  
   public String formatStatus()
   {
     return "collecting=" + garbageCollectionEnabled + " noGhosts=" + ghostCleaningDone + " cacheSum=" + cacheSum + " cacheSumClean=" + cacheSumClean + " ghostSum=" + ghostSum + " ghostWakeup=" + ghostWakeup ;
@@ -210,7 +212,7 @@ public final class NodesCache
       if ( segment == null )
       {
         checkEnableCacheCleaning();
-        segment = osmf.createMicroCache( ilon, ilat, dataBuffers, expCtxWay, waypointMatcher );
+        segment = osmf.createMicroCache( ilon, ilat, dataBuffers, expCtxWay, waypointMatcher, directWeaving ? nodesMap : null );
 
         cacheSum += segment.getDataSize();
       }
@@ -247,6 +249,10 @@ public final class NodesCache
     if ( segment == null )
     {
       return false;
+    }
+    if ( !node.isHollow() )
+    {
+      return true; // direct weaving...
     }
 
     long id = node.getIdFromPos();
@@ -292,6 +298,7 @@ public final class NodesCache
     // initialize the start-node
     OsmNode n = new OsmNode( id );
     n.setHollow();
+    nodesMap.put( n );
     if ( !obtainNonHollowNode( n ) )
     {
       return null;
