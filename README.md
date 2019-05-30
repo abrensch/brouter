@@ -26,6 +26,12 @@ Next, download one or more [data file(s)](http://brouter.de/brouter/segments4/) 
 On Linux:
 > ./misc/scripts/standalone/server.sh
 
+On Windows (using Bash):
+> ./misc/scripts/standalone/server.sh
+
+On Windows (using CMD):
+> misc\scripts\standalone\server.cmd
+
 
 Related Projects
 ================
