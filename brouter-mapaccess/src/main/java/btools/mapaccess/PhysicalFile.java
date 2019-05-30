@@ -62,7 +62,7 @@ final public class PhysicalFile
           if ( osmf.hasData() )
             for ( int lonIdx = 0; lonIdx < div; lonIdx++ )
               for ( int latIdx = 0; latIdx < div; latIdx++ )
-                osmf.createMicroCache( lonDegree * div + lonIdx, latDegree * div + latIdx, dataBuffers, null, null, MicroCache.debug );
+                osmf.createMicroCache( lonDegree * div + lonIdx, latDegree * div + latIdx, dataBuffers, null, null, MicroCache.debug, null );
         }
       }
     }

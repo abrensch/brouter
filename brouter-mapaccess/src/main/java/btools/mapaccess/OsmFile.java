@@ -94,12 +94,12 @@ final class OsmFile
     return microCaches[subIdx];
   }
 
-  public MicroCache createMicroCache( int ilon, int ilat, DataBuffers dataBuffers, TagValueValidator wayValidator, WaypointMatcher waypointMatcher )
+  public MicroCache createMicroCache( int ilon, int ilat, DataBuffers dataBuffers, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes )
       throws Exception
   {
     int lonIdx = ilon / cellsize;
     int latIdx = ilat / cellsize;
-    MicroCache segment = createMicroCache( lonIdx, latIdx, dataBuffers, wayValidator, waypointMatcher, true );
+    MicroCache segment = createMicroCache( lonIdx, latIdx, dataBuffers, wayValidator, waypointMatcher, true, hollowNodes );
     int subIdx = ( latIdx - divisor * latDegree ) * divisor + ( lonIdx - divisor * lonDegree );
     microCaches[subIdx] = segment;
     return segment;
@@ -127,7 +127,7 @@ final class OsmFile
   }
 
   public MicroCache createMicroCache( int lonIdx, int latIdx, DataBuffers dataBuffers, TagValueValidator wayValidator,
-      WaypointMatcher waypointMatcher, boolean reallyDecode ) throws Exception
+      WaypointMatcher waypointMatcher, boolean reallyDecode, OsmNodesMap hollowNodes ) throws Exception
   {
     int subIdx = ( latIdx - divisor * latDegree ) * divisor + ( lonIdx - divisor * lonDegree );
 
@@ -155,7 +155,18 @@ final class OsmFile
     }
     else if ( ( crcData ^ 2 ) == crcFooter )
     {
-      return reallyDecode ? new MicroCache2( dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher ) : null;
+      if ( !reallyDecode )
+      {
+        return null;
+      }
+      if ( hollowNodes == null )
+      {
+        return new MicroCache2( dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher );
+      }
+      new DirectWeaver( dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher, hollowNodes );
+      MicroCache dummy = MicroCache.emptyCache();
+      dummy.virgin = false;
+      return dummy;
     }
     throw new IOException( "checkum error" );
   }
