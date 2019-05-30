@@ -10,9 +10,22 @@ For more infos see http://brouter.de/brouter
 <a href="https://play.google.com/store/apps/details?id=btools.routingapp" target="_blank">
 <img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" alt="Get it on Google Play" height="90"/></a>
 
+
+## Build and Install
+
 Compile with (Java 6!):
 
 > mvn clean install -Dandroid.sdk.path=<your-sdk-path>
+
+To skip building for Android, add ``-pl '!brouter-routing-app'``.
+
+Next, download one or more [data file(s)](http://brouter.de/brouter/segments4/) (rd5) into the ``misc/segments4`` directory.
+
+## Run
+
+On Linux:
+> ./misc/scripts/standalone/server.sh
+
 
 Related Projects
 ================
