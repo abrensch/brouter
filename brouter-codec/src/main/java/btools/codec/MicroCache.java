@@ -40,6 +40,13 @@ public class MicroCache extends ByteDataWriter
     super( ab );
   }
 
+  public final static MicroCache emptyNonVirgin = new MicroCache( null );
+
+  static
+  {
+    emptyNonVirgin.virgin = false;
+  }
+
   public static MicroCache emptyCache()
   {
     return new MicroCache( null ); // TODO: singleton?

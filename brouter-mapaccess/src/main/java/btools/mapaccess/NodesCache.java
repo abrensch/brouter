@@ -20,7 +20,7 @@ public final class NodesCache
   private File segmentDir;
   private File secondarySegmentsDir = null;
 
-  private OsmNodesMap nodesMap;
+  public OsmNodesMap nodesMap;
   private BExpressionContextWay expCtxWay;
   private int lookupVersion;
   private int lookupMinorVersion;
@@ -38,7 +38,7 @@ public final class NodesCache
   public String first_file_access_name;
 
   private long cacheSum = 0;
-  private long maxmem;
+  private long maxmemtiles;
   private boolean detailed;
   
   private boolean garbageCollectionEnabled = false;
@@ -58,13 +58,14 @@ public final class NodesCache
 
   public NodesCache( String segmentDir, BExpressionContextWay ctxWay, boolean forceSecondaryData, long maxmem, NodesCache oldCache, boolean detailed )
   {
+    this.maxmemtiles = maxmem / 8;
     this.segmentDir = new File( segmentDir );
     this.nodesMap = new OsmNodesMap();
+    this.nodesMap.maxmem = (2L*maxmem) / 3L;
     this.expCtxWay = ctxWay;
     this.lookupVersion = ctxWay.meta.lookupVersion;
     this.lookupMinorVersion = ctxWay.meta.lookupMinorVersion;
     this.forceSecondaryData = forceSecondaryData;
-    this.maxmem = maxmem;
     this.detailed = detailed;
     
     if ( ctxWay != null )
@@ -130,7 +131,7 @@ public final class NodesCache
   // clean all ghosts and enable garbage collection
   private void checkEnableCacheCleaning()
   {
-    if ( cacheSum < maxmem )
+    if ( cacheSum < maxmemtiles )
     {
       return;
     }
@@ -158,7 +159,7 @@ public final class NodesCache
     if ( garbageCollectionEnabled )
     {
       ghostCleaningDone = true;
-      maxmem *= 2;
+      maxmemtiles *= 2;
     }
     else
     {
@@ -283,6 +284,21 @@ public final class NodesCache
   }
 
   /**
+   * make sure all link targets of the given node are non-hollow
+   */
+  public boolean hasHollowLinkTargets( OsmNode n )
+  {
+    for( OsmLink link = n.firstlink; link != null; link = link.getNext( n ) )
+    {
+      if ( link.getTarget( n ).isHollow() )
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * get a node for the given id with all link-targets also non-hollow
    * 
    * It is required that an instance of the start-node does not yet
@@ -305,6 +321,19 @@ public final class NodesCache
     }
     expandHollowLinkTargets( n );
     return n;
+  }
+
+  public OsmNode getGraphNode( OsmNode template )
+  {
+    OsmNode graphNode = new OsmNode( template.ilon, template.ilat );
+    graphNode.setHollow();
+    OsmNode existing = nodesMap.put( graphNode );
+    if ( existing == null )
+    {
+      return graphNode;
+    }
+    nodesMap.put( existing );
+    return existing;
   }
 
   public void matchWaypointsToNodes( List<MatchedWaypoint> unmatchedWaypoints, double maxDistance, OsmNodePairSet islandNodePairs )

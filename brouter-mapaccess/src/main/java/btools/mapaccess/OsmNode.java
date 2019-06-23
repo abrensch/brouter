@@ -34,6 +34,8 @@ public class OsmNode extends OsmLink implements OsmPos
   public byte[] nodeDescription;
 
   public TurnRestriction firstRestriction;
+  
+  public int visitID;
 
   public void addTurnRestriction( TurnRestriction tr )
   {
@@ -234,6 +236,28 @@ public class OsmNode extends OsmLink implements OsmPos
   {
     return ( (long) ilon ) << 32 | ilat;
   }
+  
+  public void vanish()
+  {
+    if ( !isHollow() )
+    {
+      OsmLink l = firstlink;
+      while( l != null )
+      {
+        OsmNode target = l.getTarget( this );
+        OsmLink nextLink = l.getNext( this );
+        if ( !target.isHollow() )
+        {
+          unlinkLink( l );
+          if ( !l.isLinkUnused() )
+          {
+            target.unlinkLink( l );
+          }      
+        }
+        l = nextLink;
+      }
+    }
+  }
 
   public final void unlinkLink( OsmLink link )
   {
@@ -258,7 +282,7 @@ public class OsmNode extends OsmLink implements OsmPos
         }
         l = nl;
       }
-      else
+      else if ( l.n2 != this && l.n2 != null )
       {
         OsmLink nl = l.next;
         if ( nl == link )
@@ -267,6 +291,10 @@ public class OsmNode extends OsmLink implements OsmPos
           return;
         }
         l = nl;
+      }
+      else
+      {
+        throw new IllegalArgumentException( "unlinkLink: unknown source" );
       }
     }
   }
