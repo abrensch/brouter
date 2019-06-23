@@ -164,9 +164,7 @@ final class OsmFile
         return new MicroCache2( dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher );
       }
       new DirectWeaver( dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher, hollowNodes );
-      MicroCache dummy = MicroCache.emptyCache();
-      dummy.virgin = false;
-      return dummy;
+      return MicroCache.emptyNonVirgin;
     }
     throw new IOException( "checkum error" );
   }

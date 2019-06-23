@@ -11,8 +11,8 @@ import btools.util.ByteDataWriter;
 import btools.util.IByteArrayUnifier;
 
 /**
- * MicroCache2 is the new format that uses statistical encoding and
- * is able to do access filtering and waypoint matching during encoding
+ * DirectWeaver does the same decoding as MicroCache2, but decodes directly
+ * into the instance-graph, not into the intermediate nodes-cache
  */
 public final class DirectWeaver extends ByteDataWriter
 {
@@ -20,8 +20,7 @@ public final class DirectWeaver extends ByteDataWriter
   private int latBase;
   private int cellsize;
 
-  protected int[] faid;
-  protected int size = 0;
+  private int size = 0;
 
   private static boolean debug = false;
   
@@ -43,8 +42,9 @@ public final class DirectWeaver extends ByteDataWriter
     NoisyDiffCoder transEleDiff = new NoisyDiffCoder( bc );
 
     size = bc.decodeNoisyNumber( 5 );
-    faid = size > dataBuffers.ibuf2.length ? new int[size] : dataBuffers.ibuf2;
-    
+
+    int[] faid = size > dataBuffers.ibuf2.length ? new int[size] : dataBuffers.ibuf2;
+
     if ( debug ) System.out.println( "*** decoding cache of size=" + size + " for lonIdx=" + lonIdx + " latIdx=" + latIdx );
 
     bc.decodeSortedArray( faid, 0, size, 0x20000000, 0 );
@@ -59,9 +59,11 @@ public final class DirectWeaver extends ByteDataWriter
       if ( node == null )
       {
         node = new OsmNode( ilon, ilat );
+        node.visitID = 0;
       }
       else
       {
+        node.visitID = 1;
         hollowNodes.remove( node );
       }
       nodes[n] = node;
@@ -189,7 +191,11 @@ public final class DirectWeaver extends ByteDataWriter
           if ( nodeIdx != n ) // valid internal (forward-) link
           {
             OsmNode node2 = nodes[nodeIdx];
-            OsmLink link = node.isLinkUnused() ? node : ( node2.isLinkUnused() ? node2 : new OsmLink() );
+            OsmLink link = node.isLinkUnused() ? node : ( node2.isLinkUnused() ? node2 : null );
+            if ( link == null )
+            {
+              link = new OsmLink();
+            }
             link.descriptionBitmap = wayTags.data;
             link.geometry = geometry;
             node.addLink( link, isReverse, node2 );
@@ -197,14 +203,13 @@ public final class DirectWeaver extends ByteDataWriter
           else // weave external link
           {
             node.addLink( linklon, linklat, wayTags.data, geometry, hollowNodes, isReverse );
+            node.visitID = 1;
           }
         }
-          
+      } // ... loop over links
+    } // ... loop over nodes
 
-
-      }
-    }
-    
+    hollowNodes.cleanupAndCount( nodes );
   }
 
   public long expandId( int id32 )

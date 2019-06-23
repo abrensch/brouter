@@ -62,6 +62,8 @@ public class RoutingEngine extends Thread
 
   private Object[] extract;
 
+  private boolean directWeaving = Boolean.getBoolean( "directWeaving" );
+
   public RoutingEngine( String outfileBase, String logfileBase, String segmentDir,
           List<OsmNodeNamed> waypoints, RoutingContext rc )
   {
@@ -575,7 +577,7 @@ public class RoutingEngine extends Thread
     {
       logInfo( "NodesCache status before reset=" + nodesCache.formatStatus() );
     }
-    long maxmem = routingContext.memoryclass * 131072L; // 1/8 of total
+    long maxmem = routingContext.memoryclass * 1024L *1024L; // in MB
     
     nodesCache = new NodesCache(segmentDir, routingContext.expctxWay, routingContext.forceSecondaryData, maxmem, nodesCache, detailed );
     islandNodePairs.clearTempPairs();
@@ -695,6 +697,7 @@ public class RoutingEngine extends Thread
     {
       boolean detailed = guideTrack != null;
       resetCache( detailed );
+      nodesCache.nodesMap.cleanupMode = detailed ? 0 : ( routingContext.considerTurnRestrictions ? 2 : 1 );
       return _findTrack( operationName, startWp, endWp, costCuttingTrack, refTrack, fastPartialRecalc );
     }
     finally
@@ -708,7 +711,7 @@ public class RoutingEngine extends Thread
   {
     boolean verbose = guideTrack != null;
 
-    int maxTotalCost = 1000000000;
+    int maxTotalCost = guideTrack != null ? guideTrack.cost + 5000 : 1000000000;
     int firstMatchCost = 1000000000;
     
     logInfo( "findtrack with airDistanceCostFactor=" + airDistanceCostFactor );
@@ -717,28 +720,37 @@ public class RoutingEngine extends Thread
     matchPath = null;
     int nodesVisited = 0;
 
-    long endNodeId1 = endWp == null ? -1L : endWp.node1.getIdFromPos();
-    long endNodeId2 = endWp == null ? -1L : endWp.node2.getIdFromPos();
     long startNodeId1 = startWp.node1.getIdFromPos();
     long startNodeId2 = startWp.node2.getIdFromPos();
-
-    OsmNodeNamed endPos = endWp == null ? null : new OsmNodeNamed( endWp.crosspoint );
+    long endNodeId1 = endWp == null ? -1L : endWp.node1.getIdFromPos();
+    long endNodeId2 = endWp == null ? -1L : endWp.node2.getIdFromPos();
+    OsmNode end1 = null;
+    OsmNode end2 = null;
+    OsmNodeNamed endPos = null;
     
-    boolean sameSegmentSearch = ( startNodeId1 == endNodeId1 && startNodeId2 == endNodeId2 )
-                             || ( startNodeId1 == endNodeId2 && startNodeId2 == endNodeId1 );
-    
-    OsmNode start1 = nodesCache.getStartNode( startNodeId1 );
-    if ( start1 == null ) return null;
-    OsmNode start2 = null;
-    for( OsmLink link = start1.firstlink; link != null; link = link.getNext( start1 ) )
+    boolean sameSegmentSearch = false;
+    OsmNode start1 = nodesCache.getGraphNode( startWp.node1 );
+    OsmNode start2 = nodesCache.getGraphNode( startWp.node2 );
+    if ( endWp != null )
     {
-    	if ( link.getTarget( start1 ).getIdFromPos() == startNodeId2 )
-    	{
-    	  start2 = link.getTarget( start1 );
-    	  break;
-    	}
+      end1 = nodesCache.getGraphNode( endWp.node1 );
+      end2 = nodesCache.getGraphNode( endWp.node2 );
+      nodesCache.nodesMap.endNode1 = end1;
+      nodesCache.nodesMap.endNode2 = end2;
+      endPos = new OsmNodeNamed( endWp.crosspoint );
+      sameSegmentSearch = ( start1 == end1 && start2 == end2 ) || ( start1 == end2 && start2 == end1 );
     }
-    if ( start2 == null ) return null;
+    if ( !nodesCache.obtainNonHollowNode( start1 ) )
+    {
+      return null;
+    }
+    nodesCache.expandHollowLinkTargets( start1 );
+    if ( !nodesCache.obtainNonHollowNode( start2 ) )
+    {
+      return null;
+    }
+    nodesCache.expandHollowLinkTargets( start2 );
+
 
     routingContext.startDirectionValid = routingContext.forceUseStartDirection || fastPartialRecalc;
     routingContext.startDirectionValid &= routingContext.startDirection != null && !routingContext.inverseDirection;
@@ -770,6 +782,10 @@ public class RoutingEngine extends Thread
       addToOpenset( startPath1 );
       addToOpenset( startPath2 );
     }
+    ArrayList<OsmPath> openBorderList = new ArrayList<OsmPath>();
+    boolean memoryPanicMode = false;
+    boolean needNonPanicProcessing = false;
+    
     for(;;)
     {
       if ( terminated )
@@ -793,12 +809,72 @@ public class RoutingEngine extends Thread
       {
         path = openSet.popLowestKeyValue();
       }
-      if ( path == null ) break;
+      if ( path == null )
+      {
+        if ( openBorderList.isEmpty() )
+        {
+          break;
+        }
+        for( OsmPath p : openBorderList )
+        {
+          openSet.add( p.cost + (int)(p.airdistance*airDistanceCostFactor), p );
+        }
+        openBorderList.clear();
+        memoryPanicMode = false;
+        needNonPanicProcessing = true;
+        continue;
+      }
+
       if ( path.airdistance == -1 )
       {
         path.unregisterUpTree( routingContext );
         continue;
       }
+      
+      if ( directWeaving && nodesCache.hasHollowLinkTargets( path.getTargetNode() ) )
+      {
+        if ( !memoryPanicMode )
+        {
+          if ( !nodesCache.nodesMap.isInMemoryBounds( openSet.getSize() ) )
+          {
+            int nodesBefore = nodesCache.nodesMap.nodesCreated;
+            int pathsBefore = openSet.getSize();
+            
+            nodesCache.nodesMap.collectOutreachers();
+            for(;;)
+            {
+              OsmPath p3 = openSet.popLowestKeyValue();
+              if ( p3 == null ) break;
+              if ( p3.airdistance != -1 && nodesCache.nodesMap.canEscape( p3.getTargetNode() ) )
+              {
+                openBorderList.add( p3 );
+              }
+            }
+            for( OsmPath p : openBorderList )
+            {
+              openSet.add( p.cost + (int)(p.airdistance*airDistanceCostFactor), p );
+            }
+            openBorderList.clear();
+System.out.println( "collected, nodes/paths before=" + nodesBefore + "/" + pathsBefore + " after=" + nodesCache.nodesMap.nodesCreated + "/" + openSet.getSize() );
+            if ( !nodesCache.nodesMap.isInMemoryBounds( openSet.getSize()) ) // TODO
+            {
+              if ( maxTotalCost < 1000000000 || needNonPanicProcessing )
+              {
+                throw new IllegalArgumentException( "memory limit reached" );
+              }
+              memoryPanicMode = true;
+              System.out.println( "************************ memory limit reached, enabled memory panic mode *************************" );
+            }
+          }
+        }
+        if ( memoryPanicMode )
+        {
+          openBorderList.add( path );
+          continue;
+        }
+      }
+      needNonPanicProcessing = false;
+      
 
       if ( fastPartialRecalc && matchPath != null && path.cost > 30L*firstMatchCost && !costCuttingTrack.isDirty )
       {
@@ -831,6 +907,12 @@ public class RoutingEngine extends Thread
       OsmLink currentLink = path.getLink();
       OsmNode sourceNode = path.getSourceNode();
       OsmNode currentNode = path.getTargetNode();
+
+      if ( currentLink.isLinkUnused() )
+      {
+        path.unregisterUpTree( routingContext );
+        continue;
+      }
 
       long currentNodeId = currentNode.getIdFromPos();
       long sourceNodeId = sourceNode.getIdFromPos();
@@ -910,6 +992,10 @@ public class RoutingEngine extends Thread
         path.unregisterUpTree( routingContext );
         continue;
       }
+      
+      nodesCache.nodesMap.currentMaxCost = maxTotalCost;
+      nodesCache.nodesMap.currentPathCost = path.cost;
+      nodesCache.nodesMap.destination = endPos;
       
       routingContext.firstPrePath = null;
 
@@ -1162,9 +1248,10 @@ public class RoutingEngine extends Thread
 
   private OsmTrack mergeTrack( OsmPathElement match, OsmTrack oldTrack )
   {
-	  
+System.out.println( "**************** merging match=" + match.cost + " with oldTrack=" + oldTrack.cost ); 
     OsmPathElement element = match;
     OsmTrack track = new OsmTrack();
+    track.cost = oldTrack.cost;
 
     while ( element != null )
     {
