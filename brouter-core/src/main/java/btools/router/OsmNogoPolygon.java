@@ -74,7 +74,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
       {
         cxmin = p.x;
       }
-      else if (p.x > cxmax)
+      if (p.x > cxmax)
       {
         cxmax = p.x;
       }
@@ -82,7 +82,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
       {
         cymin = p.y;
       }
-      else if (p.y > cymax)
+      if (p.y > cymax)
       {
         cymax = p.y;
       }
