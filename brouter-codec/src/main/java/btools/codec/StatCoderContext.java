@@ -9,6 +9,26 @@ public final class StatCoderContext extends BitCoderContext
   private static TreeMap<String, long[]> statsPerName;
   private long lastbitpos = 0;
 
+
+  private static final int[] noisy_bits = new int[1024];
+
+  static
+  {
+    // noisybits lookup
+    for( int i=0; i<1024; i++ )
+    {
+      int p = i;
+      int noisybits = 0;
+      while (p > 2)
+      {
+        noisybits++;
+        p >>= 1;
+      }
+      noisy_bits[i] = noisybits;
+    }
+  }
+
+
   public StatCoderContext( byte[] ab )
   {
     super( ab );
@@ -167,12 +187,12 @@ public final class StatCoderContext extends BitCoderContext
   {
     int p = predictor < 0 ? -predictor : predictor;
     int noisybits = 0;
-    while (p > 2)
+    while (p > 1023)
     {
       noisybits++;
       p >>= 1;
     }
-    return predictor + decodeNoisyDiff( noisybits );
+    return predictor + decodeNoisyDiff( noisybits + noisy_bits[p] );
   }
 
   /**
