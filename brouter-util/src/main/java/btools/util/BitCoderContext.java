@@ -10,6 +10,27 @@ public class BitCoderContext
   private int bits; // bits left in buffer (read mode)
   private int b;
 
+  private static final int[] vl_values = new int[4096];
+  private static final int[] vl_length = new int[4096];
+
+  static
+  {
+    // fill varbits lookup table
+
+    BitCoderContext bc = new BitCoderContext( new byte[4] );
+    for( int i=0; i<4096; i++ )
+    {
+      bc.reset();
+      bc.bits = 14;
+      bc.b = 0x1000 + i;
+
+      int b0 = bc.getReadingBitPosition();
+      vl_values[i] = bc.decodeVarBits2();
+      vl_length[i] = bc.getReadingBitPosition() - b0;
+    }
+  }
+
+
   public BitCoderContext( byte[] ab )
   {
     this.ab = ab;
@@ -69,21 +90,26 @@ public class BitCoderContext
 
   public final int decodeVarBits()
   {
-    int range = 1;
-    int cnt = 1;
     fillBuffer();
-    if ( (b & 0xffffff ) == 0 )
+    int b12 = b & 0xfff;
+    int len = vl_length[b12];
+    if ( len <= 12 )
     {
-      return decodeVarBits2(); // fast version limited to 24 bit
+      b >>>= len;
+      bits -= len;
+      return vl_values[b12]; // full value lookup
     }
-    while ((b & range) == 0)
+    if ( len <= 23 ) // // only length lookup
     {
-      range = (range << 1) | 1;
-      cnt++;
+      int len2 = len >> 1;
+      b >>>= (len2+1);
+      int mask = 0xffffffff >>> ( 32 - len2 );
+      mask += b & mask;
+      b >>>= len2;
+      bits -= len;
+      return mask;
     }
-    b >>>= cnt;
-    bits -= cnt;
-    return (range >>> 1) + ( cnt > 1 ? decodeBits( cnt-1 ) : 0 );
+    return decodeVarBits2();
   }
 
 
