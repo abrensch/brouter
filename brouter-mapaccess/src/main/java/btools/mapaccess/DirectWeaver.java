@@ -16,20 +16,15 @@ import btools.util.IByteArrayUnifier;
  */
 public final class DirectWeaver extends ByteDataWriter
 {
-  private int lonBase;
-  private int latBase;
-  private int cellsize;
+  private long id64Base;
 
   private int size = 0;
 
-  private static boolean debug = false;
-  
   public DirectWeaver( DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes ) throws Exception
   {
     super( null );
-    cellsize = 1000000 / divisor;
-    lonBase = lonIdx*cellsize;
-    latBase = latIdx*cellsize;
+    int cellsize = 1000000 / divisor;
+    id64Base = ((long)(lonIdx*cellsize))<<32 | (latIdx*cellsize);
 
     StatCoderContext bc = new StatCoderContext( dataBuffers.iobuffer );
 
@@ -45,9 +40,7 @@ public final class DirectWeaver extends ByteDataWriter
 
     int[] faid = size > dataBuffers.ibuf2.length ? new int[size] : dataBuffers.ibuf2;
 
-    if ( debug ) System.out.println( "*** decoding cache of size=" + size + " for lonIdx=" + lonIdx + " latIdx=" + latIdx );
-
-    bc.decodeSortedArray( faid, 0, size, 0x20000000, 0 );
+    bc.decodeSortedArray( faid, 0, size, 29, 0 );
     
     OsmNode[] nodes = new OsmNode[size];
     for( int n = 0; n<size; n++ )
@@ -59,7 +52,6 @@ public final class DirectWeaver extends ByteDataWriter
       if ( node == null )
       {
         node = new OsmNode( ilon, ilat );
-        node.visitID = 0;
       }
       else
       {
@@ -116,7 +108,6 @@ public final class DirectWeaver extends ByteDataWriter
       node.nodeDescription = nodeTags == null ? null : nodeTags.data; // TODO: unified?
 
       int links = bc.decodeNoisyNumber( 1 );
-      if ( debug ) System.out.println( "***   decoding node " + ilon + "/" + ilat + " with links=" + links );
       for( int li=0; li<links; li++ )
       {
         int nodeIdx = n + nodeIdxDiff.decodeSignedValue();
@@ -136,7 +127,6 @@ public final class DirectWeaver extends ByteDataWriter
           dlon_remaining = extLonDiff.decodeSignedValue();
           dlat_remaining = extLatDiff.decodeSignedValue();
         }
-        if ( debug ) System.out.println( "***     decoding link to " + (ilon+dlon_remaining) + "/" + (ilat+dlat_remaining) + " extern=" + (nodeIdx == n) );
 
         TagValueWrapper wayTags = wayTagCoder.decodeTagValueSet();
 
@@ -157,7 +147,6 @@ public final class DirectWeaver extends ByteDataWriter
           }
           
           int transcount = bc.decodeVarBits();
-          if ( debug ) System.out.println( "***       decoding geometry with count=" + transcount );
           int count = transcount+1;
           for( int i=0; i<transcount; i++ )
           {
@@ -212,7 +201,21 @@ public final class DirectWeaver extends ByteDataWriter
     hollowNodes.cleanupAndCount( nodes );
   }
 
-  public long expandId( int id32 )
+  private static final long[] id32_00 = new long[1024];
+  private static final long[] id32_10 = new long[1024];
+  private static final long[] id32_20 = new long[1024];
+
+  static
+  {
+    for( int i=0; i<1024; i++ )
+    {
+      id32_00[i] = _expandId( i       );
+      id32_10[i] = _expandId( i << 10 );
+      id32_20[i] = _expandId( i << 20 );
+    }
+  }
+
+  private static long _expandId( int id32 )
   {
     int dlon = 0;
     int dlat = 0;
@@ -223,11 +226,11 @@ public final class DirectWeaver extends ByteDataWriter
       if ( (id32 & 2) != 0 ) dlat |= bm;
       id32 >>= 2;
     }
-
-    int lon32 = lonBase + dlon;
-    int lat32 = latBase + dlat;
-
-    return ((long)lon32)<<32 | lat32;
+    return ((long)dlon)<<32 | dlat;
   }
 
+  public long expandId( int id32 )
+  {
+    return id64Base + id32_00[ id32 & 1023 ] + id32_10[ (id32>>10) & 1023 ] + id32_20[ (id32>>20) & 1023 ];
+  }
 }

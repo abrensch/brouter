@@ -269,22 +269,18 @@ public final class StatCoderContext extends BitCoderContext
    * @param value
    *          should be 0
    */
-  public void decodeSortedArray( int[] values, int offset, int subsize, int nextbit, int value )
+  public void decodeSortedArray( int[] values, int offset, int subsize, int nextbitpos, int value )
   {
     if ( subsize == 1 ) // last-choice shortcut
     {
-      while (nextbit != 0)
+      if ( nextbitpos >= 0 )
       {
-        if ( decodeBit() )
-        {
-          value |= nextbit;
-        }
-        nextbit >>= 1;
+        value |= decodeBitsReverse( nextbitpos+1 );
       }
       values[offset] = value;
       return;
     }
-    if ( nextbit == 0 )
+    if ( nextbitpos < 0 )
     {
       while (subsize-- > 0)
       {
@@ -298,11 +294,11 @@ public final class StatCoderContext extends BitCoderContext
 
     if ( size1 > 0 )
     {
-      decodeSortedArray( values, offset, size1, nextbit >> 1, value );
+      decodeSortedArray( values, offset, size1, nextbitpos-1, value );
     }
     if ( size2 > 0 )
     {
-      decodeSortedArray( values, offset + size1, size2, nextbit >> 1, value | nextbit );
+      decodeSortedArray( values, offset + size1, size2, nextbitpos-1, value | (1 << nextbitpos) );
     }
   }
 

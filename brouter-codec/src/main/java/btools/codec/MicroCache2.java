@@ -62,7 +62,7 @@ public final class MicroCache2 extends MicroCache
 
     if ( debug ) System.out.println( "*** decoding cache of size=" + size + " for lonIdx=" + lonIdx + " latIdx=" + latIdx );
 
-    bc.decodeSortedArray( faid, 0, size, 0x20000000, 0 );
+    bc.decodeSortedArray( faid, 0, size, 29, 0 );
     
     for( int n = 0; n<size; n++ )
     {

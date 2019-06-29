@@ -13,7 +13,7 @@ public class StatCoderContextTest
   {
     byte[] ab = new byte[40000];
     StatCoderContext ctx = new StatCoderContext( ab );
-    for ( int noisybits = 0; noisybits < 12; noisybits++ )
+    for ( int noisybits = 1; noisybits < 12; noisybits++ )
     {
       for ( int i = 0; i < 1000; i++ )
       {
@@ -22,7 +22,7 @@ public class StatCoderContextTest
     }
     ctx = new StatCoderContext( ab );
 
-    for ( int noisybits = 0; noisybits < 12; noisybits++ )
+    for ( int noisybits = 1; noisybits < 12; noisybits++ )
     {
       for ( int i = 0; i < 1000; i++ )
       {
@@ -114,7 +114,7 @@ public class StatCoderContextTest
     ctx = new StatCoderContext( ab );
 
     int[] decodedValues = new int[size];
-    ctx.decodeSortedArray( decodedValues, 0, size, 0x08000000, 0 );
+    ctx.decodeSortedArray( decodedValues, 0, size, 27, 0 );
 
     for ( int i = 0; i < size; i++ )
     {
