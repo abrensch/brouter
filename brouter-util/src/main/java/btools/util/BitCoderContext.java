@@ -13,6 +13,8 @@ public class BitCoderContext
   private static final int[] vl_values = new int[4096];
   private static final int[] vl_length = new int[4096];
 
+  private static final int[] reverse_byte = new int[256];
+
   static
   {
     // fill varbits lookup table
@@ -27,6 +29,15 @@ public class BitCoderContext
       int b0 = bc.getReadingBitPosition();
       vl_values[i] = bc.decodeVarBits2();
       vl_length[i] = bc.getReadingBitPosition() - b0;
+    }
+    for( int b=0; b<256; b++ )
+    {
+      int r = 0;
+      for( int i=0; i<8; i++ )
+      {
+        if ( (b & (1<<i) ) != 0 ) r |= 1 << (7-i);
+      }
+      reverse_byte[b] = r;
     }
   }
 
@@ -190,15 +201,29 @@ public class BitCoderContext
 
   public final int decodeBits( int count )
   {
-    if ( count == 0 )
-    {
-      return 0;
-    }
     fillBuffer();
     int mask = 0xffffffff >>> ( 32 - count );
     int value = b & mask;
     b >>>= count;
     bits -= count;
+    return value;
+  }
+
+  public final int decodeBitsReverse( int count )
+  {
+    fillBuffer();
+    int value = 0;
+    while( count > 8 )
+    {
+      value = (value << 8) | reverse_byte[ b & 0xff ];
+      b >>=8;
+      count -=8;
+      bits -=8;
+      fillBuffer();
+    }
+    value = (value << count) | reverse_byte[ b & 0xff ] >> (8-count);
+    bits -= count;
+    b >>= count;
     return value;
   }
 

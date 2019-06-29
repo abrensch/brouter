@@ -46,7 +46,7 @@ public class OsmNode extends OsmLink implements OsmPos
   /**
    * The links to other nodes
    */
-  public OsmLink firstlink = null;
+  public OsmLink firstlink;
 
   public OsmNode()
   {
@@ -303,12 +303,7 @@ public class OsmNode extends OsmLink implements OsmPos
   @Override
   public final boolean equals( Object o )
   {
-    if ( o instanceof OsmNode )
-    {
-      OsmNode n = (OsmNode) o;
-      return n.ilon == ilon && n.ilat == ilat;
-    }
-    return false;
+    return ((OsmNode)o).ilon == ilon && ((OsmNode)o).ilat == ilat;
   }
 
   @Override
