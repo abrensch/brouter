@@ -359,7 +359,11 @@ public final class RoutingContext
             else if (((OsmNogoPolygon)nogo).intersects(lon1, lat1, lon2, lat2))
             {
               // nogo is a polygon, compute distance within the polygon
-              nogoCost = ((OsmNogoPolygon)nogo).distanceWithinPolygon(lon1, lat1, lon2, lat2) * nogo.nogoWeight;
+              if (((OsmNogoPolygon)nogo).isClosed) {
+                nogoCost = ((OsmNogoPolygon)nogo).distanceWithinPolygon(lon1, lat1, lon2, lat2) * nogo.nogoWeight;
+              } else {
+                nogoCost = nogo.nogoWeight;
+              }
             }
           }
           else
