@@ -3,10 +3,10 @@
 
 ---context:global
 
-assign totalMass = 90 #Gesamtmasse des Fahrzeugs (Fahrzeug, Fahrer, Gepäck...) in kg
+assign totalMass = 110 #Gesamtmasse des Fahrzeugs (Fahrzeug, Fahrer, Gepäck...) in kg
 assign maxSpeed = 60 #Maximale Geschwindigkeit ab der der Fahrer bremst in km/h
-assign S_C_x = 0.23 #Effektive Stirnfläche in m²
-assign C_r = 0.004 #Rollwiderstand
+assign S_C_x = 0.05 #Effektive Stirnfläche in m²
+assign C_r = 0.005 #Rollwiderstand
 assign bikerPower = 125 #Dauerleistung in Watt
 
 assign ignore_bicycle_no = false # für Regionen mit falschen bicyle=no tags können sie mit "true" ignoriert werden. Auch Shuttletransporte (bicycle=dismount + foot=no) werden geroutet
@@ -25,7 +25,7 @@ assign uphillcutoff 1 # Steigungen unter diesem Wert in Prozent werden nicht gew
 assign validForBikes true # bei true werden die Außnahmen bei den Abbiegebeschränkungen für Fahrräder aktiviert
 assign considerTurnRestrictions true # bei false werden die Abbiegebeschränkungen ignoriert
 
-assign pass1coefficient 2.5 # Berechnugskoeffizient für erste schnelle Berechnung
+assign pass1coefficient 3 # Berechnugskoeffizient für erste schnelle Berechnung
 assign pass2coefficient 0 # Berechnugskoeffizient für zweite exakte Berechnung
 # sinnvolle Werte für den ersten Koeffizienten:
 # 1 exakte Berechnung beim ersten Durchlauf
@@ -67,9 +67,9 @@ assign initialclassifier # hier wird bestimmten Wegen ein Wert zugeordnet und we
  1
 
 assign initialcost
- switch route=ferry 10000 # Kosten wenn eine Fähre verwendet wird
+ switch route=ferry 15000 # Kosten wenn eine Fähre verwendet wird
  switch highway=steps 1000 # Kosten für Stufen
- switch cycleway 100 # Kosten für Radwege
+ switch cycleway 800 # Kosten für Radwege
  switch footway 1000 # Kosten für Fußwege
  0
 
@@ -118,7 +118,7 @@ assign accesspenalty
  switch bikeaccess
   0
  switch footaccess
-  10 #Zusatzkosten fürs Schieben
+  15 #Zusatzkosten fürs Schieben
  10000 #Zusatzkosten für gesperrte oder private Wege
 
 assign maxspeed_forward
@@ -179,18 +179,18 @@ assign maxspeed
 
 
 assign downspeedpenalty
- switch equal maxspeed 10 4 # Zusatzkosten für Geschwindigkeitsbegrenzung 10 km/h bei Gefälle
- switch equal maxspeed 20 1.5 # Zusatzkosten für Geschwindigkeitsbegrenzung 20 km/h bei Gefälle
- switch equal maxspeed 30 0.7 # Zusatzkosten für Geschwindigkeitsbegrenzung 30 km/h bei Gefälle
- switch equal maxspeed 40 0.4 # Zusatzkosten für Geschwindigkeitsbegrenzung 40 km/h bei Gefälle
- switch equal maxspeed 50 0.2 # Zusatzkosten für Geschwindigkeitsbegrenzung 50 km/h bei Gefälle
+ switch equal maxspeed 10 5 # Zusatzkosten für Geschwindigkeitsbegrenzung 10 km/h bei Gefälle
+ switch equal maxspeed 20 2 # Zusatzkosten für Geschwindigkeitsbegrenzung 20 km/h bei Gefälle
+ switch equal maxspeed 30 1 # Zusatzkosten für Geschwindigkeitsbegrenzung 30 km/h bei Gefälle
+ switch equal maxspeed 40 0.8 # Zusatzkosten für Geschwindigkeitsbegrenzung 40 km/h bei Gefälle
+ switch equal maxspeed 50 0.5 # Zusatzkosten für Geschwindigkeitsbegrenzung 50 km/h bei Gefälle
  0
 
 assign flatspeedpenalty
- switch equal maxspeed 10 2 # Zusatzkosten für Geschwindigkeitsbegrenzung 10 km/h in der Ebene
- switch equal maxspeed 20 0.5 # Zusatzkosten für Geschwindigkeitsbegrenzung 20 km/h in der Ebene
- switch equal maxspeed 30 0.15 # Zusatzkosten für Geschwindigkeitsbegrenzung 30 km/h in der Ebene
- switch equal maxspeed 40 0.12 # Zusatzkosten für Geschwindigkeitsbegrenzung 40 km/h bei Gefälle
+ switch equal maxspeed 10 3 # Zusatzkosten für Geschwindigkeitsbegrenzung 10 km/h in der Ebene
+ switch equal maxspeed 20 1 # Zusatzkosten für Geschwindigkeitsbegrenzung 20 km/h in der Ebene
+ switch equal maxspeed 30 0.5 # Zusatzkosten für Geschwindigkeitsbegrenzung 30 km/h in der Ebene
+ switch equal maxspeed 40 0.3 # Zusatzkosten für Geschwindigkeitsbegrenzung 40 km/h in der Ebene
  switch equal maxspeed 50 0.1 # Zusatzkosten für Geschwindigkeitsbegrenzung 50 km/h in der Ebene
  0
 
@@ -202,13 +202,13 @@ assign upspeedpenalty
 
 
 assign surfacepenalty
- add switch embedded_rails=tram|yes|rail 10 # Zusatzkosten bei Schienen in der Fahrbahn
+ add switch embedded_rails=tram|yes|rail 20 # Zusatzkosten bei Schienen in der Fahrbahn
  0 
  switch surface=asphalt|paved 0 #Zusatzkosten für Teer oder versiegelte Flächen
  switch concrete=plates 1 # Zusatzkosten für Betonplattenwege
- switch concrete=lanes  2 # Zusatzkosten für Betonspurplatten
- switch surface=concrete|paving_stones|wood|metal 0.4 #Zusatzkosten für Beton, Pflastersteine, Holz oder Metall
- switch surface=cobblestone|fine_gravel|compacted|sett|grass_paver 4 #Zusatzkosten für Kopfsteinpflaster, Splitt, verdichtete Deckschicht, behauene Pflastersteine oder Rasengittersteine
+ switch concrete=lanes  5 # Zusatzkosten für Betonspurplatten
+ switch surface=concrete|paving_stones|wood|metal 0.5 #Zusatzkosten für Beton, Pflastersteine, Holz oder Metall
+ switch surface=cobblestone|fine_gravel|compacted|sett|grass_paver 5 #Zusatzkosten für Kopfsteinpflaster, Splitt, verdichtete Deckschicht, behauene Pflastersteine oder Rasengittersteine
  switch surface=gravel|sand|pebblestone add lmc 10 #Zusatzkosten für Schotter, Sand oder Kies
  switch surface=ground|grass|unpaved|dirt|earth|mud|clay add lmc 50 #Zusatzkosten für naturbelassene Wege, Grasswege, unbefestigte Wege, Schmutzwege, erdige Wege, schlammige Wege oder Lehmwege
  0
@@ -239,28 +239,28 @@ assign costfactor
 
  switch highway=motorway|motorway_link 10000 # Kosten für Autobahnen
  switch route=ferry 10.67 # Kosten für Fähren
- switch highway=trunk|trunk_link 5 # Kosten für eine autobahnänliche Straße
- switch highway=primary|primary_link 2 # Kosten für Bundesstraßen
+ switch highway=trunk|trunk_link 2.5 # Kosten für eine autobahnänliche Straße
+ switch highway=primary|primary_link 1.2 # Kosten für Bundesstraßen
  switch highway=secondary|secondary_link 1 # Kosten für Landstraßen
- switch highway=tertiary|tertiary_link 1 # Kosten für Kreisstraßen
- switch highway=unclassified 1 # Kosten für Verbindungsstraßen
- switch highway=residential|service 1.2 # Kosten für Wohn- und Zufahrtsstraßen
+ switch highway=tertiary|tertiary_link 1.1 # Kosten für Kreisstraßen
+ switch highway=unclassified 1.2 # Kosten für Verbindungsstraßen
+ switch highway=residential|service 1.7 # Kosten für Wohn- und Zufahrtsstraßen
  switch highway=track
-  switch tracktype=grade1 1.2 # Kosten für geteerte, betonierte oder gepflasterte Feldwege
-  switch tracktype=grade2 7 # Kosten für geschotterte Feldwege
+  switch tracktype=grade1 2.5 # Kosten für geteerte, betonierte oder gepflasterte Feldwege
+  switch tracktype=grade2 10 # Kosten für geschotterte Feldwege
   switch tracktype=grade3 add lmc 40 # Kosten für Feldwege mit weichem Untergrund
   switch tracktype=grade4 add lmc 50 # Kosten für unbefestigte Feldwege
   switch tracktype=grade5 add lmc 50 # Kosten für kaum erkennbare Feldwege
   add lmc 20 # Kosten für Feldwege ohne Oberflächenangabe
- switch cycleway 1.3 # Kosten für Fahrradwege
- switch highway=living_street 4 # Kosten für Spielstraßen
- switch highway=road 7 # Kosten für noch nicht genauer beschriebene Straße
- switch footway 15 # Kosten für Fußwege
- switch highway=pedestrian 20 # Kosten für Gehwege
- switch highway=steps 30 # Kosten für Stufen
+ switch cycleway 2.5 # Kosten für Fahrradwege
+ switch highway=living_street 5 # Kosten für Spielstraßen
+ switch highway=road 10 # Kosten für noch nicht genauer beschriebene Straße
+ switch footway 30 # Kosten für Fußwege
+ switch highway=pedestrian 30 # Kosten für Gehwege
+ switch highway=steps 40 # Kosten für Stufen
  switch highway=path
   switch surface= add lmc 40 # Kosten für Pfade ohne Oberflächenangabe
-  1.3 # Kosten für Pfade mit Oberflächenangabe
+  10 # Kosten für Pfade mit Oberflächenangabe
  switch highway=bridleway add lmc 80 # Kosten für Reitwege
  add lmc 20 # Kosten für sonstige Wege
 
@@ -282,28 +282,28 @@ assign uphillcostfactor
 
  switch highway=motorway|motorway_link 10000
  switch route=ferry 10.67
- switch highway=trunk|trunk_link 7
+ switch highway=trunk|trunk_link 6.5
  switch highway=primary|primary_link 3
  switch highway=secondary|secondary_link 1.2
  switch highway=tertiary|tertiary_link 1
  switch highway=unclassified 1
- switch highway=residential|service 1
+ switch highway=residential|service 1.5
  switch highway=track
-  switch tracktype=grade1 1
-  switch tracktype=grade2 3
+  switch tracktype=grade1 2
+  switch tracktype=grade2 10
   switch tracktype=grade3 add lmc 40
   switch tracktype=grade4 add lmc 50
   switch tracktype=grade5 add lmc 50
   add lmc 20
- switch cycleway 1
- switch highway=living_street 2.5
- switch highway=road 5
- switch footway 15
- switch highway=pedestrian 20
- switch highway=steps 30
+ switch cycleway 2
+ switch highway=living_street 5
+ switch highway=road 10
+ switch footway 30
+ switch highway=pedestrian 30
+ switch highway=steps 40
  switch highway=path
-  switch surface= add lmc 30 
-  1
+  switch surface= add lmc 40 
+  10
  switch highway=bridleway add lmc 80
  add lmc 20
 
@@ -325,28 +325,28 @@ assign downhillcostfactor
 
  switch highway=motorway|motorway_link 10000
  switch route=ferry 10.67
- switch highway=trunk|trunk_link 3
- switch highway=primary|primary_link 2
+ switch highway=trunk|trunk_link 1.5
+ switch highway=primary|primary_link 1
  switch highway=secondary|secondary_link 1
- switch highway=tertiary|tertiary_link 1
- switch highway=unclassified 1.2
- switch highway=residential|service 2
+ switch highway=tertiary|tertiary_link 1.5
+ switch highway=unclassified 1.7
+ switch highway=residential|service 2.5
  switch highway=track
-  switch tracktype=grade1 2
-  switch tracktype=grade2 8
+  switch tracktype=grade1 4
+  switch tracktype=grade2 10
   switch tracktype=grade3 add lmc 40
   switch tracktype=grade4 add lmc 50
   switch tracktype=grade5 add lmc 50
   add lmc 20
- switch cycleway 2
+ switch cycleway 5
  switch highway=living_street 8
  switch highway=road 10
- switch footway 20
+ switch footway 30
  switch highway=pedestrian 30
  switch highway=steps 40
  switch highway=path
   switch surface= add lmc 40 
-  2
+  10
  switch highway=bridleway add lmc 80
  add lmc 20
 
@@ -430,9 +430,9 @@ assign footaccess
  1
 
 assign initialcost
- add switch highway=traffic_signals 200 # Kosten für Ampel
-  switch highway=stop 150 # Kosten für Stoppschild
-  switch railway=crossing|level_crossing 200 # Kosten für Bahnübergang
+ add switch highway=traffic_signals 250 # Kosten für Ampel
+  switch highway=stop 250 # Kosten für Stoppschild
+  switch railway=crossing|level_crossing 350 # Kosten für Bahnübergang
   0
  switch bikeaccess
   0 
