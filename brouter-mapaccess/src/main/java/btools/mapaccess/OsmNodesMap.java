@@ -73,7 +73,7 @@ public final class OsmNodesMap
           }
           catch( StackOverflowError soe )
           {
-             System.out.println( "+++++++++++++++ StackOverflowError ++++++++++++++++" );
+             // System.out.println( "+++++++++++++++ StackOverflowError ++++++++++++++++" );
           }
         }
       }
@@ -196,7 +196,6 @@ public final class OsmNodesMap
   {
     nodesCreated=0;
   
-System.out.println( "collectOutreachers, currentMaxCost=" + currentMaxCost );
     ArrayList<OsmNode> nodes2check = new ArrayList<OsmNode>();
     for( OsmNode n : hmap.values() )
     {

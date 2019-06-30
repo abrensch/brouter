@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.btools</groupId>
     <artifactId>brouter</artifactId>
-    <version>1.4.11</version>
+    <version>1.5.0</version>
     <packaging>pom</packaging>
     <url>http://brouter.de/brouter/</url>
     <name>brouter</name>
@@ -53,7 +53,7 @@
                         <genDirectoryAidl>gen</genDirectoryAidl>
                         <extractDuplicates>true</extractDuplicates>
                         <sdk>
-                            <platform>10</platform>
+                            <platform>28</platform>
                         </sdk>
                         <dex>
                             <jvmArguments>

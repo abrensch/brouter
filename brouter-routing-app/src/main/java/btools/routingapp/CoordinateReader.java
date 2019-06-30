@@ -140,6 +140,7 @@ public abstract class CoordinateReader
     else if ( n.name != null && n.name.startsWith( "nogo" ) )
     {
       n.isNogo = true;
+      n.nogoWeight = Double.NaN;
       nogopoints.add( n );
     }
 

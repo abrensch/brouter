@@ -49,7 +49,7 @@ public final class NodesCache
   private long ghostSum = 0;
   private long ghostWakeup = 0;
   
-  private boolean directWeaving = Boolean.getBoolean( "directWeaving" );
+  private boolean directWeaving = !Boolean.getBoolean( "disableDirectWeaving" );
   
   public String formatStatus()
   {
