@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.btools</groupId>
         <artifactId>brouter</artifactId>
-        <version>1.4.11</version>
+        <version>1.5.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>brouter-routing-app</artifactId>
@@ -60,9 +60,9 @@
                             <include>${project.build.directory}/${project.artifactId}.apk</include>
                         </includes>
                         <keystore>\sign\mystore</keystore>
-                        <alias>abrensch</alias>
-                        <storepass>peru1511</storepass>
-                        <keypass>peru1511</keypass>
+                        <alias>myalias</alias>
+                        <storepass>mypasswd</storepass>
+                        <keypass>mypasswd</keypass>
                         <verbose>true</verbose>
                     </configuration>
                 </execution>

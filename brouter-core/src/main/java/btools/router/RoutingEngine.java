@@ -62,7 +62,7 @@ public class RoutingEngine extends Thread
 
   private Object[] extract;
 
-  private boolean directWeaving = Boolean.getBoolean( "directWeaving" );
+  private boolean directWeaving = !Boolean.getBoolean( "disableDirectWeaving" );
 
   public RoutingEngine( String outfileBase, String logfileBase, String segmentDir,
           List<OsmNodeNamed> waypoints, RoutingContext rc )
@@ -808,21 +808,21 @@ public class RoutingEngine extends Thread
       synchronized( openSet )
       {
         path = openSet.popLowestKeyValue();
-      }
-      if ( path == null )
-      {
-        if ( openBorderList.isEmpty() )
+        if ( path == null )
         {
-          break;
+          if ( openBorderList.isEmpty() )
+          {
+            break;
+          }
+          for( OsmPath p : openBorderList )
+          {
+            openSet.add( p.cost + (int)(p.airdistance*airDistanceCostFactor), p );
+          }
+          openBorderList.clear();
+          memoryPanicMode = false;
+          needNonPanicProcessing = true;
+          continue;
         }
-        for( OsmPath p : openBorderList )
-        {
-          openSet.add( p.cost + (int)(p.airdistance*airDistanceCostFactor), p );
-        }
-        openBorderList.clear();
-        memoryPanicMode = false;
-        needNonPanicProcessing = true;
-        continue;
       }
 
       if ( path.airdistance == -1 )
@@ -841,29 +841,32 @@ public class RoutingEngine extends Thread
             int pathsBefore = openSet.getSize();
             
             nodesCache.nodesMap.collectOutreachers();
-            for(;;)
+            synchronized( openSet )
             {
-              OsmPath p3 = openSet.popLowestKeyValue();
-              if ( p3 == null ) break;
-              if ( p3.airdistance != -1 && nodesCache.nodesMap.canEscape( p3.getTargetNode() ) )
+              for(;;)
               {
-                openBorderList.add( p3 );
+                OsmPath p3 = openSet.popLowestKeyValue();
+                if ( p3 == null ) break;
+                if ( p3.airdistance != -1 && nodesCache.nodesMap.canEscape( p3.getTargetNode() ) )
+                {
+                  openBorderList.add( p3 );
+                }
+              }
+              for( OsmPath p : openBorderList )
+              {
+                openSet.add( p.cost + (int)(p.airdistance*airDistanceCostFactor), p );
               }
             }
-            for( OsmPath p : openBorderList )
-            {
-              openSet.add( p.cost + (int)(p.airdistance*airDistanceCostFactor), p );
-            }
             openBorderList.clear();
-System.out.println( "collected, nodes/paths before=" + nodesBefore + "/" + pathsBefore + " after=" + nodesCache.nodesMap.nodesCreated + "/" + openSet.getSize() );
+            logInfo( "collected, nodes/paths before=" + nodesBefore + "/" + pathsBefore + " after=" + nodesCache.nodesMap.nodesCreated + "/" + openSet.getSize() + " maxTotalCost=" + maxTotalCost );
             if ( !nodesCache.nodesMap.isInMemoryBounds( openSet.getSize()) ) // TODO
             {
-              if ( maxTotalCost < 1000000000 || needNonPanicProcessing )
+              if ( maxTotalCost < 1000000000 || needNonPanicProcessing || fastPartialRecalc )
               {
                 throw new IllegalArgumentException( "memory limit reached" );
               }
               memoryPanicMode = true;
-              System.out.println( "************************ memory limit reached, enabled memory panic mode *************************" );
+              logInfo( "************************ memory limit reached, enabled memory panic mode *************************" );
             }
           }
         }
@@ -1248,7 +1251,7 @@ System.out.println( "collected, nodes/paths before=" + nodesBefore + "/" + paths
 
   private OsmTrack mergeTrack( OsmPathElement match, OsmTrack oldTrack )
   {
-System.out.println( "**************** merging match=" + match.cost + " with oldTrack=" + oldTrack.cost ); 
+    logInfo( "**************** merging match=" + match.cost + " with oldTrack=" + oldTrack.cost ); 
     OsmPathElement element = match;
     OsmTrack track = new OsmTrack();
     track.cost = oldTrack.cost;

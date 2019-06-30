@@ -165,6 +165,8 @@ public class BRouterWorker
       n.ilon = (int)( ( lons[i] + 180. ) *1000000. + 0.5);
       n.ilat = (int)( ( lats[i] +  90. ) *1000000. + 0.5);
       n.isNogo = true;
+      n.nogoWeight = Double.NaN;
+      AppLogger.log( "added interface provided nogo: " + n );
       nogoList.add( n );
 	}
   }
