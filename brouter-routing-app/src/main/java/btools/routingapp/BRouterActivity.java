@@ -40,6 +40,8 @@ public class BRouterActivity extends Activity implements OnInitListener
   private static final int DIALOG_SHOW_WP_HELP_ID = 14;
   private static final int DIALOG_SHOW_WP_SCANRESULT_ID = 15;
   private static final int DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID = 16;
+  private static final int DIALOG_SHOW_API23_HELP_ID = 17;
+  
 
   private BRouterView mBRouterView;
   private PowerManager mPowerManager;
@@ -143,6 +145,29 @@ public class BRouterActivity extends Activity implements OnInitListener
               mBRouterView.startWpDatabaseScan();
             }
           } ).setNegativeButton( "Exit", new DialogInterface.OnClickListener()
+          {
+            public void onClick( DialogInterface dialog, int id )
+            {
+              finish();
+            }
+          } );
+      return builder.create();
+    case DIALOG_SHOW_API23_HELP_ID:
+      builder = new AlertDialog.Builder( this );
+      builder
+          .setTitle( "Android >=6 limitations" )
+          .setMessage(
+              "You are using the BRouter APP on Android >= 6, where classic mode is no longer supported. "
+            + "Reason is that security policy does not permit any longer to read the waypoint databases of other apps. "
+            + "That's o.k. if you want to use BRouter in server-mode only, where the apps actively send the waypoints "
+            + "via a remote procedure call to BRouter (And Locus can also send nogo areas). "
+            + "So the only funtions you need to start the BRouter App are 1) to initially define the base directory "
+            + "2) to dowload routing data files and 3) to configure the profile mapping via the 'Server-Mode' button. "
+            + "You will eventually not be able to define nogo-areas (OsmAnd, Orux) or to do "
+            + "very long distance calculations. If you want to get classic mode back, you can manually install "
+            + "the APK of the BRouter App from the release page ( http://brouter.de/brouter/revisions.html ), which "
+            + "is still built against Android API 10, and does not have these limitations. "
+            ).setNegativeButton( "Exit", new DialogInterface.OnClickListener()
           {
             public void onClick( DialogInterface dialog, int id )
             {
@@ -529,7 +554,14 @@ public class BRouterActivity extends Activity implements OnInitListener
   @SuppressWarnings("deprecation")
   public void showWaypointDatabaseHelp()
   {
-    showNewDialog( DIALOG_SHOW_WP_HELP_ID );
+    if ( mBRouterView.canAccessSdCard )
+    {
+      showNewDialog( DIALOG_SHOW_WP_HELP_ID );
+    }
+    else
+    {
+      showNewDialog( DIALOG_SHOW_API23_HELP_ID );
+    }
   }
 
   @SuppressWarnings("deprecation")

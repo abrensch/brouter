@@ -105,14 +105,22 @@ public class BRouterService extends Service
           worker.profilePath = baseDir + "/brouter/profiles2/" + smc.profile + ".brf";
           worker.rawTrackPath = baseDir + "/brouter/modes/" + mode_key + "_rawtrack.dat";
 
-          CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir, true );
           worker.nogoList = new ArrayList<OsmNodeNamed>();
-          // veto nogos by profiles veto list
-          for ( OsmNodeNamed nogo : cor.nogopoints )
+
+          int deviceLevel = android.os.Build.VERSION.SDK_INT;
+          int targetSdkVersion = getApplicationInfo().targetSdkVersion;
+          boolean canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 10;
+          AppLogger.log( "dev/target=" + deviceLevel + "/" + targetSdkVersion + " canAccessSdCard=" + canAccessSdCard );
+          if ( canAccessSdCard )
           {
-            if ( !smc.nogoVetos.contains( nogo.ilon + "," + nogo.ilat ) )
+            CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir, true );
+            // veto nogos by profiles veto list
+            for ( OsmNodeNamed nogo : cor.nogopoints )
             {
-              worker.nogoList.add( nogo );
+              if ( !smc.nogoVetos.contains( nogo.ilon + "," + nogo.ilat ) )
+              {
+                worker.nogoList.add( nogo );
+              }
             }
           }
           return null;
@@ -142,8 +150,19 @@ public class BRouterService extends Service
       try
       {
         // add nogos from waypoint database
-        CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir, true );
-        worker.nogoList = new ArrayList<OsmNodeNamed>( cor.nogopoints );
+        int deviceLevel =  android.os.Build.VERSION.SDK_INT;
+        int targetSdkVersion = getApplicationInfo().targetSdkVersion;
+        boolean canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 10;
+        AppLogger.log( "dev/target=" + deviceLevel + "/" + targetSdkVersion + " canAccessSdCard=" + canAccessSdCard );
+        if ( canAccessSdCard )
+        {
+          CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir, true );
+          worker.nogoList = new ArrayList<OsmNodeNamed>( cor.nogopoints );
+        }
+        else
+        {
+          worker.nogoList = new ArrayList<OsmNodeNamed>();
+        }
 
         if ( !fileEqual( profileBytes, profileFile ) )
         {

@@ -10,6 +10,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -79,6 +80,8 @@ public class BRouterView extends View
   private int[] imgPixels;
 
   private int memoryClass;
+  
+  public boolean canAccessSdCard;
 
   public void stopRouting()
   {
@@ -191,12 +194,24 @@ public class BRouterView extends View
       assertDirectoryExists( "modes directory", modesDir, "modes.zip", version );
       assertDirectoryExists( "readmes directory", basedir + "/brouter/readmes", "readmes.zip", version );
 
-      cor = CoordinateReader.obtainValidReader( basedir, segmentDir );
+      int deviceLevel =  android.os.Build.VERSION.SDK_INT;
+      int targetSdkVersion = getContext().getApplicationInfo().targetSdkVersion;
+      canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 10;
+      if ( canAccessSdCard )
+      {
+        cor = CoordinateReader.obtainValidReader( basedir, segmentDir );
+      }
+      else
+      {
+        cor = new CoordinateReaderNone();
+        cor.readFromTo();
+      }
+      
       wpList = cor.waypoints;
       nogoList = cor.nogopoints;
       nogoVetoList = new ArrayList<OsmNodeNamed>();
 
-      sourceHint = "(coordinate-source: " + cor.basedir + cor.rootdir + ")";
+      sourceHint = "(dev/trgt=" + deviceLevel + "/" + targetSdkVersion + " coordinate-source: " + cor.basedir + cor.rootdir + ")";
 
       needsViaSelection = wpList.size() > 2;
       needsNogoSelection = nogoList.size() > 0;
@@ -284,7 +299,7 @@ public class BRouterView extends View
       AppLogger.log( msg );
       AppLogger.log( AppLogger.formatThrowable( e ) );
 
-      ( (BRouterActivity) getContext() ).showErrorMessage( msg );
+      ( (BRouterActivity) getContext() ).showErrorMessage( msg + "\n" + AppLogger.formatThrowable( e ) );
     }
     waitingForSelection = true;
   }
@@ -1100,62 +1115,23 @@ public class BRouterView extends View
     }
   }
 
-  private static List<String> getStorageDirectories()
+  private List<String> getStorageDirectories()
   {
     ArrayList<String> res = new ArrayList<String>();
-    res.add( Environment.getExternalStorageDirectory().getPath() );
-    BufferedReader br = null;
+
     try
     {
-      br = new BufferedReader( new FileReader( "/proc/mounts" ) );
-      for ( ;; )
+      Method method = Context.class.getDeclaredMethod("getExternalFilesDirs", new Class[]{ String.class } );
+      File[] paths = (File[])method.invoke( getContext(), new Object[1] );
+      for( File path : paths )
       {
-        String line = br.readLine();
-        if ( line == null )
-          break;
-        if ( line.indexOf( "vfat" ) < 0 && line.indexOf( "/mnt" ) < 0 )
-          continue;
-        StringTokenizer tokens = new StringTokenizer( line, " " );
-        tokens.nextToken();
-        String d = tokens.nextToken();
-        boolean isExternalDir = false;
-        if ( line.contains( "/dev/block/vold" ) )
-        {
-          isExternalDir = true;
-          String[] vetos = new String[]
-          { "/mnt/secure", "/mnt/asec", "/mnt/obb", "/dev/mapper", "tmpfs", "/mnt/media_rw" };
-          for ( String v : vetos )
-          {
-            if ( d.indexOf( v ) >= 0 )
-            {
-              isExternalDir = false;
-            }
-          }
-        }
-        if ( isExternalDir )
-        {
-          if ( !res.contains( d ) )
-          {
-            res.add( d );
-          }
-        }
+        res.add( path.getPath() );
       }
     }
-    catch (Exception e)
-    { /* ignore */
-    }
-    finally
+    catch( Exception e )
     {
-      if ( br != null )
-      {
-        try
-        {
-          br.close();
-        }
-        catch (Exception e)
-        { /* ignore */
-        }
-      }
+      res.add( e.toString() );
+      res.add( Environment.getExternalStorageDirectory().getPath() );
     }
     return res;
   }

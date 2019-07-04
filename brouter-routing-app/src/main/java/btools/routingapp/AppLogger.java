@@ -25,7 +25,7 @@ public class AppLogger
         // open logfile if existing
     	File sd = Environment.getExternalStorageDirectory();
     	if ( sd == null ) return;
-        File debugLog = new File( sd, "brouterapp.txt" );
+        File debugLog = new File( sd, "Android/data/btools.routingapp/files/brouterapp.txt" );
         if ( debugLog.exists() )
         {
           debugLogWriter = new FileWriter( debugLog, true );
