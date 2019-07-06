@@ -193,7 +193,7 @@ public class BInstallerView extends View
     
     private void deleteRawTracks()
     {
-      File modeDir = new File( baseDir + "/brouter/segments4/modes" );
+      File modeDir = new File( baseDir + "/brouter/modes" );
       String[] fileNames = modeDir.list();
       if ( fileNames == null ) return;
       for( String fileName : fileNames )
