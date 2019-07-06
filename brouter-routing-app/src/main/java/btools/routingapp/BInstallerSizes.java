@@ -5,7 +5,7 @@ public class BInstallerSizes {
 
   public static int getRd5Size( int idx )
   {
-	  return rd5_sizes[idx];
+	  return (int)(rd5_sizes[idx]*1.3); // 30% growth since last fixing the numbers.. 
   }
 	
    private static int[] rd5_sizes = {
