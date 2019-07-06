@@ -191,6 +191,21 @@ public class BInstallerView extends View
     	return testVector[1] / viewscale;
     }
     
+    private void deleteRawTracks()
+    {
+      File modeDir = new File( baseDir + "/brouter/segments4/modes" );
+      String[] fileNames = modeDir.list();
+      if ( fileNames == null ) return;
+      for( String fileName : fileNames )
+      {
+        if ( fileName.endsWith( "_rawtrack.dat" ) )
+        {
+          File f = new File( modeDir, fileName );
+          f.delete();
+        }
+      }
+    }
+
     private void scanExistingFiles()
     {
       clearTileSelection( MASK_INSTALLED_RD5 | MASK_CURRENT_RD5 );
@@ -621,7 +636,7 @@ float tx, ty;
                         output.write(data, 0, count);
                         
                         // enforce < 2 Mbit/s
-                        long dt = t0 + total/262 - System.currentTimeMillis();
+                        long dt = t0 + total/524 - System.currentTimeMillis();
                         if ( dt > 0  )
                         {
                         	try { Thread.sleep( dt ); } catch( InterruptedException ie ) {}
@@ -635,6 +650,7 @@ float tx, ty;
                     {
                       return "Could not rename to " + fname;
                     }
+                    deleteRawTracks(); // invalidate raw-tracks after data update
                     return null;
                 } catch (Exception e) {
                     return e.toString();

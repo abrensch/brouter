@@ -980,32 +980,6 @@ public class BRouterView extends View
     { "foot_short", "foot_fast", "bicycle_short", "bicycle_fast", "motorcar_short", "motorcar_fast" };
     boolean[] modesChecked = new boolean[6];
 
-    // parse global section of profile for mode preselection
-    BExpressionMetaData meta = new BExpressionMetaData();
-    BExpressionContextWay expctx = new BExpressionContextWay( meta );
-    meta.readMetaData( new File( profileDir, "lookups.dat" ) );
-    expctx.parseFile( new File( profilePath ), "global" );
-
-    boolean isFoot = 0.f != expctx.getVariableValue( "validForFoot", 0.f );
-    boolean isBike = 0.f != expctx.getVariableValue( "validForBikes", 0.f );
-    boolean isCar = 0.f != expctx.getVariableValue( "validForCars", 0.f );
-
-    if ( isFoot || isBike || isCar )
-    {
-      modesChecked[0] = isFoot;
-      modesChecked[1] = isFoot;
-      modesChecked[2] = isBike;
-      modesChecked[3] = isBike;
-      modesChecked[4] = isCar;
-      modesChecked[5] = isCar;
-    }
-    else
-    {
-      for ( int i = 0; i < 6; i++ )
-      {
-        modesChecked[i] = true;
-      }
-    }
     String msg = "Choose service-modes to configure (" + profileName + " [" + nogoVetoList.size() + "])";
 
     ( (BRouterActivity) getContext() ).selectRoutingModes( modes, modesChecked, msg );
