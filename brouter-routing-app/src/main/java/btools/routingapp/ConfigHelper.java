@@ -17,7 +17,7 @@ public class ConfigHelper
     InputStream configInput = null;
     try
     {
-      configInput = ctx.openFileInput( "config.dat" );
+      configInput = ctx.openFileInput( "config15.dat" );
       BufferedReader br = new BufferedReader( new InputStreamReader( configInput ) );
       return br.readLine();
     }
@@ -45,7 +45,7 @@ public class ConfigHelper
     BufferedWriter bw = null;
     try
     {
-      OutputStream configOutput = ctx.openFileOutput( "config.dat", Context.MODE_PRIVATE );
+      OutputStream configOutput = ctx.openFileOutput( "config15.dat", Context.MODE_PRIVATE );
       bw = new BufferedWriter( new OutputStreamWriter( configOutput ) );
       bw.write( baseDir );
       bw.write( '\n' );
