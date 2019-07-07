@@ -43,7 +43,7 @@ public class BRouterService extends Service
       InputStream configInput = null;
       try
       {
-        configInput = openFileInput( "config.dat" );
+        configInput = openFileInput( "config15.dat" );
         BufferedReader br = new BufferedReader( new InputStreamReader( configInput ) );
         baseDir = br.readLine();
       }
