@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.zip.GZIPOutputStream;
 import java.util.ArrayList;
 
 import android.app.Service;
@@ -18,6 +20,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
+import android.util.Base64;
 import btools.router.OsmNodeNamed;
 
 public class BRouterService extends Service
@@ -73,9 +76,31 @@ public class BRouterService extends Service
         return errMsg;
       }
 
+      boolean canCompress = "true".equals( params.getString( "acceptCompressedResult" ) );
       try
       {
-        return worker.getTrackFromParams( params );
+        String gpxMessage = worker.getTrackFromParams( params );
+        if ( canCompress && gpxMessage.startsWith( "<" ) )
+        {
+          try
+          {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            baos.write( "z64".getBytes("UTF-8") ); // marker prefix
+            OutputStream os = new GZIPOutputStream( baos );
+            byte[] ab = gpxMessage.getBytes("UTF-8");
+            gpxMessage = null;
+            os.write( ab );
+            ab = null;
+            os.close();
+            gpxMessage = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT);
+            return gpxMessage;
+          }
+          catch( Exception e )
+          {
+            return "error compressing result";
+          }
+        }
+        return gpxMessage;
       }
       catch (IllegalArgumentException iae)
       {
