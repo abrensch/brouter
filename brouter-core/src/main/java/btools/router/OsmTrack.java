@@ -60,6 +60,9 @@ public final class OsmTrack
 
   public String name = "unset";
 
+  protected List<MatchedWaypoint> matchedWaypoints;
+  public boolean exportWaypoints = false;
+
   public void addNode( OsmPathElement node )
   {
     nodes.add( 0, node );
@@ -175,7 +178,7 @@ public final class OsmTrack
 
   /**
    * writes the track in binary-format to a file
-   * 
+   *
    * @param filename
    *          the filename to write to
    */
@@ -319,8 +322,8 @@ public final class OsmTrack
   public void appendTrack( OsmTrack t )
   {
     int ourSize = nodes.size();
-    float t0 = ourSize > 0 ? nodes.get(ourSize - 1 ).getTime() : 0; 
-    float e0 = ourSize > 0 ? nodes.get(ourSize - 1 ).getEnergy() : 0; 
+    float t0 = ourSize > 0 ? nodes.get(ourSize - 1 ).getTime() : 0;
+    float e0 = ourSize > 0 ? nodes.get(ourSize - 1 ).getEnergy() : 0;
     for ( int i = 0; i < t.nodes.size(); i++ )
     {
       if ( i > 0 || ourSize == 0 )
@@ -367,7 +370,7 @@ public final class OsmTrack
 
   /**
    * writes the track in gpx-format to a file
-   * 
+   *
    * @param filename
    *          the filename to write to
    */
@@ -441,9 +444,9 @@ public final class OsmTrack
     if ( turnInstructionMode == 3) // osmand style
     {
       float lastRteTime = 0;
-      
+
       sb.append(" <rte>\n");
-      
+
         sb.append("  <rtept lat=\"").append( formatILat( nodes.get(0).getILat() ) ).append( "\" lon=\"" )
             .append( formatILon( nodes.get(0).getILon() ) ).append( "\">\n" )
             .append ( "   <desc>start</desc>\n   <extensions>\n");
@@ -475,7 +478,7 @@ public final class OsmTrack
           } else {
               rteTime = nodes.get(nodes.size() - 1).getTime();
           }
-          
+
           if ( rteTime != lastRteTime ) // add timing only if available
           {
               double t = rteTime - lastRteTime;
@@ -490,7 +493,7 @@ public final class OsmTrack
             .append ( "   <desc>destination</desc>\n   <extensions>\n");
         sb.append( "    <time>0</time>\n" );
         sb.append("    <offset>").append( "" + (nodes.size()-1) ).append("</offset>\n  </extensions>\n </rtept>\n");
-        
+
       sb.append("</rte>\n");
     }
 
@@ -713,7 +716,30 @@ public final class OsmTrack
 
     sb.append( "        ]\n" );
     sb.append( "      }\n" );
-    sb.append( "    }\n" );
+    if ( exportWaypoints )
+    {
+        sb.append( "    },\n" );
+        for( int i=1; i<=matchedWaypoints.size() - 2; i++ )
+        {
+            sb.append( "    {\n" );
+            sb.append( "      \"type\": \"Feature\",\n" );
+            sb.append( "      \"properties\": {\n" );
+            sb.append( "        \"name\": \"" + matchedWaypoints.get(i).name + "\",\n" );
+            sb.append( "        \"type\": \"via\"\n" );
+            sb.append( "      },\n" );
+            sb.append( "      \"geometry\": {\n" );
+            sb.append( "        \"type\": \"Point\",\n" );
+            sb.append( "        \"coordinates\": [\n" );
+            sb.append( "          " + formatILon(matchedWaypoints.get(i).waypoint.ilon) + ",\n" );
+            sb.append( "          " + formatILat(matchedWaypoints.get(i).waypoint.ilat) + "\n" );
+            sb.append( "        ]\n" );
+            sb.append( "      }\n" );
+            sb.append( "    }\n" );
+        }
+    }
+    else {
+        sb.append( "    }\n" );
+    }
     sb.append( "  ]\n" );
     sb.append( "}\n" );
 
@@ -739,7 +765,7 @@ public final class OsmTrack
   {
     return format1( getTotalSeconds()/60. ) + "m";
   }
-  
+
   public String getFormattedTime2()
   {
       int seconds = (int)(getTotalSeconds() + 0.5);
@@ -789,7 +815,7 @@ public final class OsmTrack
       ac[i--] = '-';
     return new String( ac, i + 1, 11 - i );
   }
-  
+
   private String format1( double n )
   {
     String s = "" + (long)(n*10 + 0.5);
