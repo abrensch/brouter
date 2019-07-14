@@ -536,14 +536,24 @@ public final class OsmTrack
 
     if ( exportWaypoints )
     {
-        for( int i=1; i<=matchedWaypoints.size() - 2; i++ )
+      for( int i=0; i<=matchedWaypoints.size() - 1; i++ )
+      {
+        sb.append( " <wpt lon=\"" ).append( formatILon( matchedWaypoints.get(i).waypoint.ilon ) ).append( "\" lat=\"" )
+          .append( formatILat( matchedWaypoints.get(i).waypoint.ilat ) ).append( "\">\n" )
+          .append( "  <name>" ).append( matchedWaypoints.get(i).name ).append( "</name>\n" );
+        if(i == 0)
         {
-            sb.append( " <wpt lon=\"" ).append( formatILon( matchedWaypoints.get(i).waypoint.ilon ) ).append( "\" lat=\"" )
-              .append( formatILat( matchedWaypoints.get(i).waypoint.ilat ) ).append( "\">\n" )
-              .append( "  <name>" ).append( matchedWaypoints.get(i).name ).append( "</name>\n" )
-              .append( "  <type>via</type>\n" )
-              .append( " </wpt>\n" );
+          sb.append( "  <type>from</type>\n" );
         }
+        else if (i == matchedWaypoints.size() - 1)
+        {
+          sb.append( "  <type>to</type>\n" );
+        }
+        else {
+          sb.append( "  <type>via</type>\n" );
+        }
+        sb.append( " </wpt>\n" );
+      }
     }
     sb.append( " <trk>\n" );
     sb.append( "  <name>" ).append( name ).append( "</name>\n" );
@@ -731,13 +741,24 @@ public final class OsmTrack
     if ( exportWaypoints )
     {
         sb.append( "    },\n" );
-        for( int i=1; i<=matchedWaypoints.size() - 2; i++ )
+        for( int i=0; i<=matchedWaypoints.size() - 1; i++ )
         {
             sb.append( "    {\n" );
             sb.append( "      \"type\": \"Feature\",\n" );
             sb.append( "      \"properties\": {\n" );
             sb.append( "        \"name\": \"" + matchedWaypoints.get(i).name + "\",\n" );
-            sb.append( "        \"type\": \"via\"\n" );
+            if(i == 0)
+            {
+              sb.append( "        \"type\": \"from\"\n" );
+            }
+            else if (i == matchedWaypoints.size() - 1)
+            {
+              sb.append( "        \"type\": \"to\"\n" );
+            }
+            else
+              sb.append( "        \"type\": \"via\"\n" );
+            {
+            }
             sb.append( "      },\n" );
             sb.append( "      \"geometry\": {\n" );
             sb.append( "        \"type\": \"Point\",\n" );
@@ -746,7 +767,12 @@ public final class OsmTrack
             sb.append( "          " + formatILat(matchedWaypoints.get(i).waypoint.ilat) + "\n" );
             sb.append( "        ]\n" );
             sb.append( "      }\n" );
-            sb.append( "    }\n" );
+            if (i < matchedWaypoints.size() - 1) {
+              sb.append( "    },\n" );
+            }
+            else {
+              sb.append( "    }\n" );
+            }
         }
     }
     else {
