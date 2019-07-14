@@ -533,6 +533,18 @@ public final class OsmTrack
           .append( "</wpt>\n" );
       }
     }
+
+    if ( exportWaypoints )
+    {
+        for( int i=1; i<=matchedWaypoints.size() - 2; i++ )
+        {
+            sb.append( " <wpt lon=\"" ).append( formatILon( matchedWaypoints.get(i).waypoint.ilon ) ).append( "\" lat=\"" )
+              .append( formatILat( matchedWaypoints.get(i).waypoint.ilat ) ).append( "\">\n" )
+              .append( "  <name>" ).append( matchedWaypoints.get(i).name ).append( "</name>\n" )
+              .append( "  <type>via</type>\n" )
+              .append( " </wpt>\n" );
+        }
+    }
     sb.append( " <trk>\n" );
     sb.append( "  <name>" ).append( name ).append( "</name>\n" );
     if ( turnInstructionMode == 1 ) // trkpt/sym style
