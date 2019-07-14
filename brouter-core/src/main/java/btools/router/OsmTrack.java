@@ -626,7 +626,7 @@ public final class OsmTrack
     sb.append( "        <description><![CDATA[If the <tessellate> tag has a value of 1, the line will contour to the underlying terrain]]></description>\n" );
     sb.append( "        <LineString>\n" );
     sb.append( "          <tessellate>1</tessellate>\n" );
-    sb.append( "         <coordinates> " );
+    sb.append( "         <coordinates>" );
 
     for ( OsmPathElement n : nodes )
     {
@@ -637,6 +637,41 @@ public final class OsmTrack
     sb.append( "        </LineString>\n" );
     sb.append( "      </Placemark>\n" );
     sb.append( "    </Folder>\n" );
+    if ( exportWaypoints )
+    {
+        sb.append( "    <Folder>\n" );
+        sb.append( "      <name>start</name>\n" );
+        sb.append( "      <Placemark>\n" );
+        sb.append( "        <name> " + matchedWaypoints.get(0).name + "</name>\n" );
+        sb.append( "        <Point>\n" );
+        sb.append( "         <coordinates>" + formatILon(matchedWaypoints.get(0).waypoint.ilon) + "," + formatILat(matchedWaypoints.get(0).waypoint.ilat) + "</coordinates>\n" );
+        sb.append( "        </Point>\n" );
+        sb.append( "      </Placemark>\n" );
+        sb.append( "    </Folder>\n" );
+        if (matchedWaypoints.size() > 2) {
+          sb.append( "    <Folder>\n" );
+          sb.append( "      <name>via</name>\n" );
+          for( int i=1; i<=matchedWaypoints.size() - 2; i++ )
+          {
+            sb.append( "      <Placemark>\n" );
+            sb.append( "        <name> " + matchedWaypoints.get(i).name + "</name>\n" );
+            sb.append( "        <Point>\n" );
+            sb.append( "         <coordinates>" + formatILon(matchedWaypoints.get(i).waypoint.ilon) + "," + formatILat(matchedWaypoints.get(i).waypoint.ilat) + "</coordinates>\n" );
+            sb.append( "        </Point>\n" );
+            sb.append( "      </Placemark>\n" );
+          }
+          sb.append( "    </Folder>\n" );
+        }
+        sb.append( "    <Folder>\n" );
+        sb.append( "      <name>end</name>\n" );
+        sb.append( "      <Placemark>\n" );
+        sb.append( "        <name> " + matchedWaypoints.get(matchedWaypoints.size() - 1).name + "</name>\n" );
+        sb.append( "        <Point>\n" );
+        sb.append( "         <coordinates>" + formatILon(matchedWaypoints.get(matchedWaypoints.size() - 1).waypoint.ilon) + "," + formatILat(matchedWaypoints.get(matchedWaypoints.size() - 1).waypoint.ilat) + "</coordinates>\n" );
+        sb.append( "        </Point>\n" );
+        sb.append( "      </Placemark>\n" );
+        sb.append( "    </Folder>\n" );
+    }
     sb.append( "  </Document>\n" );
     sb.append( "</kml>\n" );
 
