@@ -72,6 +72,12 @@ public class BRouterWorker
 
     waypoints = readPositions(params);
 
+    try
+    {
+      writeTimeoutData( rc );
+    }
+    catch( Exception e ) {}
+
     RoutingEngine cr = new RoutingEngine( null, null, segmentDir, waypoints, rc );
     cr.quite = true;
     cr.doRun( maxRunningTime );
@@ -89,14 +95,6 @@ public class BRouterWorker
     
     if ( cr.getErrorMessage() != null )
     {
-      if ( cr.getErrorMessage().indexOf( "timeout" ) >= 0 )
-      {
-        try
-        {
-          writeTimeoutData( rc );
-        }
-        catch( Exception e ) {}
-      }
       return cr.getErrorMessage();
     }
     
