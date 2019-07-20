@@ -499,11 +499,8 @@ public class BRouterActivity extends Activity implements OnInitListener
         size = (long) stat.getAvailableBlocks() * stat.getBlockSize();
       }
       catch (Exception e) { /* ignore */ }
-      int idx = 0;
-      while (idx < availableBasedirs.size() && dirFreeSizes.get( idx ).longValue() > size)
-      idx++;
-      availableBasedirs.add( idx, d );
-      dirFreeSizes.add( idx, Long.valueOf( size ) );
+      availableBasedirs.add( d );
+      dirFreeSizes.add( Long.valueOf( size ) );
     }
 
     basedirOptions = new String[items.size() + 1];
