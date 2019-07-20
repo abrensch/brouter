@@ -6,14 +6,18 @@ public class BitCoderContext
   private byte[] ab;
   private int idxMax;
   private int idx = -1;
-  private int bm = 0x100; // byte mask (write mode)
-  private int bits; // bits left in buffer (read mode)
-  private int b;
+  private int bits; // bits left in buffer
+  private int b; // buffer word
 
   private static final int[] vl_values = new int[4096];
   private static final int[] vl_length = new int[4096];
 
+  private static final int[] vc_values = new int[4096];
+  private static final int[] vc_length = new int[4096];
+
   private static final int[] reverse_byte = new int[256];
+
+  private static final int[] bm2bits = new int[256];
 
   static
   {
@@ -21,6 +25,24 @@ public class BitCoderContext
 
     BitCoderContext bc = new BitCoderContext( new byte[4] );
     for( int i=0; i<4096; i++ )
+    {
+      bc.reset();
+      bc.bits = 14;
+      bc.b = 0x1000 + i;
+
+      int b0 = bc.getReadingBitPosition();
+      vl_values[i] = bc.decodeVarBits2();
+      vl_length[i] = bc.getReadingBitPosition() - b0;
+    }
+    for( int i=0; i<4096; i++ )
+    {
+      bc.reset();
+      int b0 = bc.getWritingBitPosition();
+      bc.encodeVarBits2( i );
+      vc_values[i] = bc.b;
+      vc_length[i] = bc.getWritingBitPosition() - b0;
+    }
+    for( int i=0; i<1024; i++ )
     {
       bc.reset();
       bc.bits = 14;
@@ -38,6 +60,10 @@ public class BitCoderContext
         if ( (b & (1<<i) ) != 0 ) r |= 1 << (7-i);
       }
       reverse_byte[b] = r;
+    }
+    for( int b=0; b<8; b++ )
+    {
+      bm2bits[1<<b] = b;
     }
   }
 
@@ -58,7 +84,6 @@ public class BitCoderContext
   public final void reset()
   {
     idx = -1;
-    bm = 0x100;
     bits = 0;
     b = 0;
   }
@@ -73,7 +98,7 @@ public class BitCoderContext
    *
    * @see #decodeVarBits
    */
-  public final void encodeVarBits( int value )
+  public final void encodeVarBits2( int value )
   {
     int range = 0;
     while (value > range)
@@ -84,6 +109,20 @@ public class BitCoderContext
     }
     encodeBit( true );
     encodeBounded( range, value );
+  }
+
+  public final void encodeVarBits( int value )
+  {
+    if ( (value & 0xfff) == value )
+    {
+      flushBuffer();
+      b |= vc_values[value] << bits;
+      bits += vc_length[value];      
+    }
+    else
+    {
+      encodeVarBits2( value ); // slow fallback for large values
+    }
   }
 
   /**
@@ -120,20 +159,39 @@ public class BitCoderContext
       bits -= len;
       return mask;
     }
-    return decodeVarBits2();
+    if ( (b & 0xffffff) != 0 )
+    {
+      // here we just know len in [25..47]
+      // ( fillBuffer guarantees only 24 bits! )
+      b >>>= 12;
+      int len3 = 1 + (vl_length[b & 0xfff]>>1);
+      b >>>= len3;
+      int len2 = 11 + len3;
+      bits -= len2+1;
+      fillBuffer();
+      int mask = 0xffffffff >>> ( 32 - len2 );
+      mask += b & mask;
+      b >>>= len2;
+      bits -= len2;
+      return mask;
+    }
+    return decodeVarBits2(); // no chance, use the slow one
   }
 
 
   public final void encodeBit( boolean value )
   {
-    if ( bm == 0x100 )
+    if (bits > 31)
     {
-      bm = 1;
-      ab[++idx] = 0;
+      ab[++idx] = (byte)(b & 0xff);
+      b >>>= 8;
+      bits -=8;
     }
     if ( value )
-      ab[idx] |= bm;
-    bm <<= 1;
+    {
+      b |= 1 << bits;
+    }
+    bits++;
   }
 
   public final boolean decodeBit()
@@ -160,17 +218,15 @@ public class BitCoderContext
     int im = 1; // integer mask
     while (im <= max)
     {
-      if ( bm == 0x100 )
-      {
-        bm = 1;
-        ab[++idx] = 0;
-      }
       if ( ( value & im ) != 0 )
       {
-        ab[idx] |= bm;
+        encodeBit( true );
         max -= im;
       }
-      bm <<= 1;
+      else
+      {
+        encodeBit( false );
+      }
       im <<= 1;
     }
   }
@@ -239,27 +295,37 @@ public class BitCoderContext
     }
   }
 
+  private void flushBuffer()
+  {
+    while (bits > 7)
+    {
+      ab[++idx] = (byte)(b & 0xff);
+      b >>>= 8;
+      bits -=8;
+    }
+  }
+
   /**
+   * flushes and closes the (write-mode) context 
+   * 
    * @return the encoded length in bytes
    */
-  public final int getEncodedLength()
+  public final int closeAndGetEncodedLength()
   {
+    flushBuffer();
+    if ( bits > 0 )
+    {
+      ab[++idx] = (byte)(b & 0xff);
+    }
     return idx + 1;
   }
 
   /**
    * @return the encoded length in bits
    */
-  public final long getWritingBitPosition()
+  public final int getWritingBitPosition()
   {
-    long bitpos = idx << 3;
-    int m = bm;
-    while (m > 1)
-    {
-      bitpos++;
-      m >>= 1;
-    }
-    return bitpos;
+    return (idx << 3) + 8 + bits;
   }
 
   public final int getReadingBitPosition()
@@ -275,40 +341,33 @@ public class BitCoderContext
     b >>>= (8-bits);
   }
 
-  public final void copyBitsTo( byte[] dst, int bitcount )
+  public static void main( String[] args )
   {
-    int dstIdx = 0;
-    for(;;)
+    byte[] ab = new byte[581969];
+    BitCoderContext ctx = new BitCoderContext( ab );
+    for ( int i = 0; i < 31; i++ )
     {
-      if ( bitcount > 8 )
-      {
-        if ( bits < 8 )
-        {
-          b |= (ab[++idx] & 0xff) << bits;
-        }
-        else
-        {
-          bits -= 8;
-        }
-        dst[dstIdx++] = (byte)b;
-        b >>>= 8;
-        bitcount -= 8;
-      }
-      else
-      {
-        if ( bits < bitcount )
-        {
-          b |= (ab[++idx] & 0xff) << bits;
-          bits += 8;
-        }
+      ctx.encodeVarBits( (1<<i)+3 );
+    }
+    for ( int i = 0; i < 100000; i+=13 )
+    {
+      ctx.encodeVarBits( i );
+    }
+    ctx.closeAndGetEncodedLength();
+    ctx = new BitCoderContext( ab );
 
-        int mask = 0xff >>> ( 8 - bitcount );
-        dst[dstIdx] = (byte)(b & mask);
-        bits -= bitcount;
-        b >>>= bitcount;
-        break;
-      }
+    for ( int i = 0; i < 31; i++ )
+    {
+      int value = ctx.decodeVarBits();
+      int v0 = (1<<i)+3;
+      if ( !(v0 == value ) )
+        throw new RuntimeException( "value mismatch value=" + value + "v0=" + v0 );
+    }
+    for ( int i = 0; i < 100000; i+=13 )
+    {
+      int value = ctx.decodeVarBits();
+      if ( !(value == i ) )
+        throw new RuntimeException( "value mismatch i=" + i + "v=" + value );
     }
   }
-
 }

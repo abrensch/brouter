@@ -502,7 +502,7 @@ public final class MicroCache2 extends MicroCache
       }
       if ( pass == 3 )
       {
-        return bc.getEncodedLength();
+        return bc.closeAndGetEncodedLength();
       }
     }
   }

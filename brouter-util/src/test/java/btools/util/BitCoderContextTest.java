@@ -8,18 +8,29 @@ public class BitCoderContextTest
   @Test
   public void varBitsEncodeDecodeTest()
   {
-    byte[] ab = new byte[4000];
+    byte[] ab = new byte[581969];
     BitCoderContext ctx = new BitCoderContext( ab );
-    for ( int i = 0; i < 1000; i++ )
+    for ( int i = 0; i < 31; i++ )
+    {
+      ctx.encodeVarBits( (1<<i)+3 );
+    }
+    for ( int i = 0; i < 100000; i+=13 )
     {
       ctx.encodeVarBits( i );
     }
+    ctx.closeAndGetEncodedLength();
     ctx = new BitCoderContext( ab );
 
-    for ( int i = 0; i < 1000; i++ )
+    for ( int i = 0; i < 31; i++ )
     {
       int value = ctx.decodeVarBits();
-      Assert.assertTrue( "distance value mismatch i=" + i + "v=" + value, value == i );
+      int v0 = (1<<i)+3;
+      Assert.assertTrue( "value mismatch value=" + value + "v0=" + v0, v0 == value );
+    }
+    for ( int i = 0; i < 100000; i+=13 )
+    {
+      int value = ctx.decodeVarBits();
+      Assert.assertTrue( "value mismatch i=" + i + "v=" + value, value == i );
     }
   }
 
@@ -35,6 +46,7 @@ public class BitCoderContextTest
         ctx.encodeBounded( max, val );
       }
     }
+    ctx.closeAndGetEncodedLength();
 
     ctx = new BitCoderContext( ab );
 

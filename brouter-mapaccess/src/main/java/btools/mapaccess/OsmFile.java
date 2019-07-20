@@ -144,16 +144,8 @@ final class OsmFile
       asize = getDataInputForSubIdx( subIdx, ab );
       dataBuffers = new DataBuffers( ab );
     }
-    // hack: the checksum contains the information
-    // which type of microcache we have
 
-    int crcData = Crc32.crc( ab, 0, asize - 4 );
-    int crcFooter = new ByteDataReader( ab, asize - 4 ).readInt();
-    if ( crcData == crcFooter )
-    {
-      throw new IOException( "old, unsupported data-format" );
-    }
-    else if ( ( crcData ^ 2 ) == crcFooter )
+    try
     {
       if ( !reallyDecode )
       {
@@ -166,7 +158,21 @@ final class OsmFile
       new DirectWeaver( dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher, hollowNodes );
       return MicroCache.emptyNonVirgin;
     }
-    throw new IOException( "checkum error" );
+    catch( Throwable t )
+    {
+      // checksum test now only in case of trouble
+      int crcData = Crc32.crc( ab, 0, asize - 4 );
+      int crcFooter = new ByteDataReader( ab, asize - 4 ).readInt();
+      if ( crcData == crcFooter )
+      {
+        throw new IOException( "old, unsupported data-format" );
+      }
+      else if ( ( crcData ^ 2 ) == crcFooter )
+      {
+        throw new IOException( "checkum error" );
+      }
+      throw t instanceof Exception ? (Exception)t : new Exception( t.toString(), t );
+    }
   }
 
   // set this OsmFile to ghost-state:
