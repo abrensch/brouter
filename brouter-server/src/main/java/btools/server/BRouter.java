@@ -127,7 +127,6 @@ public class BRouter
     {
       wplist.add( readPosition( args, 3, "to" ) );
       RoutingContext rc = readRoutingContext(args);
-      rc.memoryclass = 16;
       re = new RoutingEngine( "mytrack", "mylog", args[0], wplist, rc );
       re.doRun( 0 );
       

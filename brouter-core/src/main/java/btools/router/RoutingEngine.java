@@ -782,7 +782,7 @@ public class RoutingEngine extends Thread
       addToOpenset( startPath1 );
       addToOpenset( startPath2 );
     }
-    ArrayList<OsmPath> openBorderList = new ArrayList<OsmPath>();
+    ArrayList<OsmPath> openBorderList = new ArrayList<OsmPath>(4096);
     boolean memoryPanicMode = false;
     boolean needNonPanicProcessing = false;
     
@@ -793,8 +793,6 @@ public class RoutingEngine extends Thread
         throw new IllegalArgumentException( "operation killed by thread-priority-watchdog after " + ( System.currentTimeMillis() - startTime)/1000 + " seconds" );
       }
       
-      
-      
       if ( maxRunningTime > 0 )
       {
         long timeout = ( matchPath == null && fastPartialRecalc ) ? maxRunningTime/3 : maxRunningTime;
@@ -803,11 +801,11 @@ public class RoutingEngine extends Thread
           throw new IllegalArgumentException( operationName + " timeout after " + (timeout/1000) + " seconds" );
         }
       }
-      OsmPath path = null;
 
-      synchronized( openSet )
-      {
-        path = openSet.popLowestKeyValue();
+     synchronized( openSet )
+     {
+
+        OsmPath path = openSet.popLowestKeyValue();
         if ( path == null )
         {
           if ( openBorderList.isEmpty() )
@@ -823,7 +821,6 @@ public class RoutingEngine extends Thread
           needNonPanicProcessing = true;
           continue;
         }
-      }
 
       if ( path.airdistance == -1 )
       {
@@ -835,14 +832,13 @@ public class RoutingEngine extends Thread
       {
         if ( !memoryPanicMode )
         {
-          if ( !nodesCache.nodesMap.isInMemoryBounds( openSet.getSize() ) )
+          if ( !nodesCache.nodesMap.isInMemoryBounds( openSet.getSize(), false ) )
           {
+// System.out.println( "collecting..." );
             int nodesBefore = nodesCache.nodesMap.nodesCreated;
             int pathsBefore = openSet.getSize();
             
             nodesCache.nodesMap.collectOutreachers();
-            synchronized( openSet )
-            {
               for(;;)
               {
                 OsmPath p3 = openSet.popLowestKeyValue();
@@ -852,14 +848,14 @@ public class RoutingEngine extends Thread
                   openBorderList.add( p3 );
                 }
               }
+              nodesCache.nodesMap.clearTemp();
               for( OsmPath p : openBorderList )
               {
                 openSet.add( p.cost + (int)(p.airdistance*airDistanceCostFactor), p );
               }
-            }
             openBorderList.clear();
             logInfo( "collected, nodes/paths before=" + nodesBefore + "/" + pathsBefore + " after=" + nodesCache.nodesMap.nodesCreated + "/" + openSet.getSize() + " maxTotalCost=" + maxTotalCost );
-            if ( !nodesCache.nodesMap.isInMemoryBounds( openSet.getSize()) ) // TODO
+            if ( !nodesCache.nodesMap.isInMemoryBounds( openSet.getSize(), true ) )
             {
               if ( maxTotalCost < 1000000000 || needNonPanicProcessing || fastPartialRecalc )
               {
@@ -1133,16 +1129,14 @@ public class RoutingEngine extends Thread
               }
               bestPath.treedepth = path.treedepth + 1;
               link.addLinkHolder( bestPath, currentNode );
-              synchronized( openSet )
-              {
-                addToOpenset( bestPath );
-              }
+              addToOpenset( bestPath );
             }
           }
         }
       }
             
       path.unregisterUpTree( routingContext );
+     }
     }
     
     if ( nodesVisited < MAXNODES_ISLAND_CHECK && islandNodePairs.getFreezeCount() < 5 )

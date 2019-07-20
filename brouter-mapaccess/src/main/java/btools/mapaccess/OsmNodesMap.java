@@ -21,6 +21,7 @@ public final class OsmNodesMap
   
   public int nodesCreated;
   public long maxmem;  
+  private long currentmaxmem = 4000000; // start with 4 MB
   public int lastVisitID = 1000;
   public int baseID = 1000;
   
@@ -127,11 +128,27 @@ public final class OsmNodesMap
       
 
   
-  public boolean isInMemoryBounds( int npaths )
+  public boolean isInMemoryBounds( int npaths, boolean extend )
   {
 //    long total = nodesCreated * 76L + linksCreated * 48L;
     long total = nodesCreated * 95L + npaths * 200L;
-    return total <= maxmem;
+    
+    if ( extend )
+    {
+      total += 100000;
+    
+      // when extending, try to have 1 MB  space
+      long delta = total + 1900000 - currentmaxmem;
+      if ( delta > 0 )
+      {
+        currentmaxmem += delta;
+        if ( currentmaxmem > maxmem )
+        {
+          currentmaxmem = maxmem;
+        }
+      }
+    }
+    return total <= currentmaxmem;
   }
 
   private void addActiveNode( ArrayList<OsmNode> nodes2check, OsmNode n )
@@ -147,7 +164,7 @@ public final class OsmNodesMap
   {
     boolean sawLowIDs = false;
     lastVisitID++;
-    ArrayList<OsmNode> nodes2check = new ArrayList<OsmNode>();
+    nodes2check.clear();
     nodes2check.add( n0 );
     while ( !nodes2check.isEmpty() )
     {
@@ -191,12 +208,18 @@ public final class OsmNodesMap
 
     return false;
   }
+
+  private  ArrayList<OsmNode> nodes2check;
   
+  public void clearTemp()
+  {
+    nodes2check = null;
+  }
+
   public void collectOutreachers()
   {
+    nodes2check = new ArrayList<OsmNode>(nodesCreated);
     nodesCreated=0;
-  
-    ArrayList<OsmNode> nodes2check = new ArrayList<OsmNode>();
     for( OsmNode n : hmap.values() )
     {
       addActiveNode( nodes2check, n );
