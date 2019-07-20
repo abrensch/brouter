@@ -440,9 +440,24 @@ public final class OsmTrack
 
     if ( turnInstructionMode == 3) // osmand style
     {
-      float lastRteTime = voiceHints.list.get(0).getTime();
+      float lastRteTime = 0;
       
       sb.append(" <rte>\n");
+      
+        sb.append("  <rtept lat=\"").append( formatILat( nodes.get(0).getILat() ) ).append( "\" lon=\"" )
+            .append( formatILon( nodes.get(0).getILon() ) ).append( "\">\n" )
+            .append ( "   <desc>start</desc>\n   <extensions>\n");
+
+        float rteTime;
+        rteTime = voiceHints.list.get(0).getTime();
+
+        if ( rteTime != lastRteTime ) // add timing only if available
+        {
+            double t = rteTime - lastRteTime;
+            sb.append( "    <time>" ).append( "" + (int)(t+0.5) ).append( "</time>\n" );
+            lastRteTime = rteTime;
+        }
+        sb.append("    <offset>0</offset>\n  </extensions>\n </rtept>\n");
 
       for( int i = 0 ; i < voiceHints.list.size(); i++ )
       {
@@ -451,7 +466,6 @@ public final class OsmTrack
           .append( formatILon( hint.ilon ) ).append( "\">\n" )
           .append ( "   <desc>" ).append( hint.getMessageString() ).append( "</desc>\n   <extensions>\n");
 
-          float rteTime;
           if (i < voiceHints.list.size() -1) {
               rteTime = voiceHints.list.get(i + 1).getTime();
           } else {
@@ -467,6 +481,12 @@ public final class OsmTrack
           sb.append("    <turn>" ).append( hint.getCommandString() ).append("</turn>\n    <turn-angle>").append( "" + (int)hint.angle )
           .append("</turn-angle>\n    <offset>").append( "" + hint.indexInTrack ).append("</offset>\n  </extensions>\n </rtept>\n");
       }
+        sb.append("  <rtept lat=\"").append( formatILat( nodes.get(nodes.size()-1).getILat() ) ).append( "\" lon=\"" )
+            .append( formatILon( nodes.get(nodes.size()-1).getILon() ) ).append( "\">\n" )
+            .append ( "   <desc>destination</desc>\n   <extensions>\n");
+        sb.append( "    <time>0</time>\n" );
+        sb.append("    <offset>").append( "" + (nodes.size()-1) ).append("</offset>\n  </extensions>\n </rtept>\n");
+        
       sb.append("</rte>\n");
     }
 
