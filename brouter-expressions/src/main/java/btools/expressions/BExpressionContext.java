@@ -161,7 +161,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
 
     if ( nonNullTags == 0) return null;
 
-    int len = ctx.getEncodedLength();
+    int len = ctx.closeAndGetEncodedLength();
     byte[] ab = new byte[len];
     System.arraycopy( abBuf, 0, ab, 0, len );
 

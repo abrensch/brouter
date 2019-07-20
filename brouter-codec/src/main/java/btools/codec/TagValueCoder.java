@@ -137,7 +137,7 @@ public final class TagValueCoder
     }
 
     byte[] res;
-    int len = ctx.getEncodedLength();
+    int len = ctx.closeAndGetEncodedLength();
     if ( validator == null )
     {
       res = new byte[len];

@@ -20,6 +20,7 @@ public class StatCoderContextTest
         ctx.encodeNoisyNumber( i, noisybits );
       }
     }
+    ctx.closeAndGetEncodedLength();
     ctx = new StatCoderContext( ab );
 
     for ( int noisybits = 1; noisybits < 12; noisybits++ )
@@ -47,6 +48,7 @@ public class StatCoderContextTest
         ctx.encodeNoisyDiff( i, noisybits );
       }
     }
+    ctx.closeAndGetEncodedLength();
     ctx = new StatCoderContext( ab );
 
     for ( int noisybits = 0; noisybits < 12; noisybits++ )
@@ -74,6 +76,7 @@ public class StatCoderContextTest
         ctx.encodePredictedValue( value, predictor );
       }
     }
+    ctx.closeAndGetEncodedLength();
     ctx = new StatCoderContext( ab );
 
     for ( int value = -100; value < 100; value += 5 )
@@ -111,6 +114,7 @@ public class StatCoderContextTest
     StatCoderContext ctx = new StatCoderContext( ab );
     ctx.encodeSortedArray( values, 0, size, 0x08000000, 0 );
 
+    ctx.closeAndGetEncodedLength();
     ctx = new StatCoderContext( ab );
 
     int[] decodedValues = new int[size];

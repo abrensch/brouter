@@ -26,21 +26,12 @@ public final class SortedHeap<V>
   public V popLowestKeyValue()
   {
     SortedBin bin = firstNonEmpty;
-    if ( bin == null )
+    if ( firstNonEmpty == null )
     {
       return null;
     }
     size--;
-    int minId = bin.lv;
-    SortedBin minBin = bin;
-    while( ( bin = bin.nextNonEmpty ) != null )
-    {
-      if ( bin.lv < minId )
-      {
-        minId = bin.lv;
-        minBin = bin;
-      }
-    }
+    SortedBin minBin = firstNonEmpty.getMinBin();
     return (V) minBin.dropLowest();
   }
 
@@ -127,7 +118,112 @@ public final class SortedHeap<V>
       }
     }
 
+    // unrolled version of above for binsize = 4
+    void add4( int key, Object value )
+    {
+      int p = lp--;
+      if ( p == 4 || key < al[p] )
+      {
+        lv = al[p - 1] = key;
+        vla[p - 1] = value;
+        return;
+      }
+      lv = al[p - 1] = al[p];
+      vla[p - 1] = vla[p];
+      p++;
 
+      if ( p == 4 || key < al[p] )
+      {
+        al[p - 1] = key;
+        vla[p - 1] = value;
+        return;
+      }
+      al[p - 1] = al[p];
+      vla[p - 1] = vla[p];
+      p++;
+
+      if ( p == 4 || key < al[p] )
+      {
+        al[p - 1] = key;
+        vla[p - 1] = value;
+        return;
+      }
+      al[p - 1] = al[p];
+      vla[p - 1] = vla[p];
+
+      al[p] = key;
+      vla[p] = value;
+    }
+
+    // unrolled loop for performance sake
+    SortedBin getMinBin()
+    {
+      SortedBin minBin = this;
+      SortedBin bin = this;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      if ( (bin = bin.nextNonEmpty) == null ) return minBin;
+      if ( bin.lv < minBin.lv ) minBin = bin;
+      return minBin;
+    }
   }
 
   /**
@@ -146,7 +242,7 @@ public final class SortedHeap<V>
     }
     if ( first.lp > 0 )
     {
-      first.add( key, value );
+      first.add4( key, value );
       if ( firstNonEmpty != first )
       {
         first.nextNonEmpty = firstNonEmpty;
@@ -155,7 +251,7 @@ public final class SortedHeap<V>
     }
     else // second bin not full
     {
-      second.add( key, value );
+      second.add4( key, value );
       if ( first.nextNonEmpty != second )
       {
         second.nextNonEmpty = first.nextNonEmpty;
@@ -199,21 +295,9 @@ public final class SortedHeap<V>
     // now merge the content of these non-empty bins into the target bin
     while( firstNonEmpty != null )
     {
-      SortedBin ne = firstNonEmpty;
-      SortedBin minBin = ne;
-      int minId = minBin.lv;
-
-      while ( ( ne = ne.nextNonEmpty ) != null )
-      {
-        if ( ne.lv < minId )
-        {
-          minBin = ne;
-          minId = minBin.lv;
-        }
-      }
-
-      // current minimum found, copy to target array
-      al_t[tp] = minId;
+      // copy current minimum to target array
+      SortedBin minBin = firstNonEmpty.getMinBin();
+      al_t[tp] = minBin.lv;
       vla_t[tp++] = minBin.dropLowest();
     }
 
@@ -265,35 +349,4 @@ public final class SortedHeap<V>
     }
     return tp;
   }
-
-  public static void main(String[] args)
-  {
-    SortedHeap<String> sh = new SortedHeap<String>();
-    Random rnd = new Random();
-    for( int i = 0; i< 1000; i++ )
-    {
-      int val = rnd.nextInt( 1000000 );
-      sh.add( val, "" + val );
-      val = rnd.nextInt( 1000000 );
-      sh.add( val, "" + val );
-      sh.popLowestKeyValue();
-    }
-
-    int cnt = 0;
-    int lastval = 0;
-    for(;;)
-    {
-      String s = sh.popLowestKeyValue();
-      if ( s == null ) break;
-      cnt ++;
-      int val = Integer.parseInt( s );
-System.out.println( "popLowestKeyValue: " + val);
-//      Assert.assertTrue( "sorting test", val >= lastval );
-      lastval = val;
-    }
-//    Assert.assertTrue( "total count test", cnt == 100000 );
-
-  }
-
-
 }
