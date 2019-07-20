@@ -268,20 +268,23 @@ public class BRouterView extends View
       // add a "last timeout" dummy profile
       File lastTimeoutFile = new File( modesDir + "/timeoutdata.txt" );
       long lastTimeoutTime = lastTimeoutFile.lastModified();
-      if ( lastTimeoutTime > 0 && System.currentTimeMillis() - lastTimeoutTime < 300000 )
+      if ( lastTimeoutTime > 0 && System.currentTimeMillis() - lastTimeoutTime < 1800000 )
       {
-        profiles.add( 0, "<repeat timeout>" );
+        BufferedReader br = new BufferedReader( new FileReader( lastTimeoutFile ) );
+        String repeatProfile = br.readLine();
+        br.close();
+        profiles.add( 0, "<repeat:" + repeatProfile + ">" );
       }
 
       if ( !lookupsFound )
       {
         throw new IllegalArgumentException( "The profile-directory " + profileDir + " does not contain the lookups.dat file."
-            + " see www.dr-brenschede.de/brouter for setup instructions." );
+            + " see brouter.de/brouter for setup instructions." );
       }
       if ( profiles.size() == 0 )
       {
         throw new IllegalArgumentException( "The profile-directory " + profileDir + " contains no routing profiles (*.brf)."
-            + " see www.dr-brenschede.de/brouter for setup instructions." );
+            + " see brouter.de/brouter for setup instructions." );
       }
       if ( !RoutingHelper.hasDirectoryAnyDatafiles( segmentDir ) )
       {
@@ -431,7 +434,7 @@ public class BRouterView extends View
   public void startProcessing( String profile )
   {
     rawTrackPath = null;
-    if ( "<repeat timeout>".equals( profile ) )
+    if ( profile.startsWith( "<repeat" ) )
     {
       needsViaSelection = needsNogoSelection = needsWaypointSelection = false;
       try
@@ -1092,6 +1095,34 @@ public class BRouterView extends View
   private List<String> getStorageDirectories()
   {
     ArrayList<String> res = new ArrayList<String>();
+    
+    // check write access on internal sd
+    try
+    {
+      File sd = Environment.getExternalStorageDirectory();
+      File testDir = new File( sd, "brouter" );
+      boolean didExist = testDir.isDirectory();
+      if ( !didExist )
+      {
+        testDir.mkdir();
+      }
+      File testFile = new File( testDir, "test" + System.currentTimeMillis() );
+      testFile.createNewFile();
+      if ( testFile.exists() )
+      {
+        testFile.delete();
+        res.add( sd.getPath() );
+      }
+      if ( !didExist )
+      {
+        testDir.delete();
+      }
+    }
+    catch( Throwable t )
+    {
+      // ignore
+    }
+    
 
     try
     {
