@@ -449,7 +449,11 @@ public final class OsmTrack
             .append ( "   <desc>start</desc>\n   <extensions>\n");
 
         float rteTime;
-        rteTime = voiceHints.list.get(0).getTime();
+        if(!voiceHints.list.isEmpty()){
+            rteTime = voiceHints.list.get(0).getTime();
+        }else{
+            rteTime = 0;
+        }
 
         if ( rteTime != lastRteTime ) // add timing only if available
         {
