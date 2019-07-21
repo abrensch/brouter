@@ -24,6 +24,7 @@ import java.util.List;
  * alternativeidx = [0|1|2|3] (optional, default 0)
  * format = [kml|gpx|geojson] (optional, default gpx)
  * trackname = name used for filename and format specific trackname (optional, default brouter)
+ * exportWaypoints = 1 to export them (optional, default is no export)
  *
  * Example URLs:
  * {@code http://localhost:17777/brouter?lonlats=8.799297,49.565883|8.811764,49.563606&nogos=&profile=trekking&alternativeidx=0&format=gpx}
@@ -117,6 +118,10 @@ public class ServerHandler extends RequestHandler {
     String trackName = getTrackName();
     if (trackName != null) {
       track.name = trackName;
+    }
+    String exportWaypointsStr = params.get( "exportWaypoints" );
+    if (exportWaypointsStr != null && Integer.parseInt(exportWaypointsStr) != 0) {
+      track.exportWaypoints = true;
     }
 
     if (format == null || "gpx".equals(format))
