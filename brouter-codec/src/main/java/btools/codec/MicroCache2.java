@@ -34,14 +34,12 @@ public final class MicroCache2 extends MicroCache
   	return b;
   }
 
-  public MicroCache2( DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher ) throws Exception
+  public MicroCache2( StatCoderContext bc, DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher ) throws Exception
   {
     super( null );
     cellsize = 1000000 / divisor;
     lonBase = lonIdx*cellsize;
     latBase = latIdx*cellsize;
-
-    StatCoderContext bc = new StatCoderContext( dataBuffers.iobuffer );
 
     TagValueCoder wayTagCoder = new TagValueCoder( bc, dataBuffers, wayValidator );
     TagValueCoder nodeTagCoder = new TagValueCoder( bc, dataBuffers, null );

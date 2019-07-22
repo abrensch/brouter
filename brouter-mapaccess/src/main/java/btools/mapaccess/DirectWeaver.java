@@ -20,13 +20,11 @@ public final class DirectWeaver extends ByteDataWriter
 
   private int size = 0;
 
-  public DirectWeaver( DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes ) throws Exception
+  public DirectWeaver( StatCoderContext bc, DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes ) throws Exception
   {
     super( null );
     int cellsize = 1000000 / divisor;
     id64Base = ((long)(lonIdx*cellsize))<<32 | (latIdx*cellsize);
-
-    StatCoderContext bc = new StatCoderContext( dataBuffers.iobuffer );
 
     TagValueCoder wayTagCoder = new TagValueCoder( bc, dataBuffers, wayValidator );
     TagValueCoder nodeTagCoder = new TagValueCoder( bc, dataBuffers, null );

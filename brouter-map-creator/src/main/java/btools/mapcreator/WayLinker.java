@@ -433,7 +433,7 @@ public class WayLinker extends MapCreatorBase
                     System.arraycopy( abBuf1, 0, subBytes, 0, len );
 
                     // cross-check the encoding: re-instantiate the cache
-                    MicroCache mc2 = new MicroCache2( new DataBuffers( subBytes ), lonIdxDiv, latIdxDiv, divisor, null, null );
+                    MicroCache mc2 = new MicroCache2( new StatCoderContext( subBytes ), new DataBuffers( null ), lonIdxDiv, latIdxDiv, divisor, null, null );
                     // ..and check if still the same
                     String diffMessage = mc.compareWith( mc2 );
                     if ( diffMessage != null )

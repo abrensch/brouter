@@ -287,9 +287,9 @@ public class BitCoderContext
   {
     while (bits < 24)
     {
-      if ( idx < idxMax )
+      if ( idx++ < idxMax )
       {
-        b |= (ab[++idx] & 0xff) << bits;
+        b |= (ab[idx] & 0xff) << bits;
       }
       bits += 8;
     }
