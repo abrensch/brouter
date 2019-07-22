@@ -11,6 +11,7 @@ import java.io.RandomAccessFile;
 import btools.codec.DataBuffers;
 import btools.codec.MicroCache;
 import btools.codec.MicroCache2;
+import btools.codec.StatCoderContext;
 import btools.codec.TagValueValidator;
 import btools.codec.WaypointMatcher;
 import btools.util.ByteDataReader;
@@ -142,8 +143,9 @@ final class OsmFile
     {
       ab = new byte[asize];
       asize = getDataInputForSubIdx( subIdx, ab );
-      dataBuffers = new DataBuffers( ab );
     }
+
+    StatCoderContext bc = new StatCoderContext( ab );
 
     try
     {
@@ -153,25 +155,28 @@ final class OsmFile
       }
       if ( hollowNodes == null )
       {
-        return new MicroCache2( dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher );
+        return new MicroCache2( bc, dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher );
       }
-      new DirectWeaver( dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher, hollowNodes );
+      new DirectWeaver( bc, dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher, hollowNodes );
       return MicroCache.emptyNonVirgin;
     }
-    catch( Throwable t )
+    finally
     {
-      // checksum test now only in case of trouble
-      int crcData = Crc32.crc( ab, 0, asize - 4 );
-      int crcFooter = new ByteDataReader( ab, asize - 4 ).readInt();
-      if ( crcData == crcFooter )
+      // crc check only if the buffer has not been fully read 
+      int readBytes = (bc.getReadingBitPosition()+7)>>3;
+      if ( readBytes != asize-4 )
       {
-        throw new IOException( "old, unsupported data-format" );
+        int crcData = Crc32.crc( ab, 0, asize - 4 );
+        int crcFooter = new ByteDataReader( ab, asize - 4 ).readInt();
+        if ( crcData == crcFooter )
+        {
+          throw new IOException( "old, unsupported data-format" );
+        }
+        else if ( ( crcData ^ 2 ) != crcFooter )
+        {
+          throw new IOException( "checkum error" );
+        }
       }
-      else if ( ( crcData ^ 2 ) == crcFooter )
-      {
-        throw new IOException( "checkum error" );
-      }
-      throw t instanceof Exception ? (Exception)t : new Exception( t.toString(), t );
     }
   }
 
