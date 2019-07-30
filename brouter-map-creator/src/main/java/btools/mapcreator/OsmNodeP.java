@@ -35,6 +35,7 @@ public class OsmNodeP extends OsmLinkP
   public final static int TRAFFIC_BIT = 8;
   public final static int ANY_WAY_BIT = 16;
   public final static int MULTI_WAY_BIT = 32;
+  public final static int DP_SURVIVOR_BIT = 64;
 
   public byte bits = 0;
 
@@ -200,10 +201,15 @@ public class OsmNodeP extends OsmLinkP
       OsmNodeP origin = this;
       OsmNodeP target = null;
 
+      ArrayList<OsmNodeP> linkNodes = new ArrayList<OsmNodeP>();
+      linkNodes.add( this );
+
       // first pass just to see if that link is consistent
       while (link != null)
       {
         target = link.getTarget( origin );
+        linkNodes.add( target );
+
         if ( !target.isTransferNode() )
         {
           break;
@@ -244,30 +250,20 @@ public class OsmNodeP extends OsmLinkP
       mc.writeVarLengthSigned( target.ilon - ilon );
       mc.writeVarLengthSigned( target.ilat - ilat );
       mc.writeModeAndDesc( isReverse, link0.descriptionBitmap );
-      if ( !isReverse ) // write geometry for forward links only
+      if ( !isReverse && linkNodes.size() > 2 ) // write geometry for forward links only
       {
-        link = link0;
+        DPFilter.doDPFilter( linkNodes, 0, linkNodes.size()-1 );
         origin = this;
-        while (link != null)
+        for( int i=1; i<linkNodes.size()-1; i++ )
         {
-          OsmNodeP tranferNode = link.getTarget( origin );
-          if ( !tranferNode.isTransferNode() )
+          OsmNodeP tranferNode = linkNodes.get(i);
+          if ( ( tranferNode.bits & OsmNodeP.DP_SURVIVOR_BIT ) != 0 )
           {
-            break;
+            mc.writeVarLengthSigned( tranferNode.ilon - origin.ilon );
+            mc.writeVarLengthSigned( tranferNode.ilat - origin.ilat );
+            mc.writeVarLengthSigned( tranferNode.getSElev() - origin.getSElev() );
+            origin = tranferNode;
           }
-          mc.writeVarLengthSigned( tranferNode.ilon - origin.ilon );
-          mc.writeVarLengthSigned( tranferNode.ilat - origin.ilat );
-          mc.writeVarLengthSigned( tranferNode.getSElev() - origin.getSElev() );
-
-          // next link is the one (of two), does does'nt point back
-          for ( link = tranferNode.getFirstLink(); link != null; link = link.getNext( tranferNode ) )
-          {
-            if ( link.getTarget( tranferNode ) != origin )
-              break;
-          }
-          if ( link == null )
-            throw new RuntimeException( "follow-up link not found for transfer-node!" );
-          origin = tranferNode;
         }
       }
       mc.injectSize( sizeoffset );
