@@ -4,7 +4,7 @@
 # to fallback to this one.
 #
 # Structure is similar to trekking.brf, see this for documenation.
-# 
+#
 
 ---context:global   # following code refers to global config
 
@@ -111,6 +111,8 @@ assign onewaypenalty =
        )
        else 0.0
 
+assign isresidentialorliving = or highway=residential|living_street living_street=yes
+
 assign costfactor
 
   switch and highway= not route=ferry  10000
@@ -130,7 +132,7 @@ assign costfactor
   switch    route=ferry                               5.67
   switch    highway=bridleway                         5
   switch    highway=cycleway                          1.3
-  switch or highway=residential highway=living_street switch isunpaved 10 1.2
+  switch    isresidentialorliving                     switch isunpaved 10 1.2
   switch    highway=service                           switch isunpaved 10 1.2
   switch or highway=track or highway=road or highway=path highway=footway
    switch tracktype=grade1 switch isunpaved 3 1.2
@@ -157,7 +159,7 @@ assign priorityclassifier =
   else if ( highway=tertiary                  ) then  22
   else if ( highway=tertiary_link             ) then  21
   else if ( highway=unclassified              ) then  20
-  else if ( highway=residential|living_street ) then  6
+  else if ( isresidentialorliving ) then  6
   else if ( highway=service                   ) then  6
   else if ( highway=cycleway                  ) then  6
   else if ( bicycle=designated                ) then  6
@@ -176,7 +178,7 @@ assign isgoodoneway = if reversedirection=yes then oneway=-1
 assign isroundabout = junction=roundabout
 assign islinktype = highway=motorway_link|trunk_link|primary_link|secondary_link|tertiary_link
 assign isgoodforcars = if greater priorityclassifier 6 then true
-                  else if highway=residential|living_street|service then true
+                  else if ( or isresidentialorliving highway=service ) then true
                   else if ( and highway=track tracktype=grade1 ) then true
                   else false
 
@@ -220,7 +222,7 @@ assign footaccess
 
 assign initialcost
        switch bikeaccess
-              0 
+              0
               switch footaccess
                      300
                      1000000

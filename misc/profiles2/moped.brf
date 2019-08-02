@@ -29,6 +29,8 @@ assign initialcost switch route=ferry 20000 0
 #
 # calculate logical car access
 #
+assign isresidentialorliving = or highway=residential|living_street living_street=yes
+
 assign motorverhicleaccess
               switch motor_vehicle=
                      switch vehicle=
@@ -39,7 +41,7 @@ assign motorverhicleaccess
                                    switch or highway=tertiary highway=tertiary_link    1
                                    switch    highway=unclassified                      1
                                    switch    route=ferry                               1
-                                   switch or highway=residential highway=living_street 1
+                                   switch    isresidentialorliving                     1
                                    switch    highway=service                           1
                                    0
                                    or access=yes or access=designated access=destination
@@ -90,7 +92,7 @@ assign costfactor
  switch    highway=unclassified                      1.2
  switch    route=ferry                               5.67
  switch    highway=bridleway                         5
- switch or highway=residential highway=living_street 2
+ switch    isresidentialorliving                     2
  switch    highway=service                           2
  switch or highway=track or highway=road highway=path
   switch tracktype=grade1 5
@@ -113,7 +115,7 @@ assign priorityclassifier =
   else if ( highway=tertiary                  ) then  22
   else if ( highway=tertiary_link             ) then  21
   else if ( highway=unclassified              ) then  20
-  else if ( highway=residential|living_street ) then  6
+  else if ( isresidentialorliving             ) then  6
   else if ( highway=service                   ) then  6
   else if ( highway=track                     ) then if tracktype=grade1 then 4 else 2
   else if ( highway=bridleway|road            ) then  2
@@ -126,7 +128,7 @@ assign isgoodoneway = if reversedirection=yes then oneway=-1
                       else if oneway= then junction=roundabout else oneway=yes|true|1
 assign isroundabout = junction=roundabout
 assign isgoodforcars = if greater priorityclassifier 6 then true
-                  else if highway=residential|living_street|service then true
+                  else if ( or isresidentialorliving highway=service ) then true
                   else if ( and highway=track tracktype=grade1 ) then true
                   else false
 
