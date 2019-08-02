@@ -634,6 +634,8 @@ embedded_rails;0000000928 tram
 embedded_rails;0000000007 yes
 embedded_rails;0000000003 rail
 
+living_street;0000000404 yes
+
 ---context:node
 
 highway;0001314954 bus_stop

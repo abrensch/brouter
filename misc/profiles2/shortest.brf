@@ -67,6 +67,8 @@ assign costfactor
 
 # way priorities used for voice hint generation
 
+assign isresidentialorliving = or highway=residential|living_street living_street=yes
+
 assign priorityclassifier =
 
   if      ( highway=motorway                  ) then  30
@@ -80,7 +82,7 @@ assign priorityclassifier =
   else if ( highway=tertiary                  ) then  22
   else if ( highway=tertiary_link             ) then  21
   else if ( highway=unclassified              ) then  20
-  else if ( highway=residential|living_street ) then  6
+  else if ( isresidentialorliving             ) then  6
   else if ( highway=service                   ) then  6
   else if ( highway=cycleway                  ) then  6
   else if ( bicycle=designated                ) then  6
@@ -95,7 +97,7 @@ assign priorityclassifier =
 assign isroundabout = junction=roundabout
 assign islinktype = highway=motorway_link|trunk_link|primary_link|secondary_link|tertiary_link
 assign isgoodforcars = if greater priorityclassifier 6 then true
-                  else if highway=residential|living_street|service then true
+                  else if ( or isresidentialorliving highway=service ) then true
                   else if ( and highway=track tracktype=grade1 ) then true
                   else false
 
