@@ -1,5 +1,5 @@
 ---lookupversion:10
----minorversion:11
+---minorversion:12
 
 ---context:way
 
@@ -635,6 +635,10 @@ embedded_rails;0000000007 yes
 embedded_rails;0000000003 rail
 
 living_street;0000000404 yes
+
+sidewalk:bicycle;0000000439 yes designated
+sidewalk:left:bicycle;0000001722 yes designated
+sidewalk:right:bicycle;0000002667 yes designated
 
 ---context:node
 
