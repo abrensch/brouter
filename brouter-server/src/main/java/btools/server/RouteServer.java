@@ -260,7 +260,7 @@ public class RouteServer extends Thread
 
   public static void main(String[] args) throws Exception
   {
-        System.out.println("BRouter 1.5.0 / 30062019");
+        System.out.println("BRouter 1.5.5 / 22072019");
         if ( args.length != 5 && args.length != 6)
         {
           System.out.println("serve BRouter protocol");
