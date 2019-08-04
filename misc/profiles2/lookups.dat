@@ -640,6 +640,8 @@ sidewalk:bicycle;0000000439 yes designated
 sidewalk:left:bicycle;0000001722 yes designated
 sidewalk:right:bicycle;0000002667 yes designated
 
+bicycle_road;0000006521 yes designated
+
 ---context:node
 
 highway;0001314954 bus_stop

@@ -50,7 +50,7 @@ assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route
 assign nodeaccessgranted or any_cycleroute lcn=yes
 
 assign cycleway
- or highway=cycleway and highway=path|footway bicycle=designated|yes
+ or bicycle_road=yes or highway=cycleway and highway=path|footway bicycle=designated|yes
 
 assign footway
  or highway=footway and highway=path foot=designated|yes
@@ -99,8 +99,10 @@ assign defaultaccess
 assign bikeaccess
  or any_cycleroute
  switch bicycle=
-  switch vehicle=
-   defaultaccess
+  switch bicycle_road=yes
+    1
+    switch vehicle=
+     defaultaccess
   switch or vehicle=private vehicle=no
    0
   1
@@ -355,25 +357,25 @@ assign downhillcostfactor
 
 assign priorityclassifier =
 
- if   ( highway=motorway         ) then 30
- else if ( highway=motorway_link       ) then 29
- else if ( highway=trunk           ) then 28
- else if ( highway=trunk_link        ) then 27
- else if ( highway=primary          ) then 26
- else if ( highway=primary_link       ) then 25
- else if ( highway=secondary         ) then 24
- else if ( highway=secondary_link      ) then 23
- else if ( highway=tertiary         ) then 22
- else if ( highway=tertiary_link       ) then 21
- else if ( highway=unclassified       ) then 20
+ if   ( highway=motorway                                          ) then 30
+ else if ( highway=motorway_link                                  ) then 29
+ else if ( highway=trunk                                          ) then 28
+ else if ( highway=trunk_link                                     ) then 27
+ else if ( highway=primary                                        ) then 26
+ else if ( highway=primary_link                                   ) then 25
+ else if ( highway=secondary                                      ) then 24
+ else if ( highway=secondary_link                                 ) then 23
+ else if ( highway=tertiary                                       ) then 22
+ else if ( highway=tertiary_link                                  ) then 21
+ else if ( highway=unclassified                                   ) then 20
  else if ( or highway=residential|living_street living_street=yes ) then 6
- else if ( highway=service          ) then 6
- else if ( highway=cycleway         ) then 6
- else if ( bicycle=designated        ) then 6
- else if ( highway=track           ) then if tracktype=grade1 then 6 else 4
- else if ( highway=bridleway|road|path|footway ) then 4
- else if ( highway=steps           ) then 2
- else if ( highway=pedestrian        ) then 2
+ else if ( highway=service                                        ) then 6
+ else if ( highway=cycleway                                       ) then 6
+ else if ( or bicycle=designated bicycle_road=yes                 ) then 6
+ else if ( highway=track                                          ) then if tracktype=grade1 then 6 else 4
+ else if ( highway=bridleway|road|path|footway                    ) then 4
+ else if ( highway=steps                                          ) then 2
+ else if ( highway=pedestrian                                     ) then 2
  else 0
 
 
