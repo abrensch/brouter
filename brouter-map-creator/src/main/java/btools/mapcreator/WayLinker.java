@@ -237,6 +237,7 @@ public class WayLinker extends MapCreatorBase
         {
           r.fromLon = n1.ilon;
           r.fromLat = n1.ilat;
+          n1.bits |= OsmNodeP.DP_SURVIVOR_BIT;
         }
       }
       if ( r.toWid == wid )
@@ -245,6 +246,7 @@ public class WayLinker extends MapCreatorBase
         {
           r.toLon = n1.ilon;
           r.toLat = n1.ilat;
+          n1.bits |= OsmNodeP.DP_SURVIVOR_BIT;
         }
       }
       r = r.next;

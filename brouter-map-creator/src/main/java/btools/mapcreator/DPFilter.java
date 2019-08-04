@@ -16,6 +16,25 @@ public class DPFilter
   /*
    * for each node (except first+last), eventually set the DP_SURVIVOR_BIT
    */
+  public static void doDPFilter( ArrayList<OsmNodeP> nodes )
+  {
+    int first = 0;
+    int last = nodes.size()-1;
+    while( first < last && (nodes.get(first+1).bits & OsmNodeP.DP_SURVIVOR_BIT) != 0 )
+    {
+      first++;
+    }
+    while( first < last && (nodes.get(last-1).bits & OsmNodeP.DP_SURVIVOR_BIT) != 0 )
+    {
+      last--;
+    }
+    if ( last - first > 1 )
+    {
+      doDPFilter( nodes, first, last );
+    }
+  }
+    
+
   public static void doDPFilter( ArrayList<OsmNodeP> nodes, int first, int last )
   {
     double maxSqDist = -1.;

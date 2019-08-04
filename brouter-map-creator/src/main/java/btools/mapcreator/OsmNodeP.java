@@ -252,7 +252,7 @@ public class OsmNodeP extends OsmLinkP
       mc.writeModeAndDesc( isReverse, link0.descriptionBitmap );
       if ( !isReverse && linkNodes.size() > 2 ) // write geometry for forward links only
       {
-        DPFilter.doDPFilter( linkNodes, 0, linkNodes.size()-1 );
+        DPFilter.doDPFilter( linkNodes );
         origin = this;
         for( int i=1; i<linkNodes.size()-1; i++ )
         {
