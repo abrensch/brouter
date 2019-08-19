@@ -22,6 +22,7 @@ assign p_standby        = 250    # Watt
 # technical parameters
 
 assign validForCars        = true
+assign avoid_tolls         = false  #poutnikl push request
 assign pass1coefficient    = 1.3
 assign turnInstructionMode = 1  # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style
 
@@ -177,7 +178,9 @@ assign maxspeed =
   min maxspeed_implicit
   min maxspeed_surface maxspeed_tracktype
 
-assign costfactor = if equal maxspeed 0 then 10000 else 0
+#assign costfactor = if equal maxspeed 0 then 10000 else 0
+assign costfactor = if equal maxspeed 0  then 10000 #poutnikl push request
+                    else if and avoid_tolls toll=yes then 9999 else 0
 
 assign minspeed =
     switch highway=motorway|motorway_link|trunk  75 0
@@ -240,11 +243,11 @@ assign caraccess
               motorcar=yes|permissive|designated|destination
 
 assign initialcost =
-
+       switch and avoid_tolls barrier=toll_booth 1000000 #poutnikl push request
        switch caraccess
               0
               1000000
-
+              
 assign maxspeed =
 
        if or crossing=traffic_signals highway=traffic_signals
