@@ -33,8 +33,24 @@ assign uphillcutoff 1.5
 assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
 assign nodeaccessgranted or any_cycleroute lcn=yes
 
-assign ispaved or surface=paved or surface=asphalt or surface=concrete surface=paving_stones
-assign isunpaved not or surface= or ispaved or surface=fine_gravel surface=cobblestone
+#
+# surface quality factors
+#
+assign surfacefactor
+        if      ( surface=asphalt|concrete|paved            ) then  1.0
+        else if ( surface=sett|paving_stones                ) then  2.0
+        else if ( surface=compacted|fine_gravel|cobblestone ) then  2.5
+        else if ( surface=dirt|earth|ground|unpaved         ) then  4.0
+        else if ( surface=sand                              ) then 10.0
+        else                                                        1.3
+assign smoothnessfactor
+        if      ( smoothness=excellent                          ) then   0.6
+        else if ( smoothness=good                               ) then   0.8
+        else if ( smoothness=intermediate                       ) then   1.0
+        else if ( smoothness=bad                                ) then   2.2
+        else if ( smoothness=very_bad|horrible|very_horrible    ) then  10.0
+        else if ( smoothness=impassable                         ) then  20.0
+        else                                                             1.2
 
 assign turncost = if junction=roundabout then 0
                   else 90
@@ -119,28 +135,26 @@ assign costfactor
   min 9999
   add max onewaypenalty accesspenalty
 
-  switch or highway=motorway highway=motorway_link    10000
-  switch or highway=trunk highway=trunk_link          10
-  switch or highway=primary highway=primary_link      1.2
-  switch or highway=secondary highway=secondary_link  1.1
-  switch or highway=tertiary highway=tertiary_link    1.0
-  switch    highway=unclassified                      1.1
-  switch    highway=pedestrian                        10
-  switch    highway=steps                             1000
-  switch    route=ferry                               5.67
-  switch    highway=bridleway                         5
-  switch    highway=cycleway                          1.3
-  switch or highway=residential highway=living_street switch isunpaved 10 1.2
-  switch    highway=service                           switch isunpaved 10 1.2
-  switch or highway=track or highway=road or highway=path highway=footway
-   switch tracktype=grade1 switch isunpaved 3 1.2
-   switch tracktype=grade2 switch isunpaved 10 3
-   switch tracktype=grade3 10.0
-   switch tracktype=grade4 20.0
-   switch tracktype=grade5 30.0
-   switch bicycle=designated 2.0
-   switch ispaved 2.0 100.0
-   10.0
+  multiply surfacefactor
+  multiply smoothnessfactor
+    switch or highway=motorway highway=motorway_link                         10000
+    switch or highway=trunk highway=trunk_link                                  10
+    switch or highway=primary highway=primary_link                               1.4
+    switch or highway=secondary highway=secondary_link                           1.2
+    switch or highway=tertiary highway=tertiary_link                             1.0
+    switch or highway=unclassified highway=cycleway                              1.1
+    switch or highway=residential or highway=living_street highway=service       1.1
+    switch or highway=pedestrian highway=bridleway                               5
+    switch    route=ferry                                                        6
+    switch    highway=steps                                                   1000
+    switch or highway=track or highway=road or highway=path highway=footway
+     switch tracktype=grade1  1.5
+     switch tracktype=grade2  3
+     switch tracktype=grade3  5.0
+     switch tracktype=grade4  8.0
+     switch tracktype=grade5 10.0
+     switch bicycle=designated 2.0 10.0
+     10.0
 
 # way priorities used for voice hint generation
 
