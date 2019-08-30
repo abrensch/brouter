@@ -887,3 +887,6 @@ traffic_calming;0000000186 dip
 
 ford;0000037927 yes
 ford;0000000310 stepping_stones
+
+direction;0000274642 forward
+direction;0000249637 backward
