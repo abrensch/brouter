@@ -32,6 +32,8 @@ assign initialcost switch route=ferry 20000 0
 #
 # calculate logical car access
 #
+assign isresidentialorliving = or highway=residential|living_street living_street=yes
+
 assign caraccess
        switch motorcar=
               switch motor_vehicle=
@@ -44,7 +46,7 @@ assign caraccess
                                    switch highway=tertiary|tertiary_link    1
                                    switch highway=unclassified              1
                                    switch route=ferry                       1
-                                   switch highway=residential|living_street 1
+                                   switch isresidentialorliving              1
                                    switch highway=service                   1
                                    0
                                    access=yes|permissive|designated|destination
@@ -104,7 +106,7 @@ assign maxspeed_implicit =
   switch highway=unclassified               50
   switch route=ferry                        10
   switch highway=bridleway                  10
-  switch highway=residential|living_street  30
+  switch isresidentialorliving              30
   switch highway=service                    30
   switch highway=track|road|path switch tracktype=grade1 30 5
   0
@@ -148,7 +150,7 @@ assign priorityclassifier =
   else if ( highway=tertiary                  ) then  22
   else if ( highway=tertiary_link             ) then  21
   else if ( highway=unclassified              ) then  20
-  else if ( highway=residential|living_street ) then  6
+  else if ( isresidentialorliving             ) then  6
   else if ( highway=service                   ) then  6
   else if ( highway=track                     ) then if tracktype=grade1 then 4 else 2
   else if ( highway=bridleway|road            ) then  2
@@ -165,7 +167,7 @@ assign costfactor = if equal maxspeed 0
 assign isgoodoneway = if reversedirection=yes then oneway=-1
                       else if oneway= then implicitoneway else oneway=yes|true|1
 assign isgoodforcars = if greater priorityclassifier 6 then true
-                  else if highway=residential|living_street|service then true
+                  else if or isresidentialorliving highway=service then true
                   else if ( and highway=track tracktype=grade1 ) then true
                   else false
 
@@ -176,7 +178,7 @@ assign classifiermask add          isbadoneway
                       add multiply isroundabout   4
                       add multiply islinktype     8
                       add multiply isgoodforcars 16
-                          multiply highway=residential|living_street 32
+                          multiply isresidentialorliving 32
 
 
 ---context:node  # following code refers to node tags

@@ -36,11 +36,13 @@ assign defaultaccess
 assign bikeaccess
        or any_cycleroute
           switch bicycle=
-                 switch vehicle=
-                        defaultaccess
-                        switch or vehicle=private vehicle=no
-                               0
-                               1
+                 switch bicycle_road=yes
+                    1
+                    switch vehicle=
+                            defaultaccess
+                            switch or vehicle=private vehicle=no
+                                0
+                                1
                  not or bicycle=private or bicycle=no bicycle=dismount
 
 #
@@ -67,27 +69,29 @@ assign costfactor
 
 # way priorities used for voice hint generation
 
+assign isresidentialorliving = or highway=residential|living_street living_street=yes
+
 assign priorityclassifier =
 
-  if      ( highway=motorway                  ) then  30
-  else if ( highway=motorway_link             ) then  29
-  else if ( highway=trunk                     ) then  28
-  else if ( highway=trunk_link                ) then  27
-  else if ( highway=primary                   ) then  26
-  else if ( highway=primary_link              ) then  25
-  else if ( highway=secondary                 ) then  24
-  else if ( highway=secondary_link            ) then  23
-  else if ( highway=tertiary                  ) then  22
-  else if ( highway=tertiary_link             ) then  21
-  else if ( highway=unclassified              ) then  20
-  else if ( highway=residential|living_street ) then  6
-  else if ( highway=service                   ) then  6
-  else if ( highway=cycleway                  ) then  6
-  else if ( bicycle=designated                ) then  6
-  else if ( highway=track                     ) then if tracktype=grade1 then 6 else 4
-  else if ( highway=bridleway|road|path|footway ) then  4
-  else if ( highway=steps                     ) then  2
-  else if ( highway=pedestrian                ) then  2
+  if      ( highway=motorway                       ) then  30
+  else if ( highway=motorway_link                  ) then  29
+  else if ( highway=trunk                          ) then  28
+  else if ( highway=trunk_link                     ) then  27
+  else if ( highway=primary                        ) then  26
+  else if ( highway=primary_link                   ) then  25
+  else if ( highway=secondary                      ) then  24
+  else if ( highway=secondary_link                 ) then  23
+  else if ( highway=tertiary                       ) then  22
+  else if ( highway=tertiary_link                  ) then  21
+  else if ( highway=unclassified                   ) then  20
+  else if ( isresidentialorliving                  ) then  6
+  else if ( highway=service                        ) then  6
+  else if ( highway=cycleway                       ) then  6
+  else if ( or bicycle=designated bicycle_road=yes ) then  6
+  else if ( highway=track                          ) then if tracktype=grade1 then 6 else 4
+  else if ( highway=bridleway|road|path|footway    ) then  4
+  else if ( highway=steps                          ) then  2
+  else if ( highway=pedestrian                     ) then  2
   else 0
 
 # some more classifying bits used for voice hint generation...
@@ -95,7 +99,7 @@ assign priorityclassifier =
 assign isroundabout = junction=roundabout
 assign islinktype = highway=motorway_link|trunk_link|primary_link|secondary_link|tertiary_link
 assign isgoodforcars = if greater priorityclassifier 6 then true
-                  else if highway=residential|living_street|service then true
+                  else if ( or isresidentialorliving highway=service ) then true
                   else if ( and highway=track tracktype=grade1 ) then true
                   else false
 
