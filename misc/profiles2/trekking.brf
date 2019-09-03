@@ -15,7 +15,7 @@ assign ignore_cycleroutes       = false  # %ignore_cycleroutes% | Set to true fo
 assign stick_to_cycleroutes     = false  # %stick_to_cycleroutes% | Set to true to just follow cycleroutes | boolean
 assign avoid_unsafe             = false  # %avoid_unsafe% | Set to true to avoid standard highways | boolean
 assign considerTurnRestrictions = false  # %considerTurnRestrictions% | Set to true to take turn restrictions into account | boolean
-assign processUnusedTags        = false  # %processUnusedTags% | Set to true to output unused tagsin data tab | boolean
+assign processUnusedTags        = false  # %processUnusedTags% | Set to true to output unused tags in data tab | boolean
 
 # Change elevation parameters
 assign consider_elevation = true  # %consider_elevation% | Set to false to ignore elevation in routing | boolean
