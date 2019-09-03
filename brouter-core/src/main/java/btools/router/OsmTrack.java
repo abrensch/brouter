@@ -374,20 +374,20 @@ public final class OsmTrack
    * @param filename
    *          the filename to write to
    */
-  public void writeGpx( String filename ) throws Exception
+  public void writeGpx( String filename, RoutingContext rc ) throws Exception
   {
     BufferedWriter bw = new BufferedWriter( new FileWriter( filename ) );
-    formatAsGpx( bw );
+    formatAsGpx( bw, rc );
     bw.close();
   }
 
-  public String formatAsGpx()
+  public String formatAsGpx( RoutingContext rc )
   {
     try
     {
       StringWriter sw = new StringWriter( 8192 );
       BufferedWriter bw = new BufferedWriter( sw );
-      formatAsGpx( bw );
+      formatAsGpx( bw, rc );
       bw.close();
       return sw.toString();
     }
@@ -397,7 +397,7 @@ public final class OsmTrack
     }
   }
 
-  public String formatAsGpx( BufferedWriter sb ) throws IOException
+  public String formatAsGpx( BufferedWriter sb, RoutingContext rc ) throws IOException
   {
     int turnInstructionMode = voiceHints != null ? voiceHints.turnInstructionMode : 0;
 
@@ -440,6 +440,80 @@ public final class OsmTrack
     {
       sb.append( " creator=\"BRouter-1.5.5\" version=\"1.1\">\n" );
     }
+
+
+    sb.append( " <metadata>\n" )
+      .append( "  <link>lonlats=" );
+    for( int i=0; i<=matchedWaypoints.size() - 1; i++ )
+    {
+      sb.append( formatILon( matchedWaypoints.get(i).waypoint.ilon ) ).append( "," )
+        .append( formatILat( matchedWaypoints.get(i).waypoint.ilat ) );
+      sb.append( ";" );
+    }
+    sb.append( "&amp;nogos=" );
+    if ( rc.nogopoints != null )
+    {
+      for( int i=0; i<=rc.nogopoints.size() - 1; i++ )
+      {
+        OsmNodeNamed nogo = rc.nogopoints.get(i);
+        if (!(nogo instanceof OsmNogoPolygon)) {  // nogo is a circle
+          sb.append( formatILon( nogo.ilon ) ).append( "," )
+            .append( formatILat( nogo.ilat ) ).append( "," )
+            .append( format1( nogo.radius ) );
+          if( !Double.isNaN(nogo.nogoWeight) )
+          {
+            sb.append( "," ).append( format1( nogo.nogoWeight ) );
+          }
+          sb.append( ";" );
+        }
+      }
+      sb.append( "&amp;polylines=" );
+      for( int i=0; i<=rc.nogopoints.size() - 1; i++ )
+      {
+        OsmNodeNamed nogo = rc.nogopoints.get(i);
+        if ((nogo instanceof OsmNogoPolygon) && !((OsmNogoPolygon) nogo).isClosed) {  // nogo is a polyline
+          OsmNogoPolygon nogoPolygon = (OsmNogoPolygon) nogo;
+          for( int j=0; j<=nogoPolygon.points.size() - 1; j++ )
+          {
+            sb.append( formatILon( nogoPolygon.points.get(j).x ) ).append( "," )
+              .append( formatILat( nogoPolygon.points.get(j).y ) );
+            if (j < nogoPolygon.points.size() - 1) {
+              sb.append( "," );
+            }
+          }
+          if( !Double.isNaN(nogo.nogoWeight) )
+          {
+            sb.append( "," ).append( format1( nogo.nogoWeight ) );
+          }
+          sb.append( ";" );
+        }
+      }
+      sb.append( "&amp;polygons=" );
+      for( int i=0; i<=rc.nogopoints.size() - 1; i++ )
+      {
+        OsmNodeNamed nogo = rc.nogopoints.get(i);
+        if ((nogo instanceof OsmNogoPolygon) && ((OsmNogoPolygon) nogo).isClosed) {  // nogo is a polygon
+          OsmNogoPolygon nogoPolygon = (OsmNogoPolygon) nogo;
+          for( int j=0; j<=nogoPolygon.points.size() - 1; j++ )
+          {
+            sb.append( formatILon( nogoPolygon.points.get(j).x ) ).append( "," )
+              .append( formatILat( nogoPolygon.points.get(j).y ) );
+            if (j < nogoPolygon.points.size() - 1) {
+              sb.append( "," );
+            }
+          }
+          if( !Double.isNaN(nogo.nogoWeight) )
+          {
+            sb.append( "," ).append( format1( nogo.nogoWeight ) );
+          }
+          sb.append( ";" );
+        }
+      }
+    }
+    sb.append( "&amp;profile=" ).append( rc.getProfileName() );
+    sb.append( "&amp;alternativeidx=" ).append( Integer.toString( rc.alternativeIdx ) );
+    sb.append( "</link>\n" );
+    sb.append( " </metadata>\n" );
 
     if ( turnInstructionMode == 3) // osmand style
     {

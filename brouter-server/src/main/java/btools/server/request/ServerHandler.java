@@ -126,7 +126,7 @@ public class ServerHandler extends RequestHandler {
 
     if (format == null || "gpx".equals(format))
     {
-      result = track.formatAsGpx();
+      result = track.formatAsGpx( rc );
     }
     else if ("kml".equals(format))
     {
@@ -152,7 +152,7 @@ public class ServerHandler extends RequestHandler {
     }
     else {
       System.out.println("unknown track format '" + format + "', using default");
-      result = track.formatAsGpx();
+      result = track.formatAsGpx( rc );
     }
 
     return result;
