@@ -1,6 +1,19 @@
 #!/bin/bash
 set -e
-wget -N http://planet.openstreetmap.org/pbf/planet-latest.osm.pbf
+cd "$(dirname "$0")"
+
+# Fetch OSM planet dump if no planet file is specified
+if [ -z "$PLANET_FILE" ]; then
+    if [ -x "$(command -v osmupdate)" ] && [[ -f "./planet-latest.osm.pbf" ]]; then
+        # Prefer running osmupdate to update the planet file if available
+        mv "./planet-latest.osm.pbf" "./planet-latest.old.osm.pbf"
+        osmupdate "planet-latest.old.osm.pbf" "./planet-latest.osm.pbf"
+        rm "./planet-latest.old.osm.pbf"
+    else
+        # Otherwise, download it again
+        wget -N http://planet.openstreetmap.org/pbf/planet-latest.osm.pbf
+    fi
+fi
 
 if test lastmaprun.date -nt planet-latest.osm.pbf; then
    echo "no osm update, exiting"
@@ -20,7 +33,7 @@ OSMOSIS_JAR=$(realpath "../../pbfparser/osmosis.jar")
 PROTOBUF_JAR=$(realpath "../../pbfparser/protobuf.jar")
 PBFPARSER_JAR=$(realpath "../../pbfparser/pbfparser.jar")
 
-PLANET_FILE=$(realpath "./planet-latest.osm.pbf")
+PLANET_FILE=${PLANET_FILE:-$(realpath "./planet-latest.osm.pbf")}
 # Download SRTM zip files from
 # https://cgiarcsi.community/data/srtm-90m-digital-elevation-database-v4-1/
 # (use the "ArcInfo ASCII" version) and put the ZIP files directly in this
