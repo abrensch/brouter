@@ -91,6 +91,7 @@ public final class MicroCache2 extends MicroCache
       if ( featureId == 13 )
       {
         fapos[n] = aboffset;
+        validBits[ n >> 5 ] |= 1 << n; // mark dummy-node valid
         continue; // empty node escape (delta files only)
       }
       while( featureId != 0 )
