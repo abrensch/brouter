@@ -30,8 +30,10 @@ final public class Rd5DiffTool
     
     int nodesTotal = 0;
     int nodesDiff = 0;
+    int diffedTiles = 0;
     
     long bytesDiff = 0L;
+    long diffedTileSize = 0L;
 
     PhysicalFile pf1 = null;
     PhysicalFile pf2 = null;
@@ -67,11 +69,6 @@ final public class Rd5DiffTool
               
               nodesTotal += mc2.getSize();
               
-              if ( latIdx == 15 )
-              {
-                // System.out.println( "hier!" );
-              }
-              
               if ( mc.getSize() > 0 )
               {
                  int len = mc.encodeMicroCache( abBuf1 );
@@ -80,20 +77,37 @@ final public class Rd5DiffTool
 
                  bytesDiff += len;
                  nodesDiff += mc.getSize();
+                 diffedTiles++;
+                 diffedTileSize += mc2.size();
                  
-                 // cross-check the encoding: re-instantiate the cache
+                 // cross-check the encoding: decode again
                  MicroCache mcCheck = new MicroCache2( new StatCoderContext( bytes ), new DataBuffers( null ), lonIdxDiv, latIdxDiv, div, null, null );
-
-                 // ..and check if still the same
+                 
+                 // due to link-order ambiguity, for decoded we can only compare node-count and datasize
                  if ( mc.size() != mcCheck.size() )
                  {
-                   // mc.compareWith finds link-ordering differences,
-                   // so we compare only if there's also a size missmatch...
+                   throw new IllegalArgumentException( "re-decoded data-size mismatch!" );
+                 }
+                 if ( mc.getSize() != mcCheck.getSize() )
+                 {
+                   throw new IllegalArgumentException( "re-decoded node-count mismatch!" );
+                 }
                  
-                   String diffMessage = mc.compareWith( mcCheck );
-                   if ( diffMessage != null )
+                 // .... so re-encode again
+                 int len2 = mcCheck.encodeMicroCache( abBuf1 );
+                 byte[] bytes2 = new byte[len2];
+                 System.arraycopy( abBuf1, 0, bytes2, 0, len2 );
+                 
+                 // and here we can compare byte-by-byte
+                 if ( len != len2 )
+                 {
+                   throw new IllegalArgumentException( "decoded size mismatch!" );
+                 }
+                 for( int i=0; i<len; i++ )
+                 {
+                   if ( bytes[i] != bytes2[i] )
                    {
-                     throw new RuntimeException( "files differ: " + diffMessage );
+                     throw new IllegalArgumentException( "decoded data mismatch at i=" + i );
                    }
                  }
               }
@@ -101,7 +115,7 @@ final public class Rd5DiffTool
           }
         }
       }
-      System.out.println( "nodesTotal=" + nodesTotal + " nodesDiff=" + nodesDiff + " bytesDiff=" + bytesDiff );
+      System.out.println( "nodesTotal=" + nodesTotal + " nodesDiff=" + nodesDiff + " bytesDiff=" + bytesDiff + " diffedTiles=" + diffedTiles + " diffedTileSize=" + diffedTileSize );
     }
     finally
     {
