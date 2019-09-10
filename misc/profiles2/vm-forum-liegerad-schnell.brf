@@ -15,7 +15,7 @@ assign low_memory_cutoff = false # mit true werden Wege mit hohen Kosten aus der
 
 assign turnInstructionMode 1 #Ausgabe von Abiegehinweise 0=keine, 1=automatische Wahl, 2=locus-Style, 3=osmand-Style
 assign turnInstructionCatchingRange 20 # innerhalb dieser Strecke werden mehrere Abiegehinweise zu einem zusammengefasst und die Abiegewinkel werden besser an die generelle Richtung angenähert
-assign turnInstructionRoundabouts true # mit "false" werden keine speziellen Abiegehinweise für den Kreisverkehr generiert 
+assign turnInstructionRoundabouts true # mit "false" werden keine speziellen Abiegehinweise für den Kreisverkehr generiert
 
 assign downhillcost 80 # Kosten für die Höhenmeter bergab
 assign downhillcutoff 0.1 # Gefälle unter diesem Wert in Prozent werden nicht gewertet
@@ -50,12 +50,12 @@ assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route
 assign nodeaccessgranted or any_cycleroute lcn=yes
 
 assign cycleway
- or highway=cycleway and highway=path|footway bicycle=designated|yes
+ or bicycle_road=yes or highway=cycleway and highway=path|footway bicycle=designated|yes
 
 assign footway
  or highway=footway and highway=path foot=designated|yes
 
-assign turncost 
+assign turncost
  switch junction=roundabout 0
  150 # Kosten die für eine 90 Grad Abbiegung berechnet werden. Für kleinere Winkel werden sie mit turncost*cos(Winkel) berechnet, bei Kreisverkehr keine weitere Kosten
 
@@ -99,8 +99,10 @@ assign defaultaccess
 assign bikeaccess
  or any_cycleroute
  switch bicycle=
-  switch vehicle=
-   defaultaccess
+  switch bicycle_road=yes
+    1
+    switch vehicle=
+     defaultaccess
   switch or vehicle=private vehicle=no
    0
   1
@@ -157,7 +159,7 @@ assign maxspeed_backward
   switch maxspeed:backward=rural 100
   0
 
-assign maxspeed 
+assign maxspeed
   switch and reversedirection=yes maxspeed_backward maxspeed_backward
   switch and not reversedirection=yes maxspeed_forward maxspeed_forward
   switch maxspeed=50 50
@@ -203,7 +205,7 @@ assign upspeedpenalty
 
 assign surfacepenalty
  add switch embedded_rails=tram|yes|rail 10 # Zusatzkosten bei Schienen in der Fahrbahn
- 0 
+ 0
  switch surface=asphalt|paved 0 #Zusatzkosten für Teer oder versiegelte Flächen
  switch concrete=plates 1 # Zusatzkosten für Betonplattenwege
  switch concrete=lanes  2 # Zusatzkosten für Betonspurplatten
@@ -253,7 +255,7 @@ assign costfactor
   switch tracktype=grade5 add lmc 50 # Kosten für kaum erkennbare Feldwege
   add lmc 20 # Kosten für Feldwege ohne Oberflächenangabe
  switch cycleway 1.3 # Kosten für Fahrradwege
- switch highway=living_street 4 # Kosten für Spielstraßen
+ switch ( or highway=living_street living_street=yes ) 4 # Kosten für Spielstraßen
  switch highway=road 7 # Kosten für noch nicht genauer beschriebene Straße
  switch footway 15 # Kosten für Fußwege
  switch highway=pedestrian 20 # Kosten für Gehwege
@@ -296,13 +298,13 @@ assign uphillcostfactor
   switch tracktype=grade5 add lmc 50
   add lmc 20
  switch cycleway 1
- switch highway=living_street 2.5
+ switch ( or highway=living_street living_street=yes ) 2.5
  switch highway=road 5
  switch footway 15
  switch highway=pedestrian 20
  switch highway=steps 30
  switch highway=path
-  switch surface= add lmc 30 
+  switch surface= add lmc 30
   1
  switch highway=bridleway add lmc 80
  add lmc 20
@@ -339,13 +341,13 @@ assign downhillcostfactor
   switch tracktype=grade5 add lmc 50
   add lmc 20
  switch cycleway 2
- switch highway=living_street 8
+ switch ( or highway=living_street living_street=yes ) 8
  switch highway=road 10
  switch footway 20
  switch highway=pedestrian 30
  switch highway=steps 40
  switch highway=path
-  switch surface= add lmc 40 
+  switch surface= add lmc 40
   2
  switch highway=bridleway add lmc 80
  add lmc 20
@@ -355,25 +357,25 @@ assign downhillcostfactor
 
 assign priorityclassifier =
 
- if   ( highway=motorway         ) then 30
- else if ( highway=motorway_link       ) then 29
- else if ( highway=trunk           ) then 28
- else if ( highway=trunk_link        ) then 27
- else if ( highway=primary          ) then 26
- else if ( highway=primary_link       ) then 25
- else if ( highway=secondary         ) then 24
- else if ( highway=secondary_link      ) then 23
- else if ( highway=tertiary         ) then 22
- else if ( highway=tertiary_link       ) then 21
- else if ( highway=unclassified       ) then 20
- else if ( highway=residential|living_street ) then 6
- else if ( highway=service          ) then 6
- else if ( highway=cycleway         ) then 6
- else if ( bicycle=designated        ) then 6
- else if ( highway=track           ) then if tracktype=grade1 then 6 else 4
- else if ( highway=bridleway|road|path|footway ) then 4
- else if ( highway=steps           ) then 2
- else if ( highway=pedestrian        ) then 2
+ if   ( highway=motorway                                          ) then 30
+ else if ( highway=motorway_link                                  ) then 29
+ else if ( highway=trunk                                          ) then 28
+ else if ( highway=trunk_link                                     ) then 27
+ else if ( highway=primary                                        ) then 26
+ else if ( highway=primary_link                                   ) then 25
+ else if ( highway=secondary                                      ) then 24
+ else if ( highway=secondary_link                                 ) then 23
+ else if ( highway=tertiary                                       ) then 22
+ else if ( highway=tertiary_link                                  ) then 21
+ else if ( highway=unclassified                                   ) then 20
+ else if ( or highway=residential|living_street living_street=yes ) then 6
+ else if ( highway=service                                        ) then 6
+ else if ( highway=cycleway                                       ) then 6
+ else if ( or bicycle=designated bicycle_road=yes                 ) then 6
+ else if ( highway=track                                          ) then if tracktype=grade1 then 6 else 4
+ else if ( highway=bridleway|road|path|footway                    ) then 4
+ else if ( highway=steps                                          ) then 2
+ else if ( highway=pedestrian                                     ) then 2
  else 0
 
 
@@ -384,7 +386,7 @@ assign isgoodoneway = if reversedirection=yes then oneway=-1
 assign isroundabout = junction=roundabout
 assign islinktype = highway=motorway_link|trunk_link|primary_link|secondary_link|tertiary_link
 assign isgoodforcars = if greater priorityclassifier 6 then true
-         else if highway=residential|living_street|service then true
+         else if ( or highway=residential|living_street|service living_street=yes ) then true
          else if ( and highway=track tracktype=grade1 ) then true
          else false
 
@@ -435,7 +437,7 @@ assign initialcost
   switch railway=crossing|level_crossing 200 # Kosten für Bahnübergang
   0
  switch bikeaccess
-  0 
+  0
  switch footaccess
   10000 # Kosten fürs Absteigen
  1000000 #Kosten für verbotene oder private Wege

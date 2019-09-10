@@ -1,5 +1,5 @@
 ---lookupversion:10
----minorversion:11
+---minorversion:13
 
 ---context:way
 
@@ -634,6 +634,14 @@ embedded_rails;0000000928 tram
 embedded_rails;0000000007 yes
 embedded_rails;0000000003 rail
 
+living_street;0000000404 yes
+
+sidewalk:bicycle;0000000439 yes designated
+sidewalk:left:bicycle;0000001722 yes designated
+sidewalk:right:bicycle;0000002667 yes designated
+
+bicycle_road;0000006521 yes designated
+
 ---context:node
 
 highway;0001314954 bus_stop
@@ -879,3 +887,11 @@ traffic_calming;0000000186 dip
 
 ford;0000037927 yes
 ford;0000000310 stepping_stones
+
+direction;0000274642 forward
+direction;0000249637 backward
+direction;0000021634 both
+
+traffic_signals:direction;0000062645 forward
+traffic_signals:direction;0000033961 backward
+traffic_signals:direction;0000007309 both

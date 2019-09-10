@@ -4,7 +4,7 @@
 # to fallback to this one.
 #
 # Structure is similar to trekking.brf, see this for documenation.
-# 
+#
 
 ---context:global   # following code refers to global config
 
@@ -48,7 +48,8 @@ assign bikeaccess =
        if any_cycleroute then true
        else if bicycle= then
        (
-         if vehicle= then
+         if bicycle_road=yes then true
+         else if vehicle= then
          (
            if access= then not or motorroad=yes highway=footway
            else if access=private|no then false
@@ -114,7 +115,7 @@ assign trafficpenalty0 =
     (
       if      estimated_traffic_class=4 then 0.2
       else if estimated_traffic_class=5 then 0.4
-      else if estimated_traffic_class=6|7 then 0.6 
+      else if estimated_traffic_class=6|7 then 0.6
       else 0
     )
     else if highway=secondary|secondary_link then
@@ -139,6 +140,8 @@ assign trafficpenalty =
   if hascycleway then min 0.3 trafficpenalty0
   else trafficpenalty0
 
+assign isresidentialorliving = or highway=residential|living_street living_street=yes
+
 assign costfactor
 
   switch and highway= not route=ferry  10000
@@ -159,7 +162,7 @@ assign costfactor
   switch    route=ferry                               5.67
   switch    highway=bridleway                         5
   switch    highway=cycleway|footway                  1.3
-  switch or highway=residential highway=living_street switch isunpaved 10 1.2
+  switch    isresidentialorliving switch isunpaved 10 1.2
   switch    highway=service                           switch isunpaved 10 1.2
   switch or highway=track or highway=road or highway=path highway=footway
    switch tracktype=grade1 switch isunpaved 3 1.2
@@ -167,7 +170,7 @@ assign costfactor
    switch tracktype=grade3 10.0
    switch tracktype=grade4 20.0
    switch tracktype=grade5 30.0
-   switch bicycle=designated 1.3
+   switch or bicycle=designated bicycle_road=yes 1.3
    switch ispaved 2.0 100.0
    10.0
 
@@ -175,25 +178,25 @@ assign costfactor
 
 assign priorityclassifier =
 
-  if      ( highway=motorway                  ) then  30
-  else if ( highway=motorway_link             ) then  29
-  else if ( highway=trunk                     ) then  28
-  else if ( highway=trunk_link                ) then  27
-  else if ( highway=primary                   ) then  26
-  else if ( highway=primary_link              ) then  25
-  else if ( highway=secondary                 ) then  24
-  else if ( highway=secondary_link            ) then  23
-  else if ( highway=tertiary                  ) then  22
-  else if ( highway=tertiary_link             ) then  21
-  else if ( highway=unclassified              ) then  20
-  else if ( highway=residential|living_street ) then  6
-  else if ( highway=service                   ) then  6
-  else if ( highway=cycleway                  ) then  6
-  else if ( bicycle=designated                ) then  6
-  else if ( highway=track                     ) then if tracktype=grade1 then 6 else 4
-  else if ( highway=bridleway|road|path|footway ) then  4
-  else if ( highway=steps                     ) then  2
-  else if ( highway=pedestrian                ) then  2
+  if      ( highway=motorway                       ) then  30
+  else if ( highway=motorway_link                  ) then  29
+  else if ( highway=trunk                          ) then  28
+  else if ( highway=trunk_link                     ) then  27
+  else if ( highway=primary                        ) then  26
+  else if ( highway=primary_link                   ) then  25
+  else if ( highway=secondary                      ) then  24
+  else if ( highway=secondary_link                 ) then  23
+  else if ( highway=tertiary                       ) then  22
+  else if ( highway=tertiary_link                  ) then  21
+  else if ( highway=unclassified                   ) then  20
+  else if ( isresidentialorliving                  ) then  6
+  else if ( highway=service                        ) then  6
+  else if ( highway=cycleway                       ) then  6
+  else if ( or bicycle=designated bicycle_road=yes ) then  6
+  else if ( highway=track                          ) then if tracktype=grade1 then 6 else 4
+  else if ( highway=bridleway|road|path|footway    ) then  4
+  else if ( highway=steps                          ) then  2
+  else if ( highway=pedestrian                     ) then  2
   else 0
 
 
@@ -205,7 +208,7 @@ assign isgoodoneway = if reversedirection=yes then oneway=-1
 assign isroundabout = junction=roundabout
 assign islinktype = highway=motorway_link|trunk_link|primary_link|secondary_link|tertiary_link
 assign isgoodforcars = if greater priorityclassifier 6 then true
-                  else if highway=residential|living_street|service then true
+                  else if ( or isresidentialorliving highway=service ) then true
                   else if ( and highway=track tracktype=grade1 ) then true
                   else false
 
@@ -240,7 +243,7 @@ assign footaccess
 
 assign initialcost
        switch bikeaccess
-              0 
+              0
               switch footaccess
                      300
                      1000000
