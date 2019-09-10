@@ -62,6 +62,11 @@ public final class TagValueCoder
   {
     if ( ++pass == 3 )
     {
+      if ( identityMap.size() == 0 )
+      {
+        TagValueSet dummy = new TagValueSet();
+        identityMap.put( dummy, dummy );
+      }
       PriorityQueue<TagValueSet> queue = new PriorityQueue<TagValueSet>(2*identityMap.size(), new TagValueSet.FrequencyComparator());
       queue.addAll(identityMap.values());
       while (queue.size() > 1)

@@ -87,10 +87,15 @@ public final class MicroCache2 extends MicroCache
     
       // future escapes (turn restrictions?)
       short trExceptions = 0;
-      for(;;)
+      int featureId = bc.decodeVarBits();
+      if ( featureId == 13 )
       {
-        int featureId = bc.decodeVarBits();
-        if ( featureId == 0 ) break;
+        fapos[n] = aboffset;
+        validBits[ n >> 5 ] |= 1 << n; // mark dummy-node valid
+        continue; // empty node escape (delta files only)
+      }
+      while( featureId != 0 )
+      {
         int bitsize = bc.decodeNoisyNumber( 5 );
 
         if ( featureId == 2 ) // exceptions to turn-restriction
@@ -113,6 +118,7 @@ public final class MicroCache2 extends MicroCache
         {
           for( int i=0; i< bitsize; i++ ) bc.decodeBit(); // unknown feature, just skip
         }
+        featureId = bc.decodeVarBits();
       }
       writeBoolean( false );
 
@@ -147,7 +153,8 @@ public final class MicroCache2 extends MicroCache
 
         TagValueWrapper wayTags = wayTagCoder.decodeTagValueSet();
 
-        if ( wayTags != null )
+        boolean linkValid = wayTags != null || wayValidator == null;
+        if ( linkValid )
         {
           int startPointer = aboffset;
           sizeoffset = writeSizePlaceHolder();
@@ -162,7 +169,7 @@ public final class MicroCache2 extends MicroCache
             finaldatasize += 1 + aboffset-startPointer; // reserve place for reverse
             validBits[ nodeIdx >> 5 ] |= 1 << nodeIdx; // mark target-node valid
           }
-          writeModeAndDesc( isReverse, wayTags.data );
+          writeModeAndDesc( isReverse, wayTags == null ? null : wayTags.data );
         }
 
         if ( !isReverse ) // write geometry for forward links only
@@ -200,7 +207,7 @@ public final class MicroCache2 extends MicroCache
           }
           if ( matcher != null ) matcher.end();
         }
-        if ( wayTags != null )
+        if ( linkValid )
         {
           injectSize( sizeoffset );
         }
@@ -375,6 +382,12 @@ public final class MicroCache2 extends MicroCache
         int ilon = (int)(id64 >> 32);
         int ilat = (int)(id64 & 0xffffffff);
 
+        if ( aboffset == aboffsetEnd )
+        {
+          bc.encodeVarBits( 13 ); // empty node escape (delta files only)
+          continue;
+        }
+
         // write turn restrictions
         while( readBoolean() )
         {
@@ -430,7 +443,10 @@ public final class MicroCache2 extends MicroCache
             readFully( description );
           }
    
-          boolean isInternal = isInternal( ilonlink, ilatlink );
+          long link64 = ((long)ilonlink)<<32 | ilatlink;
+          Integer idx = idMap.get( Long.valueOf( link64 ) );
+          boolean isInternal = idx != null;
+
           if ( isReverse && isInternal )
           {
             if ( dodebug ) System.out.println( "*** NOT encoding link reverse=" + isReverse + " internal=" +  isInternal );
@@ -442,9 +458,6 @@ public final class MicroCache2 extends MicroCache
    
           if ( isInternal )
           {
-            long link64 = ((long)ilonlink)<<32 | ilatlink;
-            Integer idx = idMap.get( Long.valueOf( link64 ) );
-            if ( idx == null ) throw new RuntimeException( "ups: internal not found?" );
             int nodeIdx = idx.intValue();
             if ( dodebug ) System.out.println( "*** target nodeIdx=" + nodeIdx  );
             if ( nodeIdx == n ) throw new RuntimeException( "ups: self ref?" );
