@@ -37,13 +37,8 @@ assign classifier_ferry       = 2
 
 ---context:way   # following code refers to way-tags
 
-assign is_avoided_toll_road 
-    and  avoid_toll toll=yes
-    
-assign ispaved surface=paved|asphalt|concrete|paving_stones
-assign isunpaved not or surface= or ispaved or surface=fine_gravel surface=cobblestone
-assign is_avoided_unpaved and avoid_unpaved isunpaved
-assign is_avoided_motorway and avoid_motorways highway=motorway
+assign is_avoided_toll_road and  avoid_toll toll=yes
+assign is_avoided_motorway and avoid_motorways highway=motorway|motorway_link
 
     
 #
@@ -107,12 +102,13 @@ assign islinktype = highway=motorway_link|trunk_link|primary_link|secondary_link
 assign maxspeed_surface =
   switch or surface= surface=paved|asphalt|concrete 999
   switch surface=paving_stones|cobblestone|sett 30
-  2
+  switch surface=fine_gravel ( switch avoid_unpaved 3 10 )
+  switch avoid_unpaved 1 2
 
 assign maxspeed_tracktype =
   switch tracktype= 999
   switch tracktype=grade1 40
-  switch tracktype=grade2 5
+  switch tracktype=grade2 ( switch avoid_unpaved 2 5 )
   1
 
 assign maxspeed_implicit =
@@ -186,10 +182,8 @@ assign maxspeed_explicit =
   if reversedirection=yes then maxspeed_backward else maxspeed_forward
 
 assign maxspeed =
-  if or is_avoided_toll_road
-        is_avoided_motorway  then 0
-  else if is_avoided_unpaved then 4
-  else
+  min if is_avoided_toll_road then 0 else 999
+  min if is_avoided_motorway then 0 else 999
   min onewayspeedlimit
   min accessspeedlimit
   min maxspeed_explicit
