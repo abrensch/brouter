@@ -302,7 +302,7 @@ assign bikeaccess =
          if vehicle= then defaultaccess
          else not vehicle=private|no
        )
-       else not bicycle=private|no|dismount
+       else not bicycle=private|no|dismount|use_sidepath
 
 assign footaccess =
        if bicycle=dismount then true

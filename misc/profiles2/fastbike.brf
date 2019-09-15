@@ -65,7 +65,7 @@ assign bikeaccess
                            switch or vehicle=private vehicle=no
                                   0
                                   1
-                 not or bicycle=private or bicycle=no bicycle=dismount
+                 not or bicycle=private|no|dismount|use_sidepath
 
 #
 # calculate logical foot access
