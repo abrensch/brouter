@@ -247,6 +247,13 @@ Technical constraints
   (way-)costfactor, and >=1000000. for a nodes "initalcost" are treated
   as infinity, so please use these as the "forbidden" values.
 
+- Ways with costfactor >= 10000 are considered as if they did not exist at all.
+
+- Ways with costfactor = 9999 are considered as 
+      if they did not exist, but only during route calculation.
+      The navigation hint generator takes them into account.
+
+
 
 Developing and debugging scripts
 --------------------------------
