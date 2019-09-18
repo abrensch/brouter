@@ -86,6 +86,14 @@ the routing engine:
    - turnInstructionCatchingRange  default 40m
    - turnInstructionRoundabouts     default=true=generate explicit roundabout hints
 
+  - variables to modify BRouter behaviour
+  
+   - processUnusedTags
+         default is false. If an OSM tag is unused
+         within the profile, BRouter totallgy ignores tag existence
+         what increases BRouter speed. As sidedgjv effect, the tag is not even listed
+         in the route segment table nor the table exported as CSV.
+
 - for the way section these are
 
   - turncost
@@ -95,6 +103,7 @@ the routing engine:
   - downhillcostfactor
   - nodeaccessgranted
   - initialclassifier
+  - priorityclassifier
 
 - for the node section this is just
 
@@ -203,6 +212,24 @@ to adding the value of "initialcost".
 For backward compatibility, if "initialclassifier"  = 0, it is replaced
 by the costfactor.
 
+The priority classifier
+-----------------------
+
+Priorityclassifier is a BRouter numerical parameter
+calculated for ways and used for generation of pictogram/voice navigation instructions. 
+
+Higher values means the more significant(noticable) way,
+AFA it can be predicted from OSM data. 
+
+To avoid navigation instruction flood, it was decided 
+the instructions are provided only if:
+
+1/ You are supposed to turn at a crossroad/junction 
+    and some other ways have the same or higher Priorityclassifier value.
+OR
+2/ You are supposed to go straight ahead
+    and some other ways have the higher Priorityclassifier value.
+
 
 Technical constraints
 ---------------------
@@ -271,3 +298,10 @@ and that values are only appended at the end of the value lists.
 This is because the routing data files adress tags and values
 by their sequence numbers, so changing sequences would produce
 garbage data.
+
+Other resources
+---------------
+
+See https://github.com/poutnikl/Brouter-profiles/wiki/Glossary
+as a complementary inofficial source
+about various profile internals.
