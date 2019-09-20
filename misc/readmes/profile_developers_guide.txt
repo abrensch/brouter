@@ -96,10 +96,13 @@ the routing engine:
   - variables to modify BRouter behaviour
   
    - processUnusedTags  ( default is false )
-         If an OSM tag is unused within the profile, BRouter totally ignores the tag existence
-         what increases BRouter speed. As a side effect, the tag is not even listed
-         in the route segment table nor the table exported as CSV. Setting it to true/1,
-         Brouter-web Data page listed all tags present in the RD5 file.
+         If an OSM tag is unused within the profile,
+         BRouter totally ignores the tag existence.
+         Skipping unused tags improves BRouter speed.
+         As a side effect, the tag is not even listed
+         in the route segment table nor the table exported as CSV.
+         Setting it to true/1, Brouter-web Data page will list
+         all tags present in the RD5 file.
 
 - for the way section these are
 
@@ -217,7 +220,7 @@ To trigger the addition of the "initialcost", another variable is used:
 "initialclassifier" - any change in the value of that variable leads
 to adding the value of "initialcost". 
 
-An useful case may be an initial cost four mounting/dismounting a bicycle, 
+A useful case may be an initial cost for bicycle mounting/dismounting, 
 having set an initialclassifier for ways without bicycle access, with high initialcost.
 For backward compatibility, if "initialclassifier"  = 0, it is replaced
 by the costfactor.
@@ -228,7 +231,7 @@ The priority classifier
 Priorityclassifier is a BRouter numerical parameter
 calculated for ways and used for generation of pictogram/voice navigation instructions. 
 
-Higher values means the more significant(noticable) way,
+Higher values means the more significant(noticeable) way,
 AFA it can be predicted from OSM data. 
 
 To avoid navigation instruction flood, it was decided 
@@ -342,7 +345,7 @@ or set up a local installation.
 BRouter-Web has a window at the lower left corner with a "Profile"
 and a "Data" tab. Here, you can upload profile scripts and see
 the individual cost calculations per way-section in the "Data"-tab.
-Activate eventually for the provile debugging "assign processUnusedTags = true"
+Activate eventually for the profile debugging "assign processUnusedTags = true"
 to see on the Data tab all present OSM tags, not just those used in the tested profile.
 
 
@@ -390,6 +393,6 @@ Other resources
 ---------------
 
 See https://github.com/poutnikl/Brouter-profiles/wiki/Glossary
-as a complementary inofficial source
+as a complementary unofficial source
 about various profile internals.
 
