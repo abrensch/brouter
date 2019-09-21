@@ -1,12 +1,12 @@
 Profile developers guide - Technical reference
-for BRouter cost-function scripts
+for BRouter profile scripts
 ==============================================
 
 The tag-value lookup table
 --------------------------
 
 Within the routing data files (rd5), tag information
-is encoded in a binary bitfield for the way tags and
+is encoded in a binary bitstream for the way tags and
 the node tags each.
 
 To encode and decode to/from this bitfield, a lookup
@@ -22,12 +22,14 @@ Each value can have optional "aliases", these alias
 values are encoded into the same binary value as the
 associated primary value.
 
-A profile must use expresion tag=the_first_tagvalue_alias,
-as other alliases trigger an error. 
-E.g. if there is a line in lookups.dat file
-"bicycle;0001245560 yes allowed"
-a profile must use "bicycle=yes",
-as "bicycle=allowed gives an error".
+A profile must use expression the primary value, as
+aliases trigger a parse error.  E.g. if there is a line
+in lookups.dat file:
+
+bicycle;0001245560 yes allowed
+
+then a profile must use "bicycle=yes", as "bicycle=allowed"
+gives an error.
 
 The numbers in the lookup table are statistical
 information on the frequency of the values in the
@@ -43,10 +45,17 @@ as well as in the profile scripts for each context.
 The special tags: "---context:way" and "---context:node"
 mark the beginning of each section.
 
-The only exception from context separation is a single
-bit information "nodeaccessgranted" which is automatically
-carried from the way context to the terminating node
-of the way section.
+An exception from context separation is the node-context,
+where variables from the way-context of the originating
+way can be accessed using the "way:" prefix. For the
+variable nodeaccessgranted there's an additonal
+legacy-hack to access it as a loohup value without prefix:
+
+  if nodeaccessgranted=yes then ... 
+
+while in the genreal case the prefixed expressions are variables:
+  
+  if greater way:costfactor 5 then ...
 
 In the profile scripts there is a third context "global"
 which contains global configuration which is shared for
@@ -183,8 +192,8 @@ All expressions have one of the following basic forms:
   false-expression otherwise
 
 
-Syntactic Alternatives
-----------------------
+Syntactic Sugar
+---------------
 
 To improve the readablity of the profile-scripts, some syntactic variations
 are possible:
@@ -220,7 +229,10 @@ To trigger the addition of the "initialcost", another variable is used:
 "initialclassifier" - any change in the value of that variable leads
 to adding the value of "initialcost". 
 
-A useful case may be an initial cost for bicycle mounting/dismounting, 
+Initial cost is used typically for ferry, where you want to apply
+a penalty independent of the lenght of the ferry line
+
+Another useful case may be an initial cost for bicycle mounting/dismounting, 
 having set an initialclassifier for ways without bicycle access, with high initialcost.
 For backward compatibility, if "initialclassifier"  = 0, it is replaced
 by the costfactor.
@@ -362,24 +374,19 @@ A major version change is considered to always break compatibiliy
 between the routing datafiles and the lookup table.
 
 A minor version change keeps the routing data files and the lookup-table
-compatible in the following way:
+compatible in both directions, using the following rules:
 
-If the minor version from the routing data file is equal OR LARGER
-than the minor version in the lookup table, everything is o.k.
-This is the case, if you get updated data files, but don't update
-the lookup-table of your local installation.
+- if the data contains a key that is not contained in the lookup
+  tables, it is ignorned
 
-If the lookup-tables's minor version is larger than that in the the
-data files, you will get an error message.
+- if the data contains a value that is not contained in the lookup
+  tables (but it's key is known) that value is treated as "unknown"
 
-Note that for an update of the Android app, your local lookup-table is NOT
-replaced by the new version. The new lookup table is contained inside
-the APK, but is not automatically copied to your sd-card if there
-is already a local installation. This is to prevent invalidating
-your routing data files due to software updates. However, in order
-to make use of the new tags and values in a new software version, you
-have to delete (or rename) your "profiles2" directory, so the new
-content from the APK file is copied to the sd-card at next start.
+- if a profile uses a key that is not present in the data,
+  it sees empty (=unset) values for that key
+
+- if a profile uses a value that is not present in the data,
+  lookup matches for that value are always false.
 
 For a minor version change it is required that tags are only
 appended at the end of the table (or replace one of the dummy
@@ -393,6 +400,4 @@ Other resources
 ---------------
 
 See https://github.com/poutnikl/Brouter-profiles/wiki/Glossary
-as a complementary unofficial source
-about various profile internals.
-
+as a complementary source about various profile internals.
