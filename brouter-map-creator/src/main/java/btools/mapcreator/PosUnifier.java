@@ -108,6 +108,21 @@ public class PosUnifier extends MapCreatorBase
 
   private void findUniquePos( NodeData n )
   {
+    int lon = n.ilon;
+    int lat = n.ilat;
+    long pid = ( (long) lon ) << 32 | lat; // id from position
+    if ( !positionSet.contains( pid ) )
+    {
+      positionSet.fastAdd( pid );
+    }
+    else
+    {
+      _findUniquePos( n );
+    }
+  }
+
+  private void _findUniquePos( NodeData n )
+  {
     // fix the position for uniqueness
     int lonmod = n.ilon % 1000000;
     int londelta = lonmod < 500000 ? 1 : -1;

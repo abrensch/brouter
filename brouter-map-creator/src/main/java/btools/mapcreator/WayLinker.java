@@ -64,6 +64,8 @@ public class WayLinker extends MapCreatorBase
   private int divisor = 32;
   private int cellsize = 1000000 / divisor;
 
+  private boolean skipEncodingCheck;
+
   private void reset()
   {
     minLon = -1;
@@ -109,6 +111,8 @@ public class WayLinker extends MapCreatorBase
     creationTimeStamp = System.currentTimeMillis();
 
     abUnifier = new ByteArrayUnifier( 16384, false );
+
+    skipEncodingCheck = Boolean.getBoolean( "skipEncodingCheck" );
 
     // then process all segments
     new WayIterator( this, true ).processDir( wayTilesIn, ".wt5" );
@@ -433,7 +437,11 @@ public class WayLinker extends MapCreatorBase
                     int len = mc.encodeMicroCache( abBuf1 );
                     subBytes = new byte[len];
                     System.arraycopy( abBuf1, 0, subBytes, 0, len );
-
+                    
+                    if ( skipEncodingCheck )
+                    {
+                      break;
+                    }
                     // cross-check the encoding: re-instantiate the cache
                     MicroCache mc2 = new MicroCache2( new StatCoderContext( subBytes ), new DataBuffers( null ), lonIdxDiv, latIdxDiv, divisor, null, null );
                     // ..and check if still the same

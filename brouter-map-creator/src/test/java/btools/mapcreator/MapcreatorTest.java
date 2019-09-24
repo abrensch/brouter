@@ -15,58 +15,40 @@ public class MapcreatorTest
   {
     URL mapurl = this.getClass().getResource( "/dreieich.osm.gz" );
     Assert.assertTrue( "test-osm-map dreieich.osm not found", mapurl != null );
-    File mapfile = new File(mapurl.getFile());
-    File workingDir = mapfile.getParentFile();
+    File mapFile = new File(mapurl.getFile());
+    File workingDir = mapFile.getParentFile();
     File profileDir = new File( workingDir, "/../../../misc/profiles2" );
     File tmpdir = new File( workingDir, "tmp" );
     tmpdir.mkdir();
 
-    // run OsmCutter
-    File nodetiles = new File( tmpdir, "nodetiles" );
-    nodetiles.mkdir();
-    File lookupFile = new File( profileDir, "lookups.dat" );
-    File wayFile = new File( tmpdir, "ways.dat" );
-    File relFile = new File( tmpdir, "cycleways.dat" );
-    File resFile = new File( tmpdir, "restrictions.dat" );
-    File profileAllFile = new File( profileDir, "all.brf" );
-    new OsmCutter().process( lookupFile, nodetiles, wayFile, relFile, resFile, profileAllFile, mapfile );
-
-    // run NodeFilter
-    File ftiles = new File( tmpdir, "ftiles" );
-    ftiles.mkdir();
-    new NodeFilter().process( nodetiles, wayFile, ftiles );
-
-    // run RelationMerger
-    File wayFile2 = new File( tmpdir, "ways2.dat" );
-    File profileReport = new File( profileDir, "trekking.brf" );
-    File profileCheck = new File( profileDir, "softaccess.brf" );
-    new RelationMerger().process( wayFile, wayFile2, relFile, lookupFile, profileReport, profileCheck );
-
-    // run WayCutter
-    File waytiles = new File( tmpdir, "waytiles" );
-    waytiles.mkdir();
-    new WayCutter().process( ftiles, wayFile2, waytiles );
-
-    // run WayCutter5
-    File waytiles55 = new File( tmpdir, "waytiles55" );
-    File bordernids = new File( tmpdir, "bordernids.dat" );
-    waytiles55.mkdir();
-    new WayCutter5().process( ftiles, waytiles, waytiles55, bordernids );
-
-    // run NodeCutter
+    File nodes = new File( tmpdir, "nodetiles" );
+    nodes.mkdir();
+    File ways = new File( tmpdir, "waytiles" );
+    ways.mkdir();
     File nodes55 = new File( tmpdir, "nodes55" );
     nodes55.mkdir();
-    new NodeCutter().process( ftiles, nodes55 );
+    File ways55 = new File( tmpdir, "waytiles55" );
+    ways55.mkdir();
+    File lookupFile = new File( profileDir, "lookups.dat" );
+    File relFile = new File( tmpdir, "cycleways.dat" );
+    File resFile = new File( tmpdir, "restrictions.dat" );
+    File profileAll = new File( profileDir, "all.brf" );
+    File profileReport = new File( profileDir, "trekking.brf" );
+    File profileCheck = new File( profileDir, "softaccess.brf" );
+    File borderFile = new File( tmpdir, "bordernids.dat" );
+
+    new OsmFastCutter().doCut( lookupFile, nodes, ways, nodes55, ways55, borderFile, relFile, resFile, profileAll, profileReport, profileCheck, mapFile );
+
 
     // run PosUnifier
     File unodes55 = new File( tmpdir, "unodes55" );
     File bordernodes = new File( tmpdir, "bordernodes.dat" );
     unodes55.mkdir();
-    new PosUnifier().process( nodes55, unodes55, bordernids, bordernodes, "/private-backup/srtm" );
+    new PosUnifier().process( nodes55, unodes55, borderFile, bordernodes, "/private-backup/srtm" );
 
     // run WayLinker
     File segments = new File( tmpdir, "segments" );
     segments.mkdir();
-    new WayLinker().process( unodes55, waytiles55, bordernodes, resFile, lookupFile, profileAllFile, segments, "rd5" );
+    new WayLinker().process( unodes55, ways55, bordernodes, resFile, lookupFile, profileAll, segments, "rd5" );
   }
 }

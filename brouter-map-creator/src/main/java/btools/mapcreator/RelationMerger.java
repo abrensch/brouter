@@ -40,14 +40,14 @@ public class RelationMerger extends MapCreatorBase
     new RelationMerger().process( new File( args[0] ), new File( args[1] ), new File( args[2] ), new File( args[3] ), new File( args[4] ), new File( args[5] ) );
   }
 
-  public void process( File wayFileIn, File wayFileOut, File relationFileIn, File lookupFile, File reportProfile, File checkProfile ) throws Exception
+  public void init( File relationFileIn, File lookupFile, File reportProfile, File checkProfile ) throws Exception
   {
     // read lookup + profile for relation access-check
-	BExpressionMetaData metaReport = new BExpressionMetaData();
+  BExpressionMetaData metaReport = new BExpressionMetaData();
     expctxReport = new BExpressionContextWay( metaReport );
     metaReport.readMetaData( lookupFile );
 
-	BExpressionMetaData metaCheck = new BExpressionMetaData();
+  BExpressionMetaData metaCheck = new BExpressionMetaData();
     expctxCheck = new BExpressionContextWay( metaCheck );
     metaCheck.readMetaData( lookupFile );
 
@@ -106,6 +106,11 @@ public class RelationMerger extends MapCreatorBase
       routesets.put( key, routeset );
       System.out.println( "marked " + routeset.size() + " routes for key: " + key );
     }
+  }
+
+  public void process( File wayFileIn, File wayFileOut, File relationFileIn, File lookupFile, File reportProfile, File checkProfile ) throws Exception
+  {
+    init( relationFileIn, lookupFile, reportProfile, checkProfile );
 
     // *** finally process the way-file
     wayOutStream = createOutStream( wayFileOut );
@@ -151,8 +156,10 @@ public class RelationMerger extends MapCreatorBase
     	data.description = expctxReport.encode();
       }
     }
-
-    data.writeTo( wayOutStream );
+    if ( wayOutStream != null )
+    {
+      data.writeTo( wayOutStream );
+    }
   }
 
 }

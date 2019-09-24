@@ -33,12 +33,18 @@ public class NodeFilter extends MapCreatorBase
     new NodeFilter().process( new File( args[0] ), new File( args[1] ), new File( args[2] ) );
   }
 
+  public void init() throws Exception
+  {
+    nodebitmap = Boolean.getBoolean( "useDenseMaps" ) ? new DenseLongMap( 512 ) : new TinyDenseLongMap();
+  }
+
   public void process( File nodeTilesIn, File wayFileIn, File nodeTilesOut ) throws Exception
   {
+    init();
+  
     this.nodeTilesOut = nodeTilesOut;
 
     // read the wayfile into a bitmap of used nodes
-    nodebitmap = Boolean.getBoolean( "useDenseMaps" ) ? new DenseLongMap( 512 ) : new TinyDenseLongMap();
     new WayIterator( this, false ).processFile( wayFileIn );
 
     // finally filter all node files
@@ -59,7 +65,6 @@ public class NodeFilter extends MapCreatorBase
   public void nodeFileStart( File nodefile ) throws Exception
   {
     String filename = nodefile.getName();
-    filename = filename.substring( 0, filename.length() - 3 ) + "tlf"; 
     File outfile = new File( nodeTilesOut, filename );
     nodesOutStream = new DiffCoderDataOutputStream( new BufferedOutputStream ( new FileOutputStream( outfile ) ) );
   }
@@ -67,11 +72,16 @@ public class NodeFilter extends MapCreatorBase
   @Override
   public void nextNode( NodeData n ) throws Exception
   {
-    // check if node passes bitmap
-    if ( nodebitmap.getInt( n.nid ) == 0 ) // 0 -> bit set, -1 -> unset
+    if ( isRelevant( n ) )
     {
       n.writeTo( nodesOutStream );
     }
+  }
+
+  public boolean isRelevant( NodeData n )
+  {
+    // check if node passes bitmap
+    return nodebitmap.getInt( n.nid ) == 0; // 0 -> bit set, -1 -> unset
   }
 
   @Override

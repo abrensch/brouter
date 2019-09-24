@@ -13,7 +13,7 @@ public class NodeCutter extends MapCreatorBase
 {
   private int lonoffset;
   private int latoffset;
-
+  
   public static void main(String[] args) throws Exception
   {
     System.out.println("*** NodeCutter: Cut big node-tiles into 5x5 tiles");
@@ -25,9 +25,14 @@ public class NodeCutter extends MapCreatorBase
     new NodeCutter().process( new File( args[0] ), new File( args[1] ) );
   }
 
-  public void process( File nodeTilesIn, File nodeTilesOut ) throws Exception
+  public void init( File nodeTilesOut )
   {
     this.outTileDir = nodeTilesOut;
+  }
+
+  public void process( File nodeTilesIn, File nodeTilesOut ) throws Exception
+  {
+    init( nodeTilesOut );
 
     new NodeIterator( this, true ).processDir( nodeTilesIn, ".tlf" );
   }

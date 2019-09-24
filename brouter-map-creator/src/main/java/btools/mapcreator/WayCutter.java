@@ -31,14 +31,25 @@ public class WayCutter extends MapCreatorBase
 
   public void process( File nodeTilesIn, File wayFileIn, File wayTilesOut ) throws Exception
   {
-    this.outTileDir = wayTilesOut;
+    init( wayTilesOut );
 
-    // *** read all nodes into tileIndexMap
-    tileIndexMap = Boolean.getBoolean( "useDenseMaps" ) ? new DenseLongMap() : new TinyDenseLongMap();
     new NodeIterator( this, false ).processDir( nodeTilesIn, ".tlf" );
 
     // *** finally process the way-file, cutting into pieces
     new WayIterator( this, true ).processFile( wayFileIn );
+    finish();
+  }
+
+  public void init( File wayTilesOut ) throws Exception
+  {
+    this.outTileDir = wayTilesOut;
+
+    // *** read all nodes into tileIndexMap
+    tileIndexMap = Boolean.getBoolean( "useDenseMaps" ) ? new DenseLongMap() : new TinyDenseLongMap();
+  }
+
+  public void finish() throws Exception
+  {
     closeTileOutStreams();
   }
 
