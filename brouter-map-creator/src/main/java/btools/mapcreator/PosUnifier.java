@@ -25,7 +25,7 @@ public class PosUnifier extends MapCreatorBase
   private DiffCoderDataOutputStream nodesOutStream;
   private DiffCoderDataOutputStream borderNodesOut;
   private File nodeTilesOut;
-  private CompactLongSet positionSet;
+  private CompactLongSet[] positionSets;
 
   private HashMap<String, SrtmRaster> srtmmap;
   private int lastSrtmLonIdx;
@@ -82,7 +82,7 @@ public class PosUnifier extends MapCreatorBase
 
     nodesOutStream = createOutStream( fileFromTemplate( nodefile, nodeTilesOut, "u5d" ) );
 
-    positionSet = new CompactLongSet();
+    positionSets = new CompactLongSet[2500];
   }
 
   @Override
@@ -106,16 +106,29 @@ public class PosUnifier extends MapCreatorBase
     nodesOutStream.close();
   }
 
+  private boolean checkAdd( int lon, int lat )
+  {
+    int slot = ((lon%5000000)/100000)*50 + ((lat%5000000)/100000);    
+    long id = ( (long) lon ) << 32 | lat;
+    CompactLongSet set = positionSets[slot];
+    if ( set == null )
+    {
+      positionSets[slot] = set = new CompactLongSet();
+    }
+    if ( !set.contains( id ) )
+    {
+      set.fastAdd( id );
+      return true;
+    }
+    return false;
+  }
+      
+
+
+
   private void findUniquePos( NodeData n )
   {
-    int lon = n.ilon;
-    int lat = n.ilat;
-    long pid = ( (long) lon ) << 32 | lat; // id from position
-    if ( !positionSet.contains( pid ) )
-    {
-      positionSet.fastAdd( pid );
-    }
-    else
+    if ( !checkAdd( n.ilon, n.ilat ) )
     {
       _findUniquePos( n );
     }
@@ -134,10 +147,8 @@ public class PosUnifier extends MapCreatorBase
       {
         int lon = n.ilon + lonsteps * londelta;
         int lat = n.ilat + latsteps * latdelta;
-        long pid = ( (long) lon ) << 32 | lat; // id from position
-        if ( !positionSet.contains( pid ) )
+        if ( checkAdd( lon, lat ) )
         {
-          positionSet.fastAdd( pid );
           n.ilon = lon;
           n.ilat = lat;
           return;

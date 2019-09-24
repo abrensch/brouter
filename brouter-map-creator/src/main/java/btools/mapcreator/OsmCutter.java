@@ -141,10 +141,10 @@ public class OsmCutter extends MapCreatorBase
     if ( tileIndex >= 0 )
     {
       n.writeTo( getOutStreamForTile( tileIndex ) );
-    }
-    if ( wayCutter != null )
-    {
-      wayCutter.nextNode( n );
+      if ( wayCutter != null )
+      {
+        wayCutter.nextNode( n );
+      }
     }
   }
 
