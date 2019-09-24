@@ -22,6 +22,10 @@ public class WayCutter5 extends MapCreatorBase
   private int lonoffset;
   private int latoffset;
 
+  public RelationMerger relMerger;
+  public NodeFilter nodeFilter;
+  public NodeCutter nodeCutter;
+
   public static void main(String[] args) throws Exception
   {
     System.out.println("*** WayCutter5: Soft-Cut way-data into tiles");
@@ -50,12 +54,17 @@ public class WayCutter5 extends MapCreatorBase
   {
     // read corresponding node-file into tileIndexMap
     String name = wayfile.getName();
-    String nodefilename = name.substring( 0, name.length()-3 ) + "tlf";
+    String nodefilename = name.substring( 0, name.length()-3 ) + "ntl";
     File nodefile = new File( nodeTilesIn, nodefilename );
 
     tileIndexMap = Boolean.getBoolean( "useDenseMaps" ) ? new DenseLongMap() : new TinyDenseLongMap();
     lonoffset = -1;
     latoffset = -1;
+    
+    if ( nodeCutter != null )
+    {
+      nodeCutter.nodeFileStart( null );
+    }
     new NodeIterator( this, false ).processFile( nodefile );
     return true;
   }
@@ -63,6 +72,18 @@ public class WayCutter5 extends MapCreatorBase
   @Override
   public void nextNode( NodeData n ) throws Exception
   {
+    if ( nodeFilter != null )
+    {
+      if ( !nodeFilter.isRelevant( n ) )
+      {
+        return;
+      }
+    }
+    if ( nodeCutter != null )
+    {
+      nodeCutter.nextNode( n );
+    }
+  
     tileIndexMap.put( n.nid, getTileIndex( n.ilon, n.ilat ) );
   }
 
@@ -82,6 +103,11 @@ public class WayCutter5 extends MapCreatorBase
         waytileset |= ( 1L << tileIndex );
       }
       tiForNode[i] = tileIndex;
+    }
+    
+    if ( relMerger != null )
+    {
+      relMerger.nextWay( data );
     }
 
     // now write way to all tiles hit
@@ -112,6 +138,10 @@ public class WayCutter5 extends MapCreatorBase
   public void wayFileEnd( File wayFile ) throws Exception
   {
     closeTileOutStreams();
+    if ( nodeCutter != null )
+    {
+      nodeCutter.nodeFileEnd( null );
+    }
   }
 
   private int getTileIndex( int ilon, int ilat )

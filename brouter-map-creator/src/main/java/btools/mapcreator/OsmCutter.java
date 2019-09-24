@@ -12,6 +12,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.HashMap;
+import java.util.Map;
 
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
@@ -29,6 +30,9 @@ public class OsmCutter extends MapCreatorBase
   private DataOutputStream cyclewayDos;
   private DataOutputStream restrictionsDos;
 
+  public WayCutter wayCutter;
+  public NodeFilter nodeFilter;
+  
   public static void main(String[] args) throws Exception
   {
     System.out.println("*** OsmCutter: cut an osm map in node-tiles + a way file");
@@ -53,8 +57,8 @@ public class OsmCutter extends MapCreatorBase
   private BExpressionContextWay _expctxWay;
   private BExpressionContextNode _expctxNode;
 
-  private BExpressionContextWay _expctxWayStat;
-  private BExpressionContextNode _expctxNodeStat;
+  // private BExpressionContextWay _expctxWayStat;
+  // private BExpressionContextNode _expctxNodeStat;
 
   public void process (File lookupFile, File outTileDir, File wayFile, File relFile, File resFile, File profileFile, File mapFile ) throws Exception
   {
@@ -71,13 +75,13 @@ public class OsmCutter extends MapCreatorBase
     _expctxWay.parseFile( profileFile, "global" );
 
     
-   _expctxWayStat = new BExpressionContextWay( null );
-   _expctxNodeStat = new BExpressionContextNode( null );
+   // _expctxWayStat = new BExpressionContextWay( null );
+   // _expctxNodeStat = new BExpressionContextNode( null );
 
     this.outTileDir = outTileDir;
     if ( !outTileDir.isDirectory() ) throw new RuntimeException( "out tile directory " + outTileDir + " does not exist" );
 
-    wayDos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( wayFile ) ) );
+    wayDos = wayFile == null ? null : new DataOutputStream( new BufferedOutputStream( new FileOutputStream( wayFile ) ) );
     cyclewayDos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( relFile ) ) );
     restrictionsDos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( resFile ) ) );
 
@@ -90,7 +94,10 @@ public class OsmCutter extends MapCreatorBase
 
     // close all files
     closeTileOutStreams();
-    wayDos.close();
+    if ( wayDos != null )
+    {
+      wayDos.close();
+    }
     cyclewayDos.close();
     restrictionsDos.close();
 
@@ -122,11 +129,10 @@ public class OsmCutter extends MapCreatorBase
     if ( n.getTagsOrNull() != null )
     {
       int[] lookupData = _expctxNode.createNewLookupData();
-      for( String key : n.getTagsOrNull().keySet() )
+      for( Map.Entry<String,String> e : n.getTagsOrNull().entrySet() )
       {
-        String value = n.getTag( key );
-        _expctxNode.addLookupValue( key, value, lookupData );
-        _expctxNodeStat.addLookupValue( key, value, null );
+        _expctxNode.addLookupValue( e.getKey(), e.getValue(), lookupData );
+        // _expctxNodeStat.addLookupValue( key, value, null );
       }
       n.description = _expctxNode.encode(lookupData);
     }
@@ -136,6 +142,10 @@ public class OsmCutter extends MapCreatorBase
     {
       n.writeTo( getOutStreamForTile( tileIndex ) );
     }
+    if ( wayCutter != null )
+    {
+      wayCutter.nextNode( n );
+    }
   }
 
 
@@ -144,15 +154,17 @@ public class OsmCutter extends MapCreatorBase
     // add pseudo.tags for concrete:lanes and concrete:plates
   
     String concrete = null;
-    for( String key : map.keySet() )
+    for( Map.Entry<String,String> e : map.entrySet() )
     {
+      String key = e.getKey();
+    
       if ( "concrete".equals( key ) )
       {
         return;
       }
       if ( "surface".equals( key ) )
       {
-        String value = map.get( key );
+        String value = e.getValue();
         if ( value.startsWith( "concrete:" ) )
         {
           concrete = value.substring( "concrete:".length() );
@@ -182,7 +194,7 @@ public class OsmCutter extends MapCreatorBase
     {
       String value = w.getTag( key );
       _expctxWay.addLookupValue( key, value.replace( ' ', '_' ), lookupData );
-      _expctxWayStat.addLookupValue( key, value, null );
+      // _expctxWayStat.addLookupValue( key, value, null );
     }
     w.description = _expctxWay.encode(lookupData);
     
@@ -195,7 +207,18 @@ public class OsmCutter extends MapCreatorBase
     ok |= _expctxWay.getCostfactor() < 10000.;
     if ( !ok ) return;
     
-    w.writeTo( wayDos );
+    if ( wayDos != null )
+    {
+      w.writeTo( wayDos );
+    }
+    if ( wayCutter != null )
+    {
+      wayCutter.nextWay( w );
+    }
+    if ( nodeFilter != null )
+    {
+      nodeFilter.nextWay( w );
+    }
   }
 
   @Override
@@ -300,6 +323,6 @@ public class OsmCutter extends MapCreatorBase
     int lat = (tileIndex % 6 ) * 30 - 90;
     String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
     String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
-    return slon + "_" + slat + ".tls";
+    return slon + "_" + slat + ".ntl";
   }
 }
