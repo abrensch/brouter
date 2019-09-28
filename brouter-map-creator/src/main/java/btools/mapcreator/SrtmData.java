@@ -11,11 +11,14 @@ package btools.mapcreator;
  */
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.StringTokenizer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -125,5 +128,68 @@ public class SrtmData
       }
     }
     br.close();
+  }
+
+  public static void main( String[] args ) throws Exception
+  {
+    String fromDir = args[0];
+    String toDir = args[1];
+    
+    File[] files = new File( fromDir ).listFiles();
+    for( File f : files )
+    {
+      if ( !f.getName().endsWith( ".zip" ) )
+      {
+        continue;
+      }
+      System.out.println( "*** reading: " + f );
+      long t0 = System.currentTimeMillis();
+      SrtmRaster raster = new SrtmData( f ).getRaster();
+      long t1 = System.currentTimeMillis();
+      String name = f.getName();
+      
+      long zipTime = t1-t0;
+      
+      File fbef = new File( new File( toDir ), name.substring( 0, name.length()-3 ) + "bef" );
+      System.out.println( "recoding: " + f + " to " + fbef );
+      OutputStream osbef = new BufferedOutputStream( new FileOutputStream( fbef ) );
+      new RasterCoder().encodeRaster( raster, osbef );
+      osbef.close();
+
+      System.out.println( "*** re-reading: " + fbef );
+      
+      long t2 = System.currentTimeMillis();
+      InputStream isc = new BufferedInputStream( new FileInputStream( fbef ) );
+      SrtmRaster raster2 = new RasterCoder().decodeRaster( isc );
+      isc.close();
+      long t3 = System.currentTimeMillis();
+
+      long befTime = t3-t2;
+
+      System.out.println( "*** zip-time: " + zipTime + "*** bef-time: " + befTime );
+      
+      String s1 = raster.toString();
+      String s2 = raster2.toString();
+      
+      if ( !s1.equals( s2 ) )
+      {
+        throw new IllegalArgumentException( "missmatch: " + s1 + "<--->" + s2 );
+      }
+      
+      int cols = raster.ncols;
+      int rows = raster.nrows;
+      for( int c = 0; c < cols; c++ )
+      {
+        for( int r = 0; r < rows; r++ )
+        {
+          int idx = r * cols + c;         
+          
+          if ( raster.eval_array[idx] != raster2.eval_array[idx] )
+          {
+            throw new IllegalArgumentException( "missmatch: at " + c + "," + r + ": " + raster.eval_array[idx] + "<--->" + raster2.eval_array[idx] );
+          }
+        }
+      }
+    }
   }
 }

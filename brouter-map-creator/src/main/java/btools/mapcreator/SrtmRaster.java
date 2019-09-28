@@ -285,5 +285,10 @@ public class SrtmRaster
     }
     return shiftWeights;
   }
-
+  
+  @Override
+  public String toString()
+  {
+    return ncols + "," + nrows + "," + halfcol + "," + xllcorner + "," + yllcorner + "," + cellsize + "," + noDataValue + "," + usingWeights;
+  }
 }
