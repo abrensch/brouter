@@ -86,6 +86,12 @@ public class WayCutter extends MapCreatorBase
     }
   }
 
+
+  public int getTileIndexForNid( long nid )
+  {
+    return tileIndexMap.getInt( nid );
+  }
+
   private int getTileIndex( int ilon, int ilat )
   {
      int lon = ilon / 45000000;
@@ -94,7 +100,7 @@ public class WayCutter extends MapCreatorBase
      return lon*6 + lat;
   }
 
-  protected String getNameForTile( int tileIndex )
+  public String getNameForTile( int tileIndex )
   {
     int lon = (tileIndex / 6 ) * 45 - 180;
     int lat = (tileIndex % 6 ) * 30 - 90;
