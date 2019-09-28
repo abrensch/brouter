@@ -9,7 +9,7 @@ Within the routing data files (rd5), tag information
 is encoded in a binary bitstream for the way tags and
 the node tags each.
 
-To encode and decode to/from this bitfield, a lookup
+To encode and decode to/from this bitstream, a lookup
 table is used that contains all the tags and values
 that are considered for encoding.
 
@@ -154,7 +154,8 @@ expression starting with an operator and so on.
 
 All expressions have one of the following basic forms:
 
-  - <numeric>
+  - <numeric value>
+  - <numeric variable>
   - <lookup-match>
   - <1-op-operator> <operand>
   - <2-op-operator> <operand> <operand>
