@@ -174,6 +174,10 @@ public class WayCutter5 extends MapCreatorBase
     {
       nodeCutter.nodeFileEnd( null );
     }
+    if ( restrictionCutter5 != null )
+    {
+      restrictionCutter5.finish();
+    }  
   }
 
   public int getTileIndexForNid( long nid )

@@ -82,7 +82,5 @@ public class OsmFastCutter extends MapCreatorBase
 
     wayCut5.process( nodeDir, wayDir, way55Dir, borderFile );
 
-    wayCut5.restrictionCutter5.finish();
-
   }
 }
