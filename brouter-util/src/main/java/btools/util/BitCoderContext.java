@@ -9,8 +9,8 @@ public class BitCoderContext
   private int bits; // bits left in buffer
   private int b; // buffer word
 
-  private static final int[] vl_values = new int[4096];
-  private static final int[] vl_length = new int[4096];
+  public static final int[] vl_values = new int[4096];
+  public static final int[] vl_length = new int[4096];
 
   private static final int[] vc_values = new int[4096];
   private static final int[] vc_length = new int[4096];

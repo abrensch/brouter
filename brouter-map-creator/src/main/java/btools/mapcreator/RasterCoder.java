@@ -47,10 +47,10 @@ public class RasterCoder
 
     _decodeRaster(raster, is);
     
-    raster.usingWeights = true;
+    raster.usingWeights = raster.ncols > 6001;
 
     long t1 = System.currentTimeMillis();
-    System.out.println("finished decoding in " + (t1 - t0) + " ms");
+    System.out.println("finished decoding in " + (t1 - t0) + " ms ncols=" + raster.ncols + " nrows=" + raster.nrows );
     return raster;
   }
 
@@ -102,7 +102,7 @@ public class RasterCoder
         
         // remap nodata
         int v30 = code == -1 ? Short.MIN_VALUE : ( code < 0 ? code + 1 : code ); 
-        if ( v30 > -32766 )
+        if ( raster.usingWeights && v30 > -32766 )
         {
           v30 *= 2;
         } 
