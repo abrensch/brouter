@@ -16,11 +16,18 @@ public class WayIterator extends MapCreatorBase
 {
   private WayListener listener;
   private boolean delete;
+  private boolean descendingSize;
 
   public WayIterator( WayListener wayListener, boolean deleteAfterReading )
   {
     listener = wayListener;
     delete = deleteAfterReading;
+  }
+
+  public WayIterator( WayListener wayListener, boolean deleteAfterReading, boolean descendingSize )
+  {
+    this( wayListener, deleteAfterReading );    
+    this.descendingSize = descendingSize;
   }
 
   public void processDir( File indir, String inSuffix ) throws Exception
@@ -33,7 +40,7 @@ public class WayIterator extends MapCreatorBase
     File[] af = sortBySizeAsc( indir.listFiles() );
     for( int i=0; i<af.length; i++ )
     {
-      File wayfile = af[i];
+      File wayfile = descendingSize ? af[af.length -1 - i] : af[i];
       if ( wayfile.getName().endsWith( inSuffix ) )
       {
         processFile( wayfile );
