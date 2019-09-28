@@ -33,13 +33,49 @@ public class OsmParser extends MapCreatorBase
 
     // once more for testing
     int rawBlobCount = 0;
+
+    long bytesRead = 0L;
+
+    // wait for file to become available
+    while( !mapFile.exists() )
+    {
+       System.out.println( "--- waiting for " + mapFile + " to become available" );
+       Thread.sleep( 10000 );
+    }
+
+    long currentSize = mapFile.length();
+    long currentSizeTime = System.currentTimeMillis();
+
     DataInputStream dis = new DataInputStream( new BufferedInputStream ( new FileInputStream( mapFile ) ) );
+
+
     for(;;)
     {
+      // continue reading if either more then a 100 MB unread, or the current-size is known for more then 2 Minutes
+      while ( currentSize-bytesRead < 100000000L )
+      {
+        long newSize = mapFile.length();
+        if ( newSize != currentSize )
+        {
+          currentSize = newSize;
+          currentSizeTime = System.currentTimeMillis();
+        }
+        else if ( System.currentTimeMillis() - currentSizeTime > 120000 )
+        {
+          break;
+        }
+        if ( currentSize-bytesRead < 100000000L )
+        {
+          System.out.println( "--- waiting for more data, currentSize=" + currentSize + " bytesRead=" + bytesRead );
+          Thread.sleep( 10000 );
+        }
+      }
+
       int headerLength;
       try
       {
         headerLength = dis.readInt();
+        bytesRead += 4;
       }
       catch (EOFException e)
       {
@@ -48,10 +84,12 @@ public class OsmParser extends MapCreatorBase
 
       byte[] headerBuffer = new byte[headerLength];
       dis.readFully(headerBuffer);
+      bytesRead += headerLength;
       Fileformat.BlobHeader blobHeader = Fileformat.BlobHeader.parseFrom(headerBuffer);
 
       byte[] blobData = new byte[blobHeader.getDatasize()];
       dis.readFully(blobData);
+      bytesRead += blobData.length;
 
       new BPbfBlobDecoder( blobHeader.getType(), blobData, this ).process();
 
