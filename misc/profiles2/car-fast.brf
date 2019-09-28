@@ -24,9 +24,10 @@ assign p_standby        = 250    # Watt
 assign validForCars        = true
 assign pass1coefficient    = 1.3
 assign turnInstructionMode = 1  # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style
-assign avoid_toll          = 1  # %avoid_toll% | Avoid paid roads | boolean
-assign avoid_unpaved       = 1  # %avoid_unpaved% | Avoid unpaved roads, if possible | boolean
-assign avoid_motorways     = 1  # %avoid_motorways% | Avoid motorways | boolean
+
+assign avoid_toll          = false  # %avoid_toll% | Avoid paid roads | boolean
+assign avoid_unpaved       = false  # %avoid_unpaved% | Avoid unpaved roads, if possible | boolean
+assign avoid_motorways     = false  # %avoid_motorways% | Avoid motorways | boolean
 
 
 # classifier constants
