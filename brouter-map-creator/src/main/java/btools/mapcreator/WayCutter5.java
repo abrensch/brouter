@@ -1,7 +1,11 @@
 package btools.mapcreator;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
+import java.io.FileInputStream;
 
 import btools.util.DenseLongMap;
 import btools.util.TinyDenseLongMap;
@@ -25,6 +29,7 @@ public class WayCutter5 extends MapCreatorBase
   public RelationMerger relMerger;
   public NodeFilter nodeFilter;
   public NodeCutter nodeCutter;
+  public RestrictionCutter5 restrictionCutter5;
 
   public static void main(String[] args) throws Exception
   {
@@ -65,7 +70,34 @@ public class WayCutter5 extends MapCreatorBase
     {
       nodeCutter.nodeFileStart( null );
     }
-    new NodeIterator( this, false ).processFile( nodefile );
+    new NodeIterator( this, nodeCutter != null ).processFile( nodefile );
+
+    if ( restrictionCutter5 != null )
+    {
+      String resfilename = name.substring( 0, name.length()-3 ) + "rtl";
+      File resfile = new File( "restrictions", resfilename );
+
+      if ( resfile.exists() )
+      {
+        // read restrictions for nodes in nodesMap
+        DataInputStream di = new DataInputStream( new BufferedInputStream ( new FileInputStream( resfile ) ) );
+        int ntr = 0;
+        try
+        {
+          for(;;)
+          {
+            RestrictionData res = new RestrictionData( di );
+            restrictionCutter5.nextRestriction( res );
+            ntr++;
+          }
+        }
+        catch( EOFException eof )
+        {
+          di.close();
+        }
+        System.out.println( "read " + ntr + " turn-restrictions" );
+      }
+    }
     return true;
   }
 
@@ -142,6 +174,11 @@ public class WayCutter5 extends MapCreatorBase
     {
       nodeCutter.nodeFileEnd( null );
     }
+  }
+
+  public int getTileIndexForNid( long nid )
+  {
+    return tileIndexMap.getInt( nid );
   }
 
   private int getTileIndex( int ilon, int ilat )

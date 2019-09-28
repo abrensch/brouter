@@ -146,34 +146,38 @@ public class WayLinker extends MapCreatorBase
       FrozenLongMap<OsmNodeP> nodesMapFrozen = new FrozenLongMap<OsmNodeP>( nodesMap );
       nodesMap = nodesMapFrozen;
 
+      File restrictionFile = fileFromTemplate( wayfile, new File( nodeTilesIn.getParentFile(), "restrictions55" ), "rt5" );
       // read restrictions for nodes in nodesMap
-      DataInputStream di = new DataInputStream( new BufferedInputStream ( new FileInputStream( restrictionsFileIn ) ) );
-      int ntr = 0;
-      try
+      if ( restrictionFile.exists() )
       {
-        for(;;)
+        DataInputStream di = new DataInputStream( new BufferedInputStream ( new FileInputStream( restrictionFile ) ) );
+        int ntr = 0;
+        try
         {
-          RestrictionData res = new RestrictionData( di );
-          OsmNodeP n = nodesMap.get( res.viaNid );
-          if ( n != null )
+          for(;;)
           {
-            if ( ! ( n instanceof OsmNodePT ) )
+            RestrictionData res = new RestrictionData( di );
+            OsmNodeP n = nodesMap.get( res.viaNid );
+            if ( n != null )
             {
-              n = new OsmNodePT( n );
-              nodesMap.put( res.viaNid, n );
+              if ( ! ( n instanceof OsmNodePT ) )
+              {
+                n = new OsmNodePT( n );
+                nodesMap.put( res.viaNid, n );
+              }
+              OsmNodePT nt = (OsmNodePT) n;
+              res.next = nt.firstRestriction;
+              nt.firstRestriction = res;
+              ntr++;
             }
-            OsmNodePT nt = (OsmNodePT) n;
-            res.next = nt.firstRestriction;
-            nt.firstRestriction = res;
-            ntr++;
           }
         }
+        catch( EOFException eof )
+        {
+          di.close();
+        }
+        System.out.println( "read " + ntr + " turn-restrictions" );
       }
-      catch( EOFException eof )
-      {
-        di.close();
-      }
-      System.out.println( "read " + ntr + " turn-restrictions" );
 
       nodesList = nodesMapFrozen.getValueList();
     }

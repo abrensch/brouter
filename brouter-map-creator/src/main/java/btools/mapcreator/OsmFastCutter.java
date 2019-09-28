@@ -48,13 +48,18 @@ public class OsmFastCutter extends MapCreatorBase
     cutter.wayCutter = new WayCutter();
     cutter.wayCutter.init( wayDir );
 
+    // ... inject RestrictionCutter
+    cutter.restrictionCutter = new RestrictionCutter();
+    cutter.restrictionCutter.init( new File( nodeDir.getParentFile(), "restrictions" ), cutter.wayCutter );
+
     // ... inject NodeFilter
     NodeFilter nodeFilter = new NodeFilter();
     nodeFilter.init();
     cutter.nodeFilter = nodeFilter;
 
-    cutter.process( lookupFile, nodeDir, null, relFile, resFile, profileAll, mapFile );
+    cutter.process( lookupFile, nodeDir, null, relFile, null, profileAll, mapFile );
     cutter.wayCutter.finish();
+    cutter.restrictionCutter.finish();
     cutter = null;
 
     // ***** run WayCutter5 ****
@@ -64,6 +69,10 @@ public class OsmFastCutter extends MapCreatorBase
     wayCut5.relMerger = new RelationMerger();
     wayCut5.relMerger.init( relFile, lookupFile, profileReport, profileCheck );
 
+    // ... inject RestrictionCutter5
+    wayCut5.restrictionCutter5 = new RestrictionCutter5();
+    wayCut5.restrictionCutter5.init( new File( nodeDir.getParentFile(), "restrictions55" ), wayCut5 );
+
     //... inject NodeFilter
     wayCut5.nodeFilter = nodeFilter;
 
@@ -72,5 +81,8 @@ public class OsmFastCutter extends MapCreatorBase
     wayCut5.nodeCutter.init( node55Dir );
 
     wayCut5.process( nodeDir, wayDir, way55Dir, borderFile );
+
+    wayCut5.restrictionCutter5.finish();
+
   }
 }

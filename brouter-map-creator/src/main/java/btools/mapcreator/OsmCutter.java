@@ -31,6 +31,7 @@ public class OsmCutter extends MapCreatorBase
   private DataOutputStream restrictionsDos;
 
   public WayCutter wayCutter;
+  public RestrictionCutter restrictionCutter;
   public NodeFilter nodeFilter;
   
   public static void main(String[] args) throws Exception
@@ -83,7 +84,10 @@ public class OsmCutter extends MapCreatorBase
 
     wayDos = wayFile == null ? null : new DataOutputStream( new BufferedOutputStream( new FileOutputStream( wayFile ) ) );
     cyclewayDos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( relFile ) ) );
-    restrictionsDos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( resFile ) ) );
+    if ( resFile != null )
+    {
+      restrictionsDos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( resFile ) ) );
+    }
 
     // read the osm map into memory
     long t0 = System.currentTimeMillis();
@@ -99,7 +103,10 @@ public class OsmCutter extends MapCreatorBase
       wayDos.close();
     }
     cyclewayDos.close();
-    restrictionsDos.close();
+    if ( restrictionsDos != null )
+    {
+      restrictionsDos.close();
+    }
 
 //    System.out.println( "-------- way-statistics -------- " );
 //    _expctxWayStat.dumpStatistics();
@@ -296,7 +303,15 @@ public class OsmCutter extends MapCreatorBase
     res.fromWid = fromWid;
     res.toWid = toWid;
     res.viaNid = viaNid;
-    res.writeTo( restrictionsDos );
+    
+    if ( restrictionsDos != null )
+    {
+      res.writeTo( restrictionsDos );
+    }
+    if ( restrictionCutter != null )
+    {
+      restrictionCutter.nextRestriction( res );
+    }
     
   }
 
