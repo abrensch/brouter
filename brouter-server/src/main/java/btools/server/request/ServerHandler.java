@@ -1,5 +1,6 @@
 package btools.server.request;
 
+import btools.mapaccess.OsmNode;
 import btools.router.OsmNodeNamed;
 import btools.router.OsmNogoPolygon;
 import btools.router.OsmTrack;
@@ -25,10 +26,11 @@ import java.util.List;
  * format = [kml|gpx|geojson] (optional, default gpx)
  * trackname = name used for filename and format specific trackname (optional, default brouter)
  * exportWaypoints = 1 to export them (optional, default is no export)
+ * pois = lon,lat,name|... (optional)
  *
  * Example URLs:
  * {@code http://localhost:17777/brouter?lonlats=8.799297,49.565883|8.811764,49.563606&nogos=&profile=trekking&alternativeidx=0&format=gpx}
- * {@code http://localhost:17777/brouter?lonlats=1.1,1.2|2.1,2.2|3.1,3.2|4.1,4.2&nogos=-1.1,-1.2,1|-2.1,-2.2,2&profile=shortest&alternativeidx=1&format=kml&trackname=Ride}
+ * {@code http://localhost:17777/brouter?lonlats=1.1,1.2|2.1,2.2|3.1,3.2|4.1,4.2&nogos=-1.1,-1.2,1|-2.1,-2.2,2&profile=shortest&alternativeidx=1&format=kml&trackname=Ride&pois=1.1,2.1,Barner Bar}
  *
  */
 public class ServerHandler extends RequestHandler {
@@ -61,6 +63,9 @@ public class ServerHandler extends RequestHandler {
     rc.localFunction = profile;
 
     rc.setAlternativeIdx(Integer.parseInt(params.get( "alternativeidx" )));
+
+    List<OsmNodeNamed> poisList = readPoisList();
+    rc.poipoints = poisList;
 
     List<OsmNodeNamed> nogoList = readNogoList();
     List<OsmNodeNamed> nogoPolygonsList = readNogoPolygons();
@@ -224,6 +229,29 @@ public class ServerHandler extends RequestHandler {
     n.ilon = (int)( ( lon + 180. ) *1000000. + 0.5);
     n.ilat = (int)( ( lat +  90. ) *1000000. + 0.5);
     return n;
+  }
+
+  private List<OsmNodeNamed> readPoisList()
+  {
+    // lon,lat,name|...
+    String pois = params.get( "pois" );
+    if ( pois == null ) return null;
+
+    String[] lonLatNameList = pois.split("\\|");
+
+    List<OsmNodeNamed> poisList = new ArrayList<OsmNodeNamed>();
+    for (int i = 0; i < lonLatNameList.length; i++)
+    {
+      String[] lonLatName = lonLatNameList[i].split(",");
+
+      OsmNodeNamed n = new OsmNodeNamed();
+      n.ilon = (int)( ( Double.parseDouble(lonLatName[0]) + 180. ) *1000000. + 0.5);
+      n.ilat = (int)( ( Double.parseDouble(lonLatName[1]) +  90. ) *1000000. + 0.5);
+      n.name = lonLatName[2];
+      poisList.add(n);
+    }
+
+    return poisList;
   }
 
   private List<OsmNodeNamed> readNogoList()
