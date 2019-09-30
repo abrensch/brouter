@@ -26,6 +26,7 @@ import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.OsmPos;
 import btools.util.CompactLongMap;
 import btools.util.FrozenLongMap;
+import org.apache.commons.text.StringEscapeUtils;
 
 public final class OsmTrack
 {
@@ -38,6 +39,8 @@ public final class OsmTrack
   public boolean isDirty;
 
   public boolean showspeed;
+
+  public List<OsmNodeNamed> pois = new ArrayList<OsmNodeNamed>();
 
   private static class OsmPathElementHolder
   {
@@ -534,13 +537,23 @@ public final class OsmTrack
       }
     }
 
+    for( int i=0; i<=pois.size() - 1; i++ )
+    {
+      OsmNodeNamed poi = pois.get(i);
+      sb.append( " <wpt lon=\"" ).append( formatILon( poi.ilon ) ).append( "\" lat=\"" )
+        .append( formatILat( poi.ilat ) ).append( "\">\n" )
+        .append( "  <name>" ).append( StringEscapeUtils.escapeXml10(poi.name) ).append( "</name>\n" )
+        .append( " </wpt>\n" );
+    }
+
     if ( exportWaypoints )
     {
       for( int i=0; i<=matchedWaypoints.size() - 1; i++ )
       {
-        sb.append( " <wpt lon=\"" ).append( formatILon( matchedWaypoints.get(i).waypoint.ilon ) ).append( "\" lat=\"" )
-          .append( formatILat( matchedWaypoints.get(i).waypoint.ilat ) ).append( "\">\n" )
-          .append( "  <name>" ).append( matchedWaypoints.get(i).name ).append( "</name>\n" );
+        MatchedWaypoint wt = matchedWaypoints.get(i);
+        sb.append( " <wpt lon=\"" ).append( formatILon( wt.waypoint.ilon ) ).append( "\" lat=\"" )
+          .append( formatILat( wt.waypoint.ilat ) ).append( "\">\n" )
+          .append( "  <name>" ).append( StringEscapeUtils.escapeXml10(wt.name) ).append( "</name>\n" );
         if(i == 0)
         {
           sb.append( "  <type>from</type>\n" );
@@ -637,45 +650,51 @@ public final class OsmTrack
     sb.append( "        </LineString>\n" );
     sb.append( "      </Placemark>\n" );
     sb.append( "    </Folder>\n" );
-    if ( exportWaypoints )
+    if ( exportWaypoints || !pois.isEmpty() )
     {
+      if (!pois.isEmpty()) {
         sb.append( "    <Folder>\n" );
-        sb.append( "      <name>start</name>\n" );
-        sb.append( "      <Placemark>\n" );
-        sb.append( "        <name> " + matchedWaypoints.get(0).name + "</name>\n" );
-        sb.append( "        <Point>\n" );
-        sb.append( "         <coordinates>" + formatILon(matchedWaypoints.get(0).waypoint.ilon) + "," + formatILat(matchedWaypoints.get(0).waypoint.ilat) + "</coordinates>\n" );
-        sb.append( "        </Point>\n" );
-        sb.append( "      </Placemark>\n" );
-        sb.append( "    </Folder>\n" );
-        if (matchedWaypoints.size() > 2) {
-          sb.append( "    <Folder>\n" );
-          sb.append( "      <name>via</name>\n" );
-          for( int i=1; i<=matchedWaypoints.size() - 2; i++ )
-          {
-            sb.append( "      <Placemark>\n" );
-            sb.append( "        <name> " + matchedWaypoints.get(i).name + "</name>\n" );
-            sb.append( "        <Point>\n" );
-            sb.append( "         <coordinates>" + formatILon(matchedWaypoints.get(i).waypoint.ilon) + "," + formatILat(matchedWaypoints.get(i).waypoint.ilat) + "</coordinates>\n" );
-            sb.append( "        </Point>\n" );
-            sb.append( "      </Placemark>\n" );
-          }
-          sb.append( "    </Folder>\n" );
+        sb.append("      <name>poi</name>\n");
+        for (int i = 0; i < pois.size(); i++) {
+          OsmNodeNamed poi = pois.get(i);
+          createPlaceMark(sb, poi.name, poi.ilat, poi.ilon);
         }
-        sb.append( "    <Folder>\n" );
-        sb.append( "      <name>end</name>\n" );
-        sb.append( "      <Placemark>\n" );
-        sb.append( "        <name> " + matchedWaypoints.get(matchedWaypoints.size() - 1).name + "</name>\n" );
-        sb.append( "        <Point>\n" );
-        sb.append( "         <coordinates>" + formatILon(matchedWaypoints.get(matchedWaypoints.size() - 1).waypoint.ilon) + "," + formatILat(matchedWaypoints.get(matchedWaypoints.size() - 1).waypoint.ilat) + "</coordinates>\n" );
-        sb.append( "        </Point>\n" );
-        sb.append( "      </Placemark>\n" );
-        sb.append( "    </Folder>\n" );
+        sb.append("    </Folder>\n");
+      }
+
+      if (exportWaypoints)
+      {
+        int size = matchedWaypoints.size();
+        createFolder(sb, "start", matchedWaypoints.subList(0, 1));
+        if (matchedWaypoints.size() > 2) {
+          createFolder(sb, "via", matchedWaypoints.subList(1, size - 1));
+        }
+        createFolder(sb, "end", matchedWaypoints.subList(size - 1, size));
+      }
     }
     sb.append( "  </Document>\n" );
     sb.append( "</kml>\n" );
 
     return sb.toString();
+  }
+
+  private void createFolder(StringBuilder sb, String type, List<MatchedWaypoint> waypoints) {
+    sb.append( "    <Folder>\n" );
+    sb.append( "      <name>" + type + "</name>\n" );
+    for (int i = 0; i < waypoints.size(); i++) {
+      MatchedWaypoint wp = waypoints.get(i);
+      createPlaceMark(sb, wp.name, wp.waypoint.ilat, wp.waypoint.ilon);
+    }
+    sb.append( "    </Folder>\n" );
+  }
+
+  private void createPlaceMark(StringBuilder sb, String name, int ilat, int ilon) {
+    sb.append("      <Placemark>\n");
+    sb.append("        <name>" + StringEscapeUtils.escapeXml10(name) + "</name>\n");
+    sb.append("        <Point>\n");
+    sb.append("         <coordinates>" + formatILon(ilon) + "," + formatILat(ilat) + "</coordinates>\n");
+    sb.append("        </Point>\n");
+    sb.append("      </Placemark>\n");
   }
 
   public List<String> iternity;
@@ -773,50 +792,62 @@ public final class OsmTrack
 
     sb.append( "        ]\n" );
     sb.append( "      }\n" );
-    if ( exportWaypoints )
+    if ( exportWaypoints || !pois.isEmpty())
     {
-        sb.append( "    },\n" );
-        for( int i=0; i<=matchedWaypoints.size() - 1; i++ )
-        {
-            sb.append( "    {\n" );
-            sb.append( "      \"type\": \"Feature\",\n" );
-            sb.append( "      \"properties\": {\n" );
-            sb.append( "        \"name\": \"" + matchedWaypoints.get(i).name + "\",\n" );
-            if(i == 0)
-            {
-              sb.append( "        \"type\": \"from\"\n" );
-            }
-            else if (i == matchedWaypoints.size() - 1)
-            {
-              sb.append( "        \"type\": \"to\"\n" );
-            }
-            else
-              sb.append( "        \"type\": \"via\"\n" );
-            {
-            }
-            sb.append( "      },\n" );
-            sb.append( "      \"geometry\": {\n" );
-            sb.append( "        \"type\": \"Point\",\n" );
-            sb.append( "        \"coordinates\": [\n" );
-            sb.append( "          " + formatILon(matchedWaypoints.get(i).waypoint.ilon) + ",\n" );
-            sb.append( "          " + formatILat(matchedWaypoints.get(i).waypoint.ilat) + "\n" );
-            sb.append( "        ]\n" );
-            sb.append( "      }\n" );
-            if (i < matchedWaypoints.size() - 1) {
-              sb.append( "    },\n" );
-            }
-            else {
-              sb.append( "    }\n" );
-            }
+      sb.append( "    },\n" );
+      for( int i=0; i<=pois.size() - 1; i++ )
+      {
+        OsmNodeNamed poi = pois.get(i);
+        addFeature(sb, "poi", poi.name, poi.ilat, poi.ilon);
+        if (i < matchedWaypoints.size() - 1) {
+            sb.append(",");
         }
+        sb.append( "    \n" );
+      }
+      if (exportWaypoints) {
+        for (int i = 0; i <= matchedWaypoints.size() - 1; i++) {
+          String type;
+          if (i == 0) {
+            type = "from";
+          } else if (i == matchedWaypoints.size() - 1) {
+            type = "to";
+          } else {
+            type = "via";
+          }
+
+          MatchedWaypoint wp = matchedWaypoints.get(i);
+          addFeature(sb, type, wp.name, wp.waypoint.ilat, wp.waypoint.ilon);
+          if (i < matchedWaypoints.size() - 1) {
+            sb.append(",");
+          }
+          sb.append("    \n");
+        }
+      }
     }
     else {
-        sb.append( "    }\n" );
+      sb.append( "    }\n" );
     }
     sb.append( "  ]\n" );
     sb.append( "}\n" );
 
     return sb.toString();
+  }
+
+  private void addFeature(StringBuilder sb, String type, String name, int ilat, int ilon) {
+    sb.append( "    {\n" );
+    sb.append( "      \"type\": \"Feature\",\n" );
+    sb.append( "      \"properties\": {\n" );
+    sb.append( "        \"name\": \"" + StringEscapeUtils.escapeJson(name) + "\",\n" );
+    sb.append( "        \"type\": \"" + type + "\"\n" );
+    sb.append( "      },\n" );
+    sb.append( "      \"geometry\": {\n" );
+    sb.append( "        \"type\": \"Point\",\n" );
+    sb.append( "        \"coordinates\": [\n" );
+    sb.append( "          " + formatILon(ilon) + ",\n" );
+    sb.append( "          " + formatILat(ilat) + "\n" );
+    sb.append( "        ]\n" );
+    sb.append( "      }\n" );
+    sb.append( "    }" );
   }
 
   private int getVNode( int i )
@@ -841,18 +872,18 @@ public final class OsmTrack
 
   public String getFormattedTime2()
   {
-      int seconds = (int)(getTotalSeconds() + 0.5);
-      int hours = seconds/3600;
-      int minutes = (seconds - hours * 3600) / 60;
-      seconds = seconds - hours * 3600 - minutes * 60;
-      String time = "";
-      if (hours != 0)
-          time = "" + hours + "h ";
-      if (minutes != 0)
-          time = time + minutes + "m ";
-      if (seconds != 0)
-          time = time + seconds + "s";
-      return time;
+    int seconds = (int)(getTotalSeconds() + 0.5);
+    int hours = seconds/3600;
+    int minutes = (seconds - hours * 3600) / 60;
+    seconds = seconds - hours * 3600 - minutes * 60;
+    String time = "";
+    if (hours != 0)
+        time = "" + hours + "h ";
+    if (minutes != 0)
+        time = time + minutes + "m ";
+    if (seconds != 0)
+        time = time + seconds + "s";
+    return time;
   }
 
   public String getFormattedEnergy()
