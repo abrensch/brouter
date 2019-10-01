@@ -58,22 +58,22 @@ final class KinematicPath extends OsmPath
     {
       double turnspeed = 999.; // just high
 
-      if ( km.turnAngleDecayLength != 0. ) // process turn-angle slowdown
+      if ( km.turnAngleDecayTime != 0. ) // process turn-angle slowdown
       {
-        double decayFactor = FastMath.exp( - dist / km.turnAngleDecayLength );
-        floatingAngleLeft = (float)( floatingAngleLeft * decayFactor );
-        floatingAngleRight = (float)( floatingAngleRight * decayFactor );
         if ( angle < 0 ) floatingAngleLeft -= (float)angle;
         else             floatingAngleRight += (float)angle;
         float aa = Math.max( floatingAngleLeft, floatingAngleRight );
 
-        if       ( aa > 130. ) turnspeed = 0.;
-        else if  ( aa > 100. ) turnspeed = 1.;
-        else if  ( aa > 70. ) turnspeed = 2.;
-        else if  ( aa > 50. ) turnspeed = 4.;
-        else if  ( aa > 30. ) turnspeed = 8.;
-        else if  ( aa > 20. ) turnspeed = 14.;
-        else if  ( aa > 10. ) turnspeed = 20.;
+        double curveSpeed = aa > 10. ? 200. / aa : 20.;        
+        double distanceTime = dist / curveSpeed;
+        double decayFactor = FastMath.exp( - distanceTime / km.turnAngleDecayTime );
+        floatingAngleLeft = (float)( floatingAngleLeft * decayFactor );
+        floatingAngleRight = (float)( floatingAngleRight * decayFactor );
+
+        if ( curveSpeed < 20. )
+        {
+          turnspeed = curveSpeed;
+        }
       }
 
       if ( nsection == 0 ) // process slowdown by crossing geometry
