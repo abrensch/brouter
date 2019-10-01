@@ -267,4 +267,5 @@ assign maxspeed =
          switch greater way:priorityclassifier 22 3
          switch greater way:priorityclassifier 20 1
          0
+       else if railway=level_crossing then 0
        else 999

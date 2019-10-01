@@ -23,7 +23,7 @@ final class KinematicModel extends OsmPathModel
     return new KinematicPath();
   }
 
-  public double turnAngleDecayLength;
+  public double turnAngleDecayTime;
   public double f_roll;
   public double f_air;
   public double f_recup;
@@ -70,7 +70,7 @@ final class KinematicModel extends OsmPathModel
 
     params = extraParams;
   
-    turnAngleDecayLength = getParam( "turnAngleDecayLength", 50.f );
+    turnAngleDecayTime = getParam( "turnAngleDecayTime", 5.f );
     f_roll = getParam( "f_roll", 232.f );
     f_air = getParam( "f_air", 0.4f );
     f_recup = getParam( "f_recup", 400.f );
