@@ -168,7 +168,7 @@ public class WayLinker extends MapCreatorBase implements Runnable
   {
     this.nodeTilesIn = nodeTilesIn;
     this.wayTilesIn = wayTilesIn;
-    this.trafficTilesIn = new File( "traffic" );
+    this.trafficTilesIn = new File( "../traffic" );
     this.dataTilesOut = dataTilesOut;
     this.borderFileIn = borderFileIn;
     this.restrictionsFileIn = restrictionsFileIn;
@@ -247,10 +247,6 @@ public class WayLinker extends MapCreatorBase implements Runnable
   
   
     File trafficFile = fileFromTemplate( wayfile, trafficTilesIn, "trf" );
-    if ( trafficTilesIn.isDirectory() && !trafficFile.exists() )
-    {
-      return false;
-    }
 
     // process corresponding node-file, if any
     File nodeFile = fileFromTemplate( wayfile, nodeTilesIn, "u5d" );
