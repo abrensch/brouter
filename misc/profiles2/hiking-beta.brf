@@ -1,0 +1,298 @@
+# Profile for medium-level hiking
+#
+# See https://github.com/poutnikl/Brouter-profiles for
+# more variants and poutnik's profile collection
+
+# *** Based on Trekking profile, added flag driven customizations
+# 10/6/2015 v1.7.2 BETA - Fixed general way access penalties
+# See bottom for Changelog and verbose comments.
+
+---context:global
+
+assign   consider_elevation       1    # 0 as default, otherwise less interesting flat roads are chosen.
+assign   shortest_way             0    # 0 as default
+
+assign   iswet                    0    # 0 as default, 1 tries to prevent muddy boots and wet buttocks
+
+assign   prefer_hiking_routes     1    # 1 as default, gives penalty to way not being hiking route and cancels route turncost
+assign   stick_to_hiking_routes   0    # 0 as default, as above, but gives higher penalty costfactor + way/node initial costs
+assign   non_hiking_route_penalty 0.15 # 0.25 as default, used with prefer_hiking_routes
+assign   non_sticky_route_penalty 0.5  # 1.0 as default, used stick_to_hiking_routes  #v1.5
+
+#SAC - mountain hiking - see http://wiki.openstreetmap.org/wiki/Key:sac_scale
+assign   SAC_scale_limit          3    # 0..6, 0 to avoid any SAC paths, 1 for T1 as maximum, 6 for T6 as maximum
+                                       # all paths with sac_scale higher than  SAC_scale_limit are forbidden.
+assign   SAC_scale_preferred      1    # The same, but the preferred SAC scale level. Level below are slightly, above strongly penalized
+assign   SAC_access_penalty       9000 # costfactor 9999 means the most horrible but allowed road., 
+                                       # 100000=forbidden. This makes difference if forbidden way is the only option.
+
+
+#orientation/decision penalties, not used for preferred hiking routes
+assign   turncost_value           0 # 20 as default, not used now
+assign   initialcost_value        0 # 50 as default, not used now
+
+#less frequently changed flags
+assign   allow_steps              1  # 1 as default
+assign   allow_ferries            1  # 1 as default
+assign   cost_of_unknown          2  # 2 as default
+#
+assign   elevationpenaltybuffer 5    # 5 as default
+assign   elevationmaxbuffer     10   # 10 as default
+assign   elevationbufferreduce  0.0  # 0.0 as default
+
+# as initial point, considered flat speed 4 km/h, climbing speed 600 m /h
+assign   uphillcostvalue	  7
+assign   uphillcutoffvalue	  3
+assign   downhillcutoffvalue  3
+assign   downhillcostvalue    7
+
+assign downhillcost switch     consider_elevation      downhillcostvalue 0
+assign downhillcutoff	switch consider_elevation      downhillcutoffvalue 0
+assign uphillcost   switch     consider_elevation      uphillcostvalue  0
+assign uphillcutoff switch     consider_elevation      uphillcutoffvalue 0
+
+assign   validForFoot        1
+
+assign hr_preferred or prefer_hiking_routes stick_to_hiking_routes
+
+#Penalizing SAC routes below (K1) and above(K2) preferred SAC scale
+#see  http://wiki.openstreetmap.org/wiki/Key:sac_scale
+
+assign  SAC_K1      0.1 # Penalizing of SAC levels below preferred 
+assign  SAC_K2      0.6 # Penalizing of SAC levels above preferred  
+
+#all the extra complexity of code below, with adding +/- 1.0 
+#is to keep final penalties additive, even with multiplicative incremental penalty approach
+#code is run only once, being in global context
+
+assign  SAC_K10     add SAC_K1 1.0
+assign  SAC_K20     add SAC_K2 1.0
+assign  SAC_K1_2    add multiply SAC_K10 SAC_K10 -1.0
+assign  SAC_K2_2    add multiply SAC_K20 SAC_K20 -1.0
+assign  SAC_K1_3    add ( multiply ( add SAC_K1_2 1.0 ) SAC_K10 ) -1.0
+assign  SAC_K2_3    add ( multiply ( add SAC_K2_2 1.0 ) SAC_K20 ) -1.0
+assign  SAC_K1_4    add ( multiply ( add SAC_K1_3 1.0 ) SAC_K10 ) -1.0
+assign  SAC_K2_4    add ( multiply ( add SAC_K2_3 1.0 ) SAC_K20 ) -1.0
+assign  SAC_K1_5    add ( multiply ( add SAC_K1_4 1.0 ) SAC_K10 ) -1.0
+assign  SAC_K2_5    add ( multiply ( add SAC_K2_4 1.0 ) SAC_K20 ) -1.0
+assign  SAC_K1_6    add ( multiply ( add SAC_K1_5 1.0 ) SAC_K10 ) -1.0
+assign  SAC_K2_6    add ( multiply ( add SAC_K2_5 1.0 ) SAC_K20 ) -1.0
+
+
+---context:way   # following code refers to way-tags
+
+assign ispaved or surface=paved or surface=asphalt or surface=concrete surface=paving_stones
+assign isunpaved not or surface= or ispaved or surface=fine_gravel surface=cobblestone
+
+assign any_hiking_route or route=hiking         or route_hiking_iwn=yes
+						or route_hiking_nwn=yes	or route_hiking_rwn=yes
+						or route_hiking_lwn=yes or route_hiking_=yes
+                        or route_foot_=yes      or route_foot_nwn=yes
+						or route_foot_rwn=yes      route_foot_lwn=yes      
+                        
+assign any_cycleroute =
+     if      route_bicycle_icn=yes then true
+     else if route_bicycle_ncn=yes then true
+     else if route_bicycle_rcn=yes then true
+     else if route_bicycle_lcn=yes then true
+     else false                        
+                       
+assign is_ldhr 				and any_hiking_route hr_preferred
+assign nodeaccessgranted 	any_hiking_route
+
+# ismuddy addresses potentially bad surface conditions during wet weather ( mud, slickiness of grass)
+assign ismuddy 	and or isunpaved surface= 
+				and iswet
+				not or surface=gravel surface=pebblestone 
+
+assign issidewalk not or sidewalk= or sidewalk=none sidewalk=no
+
+assign turncost   switch or shortest_way  is_ldhr   0 turncost_value  #v1.5 
+
+assign initialcost 
+   switch route=ferry 10000 
+      
+   switch or shortest_way  is_ldhr  0 switch stick_to_hiking_routes initialcost_value 0
+
+assign defaultaccess    switch access=    not motorroad=yes    switch or access=private access=no   0   1
+
+
+assign footaccess     or any_hiking_route 
+                      or issidewalk 
+                         switch foot=    defaultaccess   switch foot=private|no 0 1
+
+assign bikeaccess
+       or any_cycleroute
+          switch bicycle=
+                 switch vehicle=
+                        defaultaccess
+                        switch or vehicle=private vehicle=no
+                               0
+                               1
+                 not or bicycle=private or bicycle=no bicycle=dismount
+
+                         
+assign footaccess
+       or and bikeaccess  not foot=no
+          or bicycle=dismount
+             switch foot=
+                    defaultaccess
+                    not or foot=private foot=no
+                         
+assign accesspenalty switch footaccess 0 switch bikeaccess 4 100000
+
+#
+
+#SAC is estimated path difficulty, 
+#integrating both MTB and SAC scales with estimated MTB/SAC difficulty matching
+#see http://wiki.openstreetmap.org/wiki/Key:mtb:scale
+#    http://wiki.openstreetmap.org/wiki/Key:sac_scale
+
+assign SAC 
+if         sac_scale=difficult_alpine_hiking                     then 6
+else if or sac_scale=demanding_alpine_hiking   mtb:scale=6       then 5
+else if or sac_scale=alpine_hiking             mtb:scale=5       then 4
+else if or sac_scale=demanding_mountain_hiking mtb:scale=4       then 3
+else if or sac_scale=mountain_hiking           mtb:scale=3|2+    then 2
+else if or sac_scale=hiking|T1-hiking|yes      mtb:scale=2|1+|2- then 1
+                                                                 else 0
+
+assign  SAC_scale_access   # if SAC_scale_limit < SAC then true else false 
+	if sac_scale= then true  else equal ( max SAC_scale_limit SAC ) SAC_scale_limit  
+                                      
+assign  SAC_scale_penalty
+
+                            if not SAC_scale_access  then  SAC_access_penalty  # not allowed SAC scale
+                            else if equal SAC           SAC_scale_preferred       then 0.0
+                            else if equal ( add SAC 1 ) SAC_scale_preferred       then SAC_K1
+                            else if equal ( add SAC 2 ) SAC_scale_preferred       then SAC_K1_2 
+                            else if equal ( add SAC 3 ) SAC_scale_preferred       then SAC_K1_3 
+                            else if equal ( add SAC 4 ) SAC_scale_preferred       then SAC_K1_4 
+                            else if equal ( add SAC 5 ) SAC_scale_preferred       then SAC_K1_5 
+                            else if equal ( add SAC 6 ) SAC_scale_preferred       then SAC_K1_6 
+                            else if equal ( add SAC_scale_preferred 1 ) SAC       then SAC_K2 
+                            else if equal ( add SAC_scale_preferred 2 ) SAC       then SAC_K2_2
+                            else if equal ( add SAC_scale_preferred 3 ) SAC       then SAC_K2_3 
+                            else if equal ( add SAC_scale_preferred 4 ) SAC       then SAC_K2_4 
+                            else if equal ( add SAC_scale_preferred 5 ) SAC       then SAC_K2_5 
+                            else if equal ( add SAC_scale_preferred 6 ) SAC       then SAC_K2_6 
+                            else 1.0   
+
+assign costfactor
+  
+  if shortest_way  then (   add 1 accesspenalty ) else
+  
+  add  ( switch is_ldhr                             0.0    # hiking route, no non-hiking road penalty 
+              switch stick_to_hiking_routes       non_sticky_route_penalty
+              switch prefer_hiking_routes         non_hiking_route_penalty			  
+												  0.0    # no hiking route preference   
+       )                                           
+  add      accesspenalty
+  add      SAC_scale_penalty
+
+  switch    ( and highway= not route=ferry )  100000 
+  switch    highway=steps  ( switch allow_steps   ( switch consider_elevation 1.0 3.0 )     100000 )
+  switch    route=ferry    switch allow_ferries 2.34 100000
+  
+# iswet=1 in global context section means wet weather, increases penalty for eventually inconvenient ways
+# ismuddy boolean relates in wet weather to unpaved or unclassified surface, that can have mud or get slicky in wet weather.
+
+  switch    highway=pedestrian       switch ismuddy 1.3 1.0
+  switch    highway=bridleway        switch ismuddy 2.5 1.2
+  switch    highway=cycleway         switch ismuddy 1.4
+                                     switch iswet   1.0 1.2
+  switch    highway=residential|living_street    
+                                     switch ismuddy 1.5
+                                     switch iswet   1.0 1.1
+  switch    highway=service          switch ismuddy 1.5
+                                     switch iswet   1.1 1.3
+  
+  switch highway=track|road|path|footway
+    switch tracktype=grade1 switch ismuddy 1.1
+							switch iswet   1.0  1.21
+    switch tracktype=grade2 switch ismuddy 1.25
+							switch iswet   1.11 1.12
+    switch tracktype=grade3 switch ismuddy 1.4
+							switch iswet   1.21 1.07
+    switch tracktype=grade4 switch ismuddy 1.7
+							switch iswet   1.31 1.05
+    switch tracktype=grade5 switch ismuddy 2.0
+							switch iswet   1.5  1.01
+
+                            switch ismuddy 2.01
+							switch iswet   1.51 1.12
+							
+  switch highway=motorway|motorway_link    100000
+  switch highway=proposed|abandoned   switch ismuddy 3 1.5
+  switch highway=construction         switch ismuddy 10 2.5
+  
+  switch highway=trunk|trunk_link|primary|primary_link     switch iswet  switch issidewalk 2.5 5
+                                                                         switch issidewalk 5 10
+  switch highway=secondary|secondary_link   switch iswet  switch issidewalk 2.0 2.5
+                                                          switch issidewalk 2.5 4.0
+  switch highway=tertiary|tertiary_link|unclassified      switch ismuddy 2.0  switch iswet  switch issidewalk 1.4 1.7
+												                                            switch issidewalk 1.7 2.0
+
+  add cost_of_unknown ( switch ismuddy 0.5 0.0 ) 
+
+---context:node  # following code refers to node tags
+
+assign defaultaccess
+       switch access=
+              1 # add default barrier restrictions here!
+              switch or access=private access=no
+                     0
+                     1
+
+assign bikeaccess
+       or nodeaccessgranted=yes
+          switch bicycle=
+                 switch vehicle=
+                        defaultaccess
+                        switch or vehicle=private vehicle=no
+                               0
+                               1
+                 switch or bicycle=private or bicycle=no bicycle=dismount
+                        0
+                        1
+
+assign footaccess
+       or bicycle=dismount
+          switch foot=
+                 defaultaccess
+                 switch or foot=private foot=no
+                        0
+                        1
+
+assign initialcost switch or bikeaccess footaccess 0 1000000
+
+# changelog:
+# *** Based on Trekking profile, added flag driven customizations
+# Hiking Version 1.6 ALFA
+# 2014-10-10 (c) Poutnik
+# Route_foot related hints were improved with usage of Hiking.brf from below and by Arndt comment
+# http://pastebin.com/YLpkGVD4
+# http://forum.openstreetmap.org/viewtopic.php?pid=447507#p447507
+#
+# 2014-10-10 v1.1 - changed hiking route preference logic
+# 1.2 - fixed preference counting bug
+# 2014-10-11 1.3 - adding foot route to hiking routes,  
+# fixed ferry cost to respect initial cost triggerring.
+#      added bikeaccess,  added shortest way mode,  code cleanup
+# 2014-10-12: v1.4 - involving turncosts and way/node initial costs as orientation/decision penalties,
+#           but turning them off for sticking to hiking routes as extra preference,
+#           tweaking cost preferences
+# 2014-10-13 v1.5 
+# redesigned route preference policy - turncost turned off even for nonsticky but preferred hiking routes
+# cost tweaking.
+# removed uniform cost=1 for sticky hiking routes, to distinguish quality
+# giving penalty 1 for non hiking routes at sticky hiking routes.
+# used not round costs to often trigger initial cost calculation
+#v1.51 - bugfix of redundant routing penalty
+#v 1.6 - initialcost penalty only for sticking routes, decreased way penalties for preferring routes
+# 31/5/2015 v 1.7 ALFA - sac_scale + sac_scale_limit implemented 
+# 10/6/2015 v1.7.1 ALFA - sac_scale improved, MTB scale integrated to SAC scale
+#                         sac_scale_preferred implemented, with progressive penalizing for SAC <> SAC preferred
+# 10/6/2015 v1.7.2 BETA - Fixed general way access penalties
+
+
