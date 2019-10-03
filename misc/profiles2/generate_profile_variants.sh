@@ -12,3 +12,4 @@ sed -e "s/^assign[[:space:]]\+ignore_cycleroutes.*\(#.*\)/assign ignore_cyclerou
 sed -e "s/^assign[[:space:]]\+allow_ferries.*\(#.*\)/assign allow_ferries = false \1/" trekking.brf > trekking-noferries.brf
 sed -e "s/^assign[[:space:]]\+allow_steps.*\(#.*\)/assign allow_steps = false \1/" trekking.brf > trekking-nosteps.brf
 sed -e "s/^assign[[:space:]]\+consider_elevation.*\(#.*\)/assign consider_elevation = false \1/" trekking.brf > trekking-steep.brf
+sed -e "s/^assign[[:space:]]\+avoid_unsafe.*\(#.*\)/assign avoid_unsafe = true \1/" trekking.brf > safety.brf
