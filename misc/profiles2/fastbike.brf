@@ -5,21 +5,29 @@
 #
 # Structure is similar to trekking.brf, see this for documenation.
 #
+# With default configuration (tested for Europe), trunks are
+# strongly avoided even if there's no bike restriction
+# (assuming implicit bicycle=no), and motorways are not allowed
+# even with bicycle=yes). This is not the expected behavior for some countries
+# such as Japan or Australia.
+# Then, you should switch allow_motorways variable to true for these regions.
+#
 
 ---context:global   # following code refers to global config
 
 # Use the following switches to change behaviour
 # (1=yes, 0=no):
 
-assign   consider_elevation   1   # set to 0 to ignore elevation in routing
-assign   allow_steps          1   # set to 0 to disallow steps
-assign   allow_ferries        1   # set to 0 to disallow ferries
-assign   ignore_cycleroutes   0   # set to 1 for better elevation results
-assign   stick_to_cycleroutes 0   # set to 1 to just follow cycleroutes
-assign   avoid_unsafe         0   # set to 1 to avoid standard highways
-assign   turnInstructionMode  1   # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style
+assign   consider_elevation   = true    # set to false to ignore elevation in routing
+assign   allow_steps          = true    # set to false to disallow steps
+assign   allow_ferries        = true    # set to false to disallow ferries
+assign   ignore_cycleroutes   = false   # set to true for better elevation results
+assign   stick_to_cycleroutes = false   # set to true to just follow cycleroutes
+assign   avoid_unsafe         = false   # set to true to avoid standard highways
+assign   turnInstructionMode  = 1       # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style
+assign   allow_motorways      = false   # set to true to allow motorways
 
-assign   validForBikes        1
+assign   validForBikes        = true
 
 # the elevation parameters
 
@@ -47,10 +55,14 @@ assign initialcost switch route=ferry 10000 0
 #
 assign defaultaccess
        switch access=
-              not motorroad=yes
+              (
+                    if motorroad=yes then false
+                    else if highway=motorway|motorway_link then false
+                    else true
+              )
               switch or access=private access=no
-                     0
-                     1
+                     false
+                     true
 
 #
 # calculate logical bike access
@@ -123,8 +135,8 @@ assign costfactor
   min 9999
   add max onewaypenalty accesspenalty
 
-  switch or highway=motorway highway=motorway_link    10000
-  switch or highway=trunk highway=trunk_link          10
+  switch or highway=motorway highway=motorway_link    switch allow_motorways 1.5 10000
+  switch or highway=trunk highway=trunk_link          switch allow_motorways 1.5 10
   switch or highway=primary highway=primary_link      1.2
   switch or highway=secondary highway=secondary_link  1.1
   switch or highway=tertiary highway=tertiary_link    1.0
