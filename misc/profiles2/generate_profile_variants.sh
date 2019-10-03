@@ -6,6 +6,7 @@ sed -e "s/^assign[[:space:]]\+vmax.*\(#.*\)/assign vmax = 90 \1/" car-vario.brf 
 
 # Fastbike variants
 sed -e "s/^assign[[:space:]]\+allow_motorways.*\(#.*\)/assign allow_motorways = true \1/" fastbike.brf > fastbike-asia-pacific.brf
+sed -e "s/^assign[[:space:]]\+consider_traffic.*\(#.*\)/assign consider_traffic = true \1/" fastbike.brf > fastbike-lowtraffic.brf
 
 # Trekking variants
 sed -e "s/^assign[[:space:]]\+ignore_cycleroutes.*\(#.*\)/assign ignore_cycleroutes = true \1/" trekking.brf > trekking-ignore-cr.brf

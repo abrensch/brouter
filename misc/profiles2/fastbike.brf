@@ -19,6 +19,7 @@
 # (1=yes, 0=no):
 
 assign   consider_elevation   = true    # set to false to ignore elevation in routing
+assign   consider_traffic     = false   # set to true to avoid traffic
 assign   allow_steps          = true    # set to false to disallow steps
 assign   allow_ferries        = true    # set to false to disallow ferries
 assign   ignore_cycleroutes   = false   # set to true for better elevation results
@@ -67,22 +68,20 @@ assign defaultaccess
 #
 # calculate logical bike access
 #
-assign bikeaccess
+assign bikeaccess =
        or any_cycleroute
           switch bicycle=
                  switch bicycle_road=yes
-                    1
+                    true
                     switch vehicle=
                            defaultaccess
-                           switch or vehicle=private vehicle=no
-                                  0
-                                  1
+                           not vehicle=private|no
                  not or bicycle=private or bicycle=no bicycle=dismount
 
 #
 # calculate logical foot access
 #
-assign footaccess
+assign footaccess =
        or bikeaccess
           or bicycle=dismount
              switch foot=
@@ -125,6 +124,44 @@ assign onewaypenalty =
        )
        else 0.0
 
+# Eventually compute traffic penalty
+assign hascycleway = not
+  and ( or cycleway= cycleway=no|none ) and ( or cycleway:left= cycleway:left=no ) ( or cycleway:right= cycleway:right=no )
+
+assign trafficpenalty0 =
+    if highway=primary|primary_link then
+    (
+      if      estimated_traffic_class=4 then 0.2
+      else if estimated_traffic_class=5 then 0.4
+      else if estimated_traffic_class=6|7 then 0.6
+      else 0
+    )
+    else if highway=secondary|secondary_link then
+    (
+      if      estimated_traffic_class=3 then 0.2
+      else if estimated_traffic_class=4 then 0.4
+      else if estimated_traffic_class=5 then 0.6
+      else if estimated_traffic_class=6|7 then 1
+      else 0
+    )
+    else if highway=tertiary|tertiary_link then
+    (
+      if      estimated_traffic_class=2 then 0.1
+      else if estimated_traffic_class=3 then 0.3
+      else if estimated_traffic_class=4 then 0.5
+      else if estimated_traffic_class=5|6|7 then 1
+      else 0
+    )
+    else 0
+
+assign trafficpenalty =
+  if consider_traffic then
+  (
+    if hascycleway then min 0.3 trafficpenalty0
+    else trafficpenalty0
+  )
+  else 0
+
 assign isresidentialorliving = or highway=residential|living_street living_street=yes
 
 assign costfactor
@@ -134,6 +171,7 @@ assign costfactor
 
   min 9999
   add max onewaypenalty accesspenalty
+  add trafficpenalty
 
   switch or highway=motorway highway=motorway_link    switch allow_motorways 1.5 10000
   switch or highway=trunk highway=trunk_link          switch allow_motorways 1.5 10
