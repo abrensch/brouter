@@ -1,4 +1,6 @@
 #!/usr/bin/sh
+cd "$(dirname "$0")"
+cd ../profiles2
 
 # Car variants
 sed -e "s/^assign[[:space:]]\+vmax.*\(#.*\)/assign vmax = 160 \1/" car-vario.brf > car-fast.brf

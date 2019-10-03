@@ -94,6 +94,21 @@ More documentation of this is available in the
 [`misc/readmes/mapcreation.md`](misc/readmes/mapcreation.md) file.
 
 
+### (Optional) Generate profile variants
+
+This repository holds examples of BRouter profiles for many different
+transportation modes. Most of these can be easily customized by setting
+variables in the first `global` context of the profiles files.
+
+An helper script is available in `misc/scripts/generate_profile_variants.sh`
+to help you quickly generate variants based on the default profiles, to create
+a default set of profiles covering most of the basic use cases.
+
+Have a look at the
+[`misc/readmes/profile_developers_guide.txt`](misc/readmes/profile_developers_guide.txt)
+for an in-depth guide on profiles edition and customization.
+
+
 ### Run the BRouter HTTP server
 
 Helpers scripts are provided in `misc/scripts/standalone` to quickly spawn a
