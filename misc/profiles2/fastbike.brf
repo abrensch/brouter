@@ -15,27 +15,42 @@
 
 ---context:global   # following code refers to global config
 
+# Bike profile
+assign validForBikes = true
+
 # Use the following switches to change behaviour
-# (1=yes, 0=no):
+assign allow_steps              = true   # %allow_steps% | Set to false to disallow steps | boolean
+assign allow_ferries            = true   # %allow_ferries% | set to false to disallow ferries | boolean
+assign ignore_cycleroutes       = false  # %ignore_cycleroutes% | Set to true for better elevation results | boolean
+assign stick_to_cycleroutes     = false  # %stick_to_cycleroutes% | Set to true to just follow cycleroutes | boolean
+assign avoid_unsafe             = false  # %avoid_unsafe% | Set to true to avoid standard highways | boolean
+assign considerTurnRestrictions = false  # %considerTurnRestrictions% | Set to true to take turn restrictions into account | boolean
+assign processUnusedTags        = false  # %processUnusedTags% | Set to true to output unused tags in data tab | boolean
+assign consider_traffic         = false  # %consider_traffic% | Set to true to avoid traffic | boolean
+assign allow_motorways          = false  # %allow_motorways% | Set to true to allow motorways (useful in Asia / Oceania for example) | boolean
 
-assign   consider_elevation   = true    # set to false to ignore elevation in routing
-assign   consider_traffic     = false   # set to true to avoid traffic
-assign   allow_steps          = true    # set to false to disallow steps
-assign   allow_ferries        = true    # set to false to disallow ferries
-assign   ignore_cycleroutes   = false   # set to true for better elevation results
-assign   stick_to_cycleroutes = false   # set to true to just follow cycleroutes
-assign   avoid_unsafe         = false   # set to true to avoid standard highways
-assign   turnInstructionMode  = 1       # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style
-assign   allow_motorways      = false   # set to true to allow motorways
+# Change elevation parameters
+assign consider_elevation = true  # %consider_elevation% | Set to false to ignore elevation in routing | boolean
+assign downhillcost       = 60    # %downhillcost% | Cost for going downhill | number
+assign downhillcutoff     = 1.5   # %downhillcutoff% | Gradients below this value in percents are not counted. | number
+assign uphillcost         = 0     # %uphillcost% | Cost for going uphill | number
+assign uphillcutoff       = 1.5   # %uphillcutoff% | Gradients below this value in percents are not counted.  | number
 
-assign   validForBikes        = true
+assign downhillcost       = if consider_elevation then downhillcost else 0
+assign uphillcost         = if consider_elevation then uphillcost else 0
 
-# the elevation parameters
+# Kinematic model parameters (travel time computation)
+assign totalMass  = 90     # %totalMass% | Mass (in kg) of the bike + biker, for travel time computation | number
+assign maxSpeed   = 45     # %maxSpeed% | Absolute maximum speed (in km/h), for travel time computation | number
+assign S_C_x      = 0.225  # %S_C_x% | Drag coefficient times the reference area (in m^2), for travel time computation | number
+assign C_r        = 0.01   # %C_r% | Rolling resistance coefficient (dimensionless), for travel time computation | number
+assign bikerPower = 100    # %bikerPower% | Average power (in W) provided by the biker, for travel time computation | number
 
-assign downhillcost switch consider_elevation 60 0
-assign downhillcutoff 1.5
-assign uphillcost 0
-assign uphillcutoff 1.5
+# Turn instructions settings
+assign turnInstructionMode          = 1     # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style]
+assign turnInstructionCatchingRange = 40    # %turnInstructionCatchingRange% | Within this distance (in m) several turning instructions are combined into one and the turning angles are better approximated to the general direction | number
+assign turnInstructionRoundabouts   = true  # %turnInstructionRoundabouts% | Set to "false" to avoid generating special turning instructions for roundabouts | boolean
+
 
 ---context:way   # following code refers to way-tags
 
