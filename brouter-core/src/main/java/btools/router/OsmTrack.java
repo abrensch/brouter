@@ -26,7 +26,7 @@ import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.OsmPos;
 import btools.util.CompactLongMap;
 import btools.util.FrozenLongMap;
-import org.apache.commons.text.StringEscapeUtils;
+import btools.util.StringUtils;
 
 public final class OsmTrack
 {
@@ -542,7 +542,7 @@ public final class OsmTrack
       OsmNodeNamed poi = pois.get(i);
       sb.append( " <wpt lon=\"" ).append( formatILon( poi.ilon ) ).append( "\" lat=\"" )
         .append( formatILat( poi.ilat ) ).append( "\">\n" )
-        .append( "  <name>" ).append( StringEscapeUtils.escapeXml10(poi.name) ).append( "</name>\n" )
+        .append( "  <name>" ).append( StringUtils.escapeXml10(poi.name) ).append( "</name>\n" )
         .append( " </wpt>\n" );
     }
 
@@ -553,7 +553,7 @@ public final class OsmTrack
         MatchedWaypoint wt = matchedWaypoints.get(i);
         sb.append( " <wpt lon=\"" ).append( formatILon( wt.waypoint.ilon ) ).append( "\" lat=\"" )
           .append( formatILat( wt.waypoint.ilat ) ).append( "\">\n" )
-          .append( "  <name>" ).append( StringEscapeUtils.escapeXml10(wt.name) ).append( "</name>\n" );
+          .append( "  <name>" ).append( StringUtils.escapeXml10(wt.name) ).append( "</name>\n" );
         if(i == 0)
         {
           sb.append( "  <type>from</type>\n" );
@@ -690,7 +690,7 @@ public final class OsmTrack
 
   private void createPlaceMark(StringBuilder sb, String name, int ilat, int ilon) {
     sb.append("      <Placemark>\n");
-    sb.append("        <name>" + StringEscapeUtils.escapeXml10(name) + "</name>\n");
+    sb.append("        <name>" + StringUtils.escapeXml10(name) + "</name>\n");
     sb.append("        <Point>\n");
     sb.append("         <coordinates>" + formatILon(ilon) + "," + formatILat(ilat) + "</coordinates>\n");
     sb.append("        </Point>\n");
@@ -837,7 +837,7 @@ public final class OsmTrack
     sb.append( "    {\n" );
     sb.append( "      \"type\": \"Feature\",\n" );
     sb.append( "      \"properties\": {\n" );
-    sb.append( "        \"name\": \"" + StringEscapeUtils.escapeJson(name) + "\",\n" );
+    sb.append( "        \"name\": \"" + StringUtils.escapeJson(name) + "\",\n" );
     sb.append( "        \"type\": \"" + type + "\"\n" );
     sb.append( "      },\n" );
     sb.append( "      \"geometry\": {\n" );
