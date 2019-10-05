@@ -1,0 +1,21 @@
+---context:global   # following code refers to global config
+
+# the elevation parameters
+
+assign downhillcost 0
+assign downhillcutoff 1.5
+assign uphillcost 0
+assign uphillcutoff 1.5
+
+---context:way   # following code refers to way-tags
+
+assign turncost 0
+assign initialcost 0
+
+assign costfactor
+  switch or waterway=canal or waterway=river waterway=lock_gate  1
+  100000
+
+---context:node  # following code refers to node tags
+
+assign initialcost 0

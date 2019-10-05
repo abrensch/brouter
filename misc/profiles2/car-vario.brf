@@ -9,39 +9,40 @@
 
 ---context:global
 
-# kinematic parameters
-
-assign vmax             = 90     # kmh
-assign recup_efficiency = 0.7    # (ratio)
-assign totalweight      = 1640   # kg
-assign f_roll           = 232    # Newton
-assign f_air            = 0.4    # 0.5*cw*A*rho
-assign f_recup          = 400    # Newton
-assign p_standby        = 250    # Watt
-
-# technical parameters
-
+# Car profile
 assign validForCars        = true
-assign pass1coefficient    = 1.3
-assign turnInstructionMode = 1  # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style
 
+# Use the following switches to change behaviour
 assign avoid_toll          = false  # %avoid_toll% | Avoid paid roads | boolean
 assign avoid_unpaved       = false  # %avoid_unpaved% | Avoid unpaved roads, if possible | boolean
 assign avoid_motorways     = false  # %avoid_motorways% | Avoid motorways | boolean
 
+# Kinematic model parameters
+assign vmax             = 90     # %vmax% | Target speed (in km/h) | number
+assign recup_efficiency = 0.7    # %recup_efficiency% | (ratio) | number
+assign totalweight      = 1640   # %totalweight% | Total weight of the car (in kg) | number
+assign f_roll           = 232    # %f_roll% | Rolling friction (in Newton) | number
+assign f_air            = 0.4    # %f_air% | Drag force (in Newton / (m/s)^2), 0.5*cw*A*rho | number
+assign f_recup          = 400    # %f_recup% | Newton | number
+assign p_standby        = 250    # %p_standby% | Watt | number
 
-# classifier constants
+# Turn instructions settings
+assign turnInstructionMode          = 1     # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style]
 
-assign classifier_none        = 1
-assign classifier_ferry       = 2
+# Technical parameters
+assign pass1coefficient    = 1.3
 
 
 ---context:way   # following code refers to way-tags
 
+# classifier constants
+assign classifier_none        = 1
+assign classifier_ferry       = 2
+
 assign is_avoided_toll_road and  avoid_toll toll=yes
 assign is_avoided_motorway and avoid_motorways highway=motorway|motorway_link
 
-    
+
 #
 # calculate logical car access
 #
@@ -254,7 +255,7 @@ assign caraccess
               motorcar=yes|permissive|designated|destination
 
 assign initialcost =
-       switch and avoid_toll barrier=toll_booth 1000000 
+       switch and avoid_toll barrier=toll_booth 1000000
        switch caraccess
               0
               1000000
