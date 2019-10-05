@@ -21,7 +21,7 @@ import btools.util.CheapRuler;
 
 public final class RoutingContext
 {
-  public void setAlternativeIdx( int idx )
+  public void setAlternativeIdx(int idx )
   {
     alternativeIdx = idx;
   }
@@ -187,6 +187,8 @@ public final class RoutingContext
     // Constant power of the biker (in W)
     bikerPower = expctxGlobal.getVariableValue( "bikerPower", 100.f );
   }
+
+  public List<OsmNodeNamed> poipoints;
 
   public List<OsmNodeNamed> nogopoints = null;
   private List<OsmNodeNamed> keepnogopoints = null;

@@ -446,6 +446,7 @@ public class RoutingEngine extends Thread
       totaltrack.appendTrack( seg );
       lastTracks[i] = seg;
     }
+    if (routingContext.poipoints != null) totaltrack.pois = routingContext.poipoints;
     totaltrack.matchedWaypoints = matchedWaypoints;
     return totaltrack;
   }
