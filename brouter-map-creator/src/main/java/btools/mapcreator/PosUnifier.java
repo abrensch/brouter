@@ -167,10 +167,6 @@ public class PosUnifier extends MapCreatorBase
     int srtmLonIdx = ( ilon + 5000000 ) / 5000000;
     int srtmLatIdx = ( 154999999 - ilat ) / 5000000;
 
-    if ( srtmLatIdx < 1 || srtmLatIdx > 24 || srtmLonIdx < 1 || srtmLonIdx > 72 )
-    {
-      return null;
-    }
     if ( srtmLonIdx == lastSrtmLonIdx && srtmLatIdx == lastSrtmLatIdx )
     {
       return lastSrtmRaster;
@@ -178,11 +174,9 @@ public class PosUnifier extends MapCreatorBase
     lastSrtmLonIdx = srtmLonIdx;
     lastSrtmLatIdx = srtmLatIdx;
 
-    StringBuilder sb = new StringBuilder( 16 );
-    sb.append( "srtm_" );
-    sb.append( (char) ( '0' + srtmLonIdx / 10 ) ).append( (char) ( '0' + srtmLonIdx % 10 ) ).append( '_' );
-    sb.append( (char) ( '0' + srtmLatIdx / 10 ) ).append( (char) ( '0' + srtmLatIdx % 10 ) );
-    String filename = sb.toString();
+    String slonidx = "0" + srtmLonIdx;
+    String slatidx = "0" + srtmLatIdx;
+    String filename = "srtm_" + slonidx.substring( slonidx.length()-2 ) + "_" + slatidx.substring( slatidx.length()-2 );
 
     lastSrtmRaster = srtmmap.get( filename );
     if ( lastSrtmRaster == null && !srtmmap.containsKey( filename ) )
