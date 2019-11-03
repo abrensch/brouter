@@ -165,7 +165,7 @@ public class PosUnifier extends MapCreatorBase
   private SrtmRaster srtmForNode( int ilon, int ilat ) throws Exception
   {
     int srtmLonIdx = ( ilon + 5000000 ) / 5000000;
-    int srtmLatIdx = ( 154999999 - ilat ) / 5000000;
+    int srtmLatIdx = ( 654999999 - ilat ) / 5000000 - 100; // ugly negative rounding...
 
     if ( srtmLonIdx == lastSrtmLonIdx && srtmLatIdx == lastSrtmLatIdx )
     {
