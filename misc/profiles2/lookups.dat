@@ -642,7 +642,48 @@ sidewalk:right:bicycle;0000002667 yes designated
 
 bicycle_road;0000006521 yes designated
 
----context:node
+construction;0000144871 yes
+construction;0000008214 minor
+construction;0029035962 residential
+construction;0010319731 service
+construction;0007688809 track
+construction;0007656124 unclassified
+construction;0004141444 footway
+construction;0003493551 tertiary
+construction;0002852601 path
+construction;0002185240 secondary
+construction;0001447719 primary
+construction;0000699577 cycleway
+construction;0000608469 trunk
+construction;0000568118 living_street
+construction;0000515044 motorway
+construction;0000451760 motorway_link
+construction;0000442502 steps
+construction;0000360177 road
+construction;0000318426 pedestrian
+construction;0000210535 trunk_link
+construction;0000192461 primary_link
+construction;0000120758 secondary_link
+construction;0000079637 tertiary_link
+construction;0000070238 construction
+construction;0000058257 bridleway
+construction;0000039003 platform
+construction;0000037192 proposed
+construction;0000010307 raceway
+construction;0000003152 rest_area
+construction;0000002942 abandoned
+construction;0000002631 services
+construction;0000002133 corridor
+construction;0000002093 crossing
+construction;0000001440 bus_stop
+construction;0000001274 yes
+construction;0000000679 unsurfaced
+construction;0000000108 byway
+construction;0000000037 driveway
+construction;0000000021 mini_roundabout
+construction;0000000020 turning_loop
+
+ ---context:node
 
 highway;0001314954 bus_stop
 highway;0001130090 crossing
