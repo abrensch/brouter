@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
@@ -57,10 +58,9 @@ public class SuspectManager extends Thread
   }
   
   
-  private static void markFalsePositive( long id ) throws IOException
+  private static void markFalsePositive( SuspectList suspects, long id ) throws IOException
   {
     new File( "falsepositives/" + id ).createNewFile();
-    SuspectList suspects = getAllSuspects( new File( "worldsuspects.txt" ) );
     for( int isuspect = 0; isuspect<suspects.cnt; isuspect++ )
     {
       if ( id == suspects.ids[isuspect] )
@@ -71,10 +71,8 @@ public class SuspectManager extends Thread
 
   }
 
-  public static void newAndConfirmedJson( BufferedWriter bw, String filter, int level ) throws IOException
+  public static void newAndConfirmedJson( SuspectList suspects, BufferedWriter bw, String filter, int level ) throws IOException
   {
-    SuspectList suspects = getAllSuspects( new File( "worldsuspects.txt" ) );
-    
     bw.write( "{\n" );
     bw.write( "\"type\": \"FeatureCollection\",\n" );
     bw.write( "\"features\": [" );
@@ -191,6 +189,8 @@ public class SuspectManager extends Thread
     tk.nextToken();
     long id = 0L;
     String country = "";
+    String challenge = "";
+    String suspectFilename = "worldsuspects.txt";
     String filter = null;
 
     while ( tk.hasMoreTokens() )
@@ -201,15 +201,27 @@ public class SuspectManager extends Thread
         filter = c;
         break;
       }
+      if ( country.length() == 0 )
+      {      
+        if ( new File( c + "suspects.txt" ).exists() )
+        {
+          suspectFilename = c + "suspects.txt";
+          challenge = "/" + c;
+          continue;
+        }
+      }
+      
       country += "/" + c;
     }
     
+    SuspectList suspects = getAllSuspects( suspectFilename );
+
     if ( url.endsWith( ".json" ) )
     {
       StringTokenizer tk2 = new StringTokenizer( tk.nextToken(), "." );
       int level = Integer.parseInt( tk2.nextToken() ); 
       
-      newAndConfirmedJson( bw, filter, level );
+      newAndConfirmedJson( suspects, bw, filter, level );
       return;
     }
     
@@ -232,7 +244,7 @@ public class SuspectManager extends Thread
       }
       for ( String c : names )
       {
-        String url2 = "/brouter/suspects" + country + "/" + c;
+        String url2 = "/brouter/suspects" + challenge + country + "/" + c;
         String linkNew = "<td>&nbsp;<a href=\"" + url2 + "/new\">new</a>&nbsp;</td>";
         String linkCnf = "<td>&nbsp;<a href=\"" + url2 + "/confirmed\">confirmed</a>&nbsp;</td>";
         String linkAll = "<td>&nbsp;<a href=\"" + url2 + "/all\">all</a>&nbsp;</td>";
@@ -272,7 +284,6 @@ public class SuspectManager extends Thread
       bw.flush();
       return;
     }
-    SuspectList suspects = getAllSuspects( suspectFile );
 
     boolean showWatchList = false;
     if ( tk.hasMoreTokens() )
@@ -291,7 +302,7 @@ public class SuspectManager extends Thread
     if ( showWatchList )
     {
       bw.write( "watchlist for " + country + "\n" );
-      bw.write( "<br><a href=\"/brouter/suspects\">back to country list</a><br><br>\n" );
+      bw.write( "<br><a href=\"/brouter/suspects" + challenge + "\">back to country list</a><br><br>\n" );
       
       long timeNow = System.currentTimeMillis();
 
@@ -331,7 +342,7 @@ public class SuspectManager extends Thread
           continue; // not in selected polygon
         }
         
-        String countryId = country + "/" + filter + "/" + id;
+        String countryId = challenge + country + "/" + filter + "/" + id;
         String dueTime = hideTime < 0 ? "(asap)" : formatAge( hideTime + 43200000 );
         String hint = "&nbsp;&nbsp;&nbsp;due in " + dueTime;
         int ilon = (int) ( id >> 32 );
@@ -359,7 +370,7 @@ public class SuspectManager extends Thread
         }
         else
         {
-          markFalsePositive( id );
+          markFalsePositive( suspects, id );
           message = "Marked issue " + id + " as false-positive";
           id = 0L;
         }
@@ -401,7 +412,7 @@ public class SuspectManager extends Thread
     }
     if ( id != 0L )
     {
-      String countryId = country + "/" + filter + "/" + id;
+      String countryId = challenge + country + "/" + filter + "/" + id;
 
       int ilon = (int) ( id >> 32 );
       int ilat = (int) ( id & 0xffffffff );
@@ -451,7 +462,7 @@ public class SuspectManager extends Thread
       bw.write( "<br>\n" );
       if ( isFixed( id, suspects.timestamp ) )
       {
-        bw.write( "<br><br><a href=\"/brouter/suspects/" + country + "/" + filter + "/watchlist\">back to watchlist</a><br><br>\n" );
+        bw.write( "<br><br><a href=\"/brouter/suspects/" + challenge + country + "/" + filter + "/watchlist\">back to watchlist</a><br><br>\n" );
       }
       else
       {
@@ -480,7 +491,7 @@ public class SuspectManager extends Thread
         }
         if ( polygon != null )
         {
-          bw.write( "<br><br><a href=\"/brouter/suspects" + country + "/" + filter + "\">back to issue list</a><br><br>\n" );
+          bw.write( "<br><br><a href=\"/brouter/suspects" + challenge + country + "/" + filter + "\">back to issue list</a><br><br>\n" );
         }
       }
     }
@@ -491,7 +502,7 @@ public class SuspectManager extends Thread
     else
     {
       bw.write( filter + " suspect list for " + country + "\n" );
-      bw.write( "<br><a href=\"/brouter/suspects" + country + "/" + filter + "/watchlist\">see watchlist</a>\n" );
+      bw.write( "<br><a href=\"/brouter/suspects" + challenge + country + "/" + filter + "/watchlist\">see watchlist</a>\n" );
       bw.write( "<br><a href=\"/brouter/suspects\">back to country list</a><br><br>\n" );
       int maxprio = 0;
       {
@@ -537,7 +548,7 @@ public class SuspectManager extends Thread
             maxprio = nprio;
             bw.write( "current level: " + getLevelDecsription( maxprio ) + "<br><br>\n" );
           }
-          String countryId = country + "/" + filter + "/" + id;
+          String countryId = challenge + country + "/" + filter + "/" + id;
           File confirmedEntry = new File( "confirmednegatives/" + id );
           String hint = "";
           if ( confirmedEntry.exists() )
@@ -586,13 +597,14 @@ public class SuspectManager extends Thread
     }
   }
 
-  private static SuspectList allSuspects;
-  private static Object allSuspectsSync = new Object();
+  private static HashMap<String,SuspectList> allSuspectsMap = new HashMap<String,SuspectList>();
   
-  private static SuspectList getAllSuspects( File suspectFile ) throws IOException
+  private static SuspectList getAllSuspects( String suspectFileName ) throws IOException
   {
-    synchronized( allSuspectsSync )
+    synchronized( allSuspectsMap )
     {
+      SuspectList allSuspects = allSuspectsMap.get( suspectFileName );
+      File suspectFile = new File( suspectFileName );
       if ( allSuspects != null && suspectFile.lastModified() == allSuspects.timestamp )
       {
         return allSuspects;
@@ -643,6 +655,7 @@ public class SuspectManager extends Thread
         allSuspects.falsePositive[pointer] = new File( "falsepositives/" + id ).exists();
       }
       r.close();
+      allSuspectsMap.put( suspectFileName, allSuspects );
       return allSuspects;
     }  
   }  
