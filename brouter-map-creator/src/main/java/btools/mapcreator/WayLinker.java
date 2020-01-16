@@ -74,7 +74,7 @@ public class WayLinker extends MapCreatorBase implements Runnable
   {
     long maxFileSize = 0L;
     long currentSlaveSize;   
-    long currentMasterSize;
+    long currentMasterSize = 2000000000L;
     
     synchronized boolean setCurrentMasterSize( long size )
     {
