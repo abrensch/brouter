@@ -503,7 +503,7 @@ public class SuspectManager extends Thread
     {
       bw.write( filter + " suspect list for " + country + "\n" );
       bw.write( "<br><a href=\"/brouter/suspects" + challenge + country + "/" + filter + "/watchlist\">see watchlist</a>\n" );
-      bw.write( "<br><a href=\"/brouter/suspects\">back to country list</a><br><br>\n" );
+      bw.write( "<br><a href=\"/brouter/suspects" + challenge + "\">back to country list</a><br><br>\n" );
       int maxprio = 0;
       {
         for( int isuspect = 0; isuspect<suspects.cnt; isuspect++ )

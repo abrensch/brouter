@@ -366,4 +366,38 @@ public class MicroCache extends ByteDataWriter
      }
   }
 
+  public void addDelta( MicroCache mc1, MicroCache mc2, boolean keepEmptyNodes )
+  {
+     int idx1 = 0;
+     int idx2 = 0;
+
+     while( idx1 < mc1.size || idx2 < mc2.size )
+     {
+       int id1 = idx1 < mc1.size ? mc1.faid[idx1] : Integer.MAX_VALUE;
+       int id2 = idx2 < mc2.size ? mc2.faid[idx2] : Integer.MAX_VALUE;
+       if ( id1 >= id2 ) // data from diff file wins
+       {
+         int start2 = idx2 > 0 ? mc2.fapos[idx2 - 1] : 0;
+         int len2 = mc2.fapos[idx2++] - start2;
+         if ( keepEmptyNodes || len2 > 0 )
+         {
+           write( mc2.ab, start2, len2 );
+           fapos[size] = aboffset;
+           faid[size++] = id2;
+         }
+         if ( id1 == id2 ) // // id exists in both caches
+         {
+           idx1++;
+         }
+       }
+       else // use data from base file
+       {
+         int start1 = idx1 > 0 ? mc1.fapos[idx1 - 1] : 0;
+         int len1 = mc1.fapos[idx1++] - start1;
+         write( mc1.ab, start1, len1 );
+         fapos[size] = aboffset;
+         faid[size++] = id1;
+       }
+     }
+  }
 }
