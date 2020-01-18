@@ -266,6 +266,25 @@ public final class TagValueCoder
           return -1;
         if ( tvs1.frequency > tvs2.frequency )
           return 1;
+
+        // to avoid ordering instability, decide on the data
+        // if frequency is equal
+        int l1 = tvs1.data == null ? 0 : tvs1.data.length;
+        int l2 = tvs2.data == null ? 0 : tvs2.data.length;
+
+        if ( l1 < l2 )
+          return -1;
+        if ( l1 > l2 )
+          return 1;
+        for( int i=0; i<l1; i++ )
+        {
+          byte b1 = tvs1.data[i];
+          byte b2 = tvs2.data[i];
+          if ( b1 < b2 )
+            return -1;
+          if ( b1 > b2 )
+            return 1;
+        }
         return 0;
       }
     }
