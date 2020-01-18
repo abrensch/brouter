@@ -138,6 +138,8 @@ final public class Rd5DiffTool
     long[] fileIndex1 = readFileIndex( dis1, null );
     long[] fileIndex2 = readFileIndex( dis2, dos );
 
+    long t0 = System.currentTimeMillis();
+
     try
     {
       DataBuffers dataBuffers = new DataBuffers();
@@ -181,14 +183,14 @@ final public class Rd5DiffTool
              dos.writeInt( len );
              dos.write( abBuf1, 0, len );
 
-                 // do some consistemcy checks on the encoding
+             bytesDiff += len;
+             nodesDiff += mc.getSize();
+             diffedTiles++;
+
+/*                 // do some consistemcy checks on the encoding
 
                  byte[] bytes = new byte[len];
                  System.arraycopy( abBuf1, 0, bytes, 0, len );
-
-                 bytesDiff += len;
-                 nodesDiff += mc.getSize();
-                 diffedTiles++;
                  
                  // cross-check the encoding: decode again
                  MicroCache mcCheck = new MicroCache2( new StatCoderContext( bytes ), new DataBuffers( null ), 0, 0, 32, null, null );
@@ -220,6 +222,7 @@ final public class Rd5DiffTool
                      throw new IllegalArgumentException( "decoded data mismatch at i=" + i );
                    }
                  }
+             */
           }
         }
       }
@@ -233,7 +236,8 @@ final public class Rd5DiffTool
         }
         dos.write( abBuf1, 0, len );
       }
-      System.out.println( "nodesDiff=" + nodesDiff + " bytesDiff=" + bytesDiff + " diffedTiles=" + diffedTiles );
+      long t1 = System.currentTimeMillis();
+      System.out.println( "nodesDiff=" + nodesDiff + " bytesDiff=" + bytesDiff + " diffedTiles=" + diffedTiles + " took " + (t1-t0) + "ms" );
     }
     finally
     {
@@ -416,6 +420,8 @@ final public class Rd5DiffTool
     long[] fileIndex1 = readFileIndex( dis1, null );
     long[] fileIndex2 = readFileIndex( dis2, dos );
 
+    long t0 = System.currentTimeMillis();
+
     try
     {
       DataBuffers dataBuffers = new DataBuffers();
@@ -475,6 +481,8 @@ final public class Rd5DiffTool
         }
         dos.write( abBuf1, 0, len );
       }
+      long t1 = System.currentTimeMillis();
+      System.out.println( "adding diffs took " + (t1-t0) + "ms" );
     }
     finally
     {
