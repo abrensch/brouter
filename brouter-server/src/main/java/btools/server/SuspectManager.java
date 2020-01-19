@@ -201,7 +201,7 @@ public class SuspectManager extends Thread
         filter = c;
         break;
       }
-      if ( country.length() == 0 )
+      if ( country.length() == 0 && !"world".equals(c) )
       {      
         if ( new File( c + "suspects.txt" ).exists() )
         {
