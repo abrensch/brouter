@@ -48,6 +48,8 @@ final public class Rd5DiffManager
       
       // calculate MD5 of old file
       String md5 = getMD5( fo );
+
+      String md5New = getMD5( fn );
       
       System.out.println( "name=" + name + " md5=" + md5 );
       
@@ -55,9 +57,12 @@ final public class Rd5DiffManager
       specificNewDiffs.mkdirs();
       
       String diffFileName = md5 + ".rd5diff";
-      
       File diffFile = new File( specificNewDiffs, diffFileName );
       
+      String dummyDiffFileName = md5New + ".rd5diff";
+      File dummyDiffFile = new File( specificNewDiffs, dummyDiffFileName );
+      dummyDiffFile.createNewFile();
+
       // calc the new diff
       Rd5DiffTool.diff2files( fo, fn, diffFile  );
       
@@ -72,15 +77,17 @@ final public class Rd5DiffManager
           {
             continue;
           }
-          if ( System.currentTimeMillis() - od.lastModified() > 31*86400000L )
+          if ( System.currentTimeMillis() - od.lastModified() > 9*86400000L )
           {
-            continue; // limit diff history to 31 days
+            continue; // limit diff history to 9 days
           }
           
           File updatedDiff = new File( specificNewDiffs, od.getName() );
-          
-          Rd5DiffTool.addDeltas( od, diffFile, updatedDiff  );
-          updatedDiff.setLastModified( od.lastModified() );
+          if ( !updatedDiff.exists() )
+          {        
+            Rd5DiffTool.addDeltas( od, diffFile, updatedDiff  );
+            updatedDiff.setLastModified( od.lastModified() );
+          }
         }
       }
     }

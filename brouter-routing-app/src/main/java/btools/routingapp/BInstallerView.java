@@ -25,7 +25,10 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
 import btools.mapaccess.PhysicalFile;
+import btools.mapaccess.Rd5DiffManager;
+import btools.mapaccess.Rd5DiffTool;
 import btools.router.RoutingHelper;
+import btools.util.ProgressListener;
 
 public class BInstallerView extends View
 {
@@ -61,7 +64,9 @@ public class BInstallerView extends View
 
     private long currentDownloadSize;
     private String currentDownloadFile = "";
+    private volatile String currentDownloadOperation = "";
     private String downloadAction = "";
+    private volatile String newDownloadAction = "";
 
     private long totalSize = 0;
     private long rd5Tiles = 0;
@@ -144,6 +149,7 @@ public class BInstallerView extends View
     	String namebase = baseNameForTile( tileIndex );
       String baseurl = "http://brouter.de/brouter/segments4/";
         currentDownloadFile = namebase + ".rd5";
+        currentDownloadOperation = "Checking";
         String url = baseurl + currentDownloadFile;
     	isDownloading = true;
     	downloadCanceled = false;
@@ -241,7 +247,7 @@ public class BInstallerView extends View
         	 tileStatus[tidx] |= MASK_INSTALLED_RD5;
         	 
         	 long age = System.currentTimeMillis() - new File( dir, fileName ).lastModified();
-        	 if ( age < 86400000 ) tileStatus[tidx] |= MASK_CURRENT_RD5;
+        	 if ( age < 300000 ) tileStatus[tidx] |= MASK_CURRENT_RD5; // 5 minutes
           }
         }
     }
@@ -368,7 +374,7 @@ public class BInstallerView extends View
            	{
               String sizeHint = currentDownloadSize > 0 ? " (" + ((currentDownloadSize + mb-1)/mb) + " MB)" : "";
               paint.setTextSize(30);
-              canvas.drawText( "Loading " + currentDownloadFile + sizeHint, 30, (imgh/3)*2-30, paint);
+              canvas.drawText( currentDownloadOperation +  " " + currentDownloadFile + sizeHint, 30, (imgh/3)*2-30, paint);
               canvas.drawText( downloadAction, 30, (imgh/3)*2, paint);
            	}
             if ( !tilesVisible )
@@ -573,7 +579,7 @@ float tx, ty;
         
         // usually, subclasses of AsyncTask are declared inside the activity class.
         // that way, you can easily modify the UI thread from here
-        private class DownloadTask extends AsyncTask<String, Integer, String> {
+        private class DownloadTask extends AsyncTask<String, Integer, String> implements ProgressListener {
 
             private Context context;
             private PowerManager.WakeLock mWakeLock;
@@ -583,6 +589,19 @@ float tx, ty;
             }
 
             @Override
+            public void updateProgress( String progress )
+            {
+              newDownloadAction = progress;
+              publishProgress( 0 );
+            }
+  
+            @Override
+            public boolean isCanceled()
+            {
+              return isDownloadCanceled();
+            }
+
+              @Override
             protected String doInBackground(String... sUrls)
             {
               InputStream input = null;
@@ -595,16 +614,48 @@ float tx, ty;
               {
                 try
                 {
-                    URL url = new URL(surl);
+                    int slidx = surl.lastIndexOf( "segments4/" );
+                    String name = surl.substring( slidx+10 );
+                    String surlBase = surl.substring( 0, slidx+10 );
+                    fname = baseDir + "/brouter/segments4/" + name;
 
-                    connection = (HttpURLConnection) url.openConnection();
-                    connection.connect();
+                    boolean delta = true;
 
+                    File targetFile = new File( fname );
+                    if ( targetFile.exists() )
+                    {
+                      updateProgress( "Calculating local checksum.." );
+                    
+                      // first check for a delta file
+                      String md5 = Rd5DiffManager.getMD5( targetFile );
+                      String surlDelta = surlBase + "diff/" + name.replace( ".rd5", "/" + md5 + ".rd5diff" );
+                      
+                      URL urlDelta = new URL(surlDelta);
+
+                      updateProgress( "Connecting.." );
+
+                      connection = (HttpURLConnection) urlDelta.openConnection();
+                      connection.connect();
+
+                      // 404 kind of expected here, means there's no delta file
+                      if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND )
+                      {
+                        connection = null;
+                      }
+                    }                   
+                
+                    if ( connection == null )
+                    {                
+                      delta = false;
+                      URL url = new URL(surl);
+                      connection = (HttpURLConnection) url.openConnection();
+                      connection.connect();
+                    }
                     // expect HTTP 200 OK, so we don't mistakenly save error report
                     // instead of the file
                     if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
                         return "Server returned HTTP " + connection.getResponseCode()
-                                + " " + connection.getResponseMessage();
+                              + " " + connection.getResponseMessage();
                     }
 
                     // this will be useful to display download percentage
@@ -612,13 +663,13 @@ float tx, ty;
                     int fileLength = connection.getContentLength();
                     currentDownloadSize = fileLength;
                     if ( availableSize >= 0 && fileLength > availableSize ) return "not enough space on sd-card";
+
+                    currentDownloadOperation = delta ? "Updating" : "Loading";
                     
                     // download the file
                     input = connection.getInputStream();
                     
-                    int slidx = surl.lastIndexOf( "segments4/" );
-                    fname = baseDir + "/brouter/segments4/" + surl.substring( slidx+10 );
-                    tmp_file = new File( fname + "_tmp" );
+                    tmp_file = new File( fname + ( delta ? "_diff" : "_tmp" ) );
                     output = new FileOutputStream( tmp_file );
 
                     byte data[] = new byte[4096];
@@ -632,7 +683,15 @@ float tx, ty;
                         total += count;
                         // publishing the progress....
                         if (fileLength > 0) // only if total length is known
-                            publishProgress((int) (total * 100 / fileLength));
+                        {
+                          int pct = (int) (total * 100 / fileLength);
+                          updateProgress( "Progress " + pct + "%" );
+                        }
+                        else
+                        {
+                          updateProgress( "Progress (unnown size)" );
+                        }
+
                         output.write(data, 0, count);
                         
                         // enforce < 2 Mbit/s
@@ -642,15 +701,33 @@ float tx, ty;
                         	try { Thread.sleep( dt ); } catch( InterruptedException ie ) {}
                         }
                     }
-                    publishProgress( 101 );
-                    String check_result = PhysicalFile.checkFileIntegrity( tmp_file );
-                    if ( check_result != null ) return check_result;
+                    output.close();
+                    output = null;
 
-                    if ( !tmp_file.renameTo( new File( fname ) ) )
+                    if ( delta )
                     {
-                      return "Could not rename to " + fname;
+                      updateProgress( "Applying delta.." );
+                      File diffFile = tmp_file;
+                      tmp_file = new File( fname + "_tmp" );
+                      Rd5DiffTool.recoverFromDelta( targetFile, diffFile, tmp_file, this );
+                      diffFile.delete();
                     }
-                    deleteRawTracks(); // invalidate raw-tracks after data update
+                    if (isDownloadCanceled())
+                    {
+                      return "Canceled!";
+                    }
+                    if ( tmp_file != null )
+                    {
+                      updateProgress( "Verifying integrity.." );
+                      String check_result = PhysicalFile.checkFileIntegrity( tmp_file );
+                      if ( check_result != null ) return check_result;
+
+                      if ( !tmp_file.renameTo( targetFile ) )
+                      {
+                        return "Could not rename to " + targetFile;
+                      }
+                      deleteRawTracks(); // invalidate raw-tracks after data update
+                    }
                     return null;
                 } catch (Exception e) {
                     return e.toString();
@@ -685,10 +762,9 @@ float tx, ty;
 
             @Override
             protected void onProgressUpdate(Integer... progress) {
-            	String newAction = progress[0] == 101 ? "Verifying.." : "Progress " + progress[0] + "%";
-            	if ( !newAction.equals( downloadAction ) )
+            	if ( !newDownloadAction.equals( downloadAction ) )
             	{
-            	  downloadAction = newAction;
+            	  downloadAction = newDownloadAction;
             	  invalidate();
             	}
             }

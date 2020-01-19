@@ -19,8 +19,9 @@ import btools.codec.MicroCache;
 import btools.codec.MicroCache2;
 import btools.codec.StatCoderContext;
 import btools.util.Crc32;
+import btools.util.ProgressListener;
 
-final public class Rd5DiffTool
+final public class Rd5DiffTool implements ProgressListener
 {
   public static void main( String[] args ) throws Exception
   {
@@ -32,7 +33,7 @@ final public class Rd5DiffTool
       }
       else
       {
-        recoverFromDelta( new File( args[0] ),new File( args[1] ), new File( args[2] ) /*, new File( args[3] ) */ );
+        recoverFromDelta( new File( args[0] ),new File( args[1] ), new File( args[2] ), new Rd5DiffTool() /*, new File( args[3] ) */ );
       }
     }
     else
@@ -40,6 +41,18 @@ final public class Rd5DiffTool
       diff2files( new File( args[0] ),new File( args[1] ), new File( args[2] ) );
     }
   }
+
+            @Override
+            public void updateProgress( String progress )
+            {
+              System.out.println( progress );
+            }
+  
+            @Override
+            public boolean isCanceled()
+            {
+              return false;
+            }
 
   private static long[] readFileIndex( DataInputStream dis, DataOutputStream dos ) throws Exception
   {
@@ -275,10 +288,20 @@ final public class Rd5DiffTool
   }
 
 
-  public static void recoverFromDelta( File f1, File f2, File outFile /* , File cmpFile */ ) throws Exception
+  public static void recoverFromDelta( File f1, File f2, File outFile, ProgressListener progress /* , File cmpFile */ ) throws Exception
   {
+    if ( f2.length() == 0L )
+    {
+      copyFile( f1, outFile, progress );
+      return;
+    }
+  
     byte[] abBuf1 = new byte[10 * 1024 * 1024];
     byte[] abBuf2 = new byte[10 * 1024 * 1024];
+    
+    boolean canceled = false;
+
+    long t0 = System.currentTimeMillis();
 
     DataInputStream dis1 = new DataInputStream( new BufferedInputStream( new FileInputStream( f1 ) ) );
     DataInputStream dis2 = new DataInputStream( new BufferedInputStream( new FileInputStream( f2 ) ) );
@@ -289,6 +312,8 @@ final public class Rd5DiffTool
     long[] fileIndex1 = readFileIndex( dis1, null );
     long[] fileIndex2 = readFileIndex( dis2, dos );
 //    long[] fileIndexCmp = readFileIndex( disCmp, null );
+
+    int lastPct = -1;
 
     try
     {
@@ -307,6 +332,19 @@ final public class Rd5DiffTool
 
          for ( int tileIdx = 0; tileIdx < 1024; tileIdx++ )
          {
+           if ( progress.isCanceled() )
+           {
+             canceled = true;
+             return;
+           }
+           double bytesProcessed = getTileStart( fileIndex1, subFileIdx ) + ( posIdx1 == null ? 0 : getPosIdx( posIdx1, tileIdx-1 ) );
+           int pct =  (int)(100. * bytesProcessed / getTileEnd( fileIndex1, 24 ) + 0.5 );
+           if ( pct != lastPct )
+           {
+             progress.updateProgress( "Applying delta: " + pct + "%" );
+             lastPct = pct;
+           }
+
            byte[] ab1 = createMicroCache( posIdx1, tileIdx, dis1, false );
            byte[] ab2 = createMicroCache( posIdx2, tileIdx, dis2, true );
            if ( ab2 == null )
@@ -359,6 +397,7 @@ final public class Rd5DiffTool
 */
            dos.write( abBuf1, 0, len );
            dos.writeInt( Crc32.crc( abBuf1, 0, len ) ^ 2 );
+
         }
       }
       // write any remaining data to the output file
@@ -371,6 +410,8 @@ final public class Rd5DiffTool
         }
         dos.write( abBuf1, 0, len );
       }
+           long t1 = System.currentTimeMillis();
+           System.out.println( "recovering from diffs took " + (t1-t0) + "ms" );
     }
     finally
     {
@@ -402,6 +443,72 @@ final public class Rd5DiffTool
         }
         catch (Exception ee)
         {
+        }
+        if ( canceled )
+        {
+          outFile.delete();
+        }
+      }
+    }
+  }
+
+  public static void copyFile( File f1, File outFile, ProgressListener progress ) throws Exception
+  {
+    boolean canceled = false;
+    DataInputStream dis1 = new DataInputStream( new BufferedInputStream( new FileInputStream( f1 ) ) );
+    DataOutputStream dos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( outFile ) ) );
+    int lastPct = -1;
+    long sizeTotal = f1.length();
+    long sizeRead = 0L;
+    try
+    {
+      byte buf[] = new byte[65536];      
+      for (;;)
+      {
+        if ( progress.isCanceled() )
+        {
+          canceled = true;
+          return;
+        }
+        int pct =  (int)( (100. * sizeRead) / (sizeTotal+1) + 0.5 );
+        if ( pct != lastPct )
+        {
+          progress.updateProgress( "Copying: " + pct + "%" );
+          lastPct = pct;
+        }
+        int len = dis1.read( buf );
+        if ( len <= 0 )
+        {
+          break;
+        }
+        sizeRead += len;
+        dos.write( buf, 0, len );
+      }
+    }
+    finally
+    {
+      if ( dis1 != null )
+      {
+        try
+        {
+          dis1.close();
+        }
+        catch (Exception ee)
+        {
+        }
+      }
+      if ( dos != null )
+      {
+        try
+        {
+          dos.close();
+        }
+        catch (Exception ee)
+        {
+        }
+        if ( canceled )
+        {
+          outFile.delete();
         }
       }
     }
