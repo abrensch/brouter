@@ -25,6 +25,12 @@ final public class Rd5DiffTool implements ProgressListener
 {
   public static void main( String[] args ) throws Exception
   {
+    if ( args.length == 2 )
+    {
+      reEncode( new File( args[0] ),new File( args[1] ) );
+      return;
+    }
+
     if ( args[1].endsWith( ".rd5diff" ) )
     {
       if ( args[0].endsWith( ".rd5diff" ) )
@@ -625,4 +631,80 @@ final public class Rd5DiffTool implements ProgressListener
       }
     }
   }
+
+
+  public static void reEncode( File f1, File outFile ) throws Exception
+  {
+    byte[] abBuf1 = new byte[10 * 1024 * 1024];
+
+    DataInputStream dis1 = new DataInputStream( new BufferedInputStream( new FileInputStream( f1 ) ) );
+    DataOutputStream dos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( outFile ) ) );
+
+    // copy header to outfile
+    long[] fileIndex1 = readFileIndex( dis1, dos );
+
+    long t0 = System.currentTimeMillis();
+
+    try
+    {
+      DataBuffers dataBuffers = new DataBuffers();
+      for ( int subFileIdx = 0; subFileIdx < 25; subFileIdx++ )
+      {
+         boolean hasData1 = getTileStart( fileIndex1, subFileIdx ) < getTileEnd( fileIndex1, subFileIdx );
+
+         int[] posIdx1 = hasData1 ? readPosIndex( dis1, dos ) : null;
+
+         for ( int tileIdx = 0; tileIdx < 1024; tileIdx++ )
+         {
+           byte[] ab1 = createMicroCache( posIdx1, tileIdx, dis1, false );
+
+           if ( ab1 == null ) continue;
+
+           MicroCache mc1 = createMicroCache( ab1, dataBuffers );
+
+           int len = mc1.encodeMicroCache( abBuf1 );
+
+           dos.write( abBuf1, 0, len );
+           dos.writeInt( Crc32.crc( abBuf1, 0, len ) ^ 2 );
+        }
+      }
+      // write any remaining data to the output file
+      for(;;)
+      {
+        int len = dis1.read( abBuf1 );
+        if (len < 0)
+        {
+          break;
+        }
+        dos.write( abBuf1, 0, len );
+      }
+      long t1 = System.currentTimeMillis();
+      System.out.println( "re-encoding took " + (t1-t0) + "ms" );
+    }
+    finally
+    {
+      if ( dis1 != null )
+      {
+        try
+        {
+          dis1.close();
+        }
+        catch (Exception ee)
+        {
+        }
+      }
+      if ( dos != null )
+      {
+        try
+        {
+          dos.close();
+        }
+        catch (Exception ee)
+        {
+        }
+      }
+    }
+  }
+
+
 }

@@ -21,6 +21,7 @@ public final class TagValueCoder
   private Object tree;
   private BitCoderContext bc;
   private int pass;
+  private int nextTagValueSetId;
 
   public void encodeTagValueSet( byte[] data )
   {
@@ -28,7 +29,7 @@ public final class TagValueCoder
     {
       return;
     }
-    TagValueSet tvsProbe = new TagValueSet();
+    TagValueSet tvsProbe = new TagValueSet(nextTagValueSetId);
     tvsProbe.data = data;
     TagValueSet tvs = identityMap.get( tvsProbe );
     if ( pass == 3 )
@@ -40,6 +41,7 @@ public final class TagValueCoder
       if ( tvs == null )
       {
         tvs = tvsProbe;
+        nextTagValueSetId++;
         identityMap.put( tvs, tvs );
       }
       tvs.frequency++;
@@ -64,14 +66,14 @@ public final class TagValueCoder
     {
       if ( identityMap.size() == 0 )
       {
-        TagValueSet dummy = new TagValueSet();
+        TagValueSet dummy = new TagValueSet(nextTagValueSetId++);
         identityMap.put( dummy, dummy );
       }
       PriorityQueue<TagValueSet> queue = new PriorityQueue<TagValueSet>(2*identityMap.size(), new TagValueSet.FrequencyComparator());
       queue.addAll(identityMap.values());
       while (queue.size() > 1)
       {
-        TagValueSet node = new TagValueSet();
+        TagValueSet node = new TagValueSet(nextTagValueSetId++);
         node.child1 = queue.poll();
         node.child2 = queue.poll();
         node.frequency = node.child1.frequency + node.child2.frequency;
@@ -178,6 +180,12 @@ public final class TagValueCoder
     public int range;
     public TagValueSet child1;
     public TagValueSet child2;
+    private int id; // serial number to make the comparator well defined in case of equal frequencies
+
+    public TagValueSet( int id )
+    {
+      this.id = id;
+    }
 
     public void encode( BitCoderContext bc, int range, int code )
     {
@@ -267,23 +275,15 @@ public final class TagValueCoder
         if ( tvs1.frequency > tvs2.frequency )
           return 1;
 
-        // to avoid ordering instability, decide on the data
-        // if frequency is equal
-        int l1 = tvs1.data == null ? 0 : tvs1.data.length;
-        int l2 = tvs2.data == null ? 0 : tvs2.data.length;
-
-        if ( l1 < l2 )
+        // to avoid ordering instability, decide on the id if frequency is equal
+        if ( tvs1.id < tvs2.id )
           return -1;
-        if ( l1 > l2 )
+        if ( tvs1.id > tvs2.id )
           return 1;
-        for( int i=0; i<l1; i++ )
+
+        if ( tvs1 != tvs2 )
         {
-          byte b1 = tvs1.data[i];
-          byte b2 = tvs2.data[i];
-          if ( b1 < b2 )
-            return -1;
-          if ( b1 > b2 )
-            return 1;
+          throw new RuntimeException( "identity corruption!" );
         }
         return 0;
       }
