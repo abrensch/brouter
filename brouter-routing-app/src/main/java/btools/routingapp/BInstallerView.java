@@ -32,7 +32,8 @@ import btools.util.ProgressListener;
 
 public class BInstallerView extends View
 {
-	private static final int MASK_SELECTED_RD5 = 1;
+  private static final int MASK_SELECTED_RD5 = 1;
+  private static final int MASK_DELETED_RD5 = 2;
   private static final int MASK_INSTALLED_RD5 = 4;
   private static final int MASK_CURRENT_RD5 = 8;
 	
@@ -70,6 +71,7 @@ public class BInstallerView extends View
 
     private long totalSize = 0;
     private long rd5Tiles = 0;
+    private long delTiles = 0;
 
     protected String baseNameForTile( int tileIndex )
     {
@@ -115,6 +117,12 @@ public class BInstallerView extends View
     		downloadAction = "Canceling...";
     		return;
     	}
+
+      if ( delTiles > 0 )
+      {
+        ( (BInstallerActivity) getContext() ).showConfirmDelete();
+        return;
+      }
 
         int tidx_min = -1;
         int min_size = Integer.MAX_VALUE;
@@ -247,7 +255,7 @@ public class BInstallerView extends View
         	 tileStatus[tidx] |= MASK_INSTALLED_RD5;
         	 
         	 long age = System.currentTimeMillis() - new File( dir, fileName ).lastModified();
-        	 if ( age < 300000 ) tileStatus[tidx] |= MASK_CURRENT_RD5; // 5 minutes
+        	 if ( age < 10800000 ) tileStatus[tidx] |= MASK_CURRENT_RD5; // 3 hours
           }
         }
     }
@@ -346,22 +354,26 @@ public class BInstallerView extends View
               }
           }
           rd5Tiles = 0;
+          delTiles = 0;
           totalSize = 0;
-              int mask2 = MASK_SELECTED_RD5 | MASK_INSTALLED_RD5;
+              int mask2 = MASK_SELECTED_RD5 | MASK_DELETED_RD5 | MASK_INSTALLED_RD5;
               int mask3 = mask2 | MASK_CURRENT_RD5;
               Paint pnt_2 = new Paint();
               pnt_2.setColor(Color.GRAY);
               pnt_2.setStrokeWidth(1);
-              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5, mask3, false, drawGrid );
+              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5, mask3, false, false, drawGrid );
               pnt_2.setColor(Color.BLUE);
               pnt_2.setStrokeWidth(1);
-              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5 | MASK_CURRENT_RD5, mask3, false, drawGrid );
+              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5 | MASK_CURRENT_RD5, mask3, false, false, drawGrid );
               pnt_2.setColor(Color.GREEN);
               pnt_2.setStrokeWidth(2);
-              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_SELECTED_RD5, mask2, true, drawGrid );
+              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_SELECTED_RD5, mask2, true, false, drawGrid );
               pnt_2.setColor(Color.YELLOW);
               pnt_2.setStrokeWidth(2);
-              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_SELECTED_RD5 | MASK_INSTALLED_RD5, mask2, true, drawGrid );
+              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_SELECTED_RD5 | MASK_INSTALLED_RD5, mask2, true, false, drawGrid );
+              pnt_2.setColor(Color.RED);
+              pnt_2.setStrokeWidth(2);
+              drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_DELETED_RD5 | MASK_INSTALLED_RD5, mask2, false, true, drawGrid );
 
         	canvas.setMatrix( matText );
 
@@ -394,6 +406,7 @@ public class BInstallerView extends View
 
             String btnText = null;
             if ( isDownloading ) btnText = "Cancel Download";
+            else if ( delTiles > 0 ) btnText = "Delete " + delTiles + " tiles";
             else if ( rd5Tiles > 0 ) btnText = "Start Download";
             
             if ( btnText != null )
@@ -413,7 +426,7 @@ public class BInstallerView extends View
         
 float tx, ty;        
 
-  private void drawSelectedTiles( Canvas canvas, Paint pnt, float fw, float fh, int status, int mask, boolean doCount, boolean doDraw )
+  private void drawSelectedTiles( Canvas canvas, Paint pnt, float fw, float fh, int status, int mask, boolean doCount, boolean cntDel, boolean doDraw )
   {
     for ( int ix = 0; ix < 72; ix++ )
       for ( int iy = 0; iy < 36; iy++ )
@@ -427,6 +440,11 @@ float tx, ty;
             if ( doCount )
             {
               rd5Tiles++;
+              totalSize += BInstallerSizes.getRd5Size( tidx );
+            }
+            if ( cntDel )
+            {
+              delTiles++;
               totalSize += BInstallerSizes.getRd5Size( tidx );
             }
             if ( !doDraw )
@@ -443,6 +461,23 @@ float tx, ty;
           }
         }
       }
+  }
+
+  public void deleteSelectedTiles()
+  {
+    for ( int ix = 0; ix < 72; ix++ )
+    {
+      for ( int iy = 0; iy < 36; iy++ )
+      {
+        int tidx = gridPos2Tileindex( ix, iy );
+        if ( ( tileStatus[tidx] & MASK_DELETED_RD5 ) != 0 )
+        {
+          new File( baseDir + "/brouter/segments4/" + baseNameForTile( tidx ) + ".rd5").delete();
+        }
+      }
+    }
+    scanExistingFiles(); 
+    invalidate();
   }
 
         @Override
@@ -508,7 +543,7 @@ float tx, ty;
                 	  boolean tilesv = currentScale() >= 3.f;
                 	  if ( tilesVisible && !tilesv )
                 	  {
-                        clearTileSelection( MASK_SELECTED_RD5 );
+                        clearTileSelection( MASK_SELECTED_RD5 | MASK_DELETED_RD5 );
                       }
                 	  tilesVisible = tilesv;
                 	}
@@ -534,7 +569,7 @@ float tx, ty;
               	}
             	
                 // download button?
-              if ( ( rd5Tiles  > 0 || isDownloading ) && event.getX() > imgwOrig - btnw*scaleOrig && event.getY() > imghOrig-btnh*scaleOrig )
+              if ( ( delTiles  > 0 || rd5Tiles  > 0 || isDownloading ) && event.getX() > imgwOrig - btnw*scaleOrig && event.getY() > imghOrig-btnh*scaleOrig )
             	{
             		toggleDownload();
                 	invalidate();
@@ -554,9 +589,21 @@ float tx, ty;
             	  int tidx = tileIndex( touchpoint[0], touchpoint[1] );
             	  if ( tidx != -1 )
             	  {
-            	    if ( ( tileStatus[tidx] & MASK_CURRENT_RD5 ) == 0 )
+            	    if ( ( tileStatus[tidx] & MASK_SELECTED_RD5 ) != 0 )
             	    {
-            	      tileStatus[tidx] ^= MASK_SELECTED_RD5;
+                    tileStatus[tidx] ^= MASK_SELECTED_RD5;
+            	      if ( ( tileStatus[tidx] & MASK_INSTALLED_RD5 ) != 0 )
+            	      {
+            	        tileStatus[tidx] |= MASK_DELETED_RD5;
+            	      }
+            	    }
+            	    else if ( ( tileStatus[tidx] & MASK_DELETED_RD5 ) != 0 )
+                  {
+                    tileStatus[tidx] ^= MASK_DELETED_RD5;
+                  }
+            	    else
+            	    {
+                    tileStatus[tidx] ^= MASK_SELECTED_RD5;
             	    }
             	  }
             	  
