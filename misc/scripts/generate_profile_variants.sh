@@ -1,4 +1,4 @@
-#!/usr/bin/sh
+#!/bin/sh
 cd "$(dirname "$0")"
 cd ../profiles2
 
