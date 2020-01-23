@@ -2,8 +2,7 @@
   <configuration default="false" name="RouteServer" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="btools.server.RouteServer" />
     <module name="brouter-server" />
-    <option name="PROGRAM_PARAMETERS" value="segments4 brouter/misc/profiles2 profiles_user 17777 1" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/.." />
+    <option name="PROGRAM_PARAMETERS" value="misc/segments4 misc/profiles2 ../customprofiles 17777 1 localhost" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="btools.server.*" />
