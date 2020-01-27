@@ -14,10 +14,10 @@ jobs:
       with:
         java-version: 1.8
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn -B package --file pom.xml -pl '!brouter-routing-app'
     - name: Deploy to Github Package Registry
       env:
         GITHUB_USERNAME: x-access-token
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run:
-        mvn --settings settings.xml deploy
+        mvn --settings settings.xml deploy -pl '!brouter-routing-app'
