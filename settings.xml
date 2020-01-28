@@ -22,8 +22,8 @@
                 </repository>
                 <repository>
                     <id>github</id>
-                    <name>GitHub OWNER Apache Maven Packages</name>
-                    <url>https://maven.pkg.github.com/cyface-de </url>
+                    <name>GitHub Cyface Apache Maven Packages</name>
+		    <url>https://maven.pkg.github.com/cyface-de/brouter</url>
                 </repository>
             </repositories>
         </profile>
