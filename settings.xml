@@ -23,7 +23,7 @@
                 <repository>
                     <id>github</id>
                     <name>GitHub Cyface Apache Maven Packages</name>
-		    <url>https://maven.pkg.github.com/cyface-de/brouter</url>
+		    <url>https://maven.pkg.github.com/${env.GITHUB_REPOSITORY}</url>
                 </repository>
             </repositories>
         </profile>
