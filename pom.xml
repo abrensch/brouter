@@ -159,8 +159,8 @@
   <distributionManagement>
     <repository>
       <id>github</id>
-      <name>GitHub OWNER Apache Maven Packages</name>
-      <url>https://maven.pkg.github.com/cyface-de/brouter</url>
+      <name>GitHub brouter Apache Maven Packages</name>
+      <url>https://maven.pkg.github.com/${env.GITHUB_REPOSITORY}</url>
     </repository>
   </distributionManagement>
 </project>

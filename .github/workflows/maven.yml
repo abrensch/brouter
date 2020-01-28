@@ -1,6 +1,9 @@
 name: Publish to Github Packages
 
-on: [push]
+on: 
+  push:
+    branches:
+      - master
 
 jobs:
   build:
@@ -19,5 +22,6 @@ jobs:
       env:
         GITHUB_USERNAME: x-access-token
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
       run:
         mvn --settings settings.xml deploy -pl '!brouter-routing-app'
