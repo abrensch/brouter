@@ -6,11 +6,18 @@
 package btools.mapcreator;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
 
+import btools.expressions.BExpressionContextWay;
+import btools.util.CheapRuler;
 import btools.util.CompactLongMap;
 import btools.util.FrozenLongMap;
 
@@ -22,6 +29,21 @@ public class OsmTrafficMap
   int maxLon;
   int maxLat;
 
+  private BExpressionContextWay expctxWay;
+
+  private OsmTrafficMap oldTrafficClasses;
+  private DataOutputStream newTrafficDos;
+  private File oldTrafficFile;
+  private File newTrafficFile;
+
+  int totalChanges = 0;
+  int supressedChanges = 0;
+
+  public OsmTrafficMap( BExpressionContextWay expctxWay )
+  {
+    this.expctxWay = expctxWay;
+  }
+
   public static class OsmTrafficElement
   {
     public long node2;
@@ -31,7 +53,36 @@ public class OsmTrafficMap
   
   private CompactLongMap<OsmTrafficElement> map = new CompactLongMap<OsmTrafficElement>();
 
-  public long[] load( File file, int minLon, int minLat, int maxLon, int maxLat, boolean includeMotorways ) throws Exception
+  public void loadAll( File file, int minLon, int minLat, int maxLon, int maxLat, boolean includeMotorways ) throws Exception
+  {
+    load( file, minLon, minLat, maxLon, maxLat, includeMotorways );
+        
+    // check for old traffic data
+    oldTrafficFile = new File( file.getParentFile(), file.getName() + "_old" );
+    if ( oldTrafficFile.exists() )
+    {
+      oldTrafficClasses = new OsmTrafficMap( null );
+      oldTrafficClasses.load( oldTrafficFile, minLon, minLat, maxLon, maxLat, false );
+    }
+    
+    // check for old traffic data
+    newTrafficFile = new File( file.getParentFile(), file.getName() + "_new" );
+    newTrafficDos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( newTrafficFile ) ) );    
+  }
+
+  public void finish() throws Exception
+  {
+    if ( newTrafficDos != null )
+    {
+      newTrafficDos.close();
+      newTrafficDos = null;
+      oldTrafficFile.delete();
+      newTrafficFile.renameTo( oldTrafficFile );
+      System.out.println( "TrafficMap: changes total=" + totalChanges + " supressed=" + supressedChanges );
+    }
+  }
+
+  public void load( File file, int minLon, int minLat, int maxLon, int maxLat, boolean includeMotorways ) throws Exception
   {
     this.minLon = minLon;
     this.minLat = minLat;
@@ -63,10 +114,8 @@ public class OsmTrafficMap
       catch( EOFException eof ) {}
       finally{ is.close(); }
       
-      FrozenLongMap fmap = new FrozenLongMap<OsmTrafficElement>( map );
-      map = fmap;
+      map = new FrozenLongMap<OsmTrafficElement>( map );
       System.out.println( "read traffic-elements: " + trafficElements );
-      return fmap.getKeyArray();
   }
 
 
@@ -108,17 +157,14 @@ public class OsmTrafficMap
 
   public int getTrafficClass( long n1, long n2 )
   {
-    int traffic1 = getTraffic( n1, n2 );
-    int traffic2 = getTraffic( n2, n1 );
-    int traffic = traffic1 == -1 || traffic2 == -1 ? -1 : traffic1 > traffic2 ? traffic1 : traffic2;
+    int traffic = getTraffic( n1, n2 );
     return getTrafficClassForTraffic( traffic );
   }
 
   public int getTrafficClassForTraffic( int traffic )
   {
     if ( traffic <      0 ) return -1;
-    if ( traffic <  20000 ) return 0;
-    if ( traffic <  40000 ) return 1;
+    if ( traffic <  40000 ) return 0;
     if ( traffic <  80000 ) return 2;
     if ( traffic < 160000 ) return 3;
     if ( traffic < 320000 ) return 4;
@@ -129,8 +175,11 @@ public class OsmTrafficMap
 
   private int getTraffic( long n1, long n2 )
   {
-    OsmTrafficElement e = getElement( n1, n2 );
-    return e == null ? 0 : e.traffic;
+    OsmTrafficElement e1 = getElement( n1, n2 );
+    int traffic1 = e1 == null ? 0 : e1.traffic;
+    OsmTrafficElement e2 = getElement( n2, n1 );
+    int traffic2 = e2 == null ? 0 : e2.traffic;
+    return traffic1 == -1 || traffic2 == -1 ? -1 : traffic1 > traffic2 ? traffic1 : traffic2;
   }
 
   public void freeze()
@@ -155,4 +204,61 @@ public class OsmTrafficMap
   {
     return map.get( n );
   }
+
+  public byte[] addTrafficClass( ArrayList<OsmNodeP> linkNodes, byte[] description ) throws IOException
+  {
+    double distance = 0.;
+    double sum = 0.;
+    
+    for( int i=0; i<linkNodes.size()-1; i++ )
+    {
+      OsmNodeP n1 = linkNodes.get(i);
+      OsmNodeP n2 = linkNodes.get(i+1);
+      int traffic = getTraffic( n1.getIdFromPos(), n2.getIdFromPos() );
+      double dist = CheapRuler.distance( n1.ilon, n1.ilat, n2.ilon, n2.ilat );
+      distance += dist;
+      sum += dist*traffic;
+    }
+    
+    if ( distance == 0. )
+    {
+      return description;
+    }
+    int traffic = (int)(sum/distance + 0.5);
+    
+    long id0 = linkNodes.get(0).getIdFromPos();
+    long id1 = linkNodes.get(linkNodes.size()-1).getIdFromPos();
+    
+    int trafficClass = getTrafficClassForTraffic( traffic );
+
+    // delta suppression: keep old traffic classes within some buffer range
+    if ( oldTrafficClasses != null )
+    {
+      int oldTrafficClass = oldTrafficClasses.getTraffic( id0, id1 );
+      if ( oldTrafficClass != trafficClass )
+      {
+        totalChanges++;
+      
+        if ( oldTrafficClass == getTrafficClassForTraffic( (int)(traffic*1.3) )
+          ||  oldTrafficClass == getTrafficClassForTraffic( (int)(traffic*0.77) ) )
+        {
+          trafficClass = oldTrafficClass;
+          supressedChanges++;
+        }
+      }
+    }
+    
+    if ( trafficClass > 0 )
+    {
+      newTrafficDos.writeLong( id0 );
+      newTrafficDos.writeLong( id1 );
+      newTrafficDos.writeInt( trafficClass );
+    
+      expctxWay.decode( description );
+      expctxWay.addLookupValue( "estimated_traffic_class", trafficClass + 1 );
+      return expctxWay.encode();
+    }
+    return description;
+  }
+
 }

@@ -306,7 +306,7 @@ public class WayLinker extends MapCreatorBase implements Runnable
     // read a traffic-file, if any
     if ( trafficFile.exists() )
     {
-      trafficMap = new OsmTrafficMap();
+      trafficMap = new OsmTrafficMap( expctxWay );
       trafficMap.load( trafficFile, minLon, minLat, minLon + 5000000, minLat + 5000000, false );
     }
     return true;
@@ -386,7 +386,6 @@ public class WayLinker extends MapCreatorBase implements Runnable
   public void nextWay( WayData way ) throws Exception
   {
     byte[] description = abUnifier.unify( way.description );
-    int lastTraffic = 0;
 
     // filter according to profile
     expctxWay.evaluate( false, description );
@@ -417,15 +416,6 @@ public class WayLinker extends MapCreatorBase implements Runnable
       
         OsmLinkP link = n2.createLink( n1 );
 
-        int traffic = trafficMap == null ? 0 : trafficMap.getTrafficClass( n1.getIdFromPos(), n2.getIdFromPos() );
-        if ( traffic != lastTraffic )
-        {
-          expctxWay.decode( description );
-          expctxWay.addLookupValue( "estimated_traffic_class", traffic == 0 ? 0 : traffic + 1 );
-          description = abUnifier.unify( expctxWay.encode() );
-          lastTraffic = traffic;
-          n1.incWayCount(); // force network node due to description change
-        }
         link.descriptionBitmap = description;
 
         if ( n1.ilon / cellsize != n2.ilon / cellsize || n1.ilat / cellsize != n2.ilat / cellsize )
@@ -450,7 +440,6 @@ public class WayLinker extends MapCreatorBase implements Runnable
 
     nodesMap = null;
     borderSet = null;
-    trafficMap = null;
 
     byte[] abBuf1 = new byte[10 * 1024 * 1024];
     byte[] abBuf2 = new byte[10 * 1024 * 1024];
@@ -552,7 +541,7 @@ public class WayLinker extends MapCreatorBase implements Runnable
 
                 for ( OsmNodeP n : sortedList.values() )
                 {
-                  n.writeNodeData( mc );
+                  n.writeNodeData( mc, trafficMap );
                 }
                 if ( mc.getSize() > 0 )
                 {
@@ -622,6 +611,11 @@ public class WayLinker extends MapCreatorBase implements Runnable
       RandomAccessFile ra = new RandomAccessFile( outfile, "rw" );
       ra.write( abFileIndex, 0, abFileIndex.length );
       ra.close();
+    }
+    if ( trafficMap != null )
+    {
+      trafficMap.finish();
+      trafficMap = null;
     }
     System.out.println( "**** codec stats: *******\n" + StatCoderContext.getBitReport() );
   }
