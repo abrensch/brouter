@@ -307,7 +307,7 @@ public class WayLinker extends MapCreatorBase implements Runnable
     if ( trafficFile.exists() )
     {
       trafficMap = new OsmTrafficMap( expctxWay );
-      trafficMap.load( trafficFile, minLon, minLat, minLon + 5000000, minLat + 5000000, false );
+      trafficMap.loadAll( trafficFile, minLon, minLat, minLon + 5000000, minLat + 5000000, false );
     }
     return true;
   }
