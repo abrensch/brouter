@@ -102,12 +102,12 @@ public class OsmNodeP extends OsmLinkP
     return null;
   }
 
-  public void writeNodeData( MicroCache mc ) throws IOException
+  public void writeNodeData( MicroCache mc, OsmTrafficMap trafficMap ) throws IOException
   {
     boolean valid = true;
     if ( mc instanceof MicroCache2 )
     {
-      valid = writeNodeData2( (MicroCache2) mc );
+      valid = writeNodeData2( (MicroCache2) mc, trafficMap );
     }
     else
       throw new IllegalArgumentException( "unknown cache version: " + mc.getClass() );
@@ -167,7 +167,7 @@ public class OsmNodeP extends OsmLinkP
     }
   }
 
-  public boolean writeNodeData2( MicroCache2 mc ) throws IOException
+  public boolean writeNodeData2( MicroCache2 mc, OsmTrafficMap trafficMap ) throws IOException
   {
     boolean hasLinks = false;
     
@@ -245,11 +245,18 @@ public class OsmNodeP extends OsmLinkP
         }
       }
 
+      // add traffic simulation, if present
+      byte[] description = link0.descriptionBitmap;
+      if ( trafficMap != null )
+      {
+        description = trafficMap.addTrafficClass( linkNodes, description );
+      }
+
       // write link data
       int sizeoffset = mc.writeSizePlaceHolder();
       mc.writeVarLengthSigned( target.ilon - ilon );
       mc.writeVarLengthSigned( target.ilat - ilat );
-      mc.writeModeAndDesc( isReverse, link0.descriptionBitmap );
+      mc.writeModeAndDesc( isReverse, description );
       if ( !isReverse && linkNodes.size() > 2 ) // write geometry for forward links only
       {
         DPFilter.doDPFilter( linkNodes );
