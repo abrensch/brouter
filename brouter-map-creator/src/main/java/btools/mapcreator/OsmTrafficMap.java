@@ -36,12 +36,16 @@ public class OsmTrafficMap
   private File oldTrafficFile;
   private File newTrafficFile;
 
-  int totalChanges = 0;
-  int supressedChanges = 0;
+  private int totalChanges = 0;
+  private int supressedChanges = 0;
+  
+  private boolean doNotAdd = false;
+  private boolean debug = false;
 
   public OsmTrafficMap( BExpressionContextWay expctxWay )
   {
     this.expctxWay = expctxWay;
+    debug = Boolean.getBoolean( "debugTrafficMap" );
   }
 
   public static class OsmTrafficElement
@@ -62,6 +66,7 @@ public class OsmTrafficMap
     if ( oldTrafficFile.exists() )
     {
       oldTrafficClasses = new OsmTrafficMap( null );
+      oldTrafficClasses.doNotAdd = true;
       oldTrafficClasses.load( oldTrafficFile, minLon, minLat, maxLon, maxLat, false );
     }
     
@@ -143,7 +148,14 @@ public class OsmTrafficMap
       }
       return true;
     }
-    e.traffic = e.traffic == -1 || traffic == -1 ? -1 : e.traffic + traffic;
+    if ( doNotAdd )
+    {
+      e.traffic = Math.max( e.traffic, traffic );
+    }
+    else
+    {
+      e.traffic = e.traffic == -1 || traffic == -1 ? -1 : e.traffic + traffic;
+    }
     return false;
   }
   
@@ -157,8 +169,9 @@ public class OsmTrafficMap
 
   public int getTrafficClass( long n1, long n2 )
   {
-    int traffic = getTraffic( n1, n2 );
-    return getTrafficClassForTraffic( traffic );
+    // used for the old data, where we stpre traffic-classes, not volumes
+    OsmTrafficElement e = getElement( n1, n2 );
+    return e == null ? 0 : e.traffic;
   }
 
   public int getTrafficClassForTraffic( int traffic )
@@ -234,13 +247,19 @@ public class OsmTrafficMap
     // delta suppression: keep old traffic classes within some buffer range
     if ( oldTrafficClasses != null )
     {
-      int oldTrafficClass = oldTrafficClasses.getTraffic( id0, id1 );
+      int oldTrafficClass = oldTrafficClasses.getTrafficClass( id0, id1 );
       if ( oldTrafficClass != trafficClass )
       {
         totalChanges++;
-      
-        if ( oldTrafficClass == getTrafficClassForTraffic( (int)(traffic*1.3) )
-          ||  oldTrafficClass == getTrafficClassForTraffic( (int)(traffic*0.77) ) )
+        boolean supressChange =
+              oldTrafficClass == getTrafficClassForTraffic( (int)(traffic*1.3) )
+          ||  oldTrafficClass == getTrafficClassForTraffic( (int)(traffic*0.77) );
+
+        if ( debug )
+        {
+          System.out.println( "traffic class change " + oldTrafficClass + "->" + trafficClass + " supress=" + supressChange );
+        }
+        if ( supressChange )
         {
           trafficClass = oldTrafficClass;
           supressedChanges++;
