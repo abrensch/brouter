@@ -15,7 +15,6 @@ import java.net.Socket;
 import java.net.URLDecoder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.concurrent.Semaphore;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -47,7 +46,13 @@ public class RouteServer extends Thread
 
   private Socket clientSocket = null;
   private RoutingEngine cr = null;
-  private Semaphore semaphore = null;
+  private volatile boolean terminated;
+
+  public void stopRouter()
+  {
+    RoutingEngine e = cr;
+    if ( e != null ) e.terminate();
+  }
 
   private static DateFormat tsFormat = new SimpleDateFormat( "dd.MM.yy HH:mm", new Locale( "en", "US" ) );
 
@@ -265,7 +270,11 @@ public class RouteServer extends Thread
               if ( br != null ) try { br.close(); } catch( Exception e ) {}
               if ( bw != null ) try { bw.close(); } catch( Exception e ) {}
               if ( clientSocket != null ) try { clientSocket.close(); } catch( Exception e ) {}
-              semaphore.release();
+              terminated = true;
+              synchronized( this )
+              {
+                notifyAll();
+              }
           }
   }
 
@@ -289,9 +298,10 @@ public class RouteServer extends Thread
         serviceContext.sharedProfileDir = tk.hasMoreTokens() ? tk.nextToken() : serviceContext.customProfileDir;
 
         int maxthreads = Integer.parseInt( args[4] );
-        Semaphore semaphore = new Semaphore(maxthreads, true);
 
-        ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]),50,InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
+        TreeMap<Long,RouteServer> threadMap = new TreeMap<Long,RouteServer>();
+
+        ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]),100,InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
 
         // stacksample for performance profiling
         // ( caution: start stacksampler only after successfully creating the server socket
@@ -312,8 +322,44 @@ public class RouteServer extends Thread
           RouteServer server = new RouteServer();
           server.serviceContext = serviceContext;
           server.clientSocket = clientSocket;
-          server.semaphore = semaphore;
-          semaphore.acquire();
+
+          // cleanup thread list
+          for(;;)
+          {
+            boolean removedItem = false;
+            for (Map.Entry<Long,RouteServer> e : threadMap.entrySet())
+            {
+              if ( e.getValue().terminated )
+              {
+                threadMap.remove( e.getKey() );
+                removedItem = true;
+                break;
+              }
+            }
+            if ( !removedItem ) break;
+          }
+
+          // kill thread if limit reached
+          if ( threadMap.size() >= maxthreads )
+          {
+             Long k = threadMap.firstKey();
+             RouteServer victim = threadMap.get( k );
+             threadMap.remove( k );
+             if ( !victim.terminated )
+             {
+               synchronized( victim )
+               {
+                 victim.wait( 1000 );
+               }
+               victim.stopRouter();
+             }
+          }
+
+          long ts = System.currentTimeMillis();
+          while ( ts <=  last_ts ) ts++;
+          threadMap.put( Long.valueOf( ts ), server );
+          last_ts = ts;
+
           server.start();
         }
   }
