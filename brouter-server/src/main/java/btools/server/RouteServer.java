@@ -15,6 +15,7 @@ import java.net.Socket;
 import java.net.URLDecoder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.concurrent.Semaphore;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -36,19 +37,18 @@ import btools.util.StackSampler;
 public class RouteServer extends Thread
 {
   public static final String PROFILE_UPLOAD_URL = "/brouter/profile";
+  static final String HTTP_STATUS_OK = "200 OK";
+  static final String HTTP_STATUS_BAD_REQUEST = "400 Bad Request";
+  static final String HTTP_STATUS_FORBIDDEN = "403 Forbidden";
+  static final String HTTP_STATUS_NOT_FOUND = "404 Not Found";
+  static final String HTTP_STATUS_INTERNAL_SERVER_ERROR = "500 Internal Server Error";
 
 	public ServiceContext serviceContext;
 
   private Socket clientSocket = null;
   private RoutingEngine cr = null;
-  private volatile boolean terminated;
+  private Semaphore semaphore = null;
 
-  public void stopRouter()
-  {
-    RoutingEngine e = cr;
-    if ( e != null ) e.terminate();
-  }
-    
   private static DateFormat tsFormat = new SimpleDateFormat( "dd.MM.yy HH:mm", new Locale( "en", "US" ) );
 
   private static String formattedTimestamp()
@@ -80,6 +80,8 @@ public class RouteServer extends Thread
               String line = br.readLine();
               if ( line == null )
               {
+                writeHttpHeader(bw, HTTP_STATUS_BAD_REQUEST);
+                bw.flush();
                 return;
               }
               if ( line.length() == 0 )
@@ -108,7 +110,7 @@ public class RouteServer extends Thread
               {
                 if ( agent.indexOf( tk.nextToken() ) >= 0 )
                 {
-                  writeHttpHeader( bw );
+                  writeHttpHeader( bw, HTTP_STATUS_FORBIDDEN );
                   bw.write( "Bad agent: " + agent );
                   bw.flush();
                   return;
@@ -118,11 +120,13 @@ public class RouteServer extends Thread
 
             if ( getline.startsWith("GET /favicon.ico") )
             {
-            	return;
+              writeHttpHeader( bw, HTTP_STATUS_NOT_FOUND );
+              bw.flush();
+              return;
             }
             if ( getline.startsWith("GET /robots.txt") )
             {
-              writeHttpHeader( bw );
+              writeHttpHeader( bw, HTTP_STATUS_OK );
               bw.write( "User-agent: *\n" );
               bw.write( "Disallow: /\n" );
               bw.flush();
@@ -149,13 +153,13 @@ public class RouteServer extends Thread
                 // handle CORS preflight request (Safari)
                 String corsHeaders = "Access-Control-Allow-Methods: GET, POST\n"
                                    + "Access-Control-Allow-Headers: Content-Type\n";
-                writeHttpHeader( bw, "text/plain", null, corsHeaders );
+                writeHttpHeader( bw, "text/plain", null, corsHeaders, HTTP_STATUS_OK );
                 bw.flush();
                 return;
               }
               else
               {
-                writeHttpHeader(bw, "application/json");
+                writeHttpHeader(bw, "application/json", HTTP_STATUS_OK);
 
                 String profileId = null;
                 if ( url.length() > PROFILE_UPLOAD_URL.length() + 1 )
@@ -173,13 +177,15 @@ public class RouteServer extends Thread
             }
             else if ( url.startsWith( "/brouter/suspects" ) )
             {
-              writeHttpHeader(bw, url.endsWith( ".json" ) ? "application/json" : "text/html");
+              writeHttpHeader(bw, url.endsWith( ".json" ) ? "application/json" : "text/html", HTTP_STATUS_OK);
               SuspectManager.process( url, bw );
               return;
             }
             else
             {
-            	throw new IllegalArgumentException( "unknown request syntax: " + getline );
+              writeHttpHeader( bw, HTTP_STATUS_NOT_FOUND );
+              bw.flush();
+              return;
             }
             RoutingContext rc = handler.readRoutingContext();
             List<OsmNodeNamed> wplist = handler.readWayPointList();
@@ -214,7 +220,7 @@ public class RouteServer extends Thread
 
             if ( cr.getErrorMessage() != null )
             {
-              writeHttpHeader(bw);
+              writeHttpHeader(bw, HTTP_STATUS_INTERNAL_SERVER_ERROR);
               bw.write( cr.getErrorMessage() );
               bw.write( "\n" );
             }
@@ -223,7 +229,7 @@ public class RouteServer extends Thread
               OsmTrack track = cr.getFoundTrack();
               
               String headers = encodings == null || encodings.indexOf( "gzip" ) < 0 ? null : "Content-Encoding: gzip\n";
-              writeHttpHeader(bw, handler.getMimeType(), handler.getFileName(), headers );
+              writeHttpHeader(bw, handler.getMimeType(), handler.getFileName(), headers, HTTP_STATUS_OK );
               if ( track != null )
               {
                 if ( headers != null ) // compressed
@@ -245,6 +251,11 @@ public class RouteServer extends Thread
           }
           catch (Throwable e)
           {
+             try {
+               writeHttpHeader(bw, HTTP_STATUS_INTERNAL_SERVER_ERROR);
+               bw.flush();
+             }
+             catch (IOException _ignore){}
              System.out.println("RouteServer got exception (will continue): "+e);
              e.printStackTrace();
           }
@@ -254,7 +265,7 @@ public class RouteServer extends Thread
               if ( br != null ) try { br.close(); } catch( Exception e ) {}
               if ( bw != null ) try { bw.close(); } catch( Exception e ) {}
               if ( clientSocket != null ) try { clientSocket.close(); } catch( Exception e ) {}
-              terminated = true;
+              semaphore.release();
           }
   }
 
@@ -278,8 +289,7 @@ public class RouteServer extends Thread
         serviceContext.sharedProfileDir = tk.hasMoreTokens() ? tk.nextToken() : serviceContext.customProfileDir;
 
         int maxthreads = Integer.parseInt( args[4] );
-
-        TreeMap<Long,RouteServer> threadMap = new TreeMap<Long,RouteServer>();
+        Semaphore semaphore = new Semaphore(maxthreads, true);
 
         ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]),50,InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
 
@@ -302,36 +312,8 @@ public class RouteServer extends Thread
           RouteServer server = new RouteServer();
           server.serviceContext = serviceContext;
           server.clientSocket = clientSocket;
-
-          // cleanup thread list
-          for(;;)
-          {
-            boolean removedItem = false;
-            for (Map.Entry<Long,RouteServer> e : threadMap.entrySet())
-            {
-              if ( e.getValue().terminated )
-              {
-                threadMap.remove( e.getKey() );
-                removedItem = true;
-                break;
-              }
-            }
-            if ( !removedItem ) break;
-          }
-
-          // kill thread if limit reached
-          if ( threadMap.size() >= maxthreads )
-          {
-             Long k = threadMap.firstKey();
-             RouteServer victim = threadMap.get( k );
-             threadMap.remove( k );
-             victim.stopRouter();
-          }
-
-          long ts = System.currentTimeMillis();
-          while ( ts <=  last_ts ) ts++;
-          threadMap.put( Long.valueOf( ts ), server );
-          last_ts = ts;
+          server.semaphore = semaphore;
+          semaphore.acquire();
           server.start();
         }
   }
@@ -369,25 +351,25 @@ public class RouteServer extends Thread
     return maxRunningTime;
   }
 
-  private static void writeHttpHeader( BufferedWriter bw ) throws IOException
+  private static void writeHttpHeader( BufferedWriter bw, String status ) throws IOException
   {
-    writeHttpHeader( bw, "text/plain" );
+    writeHttpHeader( bw, "text/plain", status );
   }
 
-  private static void writeHttpHeader( BufferedWriter bw, String mimeType ) throws IOException
+  private static void writeHttpHeader( BufferedWriter bw, String mimeType, String status ) throws IOException
   {
-    writeHttpHeader( bw, mimeType, null );
+    writeHttpHeader( bw, mimeType, null, status );
   }
 
-  private static void writeHttpHeader( BufferedWriter bw, String mimeType, String fileName ) throws IOException
+  private static void writeHttpHeader( BufferedWriter bw, String mimeType, String fileName, String status ) throws IOException
   {
-    writeHttpHeader( bw, mimeType, fileName, null);
+    writeHttpHeader( bw, mimeType, fileName, null, status);
   }
 
-  private static void writeHttpHeader( BufferedWriter bw, String mimeType, String fileName, String headers ) throws IOException
+  private static void writeHttpHeader( BufferedWriter bw, String mimeType, String fileName, String headers, String status ) throws IOException
   {
     // http-header
-    bw.write( "HTTP/1.1 200 OK\n" );
+    bw.write( String.format("HTTP/1.1 %s\n", status) );
     bw.write( "Connection: close\n" );
     bw.write( "Content-Type: " + mimeType + "; charset=utf-8\n" );
     if ( fileName != null )
