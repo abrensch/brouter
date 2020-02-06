@@ -48,6 +48,8 @@ public class RouteServer extends Thread
   private RoutingEngine cr = null;
   private volatile boolean terminated;
 
+  private static Object threadPoolSync = new Object();
+
   public void stopRouter()
   {
     RoutingEngine e = cr;
@@ -271,9 +273,9 @@ public class RouteServer extends Thread
               if ( bw != null ) try { bw.close(); } catch( Exception e ) {}
               if ( clientSocket != null ) try { clientSocket.close(); } catch( Exception e ) {}
               terminated = true;
-              synchronized( this )
+              synchronized( threadPoolSync )
               {
-                notifyAll();
+                threadPoolSync.notifyAll();
               }
           }
   }
@@ -323,34 +325,25 @@ public class RouteServer extends Thread
           server.serviceContext = serviceContext;
           server.clientSocket = clientSocket;
 
-          // cleanup thread list
-          for(;;)
-          {
-            boolean removedItem = false;
-            for (Map.Entry<Long,RouteServer> e : threadMap.entrySet())
-            {
-              if ( e.getValue().terminated )
-              {
-                threadMap.remove( e.getKey() );
-                removedItem = true;
-                break;
-              }
-            }
-            if ( !removedItem ) break;
-          }
+          // kill an old thread if thread limit reached
+          
+          cleanupThreadList( threadMap );
 
-          // kill thread if limit reached
           if ( threadMap.size() >= maxthreads )
           {
-             Long k = threadMap.firstKey();
-             RouteServer victim = threadMap.get( k );
-             threadMap.remove( k );
-             if ( !victim.terminated )
+             synchronized( threadPoolSync )
              {
-               synchronized( victim )
-               {
-                 victim.wait( 1000 );
-               }
+               // wait up to 2000ms (maybe notified earlier)
+               // to prevent killing short-running threads
+               threadPoolSync.wait( 2000 );
+             }
+             cleanupThreadList( threadMap );
+             if ( threadMap.size() >= maxthreads )
+             {
+               // no way... stop the oldest thread
+               Long k = threadMap.firstKey();
+               RouteServer victim = threadMap.get( k );
+               threadMap.remove( k );
                victim.stopRouter();
              }
           }
@@ -428,5 +421,26 @@ public class RouteServer extends Thread
       bw.write( headers );
     }
     bw.write( "\n" );
+  }
+
+  private static void cleanupThreadList( TreeMap<Long, RouteServer> threadMap )
+  {
+    for ( ;; )
+    {
+      boolean removedItem = false;
+      for ( Map.Entry<Long, RouteServer> e : threadMap.entrySet() )
+      {
+        if ( e.getValue().terminated )
+        {
+          threadMap.remove( e.getKey() );
+          removedItem = true;
+          break;
+        }
+      }
+      if ( !removedItem )
+      {
+        break;
+      }
+    }
   }
 }
