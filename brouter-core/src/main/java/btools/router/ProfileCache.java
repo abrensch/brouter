@@ -13,16 +13,24 @@ import btools.expressions.BExpressionMetaData;
 
 public final class ProfileCache 
 {
-  private static BExpressionContextWay expctxWay;
-  private static BExpressionContextNode expctxNode;
  
   private static File lastLookupFile;
-  private static File lastProfileFile;
-
   private static long lastLookupTimestamp;
-  private static long lastProfileTimestamp;
-  
-  private static boolean profilesBusy;
+
+  private BExpressionContextWay expctxWay;
+  private BExpressionContextNode expctxNode;
+  private File lastProfileFile;
+  private long lastProfileTimestamp;  
+  private boolean profilesBusy;
+  private long lastUseTime;
+    
+  private static ProfileCache[] apc = new ProfileCache[1];
+  private static boolean debug = Boolean.getBoolean( "debugProfileCache" );
+
+  public static synchronized void setSize( int size )
+  {
+    apc = new ProfileCache[size];
+  }
 
   public static synchronized boolean parseProfile( RoutingContext rc )
   {
@@ -42,21 +50,51 @@ public final class ProfileCache
 
       rc.profileTimestamp = profileFile.lastModified() + rc.getKeyValueChecksum()<<24;
       File lookupFile = new File( profileDir, "lookups.dat" );
+      
+      // invalidate cache at lookup-table update
+      if ( !(lookupFile.equals( lastLookupFile ) && lookupFile.lastModified() == lastLookupTimestamp ) )
+      {
+        if ( lastLookupFile != null )
+        {
+          System.out.println( "******** invalidating profile-cache after lookup-file update ******** " );
+        }
+        apc = new ProfileCache[apc.length];
+        lastLookupFile = lookupFile;
+        lastLookupTimestamp = lookupFile.lastModified();
+      }
+      
+      ProfileCache lru = null;
+      int unusedSlot =-1;
 
       // check for re-use
-      if ( expctxWay != null && expctxNode != null && !profilesBusy )
+      for( int i=0; i<apc.length; i++)
       {
-        if ( profileFile.equals( lastProfileFile ) && lookupFile.equals( lastLookupFile ) )
+        ProfileCache pc = apc[i];
+        
+        if ( pc != null )
         {
-          if ( rc.profileTimestamp == lastProfileTimestamp
-            && lookupFile.lastModified() ==  lastLookupTimestamp )
+          if ( (!pc.profilesBusy) && profileFile.equals( pc.lastProfileFile ) )
           {
-            rc.expctxWay = expctxWay;
-            rc.expctxNode = expctxNode;
-            profilesBusy = true;
-            rc.readGlobalConfig();
-            return true;
+            if ( rc.profileTimestamp == pc.lastProfileTimestamp )
+            {
+              rc.expctxWay = pc.expctxWay;
+              rc.expctxNode = pc.expctxNode;
+              rc.readGlobalConfig();
+              pc.profilesBusy = true;
+              return true;
+            }
+            lru = pc; // name-match but timestamp-mismatch -> we overide this one
+            unusedSlot = -1;
+            break;
           }
+          if ( lru == null || lru.lastUseTime > pc.lastUseTime )
+          {
+            lru = pc;
+          }
+        }
+        else if ( unusedSlot < 0 )
+        {
+          unusedSlot = i;
         }
       }
       
@@ -78,22 +116,45 @@ public final class ProfileCache
         rc.expctxWay.setAllTagsUsed();
       }
 
-      lastProfileTimestamp = rc.profileTimestamp;
-      lastLookupTimestamp = lookupFile.lastModified();
-      lastProfileFile = profileFile;
-      lastLookupFile = lookupFile;
-      expctxWay = rc.expctxWay;
-      expctxNode = rc.expctxNode;
-      profilesBusy = true;
+      if ( lru == null || unusedSlot >= 0 )
+      {
+        lru = new ProfileCache();
+        if ( unusedSlot >= 0 )
+        {
+          apc[unusedSlot] = lru;
+          if ( debug ) System.out.println( "******* adding new profile at idx=" + unusedSlot + " for " +  profileFile );            
+        }
+      }
+
+      if ( lru.lastProfileFile != null )
+      {
+        if ( debug ) System.out.println( "******* replacing profile of age " + ((System.currentTimeMillis()-lru.lastUseTime)/1000L) + " sec " + lru.lastProfileFile + "->" + profileFile );
+      }
+
+      lru.lastProfileTimestamp = rc.profileTimestamp;
+      lru.lastProfileFile = profileFile;
+      lru.expctxWay = rc.expctxWay;
+      lru.expctxNode = rc.expctxNode;
+      lru.profilesBusy = true;
+      lru.lastUseTime = System.currentTimeMillis();
       return false;
   }
 
   public static synchronized void releaseProfile( RoutingContext rc )
   {
-    // only the thread that holds the cached instance can release it
-    if ( rc.expctxWay == expctxWay && rc.expctxNode == expctxNode )
+    for( int i=0; i<apc.length; i++)
     {
-      profilesBusy = false;
+      ProfileCache pc = apc[i];
+        
+      if ( pc != null )
+      {
+        // only the thread that holds the cached instance can release it
+        if ( rc.expctxWay == pc.expctxWay && rc.expctxNode == pc.expctxNode )
+        {
+          pc.profilesBusy = false;
+          break;
+        }
+      }
     }
     rc.expctxWay = null;
     rc.expctxNode = null;

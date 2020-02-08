@@ -20,12 +20,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.StringTokenizer;
-import java.util.TreeMap;
 import java.util.zip.GZIPOutputStream;
 
 import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
+import btools.router.ProfileCache;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
 import btools.server.request.ProfileUploadHandler;
@@ -33,7 +34,7 @@ import btools.server.request.RequestHandler;
 import btools.server.request.ServerHandler;
 import btools.util.StackSampler;
 
-public class RouteServer extends Thread
+public class RouteServer extends Thread implements Comparable<RouteServer>
 {
   public static final String PROFILE_UPLOAD_URL = "/brouter/profile";
   static final String HTTP_STATUS_OK = "200 OK";
@@ -47,8 +48,10 @@ public class RouteServer extends Thread
   private Socket clientSocket = null;
   private RoutingEngine cr = null;
   private volatile boolean terminated;
+  private long starttime;
 
   private static Object threadPoolSync = new Object();
+  private static boolean debug = Boolean.getBoolean( "debugThreadPool" );
 
   public void stopRouter()
   {
@@ -300,8 +303,10 @@ public class RouteServer extends Thread
         serviceContext.sharedProfileDir = tk.hasMoreTokens() ? tk.nextToken() : serviceContext.customProfileDir;
 
         int maxthreads = Integer.parseInt( args[4] );
+        
+        ProfileCache.setSize( 2*maxthreads );
 
-        TreeMap<Long,RouteServer> threadMap = new TreeMap<Long,RouteServer>();
+        PriorityQueue<RouteServer> threadQueue = new PriorityQueue<RouteServer>();
 
         ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]),100,InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
 
@@ -317,43 +322,47 @@ public class RouteServer extends Thread
           System.out.println( "*** sampling stacks into stacks.txt *** ");
         }
 
-        long last_ts = 0;
         for (;;)
         {
           Socket clientSocket = serverSocket.accept();
           RouteServer server = new RouteServer();
           server.serviceContext = serviceContext;
           server.clientSocket = clientSocket;
+          server.starttime = System.currentTimeMillis();
 
           // kill an old thread if thread limit reached
           
-          cleanupThreadList( threadMap );
-
-          if ( threadMap.size() >= maxthreads )
+          cleanupThreadQueue( threadQueue );
+          
+          
+          if ( debug ) System.out.println( "threadQueue.size()=" + threadQueue.size() );
+          if ( threadQueue.size() >= maxthreads )
           {
              synchronized( threadPoolSync )
              {
                // wait up to 2000ms (maybe notified earlier)
                // to prevent killing short-running threads
-               threadPoolSync.wait( 2000 );
+               long maxage = server.starttime - threadQueue.peek().starttime;
+               long maxWaitTime = 2000L-maxage;
+               if ( debug ) System.out.println( "maxage=" + maxage + " maxWaitTime=" + maxWaitTime );
+               if ( maxWaitTime > 0 )
+               {
+                 threadPoolSync.wait( maxWaitTime );
+               }
              }
-             cleanupThreadList( threadMap );
-             if ( threadMap.size() >= maxthreads )
+             cleanupThreadQueue( threadQueue );
+             if ( threadQueue.size() >= maxthreads )
              {
+               if ( debug ) System.out.println( "stopping oldest thread..." );
                // no way... stop the oldest thread
-               Long k = threadMap.firstKey();
-               RouteServer victim = threadMap.get( k );
-               threadMap.remove( k );
-               victim.stopRouter();
+               threadQueue.poll().stopRouter();
              }
           }
 
-          long ts = System.currentTimeMillis();
-          while ( ts <=  last_ts ) ts++;
-          threadMap.put( Long.valueOf( ts ), server );
-          last_ts = ts;
+          threadQueue.add( server );
 
           server.start();
+          if ( debug ) System.out.println( "thread started..." );
         }
   }
 
@@ -423,16 +432,16 @@ public class RouteServer extends Thread
     bw.write( "\n" );
   }
 
-  private static void cleanupThreadList( TreeMap<Long, RouteServer> threadMap )
+  private static void cleanupThreadQueue( PriorityQueue<RouteServer> threadQueue )
   {
     for ( ;; )
     {
       boolean removedItem = false;
-      for ( Map.Entry<Long, RouteServer> e : threadMap.entrySet() )
+      for ( RouteServer t : threadQueue )
       {
-        if ( e.getValue().terminated )
+        if ( t.terminated )
         {
-          threadMap.remove( e.getKey() );
+          threadQueue.remove( t );
           removedItem = true;
           break;
         }
@@ -443,4 +452,11 @@ public class RouteServer extends Thread
       }
     }
   }
+  
+  @Override
+  public int compareTo( RouteServer t )
+  {
+    return starttime < t.starttime ? -1 : ( starttime > t.starttime ? 1 : 0 );
+  }
+  
 }
