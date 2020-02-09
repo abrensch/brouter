@@ -230,7 +230,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
 
             if ( cr.getErrorMessage() != null )
             {
-              writeHttpHeader(bw, HTTP_STATUS_INTERNAL_SERVER_ERROR);
+              writeHttpHeader(bw, HTTP_STATUS_BAD_REQUEST);
               bw.write( cr.getErrorMessage() );
               bw.write( "\n" );
             }
@@ -331,10 +331,9 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
           server.starttime = System.currentTimeMillis();
 
           // kill an old thread if thread limit reached
-          
+
           cleanupThreadQueue( threadQueue );
-          
-          
+
           if ( debug ) System.out.println( "threadQueue.size()=" + threadQueue.size() );
           if ( threadQueue.size() >= maxthreads )
           {
@@ -345,6 +344,13 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
                long maxage = server.starttime - threadQueue.peek().starttime;
                long maxWaitTime = 2000L-maxage;
                if ( debug ) System.out.println( "maxage=" + maxage + " maxWaitTime=" + maxWaitTime );
+               if ( debug )
+               {
+                 for ( RouteServer t : threadQueue )
+                 {
+                   System.out.println( "age=" + (server.starttime - t.starttime) );
+                 }
+               }
                if ( maxWaitTime > 0 )
                {
                  threadPoolSync.wait( maxWaitTime );
