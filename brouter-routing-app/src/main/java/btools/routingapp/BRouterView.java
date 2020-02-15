@@ -606,7 +606,9 @@ public class BRouterView extends View
             if ( ze == null )
               break;
             String name = ze.getName();
-            FileOutputStream fos = new FileOutputStream( new File( f, name ) );
+            File outfile = new File( f, name );
+            outfile.getParentFile().mkdirs();
+            FileOutputStream fos = new FileOutputStream( outfile );
 
             for ( ;; )
             {
