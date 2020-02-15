@@ -454,12 +454,7 @@ public final class OsmTrack
             .append( formatILon( nodes.get(0).getILon() ) ).append( "\">\n" )
             .append ( "   <desc>start</desc>\n   <extensions>\n");
 
-        float rteTime;
-        if(!voiceHints.list.isEmpty()){
-            rteTime = voiceHints.list.get(0).getTime();
-        }else{
-            rteTime = 0;
-        }
+        float rteTime = getVoiceHintTime( 0 );
 
         if ( rteTime != lastRteTime ) // add timing only if available
         {
@@ -476,11 +471,7 @@ public final class OsmTrack
           .append( formatILon( hint.ilon ) ).append( "\">\n" )
           .append ( "   <desc>" ).append( hint.getMessageString() ).append( "</desc>\n   <extensions>\n");
 
-          if (i < voiceHints.list.size() -1) {
-              rteTime = voiceHints.list.get(i + 1).getTime();
-          } else {
-              rteTime = nodes.get(nodes.size() - 1).getTime();
-          }
+          rteTime = getVoiceHintTime( i+1 );
 
           if ( rteTime != lastRteTime ) // add timing only if available
           {
@@ -502,16 +493,17 @@ public final class OsmTrack
 
     if ( turnInstructionMode == 2 ) // locus style
     {
-      float lastRteTime = 0.f;
+      float lastRteTime = getVoiceHintTime( 0 );
 
-      for( VoiceHint hint: voiceHints.list )
+      for( int i=0; i<voiceHints.list.size(); i++ )
       {
+        VoiceHint hint = voiceHints.list.get(i);
         sb.append( " <wpt lon=\"" ).append( formatILon( hint.ilon ) ).append( "\" lat=\"" )
           .append( formatILat( hint.ilat ) ).append( "\">" )
           .append( hint.selev == Short.MIN_VALUE ? "" : "<ele>" + (hint.selev / 4.) + "</ele>" )
           .append( "<name>" ).append( hint.getMessageString() ).append( "</name>" )
           .append( "<extensions><locus:rteDistance>" ).append( "" + hint.distanceToNext ).append( "</locus:rteDistance>" );
-        float rteTime = hint.getTime();
+        float rteTime = getVoiceHintTime( i+1 );
         if ( rteTime != lastRteTime ) // add timing only if available
         {
           double t = rteTime - lastRteTime;
@@ -1054,6 +1046,23 @@ public final class OsmTrack
     {
       voiceHints.list.add( hint );
     }
+  }
+
+  private float getVoiceHintTime( int i )
+  {
+    if ( voiceHints.list.isEmpty() )
+    {
+      return 0f;
+    }
+    if ( i < voiceHints.list.size() )
+    {
+      return voiceHints.list.get(i).getTime();
+    }
+    if ( nodes.isEmpty() )
+    {
+      return 0f;
+    }
+    return nodes.get(nodes.size() - 1).getTime();
   }
 
 

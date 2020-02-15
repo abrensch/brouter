@@ -38,7 +38,7 @@ public class VoiceHint
 
   public float getTime()
   {
-    return goodWay == null ? 0.f : goodWay.time;
+    return oldWay == null ? 0.f : oldWay.time;
   }
 
   float angle;
