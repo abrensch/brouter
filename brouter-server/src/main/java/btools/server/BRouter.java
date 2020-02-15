@@ -88,7 +88,7 @@ public class BRouter
       }
       System.exit(0);
     }
-    System.out.println("BRouter 1.5.5 / 22072019");
+    System.out.println("BRouter 1.6.0 / 16022020");
     if ( args.length < 6 )
     {
       System.out.println("Find routes in an OSM map");

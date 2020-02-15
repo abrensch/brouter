@@ -441,7 +441,7 @@ public final class OsmTrack
     }
     else
     {
-      sb.append( " creator=\"BRouter-1.5.5\" version=\"1.1\">\n" );
+      sb.append( " creator=\"BRouter-1.6.0\" version=\"1.1\">\n" );
     }
 
     if ( turnInstructionMode == 3) // osmand style
