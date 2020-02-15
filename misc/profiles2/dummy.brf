@@ -6,6 +6,7 @@ assign processUnusedTags = true
 ---context:way   # following code refers to way-tags
 
 assign costfactor
-  switch and highway= not route=ferry  100000
+  switch and highway= not route=ferry  100000 1
 
 ---context:node  # following code refers to node tags
+assign initialcost = 0
