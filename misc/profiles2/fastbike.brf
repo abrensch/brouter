@@ -89,7 +89,7 @@ assign bikeaccess =
                  switch bicycle_road=yes
                     true
                     switch vehicle=
-                           defaultaccess
+                           ( if highway=footway then false else defaultaccess )
                            not vehicle=private|no
                  not or bicycle=private or bicycle=no bicycle=dismount
 
