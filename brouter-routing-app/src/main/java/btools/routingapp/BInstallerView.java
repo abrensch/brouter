@@ -55,7 +55,7 @@ public class BInstallerView extends View
 
     private int[] tileStatus;
 
-    private boolean tilesVisible = false;
+    private boolean tilesVisible = true;
     
     private long availableSize;
     private String baseDir;
@@ -285,10 +285,12 @@ public class BInstallerView extends View
            float scaleX = imgwOrig / ((float)bmp.getWidth());
            float scaley = imghOrig / ((float)bmp.getHeight());
            
-           viewscale = scaleX < scaley ? scaleX : scaley;            
+           viewscale = scaleX < scaley ? scaleX : scaley;  
+           
+           float startscale = viewscale*3.2f;   
 
            mat = new Matrix();
-           mat.postScale( viewscale, viewscale );
+           mat.postScale( startscale, startscale, imgwOrig, imghOrig*0.3f );
            tilesVisible = false;
         }
 
@@ -523,7 +525,7 @@ float tx, ty;
                 	float r = (float)Math.sqrt( (x1-x0)*(x1-x0) + (y1-y0)*(y1-y0) );
                 	float hr = (float)Math.sqrt( (hx1-hx0)*(hx1-hx0) + (hy1-hy0)*(hy1-hy0) );
                 	
-                	if ( hr > 10. )
+                	if ( hr > 0. )
                 	{
                 	  float ratio = r/hr;
 
