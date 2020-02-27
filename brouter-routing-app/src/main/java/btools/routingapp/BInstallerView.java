@@ -291,7 +291,7 @@ public class BInstallerView extends View
 
            mat = new Matrix();
            mat.postScale( startscale, startscale, imgwOrig, imghOrig*0.3f );
-           tilesVisible = false;
+           tilesVisible = true;
         }
 
         public BInstallerView(Context context) {
