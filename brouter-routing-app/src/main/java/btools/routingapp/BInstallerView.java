@@ -55,7 +55,7 @@ public class BInstallerView extends View
 
     private int[] tileStatus;
 
-    private boolean tilesVisible = true;
+    private boolean tilesVisible = false;
     
     private long availableSize;
     private String baseDir;
@@ -287,11 +287,9 @@ public class BInstallerView extends View
            
            viewscale = scaleX < scaley ? scaleX : scaley;  
            
-           float startscale = viewscale*3.2f;   
-
            mat = new Matrix();
-           mat.postScale( startscale, startscale, imgwOrig, imghOrig*0.3f );
-           tilesVisible = true;
+           mat.postScale( viewscale, viewscale );
+           tilesVisible = false;
         }
 
         public BInstallerView(Context context) {
@@ -393,8 +391,8 @@ public class BInstallerView extends View
            	}
             if ( !tilesVisible )
             {
-                paint.setTextSize(40);
-                canvas.drawText( "Zoom in to see grid!", 30, (imgh/3)*2, paint);
+                paint.setTextSize(35);
+                canvas.drawText( "Touch region to zoom in!", 30, (imgh/3)*2, paint);
             }
             paint.setTextSize(20);
             
@@ -578,7 +576,19 @@ float tx, ty;
             		break;
             	}
 
-            	if ( isDownloading || !tilesVisible ) break;
+              if ( !tilesVisible )
+              {
+                float scale = currentScale();
+                if ( scale > 0f && scale < 5f )
+                {
+                  float ratio = 5f / scale;
+                  mat.postScale( ratio, ratio, event.getX(), event.getY() );
+                  tilesVisible = true;
+                }
+                break;
+              }
+
+            	if ( isDownloading ) break;
 
             	Matrix imat = new Matrix();
             	if ( mat.invert(imat) )
