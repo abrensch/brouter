@@ -62,6 +62,8 @@ mvn clean install -pl '!brouter-routing-app'
 You can use `-Dmaven.javadoc.skip=true` to skip the JavaDoc processing and
 `-DskipTests` to skip running the unitary tests.
 
+In case you don't need a signed app use `-Djarsigner.skip=true`.
+
 
 ### Get the required segments (data) files
 
