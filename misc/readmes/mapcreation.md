@@ -16,7 +16,7 @@ more efficient. If you want to use the latter one, you will have to build the
 `pbfparser` (located in `misc/pbfparser` first):
 
 * Download [the latest
-    version](https://bretth.dev.openstreetmap.org/osmosis-build/osmosis-latest.zip)
+    version](https://github.com/openstreetmap/osmosis/releases)
     of [Osmosis](https://wiki.openstreetmap.org/wiki/Osmosis) and unzip it
     somewhere.
 * Copy the `lib/default/protobuf-java-*.jar` and
