@@ -528,6 +528,23 @@ public final class OsmTrack
           .append( "</wpt>\n" );
       }
     }
+    
+    if ( turnInstructionMode == 6 ) // orux style
+    {
+      for( VoiceHint hint: voiceHints.list )
+      {
+        sb.append( " <wpt lat=\"" ).append( formatILat( hint.ilat ) ).append( "\" lon=\"" )
+          .append( formatILon( hint.ilon ) ).append( "\">" )
+          .append( hint.selev == Short.MIN_VALUE ? "" : "<ele>" + (hint.selev / 4.) + "</ele>" )
+          .append( "<extensions>\n" + 
+          		"<om:oruxmapsextensions xmlns:om=\"http://www.oruxmaps.com/oruxmapsextensions/1/0\">\n" + 
+          		"<om:ext type=\"ICON\" subtype=\"0\">" ).append("" + hint.getOruxAction() )
+          .append( "</om:ext>\n" + 
+          		"</om:oruxmapsextensions>\n" + 
+          		"</extensions>\n" + 
+          		"</wpt>" );
+      }
+    }
 
     for( int i=0; i<=pois.size() - 1; i++ )
     {
