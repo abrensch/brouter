@@ -7,7 +7,7 @@ android {
 
     defaultConfig {
         applicationId "btools.routingapp"
-        minSdkVersion 14
+        minSdkVersion 19
         targetSdkVersion 29
         versionCode 41
         versionName "1.6.1"
