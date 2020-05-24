@@ -2,6 +2,7 @@ package btools.server;
 
 import java.util.List;
 import java.util.Map;
+import java.io.File;
 
 import btools.router.OsmNodeNamed;
 
@@ -10,7 +11,7 @@ import btools.router.OsmNodeNamed;
  */
 public class ServiceContext
 {
-  public String segmentDir;
+  public File segmentDir;
   public String profileDir;
   public String customProfileDir;
   public String sharedProfileDir;

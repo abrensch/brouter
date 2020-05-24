@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -19,16 +20,24 @@ import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.Environment;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.os.EnvironmentCompat;
+
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.OsmNode;
@@ -57,10 +66,11 @@ public class BRouterView extends View
   private List<OsmNodeNamed> nogoVetoList;
   private OsmTrack rawTrack;
 
-  private String modesDir;
-  private String tracksDir;
-  private String segmentDir;
-  private String profileDir;
+  private File retryBaseDir;
+  private File modesDir;
+  private File tracksDir;
+  private File segmentDir;
+  private File profileDir;
   private String profilePath;
   private String profileName;
   private String sourceHint;
@@ -104,14 +114,13 @@ public class BRouterView extends View
       imgh = metrics.heightPixels;
 
       // get base dir from private file
-      String baseDir = ConfigHelper.getBaseDir( getContext() );
+      File baseDir = ConfigHelper.getBaseDir( getContext() );
       // check if valid
       boolean bdValid = false;
       if ( baseDir != null )
       {
-        File bd = new File( baseDir );
-        bdValid = bd.isDirectory();
-        File brd = new File( bd, "brouter" );
+        bdValid = baseDir.isDirectory();
+        File brd = new File( baseDir, "brouter" );
         if ( brd.isDirectory() )
         {
           startSetup( baseDir, false );
@@ -135,64 +144,59 @@ public class BRouterView extends View
     }
   }
 
-  public void startSetup( String baseDir, boolean storeBasedir )
+  public void startSetup( File baseDir, boolean storeBasedir )
   {
-    cor = null;
+    if (baseDir == null) {
+      baseDir = retryBaseDir;
+      retryBaseDir = null;
+    }
+
+    if ( storeBasedir )
+    {
+      File td = new File( baseDir, "brouter" );
+      try
+      {
+        td.mkdirs();
+      }
+      catch (Exception e) {
+        Log.d ("BRouterView", "Error creating base directory: " + e.getMessage());
+        e.printStackTrace();
+      }
+
+      if ( !td.isDirectory() ) {
+        if (ContextCompat.checkSelfPermission (getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+          retryBaseDir = baseDir;
+          ActivityCompat.requestPermissions ((BRouterActivity) getContext(), new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
+        } else {
+          ( (BRouterActivity) getContext() ).selectBasedir( getStorageDirectories (), guessBaseDir(), "Cannot access " + baseDir.getAbsolutePath () + "; select another");
+        }
+        return;
+      }
+      ConfigHelper.writeBaseDir( getContext(), baseDir );
+    }
     try
     {
-      File fbd = new File( baseDir );
-      if ( !fbd.isDirectory() )
-      {
-        throw new IllegalArgumentException( "Base-directory " + baseDir + " is not a directory " );
-      }
-      if ( storeBasedir )
-      {
-        // Android 4.4 patch: try extend the basedir if not valid
-        File td = new File( fbd, "brouter" );
-        try
-        {
-          td.mkdir();
-        }
-        catch (Exception e) {}
-        if ( !td.isDirectory() )
-        {
-          File td1 = new File( fbd, "Android/data/btools/routingapp" );
-          try
-          {
-            td1.mkdirs();
-          }
-          catch (Exception e){}
-          td = new File( td1, "brouter" );
-          try
-          {
-            td.mkdir();
-          }
-          catch (Exception e) {}
-          if ( td.isDirectory() )
-            fbd = td1;
-        }
+      cor = null;
 
-        ConfigHelper.writeBaseDir( getContext(), baseDir );
-      }
-      String basedir = fbd.getAbsolutePath();
+      String basedir = baseDir.getAbsolutePath();
       AppLogger.log( "using basedir: " + basedir );
 
       String version = "v1.6.1";
 
       // create missing directories
-      assertDirectoryExists( "project directory", basedir + "/brouter", null, null );
-      segmentDir = basedir + "/brouter/segments4";
+      assertDirectoryExists( "project directory", new File (basedir, "brouter"), null, null );
+      segmentDir = new File (basedir, "/brouter/segments4");
       if ( assertDirectoryExists( "data directory", segmentDir, "segments4.zip", null ) )
       {
         ConfigMigration.tryMigrateStorageConfig(
               new File( basedir + "/brouter/segments3/storageconfig.txt" ),
               new File( basedir + "/brouter/segments4/storageconfig.txt" ) );
       }
-      profileDir = basedir + "/brouter/profiles2";
+      profileDir = new File (basedir, "brouter/profiles2");
       assertDirectoryExists( "profile directory", profileDir, "profiles2.zip", version );
-      modesDir = basedir + "/brouter/modes";
+      modesDir = new File (basedir, "/brouter/modes");
       assertDirectoryExists( "modes directory", modesDir, "modes.zip", version );
-      assertDirectoryExists( "readmes directory", basedir + "/brouter/readmes", "readmes.zip", version );
+      assertDirectoryExists( "readmes directory", new File (basedir, "brouter/readmes"), "readmes.zip", version );
 
       int deviceLevel =  android.os.Build.VERSION.SDK_INT;
       int targetSdkVersion = getContext().getApplicationInfo().targetSdkVersion;
@@ -219,17 +223,18 @@ public class BRouterView extends View
 
       if ( cor.tracksdir != null )
       {
-        tracksDir = cor.basedir + cor.tracksdir;
+        tracksDir = new File (cor.basedir, cor.tracksdir);
         assertDirectoryExists( "track directory", tracksDir, null, null );
 
         // output redirect: look for a pointerfile in tracksdir
-        File tracksDirPointer = new File( tracksDir + "/brouter.redirect" );
+        File tracksDirPointer = new File( tracksDir, "brouter.redirect" );
         if ( tracksDirPointer.isFile() )
         {
-          tracksDir = readSingleLineFile( tracksDirPointer );
-          if ( tracksDir == null )
+          String tracksDirStr = readSingleLineFile( tracksDirPointer );
+          if ( tracksDirStr == null )
             throw new IllegalArgumentException( "redirect pointer file is empty: " + tracksDirPointer );
-          if ( !( new File( tracksDir ).isDirectory() ) )
+          tracksDir = new File (tracksDirStr);
+          if ( !( tracksDir.isDirectory() ) )
             throw new IllegalArgumentException( "redirect pointer file " + tracksDirPointer + " does not point to a directory: " + tracksDir );
         }
         else
@@ -248,10 +253,10 @@ public class BRouterView extends View
       }
       if ( tracksDir == null )
       {
-        tracksDir = basedir + "/brouter"; // fallback
+        tracksDir = new File (basedir, "router"); // fallback
       }
 
-      String[] fileNames = new File( profileDir ).list();
+      String[] fileNames = profileDir.list();
       ArrayList<String> profiles = new ArrayList<String>();
 
       boolean lookupsFound = false;
@@ -387,7 +392,7 @@ public class BRouterView extends View
     {
       if ( wp.name.equals( waypoint ) )
       {
-        if ( wp.ilat != 0 || wp.ilat != 0 )
+        if ( wp.ilat != 0 || wp.ilon != 0 )
         {
           int nwp = wpList.size();
           if ( nwp == 0 || wpList.get( nwp-1 ) != wp )
@@ -513,10 +518,10 @@ public class BRouterView extends View
       OsmNode prev = null;
       for ( OsmNode n : wpList )
       {
-        maxlon = n.ilon > maxlon ? n.ilon : maxlon;
-        minlon = n.ilon < minlon ? n.ilon : minlon;
-        maxlat = n.ilat > maxlat ? n.ilat : maxlat;
-        minlat = n.ilat < minlat ? n.ilat : minlat;
+        maxlon = Math.max(n.ilon, maxlon);
+        minlon = Math.min(n.ilon, minlon);
+        maxlat = Math.max(n.ilat, maxlat);
+        minlat = Math.min(n.ilat, minlat);
         if ( prev != null )
         {
           plain_distance += n.calcDistance( prev );
@@ -536,7 +541,7 @@ public class BRouterView extends View
 
       scaleLon = imgw / ( difflon * 1.5 );
       scaleLat = imgh / ( difflat * 1.5 );
-      scaleMeter2Pixel = scaleLon < scaleLat ? scaleLon : scaleLat;
+      scaleMeter2Pixel = Math.min(scaleLon, scaleLat);
       scaleLon = scaleMeter2Pixel*dlon2m;
       scaleLat = scaleMeter2Pixel*dlat2m;
 
@@ -570,18 +575,16 @@ public class BRouterView extends View
     }
   }
 
-  private boolean assertDirectoryExists( String message, String path, String assetZip, String versionTag )
+  private boolean assertDirectoryExists( String message, File path, String assetZip, String versionTag )
   {
-    File f = new File( path );
-
-    boolean exists = f.exists();
+    boolean exists = path.exists();
     if ( !exists )
     {
-      f.mkdirs();
+      path.mkdirs();
     }
     if ( versionTag != null )
     {
-      File vtag = new File( f, versionTag );
+      File vtag = new File( path, versionTag );
       try
       {
         exists = !vtag.createNewFile();
@@ -606,7 +609,7 @@ public class BRouterView extends View
             if ( ze == null )
               break;
             String name = ze.getName();
-            File outfile = new File( f, name );
+            File outfile = new File( path, name );
             outfile.getParentFile().mkdirs();
             FileOutputStream fos = new FileOutputStream( outfile );
 
@@ -629,7 +632,7 @@ public class BRouterView extends View
 
       }
     }
-    if ( !f.exists() || !f.isDirectory() )
+    if ( !path.exists() || !path.isDirectory() )
       throw new IllegalArgumentException( message + ": " + path + " cannot be created" );
     return false;
   }
@@ -1071,76 +1074,29 @@ public class BRouterView extends View
 
   private String readSingleLineFile( File f )
   {
-    BufferedReader br = null;
-    try
-    {
-      br = new BufferedReader( new InputStreamReader( new FileInputStream( f ) ) );
+    try (  FileInputStream fis = new FileInputStream (f);
+           InputStreamReader isr = new InputStreamReader (fis);
+           BufferedReader br = new BufferedReader (isr)) {
       return br.readLine();
     }
     catch (Exception e)
     {
       return null;
     }
-    finally
-    {
-      if ( br != null )
-        try
-        {
-          br.close();
-        }
-        catch (Exception ee)
-        {
-        }
-    }
   }
 
-  private List<String> getStorageDirectories()
-  {
-    ArrayList<String> res = new ArrayList<String>();
-    
-    // check write access on internal sd
-    try
-    {
-      File sd = Environment.getExternalStorageDirectory();
-      File testDir = new File( sd, "brouter" );
-      boolean didExist = testDir.isDirectory();
-      if ( !didExist )
-      {
-        testDir.mkdir();
-      }
-      File testFile = new File( testDir, "test" + System.currentTimeMillis() );
-      testFile.createNewFile();
-      if ( testFile.exists() )
-      {
-        testFile.delete();
-        res.add( sd.getPath() );
-      }
-      if ( !didExist )
-      {
-        testDir.delete();
-      }
-    }
-    catch( Throwable t )
-    {
-      // ignore
-    }
-    
+  private ArrayList<File> getStorageDirectories () {
+    ArrayList<File> list = new ArrayList<File>(Arrays.asList(getContext().getExternalFilesDirs(null)));
+    ArrayList<File> res = new ArrayList<File>();
 
-    try
-    {
-      Method method = Context.class.getDeclaredMethod("getExternalFilesDirs", new Class[]{ String.class } );
-      File[] paths = (File[])method.invoke( getContext(), new Object[1] );
-      for( File path : paths )
-      {
-        res.add( path.getPath() );
+    for (File f : list) {
+      if (f != null) {
+        if (EnvironmentCompat.getStorageState(f).equals(Environment.MEDIA_MOUNTED))
+          res.add (f);
       }
     }
-    catch( Exception e )
-    {
-      res.add( e.toString() );
-      res.add( Environment.getExternalStorageDirectory().getPath() );
-    }
+
+//    res.add(getContext().getFilesDir());
     return res;
   }
-
 }
