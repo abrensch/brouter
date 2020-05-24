@@ -1,5 +1,6 @@
 package btools.routingapp;
 
+import java.io.File;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -13,16 +14,22 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.StatFs;
 import android.speech.tts.TextToSpeech.OnInitListener;
+import android.util.Log;
 import android.widget.EditText;
+
+import androidx.core.app.ActivityCompat;
+
 import btools.router.OsmNodeNamed;
 
-public class BRouterActivity extends Activity implements OnInitListener
+public class BRouterActivity extends Activity implements OnInitListener, ActivityCompat.OnRequestPermissionsResultCallback
 {
   private static final int DIALOG_SELECTPROFILE_ID = 1;
   private static final int DIALOG_EXCEPTION_ID = 2;
@@ -268,13 +275,14 @@ public class BRouterActivity extends Activity implements OnInitListener
         public void onClick( DialogInterface dialog, int whichButton )
         {
           String basedir = input.getText().toString();
-          mBRouterView.startSetup( basedir, true );
+          mBRouterView.startSetup( new File(basedir), true );
         }
       } );
       return builder.create();
     case DIALOG_SELECTBASEDIR_ID:
       builder = new AlertDialog.Builder( this );
-      builder.setTitle( "Select an SDCARD base dir:" );
+      builder.setTitle( "Choose brouter data base dir:" );
+      // builder.setMessage( message );
       builder.setSingleChoiceItems( basedirOptions, 0, new DialogInterface.OnClickListener()
       {
         @Override
@@ -428,7 +436,7 @@ public class BRouterActivity extends Activity implements OnInitListener
   private String[] availableProfiles;
   private String selectedProfile = null;
 
-  private List<String> availableBasedirs;
+  private List<File> availableBasedirs;
   private String[] basedirOptions;
   private int selectedBasedir;
 
@@ -484,22 +492,21 @@ public class BRouterActivity extends Activity implements OnInitListener
   }
 
   @SuppressWarnings("deprecation")
-  public void selectBasedir( List<String> items, String defaultBasedir, String message )
+  public void selectBasedir( ArrayList<File> items, String defaultBasedir, String message )
   {
     this.defaultbasedir = defaultBasedir;
     this.message = message;
-    availableBasedirs = new ArrayList<String>();
+    availableBasedirs = items;
     ArrayList<Long> dirFreeSizes = new ArrayList<Long>();
-    for ( String d : items )
+    for ( File f : items )
     {
       long size = 0L;
       try
       {
-        StatFs stat = new StatFs( d );
+        StatFs stat = new StatFs( f.getAbsolutePath() );
         size = (long) stat.getAvailableBlocks() * stat.getBlockSize();
       }
       catch (Exception e) { /* ignore */ }
-      availableBasedirs.add( d );
       dirFreeSizes.add( Long.valueOf( size ) );
     }
 
@@ -510,7 +517,7 @@ public class BRouterActivity extends Activity implements OnInitListener
     {
       basedirOptions[bdidx++] = availableBasedirs.get( idx ) + " (" + df.format( dirFreeSizes.get( idx ) / 1024. / 1024. / 1024. ) + " GB free)";
     }
-    basedirOptions[bdidx] = "Other";
+    basedirOptions[bdidx] = "Enter path manually";
 
     showDialog( DIALOG_SELECTBASEDIR_ID );
   }
@@ -643,5 +650,16 @@ public class BRouterActivity extends Activity implements OnInitListener
   @Override
   public void onInit( int i )
   {
+  }
+
+  @Override
+  public void onRequestPermissionsResult (int requestCode, String[] permissions, int[] grantResults) {
+    if (requestCode == 0) {
+      if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        mBRouterView.startSetup(null, true);
+      } else {
+        mBRouterView.init();
+      }
+    }
   }
 }

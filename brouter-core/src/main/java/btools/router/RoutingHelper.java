@@ -11,20 +11,20 @@ import btools.mapaccess.StorageConfigHelper;
 
 public final class RoutingHelper
 {
-    public static File getAdditionalMaptoolDir( String segmentDir )
+    public static File getAdditionalMaptoolDir( File segmentDir )
     {
     	return StorageConfigHelper.getAdditionalMaptoolDir(segmentDir);
     }
 
-    public static File getSecondarySegmentDir( String segmentDir )
+    public static File getSecondarySegmentDir( File segmentDir )
     {
     	return StorageConfigHelper.getSecondarySegmentDir(segmentDir);
     }
     
     
-    public static boolean hasDirectoryAnyDatafiles( String segmentDir )
+    public static boolean hasDirectoryAnyDatafiles( File segmentDir )
     {
-        if ( hasAnyDatafiles( new File( segmentDir ) ) )
+        if ( hasAnyDatafiles( segmentDir ) )
         {
         	return true;
         }

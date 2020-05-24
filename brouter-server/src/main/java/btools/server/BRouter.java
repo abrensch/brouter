@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.File;
 
 import btools.router.OsmNodeNamed;
 import btools.router.RoutingContext;
@@ -75,7 +76,7 @@ public class BRouter
         wplist.add( from );
         wplist.add( to );
 
-        RoutingEngine re = new RoutingEngine( null, null, args[0], wplist, readRoutingContext(a2) );
+        RoutingEngine re = new RoutingEngine( null, null, new File (args[0]), wplist, readRoutingContext(a2) );
         re.doRun( maxRunningTime );
         if ( re.getErrorMessage() != null )
         {
@@ -111,7 +112,7 @@ public class BRouter
         SearchBoundary boundary = new SearchBoundary( wplist.get(0), searchRadius, direction/2 );
         rc.trafficOutputStream = dos;
         rc.inverseDirection = (direction & 1 ) != 0;
-        re = new RoutingEngine( "mytrack", "mylog", args[0], wplist, rc );
+        re = new RoutingEngine( "mytrack", "mylog", new File ( args[0] ), wplist, rc );
         re.boundary = boundary;
         re.airDistanceCostFactor = rc.trafficDirectionFactor;
         rc.countTraffic = true;
@@ -127,7 +128,7 @@ public class BRouter
     {
       wplist.add( readPosition( args, 3, "to" ) );
       RoutingContext rc = readRoutingContext(args);
-      re = new RoutingEngine( "mytrack", "mylog", args[0], wplist, rc );
+      re = new RoutingEngine( "mytrack", "mylog", new File ( args[0] ), wplist, rc );
       re.doRun( 0 );
       
     }

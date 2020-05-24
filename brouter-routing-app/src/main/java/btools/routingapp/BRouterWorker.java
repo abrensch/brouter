@@ -17,7 +17,7 @@ import btools.router.RoutingEngine;
 public class BRouterWorker
 {
   public String baseDir;
-  public String segmentDir;
+  public File segmentDir;
   public String profileName;
   public String profilePath;
   public String rawTrackPath;

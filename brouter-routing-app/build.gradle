@@ -7,7 +7,7 @@ android {
 
     defaultConfig {
         applicationId "btools.routingapp"
-        minSdkVersion 10
+        minSdkVersion 14
         targetSdkVersion 29
         versionCode 41
         versionName "1.6.1"
@@ -27,6 +27,7 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
+    implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation project(':brouter-mapaccess')
     implementation project(':brouter-core')
     implementation project(':brouter-expressions')

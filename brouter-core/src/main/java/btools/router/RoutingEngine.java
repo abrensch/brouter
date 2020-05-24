@@ -41,7 +41,7 @@ public class RoutingEngine extends Thread
 
   private volatile boolean terminated;
 
-  protected String segmentDir;
+  protected File segmentDir;
   private String outfileBase;
   private String logfileBase;
   private boolean infoLogEnabled;
@@ -64,7 +64,7 @@ public class RoutingEngine extends Thread
 
   private boolean directWeaving = !Boolean.getBoolean( "disableDirectWeaving" );
 
-  public RoutingEngine( String outfileBase, String logfileBase, String segmentDir,
+  public RoutingEngine( String outfileBase, String logfileBase, File segmentDir,
           List<OsmNodeNamed> waypoints, RoutingContext rc )
   {
     this.segmentDir = segmentDir;

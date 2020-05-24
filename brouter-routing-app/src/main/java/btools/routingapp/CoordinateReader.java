@@ -149,12 +149,12 @@ public abstract class CoordinateReader
   protected abstract void readPointmap() throws Exception;
   
 
-  public static CoordinateReader obtainValidReader( String basedir, String segmentDir ) throws Exception
+  public static CoordinateReader obtainValidReader( String basedir, File segmentDir ) throws Exception
   {
     return obtainValidReader( basedir, segmentDir, false );
   }
 
-  public static CoordinateReader obtainValidReader( String basedir, String segmentDir, boolean nogosOnly ) throws Exception
+  public static CoordinateReader obtainValidReader( String basedir, File segmentDir, boolean nogosOnly ) throws Exception
   {
     CoordinateReader cor = null;
     ArrayList<CoordinateReader> rl = new ArrayList<CoordinateReader>();
