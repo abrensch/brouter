@@ -152,11 +152,26 @@ assign badoneway =
          else oneway=yes|true|1
        else oneway=-1
 
+# Penalty associated with going against traffic in a one-way street
+# Note: Can be zero if opposite traffic is allowed for bikes
 assign onewaypenalty =
        if ( badoneway ) then
        (
-         if ( cycleway=opposite|opposite_lane|opposite_track ) then 0
-         else if ( oneway:bicycle=no                         ) then 0
+         # Not a oneway street for bikes
+         if ( oneway:bicycle=no ) then 0
+         # No penalty if there is any cycleway going against traffic
+         else if ( cycleway=opposite|opposite_lane|opposite_track ) then 0
+         else if ( cycleway:right=opposite|opposite_lane|opposite_track ) then 0
+         else if ( cycleway:left=opposite|opposite_lane|opposite_track ) then 0
+         # Otherwise, check the value of oneway:bicycle
+         else if ( and ( not reversedirection=yes ) oneway:bicycle=yes|no ) then 0
+         # No penalty if there is any left cycleway in opposite direction
+         else if ( and reversedirection=yes cycleway:left:oneway=-1|no ) then 0
+         else if ( and ( not reversedirection=yes ) cycleway:left:oneway=yes|no ) then 0
+         # No penalty if there is any right cycleway in opposite direction
+         else if ( and reversedirection=yes cycleway:right:oneway=-1|no ) then 0
+         else if ( and ( not reversedirection=yes ) cycleway:right:oneway=yes|no ) then 0
+         # Other cases
          else if ( highway=primary|primary_link              ) then 50
          else if ( highway=secondary|secondary_link          ) then 30
          else if ( highway=tertiary|tertiary_link            ) then 20
