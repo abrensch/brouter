@@ -109,6 +109,10 @@ assign issidewalk not or sidewalk= or sidewalk=none sidewalk=no
 
 assign turncost   switch or shortest_way  is_ldhr   0 turncost_value  #v1.5 
 
+assign initialclassifier =
+     if route=ferry then 1
+     else 0
+
 assign initialcost 
    switch route=ferry 10000 
       

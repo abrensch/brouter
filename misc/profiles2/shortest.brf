@@ -17,6 +17,10 @@ assign nodeaccessgranted or any_cycleroute lcn=yes
 
 assign turncost 0
 
+assign initialclassifier =
+     if route=ferry then 1
+     else 0
+
 assign initialcost switch route=ferry 10000 0
 
 #
