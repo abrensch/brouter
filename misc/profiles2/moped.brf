@@ -23,6 +23,10 @@ assign turnInstructionMode  = 1  # 0=none, 1=auto-choose, 2=locus-style, 3=osman
 assign turncost = if junction=roundabout then 0
                   else 90
 
+assign initialclassifier =
+     if route=ferry then 1
+     else 0
+
 assign initialcost switch route=ferry 20000 0
 
 
