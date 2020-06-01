@@ -62,6 +62,9 @@ assign isunpaved not or surface= or ispaved or surface=fine_gravel surface=cobbl
 
 assign turncost = if junction=roundabout then 0
                   else 90
+assign initialclassifier =
+     if route=ferry then 1
+     else 0
 
 assign initialcost switch route=ferry 10000 0
 
