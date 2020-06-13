@@ -237,7 +237,10 @@ assign costfactor
   switch highway=tertiary|tertiary_link|unclassified      switch ismuddy 2.0  switch iswet  switch issidewalk 1.4 1.7
 												                                            switch issidewalk 1.7 2.0
 
-  add cost_of_unknown ( switch ismuddy 0.5 0.0 ) 
+  add cost_of_unknown ( switch ismuddy 0.5 0.0 )
+
+# include `smoothness=` tags in the response's WayTags for track analysis
+assign dummyUsage = smoothness=
 
 ---context:node  # following code refers to node tags
 
