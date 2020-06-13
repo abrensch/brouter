@@ -33,7 +33,7 @@ public class WayCutter extends MapCreatorBase
   {
     init( wayTilesOut );
 
-    new NodeIterator( this, false ).processDir( nodeTilesIn, ".tlf" );
+    new NodeIterator( this, false ).processDir( nodeTilesIn, ".ntl" );
 
     // *** finally process the way-file, cutting into pieces
     new WayIterator( this, true ).processFile( wayFileIn );

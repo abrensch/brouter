@@ -34,7 +34,7 @@ public class NodeCutter extends MapCreatorBase
   {
     init( nodeTilesOut );
 
-    new NodeIterator( this, true ).processDir( nodeTilesIn, ".tlf" );
+    new NodeIterator( this, true ).processDir( nodeTilesIn, ".ntl" );
   }
 
   @Override
