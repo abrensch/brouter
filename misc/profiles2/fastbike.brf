@@ -260,6 +260,8 @@ assign classifiermask add          isbadoneway
                       add multiply islinktype     8
                           multiply isgoodforcars 16
 
+# include `smoothness=` tags in the response's WayTags for track analysis
+assign dummyUsage = smoothness=
 
 ---context:node  # following code refers to node tags
 
