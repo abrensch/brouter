@@ -396,8 +396,6 @@ assign classifiermask add     isbadoneway
            add multiply islinktype   8
              multiply isgoodforcars 16
 
-
-
 ---context:node # following code refers to node tags
 
 # Parameter für Knotenpunkte
