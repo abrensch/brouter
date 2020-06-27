@@ -590,11 +590,18 @@ public class RoutingEngine extends Thread
     OsmPath p = getStartPath( n1, n2, new OsmNodeNamed( mwp.waypoint ), endPos );
 
     // special case: start+end on same segment
-    if ( sameSegmentSearch )
+    if ( p.cost >= 0 && sameSegmentSearch )
     {
+      OsmPath path2end = getStartPath( n1, n2, endPos, endPos );
+      boolean isDirect = path2end.cost >= p.cost;
+
       OsmPath pe = getEndPath( n1, p.getLink(), endPos );
       OsmPath pt = getEndPath( n1, p.getLink(), null );
       int costdelta = pt.cost - p.cost;
+      if ( isDirect && pe.cost < costdelta )
+      {
+         costdelta = pe.cost;
+      }
       if ( pe.cost >= costdelta )
       {
     	pe.cost -= costdelta;
