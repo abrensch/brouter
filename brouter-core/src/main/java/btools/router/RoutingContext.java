@@ -192,6 +192,7 @@ public final class RoutingContext
 
   public List<OsmNodeNamed> nogopoints = null;
   private List<OsmNodeNamed> keepnogopoints = null;
+  private OsmNodeNamed pendingEndpoint = null;
 
   public Integer startDirection;
   public boolean startDirectionValid;
@@ -298,16 +299,35 @@ public final class RoutingContext
 
   public void setWaypoint( OsmNodeNamed wp, boolean endpoint )
   {
+    setWaypoint( wp, null, endpoint );
+  }
+
+  public void setWaypoint( OsmNodeNamed wp, OsmNodeNamed pendingEndpoint, boolean endpoint )
+  {
     keepnogopoints = nogopoints;
     nogopoints = new ArrayList<OsmNodeNamed>();
     nogopoints.add( wp );
     if ( keepnogopoints != null ) nogopoints.addAll( keepnogopoints );
     isEndpoint = endpoint;
+    this.pendingEndpoint = pendingEndpoint;
+  }
+
+  public boolean checkPendingEndpoint()
+  {
+    if ( pendingEndpoint != null )
+    {
+      isEndpoint = true;
+      nogopoints.set( 0, pendingEndpoint );
+      pendingEndpoint = null;
+      return true;
+    }
+    return false;
   }
 
   public void unsetWaypoint()
   {
     nogopoints = keepnogopoints;
+    pendingEndpoint = null;
     isEndpoint = false;
   }
 

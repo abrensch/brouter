@@ -298,6 +298,16 @@ abstract class OsmPath implements OsmLinkHolder
               originElement = null; // prevent duplicate point
             }
           }
+
+          if ( rc.checkPendingEndpoint() )
+          {
+            dist = rc.calcDistance( rc.ilonshortest, rc.ilatshortest, lon2, lat2 );
+            if ( rc.shortestmatch )
+            {
+              stopAtEndpoint = true;
+              ele2 = interpolateEle( ele1, ele2, rc.wayfraction );
+            }
+          }
         }
       }
 
