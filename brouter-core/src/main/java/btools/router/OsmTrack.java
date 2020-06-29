@@ -708,6 +708,15 @@ public final class OsmTrack
 
   public List<String> iternity;
 
+  public void writeJson( String filename ) throws Exception
+  {
+    BufferedWriter bw = new BufferedWriter( new FileWriter( filename ) );
+
+    bw.write( formatAsGeoJson() );
+    bw.close();
+  }
+
+
   public String formatAsGeoJson()
   {
     StringBuilder sb = new StringBuilder( 8192 );
