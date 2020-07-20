@@ -79,3 +79,46 @@ and set the `PLANET_FILE` variable to point to it.
 _Note:_ It is possible that you encounter an error complaining about not being
 able to run `bash^M` on Linux/Mac OS. You can fix this one by running
 `sed -i -e 's/\r$//' process_pbf_planet.sh`.
+
+## Docker
+
+1. Build the Docker image: `docker build -f misc/scripts/mapcreation/Dockerfile -t brouter-mapcreation .`
+2. Download a planet file
+3. Download SRTM data
+4. Run the mapcreation script:
+
+``` shell script
+docker run --rm \
+    --user "$(id -u):$(id -g)"
+    --env PLANET=slovenia-latest.osm.pbf \
+    --env JAVA_OPTS="-Xmx2048M -Xms2048M -Xmn256M" \
+    --volume /tank/brouter/tmp:/brouter-tmp \
+    --volume /tank/brouter/planet:/planet \
+    --volume /tank/brouter/srtm:/srtm:ro \
+    --volume /tank/brouter/segments:/segments \
+    brouter-mapcreation
+```
+
+Let's take a closer look on what happens here:
+
+- `--rm` delete the container after the processing is done
+- `--user "$(id -u):$(id -g)"`: the processing script can and should be run as a non-privileged user, the user ID and group ID for that user can be provided with the `--user` option; in the example the current user ID and its primary group ID is used. Ensure that the mounted directories (`tmp`, `planet`, `segments`) are writable by the given user.
+- `--env PLANET=slovenia-latest.osm.pbf`: the downloaded planet file is located in `/tank/brouter/planet/` (see the step further down where that directory is mounted into the container) and its name is `slovenia-latest.osm.pbf` (**important:** the planet file *must* be located in the directory which is mounted at `/planet` in the container; that means for this example that `/tank/brouter/planet/slovenia-latest.osm.pbf` must exist)
+- `--env JAVA_OPTS="-Xmx2048M -Xms2048M -Xmn256M"`: the memory related options for the Java VM should be set according to the specs of the docker container; the example shows values for smaller planet files – when processing larger regions (europe, world, …) the memory requirements are higher (the default value is `-Xmx6144M -Xms6144M -Xmn256M`)
+- `--volume /tank/brouter/tmp:/brouter-tmp`: the process of creating the routing data uses a lot of temporary files which are written in this mounted directory
+- `--volume /tank/brouter/planet:/planet`: the directory where the planet file is located; write access is needed because the planet file will be updated by the processing script before the routing data is created
+- `--volume /tank/brouter/srtm:/srtm:ro`: the directory where the SRTM data is located, either in zipped ASCII format (`*.zip`) or in BEF (`*.bef`) format; it's mounted read-only as there are no changes applied to the SRTM data
+- `--volume /tank/brouter/segments:/segments`: that's the target directory where the `*.rd5` files will be stored
+
+If updating the planet file isn't desired, just provide `--env PLANET_UPDATE=0` as option. In this case the directory which contains the planet file can be mounted read-only.
+
+### Downloading SRTM Data
+
+SRTM data can be downloaded here: <http://srtm.csi.cgiar.org/srtmdata/>
+
+Just select the wanted tiles and put them into the mentioned directory:
+
+- Tile size: 5 deg x 5 deg
+- Format: “Esri ASCII”
+
+It's also possible to download the whole set at <https://drive.google.com/folderview?id=0B_J08t5spvd8RWRmYmtFa2puZEE&usp=drive_web#list>. Unpack the archive and mount the directory `SRTMv4.1/5_5x5_ascii` into the container.
