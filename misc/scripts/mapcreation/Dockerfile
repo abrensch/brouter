@@ -31,5 +31,10 @@ COPY --from=build /osmosis-src/lib/default/osmosis-osm-binary-0.48.3.jar /broute
 COPY --from=build /brouter-build/misc/pbfparser/pbfparser.jar /brouter/pbfparser/pbfparser.jar
 COPY misc/scripts/mapcreation/process_pbf_planet_docker.sh /brouter/process_pbf_planet_docker.sh
 
+VOLUME ["/brouter-tmp"]
+VOLUME ["/planet"]
+VOLUME ["/srtm"]
+VOLUME ["/segments"]
+
 WORKDIR /brouter
 ENTRYPOINT ["/bin/bash", "/brouter/process_pbf_planet_docker.sh"]
