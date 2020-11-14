@@ -347,7 +347,7 @@ final public class Rd5DiffTool implements ProgressListener
 
            byte[] ab1 = createMicroCache( posIdx1, tileIdx, dis1, false );
            MicroCache mc2 = mcIn.readMC();
-           int targetSize = getPosIdx( posIdx2, tileIdx ) - getPosIdx( posIdx2, tileIdx-1 );
+           int targetSize = posIdx2 == null ? 0 : getPosIdx( posIdx2, tileIdx ) - getPosIdx( posIdx2, tileIdx-1 );
 
 /*         int targetSizeCmp = getPosIdx( posIdxCmp, tileIdx ) - getPosIdx( posIdxCmp, tileIdx-1 );
            if ( targetSizeCmp != targetSize ) throw new IllegalArgumentException( "target size mismatch: "+ targetSize + "," + targetSizeCmp );
