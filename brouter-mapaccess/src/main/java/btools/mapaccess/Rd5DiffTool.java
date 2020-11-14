@@ -1,5 +1,5 @@
 /**
- * Proof of concept for delta rd5's
+ * Calculate, add or merge rd5 delta files
  *
  * @author ab
  */
@@ -31,9 +31,9 @@ final public class Rd5DiffTool implements ProgressListener
       return;
     }
 
-    if ( args[1].endsWith( ".rd5diff" ) )
+    if ( args[1].endsWith( ".df5" ) )
     {
-      if ( args[0].endsWith( ".rd5diff" ) )
+      if ( args[0].endsWith( ".df5" ) )
       {
         addDeltas( new File( args[0] ),new File( args[1] ), new File( args[2] ) );
       }
@@ -152,6 +152,7 @@ final public class Rd5DiffTool implements ProgressListener
     DataInputStream dis1 = new DataInputStream( new BufferedInputStream( new FileInputStream( f1 ) ) );
     DataInputStream dis2 = new DataInputStream( new BufferedInputStream( new FileInputStream( f2 ) ) );
     DataOutputStream dos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( outFile ) ) );
+    MCOutputStream mcOut = new MCOutputStream( dos, abBuf1 );
 
     // copy header to outfile
     long[] fileIndex1 = readFileIndex( dis1, null );
@@ -175,10 +176,6 @@ final public class Rd5DiffTool implements ProgressListener
            byte[] ab1 = createMicroCache( posIdx1, tileIdx, dis1, false );
            byte[] ab2 = createMicroCache( posIdx2, tileIdx, dis2, false );
 
-           if ( ab2 == null )
-           {
-             continue; // empty target tile
-           }
            MicroCache mc;
            if ( Arrays.equals( ab1, ab2 ) )
            {
@@ -191,17 +188,10 @@ final public class Rd5DiffTool implements ProgressListener
              mc = new MicroCache2( mc1.getSize() + mc2.getSize(), abBuf2, 0, 0, 32 );
              mc.calcDelta( mc1, mc2 );
            }
-              
-           if ( mc.getSize() == 0 )
-           {
-             dos.writeInt( 0 );
-           }
-           else
-           {
-             int len = mc.encodeMicroCache( abBuf1 );
-             dos.writeInt( len );
-             dos.write( abBuf1, 0, len );
 
+           int len = mcOut.writeMC( mc );
+           if ( len > 0 )
+           {
              bytesDiff += len;
              nodesDiff += mc.getSize();
              diffedTiles++;
@@ -244,7 +234,9 @@ final public class Rd5DiffTool implements ProgressListener
              */
           }
         }
+        mcOut.finish();
       }
+
       // write any remaining data to the output file
       for(;;)
       {
@@ -324,10 +316,12 @@ final public class Rd5DiffTool implements ProgressListener
     try
     {
       DataBuffers dataBuffers = new DataBuffers();
+      MCInputStream mcIn = new MCInputStream( dis2, dataBuffers );
+
       for ( int subFileIdx = 0; subFileIdx < 25; subFileIdx++ )
       {
-         boolean hasData1 = getTileStart( fileIndex1, subFileIdx ) < getTileEnd( fileIndex1, subFileIdx );
-         boolean hasData2 = getTileStart( fileIndex2, subFileIdx ) < getTileEnd( fileIndex2, subFileIdx );
+         boolean hasData1 = getTileStart( fileIndex1, subFileIdx ) < getTileEnd( fileIndex1, subFileIdx ); // has the basefile data
+         boolean hasData2 = getTileStart( fileIndex2, subFileIdx ) < getTileEnd( fileIndex2, subFileIdx ); // has the *result* data
 
 //         boolean hasDataCmp = getTileStart( fileIndexCmp, subFileIdx ) < getTileEnd( fileIndexCmp, subFileIdx );
 
@@ -352,11 +346,8 @@ final public class Rd5DiffTool implements ProgressListener
            }
 
            byte[] ab1 = createMicroCache( posIdx1, tileIdx, dis1, false );
-           byte[] ab2 = createMicroCache( posIdx2, tileIdx, dis2, true );
-           if ( ab2 == null )
-           {
-             continue; // no target tile expected
-           }
+           MicroCache mc2 = mcIn.readMC();
+           int targetSize = getPosIdx( posIdx2, tileIdx ) - getPosIdx( posIdx2, tileIdx-1 );
 
 /*         int targetSizeCmp = getPosIdx( posIdxCmp, tileIdx ) - getPosIdx( posIdxCmp, tileIdx-1 );
            if ( targetSizeCmp != targetSize ) throw new IllegalArgumentException( "target size mismatch: "+ targetSize + "," + targetSizeCmp );
@@ -365,21 +356,35 @@ final public class Rd5DiffTool implements ProgressListener
 */
 
            // no-delta shortcut: just copy base data
-           if ( ab2.length == 0 )
+           if ( mc2.getSize() == 0 )
            {
              if ( ab1 != null )
              {
                dos.write( ab1 );
              }
+             int newTargetSize = ab1 == null ? 0 : ab1.length;
+             if ( targetSize != newTargetSize )
+             {
+               throw new RuntimeException( "size mismatch at " +  subFileIdx + "/" + tileIdx + " " + targetSize + "!=" + newTargetSize );
+             }
              continue;
            }
 
            // this is the real delta case (using decode->delta->encode )
+
            MicroCache mc1 = createMicroCache( ab1, dataBuffers );
-           MicroCache mc2 = createMicroCache( ab2, dataBuffers );
 
            MicroCache mc = new MicroCache2( mc1.getSize() + mc2.getSize(), abBuf2, 0, 0, 32 );
            mc.addDelta( mc1, mc2, false );
+           
+           if ( mc.size() == 0 )
+           {
+             if ( targetSize != 0 )
+             {
+               throw new RuntimeException( "size mismatch at " +  subFileIdx + "/" + tileIdx + " " + targetSize + ">0" );
+             }
+             continue;
+           }
 
            int len = mc.encodeMicroCache( abBuf1 );
 
@@ -403,8 +408,13 @@ final public class Rd5DiffTool implements ProgressListener
 */
            dos.write( abBuf1, 0, len );
            dos.writeInt( Crc32.crc( abBuf1, 0, len ) ^ 2 );
+           if ( targetSize != len+4 )
+           {
+             throw new RuntimeException( "size mismatch at " +  subFileIdx + "/" + tileIdx + " " + targetSize + "<>" + (len+4) );
+           }
 
         }
+        mcIn.finish();
       }
       // write any remaining data to the output file
       for(;;)
@@ -529,7 +539,7 @@ final public class Rd5DiffTool implements ProgressListener
     DataInputStream dis2 = new DataInputStream( new BufferedInputStream( new FileInputStream( f2 ) ) );
     DataOutputStream dos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( outFile ) ) );
 
-    // copy header to outfile
+    // copy subfile-header to outfile
     long[] fileIndex1 = readFileIndex( dis1, null );
     long[] fileIndex2 = readFileIndex( dis2, dos );
 
@@ -538,51 +548,37 @@ final public class Rd5DiffTool implements ProgressListener
     try
     {
       DataBuffers dataBuffers = new DataBuffers();
+      MCInputStream mcIn1 = new MCInputStream( dis1, dataBuffers );
+      MCInputStream mcIn2 = new MCInputStream( dis2, dataBuffers );
+      MCOutputStream mcOut = new MCOutputStream( dos, abBuf1 );
+
       for ( int subFileIdx = 0; subFileIdx < 25; subFileIdx++ )
       {
+         // copy tile-header to outfile
          boolean hasData1 = getTileStart( fileIndex1, subFileIdx ) < getTileEnd( fileIndex1, subFileIdx );
          boolean hasData2 = getTileStart( fileIndex2, subFileIdx ) < getTileEnd( fileIndex2, subFileIdx );
-
          int[] posIdx1 = hasData1 ? readPosIndex( dis1, null ) : null;
          int[] posIdx2 = hasData2 ? readPosIndex( dis2, dos ) : null;
 
          for ( int tileIdx = 0; tileIdx < 1024; tileIdx++ )
          {
-           byte[] ab1 = createMicroCache( posIdx1, tileIdx, dis1, true );
-           byte[] ab2 = createMicroCache( posIdx2, tileIdx, dis2, true );
-           if ( ab2 == null )
+           MicroCache mc1 = mcIn1.readMC();
+           MicroCache mc2 = mcIn2.readMC();
+           MicroCache mc;
+           if ( mc1.getSize() == 0 && mc2.getSize() == 0 )
            {
-             continue; // no target tile expected
+             mc = mc1;
            }
-
-           // no-delta shortcut: just copy base data
-           if ( ab2.length == 0 )
+           else
            {
-             if ( ab1 == null )
-             {
-               dos.writeInt( 0 );
-             }
-             else
-             {
-               dos.writeInt( ab1.length );
-               dos.write( ab1 );
-             }
-             continue;
+             mc = new MicroCache2( mc1.getSize() + mc2.getSize(), abBuf2, 0, 0, 32 );
+             mc.addDelta( mc1, mc2, true );
            }
-
-           // this is the real delta case (using decode->add->encode )
-           MicroCache mc1 = createMicroCache( ab1, dataBuffers );
-           MicroCache mc2 = createMicroCache( ab2, dataBuffers );
-
-           MicroCache mc = new MicroCache2( mc1.getSize() + mc2.getSize(), abBuf2, 0, 0, 32 );
-           mc.addDelta( mc1, mc2, true );
-
-           int len = mc.encodeMicroCache( abBuf1 );
-
-           dos.writeInt( len+4 );
-           dos.write( abBuf1, 0, len );
-           dos.writeInt( Crc32.crc( abBuf1, 0, len ) ^ 2 );
+           mcOut.writeMC( mc );
         }
+        mcIn1.finish();
+        mcIn2.finish();
+        mcOut.finish();
       }
       // write any remaining data to the output file
       for(;;)
@@ -706,5 +702,83 @@ final public class Rd5DiffTool implements ProgressListener
     }
   }
 
+  private static class MCOutputStream
+  {
+    private DataOutputStream dos;
+    private byte[] buffer;
+    private short skips = 0;
+
+    public MCOutputStream(DataOutputStream dos, byte[] buffer)
+    {
+      this.dos = dos;
+      this.buffer = buffer;
+    }
+
+    public int writeMC(MicroCache mc) throws Exception
+    {
+      if ( mc.getSize() == 0 )
+      {
+        skips++;
+        return 0;
+      }
+      dos.writeShort( skips );
+      skips = 0;
+      int len = mc.encodeMicroCache( buffer );
+      if ( len == 0 )
+      {
+        throw new IllegalArgumentException( "encoded buffer of non-empty micro-cache cannot be empty" );
+      }
+      dos.writeInt( len );
+      dos.write( buffer, 0, len );
+      return len;
+    }
+
+    public void finish() throws Exception
+    {
+      if ( skips > 0 )
+      {
+        dos.writeShort( skips );
+        skips = 0;
+      }
+    }
+  }
+
+  private static class MCInputStream
+  {
+    private short skips = -1;
+    private DataInputStream dis;
+    private DataBuffers dataBuffers;
+    private MicroCache empty = MicroCache.emptyCache();
+
+    public MCInputStream( DataInputStream dis, DataBuffers dataBuffers )
+    {
+      this.dis = dis;
+      this.dataBuffers = dataBuffers;
+    }
+
+    public MicroCache readMC() throws Exception
+    {
+      if (skips < 0 )
+      {
+        skips = dis.readShort();
+      }
+      MicroCache mc = empty;
+      if ( skips == 0 )
+      {
+        int size = dis.readInt();
+        byte[] ab = new byte[size];
+        dis.readFully( ab );
+        StatCoderContext bc = new StatCoderContext( ab );
+        mc = new MicroCache2( bc, dataBuffers, 0, 0, 32, null, null );
+      }
+      skips--;
+      return mc;
+    }
+
+    public void finish() throws Exception
+    {
+      skips = -1;
+    }
+  }
 
 }
