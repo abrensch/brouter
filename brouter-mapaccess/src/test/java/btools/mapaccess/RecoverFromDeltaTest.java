@@ -36,11 +36,14 @@ public class RecoverFromDeltaTest {
         File workingDir = file.getParentFile();
 
         // resources for test update from generation 0 to generation 2 using diff strategy
-
-        originalTilesDir = new File(workingDir, "/../../../misc/generator/3-8");
-        diffsDir = new File(workingDir, "/../../../misc/generator/26-10/diff");
-        freshGeneratedTilesDir = new File(workingDir, "/../../../misc/generator/26-10");
-        updatedTilesDir = new File(workingDir, "/../../../misc/generator/tmp-gen");
+        originalTilesDir = new File("/home/radim/Asamm-workspaces/brouterClone/brouter/misc/generator/7-9");
+        // originalTilesDir = new File(workingDir, "/../../../misc/generator/3-8");
+        diffsDir = new File("/home/radim/Asamm-workspaces/brouterClone/brouter/misc/generator/26-10/diff");
+        // diffsDir = new File(workingDir, "/../../../misc/generator/26-10/diff");
+        freshGeneratedTilesDir = new File("/home/radim/Asamm-workspaces/brouterClone/brouter/misc/generator/26-10");
+        // freshGeneratedTilesDir = new File(workingDir, "/../../../misc/generator/26-10");
+        updatedTilesDir = new File("/home/radim/Asamm-workspaces/brouterClone/brouter/misc/generator/tmp-gen");
+        // updatedTilesDir = new File(workingDir, "/../../../misc/generator/tmp-gen");
     }
 
     @Test
@@ -59,7 +62,7 @@ public class RecoverFromDeltaTest {
 
             String originalTileMd5 = Rd5DiffManager.getMD5(originalTile);
             String freshGeneratedTileMd5 = Rd5DiffManager.getMD5(new File(freshGeneratedTilesDir, originalTile.getName()));
-            String diffName = originalTileMd5 + ".rd5diff";
+            String diffName = originalTileMd5 + ".df5";
             // param
             File diff = new File(diffsDir.getAbsolutePath() + "/" + getBaseNameTile(originalTile.getName()) + "/" + diffName);
             if (diff.exists()) {
@@ -128,7 +131,7 @@ public class RecoverFromDeltaTest {
 
                 String name = originalTile.getName();
                 File freshGeneratedTile = new File(freshGeneratedTilesDir, name);
-                File tmpDiffFile = new File(updatedTilesDir, "tmp.rd5diff");
+                File tmpDiffFile = new File(updatedTilesDir, "tmp.df5");
                 Rd5DiffTool.diff2files(originalTile, freshGeneratedTile, tmpDiffFile);
                 File tmpMergedTile = new File(updatedTilesDir, "tmp.rd5");
                 Rd5DiffTool.recoverFromDelta(originalTile, tmpDiffFile, tmpMergedTile, listener);
