@@ -36,7 +36,7 @@ public class RecoverFromDeltaTest {
         File workingDir = file.getParentFile();
 
         // resources for test update from generation 0 to generation 2 using diff strategy
-        originalTilesDir = new File("/home/radim/Asamm-workspaces/brouterClone/brouter/misc/generator/7-9");
+        originalTilesDir = new File("/home/radim/Asamm-workspaces/brouterClone/brouter/misc/generator/3-8");
         // originalTilesDir = new File(workingDir, "/../../../misc/generator/3-8");
         diffsDir = new File("/home/radim/Asamm-workspaces/brouterClone/brouter/misc/generator/26-10/diff");
         // diffsDir = new File(workingDir, "/../../../misc/generator/26-10/diff");
@@ -59,30 +59,31 @@ public class RecoverFromDeltaTest {
         assert originalTiles != null;
         // param
         for (File originalTile : originalTiles) {
-
-            String originalTileMd5 = Rd5DiffManager.getMD5(originalTile);
-            String freshGeneratedTileMd5 = Rd5DiffManager.getMD5(new File(freshGeneratedTilesDir, originalTile.getName()));
-            String diffName = originalTileMd5 + ".df5";
-            // param
-            File diff = new File(diffsDir.getAbsolutePath() + "/" + getBaseNameTile(originalTile.getName()) + "/" + diffName);
-            if (diff.exists()) {
-                System.out.println("Applying " + diff.getName() + " to " + originalTile.getName());
+            if(originalTile.isFile()) {
+                String originalTileMd5 = Rd5DiffManager.getMD5(originalTile);
+                String freshGeneratedTileMd5 = Rd5DiffManager.getMD5(new File(freshGeneratedTilesDir, originalTile.getName()));
+                String diffName = originalTileMd5 + ".df5";
                 // param
-                File patchedTile = new File(updatedTilesDir, originalTile.getName());
+                File diff = new File(diffsDir.getAbsolutePath() + "/" + getBaseNameTile(originalTile.getName()) + "/" + diffName);
+                if (diff.exists()) {
+                    System.out.println("Applying " + diff.getName() + " to " + originalTile.getName());
+                    // param
+                    File patchedTile = new File(updatedTilesDir, originalTile.getName());
 
-                Rd5DiffTool.recoverFromDelta(originalTile, diff, patchedTile, listener);
-                System.out.println("Patching done");
-                String patchedTileMd5 = Rd5DiffManager.getMD5(patchedTile);
-                if (patchedTileMd5.equals(freshGeneratedTileMd5)) {
-                    System.out.println("ok");
+                    Rd5DiffTool.recoverFromDelta(originalTile, diff, patchedTile, listener);
+                    System.out.println("Patching done");
+                    String patchedTileMd5 = Rd5DiffManager.getMD5(patchedTile);
+                    if (patchedTileMd5.equals(freshGeneratedTileMd5)) {
+                        System.out.println("ok");
+                    } else {
+                        System.err.println("Expected: " + freshGeneratedTileMd5 + ", got: " + patchedTileMd5);
+                        System.err.println("Lengths: Expected from fresh: " + new File(freshGeneratedTilesDir, originalTile.getName()).length()
+                                + ", got: " + patchedTile.length());
+                        errors.add(patchedTile.getName());
+                    }
                 } else {
-                    System.err.println("Expected: " + freshGeneratedTileMd5 + ", got: " + patchedTileMd5);
-                    System.err.println("Lengths: Expected from fresh: " + new File(freshGeneratedTilesDir, originalTile.getName()).length()
-                            + ", got: " + patchedTile.length());
-                    errors.add(patchedTile.getName());
+                    System.out.println("For " + originalTile.getName() + " there is no diff");
                 }
-            } else {
-                System.out.println("For " + originalTile.getName() + " there is no diff");
             }
         }
         System.out.println("Errors:");
