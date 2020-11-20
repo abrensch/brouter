@@ -2,6 +2,7 @@ package btools.mapaccess;
 
 import btools.util.ProgressListener;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -46,6 +47,7 @@ public class RecoverFromDeltaTest {
         // updatedTilesDir = new File(workingDir, "/../../../misc/generator/tmp-gen");
     }
 
+    @Ignore
     @Test
     public void recoverFromDeltaTest() throws Exception {
 
@@ -98,6 +100,7 @@ public class RecoverFromDeltaTest {
         return tile.substring(0, tile.lastIndexOf("."));
     }
 
+    @Ignore
     @Test
     public void listSizesDifference() {
 
@@ -115,6 +118,7 @@ public class RecoverFromDeltaTest {
         }
     }
 
+    @Ignore
     @Test
     public void generateDiffs2FilesTest() throws Exception {
 
