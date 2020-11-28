@@ -81,8 +81,8 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.1</version>
           <configuration>
-            <source>${targetJdk}</source>
-            <target>${targetJdk}</target>
+            <source>7</source>
+            <target>7</target>
             <compilerArgument>-Xlint:unchecked</compilerArgument>
           </configuration>
         </plugin>
