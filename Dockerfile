@@ -1,4 +1,4 @@
-FROM maven:3-jdk7-alpine as build
+FROM maven:3-jdk-7-alpine as build
 WORKDIR /build
 COPY . .
 RUN mvn clean install -pl '!brouter-routing-app' '-Dmaven.javadoc.skip=true' -DskipTests
