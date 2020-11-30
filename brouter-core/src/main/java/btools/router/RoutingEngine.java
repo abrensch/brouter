@@ -64,47 +64,60 @@ public class RoutingEngine extends Thread
 
   private boolean directWeaving = !Boolean.getBoolean( "disableDirectWeaving" );
 
-  public RoutingEngine( String outfileBase, String logfileBase, String segmentDir,
-          List<OsmNodeNamed> waypoints, RoutingContext rc )
-  {
+  public static final double DEFAULT_MAX_DIST_WPT_NODE = 400.0;
+  public static final double MAXIMUM_MAX_DIST_WPT_NODE = 1000.0;
+  private double wptNodeMax = DEFAULT_MAX_DIST_WPT_NODE;
+
+  public RoutingEngine(String outfileBase, String logfileBase, String segmentDir,
+                       List<OsmNodeNamed> waypoints, RoutingContext rc) {
+
+    initMandatoryParams(outfileBase, logfileBase, segmentDir, waypoints, rc);
+    initRoutingService(rc);
+  }
+
+  public RoutingEngine(String outfileBase, String logfileBase, String segmentDir,
+                       List<OsmNodeNamed> waypoints, RoutingContext rc, double wptNodeMax) {
+
+    initMandatoryParams(outfileBase, logfileBase, segmentDir, waypoints, rc);
+    this.wptNodeMax = wptNodeMax;
+    initRoutingService(rc);
+  }
+
+  private void initMandatoryParams(String outfileBase, String logfileBase, String segmentDir,
+                                   List<OsmNodeNamed> waypoints, RoutingContext rc) {
     this.segmentDir = segmentDir;
     this.outfileBase = outfileBase;
     this.logfileBase = logfileBase;
     this.waypoints = waypoints;
     this.infoLogEnabled = outfileBase != null;
     this.routingContext = rc;
+  }
 
-    File baseFolder = new File( routingContext.localFunction ).getParentFile();
+  private void initRoutingService(RoutingContext rc) {
+    File baseFolder = new File(routingContext.localFunction).getParentFile();
     baseFolder = baseFolder == null ? null : baseFolder.getParentFile();
-    if ( baseFolder != null )
-    {
-      try
-      {
-        File debugLog = new File( baseFolder, "debug.txt" );
-        if ( debugLog.exists() )
-        {
-          infoLogWriter = new FileWriter( debugLog, true );
-          logInfo( "********** start request at " );
-          logInfo( "********** " + new Date() );
+    if (baseFolder != null) {
+      try {
+        File debugLog = new File(baseFolder, "debug.txt");
+        if (debugLog.exists()) {
+          infoLogWriter = new FileWriter(debugLog, true);
+          logInfo("********** start request at ");
+          logInfo("********** " + new Date());
         }
-      }
-      catch( IOException ioe )
-      {
-        throw new RuntimeException( "cannot open debug-log:" + ioe );
+      } catch (IOException ioe) {
+        throw new RuntimeException("cannot open debug-log:" + ioe);
       }
 
-      File stackLog = new File( baseFolder, "stacks.txt" );
-      if ( stackLog.exists() )
-      {
-        stackSampler = new StackSampler( stackLog, 1000 );
+      File stackLog = new File(baseFolder, "stacks.txt");
+      if (stackLog.exists()) {
+        stackSampler = new StackSampler(stackLog, 1000);
         stackSampler.start();
-        logInfo( "********** started stacksampling" );
+        logInfo("********** started stacksampling");
       }
     }
-    boolean cachedProfile = ProfileCache.parseProfile( rc );
-    if ( hasInfo() )
-    {
-      logInfo( "parsed profile " + rc.localFunction + " cached=" + cachedProfile );
+    boolean cachedProfile = ProfileCache.parseProfile(rc);
+    if (hasInfo()) {
+      logInfo("parsed profile " + rc.localFunction + " cached=" + cachedProfile);
     }
   }
 
@@ -455,7 +468,7 @@ public class RoutingEngine extends Thread
   private void matchWaypointsToNodes( List<MatchedWaypoint> unmatchedWaypoints )
   {
     resetCache( false );
-    nodesCache.matchWaypointsToNodes( unmatchedWaypoints, 250., islandNodePairs );
+    nodesCache.matchWaypointsToNodes( unmatchedWaypoints, wptNodeMax, islandNodePairs );
   }
 
   private OsmTrack searchTrack( MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack )

@@ -224,7 +224,21 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
                 rc.keyValues.put( e.getKey().substring( 8 ), e.getValue() );
               }
             }
-            cr = new RoutingEngine( null, null, serviceContext.segmentDir, wplist, rc );
+
+            double wptNodeMax = RoutingEngine.DEFAULT_MAX_DIST_WPT_NODE;
+
+            if (params.containsKey("wptNodeMax")) {
+              try {
+                wptNodeMax = Double.parseDouble(params.get("wptNodeMax"));
+              } catch (Exception e) {
+                System.out.println(e.getMessage());
+              }
+            }
+
+            if( wptNodeMax > RoutingEngine.MAXIMUM_MAX_DIST_WPT_NODE ) wptNodeMax = RoutingEngine.MAXIMUM_MAX_DIST_WPT_NODE;
+
+            cr = new RoutingEngine(null, null, serviceContext.segmentDir, wplist, rc, wptNodeMax);
+
             cr.quite = true;
             cr.doRun( maxRunningTime );
 
