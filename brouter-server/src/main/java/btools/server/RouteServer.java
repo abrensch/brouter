@@ -191,6 +191,13 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
               SuspectManager.process( url, bw );
               return;
             }
+            else if ( url.startsWith( "/brouter/health" ) )
+            {
+              writeHttpHeader(bw, "text/plain", HTTP_STATUS_OK);
+              bw.write("Brouter server alive");
+              bw.flush();
+              return;
+            }
             else
             {
               writeHttpHeader( bw, HTTP_STATUS_NOT_FOUND );
