@@ -200,7 +200,12 @@ public class PosUnifier extends MapCreatorBase
     return hemilat + latS.substring(latS.length() - 2) + hemiLon + lonS.substring(lonS.length() -3);
   }
 
-  private SrtmRaster srtmForNode( int ilon, int ilat ) throws Exception
+  // integration tests
+  public void setSrtmdir(String dir){
+    this.srtmdir = dir;
+  }
+
+  public SrtmRaster srtmForNode( int ilon, int ilat ) throws Exception
   {
 
     int srtmLonIdx = lonIndexHgt(ilon);
@@ -259,7 +264,7 @@ public class PosUnifier extends MapCreatorBase
     return lastSrtmRaster;
   }
 
-  private void resetSrtm()
+  public void resetSrtm()
   {
     srtmmap = new HashMap<String, SrtmRaster>();
     lastSrtmLonIdx = -9999;
