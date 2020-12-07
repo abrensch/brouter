@@ -67,11 +67,13 @@ public class PosUnifierTest {
   //
 
   private final Coord[] coords = {
-      new Coord(48.0,12.0)
+      new Coord(48.0,12.0),
+      new Coord(48.02,12.0)
   };
 
   @Test
   public void generateIntegrationTestData() throws Exception {
+    double[] elevs = new double[coords.length];
     PosUnifier unifier = new PosUnifier();
     unifier.resetSrtm();
     unifier.setSrtmdir(System.getenv("SRTM_FILES_ROOT_ESRI_ASAMM"));
@@ -81,7 +83,26 @@ public class PosUnifierTest {
       SrtmRaster raster = unifier.srtmForNode(ilon, ilat);
       raster.usingWeights = false;
       double elevation = raster.getElevation(ilon, ilat);
-      System.out.println(coords[i].toString() + elevation / 4); //???
+      elevs[i] = elevation;
+      // System.out.println(coords[i].toString() + elevation / 4); //???
+    }
+    // output
+    for (int i = 0; i < coords.length; i++){
+      System.out.println(coords[i].toString() + (elevs[i] / 4));
+    }
+  }
+
+  @Test
+  public void printFirstRow() throws Exception {
+    PosUnifier unifier = new PosUnifier();
+    unifier.resetSrtm();
+    unifier.setSrtmdir(System.getenv("SRTM_FILES_ROOT_ESRI_ASAMM"));
+    int ilat = (int)( ( 48.0 + 90. )*1000000. + 0.5);
+    int ilon = (int)( ( 12.0 + 180. )*1000000. + 0.5);
+    SrtmRaster raster = unifier.srtmForNode(ilon, ilat);
+    raster.usingWeights = false;
+    for (int i = 0; i < 1203; i ++){
+      System.out.print(raster.eval_array[i] + " ");
     }
   }
 

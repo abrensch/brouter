@@ -95,11 +95,25 @@ public class SrtmData
         int col = 0;
         int n = 0;
         boolean negative = false;
+        /*
+        ncols        1201
+        nrows        1201
+        xllcorner    11.999583333333
+        yllcorner    47.999583333333
+        cellsize     0.000833333333
+        NODATA_value -32768
+         414 411 414 420 425 432 430 431 // NOTE THE LEADING WHITESPACE - a file exported from gdal
+        */
+        boolean ignoreLeadingWhitespace = true;
         for ( ;; )
         {
           int c = br.read();
           if ( c < 0 )
             break;
+          if(c == ' ' && ignoreLeadingWhitespace){
+            ignoreLeadingWhitespace = false;
+            continue;
+          }
           if ( c == ' ' )
           {
             if ( negative )
