@@ -110,10 +110,8 @@ public class SrtmData
           int c = br.read();
           if ( c < 0 )
             break;
-          if(c == ' ' && ignoreLeadingWhitespace){
-            ignoreLeadingWhitespace = false;
-            continue;
-          }
+          if(c == ' ' && ignoreLeadingWhitespace) continue;
+          ignoreLeadingWhitespace = false;
           if ( c == ' ' )
           {
             if ( negative )
