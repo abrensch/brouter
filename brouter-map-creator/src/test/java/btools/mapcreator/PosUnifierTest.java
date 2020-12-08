@@ -78,10 +78,10 @@ public class PosUnifierTest {
     coords.add(new Coord(49.0, 12.0));
     coords.add(new Coord(49.0, 13.0));
 
+    coords.add(new Coord(51.0, 0.0));
+    coords.add(new Coord(51.0, 1.0));
     coords.add(new Coord(52.0, 0.0));
     coords.add(new Coord(52.0, 1.0));
-    coords.add(new Coord(53.0, 0.0));
-    coords.add(new Coord(53.0, 1.0));
 
     coords.add(new Coord(52.5, 0.0));
     coords.add(new Coord(52.5, 0.0001));
@@ -91,12 +91,12 @@ public class PosUnifierTest {
     coords.add(new Coord(-72.5, 0.0001));
     coords.add(new Coord(-72.5, -0.0001));
 
+    coords.add(new Coord(51.0, 0.0));
+    coords.add(new Coord(51.0, -1.0));
     coords.add(new Coord(52.0, 0.0));
     coords.add(new Coord(52.0, -1.0));
-    coords.add(new Coord(53.0, 0.0));
-    coords.add(new Coord(53.0, -1.0));
 
-    coords.add(new Coord(53.2, -1.2));
+    coords.add(new Coord(52.2, -1.2));
 
     coords.add(new Coord(0.0, 23.0));
     coords.add(new Coord(0.0001, 23.0));
@@ -109,12 +109,12 @@ public class PosUnifierTest {
 
     coords.add(new Coord(-14.2, 24.2));
 
-    coords.add(new Coord(-57.0, -13.0));
-    coords.add(new Coord(-57.0, -14.0));
-    coords.add(new Coord(-58.0, -13.0));
-    coords.add(new Coord(-58.0, -14.0));
+    coords.add(new Coord(-33.0, -67.0));
+    coords.add(new Coord(-33.0, -68.0));
+    coords.add(new Coord(-34.0, -67.0));
+    coords.add(new Coord(-34.0, -68.0));
 
-    coords.add(new Coord(-58.2, -14.2));
+    coords.add(new Coord(-34.2, -68.2));
 
     coords.add(new Coord(36.0, -101.0));
     coords.add(new Coord(36.0, -102.0));
@@ -127,7 +127,7 @@ public class PosUnifierTest {
     coords.add(new Coord(66.0, 179.0));
     coords.add(new Coord(66.0, 179.999));
     coords.add(new Coord(66.0, -179.999));
-    coords.add(new Coord(66.0, -180.999));
+    coords.add(new Coord(66.0, -179.999));
 
     coords.add(new Coord(-29.0, 141.0));
     coords.add(new Coord(-29.0, 142.0));
@@ -140,7 +140,7 @@ public class PosUnifierTest {
     Random rnd = new Random();
     int count = 0;
     while (count < n) {
-      coords.add(new Coord(48.0 + rnd.nextDouble(), 12.0 + rnd.nextDouble()));
+      coords.add(new Coord(43.0 + rnd.nextDouble() * 10.0, 19.0 + rnd.nextDouble() * 10.0));
       count++;
     }
   }
@@ -148,7 +148,7 @@ public class PosUnifierTest {
   @Test
   public void generateIntegrationTestData() throws Exception {
     addSelected();
-    addRandom(5);
+    addRandom(100);
     double[] elevs = new double[coords.size()];
     PosUnifier unifier = new PosUnifier();
     unifier.resetSrtm();
