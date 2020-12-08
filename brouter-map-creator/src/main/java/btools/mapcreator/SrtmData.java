@@ -104,14 +104,14 @@ public class SrtmData
         NODATA_value -32768
          414 411 414 420 425 432 430 431 // NOTE THE LEADING WHITESPACE - a file exported from gdal
         */
-        boolean ignoreLeadingWhitespace = true;
+        boolean whitespace = true;
         for ( ;; )
         {
           int c = br.read();
           if ( c < 0 )
             break;
-          if(c == ' ' && ignoreLeadingWhitespace) continue;
-          ignoreLeadingWhitespace = false;
+          if(c == ' ' && whitespace) continue;
+          whitespace = false;
           if ( c == ' ' )
           {
             if ( negative )
