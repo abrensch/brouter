@@ -72,10 +72,58 @@ public class PosUnifierTest {
   private final List<Coord> coords = new ArrayList<Coord>();
 
   private void addSelected() {
+
     coords.add(new Coord(48.0, 12.0));
     coords.add(new Coord(48.0, 13.0));
     coords.add(new Coord(49.0, 12.0));
     coords.add(new Coord(49.0, 13.0));
+
+    coords.add(new Coord(52.0, 0.0));
+    coords.add(new Coord(52.0, 1.0));
+    coords.add(new Coord(53.0, 0.0));
+    coords.add(new Coord(53.0, 1.0));
+
+    coords.add(new Coord(52.5, 0.0));
+    coords.add(new Coord(52.5, 0.0001));
+    coords.add(new Coord(52.5, -0.0001));
+
+    coords.add(new Coord(52.0, 0.0));
+    coords.add(new Coord(52.0, -1.0));
+    coords.add(new Coord(53.0, 0.0));
+    coords.add(new Coord(53.0, -1.0));
+
+    coords.add(new Coord(52.0, 0.0));
+    coords.add(new Coord(52.0, -1.0));
+    coords.add(new Coord(53.0, 0.0));
+    coords.add(new Coord(53.0, -1.0));
+
+    coords.add(new Coord(53.2, -1.2));
+
+    coords.add(new Coord(0.0, 23.0));
+    coords.add(new Coord(0.0001, 23.0));
+    coords.add(new Coord(-0.0001, 23.0));
+
+    coords.add(new Coord(-13.0, 23.0));
+    coords.add(new Coord(-13.0, 24.0));
+    coords.add(new Coord(-14.0, 23.0));
+    coords.add(new Coord(-14.0, 24.0));
+
+    coords.add(new Coord(-14.2, 24.2));
+
+    coords.add(new Coord(-57.0, -13.0));
+    coords.add(new Coord(-57.0, -14.0));
+    coords.add(new Coord(-58.0, -13.0));
+    coords.add(new Coord(-58.0, -14.0));
+
+    coords.add(new Coord(-58.2, -14.2));
+
+    coords.add(new Coord(36.0, -101.0));
+    coords.add(new Coord(36.0, -102.0));
+    coords.add(new Coord(37.0, -101.0));
+    coords.add(new Coord(37.0, -102.0));
+
+    coords.add(new Coord(37.2, -102.2));
+
   }
 
   private void addRandom(int n) {
@@ -90,7 +138,7 @@ public class PosUnifierTest {
   @Test
   public void generateIntegrationTestData() throws Exception {
     addSelected();
-    addRandom(20);
+    addRandom(5);
     double[] elevs = new double[coords.size()];
     PosUnifier unifier = new PosUnifier();
     unifier.resetSrtm();
