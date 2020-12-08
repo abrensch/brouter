@@ -87,10 +87,9 @@ public class PosUnifierTest {
     coords.add(new Coord(52.5, 0.0001));
     coords.add(new Coord(52.5, -0.0001));
 
-    coords.add(new Coord(52.0, 0.0));
-    coords.add(new Coord(52.0, -1.0));
-    coords.add(new Coord(53.0, 0.0));
-    coords.add(new Coord(53.0, -1.0));
+    coords.add(new Coord(-72.5, 0.0));
+    coords.add(new Coord(-72.5, 0.0001));
+    coords.add(new Coord(-72.5, -0.0001));
 
     coords.add(new Coord(52.0, 0.0));
     coords.add(new Coord(52.0, -1.0));
@@ -123,6 +122,17 @@ public class PosUnifierTest {
     coords.add(new Coord(37.0, -102.0));
 
     coords.add(new Coord(37.2, -102.2));
+
+    coords.add(new Coord(66.0, 180.0));
+    coords.add(new Coord(66.0, 179.0));
+    coords.add(new Coord(66.0, 179.999));
+    coords.add(new Coord(66.0, -179.999));
+    coords.add(new Coord(66.0, -180.999));
+
+    coords.add(new Coord(-29.0, 141.0));
+    coords.add(new Coord(-29.0, 142.0));
+    coords.add(new Coord(-30.0, 141.0));
+    coords.add(new Coord(-30.0, 142.0));
 
   }
 
