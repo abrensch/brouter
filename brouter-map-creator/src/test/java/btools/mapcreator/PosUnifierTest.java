@@ -43,7 +43,7 @@ public class PosUnifierTest {
     int[] expected = {-180, -180, -2, -1, -1, 0, 0, 1, 179, 179};
     PosUnifier unifier = new PosUnifier();
     for (int i = 0; i < expected.length; i++) {
-      assert (unifier.indexHgt(coords[i]) == expected[i]);
+      assert (unifier.indexHgt(coords[i], 180.0) == expected[i]);
     }
   }
 

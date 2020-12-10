@@ -173,15 +173,16 @@ public class PosUnifier extends MapCreatorBase
   }
 
   public int lonIndexHgt(int ilon){
-    return indexHgt(doublelon(ilon));
+    return indexHgt(doublelon(ilon), 180.0);
   }
 
   public int latIndexHgt(int ilat){
-    return indexHgt(doublelat(ilat));
+    return indexHgt(doublelat(ilat), 90.0);
   }
 
-  public int indexHgt(double coord){
-    if (coord >= 180.0) coord = 179.99999; // north pole 90.0 ignored...
+  public int indexHgt(double coord, double bound){
+    if (coord >= bound) coord = bound - .000001;
+    if (coord < -bound) coord = -bound + .000001;
     // adjust for south and west hemispheres
     if(coord < 0.0 && coord% 1.0 != 0.0) coord -= 1.0;
     return (int) coord;
