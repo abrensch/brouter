@@ -4,6 +4,7 @@ REPOSITORY="can/brouter"
 VERSION="1.0b"
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
+BRANCH="${BRANCH/\//-}"
 
 if [ "$BRANCH" = "master" ]; then
     TAGS=("$VERSION" "latest")
