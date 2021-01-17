@@ -22,6 +22,7 @@ ENV PROFILESPATH="./profiles2"
 ENV CUSTOMPROFILESPATH="./customprofiles"
 
 COPY ./misc/scripts/standalone/server.sh .
+COPY ./get_segments.sh .
 
 COPY --from=build /build/brouter-server/target/brouter*with-dependencies.jar brouter-server.jar
 
