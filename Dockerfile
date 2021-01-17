@@ -15,7 +15,7 @@ RUN mvn clean install -pl '!brouter-routing-app' '-Dmaven.javadoc.skip=true' -Ds
 FROM openjdk:7-jre-alpine
 WORKDIR /app
 RUN mkdir segments4 customprofiles
-COPY ./misc/profiles2 .
+COPY ./misc/profiles2 profiles2
 ENV CLASSPATH="./brouter-server.jar"
 ENV SEGMENTSPATH="./segments4"
 ENV PROFILESPATH="./profiles2"
