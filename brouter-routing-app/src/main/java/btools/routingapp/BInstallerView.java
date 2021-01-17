@@ -687,7 +687,7 @@ float tx, ty;
                     
                       // first check for a delta file
                       String md5 = Rd5DiffManager.getMD5( targetFile );
-                      String surlDelta = surlBase + "diff/" + name.replace( ".rd5", "/" + md5 + ".rd5diff" );
+                      String surlDelta = surlBase + "diff/" + name.replace( ".rd5", "/" + md5 + ".df5" );
                       
                       URL urlDelta = new URL(surlDelta);
 
