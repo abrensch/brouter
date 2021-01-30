@@ -12,8 +12,18 @@ IF EXIST "..\..\segments4" (
     goto download
 )
 
+echo Segments path not found, aborting...
+pause
+exit /b 1
+
 :download
 
 (for %%s in (%SEGMENTS%) do (
    curl.exe --output %SEGMENTSPATH%/%%s --url brouter.de/brouter/segments4/%%s
 ))
+
+echo.
+echo.
+echo Done!
+pause
+exit /b 0
