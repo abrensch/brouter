@@ -36,6 +36,7 @@ highway;0000002133 corridor
 highway;0000002093 crossing
 highway;0000001440 bus_stop
 highway;0000001274 yes
+highway;0000000679 razed
 highway;0000000679 unsurfaced
 highway;0000000108 byway
 highway;0000000037 driveway
