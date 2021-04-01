@@ -23,7 +23,7 @@
     </activation>
  </profile>
 </profiles>
-    
+
     <dependencies>
         <dependency>
             <groupId>com.google.android</groupId>
@@ -40,62 +40,58 @@
 
   <build>
     <plugins>
-    
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-jarsigner-plugin</artifactId>
-            <executions>
-                <execution>
-                    <id>signing</id>
-                    <goals>
-                        <goal>sign</goal>
-                        <goal>verify</goal>
-                    </goals>
-                    <phase>package</phase>
-                    <inherited>true</inherited>
-                    <configuration>
-                        <removeExistingSignatures>true</removeExistingSignatures>
-                        <archiveDirectory/>
-                        <includes>
-                            <include>${project.build.directory}/${project.artifactId}.apk</include>
-                        </includes>
-                        <keystore>\sign\mystore</keystore>
-                        <alias>myalias</alias>
-                        <storepass>mypasswd</storepass>
-                        <keypass>mypasswd</keypass>
-                        <verbose>true</verbose>
-                    </configuration>
-                </execution>
-            </executions>
-        </plugin>    
-    
       <plugin>
-        <groupId>com.jayway.maven.plugins.android.generation2</groupId>
-        <artifactId>android-maven-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jarsigner-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>signing</id>
+            <goals>
+              <goal>sign</goal>
+              <goal>verify</goal>
+            </goals>
+            <phase>package</phase>
+            <inherited>true</inherited>
+            <configuration>
+              <removeExistingSignatures>true</removeExistingSignatures>
+              <archiveDirectory/>
+              <includes>
+                <include>${project.build.directory}/${project.artifactId}.apk</include>
+              </includes>
+              <keystore>\sign\mystore</keystore>
+              <alias>myalias</alias>
+              <storepass>mypasswd</storepass>
+              <keypass>mypasswd</keypass>
+              <verbose>true</verbose>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
 
-    <inherited>true</inherited>
-    <configuration>
-                <release>true</release>
-        <sign>
+      <plugin>
+        <groupId>com.simpligility.maven.plugins</groupId>
+        <artifactId>android-maven-plugin</artifactId>
+        <inherited>true</inherited>
+        <configuration>
+          <release>true</release>
+          <sign>
             <debug>false</debug>
-        </sign>
-        <zipalign>
+          </sign>
+          <zipalign>
             <verbose>true</verbose>
             <inputApk>${project.build.directory}/${project.artifactId}.apk</inputApk>
-            <outputApk>${project.build.directory}/${project.artifactId}-signed-aligned.apk
-            </outputApk>
-        </zipalign>
-    </configuration>
-    <executions>
-        <execution>
+            <outputApk>${project.build.directory}/${project.artifactId}-signed-aligned.apk</outputApk>
+          </zipalign>
+        </configuration>
+        <executions>
+          <execution>
             <id>alignApk</id>
             <phase>package</phase>
             <goals>
-                <goal>zipalign</goal>
+              <goal>zipalign</goal>
             </goals>
-        </execution>
-    </executions>
-
+          </execution>
+        </executions>
       </plugin>
 
     </plugins>
