@@ -27,7 +27,7 @@ public class BRouterWorker
   public String getTrackFromParams(Bundle params)
   {
 	String pathToFileResult = params.getString("pathToFileResult");
-	
+
 	if (pathToFileResult != null)
 	{
 	  File f = new File (pathToFileResult);
@@ -43,7 +43,7 @@ public class BRouterWorker
     {
       maxRunningTime = Integer.parseInt( sMaxRunningTime ) * 1000;
     }
-	
+
     RoutingContext rc = new RoutingContext();
     rc.rawTrackPath = rawTrackPath;
     rc.localFunction = profilePath;
@@ -81,7 +81,7 @@ public class BRouterWorker
     RoutingEngine cr = new RoutingEngine( null, null, segmentDir, waypoints, rc );
     cr.quite = true;
     cr.doRun( maxRunningTime );
-	
+
     // store new reference track if any
     // (can exist for timed-out search)
     if ( cr.getFoundRawTrack() != null )
@@ -92,12 +92,12 @@ public class BRouterWorker
       }
       catch( Exception e ) {}
     }
-    
+
     if ( cr.getErrorMessage() != null )
     {
       return cr.getErrorMessage();
     }
-    
+
 	String format = params.getString("trackFormat");
 	boolean writeKml = format != null && "kml".equals( format );
 
@@ -107,12 +107,12 @@ public class BRouterWorker
 	  if ( pathToFileResult == null )
 	  {
         if ( writeKml ) return track.formatAsKml();
-        return track.formatAsGpx();
+        return track.formatAsGpx( rc );
       }
 	  try
 	  {
         if ( writeKml ) track.writeKml(pathToFileResult);
-        else track.writeGpx(pathToFileResult);
+        else track.writeGpx(pathToFileResult, rc);
 	  }
 	  catch( Exception e )
 	  {
@@ -125,15 +125,15 @@ public class BRouterWorker
   private List<OsmNodeNamed> readPositions( Bundle params )
   {
     List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
-    
+
 	double[] lats = params.getDoubleArray("lats");
 	double[] lons = params.getDoubleArray("lons");
-			
+
 	if (lats == null || lats.length < 2 || lons == null || lons.length < 2)
 	{
 	  throw new IllegalArgumentException( "we need two lat/lon points at least!" );
 	}
-    
+
 	for( int i=0; i<lats.length && i<lons.length; i++ )
 	{
       OsmNodeNamed n = new OsmNodeNamed();
@@ -144,7 +144,7 @@ public class BRouterWorker
 	}
     wplist.get(0).name = "from";
     wplist.get(wplist.size()-1).name = "to";
-	
+
     return wplist;
   }
 
@@ -153,9 +153,9 @@ public class BRouterWorker
 	double[] lats = params.getDoubleArray("nogoLats");
 	double[] lons = params.getDoubleArray("nogoLons");
 	double[] radi = params.getDoubleArray("nogoRadi");
-	
+
 	if ( lats == null || lons == null || radi == null ) return;
-			
+
 	for( int i=0; i<lats.length && i<lons.length && i<radi.length; i++ )
 	{
       OsmNodeNamed n = new OsmNodeNamed();
@@ -168,11 +168,11 @@ public class BRouterWorker
       nogoList.add( n );
 	}
   }
-  
+
   private void writeTimeoutData( RoutingContext rc ) throws Exception
   {
     String timeoutFile = baseDir + "/brouter/modes/timeoutdata.txt";
-    
+
     BufferedWriter bw = new BufferedWriter( new FileWriter( timeoutFile ) );
     bw.write( profileName );
     bw.write( "\n" );
@@ -181,7 +181,7 @@ public class BRouterWorker
     writeWPList( bw, waypoints );
     writeWPList( bw, nogoList );
     bw.close();
-  }  
+  }
 
   private void writeWPList( BufferedWriter bw, List<OsmNodeNamed> wps ) throws Exception
   {

@@ -182,7 +182,7 @@ public class RoutingEngine extends Thread
             continue;
           }
           oldTrack = null;
-          track.writeGpx( filename );
+          track.writeGpx( filename, routingContext );
           foundTrack = track;
           alternativeIndex = i;
         }
@@ -198,7 +198,7 @@ public class RoutingEngine extends Thread
             {
               if ( !quite )
               {
-                System.out.println( track.formatAsGpx() );
+                System.out.println( track.formatAsGpx( routingContext ) );
               }
             }
             foundTrack = track;
