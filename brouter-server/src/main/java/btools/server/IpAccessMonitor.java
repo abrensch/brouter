@@ -8,21 +8,31 @@ public class IpAccessMonitor
   private static Object sync = new Object();
   private static HashMap<String,Long> ipAccess = new HashMap<String,Long>();
   private static long MAX_IDLE = 900000; // 15 minutes
-  
+  private static long CLEANUP_INTERVAL = 10000; // 10 seconds
+  private static long lastCleanup;
+
   public static boolean touchIpAccess( String ip )
   {
     long t = System.currentTimeMillis();
     synchronized( sync )
     {
       Long lastTime = ipAccess.get( ip );
-      if ( lastTime == null || t - lastTime.longValue() > MAX_IDLE )
+      ipAccess.put( ip, Long.valueOf( t ) );
+      return lastTime == null || t - lastTime.longValue() > MAX_IDLE;
+    }
+  }
+
+  public static int getSessionCount()
+  {
+    long t = System.currentTimeMillis();
+    synchronized( sync )
+    {
+      if ( t - lastCleanup > CLEANUP_INTERVAL )
       {
-        ipAccess.put( ip, Long.valueOf( t ) );
-        cleanup(t);
-        return true; // new session detected
+        cleanup( t );
+        lastCleanup = t;
       }
-      ipAccess.put( ip, Long.valueOf( t ) ); // touch existing session
-      return false;
+      return ipAccess.size();
     }
   }
   

@@ -152,8 +152,15 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
 
             InetAddress ip = clientSocket.getInetAddress();
             String sIp = xff == null ? (ip==null ? "null" : ip.toString() ) : xff;
-            String sessionMode = IpAccessMonitor.touchIpAccess( sIp ) ? " new " : "     ";
-            System.out.println( formattedTimestamp() + sessionMode + " ip=" + sIp + " -> " + getline );
+            boolean newSession = IpAccessMonitor.touchIpAccess( sIp );
+            String sessionInfo = " new";
+            if ( !newSession )
+            {
+              int sessionCount = IpAccessMonitor.getSessionCount();
+              sessionInfo = "    " + Math.min( sessionCount, 999 );
+              sessionInfo = sessionInfo.substring( sessionInfo.length() - 4 );
+            }
+            System.out.println( formattedTimestamp() + sessionInfo + " ip=" + sIp + " -> " + getline );
 
             String url = getline.split(" ")[1];
             HashMap<String,String> params = getUrlParams(url);
