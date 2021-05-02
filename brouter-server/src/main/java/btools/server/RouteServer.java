@@ -61,7 +61,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
 
   private static DateFormat tsFormat = new SimpleDateFormat( "dd.MM.yy HH:mm", new Locale( "en", "US" ) );
 
-  private static String formattedTimestamp()
+  private static String formattedTimeStamp( long t )
   {
     synchronized( tsFormat )
     {
@@ -73,13 +73,17 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
   {
           BufferedReader br = null;
           BufferedWriter bw = null;
+
+          // first line
+          String getline = null;
+          String sessionInfo = null;
+          String sIp = null;
+
           try
           {
             br = new BufferedReader( new InputStreamReader( clientSocket.getInputStream() , "UTF-8") );
             bw = new BufferedWriter( new OutputStreamWriter( clientSocket.getOutputStream(), "UTF-8" ) );
 
-            // first line
-            String getline = null;
             String agent = null;
             String encodings = null;
             String xff = null; // X-Forwarded-For
@@ -118,6 +122,17 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
               }
             }
             
+            InetAddress ip = clientSocket.getInetAddress();
+            sIp = xff == null ? (ip==null ? "null" : ip.toString() ) : xff;
+            boolean newSession = IpAccessMonitor.touchIpAccess( sIp );
+            sessionInfo = " new";
+            if ( !newSession )
+            {
+              int sessionCount = IpAccessMonitor.getSessionCount();
+              sessionInfo = "    " + Math.min( sessionCount, 999 );
+              sessionInfo = sessionInfo.substring( sessionInfo.length() - 4 );
+            }
+
             String excludedAgents = System.getProperty( "excludedAgents" );
             if ( agent != null && excludedAgents != null )
             {
@@ -148,19 +163,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
               bw.flush();
               return;
             }
-
-
-            InetAddress ip = clientSocket.getInetAddress();
-            String sIp = xff == null ? (ip==null ? "null" : ip.toString() ) : xff;
-            boolean newSession = IpAccessMonitor.touchIpAccess( sIp );
-            String sessionInfo = " new";
-            if ( !newSession )
-            {
-              int sessionCount = IpAccessMonitor.getSessionCount();
-              sessionInfo = "    " + Math.min( sessionCount, 999 );
-              sessionInfo = sessionInfo.substring( sessionInfo.length() - 4 );
-            }
-            System.out.println( formattedTimestamp() + sessionInfo + " ip=" + sIp + " -> " + getline );
 
             String url = getline.split(" ")[1];
             HashMap<String,String> params = getUrlParams(url);
@@ -296,8 +298,12 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
               {
                 threadPoolSync.notifyAll();
               }
+              long t = System.currentTimeMillis();
+              long ms = t - starttime;
+              System.out.println( formattedTimeStamp(t) + sessionInfo + " ip=" + sIp + " ms=" + ms + " -> " + getline );
           }
   }
+  
 
   public static void main(String[] args) throws Exception
   {
@@ -371,13 +377,18 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
                {
                  threadPoolSync.wait( maxWaitTime );
                }
+               long t = System.currentTimeMillis();
+               System.out.println( formattedTimeStamp(t) + " contention! ms waited " + (t - server.starttime) );
              }
              cleanupThreadQueue( threadQueue );
              if ( threadQueue.size() >= maxthreads )
              {
                if ( debug ) System.out.println( "stopping oldest thread..." );
                // no way... stop the oldest thread
-               threadQueue.poll().stopRouter();
+               RouteServer oldest = threadQueue.poll();
+               oldest.stopRouter();
+               long t = System.currentTimeMillis();
+               System.out.println( formattedTimeStamp(t) + " contention! ms killed " + (t - oldest.starttime) );
              }
           }
 
