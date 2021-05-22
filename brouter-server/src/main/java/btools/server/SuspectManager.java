@@ -450,6 +450,8 @@ public class SuspectManager extends Thread
 
       String url5 = "https://tyrasd.github.io/latest-changes/#16/" + dlat + "/" + dlon;
 
+      String url6 = "https://apps.sentinel-hub.com/sentinel-playground/?source=S2L2A&lat=" + dlat + "&lng=" + dlon + "&zoom=15";
+
       if ( message != null )
       {
         bw.write( "<strong>" + message + "</strong><br><br>\n" );
@@ -459,6 +461,7 @@ public class SuspectManager extends Thread
       bw.write( "<a href=\"" + url3 + "\">Open in JOSM (via remote control)</a><br><br>\n" );
       bw.write( "Overpass: <a href=\"" + url4a + "\">minus one week</a> &nbsp;&nbsp; <a href=\"" + url4b + "\">node context</a><br><br>\n" );
       bw.write( "<a href=\"" + url5 + "\">Open in Latest-Changes / last week</a><br><br>\n" );
+      bw.write( "<a href=\"" + url6 + "\">Current Sentinel-2 imagary</a><br><br>\n" );
       bw.write( "<br>\n" );
       if ( isFixed( id, suspects.timestamp ) )
       {
