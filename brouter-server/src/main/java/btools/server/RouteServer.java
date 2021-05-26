@@ -87,6 +87,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
             String agent = null;
             String encodings = null;
             String xff = null; // X-Forwarded-For
+            String referer = null;
 
             // more headers until first empty line
             for(;;)
@@ -120,6 +121,14 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
               {
                 xff = line.substring( "x-forwarded-for: ".length() );
               }
+              if ( line.startsWith( "Referer: " ) )
+              {
+                referer = line.substring( "Referer: ".length() );
+              }
+              if ( line.startsWith( "Referrer: " ) )
+              {
+                referer = line.substring( "Referrer: ".length() );
+              }
             }
             
             InetAddress ip = clientSocket.getInetAddress();
@@ -146,6 +155,17 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
                   bw.flush();
                   return;
                 }
+              }
+            }
+
+            if ( referer != null && referer.indexOf( "brouter.de/brouter-web" ) >= 0 )
+            {
+              if ( getline.indexOf( "%7C" ) >= 0 && getline.indexOf( "%2C" ) >= 0 )
+              {
+                writeHttpHeader( bw, HTTP_STATUS_FORBIDDEN );
+                bw.write( "Spam? please stop" );
+                bw.flush();
+                return;
               }
             }
 
