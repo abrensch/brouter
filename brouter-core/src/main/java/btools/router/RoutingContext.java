@@ -16,6 +16,7 @@ import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.mapaccess.GeometryDecoder;
 import btools.mapaccess.OsmLink;
+import btools.mapaccess.OsmNode;
 import btools.util.CheapAngleMeter;
 import btools.util.CheapRuler;
 
@@ -191,6 +192,7 @@ public final class RoutingContext
   public List<OsmNodeNamed> poipoints;
 
   public List<OsmNodeNamed> nogopoints = null;
+  private List<OsmNodeNamed> nogopoints_all = null; // full list not filtered for wayoints-in-nogos
   private List<OsmNodeNamed> keepnogopoints = null;
   private OsmNodeNamed pendingEndpoint = null;
 
@@ -258,14 +260,29 @@ public final class RoutingContext
     }
   }
 
-  public void cleanNogolist( List<OsmNodeNamed> waypoints )
+  /**
+   * restore the full nogolist previously saved by cleanNogoList
+   */
+  public void restoreNogoList()
   {
+    nogopoints = nogopoints_all;
+  }
+
+  /**
+   * clean the nogolist (previoulsy saved by saveFullNogolist())
+   * by removing nogos with waypoints within
+   * 
+   * @return true if all wayoints are all in the same (full-weigth) nogo area (triggering bee-line-mode)
+   */
+  public void cleanNogoList( List<OsmNode> waypoints )
+  {
+    nogopoints_all = nogopoints;
     if ( nogopoints == null ) return;
     List<OsmNodeNamed> nogos = new ArrayList<OsmNodeNamed>();
     for( OsmNodeNamed nogo : nogopoints )
     {
       boolean goodGuy = true;
-      for( OsmNodeNamed wp : waypoints )
+      for( OsmNode wp : waypoints )
       {
         if ( wp.calcDistance( nogo ) < nogo.radius
             && (!(nogo instanceof OsmNogoPolygon)
@@ -274,12 +291,36 @@ public final class RoutingContext
                         : ((OsmNogoPolygon)nogo).isOnPolyline(wp.ilon, wp.ilat))))
         {
           goodGuy = false;
-          break;
         }
       }
       if ( goodGuy ) nogos.add( nogo );
     }
     nogopoints = nogos.isEmpty() ? null : nogos;
+  }
+
+  public boolean allInOneNogo( List<OsmNode> waypoints )
+  {
+    if ( nogopoints == null ) return false;
+    boolean allInTotal = false;
+    for( OsmNodeNamed nogo : nogopoints )
+    {
+      boolean allIn = Double.isNaN( nogo.nogoWeight );
+      for( OsmNode wp : waypoints )
+      {
+        int dist = wp.calcDistance( nogo );
+        if ( dist < nogo.radius
+            && (!(nogo instanceof OsmNogoPolygon)
+                || (((OsmNogoPolygon)nogo).isClosed
+                    ? ((OsmNogoPolygon)nogo).isWithin(wp.ilon, wp.ilat)
+                        : ((OsmNogoPolygon)nogo).isOnPolyline(wp.ilon, wp.ilat))))
+        {
+          continue;
+        }
+        allIn = false;
+      }
+      allInTotal |= allIn;
+    }
+    return allInTotal;
   }
 
   public long[] getNogoChecksums()
