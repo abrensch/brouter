@@ -151,9 +151,6 @@ public class RoutingEngine extends Thread
   {
     try
     {
-      // delete nogos with waypoints in them
-      routingContext.cleanNogolist( waypoints );
-
       startTime = System.currentTimeMillis();
       long startTime0 = startTime;
       this.maxRunningTime = maxRunningTime;
@@ -460,6 +457,29 @@ public class RoutingEngine extends Thread
 
   private OsmTrack searchTrack( MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack )
   {
+    // remove nogos with waypoints inside
+    try
+    {
+      List<OsmNode> wpts2 = new ArrayList<OsmNode>();
+      wpts2.add( startWp.waypoint );
+      wpts2.add( endWp.waypoint );
+      boolean calcBeeline = routingContext.allInOneNogo(wpts2);
+      
+      if ( !calcBeeline ) return searchRoutedTrack( startWp, endWp, nearbyTrack, refTrack );
+      
+      // we want a beeline-segment
+      OsmPath path = routingContext.createPath( new OsmLink( null, startWp.crosspoint ) );
+      path = routingContext.createPath( path, new OsmLink( startWp.crosspoint, endWp.crosspoint ), null, false );
+      return compileTrack( path, false );
+    }
+    finally
+    {
+      routingContext.restoreNogoList();
+    }
+  }
+
+  private OsmTrack searchRoutedTrack( MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack )
+  {
     OsmTrack track = null;
     double[] airDistanceCostFactors = new double[]{ routingContext.pass1coefficient, routingContext.pass2coefficient };
     boolean isDirty = false;
@@ -650,6 +670,11 @@ public class RoutingEngine extends Thread
   {
     try
     {
+      List<OsmNode> wpts2 = new ArrayList<OsmNode>();
+      if ( startWp != null ) wpts2.add( startWp.waypoint );
+      if ( endWp != null ) wpts2.add( endWp.waypoint );
+      routingContext.cleanNogoList(wpts2);
+    
       boolean detailed = guideTrack != null;
       resetCache( detailed );
       nodesCache.nodesMap.cleanupMode = detailed ? 0 : ( routingContext.considerTurnRestrictions ? 2 : 1 );
@@ -657,6 +682,7 @@ public class RoutingEngine extends Thread
     }
     finally
     {
+      routingContext.restoreNogoList();
       nodesCache.clean( false ); // clean only non-virgin caches
     }
   }
