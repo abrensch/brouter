@@ -46,21 +46,27 @@ A full documentation on how to set this up is available at
 
 ### Build and Install
 
-To compile BRouter (including the BRouter Android app), use
+To compile BRouter (including the BRouter Android app), add a file 
+local.properties to main folder with your Android path
 
 ```
-mvn clean install -Dandroid.sdk.path=<your-sdk-path>
+sdk.dir=D\:\\Android\\android-sdk
+```
+
+
+and use
+
+```
+gradlew clean build
 ```
 
 If you only want to compile BRouter and the server part (skipping the Android
 app), use
 
 ```
-mvn clean install -pl '!brouter-routing-app'
+gradlew clean build -x :brouter-routing-app:build
 ```
 
-You can use `-Dmaven.javadoc.skip=true` to skip the JavaDoc processing and
-`-DskipTests` to skip running the unitary tests.
 
 
 ### Get the required segments (data) files

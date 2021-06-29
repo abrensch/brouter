@@ -17,7 +17,7 @@ public class MapcreatorTest
     Assert.assertTrue( "test-osm-map dreieich.osm not found", mapurl != null );
     File mapFile = new File(mapurl.getFile());
     File workingDir = mapFile.getParentFile();
-    File profileDir = new File( workingDir, "/../../../misc/profiles2" );
+    File profileDir = new File( workingDir, "/../../../../misc/profiles2" );
     File tmpdir = new File( workingDir, "tmp" );
     tmpdir.mkdir();
 

@@ -3,32 +3,78 @@ plugins {
 }
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
 
     defaultConfig {
         applicationId "btools.routingapp"
-        minSdkVersion 10
-        targetSdkVersion 29
+        minSdkVersion 19
+        targetSdkVersion 30
         versionCode 41
         versionName "1.6.1"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        setProperty("archivesBaseName","BRouterApp." + defaultConfig.versionName)
+
+        //testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+	if(project.hasProperty("RELEASE_STORE_FILE")) {
+	signingConfigs {
+		// this uses a file  ~/.gradle/gradle.properties
+		// with content:
+		// RELEASE_STORE_FILE={path to your keystore}
+        // RELEASE_STORE_PASSWORD=*****
+        // RELEASE_KEY_ALIAS=*****
+        // RELEASE_KEY_PASSWORD=*****
+		// 
+	    release {
+		   // enable signingConfig in buildTypes to get a signed apk file
+		   storeFile file(RELEASE_STORE_FILE)
+		   storePassword RELEASE_STORE_PASSWORD
+		   keyAlias RELEASE_KEY_ALIAS
+		   keyPassword RELEASE_KEY_PASSWORD
+
+		   // Optional, specify signing versions used
+		   v1SigningEnabled true
+		   v2SigningEnabled true
+		  
+	   }
+	}
+	}
+	
     buildTypes {
         release {
             minifyEnabled false
+            debuggable false
+			if(project.hasProperty("RELEASE_STORE_FILE")) {
+				signingConfig signingConfigs.release
+			}
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            minifyEnabled false
+			debuggable true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+	lintOptions {
+		disable 'InvalidPackage'
+		checkReleaseBuilds false //added this line to the build.gradle under the /android/app/build.gradle 
+	}
+	
+	compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-
+    	
+    implementation 'androidx.appcompat:appcompat:1.3.0' 
+	
     implementation project(':brouter-mapaccess')
     implementation project(':brouter-core')
     implementation project(':brouter-expressions')
     implementation project(':brouter-util')
+	
 }

@@ -3,7 +3,6 @@ plugins {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':brouter-util')
     implementation project(':brouter-codec')
     implementation project(':brouter-expressions')
