@@ -1,0 +1,2 @@
+rootProject.name='brouter'
+include ':brouter-routing-app', ':brouter-mapaccess', ':brouter-core', ':brouter-util', ':brouter-expressions', ':brouter-codec', ':brouter-map-creator', ':brouter-server'
