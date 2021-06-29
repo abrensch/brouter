@@ -5,7 +5,9 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import android.os.Bundle;
 import btools.router.OsmNodeNamed;
@@ -16,6 +18,10 @@ import btools.router.RoutingEngine;
 
 public class BRouterWorker
 {
+  private static final int OUTPUT_FORMAT_GPX = 0;
+  private static final int OUTPUT_FORMAT_KML = 1;
+  private static final int OUTPUT_FORMAT_JSON = 2;
+
   public String baseDir;
   public String segmentDir;
   public String profileName;
@@ -65,6 +71,22 @@ public class BRouterWorker
     {
       rc.startDirection = Integer.valueOf( params.getInt( "direction" ) );
     }
+    if (params.containsKey( "extraParams" )) {  // add user params
+      String extraParams = params.getString("extraParams");
+      if (rc.keyValues == null) rc.keyValues = new HashMap<String,String>();
+      StringTokenizer tk = new StringTokenizer( extraParams, "?&" );
+      while( tk.hasMoreTokens() ) {
+        String t = tk.nextToken();
+        StringTokenizer tk2 = new StringTokenizer( t, "=" );
+        if ( tk2.hasMoreTokens() ) {
+          String key = tk2.nextToken();
+          if ( tk2.hasMoreTokens() ) {
+            String value = tk2.nextToken();
+            rc.keyValues.put( key, value );
+            }
+        }
+	  }
+    }
 
     readNogos( params ); // add interface provided nogos
     RoutingContext.prepareNogoPoints( nogoList );
@@ -99,20 +121,33 @@ public class BRouterWorker
     }
     
 	String format = params.getString("trackFormat");
-	boolean writeKml = format != null && "kml".equals( format );
+    int writeFromat = OUTPUT_FORMAT_GPX;
+    if (format != null) {
+      if ("kml".equals(format)) writeFromat = OUTPUT_FORMAT_KML;
+      if ("json".equals(format)) writeFromat = OUTPUT_FORMAT_JSON;
+    }
 
     OsmTrack track = cr.getFoundTrack();
     if ( track != null )
     {
 	  if ( pathToFileResult == null )
 	  {
-        if ( writeKml ) return track.formatAsKml();
-        return track.formatAsGpx();
+        switch ( writeFromat ) {
+          case OUTPUT_FORMAT_GPX: return track.formatAsGpx();
+          case OUTPUT_FORMAT_KML: return track.formatAsKml();
+          case OUTPUT_FORMAT_JSON: return track.formatAsGeoJson();
+          default: return track.formatAsGpx();
+        }
+
       }
 	  try
 	  {
-        if ( writeKml ) track.writeKml(pathToFileResult);
-        else track.writeGpx(pathToFileResult);
+        switch ( writeFromat ) {
+          case OUTPUT_FORMAT_GPX: track.writeGpx(pathToFileResult); break;
+          case OUTPUT_FORMAT_KML: track.writeKml(pathToFileResult); break;
+          case OUTPUT_FORMAT_JSON: track.writeJson(pathToFileResult); break;
+          default: track.writeGpx(pathToFileResult); break;
+        }
 	  }
 	  catch( Exception e )
 	  {
