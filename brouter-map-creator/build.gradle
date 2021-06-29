@@ -1,0 +1,16 @@
+plugins {
+    id 'application'
+}
+
+application {
+    // Gradles 'application' plugin requires one main class; since we have multiple ones, just specify
+    // one of them, since the applications won't be run from gradle anyways.
+    mainClassName = 'btools.mapcreator.PosUnifier'
+}
+
+dependencies {
+    implementation project(':brouter-util')
+    implementation project(':brouter-codec')
+    implementation project(':brouter-expressions')
+    implementation('junit:junit:4.13')
+}
