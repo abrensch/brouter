@@ -46,8 +46,7 @@ A full documentation on how to set this up is available at
 
 ### Build and Install
 
-To compile BRouter (including the BRouter Android app), add a file 
-local.properties to main folder with your Android path
+To compile BRouter (including the BRouter Android app), add a file 'local.properties' to main folder with your Android path (Windows sample)
 
 ```
 sdk.dir=D\:\\Android\\android-sdk
