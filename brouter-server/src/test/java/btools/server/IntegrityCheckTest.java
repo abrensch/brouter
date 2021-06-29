@@ -20,7 +20,7 @@ public class IntegrityCheckTest
     File resultfile = new File( resulturl.getFile() );
     workingDir = resultfile.getParentFile();
 
-    File segmentDir = new File( workingDir, "/../../../brouter-map-creator/target/test-classes/tmp/segments" );
+    File segmentDir = new File( workingDir, "/../../../../brouter-map-creator/build/resources/test/tmp/segments" );
     File[] files = segmentDir.listFiles();
 
     for ( File f : files )
