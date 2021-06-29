@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="btools.routingapp">
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application android:icon="@drawable/icon" android:label="@string/app_name" android:allowBackup="true">
+        <activity android:name=".BRouterActivity"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".BInstallerActivity"
+            android:label="@string/app_name"
+            android:screenOrientation="landscape" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+        </activity>
+        <service
+            android:exported="true"
+            android:name=".BRouterService"
+            android:enabled="true"
+            android:process=":brouter_service">
+        </service>
+    </application>
+</manifest>
