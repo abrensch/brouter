@@ -2,19 +2,23 @@ plugins {
     id 'application'
 }
 
+version = '1.6.1'
+
 application {
-    mainClassName = 'btools.server.BRouter'
+    mainClass.set('btools.server.BRouter')
 
     jar {
         manifest {
-            attributes "Main-Class": "$mainClassName"
+            attributes "Main-Class": getMainClass() 
         }
     }
 }
 
 dependencies {
-    implementation('junit:junit:4.13')
+    testImplementation 'junit:junit:4.13.1' 
+	
     implementation project(':brouter-util')
     implementation project(':brouter-core')
     implementation project(':brouter-mapaccess')
+
 }

@@ -14,7 +14,7 @@ public class EncodeDecodeTest
   {
     URL testpurl = this.getClass().getResource( "/dummy.txt" );
     File workingDir = new File(testpurl.getFile()).getParentFile();
-    File profileDir = new File( workingDir, "/../../../misc/profiles2" );
+    File profileDir = new File( workingDir, "/../../../../misc/profiles2" );
     File lookupFile = new File( profileDir, "lookups.dat" );
   	
     // read lookup.dat + trekking.brf
