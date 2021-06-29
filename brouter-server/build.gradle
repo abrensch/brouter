@@ -1,0 +1,20 @@
+plugins {
+    id 'application'
+}
+
+application {
+    mainClassName = 'btools.server.BRouter'
+
+    jar {
+        manifest {
+            attributes "Main-Class": "$mainClassName"
+        }
+    }
+}
+
+dependencies {
+    implementation('junit:junit:4.13')
+    implementation project(':brouter-util')
+    implementation project(':brouter-core')
+    implementation project(':brouter-mapaccess')
+}
