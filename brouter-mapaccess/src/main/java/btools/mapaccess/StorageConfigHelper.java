@@ -11,21 +11,21 @@ import java.io.FileReader;
 
 public class StorageConfigHelper
 {
-  public static File getSecondarySegmentDir( String segmentDir )
+  public static File getSecondarySegmentDir( File segmentDir )
   {
     return getStorageLocation( segmentDir, "secondary_segment_dir=" );
   }
 
-  public static File getAdditionalMaptoolDir( String segmentDir )
+  public static File getAdditionalMaptoolDir( File segmentDir )
   {
     return getStorageLocation( segmentDir, "additional_maptool_dir=" );
   }
 
-  private static File getStorageLocation( String segmentDir, String tag )
+  private static File getStorageLocation( File segmentDir, String tag )
   {
     File res = null;
     BufferedReader br = null;
-    String configFile = segmentDir + "/storageconfig.txt";
+    File configFile = new File (segmentDir, "storageconfig.txt");
     try
     {
       br = new BufferedReader( new FileReader( configFile ) );
@@ -38,7 +38,7 @@ public class StorageConfigHelper
         if ( line.startsWith( tag ) )
         {
           String path = line.substring( tag.length() ).trim();
-          res = path.startsWith( "/" ) ? new File( path ) : new File( new File( segmentDir ), path );
+          res = path.startsWith( "/" ) ? new File( path ) : new File( segmentDir, path );
           if ( !res.exists() ) res = null;
           break;
         }

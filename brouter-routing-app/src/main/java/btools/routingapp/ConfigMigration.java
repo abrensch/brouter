@@ -87,17 +87,17 @@ public class ConfigMigration
     }
   }
 
-  public static File saveAdditionalMaptoolDir( String segmentDir, String value )
+  public static File saveAdditionalMaptoolDir( File segmentDir, String value )
   {
     return saveStorageLocation( segmentDir, "additional_maptool_dir=", value );
   }
 
-  private static File saveStorageLocation( String segmentDir, String tag, String value )
+  private static File saveStorageLocation( File segmentDir, String tag, String value )
   {
     File res = null;
     BufferedReader br = null;
     BufferedWriter bw = null;
-    String configFile = segmentDir + "/storageconfig.txt";
+    File configFile = new File (segmentDir, "storageconfig.txt");
     List<String> lines = new ArrayList<String>();
     try
     {

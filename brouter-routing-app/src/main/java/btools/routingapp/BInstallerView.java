@@ -58,7 +58,7 @@ public class BInstallerView extends View
     private boolean tilesVisible = false;
     
     private long availableSize;
-    private String baseDir;
+    private File baseDir;
     
     private boolean isDownloading = false;
     private volatile boolean downloadCanceled = false;
@@ -207,7 +207,7 @@ public class BInstallerView extends View
     
     private void deleteRawTracks()
     {
-      File modeDir = new File( baseDir + "/brouter/modes" );
+      File modeDir = new File( baseDir, "brouter/modes" );
       String[] fileNames = modeDir.list();
       if ( fileNames == null ) return;
       for( String fileName : fileNames )
@@ -224,9 +224,9 @@ public class BInstallerView extends View
     {
       clearTileSelection( MASK_INSTALLED_RD5 | MASK_CURRENT_RD5 );
 
-      scanExistingFiles( new File( baseDir + "/brouter/segments4" ) );
+      scanExistingFiles( new File( baseDir, "brouter/segments4" ) );
       
-      File secondary = RoutingHelper.getSecondarySegmentDir( baseDir + "/brouter/segments4" );
+      File secondary = RoutingHelper.getSecondarySegmentDir( new File ( baseDir, "brouter/segments4" ) );
       if ( secondary != null )
       {
           scanExistingFiles( secondary );
@@ -235,7 +235,7 @@ public class BInstallerView extends View
       availableSize = -1;
       try
       {
-        StatFs stat = new StatFs(baseDir);
+        StatFs stat = new StatFs(baseDir.getAbsolutePath ());
         availableSize = (long)stat.getAvailableBlocks()*stat.getBlockSize();
       }
       catch (Exception e) { /* ignore */ }
@@ -472,7 +472,7 @@ float tx, ty;
         int tidx = gridPos2Tileindex( ix, iy );
         if ( ( tileStatus[tidx] & MASK_DELETED_RD5 ) != 0 )
         {
-          new File( baseDir + "/brouter/segments4/" + baseNameForTile( tidx ) + ".rd5").delete();
+          new File( baseDir, "brouter/segments4/" + baseNameForTile( tidx ) + ".rd5").delete();
         }
       }
     }
@@ -667,7 +667,7 @@ float tx, ty;
               OutputStream output = null;
               HttpURLConnection connection = null;
               String surl = sUrls[0];
-              String fname = null;
+              File fname = null;
               File tmp_file = null;
               try
               {
@@ -676,17 +676,17 @@ float tx, ty;
                     int slidx = surl.lastIndexOf( "segments4/" );
                     String name = surl.substring( slidx+10 );
                     String surlBase = surl.substring( 0, slidx+10 );
-                    fname = baseDir + "/brouter/segments4/" + name;
+                    fname = new File (baseDir, "brouter/segments4/" + name);
 
                     boolean delta = true;
 
-                    File targetFile = new File( fname );
-                    if ( targetFile.exists() )
+                    if ( fname.exists() )
                     {
                       updateProgress( "Calculating local checksum.." );
                     
                       // first check for a delta file
-                      String md5 = Rd5DiffManager.getMD5( targetFile );
+
+                      String md5 = Rd5DiffManager.getMD5( fname );
                       String surlDelta = surlBase + "diff/" + name.replace( ".rd5", "/" + md5 + ".df5" );
                       
                       URL urlDelta = new URL(surlDelta);
@@ -728,7 +728,7 @@ float tx, ty;
                     // download the file
                     input = connection.getInputStream();
                     
-                    tmp_file = new File( fname + ( delta ? "_diff" : "_tmp" ) );
+                    tmp_file = new File( fname.getAbsolutePath() + ( delta ? "_diff" : "_tmp" ) );
                     output = new FileOutputStream( tmp_file );
 
                     byte data[] = new byte[4096];
@@ -768,7 +768,7 @@ float tx, ty;
                       updateProgress( "Applying delta.." );
                       File diffFile = tmp_file;
                       tmp_file = new File( fname + "_tmp" );
-                      Rd5DiffTool.recoverFromDelta( targetFile, diffFile, tmp_file, this );
+                      Rd5DiffTool.recoverFromDelta( fname, diffFile, tmp_file, this );
                       diffFile.delete();
                     }
                     if (isDownloadCanceled())
@@ -781,9 +781,9 @@ float tx, ty;
                       String check_result = PhysicalFile.checkFileIntegrity( tmp_file );
                       if ( check_result != null ) return check_result;
 
-                      if ( !tmp_file.renameTo( targetFile ) )
+                      if ( !tmp_file.renameTo( fname ) )
                       {
-                        return "Could not rename to " + targetFile;
+                        return "Could not rename to " + fname.getAbsolutePath();
                       }
                       deleteRawTracks(); // invalidate raw-tracks after data update
                     }

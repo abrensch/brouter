@@ -67,7 +67,10 @@ public class RouterTest
     RoutingEngine re = new RoutingEngine(
         wd + "/" + trackname,
         wd + "/" + trackname,
-        wd + "/../../../../brouter-map-creator/build/resources/test/tmp/segments", wplist, rctx );
+        new File ( wd, "/../../../../brouter-map-creator/build/resources/test/tmp/segments"), 
+        wplist, 
+        rctx );
+
     re.doRun( 0 );
     
     return re.getErrorMessage();

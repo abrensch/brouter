@@ -336,7 +336,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
         }
 
         ServiceContext serviceContext = new ServiceContext();
-        serviceContext.segmentDir = args[0];
+        serviceContext.segmentDir = new File ( args[0] );
         serviceContext.profileDir = args[1];
         System.setProperty( "profileBaseDir", serviceContext.profileDir );
         String dirs = args[2];

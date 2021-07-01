@@ -23,7 +23,7 @@ public class BRouterWorker
   private static final int OUTPUT_FORMAT_JSON = 2;
 
   public String baseDir;
-  public String segmentDir;
+  public File segmentDir;
   public String profileName;
   public String profilePath;
   public String rawTrackPath;
@@ -228,3 +228,4 @@ public class BRouterWorker
     }
   }
 }
+
