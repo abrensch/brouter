@@ -2,7 +2,6 @@ plugins {
     id 'application'
 }
 
-version = '1.6.1'
 
 application {
     mainClass.set('btools.server.BRouter')

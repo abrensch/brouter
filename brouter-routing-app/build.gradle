@@ -11,7 +11,7 @@ android {
         targetSdkVersion 30
 
         versionCode 41
-        versionName "1.6.1"
+        versionName version
 
         setProperty("archivesBaseName","BRouterApp." + defaultConfig.versionName)
 
