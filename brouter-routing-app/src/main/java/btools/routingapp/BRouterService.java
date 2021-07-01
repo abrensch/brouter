@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPOutputStream;
 import java.util.ArrayList;
 
@@ -58,7 +59,7 @@ public class BRouterService extends Service
         if ( configInput != null ) try { configInput.close(); } catch (Exception ee) {}
       }
       worker.baseDir = baseDir;
-      worker.segmentDir = baseDir + "/brouter/segments4";
+      worker.segmentDir = new File (baseDir, "brouter/segments4" );
 
       String remoteProfile = params.getString( "remoteProfile" );
 
@@ -85,9 +86,9 @@ public class BRouterService extends Service
           try
           {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            baos.write( "z64".getBytes("UTF-8") ); // marker prefix
+            baos.write( "z64".getBytes(StandardCharsets.UTF_8) ); // marker prefix
             OutputStream os = new GZIPOutputStream( baos );
-            byte[] ab = gpxMessage.getBytes("UTF-8");
+            byte[] ab = gpxMessage.getBytes(StandardCharsets.UTF_8);
             gpxMessage = null;
             os.write( ab );
             ab = null;

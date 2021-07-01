@@ -56,10 +56,10 @@ public final class NodesCache
     return "collecting=" + garbageCollectionEnabled + " noGhosts=" + ghostCleaningDone + " cacheSum=" + cacheSum + " cacheSumClean=" + cacheSumClean + " ghostSum=" + ghostSum + " ghostWakeup=" + ghostWakeup ;
   }
 
-  public NodesCache( String segmentDir, BExpressionContextWay ctxWay, boolean forceSecondaryData, long maxmem, NodesCache oldCache, boolean detailed )
+  public NodesCache( File segmentDir, BExpressionContextWay ctxWay, boolean forceSecondaryData, long maxmem, NodesCache oldCache, boolean detailed )
   {
     this.maxmemtiles = maxmem / 8;
-    this.segmentDir = new File( segmentDir );
+    this.segmentDir = segmentDir;
     this.nodesMap = new OsmNodesMap();
     this.nodesMap.maxmem = (2L*maxmem) / 3L;
     this.expCtxWay = ctxWay;
@@ -77,7 +77,7 @@ public final class NodesCache
     first_file_access_name = null;
 
     if ( !this.segmentDir.isDirectory() )
-      throw new RuntimeException( "segment directory " + segmentDir + " does not exist" );
+      throw new RuntimeException( "segment directory " + segmentDir.getAbsolutePath () + " does not exist" );
 
     if ( oldCache != null )
     {
