@@ -139,7 +139,10 @@ abstract class OsmPath implements OsmLinkHolder
   protected void addAddionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, OsmLink link, RoutingContext rc )
   {
     byte[] description = link.descriptionBitmap;
-    if ( description == null ) throw new IllegalArgumentException( "null description for: " + link );
+    if ( description == null )
+    {
+      return; // could be a beeline path
+    }
 
     boolean recordTransferNodes = detailMode || rc.countTraffic;
 
@@ -296,6 +299,16 @@ abstract class OsmPath implements OsmLinkHolder
             else
             {
               originElement = null; // prevent duplicate point
+            }
+          }
+
+          if ( rc.checkPendingEndpoint() )
+          {
+            dist = rc.calcDistance( rc.ilonshortest, rc.ilatshortest, lon2, lat2 );
+            if ( rc.shortestmatch )
+            {
+              stopAtEndpoint = true;
+              ele2 = interpolateEle( ele1, ele2, rc.wayfraction );
             }
           }
         }

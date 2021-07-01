@@ -158,6 +158,27 @@ public class VoiceHint
       default : throw new IllegalArgumentException( "unknown command: " + cmd );
     }
   }
+    
+    public int getOruxAction()
+    {
+      switch ( cmd )
+      {
+        case TU   : return 1003;
+        case TSHL : return 1019;
+        case TL   : return 1000;
+        case TSLL : return 1017;
+        case KL   : return 1015; // ?
+        case C    : return 1002;
+        case KR   : return 1014; // ?
+        case TSLR : return 1016;
+        case TR   : return 1001;
+        case TSHR : return 1018;
+        case TRU  : return 1003;
+        case RNDB : return 1008 + roundaboutExit;
+        case RNLB : return 1008 + roundaboutExit;
+        default : throw new IllegalArgumentException( "unknown command: " + cmd );
+      }
+  }
 
   public void calcCommand()
   {

@@ -16,12 +16,16 @@ assign uphillcutoff 0
 assign   validForBikes       1
 assign   validForCars        1
 
-assign turnInstructionMode  = 1  # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style
+assign turnInstructionMode  = 1  # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style
 
 ---context:way   # following code refers to way-tags
 
 assign turncost = if junction=roundabout then 0
                   else 90
+
+assign initialclassifier =
+     if route=ferry then 1
+     else 0
 
 assign initialcost switch route=ferry 20000 0
 
@@ -140,6 +144,8 @@ assign classifiermask add          isbadoneway
                       add multiply islinktype     8
                           multiply isgoodforcars 16
 
+# include `smoothness=` tags in the response's WayTags for track analysis
+assign dummyUsage = smoothness=
 
 ---context:node  # following code refers to node tags
 

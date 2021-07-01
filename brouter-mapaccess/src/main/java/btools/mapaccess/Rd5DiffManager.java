@@ -1,5 +1,5 @@
 /**
- * Proof of concept for delta rd5's
+ * Manage rd5 diff-file creation
  *
  * @author ab
  */
@@ -56,10 +56,10 @@ final public class Rd5DiffManager
       File specificNewDiffs = new File( newDiffDir, basename );
       specificNewDiffs.mkdirs();
       
-      String diffFileName = md5 + ".rd5diff";
+      String diffFileName = md5 + ".df5";
       File diffFile = new File( specificNewDiffs, diffFileName );
       
-      String dummyDiffFileName = md5New + ".rd5diff";
+      String dummyDiffFileName = md5New + ".df5";
       File dummyDiffFile = new File( specificNewDiffs, dummyDiffFileName );
       dummyDiffFile.createNewFile();
 
@@ -73,7 +73,7 @@ final public class Rd5DiffManager
         File[] oldDiffs = specificOldDiffs.listFiles();
         for( File od : oldDiffs )
         {
-          if ( !od.getName().endsWith( ".rd5diff" ) )
+          if ( !od.getName().endsWith( ".df5" ) )
           {
             continue;
           }
