@@ -61,13 +61,16 @@ public class RouterTest
     wplist.add( n );
 
     RoutingContext rctx = new RoutingContext();
-    rctx.localFunction = wd + "/../../../misc/profiles2/trekking.brf";
+    rctx.localFunction = wd + "/../../../../misc/profiles2/trekking.brf";
     //   c.setAlternativeIdx( 1 );
 
     RoutingEngine re = new RoutingEngine(
         wd + "/" + trackname,
         wd + "/" + trackname,
-        new File ( wd, "/../../../brouter-map-creator/target/test-classes/tmp/segments"), wplist, rctx );
+        new File ( wd, "/../../../../brouter-map-creator/build/resources/test/tmp/segments"), 
+        wplist, 
+        rctx );
+
     re.doRun( 0 );
     
     return re.getErrorMessage();

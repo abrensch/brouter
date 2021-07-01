@@ -19,8 +19,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.OsmPos;
@@ -31,7 +34,7 @@ import btools.util.StringUtils;
 public final class OsmTrack
 {
   // csv-header-line
-  private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags";
+  private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy";
 
   public MatchedWaypoint endPoint;
   public long[] nogoChecksums;
@@ -528,6 +531,23 @@ public final class OsmTrack
           .append( "</wpt>\n" );
       }
     }
+    
+    if ( turnInstructionMode == 6 ) // orux style
+    {
+      for( VoiceHint hint: voiceHints.list )
+      {
+        sb.append( " <wpt lat=\"" ).append( formatILat( hint.ilat ) ).append( "\" lon=\"" )
+          .append( formatILon( hint.ilon ) ).append( "\">" )
+          .append( hint.selev == Short.MIN_VALUE ? "" : "<ele>" + (hint.selev / 4.) + "</ele>" )
+          .append( "<extensions>\n" + 
+          		"<om:oruxmapsextensions xmlns:om=\"http://www.oruxmaps.com/oruxmapsextensions/1/0\">\n" + 
+          		"<om:ext type=\"ICON\" subtype=\"0\">" ).append("" + hint.getOruxAction() )
+          .append( "</om:ext>\n" + 
+          		"</om:oruxmapsextensions>\n" + 
+          		"</extensions>\n" + 
+          		"</wpt>" );
+      }
+    }
 
     for( int i=0; i<=pois.size() - 1; i++ )
     {
@@ -691,8 +711,19 @@ public final class OsmTrack
 
   public List<String> iternity;
 
+  public void writeJson( String filename ) throws Exception
+  {
+    BufferedWriter bw = new BufferedWriter( new FileWriter( filename ) );
+
+    bw.write( formatAsGeoJson() );
+    bw.close();
+  }
+
+
   public String formatAsGeoJson()
   {
+    int turnInstructionMode = voiceHints != null ? voiceHints.turnInstructionMode : 0;
+
     StringBuilder sb = new StringBuilder( 8192 );
 
     sb.append( "{\n" );
@@ -714,7 +745,20 @@ public final class OsmTrack
       sb.append( "        \"voicehints\": [\n" );
       for( VoiceHint hint: voiceHints.list )
       {
-        sb.append( "          [" ).append( hint.indexInTrack ).append( ',' ).append( hint.getCommand() ).append( ',' ).append( hint.getExitNumber() ).append( "],\n" );
+        sb.append( "          [" );
+        sb.append( hint.indexInTrack );
+        sb.append( ',' ).append( hint.getCommand() );
+        sb.append( ',' ).append( hint.getExitNumber() );
+        sb.append( ',' ).append( hint.distanceToNext );
+        sb.append( ',' ).append( (int) hint.angle );
+
+        // not always include geometry because longer and only needed for comment style
+        if ( turnInstructionMode == 4 ) // comment style
+        {
+          sb.append( ",\"" ).append( hint.formatGeometry() ).append( "\"" );
+        }
+
+        sb.append( "],\n" );
       }
       sb.deleteCharAt( sb.lastIndexOf( "," ) );
       sb.append( "        ],\n" );
@@ -729,7 +773,7 @@ public final class OsmTrack
         {
           sb.append( "          [" ).append( sp.get(i) ).append( i> 0 ? "],\n" : "]\n" );
         }
-        sb.append( "        ]\n" );
+        sb.append( "        ],\n" );
       }
     }
     else // ... otherwise traditional message list
@@ -741,9 +785,24 @@ public final class OsmTrack
         sb.append( "          [\"" ).append( m.replaceAll( "\t", "\", \"" ) ).append( "\"],\n" );
       }
       sb.deleteCharAt( sb.lastIndexOf( "," ) );
-      sb.append( "        ]\n" );
+      sb.append( "        ],\n" );
     }
+
+    if ( getTotalSeconds() > 0 ) {
+      sb.append( "        \"times\": [" );
+      DecimalFormat decimalFormat = (DecimalFormat) NumberFormat.getInstance( Locale.ENGLISH );
+      decimalFormat.applyPattern( "0.###" );
+      for ( OsmPathElement n : nodes ) {
+        sb.append( decimalFormat.format( n.getTime() ) ).append( "," );
+      }
+      sb.deleteCharAt( sb.lastIndexOf( "," ) );
+      sb.append( "]\n" );
+    } else {
+      sb.deleteCharAt( sb.lastIndexOf( "," ) );
+    }
+
     sb.append( "      },\n" );
+
     if ( iternity != null )
     {
       sb.append( "      \"iternity\": [\n" );

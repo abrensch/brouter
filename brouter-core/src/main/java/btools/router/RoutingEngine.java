@@ -151,9 +151,6 @@ public class RoutingEngine extends Thread
   {
     try
     {
-      // delete nogos with waypoints in them
-      routingContext.cleanNogolist( waypoints );
-
       startTime = System.currentTimeMillis();
       long startTime0 = startTime;
       this.maxRunningTime = maxRunningTime;
@@ -460,6 +457,29 @@ public class RoutingEngine extends Thread
 
   private OsmTrack searchTrack( MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack )
   {
+    // remove nogos with waypoints inside
+    try
+    {
+      List<OsmNode> wpts2 = new ArrayList<OsmNode>();
+      wpts2.add( startWp.waypoint );
+      wpts2.add( endWp.waypoint );
+      boolean calcBeeline = routingContext.allInOneNogo(wpts2);
+      
+      if ( !calcBeeline ) return searchRoutedTrack( startWp, endWp, nearbyTrack, refTrack );
+      
+      // we want a beeline-segment
+      OsmPath path = routingContext.createPath( new OsmLink( null, startWp.crosspoint ) );
+      path = routingContext.createPath( path, new OsmLink( startWp.crosspoint, endWp.crosspoint ), null, false );
+      return compileTrack( path, false );
+    }
+    finally
+    {
+      routingContext.restoreNogoList();
+    }
+  }
+
+  private OsmTrack searchRoutedTrack( MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack )
+  {
     OsmTrack track = null;
     double[] airDistanceCostFactors = new double[]{ routingContext.pass1coefficient, routingContext.pass2coefficient };
     boolean isDirty = false;
@@ -587,55 +607,27 @@ public class RoutingEngine extends Thread
 
   private OsmPath getStartPath( OsmNode n1, OsmNode n2, MatchedWaypoint mwp, OsmNodeNamed endPos, boolean sameSegmentSearch )
   {
-    OsmPath p = getStartPath( n1, n2, new OsmNodeNamed( mwp.waypoint ), endPos );
+    if ( endPos != null )
+    {
+      endPos.radius = 1.5;
+    }
+    OsmPath p = getStartPath( n1, n2, new OsmNodeNamed( mwp.crosspoint ), endPos, sameSegmentSearch );
 
     // special case: start+end on same segment
-    if ( sameSegmentSearch )
+    if ( p.cost >= 0 && sameSegmentSearch && endPos != null && endPos.radius < 1.5 )
     {
-      OsmPath pe = getEndPath( n1, p.getLink(), endPos );
-      OsmPath pt = getEndPath( n1, p.getLink(), null );
-      int costdelta = pt.cost - p.cost;
-      if ( pe.cost >= costdelta )
-      {
-    	pe.cost -= costdelta;
-
-    	if ( guideTrack != null )
-    	{
-    	  // nasty stuff: combine the path cause "new OsmPath()" cannot handle start+endpoint
-    	  OsmPathElement startElement = p.originElement;
-          while( startElement.origin != null )
-          {
-            startElement = startElement.origin;
-          }
-    	  if ( pe.originElement.cost > costdelta )
-    	  {
-    	    OsmPathElement e = pe.originElement;
-       	    while( e.origin != null && e.origin.cost > costdelta )
-    	    {
-    	      e = e.origin;
-    	      e.cost -= costdelta;
-    	    }
-    	    e.origin = startElement;
-    	  }
-    	  else
-    	  {
-    	    pe.originElement = startElement;
-    	  }
-    	}
-    	  pe.treedepth = 0; // hack: mark for the final-check
-        return pe;
-      }
+     p.treedepth = 0; // hack: mark for the final-check
     }
     return p;
   }
 
 
 
-  private OsmPath getStartPath( OsmNode n1, OsmNode n2, OsmNodeNamed wp, OsmNodeNamed endPos )
+  private OsmPath getStartPath( OsmNode n1, OsmNode n2, OsmNodeNamed wp, OsmNodeNamed endPos, boolean sameSegmentSearch )
   {
     try
     {
-      routingContext.setWaypoint( wp, false );
+      routingContext.setWaypoint( wp, sameSegmentSearch ? endPos : null, false );
       OsmPath bestPath = null;
       OsmLink bestLink = null;
       OsmLink startLink = new OsmLink( null, n1 );
@@ -650,7 +642,7 @@ public class RoutingEngine extends Thread
         if ( nextNode == n1 ) continue; // ?
         if ( nextNode != n2 ) continue; // just that link
 
-         wp.radius = 1e9;
+         wp.radius = 1.5;
          OsmPath testPath = routingContext.createPath( startPath, link, null, guideTrack != null );
          testPath.airdistance = endPos == null ? 0 : nextNode.calcDistance( endPos );
          if ( wp.radius < minradius )
@@ -674,29 +666,15 @@ public class RoutingEngine extends Thread
     }
   }
 
-  private OsmPath getEndPath( OsmNode n1, OsmLink link, OsmNodeNamed wp )
-  {
-    try
-    {
-      if ( wp != null ) routingContext.setWaypoint( wp, true );
-      OsmLink startLink = new OsmLink( null, n1 );
-      OsmPath startPath = routingContext.createPath( startLink );
-      startLink.addLinkHolder( startPath, null );
-
-      if ( wp != null ) wp.radius = 1.5;
-
-      return routingContext.createPath( startPath, link, null, guideTrack != null );
-    }
-    finally
-    {
-      if ( wp != null ) routingContext.unsetWaypoint();
-    }
-  }
-
   private OsmTrack findTrack( String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack, boolean fastPartialRecalc )
   {
     try
     {
+      List<OsmNode> wpts2 = new ArrayList<OsmNode>();
+      if ( startWp != null ) wpts2.add( startWp.waypoint );
+      if ( endWp != null ) wpts2.add( endWp.waypoint );
+      routingContext.cleanNogoList(wpts2);
+    
       boolean detailed = guideTrack != null;
       resetCache( detailed );
       nodesCache.nodesMap.cleanupMode = detailed ? 0 : ( routingContext.considerTurnRestrictions ? 2 : 1 );
@@ -704,6 +682,7 @@ public class RoutingEngine extends Thread
     }
     finally
     {
+      routingContext.restoreNogoList();
       nodesCache.clean( false ); // clean only non-virgin caches
     }
   }
@@ -978,13 +957,16 @@ public class RoutingEngine extends Thread
         ((OsmPath)linkHolder).airdistance = -1; // invalidate the entry in the open set;
       }
 
-      boolean isBidir = currentLink.isBidirectional();
-      sourceNode.unlinkLink ( currentLink );
-
-      // if the counterlink is alive and does not yet have a path, remove it
-      if ( isBidir && currentLink.getFirstLinkHolder( currentNode ) == null && !routingContext.considerTurnRestrictions )
+      if ( path.treedepth > 1 )
       {
-        currentNode.unlinkLink(currentLink);
+        boolean isBidir = currentLink.isBidirectional();
+        sourceNode.unlinkLink( currentLink );
+
+        // if the counterlink is alive and does not yet have a path, remove it
+        if ( isBidir && currentLink.getFirstLinkHolder( currentNode ) == null && !routingContext.considerTurnRestrictions )
+        {
+          currentNode.unlinkLink( currentLink );
+        }
       }
 
       // recheck cutoff before doing expensive stuff
@@ -1116,7 +1098,8 @@ public class RoutingEngine extends Thread
             OsmLinkHolder dominator = link.getFirstLinkHolder( currentNode );
             while( !trafficSim && dominator != null )
             {
-              if ( bestPath.definitlyWorseThan( (OsmPath)dominator, routingContext ) )
+              OsmPath dp = (OsmPath)dominator;
+              if ( dp.airdistance != -1 && bestPath.definitlyWorseThan( dp, routingContext ) )
               {
                 break;
               }

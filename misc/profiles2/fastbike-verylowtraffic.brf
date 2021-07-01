@@ -16,7 +16,7 @@
 ---context:global   # following code refers to global config
 
 # to generate turn instructions, adapt the mode by need 
-assign   turnInstructionMode  1   # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style
+assign   turnInstructionMode  1   # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style
 
 # Use the following switches to change behaviour
 # (1=yes, 0=no):
@@ -136,15 +136,15 @@ assign onewaypenalty =
 assign surfacepenalty
  switch highway=unclassified|service|track|road|path|footway|cycleway
         switch surface=asphalt                                       0
-        switch surface=paved switch smoothness=good|excellent        0  0.1   # befestigte(harte)Oberfl‰sche
+        switch surface=paved switch smoothness=good|excellent        0  0.1   # befestigte(harte)Oberfl√§che
         switch concrete=plates                                       1        # Betonplattenwege
         switch surface=concrete|paving_stones|wood|metal             0.7      # Beton, Pflastersteine, Holz, Metall
         switch surface=cobblestone                                   2        # Kopfsteinpflaster
         switch concrete=lanes                                        3        # Betonspurplatten
-        switch surface=fine_gravel|compacted                         4        # Splitt,verdichtete Oberfl‰sche  
+        switch surface=fine_gravel|compacted                         4        # Splitt,verdichtete Oberfl√§che  
         switch surface=sett|grass_paver                              5        # behauene Pflastersteine, Rasengittersteine 
         switch surface=gravel|sand|pebblestone|unpaved               10       # Schotter, Sand, Kies, unbefestigt
-        switch surface=ground|grass|dirt|earth|mud|clay              25       # naturbelassene Oberfl‰sche, Gras, Schutz Schlamm...
+        switch surface=ground|grass|dirt|earth|mud|clay              25       # naturbelassene Oberfl√§che, Gras, Schutz Schlamm...
 # if "surface" is not defined, for service and road asphalt is probable
         switch surface= 
                switch highway=service|road                           0.1 
@@ -331,6 +331,8 @@ assign classifiermask
                       add multiply islinktype     8
                           multiply isgoodforcars 16
 
+# include `smoothness=` tags in the response's WayTags for track analysis
+assign dummyUsage = smoothness=
 
 ---context:node  # following code refers to node tags
 
