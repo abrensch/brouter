@@ -2,7 +2,6 @@ plugins {
     id 'application'
 }
 
-version = '1.6.1'
 
 application {
     // Gradles 'application' plugin requires one main class; since we have multiple ones, just specify
