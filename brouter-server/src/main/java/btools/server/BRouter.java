@@ -9,6 +9,7 @@ import java.util.List;
 import java.io.File;
 
 import btools.router.OsmNodeNamed;
+import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
 import btools.router.SearchBoundary;
@@ -89,7 +90,7 @@ public class BRouter
       }
       System.exit(0);
     }
-    System.out.println("BRouter 1.6.1 / 01032020");
+    System.out.println("BRouter "+ OsmTrack.version + " / " + OsmTrack.versionDate);
     if ( args.length < 6 )
     {
       System.out.println("Find routes in an OSM map");

@@ -327,7 +327,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
 
   public static void main(String[] args) throws Exception
   {
-        System.out.println("BRouter 1.6.1 / 01032020");
+        System.out.println("BRouter " + OsmTrack.version + " / " + OsmTrack.versionDate);
         if ( args.length != 5 && args.length != 6)
         {
           System.out.println("serve BRouter protocol");

@@ -11,11 +11,11 @@ android {
         targetSdkVersion 30
 
         versionCode 41
-        versionName version
+        versionName project.version
 
+        resValue('string', 'app_version', defaultConfig.versionName)
         setProperty("archivesBaseName","BRouterApp." + defaultConfig.versionName)
 
-        //testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
 	if(project.hasProperty("RELEASE_STORE_FILE")) {

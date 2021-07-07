@@ -33,6 +33,9 @@ import btools.util.StringUtils;
 
 public final class OsmTrack
 {
+  final public static String version = "1.6.1";
+  final public static String versionDate = "01032020";
+
   // csv-header-line
   private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy";
 
@@ -444,7 +447,7 @@ public final class OsmTrack
     }
     else
     {
-      sb.append( " creator=\"BRouter-1.6.1\" version=\"1.1\">\n" );
+      sb.append( " creator=\"BRouter-" + version + "\" version=\"1.1\">\n" );
     }
 
     if ( turnInstructionMode == 3) // osmand style
@@ -732,7 +735,7 @@ public final class OsmTrack
     sb.append( "    {\n" );
     sb.append( "      \"type\": \"Feature\",\n" );
     sb.append( "      \"properties\": {\n" );
-    sb.append( "        \"creator\": \"BRouter-1.1\",\n" );
+    sb.append( "        \"creator\": \"BRouter-" + version + "\",\n" );
     sb.append( "        \"name\": \"" ).append( name ).append( "\",\n" );
     sb.append( "        \"track-length\": \"" ).append( distance ).append( "\",\n" );
     sb.append( "        \"filtered ascend\": \"" ).append( ascend ).append( "\",\n" );
