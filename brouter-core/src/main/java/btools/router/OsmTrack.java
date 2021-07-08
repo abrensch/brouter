@@ -45,6 +45,7 @@ public final class OsmTrack
   public boolean isDirty;
 
   public boolean showspeed;
+  public boolean showSpeedProfile;
 
   public List<OsmNodeNamed> pois = new ArrayList<OsmNodeNamed>();
 
@@ -61,8 +62,6 @@ public final class OsmTrack
   private CompactLongMap<OsmPathElementHolder> detourMap;
 
   private VoiceHintList voiceHints;
-
-  private boolean sendSpeedProfile;
 
   public String message = null;
   public ArrayList<String> messageList = null;
@@ -368,7 +367,7 @@ public final class OsmTrack
     energy += t.energy;
 
     showspeed |= t.showspeed;
-    sendSpeedProfile |= t.sendSpeedProfile;
+    showSpeedProfile |= t.showSpeedProfile;
   }
 
   public int distance;
@@ -766,7 +765,7 @@ public final class OsmTrack
       sb.deleteCharAt( sb.lastIndexOf( "," ) );
       sb.append( "        ],\n" );
     }
-    if ( sendSpeedProfile ) // true if vmax was send
+    if ( showSpeedProfile ) // set in profile
     {
       ArrayList<String> sp = aggregateSpeedProfile();
       if ( sp.size() > 0 )
@@ -779,7 +778,7 @@ public final class OsmTrack
         sb.append( "        ],\n" );
       }
     }
-    else // ... otherwise traditional message list
+    //  ... traditional message list
     {
       sb.append( "        \"messages\": [\n" );
       sb.append( "          [\"" ).append( MESSAGES_HEADER.replaceAll( "\t", "\", \"" ) ).append( "\"],\n" );
@@ -826,17 +825,17 @@ public final class OsmTrack
       String sele = n.getSElev() == Short.MIN_VALUE ? "" : ", " + n.getElev();
       if ( showspeed ) // hack: show speed instead of elevation
       {
-        int speed = 0;
+        double speed = 0;
         if ( nn != null )
         {
           int dist = n.calcDistance( nn );
           float dt = n.getTime()-nn.getTime();
           if ( dt != 0.f )
           {
-            speed = (int)((3.6f*dist)/dt + 0.5);
+            speed = ((3.6f*dist)/dt + 0.5);
           }
         }
-        sele = ", " + speed;
+        sele = ", " + (((int)(speed*10))/10.f);
       }
       sb.append( "          [" ).append( formatILon( n.getILon() ) ).append( ", " ).append( formatILat( n.getILat() ) )
           .append( sele ).append( "],\n" );
@@ -1058,7 +1057,7 @@ public final class OsmTrack
 
   public void prepareSpeedProfile( RoutingContext rc )
   {
-    sendSpeedProfile = rc.keyValues != null && rc.keyValues.containsKey( "vmax" );
+    // sendSpeedProfile = rc.keyValues != null && rc.keyValues.containsKey( "vmax" );
   }
 
   public void processVoiceHints( RoutingContext rc )

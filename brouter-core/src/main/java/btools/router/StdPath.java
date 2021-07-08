@@ -252,16 +252,17 @@ final class StdPath extends OsmPath
     if (rc.footMode || rc.expctxWay.getCostfactor() > 4.9 )
     {
       // Use Tobler's hiking function for walking sections
-      speed = 6 * FastMath.exp(-3.5 * Math.abs( incline + 0.05)) / 3.6;
+      speed = rc.maxSpeed * 3.6;
+      speed = (speed * FastMath.exp(-3.5 * Math.abs( incline + 0.05))) / 3.6;
     }
     else if (rc.bikeMode)
     {
       speed = solveCubic( rc.S_C_x, f_roll, rc.bikerPower );
       speed = Math.min(speed, wayMaxspeed);
     }
-    else
+    else // all other
     {
-      return;
+      speed = wayMaxspeed;
     }
     float dt = (float) ( dist / speed );
     totalTime += dt;
