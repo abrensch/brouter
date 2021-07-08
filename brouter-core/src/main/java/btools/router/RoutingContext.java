@@ -166,6 +166,7 @@ public final class RoutingContext
     trafficSourceMinDist      = expctxGlobal.getVariableValue( "trafficSourceMinDist", 3000.f );
 
     showspeed = 0.f != expctxGlobal.getVariableValue( "showspeed", 0.f );
+    showSpeedProfile = 0.f != expctxGlobal.getVariableValue( "showSpeedProfile", 0.f );
     inverseRouting = 0.f != expctxGlobal.getVariableValue( "inverseRouting", 0.f );
 
     int tiMode = (int)expctxGlobal.getVariableValue( "turnInstructionMode", 0.f );
@@ -180,7 +181,11 @@ public final class RoutingContext
     // Total mass (biker + bike + luggages or hiker), in kg
     totalMass = expctxGlobal.getVariableValue( "totalMass", 90.f );
     // Max speed (before braking), in km/h in profile and m/s in code
-    maxSpeed = expctxGlobal.getVariableValue( "maxSpeed", 45.f ) / 3.6;
+    if (footMode) {
+      maxSpeed = expctxGlobal.getVariableValue( "maxSpeed", 6.f ) / 3.6;
+    } else {
+      maxSpeed = expctxGlobal.getVariableValue( "maxSpeed", 45.f ) / 3.6;
+    }
     // Equivalent surface for wind, S * C_x, F = -1/2 * S * C_x * v^2 = - S_C_x * v^2
     S_C_x = expctxGlobal.getVariableValue( "S_C_x", 0.5f * 0.45f );
     // Default resistance of the road, F = - m * g * C_r (for good quality road)
@@ -223,6 +228,7 @@ public final class RoutingContext
   public double trafficSourceMinDist;
 
   public boolean showspeed;
+  public boolean showSpeedProfile;
   public boolean inverseRouting;
 
   public OsmPrePath firstPrePath;

@@ -916,6 +916,7 @@ public class RoutingEngine extends Thread
           logInfo( "found track at cost " + path.cost +  " nodesVisited = " + nodesVisited );
           OsmTrack t = compileTrack( path, verbose );
           t.showspeed = routingContext.showspeed;
+          t.showSpeedProfile = routingContext.showSpeedProfile;
           return t;
         }
 
