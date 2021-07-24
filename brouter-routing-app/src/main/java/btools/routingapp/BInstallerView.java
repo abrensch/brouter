@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Locale;
 
 import android.app.Activity;
 import android.content.Context;
@@ -20,6 +21,7 @@ import android.graphics.Paint;
 import android.os.AsyncTask;
 import android.os.PowerManager;
 import android.os.StatFs;
+import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
@@ -73,6 +75,10 @@ public class BInstallerView extends View
     private long rd5Tiles = 0;
     private long delTiles = 0;
 
+    Paint pnt_1 = new Paint();
+    Paint pnt_2 = new Paint();
+    Paint paint = new Paint();
+
     protected String baseNameForTile( int tileIndex )
     {
       int lon = (tileIndex % 72 ) * 5 - 180;
@@ -89,15 +95,15 @@ public class BInstallerView extends View
     
     private int tileForBaseName( String basename )
     {
-      String uname = basename.toUpperCase();	
+      String uname = basename.toUpperCase(Locale.ROOT);
       int idx = uname.indexOf( "_" );
       if ( idx < 0 ) return -1;
       String slon = uname.substring( 0, idx ); 
       String slat = uname.substring( idx+1 );
-      int ilon = slon.charAt(0) == 'W' ? -Integer.valueOf( slon.substring(1) ) :
-    	       ( slon.charAt(0) == 'E' ?  Integer.valueOf( slon.substring(1) ) : -1 );
-      int ilat = slat.charAt(0) == 'S' ? -Integer.valueOf( slat.substring(1) ) :
-	           ( slat.charAt(0) == 'N' ?  Integer.valueOf( slat.substring(1) ) : -1 );
+      int ilon = slon.charAt(0) == 'W' ? -Integer.parseInt( slon.substring(1) ) :
+    	       ( slon.charAt(0) == 'E' ?  Integer.parseInt( slon.substring(1) ) : -1 );
+      int ilat = slat.charAt(0) == 'S' ? -Integer.parseInt( slat.substring(1) ) :
+	           ( slat.charAt(0) == 'N' ?  Integer.parseInt( slat.substring(1) ) : -1 );
       if ( ilon < -180 || ilon >= 180 || ilon % 5 != 0 ) return -1;
       if ( ilat < - 90 || ilat >=  90 || ilat % 5 != 0 ) return -1;
       return (ilon+180) / 5 + 72*((ilat+90)/5);
@@ -236,7 +242,7 @@ public class BInstallerView extends View
       try
       {
         StatFs stat = new StatFs(baseDir.getAbsolutePath ());
-        availableSize = (long)stat.getAvailableBlocks()*stat.getBlockSize();
+        availableSize = (long)stat.getAvailableBlocksLong()*stat.getBlockSizeLong();
       }
       catch (Exception e) { /* ignore */ }
     }
@@ -339,7 +345,6 @@ public class BInstallerView extends View
           if ( drawGrid )
           {
                 
-              Paint pnt_1 = new Paint();
               pnt_1.setColor(Color.GREEN);
             
               for( int ix=1; ix<72; ix++ )
@@ -358,7 +363,7 @@ public class BInstallerView extends View
           totalSize = 0;
               int mask2 = MASK_SELECTED_RD5 | MASK_DELETED_RD5 | MASK_INSTALLED_RD5;
               int mask3 = mask2 | MASK_CURRENT_RD5;
-              Paint pnt_2 = new Paint();
+
               pnt_2.setColor(Color.GRAY);
               pnt_2.setStrokeWidth(1);
               drawSelectedTiles( canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5, mask3, false, false, drawGrid );
@@ -377,7 +382,6 @@ public class BInstallerView extends View
 
         	canvas.setMatrix( matText );
 
-            Paint paint = new Paint();
             paint.setColor(Color.RED);
 
             long mb = 1024*1024;
@@ -408,7 +412,8 @@ public class BInstallerView extends View
             if ( isDownloading ) btnText = "Cancel Download";
             else if ( delTiles > 0 ) btnText = "Delete " + delTiles + " tiles";
             else if ( rd5Tiles > 0 ) btnText = "Start Download";
-            
+            else if ( tilesVisible && rd5Tiles == 0) btnText = "Update all";
+
             if ( btnText != null )
             {
               canvas.drawLine( imgw-btnw, imgh-btnh, imgw-btnw, imgh-2, paint);
@@ -482,7 +487,7 @@ float tx, ty;
 
         @Override
         public boolean onTouchEvent(MotionEvent event) {
-        	
+
             // get pointer index from the event object
             int pointerIndex = event.getActionIndex();
 
@@ -569,8 +574,23 @@ float tx, ty;
               	}
             	
                 // download button?
-              if ( ( delTiles  > 0 || rd5Tiles  > 0 || isDownloading ) && event.getX() > imgwOrig - btnw*scaleOrig && event.getY() > imghOrig-btnh*scaleOrig )
+              if ( ( delTiles  > 0 || rd5Tiles  >= 0 || isDownloading ) && event.getX() > imgwOrig - btnw*scaleOrig && event.getY() > imghOrig-btnh*scaleOrig )
             	{
+                    if (rd5Tiles == 0) {
+                        for ( int ix = 0; ix < 72; ix++ )
+                        {
+                            for ( int iy = 0; iy < 36; iy++ )
+                            {
+                                int tidx = gridPos2Tileindex( ix, iy );
+                                if (tidx != -1) {
+                                    if ( ( tileStatus[tidx] & MASK_INSTALLED_RD5 ) != 0 ) {
+                                        tileStatus[tidx] |= MASK_SELECTED_RD5;
+                                    }
+                                }
+
+                            }
+                        }
+                    }
             		toggleDownload();
                 	invalidate();
             		break;
@@ -731,7 +751,7 @@ float tx, ty;
                     tmp_file = new File( fname.getAbsolutePath() + ( delta ? "_diff" : "_tmp" ) );
                     output = new FileOutputStream( tmp_file );
 
-                    byte data[] = new byte[4096];
+                    byte[] data = new byte[4096];
                     long total = 0;
                     long t0 = System.currentTimeMillis();
                     int count;

@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.zip.GZIPOutputStream;
 import java.util.ArrayList;
 
@@ -68,9 +69,24 @@ public class BRouterService extends Service
          remoteProfile = checkForTestDummy( baseDir );
       }
 
-      String errMsg = remoteProfile == null
-          ? getConfigFromMode( worker, baseDir, params.getString( "v" ), params.getString( "fast" ) )
-          : getConfigForRemoteProfile( worker, baseDir, remoteProfile );
+      String errMsg = null;
+      if (remoteProfile != null ) {
+        errMsg = getConfigForRemoteProfile(worker, baseDir, remoteProfile);
+      } else if (params.containsKey("profile")) {
+        String profile = params.getString( "profile" );
+        worker.profileName = profile;
+        worker.profilePath = baseDir + "/brouter/profiles2/" + profile + ".brf";
+        worker.rawTrackPath  = baseDir + "/brouter/modes/" + profile + "_rawtrack.dat";
+        if (!new File(worker.profilePath).exists()) errMsg = "Profile " + profile + " does not exists";
+        try {
+          readNogos(worker, baseDir);
+        } catch (Exception e) {
+          errMsg = e.getLocalizedMessage();
+        }
+      }
+      else {
+        errMsg = getConfigFromMode(worker, baseDir, params.getString("v"), params.getString("fast"));
+      }
 
       if ( errMsg != null )
       {
@@ -131,24 +147,8 @@ public class BRouterService extends Service
           worker.profilePath = baseDir + "/brouter/profiles2/" + smc.profile + ".brf";
           worker.rawTrackPath = baseDir + "/brouter/modes/" + mode_key + "_rawtrack.dat";
 
-          worker.nogoList = new ArrayList<OsmNodeNamed>();
+          readNogos(worker, baseDir);
 
-          int deviceLevel = android.os.Build.VERSION.SDK_INT;
-          int targetSdkVersion = getApplicationInfo().targetSdkVersion;
-          boolean canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 10;
-          AppLogger.log( "dev/target=" + deviceLevel + "/" + targetSdkVersion + " canAccessSdCard=" + canAccessSdCard );
-          if ( canAccessSdCard )
-          {
-            CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir, true );
-            // veto nogos by profiles veto list
-            for ( OsmNodeNamed nogo : cor.nogopoints )
-            {
-              if ( !smc.nogoVetos.contains( nogo.ilon + "," + nogo.ilat ) )
-              {
-                worker.nogoList.add( nogo );
-              }
-            }
-          }
           return null;
         }
       }
@@ -175,20 +175,7 @@ public class BRouterService extends Service
 
       try
       {
-        // add nogos from waypoint database
-        int deviceLevel =  android.os.Build.VERSION.SDK_INT;
-        int targetSdkVersion = getApplicationInfo().targetSdkVersion;
-        boolean canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 10;
-        AppLogger.log( "dev/target=" + deviceLevel + "/" + targetSdkVersion + " canAccessSdCard=" + canAccessSdCard );
-        if ( canAccessSdCard )
-        {
-          CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir, true );
-          worker.nogoList = new ArrayList<OsmNodeNamed>( cor.nogopoints );
-        }
-        else
-        {
-          worker.nogoList = new ArrayList<OsmNodeNamed>();
-        }
+        readNogos(worker, baseDir);
 
         if ( !fileEqual( profileBytes, profileFile ) )
         {
@@ -210,6 +197,34 @@ public class BRouterService extends Service
       }
       return null;
     }
+
+    private void readNogos(BRouterWorker worker, String baseDir) throws Exception {
+      // add nogos from waypoint database
+      int deviceLevel =  android.os.Build.VERSION.SDK_INT;
+      int targetSdkVersion = getApplicationInfo().targetSdkVersion;
+      boolean canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 10;
+      AppLogger.log( "dev/target=" + deviceLevel + "/" + targetSdkVersion + " canAccessSdCard=" + canAccessSdCard );
+      if ( canAccessSdCard )
+      {
+        CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir, true );
+        worker.nogoList = new ArrayList<OsmNodeNamed>( cor.nogopoints );
+        worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
+      }
+      else if (deviceLevel >= android.os.Build.VERSION_CODES.Q)  {
+        CoordinateReader cor = new CoordinateReaderInternal( baseDir );
+        cor.readFromTo();
+
+        worker.nogoList = new ArrayList<OsmNodeNamed>( cor.nogopoints );
+        worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
+      }
+      else
+      {
+        worker.nogoList = new ArrayList<OsmNodeNamed>();
+        worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
+      }
+
+    }
+
 
     private boolean fileEqual( byte[] fileBytes, File file ) throws Exception
     {
