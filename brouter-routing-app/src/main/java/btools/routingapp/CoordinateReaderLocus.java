@@ -21,8 +21,11 @@ public class CoordinateReaderLocus extends CoordinateReader
   @Override
   public long getTimeStamp() throws Exception
   {
-    long t1 = new File( basedir + "/Locus/data/database/waypoints.db" ).lastModified();
-    return t1;
+    File f = new File( basedir + "/Locus/data/database/waypoints.db" );
+    long t1 = f.lastModified();
+    // Android 10 delivers file size but can't read it
+    boolean canRead = f.canRead();
+    return canRead ? t1 : 0L;
   }
 
   @Override
@@ -43,9 +46,19 @@ public class CoordinateReaderLocus extends CoordinateReader
 
   private void _readPointmap( String filename ) throws Exception
   {
-    SQLiteDatabase myDataBase = SQLiteDatabase.openDatabase( filename, null, SQLiteDatabase.OPEN_READONLY);
+    SQLiteDatabase myDataBase = null;
+    try {
+      myDataBase = SQLiteDatabase.openDatabase( filename, null, SQLiteDatabase.OPEN_READONLY);
+    } catch (Exception e) {
+      // not open, do not produce an error
+      return;
+    }
     
     Cursor c = myDataBase.rawQuery("SELECT c.name, w.name, w.longitude, w.latitude FROM waypoints w, categories c where w.parent_id = c._id", null);
+    if (c.getCount() == 0) {
+      c.close();
+      c = myDataBase.rawQuery("SELECT c.name, w.name, w.longitude, w.latitude FROM waypoints w, groups c where w.parent_id = c._id;", null );
+    }
     while (c.moveToNext())
     {
       OsmNodeNamed n = new OsmNodeNamed();
@@ -55,6 +68,7 @@ public class CoordinateReaderLocus extends CoordinateReader
       n.ilat = (int)( ( c.getDouble(3)  + 90. )*1000000. + 0.5);
       checkAddPoint( category, n );
     }
+    c.close();
     myDataBase.close();
   }
 }

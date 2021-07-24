@@ -798,6 +798,13 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     return result;
   }
 
+  public void setVariableValue(String name, float value, boolean create ) {
+    Integer num = variableNumbers.get( name );
+    if ( num != null )
+    {
+      variableData[num.intValue()] = value;
+    }
+  }
 
   public float getVariableValue( String name, float defaultValue )
   {
