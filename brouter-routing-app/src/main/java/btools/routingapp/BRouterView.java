@@ -28,6 +28,7 @@ import android.content.res.AssetManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.os.Build;
 import android.os.Environment;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -181,7 +182,7 @@ public class BRouterView extends View
       String basedir = baseDir.getAbsolutePath();
       AppLogger.log( "using basedir: " + basedir );
 
-      String version = "v1.6.1";
+      String version = "v" + getContext().getString(R.string.app_version);
 
       // create missing directories
       assertDirectoryExists( "project directory", new File (basedir, "brouter"), null, null );
@@ -198,6 +199,9 @@ public class BRouterView extends View
       assertDirectoryExists( "modes directory", modesDir, "modes.zip", version );
       assertDirectoryExists( "readmes directory", new File (basedir, "brouter/readmes"), "readmes.zip", version );
 
+      File inputDir = new File (basedir, "/import");
+      assertDirectoryExists( "input directory", inputDir, null, version );
+
       int deviceLevel =  android.os.Build.VERSION.SDK_INT;
       int targetSdkVersion = getContext().getApplicationInfo().targetSdkVersion;
       canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 10;
@@ -207,7 +211,11 @@ public class BRouterView extends View
       }
       else
       {
-        cor = new CoordinateReaderNone();
+        if (deviceLevel >= android.os.Build.VERSION_CODES.Q) {
+          cor = new CoordinateReaderInternal(basedir);
+        } else {
+          cor = new CoordinateReaderNone();
+        }
         cor.readFromTo();
       }
       
@@ -342,7 +350,7 @@ public class BRouterView extends View
   {
     for ( int i = nogoList.size() - 1; i >= 0; i-- )
     {
-      if ( !enabled[i] )
+      if ( enabled[i] )
       {
         nogoVetoList.add( nogoList.get( i ) );
         nogoList.remove( i );
@@ -830,7 +838,7 @@ public class BRouterView extends View
         else
         {
           String memstat =  memoryClass + "mb pathPeak " + ((cr.getPathPeak()+500)/1000) + "k";
-          String result = "version = BRouter-1.6.1\n" + "mem = " + memstat + "\ndistance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
+          String result = "version = BRouter-" + getContext().getString(R.string.app_version) + "\n" + "mem = " + memstat + "\ndistance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
               + " m\n" + "plain ascend = " + cr.getPlainAscend() + " m\n" + "estimated time = " + cr.getTime();
 
           rawTrack = cr.getFoundRawTrack();
@@ -1044,7 +1052,8 @@ public class BRouterView extends View
     // no write new config
     BufferedWriter bw = null;
     StringBuilder msg = new StringBuilder( "Mode mapping is now:\n" );
-    msg.append( "( [..] counts nogo-vetos)\n" );
+    msg.append("( [");
+    msg.append(nogoVetoList.size()>0?nogoVetoList.size():"..").append( "] counts nogo-vetos)\n" );
     try
     {
       bw = new BufferedWriter( new FileWriter( modesFile ) );
@@ -1086,7 +1095,12 @@ public class BRouterView extends View
   }
 
   private ArrayList<File> getStorageDirectories () {
-    ArrayList<File> list = new ArrayList<File>(Arrays.asList(getContext().getExternalFilesDirs(null)));
+    ArrayList<File> list = null;
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+      list = new ArrayList<File>(Arrays.asList(getContext().getExternalMediaDirs()));
+    } else {
+      list = new ArrayList<File>(Arrays.asList(getContext().getExternalFilesDirs(null)));
+    }
     ArrayList<File> res = new ArrayList<File>();
 
     for (File f : list) {

@@ -19,5 +19,4 @@ misc/customprofiles
 *.BAK
 .classpath
 .project
-*.iml
 !/.idea/runConfigurations

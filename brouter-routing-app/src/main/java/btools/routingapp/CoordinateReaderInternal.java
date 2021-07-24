@@ -1,14 +1,19 @@
 package btools.routingapp;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import android.graphics.Point;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
 import btools.router.OsmNodeNamed;
 import btools.router.OsmNogoPolygon;
@@ -16,46 +21,44 @@ import btools.router.OsmNogoPolygon;
 /**
  * Read coordinates from a gpx-file
  */
-public class CoordinateReaderOsmAnd extends CoordinateReader
+public class CoordinateReaderInternal extends CoordinateReader
 {
-  private String osmandDir;
+  private String internalDir;
 
-  public CoordinateReaderOsmAnd( String basedir )
+  public CoordinateReaderInternal(String basedir )
   {
     this( basedir, false );
   }
 
-  public CoordinateReaderOsmAnd( String basedir, boolean shortPath )
+  public CoordinateReaderInternal(String basedir, boolean shortPath )
   {
     super( basedir );
     if ( shortPath )
     {
-      osmandDir = basedir;
+      internalDir = basedir;
       tracksdir = "/tracks";
       rootdir = "";
     }
     else
     {
-      osmandDir = basedir + "/osmand";
-      tracksdir = "/osmand/tracks";
-      rootdir = "/osmand";
+      internalDir = basedir + "/import";
+      tracksdir = "/import/tracks";
+      rootdir = "/import";
     }
   }
 
   @Override
   public long getTimeStamp() throws Exception
   {
-    File f1 = new File( osmandDir + "/favourites_bak.gpx" );
-    File f2 = new File( osmandDir + "/favourites.gpx" );
-    long t1 = f1.canRead()?f1.lastModified():0L;
-    long t2 = f2.canRead()?f2.lastModified():0L;
+    long t1 = new File( internalDir + "/favourites_bak.gpx" ).lastModified();
+    long t2 = new File( internalDir + "/favourites.gpx" ).lastModified();
     return t1 > t2 ? t1 : t2;
   }
 
   @Override
   public int getTurnInstructionMode()
   {
-    return 3; // osmand style
+    return 4; // comment style
   }
 
   /*
@@ -65,14 +68,10 @@ public class CoordinateReaderOsmAnd extends CoordinateReader
   @Override
   public void readPointmap() throws Exception
   {
-    try
-    {
-      _readPointmap( osmandDir + "/favourites_bak.gpx" );
+    if (! _readPointmap( internalDir + "/favourites_bak.gpx" ) ) {
+        _readPointmap( internalDir + "/favourites.gpx" );
     }
-    catch( Exception e )
-    {
-      _readPointmap( osmandDir + "/favourites.gpx" );
-    }
+
     try
     {
       _readNogoLines( basedir+tracksdir );
@@ -82,24 +81,30 @@ public class CoordinateReaderOsmAnd extends CoordinateReader
     }
   }
 
-  private void _readPointmap( String filename ) throws Exception
+  private boolean _readPointmap( String filename ) throws Exception
   {
-      BufferedReader br = new BufferedReader(
+    BufferedReader br = null;
+    try {
+      br = new BufferedReader(
                            new InputStreamReader(
                             new FileInputStream( filename ) ) );
-      OsmNodeNamed n = null;
+    } catch (FileNotFoundException e) {
+      // ignore until it's reading error
+      return false;
+    }
+    OsmNodeNamed n = null;
 
       for(;;)
       {
         String line = br.readLine();
         if ( line == null ) break;
 
-        int idx0 = line.indexOf( "<wpt lat=\"" );
+        int idx0 = line.indexOf( " lat=\"" );
         int idx10 = line.indexOf( "<name>" );
         if ( idx0 >= 0 )
         {
           n = new OsmNodeNamed();
-          idx0 += 10;
+          idx0 += 6;
           int idx1 = line.indexOf( '"', idx0 );
           n.ilat = (int)( (Double.parseDouble( line.substring( idx0, idx1 ) ) + 90. )*1000000. + 0.5);
           int idx2 = line.indexOf( " lon=\"" );
@@ -107,7 +112,7 @@ public class CoordinateReaderOsmAnd extends CoordinateReader
           idx2 += 6;
           int idx3 = line.indexOf( '"', idx2 );
           n.ilon = (int)( ( Double.parseDouble( line.substring( idx2, idx3 ) ) + 180. )*1000000. + 0.5);
-          continue;
+          if ( idx3 < 0 ) continue;
         }
         if ( n != null && idx10 >= 0 )
         {
@@ -121,6 +126,7 @@ public class CoordinateReaderOsmAnd extends CoordinateReader
         }
       }
       br.close();
+      return true;
   }
   
   private void _readNogoLines( String dirname ) throws IOException
@@ -154,34 +160,47 @@ public class CoordinateReaderOsmAnd extends CoordinateReader
     XmlPullParser xpp = factory.newPullParser();
 
     xpp.setInput(new FileReader(file));
-    OsmNogoPolygon nogo = new OsmNogoPolygon(false);
+
+    List<Point> tmpPts = new ArrayList<Point>();
     int eventType = xpp.getEventType();
     int numSeg = 0;
     while (eventType != XmlPullParser.END_DOCUMENT) {
       switch(eventType) {
       case XmlPullParser.START_TAG: {
-        if (xpp.getName().equals("trkpt")) {
+        if (xpp.getName().equals("trkpt") || xpp.getName().equals("rtept")) {
           final String lon = xpp.getAttributeValue(null,"lon");
           final String lat = xpp.getAttributeValue(null,"lat");
           if (lon != null && lat != null) {
-            nogo.addVertex(
+            tmpPts.add(new Point(
                 (int)( ( Double.parseDouble(lon) + 180. ) *1000000. + 0.5),
-                (int)( ( Double.parseDouble(lat) +  90. ) *1000000. + 0.5));
+                (int)( ( Double.parseDouble(lat) +  90. ) *1000000. + 0.5)) );
           }
         }
         break;
       }
       case XmlPullParser.END_TAG: {
-        if (xpp.getName().equals("trkseg")) {
-          nogo.calcBoundingCircle();
-          final String name = file.getName();
-          nogo.name = name.substring(0, name.length()-4);
-          if (numSeg > 0)
-          {
-            nogo.name += Integer.toString(numSeg+1);
+        if (xpp.getName().equals("trkseg") || xpp.getName().equals("rte")) { // rte has no segment
+          OsmNogoPolygon nogo = null;
+          if (tmpPts.size() >= 0) {
+            if (tmpPts.get(0).x == tmpPts.get(tmpPts.size()-1).x &&
+                tmpPts.get(0).y == tmpPts.get(tmpPts.size()-1).y) {
+               nogo = new OsmNogoPolygon(true);
+            } else {
+              nogo = new OsmNogoPolygon(false);
+            }
+            for (Point p : tmpPts) {
+              nogo.addVertex(p.x, p.y);
+            }
+            nogo.calcBoundingCircle();
+            final String name = file.getName();
+            nogo.name = name.substring(0, name.length() - 4);
+            if (numSeg > 0) {
+              nogo.name += Integer.toString(numSeg + 1);
+            }
+            numSeg++;
+            checkAddPoint("(one-for-all)", nogo);
           }
-          numSeg++;
-          checkAddPoint( "(one-for-all)", nogo );
+          tmpPts.clear();
         }
         break;
       }

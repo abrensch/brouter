@@ -23,6 +23,7 @@ import android.os.PowerManager.WakeLock;
 import android.os.StatFs;
 import android.speech.tts.TextToSpeech.OnInitListener;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.widget.EditText;
 
 import androidx.core.app.ActivityCompat;
@@ -81,10 +82,12 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
   protected Dialog onCreateDialog( int id )
   {
     AlertDialog.Builder builder;
+    builder = new AlertDialog.Builder( this );
+    builder.setCancelable(false);
+
     switch ( id )
     {
     case DIALOG_SELECTPROFILE_ID:
-      builder = new AlertDialog.Builder( this );
       builder.setTitle( "Select a routing profile" );
       builder.setItems( availableProfiles, new DialogInterface.OnClickListener()
       {
@@ -96,22 +99,30 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
       } );
       return builder.create();
     case DIALOG_MAINACTION_ID:
-      builder = new AlertDialog.Builder( this );
       builder.setTitle( "Select Main Action" );
-      builder.setItems( new String[]
-      { "Download Manager", "BRouter App" }, new DialogInterface.OnClickListener()
-      {
-        public void onClick( DialogInterface dialog, int item )
-        {
-          if ( item == 0 )
-            startDownloadManager();
-          else
-            showDialog( DIALOG_SELECTPROFILE_ID );
-        }
-      } );
+      builder
+              .setItems( new String[]
+                { "Download Manager", "BRouter App" }, new DialogInterface.OnClickListener()
+                {
+                  public void onClick( DialogInterface dialog, int item )
+                  {
+                    if ( item == 0 )
+                      startDownloadManager();
+                    else
+                      showDialog( DIALOG_SELECTPROFILE_ID );
+                  }
+                }
+                )
+              .setNegativeButton( "Close", new DialogInterface.OnClickListener()
+                {
+                  public void onClick( DialogInterface dialog, int id )
+                  {
+                    finish();
+                  }
+                }
+              );
       return builder.create();
     case DIALOG_SHOW_DM_INFO_ID:
-      builder = new AlertDialog.Builder( this );
       builder
           .setTitle( "BRouter Download Manager" )
           .setMessage(
@@ -134,7 +145,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
           } );
       return builder.create();
     case DIALOG_SHOW_WP_HELP_ID:
-      builder = new AlertDialog.Builder( this );
       builder
           .setTitle( "No Waypoint Database found" )
           .setMessage(
@@ -160,7 +170,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
           } );
       return builder.create();
     case DIALOG_SHOW_API23_HELP_ID:
-      builder = new AlertDialog.Builder( this );
       builder
           .setTitle( "Android >=6 limitations" )
           .setMessage(
@@ -183,7 +192,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
           } );
       return builder.create();
     case DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID:
-      builder = new AlertDialog.Builder( this );
       builder
           .setTitle( "Successfully prepared a timeout-free calculation" )
           .setMessage(
@@ -199,7 +207,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
           } );
       return builder.create();
     case DIALOG_SHOW_WP_SCANRESULT_ID:
-      builder = new AlertDialog.Builder( this );
       builder
           .setTitle( "Waypoint Database " )
           .setMessage( "Found Waypoint-Database(s) for maptool-dir: " + maptoolDirCandidate
@@ -218,7 +225,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
           } );
       return builder.create();
     case DIALOG_OLDDATAHINT_ID:
-      builder = new AlertDialog.Builder( this );
       builder
           .setTitle( "Local setup needs reset" )
           .setMessage(
@@ -235,7 +241,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
           } );
       return builder.create();
     case DIALOG_ROUTINGMODES_ID:
-      builder = new AlertDialog.Builder( this );
       builder.setTitle( message );
       builder.setMultiChoiceItems( routingModes, routingModesChecked, new DialogInterface.OnMultiChoiceClickListener()
       {
@@ -254,7 +259,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
       } );
       return builder.create();
     case DIALOG_EXCEPTION_ID:
-      builder = new AlertDialog.Builder( this );
       builder.setTitle( "An Error occured" ).setMessage( errorMessage ).setPositiveButton( "OK", new DialogInterface.OnClickListener()
       {
         public void onClick( DialogInterface dialog, int id )
@@ -264,7 +268,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
       } );
       return builder.create();
     case DIALOG_TEXTENTRY_ID:
-      builder = new AlertDialog.Builder( this );
       builder.setTitle( "Enter SDCARD base dir:" );
       builder.setMessage( message );
       final EditText input = new EditText( this );
@@ -280,7 +283,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
       } );
       return builder.create();
     case DIALOG_SELECTBASEDIR_ID:
-      builder = new AlertDialog.Builder( this );
       builder.setTitle( "Choose brouter data base dir:" );
       // builder.setMessage( message );
       builder.setSingleChoiceItems( basedirOptions, 0, new DialogInterface.OnClickListener()
@@ -307,7 +309,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
       } );
       return builder.create();
     case DIALOG_VIASELECT_ID:
-      builder = new AlertDialog.Builder( this );
       builder.setTitle( "Check VIA Selection:" );
       builder.setMultiChoiceItems( availableVias, getCheckedBooleanArray( availableVias.length ), new DialogInterface.OnMultiChoiceClickListener()
       {
@@ -334,7 +335,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
       } );
       return builder.create();
     case DIALOG_NOGOSELECT_ID:
-      builder = new AlertDialog.Builder( this );
       builder.setTitle( "Check NoGo Selection:" );
       String[] nogoNames = new String[nogoList.size()];
       for ( int i = 0; i < nogoList.size(); i++ )
@@ -360,7 +360,7 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
     case DIALOG_SHOWRESULT_ID:
       String leftLabel = wpCount < 0 ? ( wpCount != -2 ? "Exit" : "Help") : ( wpCount == 0 ? "Select from" : "Select to/via" );
       String rightLabel = wpCount < 2 ? ( wpCount == -3 ? "Help" : "Server-Mode" ) : "Calc Route";
-      builder = new AlertDialog.Builder( this );
+
       builder.setTitle( title ).setMessage( errorMessage ).setPositiveButton( leftLabel, new DialogInterface.OnClickListener()
       {
         public void onClick( DialogInterface dialog, int id )
@@ -399,7 +399,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
       } );
       return builder.create();
     case DIALOG_MODECONFIGOVERVIEW_ID:
-      builder = new AlertDialog.Builder( this );
       builder.setTitle( "Success" ).setMessage( message ).setPositiveButton( "Exit", new DialogInterface.OnClickListener()
       {
         public void onClick( DialogInterface dialog, int id )
@@ -409,7 +408,6 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
       } );
       return builder.create();
     case DIALOG_PICKWAYPOINT_ID:
-      builder = new AlertDialog.Builder( this );
       builder.setTitle( wpCount > 0 ? "Select to/via" : "Select from" );
       builder.setItems( availableWaypoints, new DialogInterface.OnClickListener()
       {
