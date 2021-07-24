@@ -123,6 +123,15 @@ public final class RoutingContext
   {
     BExpressionContext expctxGlobal = expctxWay; // just one of them...
 
+    if (keyValues != null) {
+      // add parameter to context
+      for (Map.Entry<String, String> e : keyValues.entrySet()) {
+        float f = Float.parseFloat(e.getValue());
+        expctxWay.setVariableValue(e.getKey(), f, false );
+        expctxNode.setVariableValue(e.getKey(), f, false );
+      }
+    }
+
     setModel( expctxGlobal._modelClass );
 
     downhillcostdiv = (int)expctxGlobal.getVariableValue( "downhillcost", 0.f );
