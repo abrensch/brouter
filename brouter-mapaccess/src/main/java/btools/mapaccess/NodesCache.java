@@ -338,7 +338,7 @@ public final class NodesCache
 
   public void matchWaypointsToNodes( List<MatchedWaypoint> unmatchedWaypoints, double maxDistance, OsmNodePairSet islandNodePairs )
   {
-    waypointMatcher = new WaypointMatcherImpl( unmatchedWaypoints, 250., islandNodePairs );
+    waypointMatcher = new WaypointMatcherImpl( unmatchedWaypoints, maxDistance, islandNodePairs );
     for( MatchedWaypoint mwp : unmatchedWaypoints )
     {
       preloadPosition( mwp.waypoint );

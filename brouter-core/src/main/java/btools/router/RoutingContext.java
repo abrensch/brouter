@@ -79,6 +79,7 @@ public final class RoutingContext
   public double starttimeoffset;
   public boolean transitonly;
 
+  public double waypointCatchingRange;
 
   private void setModel( String className )
   {
@@ -143,6 +144,8 @@ public final class RoutingContext
     carMode = 0.f != expctxGlobal.getVariableValue( "validForCars", 0.f );
     bikeMode = 0.f != expctxGlobal.getVariableValue( "validForBikes", 0.f );
     footMode = 0.f != expctxGlobal.getVariableValue( "validForFoot", 0.f );
+
+    waypointCatchingRange = expctxGlobal.getVariableValue( "waypointCatchingRange", 250.f );
 
     // turn-restrictions used per default for car profiles
     considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue( "considerTurnRestrictions", carMode ? 1.f : 0.f );
