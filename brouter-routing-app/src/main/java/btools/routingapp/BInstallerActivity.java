@@ -6,20 +6,42 @@ import java.util.Set;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.speech.tts.TextToSpeech.OnInitListener;
+import android.util.Log;
 
 public class BInstallerActivity  extends Activity implements OnInitListener {
+
+    public static final String DOWNLOAD_ACTION = "btools.routingapp.download";
 
     private static final int DIALOG_CONFIRM_DELETE_ID = 1;
 
     private BInstallerView mBInstallerView;
     private PowerManager mPowerManager;
     private WakeLock mWakeLock;
+    private DownloadReceiver myReceiver;
+
+
+    public class DownloadReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.hasExtra("txt")) {
+                String txt = intent.getStringExtra("txt");
+                boolean ready = intent.getBooleanExtra("ready", false);
+                mBInstallerView.setState(txt, ready);
+            }
+        }
+    }
+
     
     /** Called when the activity is first created. */
     @Override
@@ -51,6 +73,12 @@ public class BInstallerActivity  extends Activity implements OnInitListener {
          */
         mWakeLock.acquire();
 
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(DOWNLOAD_ACTION);
+
+        myReceiver = new DownloadReceiver();
+        registerReceiver(myReceiver, filter);
+
         // Start the download manager
         mBInstallerView.startInstaller();
     }
@@ -58,6 +86,18 @@ public class BInstallerActivity  extends Activity implements OnInitListener {
     @Override
     protected void onPause() {
         super.onPause();
+
+
+        super.onPause();
+
+        mWakeLock.release();
+
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (myReceiver != null) unregisterReceiver(myReceiver);
         System.exit(0);
     }
 

@@ -452,7 +452,7 @@ public class RoutingEngine extends Thread
   private void matchWaypointsToNodes( List<MatchedWaypoint> unmatchedWaypoints )
   {
     resetCache( false );
-    nodesCache.matchWaypointsToNodes( unmatchedWaypoints, 250., islandNodePairs );
+    nodesCache.matchWaypointsToNodes( unmatchedWaypoints, routingContext.waypointCatchingRange, islandNodePairs );
   }
 
   private OsmTrack searchTrack( MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack )

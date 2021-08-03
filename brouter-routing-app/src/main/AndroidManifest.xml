@@ -8,14 +8,17 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
-        android:icon="@drawable/icon"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
-        android:allowBackup="true">
+        android:allowBackup="false">
         <activity android:name=".BRouterActivity"
             android:label="@string/app_name"
-            android:screenOrientation="portrait" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+            android:exported="true"
+            android:screenOrientation="unspecified" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -24,6 +27,8 @@
         <activity android:name=".BInstallerActivity"
             android:label="@string/app_name"
             android:screenOrientation="landscape"
+            android:launchMode="singleTask"
+            android:exported="true"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         </activity>
         <service
@@ -31,6 +36,11 @@
             android:name=".BRouterService"
             android:enabled="true"
             android:process=":brouter_service" />
+        <service android:name="btools.routingapp.DownloadService"
+            android:label="Download Service"
+            android:icon="@drawable/icon"
+            android:enabled="true"
+            />
 
     </application>
 </manifest>
