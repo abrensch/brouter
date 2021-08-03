@@ -7,10 +7,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Locale;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -23,6 +25,7 @@ import android.os.PowerManager;
 import android.os.StatFs;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
@@ -63,7 +66,7 @@ public class BInstallerView extends View
     private File baseDir;
     
     private boolean isDownloading = false;
-    private volatile boolean downloadCanceled = false;
+    public static boolean downloadCanceled = false;
 
     private long currentDownloadSize;
     private String currentDownloadFile = "";
@@ -78,6 +81,9 @@ public class BInstallerView extends View
     Paint pnt_1 = new Paint();
     Paint pnt_2 = new Paint();
     Paint paint = new Paint();
+    
+    Activity mActivity;
+
 
     protected String baseNameForTile( int tileIndex )
     {
@@ -133,6 +139,7 @@ public class BInstallerView extends View
         int tidx_min = -1;
         int min_size = Integer.MAX_VALUE;
     	
+        ArrayList<Integer> downloadList = new ArrayList<>();
 		// prepare download list
         for( int ix=0; ix<72; ix++ )
         {
@@ -142,6 +149,7 @@ public class BInstallerView extends View
         	      if ( ( tileStatus[tidx] & MASK_SELECTED_RD5 ) != 0 )
         	      {
                     int tilesize = BInstallerSizes.getRd5Size(tidx);
+                    downloadList.add(tidx);
                     if ( tilesize > 0 && tilesize < min_size )
                     {
                       tidx_min = tidx;
@@ -150,28 +158,38 @@ public class BInstallerView extends View
         	      }
             }
         }
-        if ( tidx_min != -1 )
-        {
-          tileStatus[tidx_min] ^= tileStatus[tidx_min] & MASK_SELECTED_RD5;
-          startDownload( tidx_min );
+
+        if (downloadList.size()>0) {
+            isDownloading = true;
+            downloadAll(downloadList);
+            for (Integer i : downloadList) {
+                tileStatus[i.intValue()] ^= tileStatus[i.intValue()] & MASK_SELECTED_RD5;
+            }
+            downloadList.clear();
         }
     }
-    
-    private void startDownload( int tileIndex )
-    {
-      
-    	String namebase = baseNameForTile( tileIndex );
-      String baseurl = "http://brouter.de/brouter/segments4/";
-        currentDownloadFile = namebase + ".rd5";
-        currentDownloadOperation = "Checking";
-        String url = baseurl + currentDownloadFile;
-    	isDownloading = true;
-    	downloadCanceled = false;
-    	currentDownloadSize = 0;
-    	downloadAction = "Connecting... ";
-        final DownloadTask downloadTask = new DownloadTask(getContext());
-        downloadTask.execute( url );
+
+    private void downloadAll(ArrayList<Integer> downloadList) {
+        ArrayList<String> urlparts = new ArrayList<>();
+        for (Integer i: downloadList) {
+            urlparts.add(baseNameForTile( i.intValue() ));
+        }
+
+        currentDownloadOperation = "Start download ...";
+        downloadAction = "";
+        downloadCanceled = false;
+        isDownloading = true;
+
+        //final DownloadBackground downloadTask = new DownloadBackground(getContext(), urlparts, baseDir);
+        //downloadTask.execute(  );
+        Intent intent = new Intent(mActivity, DownloadService.class);
+        intent.putExtra("dir", baseDir.getAbsolutePath()+"/brouter/");
+        intent.putExtra("urlparts", urlparts);
+        mActivity.startService(intent);
+
+        deleteRawTracks(); // invalidate raw-tracks after data update
     }
+
 
     public void downloadDone( boolean success )
     {
@@ -182,6 +200,16 @@ public class BInstallerView extends View
           toggleDownload(); // keep on if no error
     	}
     	invalidate();
+    }
+
+    public void setState(String txt, boolean b) {
+        currentDownloadOperation = txt;
+        downloadAction = "";
+        isDownloading = b;
+        if (!b) {
+            scanExistingFiles();
+        }
+        invalidate();
     }
 
     private int tileIndex( float x, float y )
@@ -300,6 +328,7 @@ public class BInstallerView extends View
 
         public BInstallerView(Context context) {
             super(context);
+            mActivity = (Activity) context;
 
             DisplayMetrics metrics = new DisplayMetrics();
             ((Activity)getContext()).getWindowManager().getDefaultDisplay().getMetrics(metrics);
@@ -314,10 +343,15 @@ public class BInstallerView extends View
             
             imgw = (int)(imgwOrig / scaleOrig);
             imgh = (int)(imghOrig / scaleOrig);
+
+            totalSize = 0;
+            rd5Tiles = 0;
+            delTiles = 0;
         }
 
         @Override
         protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+           super.onSizeChanged(w,h,oldw,oldh);
         }
 
         private void toast( String msg )
@@ -390,10 +424,11 @@ public class BInstallerView extends View
            	{
               String sizeHint = currentDownloadSize > 0 ? " (" + ((currentDownloadSize + mb-1)/mb) + " MB)" : "";
               paint.setTextSize(30);
-              canvas.drawText( currentDownloadOperation +  " " + currentDownloadFile + sizeHint, 30, (imgh/3)*2-30, paint);
+              canvas.drawText( currentDownloadOperation, 30, (imgh/3)*2-30, paint);
+              //  canvas.drawText( currentDownloadOperation +  " " + currentDownloadFile + sizeHint, 30, (imgh/3)*2-30, paint);
               canvas.drawText( downloadAction, 30, (imgh/3)*2, paint);
            	}
-            if ( !tilesVisible )
+            if ( !tilesVisible && !isDownloading)
             {
                 paint.setTextSize(35);
                 canvas.drawText( "Touch region to zoom in!", 30, (imgh/3)*2, paint);
@@ -655,209 +690,7 @@ float tx, ty;
 
             return true;
         }
-        
-        // usually, subclasses of AsyncTask are declared inside the activity class.
-        // that way, you can easily modify the UI thread from here
-        private class DownloadTask extends AsyncTask<String, Integer, String> implements ProgressListener {
 
-            private Context context;
-            private PowerManager.WakeLock mWakeLock;
 
-            public DownloadTask(Context context) {
-                this.context = context;
-            }
 
-            @Override
-            public void updateProgress( String progress )
-            {
-              newDownloadAction = progress;
-              publishProgress( 0 );
-            }
-  
-            @Override
-            public boolean isCanceled()
-            {
-              return isDownloadCanceled();
-            }
-
-              @Override
-            protected String doInBackground(String... sUrls)
-            {
-              InputStream input = null;
-              OutputStream output = null;
-              HttpURLConnection connection = null;
-              String surl = sUrls[0];
-              File fname = null;
-              File tmp_file = null;
-              try
-              {
-                try
-                {
-                    int slidx = surl.lastIndexOf( "segments4/" );
-                    String name = surl.substring( slidx+10 );
-                    String surlBase = surl.substring( 0, slidx+10 );
-                    fname = new File (baseDir, "brouter/segments4/" + name);
-
-                    boolean delta = true;
-
-                    if ( fname.exists() )
-                    {
-                      updateProgress( "Calculating local checksum.." );
-                    
-                      // first check for a delta file
-
-                      String md5 = Rd5DiffManager.getMD5( fname );
-                      String surlDelta = surlBase + "diff/" + name.replace( ".rd5", "/" + md5 + ".df5" );
-                      
-                      URL urlDelta = new URL(surlDelta);
-
-                      updateProgress( "Connecting.." );
-
-                      connection = (HttpURLConnection) urlDelta.openConnection();
-                      connection.connect();
-
-                      // 404 kind of expected here, means there's no delta file
-                      if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND )
-                      {
-                        connection = null;
-                      }
-                    }                   
-                
-                    if ( connection == null )
-                    {                
-                      delta = false;
-                      URL url = new URL(surl);
-                      connection = (HttpURLConnection) url.openConnection();
-                      connection.connect();
-                    }
-                    // expect HTTP 200 OK, so we don't mistakenly save error report
-                    // instead of the file
-                    if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                        return "Server returned HTTP " + connection.getResponseCode()
-                              + " " + connection.getResponseMessage();
-                    }
-
-                    // this will be useful to display download percentage
-                    // might be -1: server did not report the length
-                    int fileLength = connection.getContentLength();
-                    currentDownloadSize = fileLength;
-                    if ( availableSize >= 0 && fileLength > availableSize ) return "not enough space on sd-card";
-
-                    currentDownloadOperation = delta ? "Updating" : "Loading";
-                    
-                    // download the file
-                    input = connection.getInputStream();
-                    
-                    tmp_file = new File( fname.getAbsolutePath() + ( delta ? "_diff" : "_tmp" ) );
-                    output = new FileOutputStream( tmp_file );
-
-                    byte[] data = new byte[4096];
-                    long total = 0;
-                    long t0 = System.currentTimeMillis();
-                    int count;
-                    while ((count = input.read(data)) != -1) {
-                        if (isDownloadCanceled()) {
-                            return "Download canceled!";
-                        }
-                        total += count;
-                        // publishing the progress....
-                        if (fileLength > 0) // only if total length is known
-                        {
-                          int pct = (int) (total * 100 / fileLength);
-                          updateProgress( "Progress " + pct + "%" );
-                        }
-                        else
-                        {
-                          updateProgress( "Progress (unnown size)" );
-                        }
-
-                        output.write(data, 0, count);
-                        
-                        // enforce < 2 Mbit/s
-                        long dt = t0 + total/524 - System.currentTimeMillis();
-                        if ( dt > 0  )
-                        {
-                        	try { Thread.sleep( dt ); } catch( InterruptedException ie ) {}
-                        }
-                    }
-                    output.close();
-                    output = null;
-
-                    if ( delta )
-                    {
-                      updateProgress( "Applying delta.." );
-                      File diffFile = tmp_file;
-                      tmp_file = new File( fname + "_tmp" );
-                      Rd5DiffTool.recoverFromDelta( fname, diffFile, tmp_file, this );
-                      diffFile.delete();
-                    }
-                    if (isDownloadCanceled())
-                    {
-                      return "Canceled!";
-                    }
-                    if ( tmp_file != null )
-                    {
-                      updateProgress( "Verifying integrity.." );
-                      String check_result = PhysicalFile.checkFileIntegrity( tmp_file );
-                      if ( check_result != null ) return check_result;
-
-                      if ( !tmp_file.renameTo( fname ) )
-                      {
-                        return "Could not rename to " + fname.getAbsolutePath();
-                      }
-                      deleteRawTracks(); // invalidate raw-tracks after data update
-                    }
-                    return null;
-                } catch (Exception e) {
-                    return e.toString();
-                } finally {
-                    try {
-                        if (output != null)
-                            output.close();
-                        if (input != null)
-                            input.close();
-                    } catch (IOException ignored) {
-                    }
-
-                    if (connection != null)
-                        connection.disconnect();
-                }
-              }
-              finally
-              {
-               	if ( tmp_file != null ) tmp_file.delete(); // just to be sure
-              }
-            }    
-
-            @Override
-            protected void onPreExecute() {
-                super.onPreExecute();
-                // take CPU lock to prevent CPU from going off if the user 
-                // presses the power button during download
-                PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-                mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, getClass().getName());
-                mWakeLock.acquire();
-            }
-
-            @Override
-            protected void onProgressUpdate(Integer... progress) {
-            	if ( !newDownloadAction.equals( downloadAction ) )
-            	{
-            	  downloadAction = newDownloadAction;
-            	  invalidate();
-            	}
-            }
-
-            @Override
-            protected void onPostExecute(String result) {
-                mWakeLock.release();
-                downloadDone( result == null );
-                
-                if (result != null)
-                    Toast.makeText(context,"Download error: "+result, Toast.LENGTH_LONG).show();
-                else
-                    Toast.makeText(context,"File downloaded", Toast.LENGTH_SHORT).show();
-            }
-        
-        } // download task
-} 
+}
