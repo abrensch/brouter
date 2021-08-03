@@ -64,6 +64,12 @@ app), use
 
 ```
 gradlew clean build -x :brouter-routing-app:build
+
+```
+Then build jars for server and map creator with all dependent classes
+
+```
+gradlew farJar
 ```
 
 
@@ -85,7 +91,7 @@ binary format (rd5) for improved efficiency of BRouter routing.
 #### Download them from brouter.de
 
 Segments files from the whole planet are generated weekly at
-[http://brouter.de/brouter/segments4/](http://brouter.de/brouter/segments4/).
+[https://brouter.de/brouter/segments4/](http://brouter.de/brouter/segments4/).
 
 You can download one or more segments files, covering the area of the planet
 your want to route, into the `misc/segments4` directory.
