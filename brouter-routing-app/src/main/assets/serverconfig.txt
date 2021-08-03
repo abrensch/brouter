@@ -1,0 +1,16 @@
+#
+# data download parameter
+#
+# Keep in mind, when profiles downloaded they overwrite old files
+# So when modifying an original profile make a copy from it
+#
+
+segment_url=https://brouter.de/brouter/segments4/
+lookup_url=https://brouter.de/brouter/segments4/
+profiles_url=https://brouter.de/brouter/segments4/
+
+
+# these are comma separated arrays
+
+check_lookup=lookups.dat
+check_profiles=car-eco.brf,car-fast.brf,dummy.brf,fastbike.brf,fastbike-asia-pacific.brf,fastbike-lowtraffic.brf,moped.brf,shortest.brf,trekking.brf,vm-forum-liegerad-schnell.brf,vm-forum-velomobil-schnell.brf

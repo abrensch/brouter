@@ -4,12 +4,14 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,7 +78,9 @@ public class BRouterView extends View
   private String profileName;
   private String sourceHint;
   private boolean waitingForSelection = false;
+  private boolean waitingForMigration = false;
   private String rawTrackPath;
+  private String oldMigrationPath;
 
   private boolean needsViaSelection;
   private boolean needsNogoSelection;
@@ -124,8 +128,18 @@ public class BRouterView extends View
         File brd = new File( baseDir, "brouter" );
         if ( brd.isDirectory() )
         {
-          startSetup( baseDir, false );
-          return;
+          if (brd.getAbsolutePath().contains("/Android/data/")) {
+            String message = "(previous basedir " + baseDir + " has to migrate )" ;
+
+            ( (BRouterActivity) getContext() ).selectBasedir( getStorageDirectories(), guessBaseDir(), message );
+            waitingForSelection = true;
+            waitingForMigration = true;
+            oldMigrationPath = brd.getAbsolutePath();
+            return;
+          } else {
+            startSetup( baseDir, false );
+            return;
+          }
         }
       }
       String message = baseDir == null ? "(no basedir configured previously)" : "(previous basedir " + baseDir
@@ -202,6 +216,12 @@ public class BRouterView extends View
       File inputDir = new File (basedir, "/import");
       assertDirectoryExists( "input directory", inputDir, null, version );
 
+      // new init is done move old files
+      if (waitingForMigration) {
+        moveFolders(oldMigrationPath, basedir + "/brouter");
+        waitingForMigration = false;
+      }
+      
       int deviceLevel =  android.os.Build.VERSION.SDK_INT;
       int targetSdkVersion = getContext().getApplicationInfo().targetSdkVersion;
       canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 10;
@@ -320,6 +340,67 @@ public class BRouterView extends View
     waitingForSelection = true;
   }
 
+  private void moveFolders(String oldMigrationPath, String basedir) {
+    File oldDir = new File(oldMigrationPath);
+    File[] oldFiles = oldDir.listFiles();
+    for (File f: oldFiles) {
+      if (f.isDirectory()) {
+        int index = f.getAbsolutePath().lastIndexOf("/");
+        String tmpdir = basedir + f.getAbsolutePath().substring(index);
+        moveFolders(f.getAbsolutePath(), tmpdir);
+      } else {
+        if ( ! f.getName().startsWith("v1.6")) {
+          moveFile(oldMigrationPath, f.getName(), basedir);
+        }
+      }
+
+    }
+  }
+
+  private void moveFile(String inputPath, String inputFile, String outputPath) {
+
+    InputStream in = null;
+    OutputStream out = null;
+    try {
+
+      //create output directory if it doesn't exist
+      File dir = new File (outputPath);
+      if (!dir.exists())
+      {
+        dir.mkdirs();
+      }
+
+
+      in = new FileInputStream(inputPath + "/" + inputFile);
+      out = new FileOutputStream(outputPath + "/" + inputFile);
+
+      byte[] buffer = new byte[1024];
+      int read;
+      while ((read = in.read(buffer)) != -1) {
+        out.write(buffer, 0, read);
+      }
+      in.close();
+      in = null;
+
+      // write the output file
+      out.flush();
+      out.close();
+      out = null;
+
+      // delete the original file
+      new File(inputPath + "/" + inputFile).delete();
+
+
+    }
+
+    catch (FileNotFoundException fnfe1) {
+      Log.e("tag", fnfe1.getMessage());
+    }
+    catch (Exception e) {
+      Log.e("tag", e.getMessage());
+    }
+
+  }
 
   public boolean hasUpToDateLookups()
   {
