@@ -52,13 +52,10 @@ distributions {
                 include 'readmes/*'
                 include 'profiles2/*'
             }
-            from ('../brouter-routing-app/build/outputs/apk/prod/release') {
+            from ('../brouter-routing-app/build/outputs/apk/release') {
                 include '*.apk'
             }
-            from ('../brouter-routing-app/build/outputs/apk/minApi10/release') {
-                include '*.apk'
-            }
-            from ('../brouter-server/build/libs') {
+             from ('../brouter-server/build/libs') {
                 include 'brouter-*-all.jar'
             }
         }
