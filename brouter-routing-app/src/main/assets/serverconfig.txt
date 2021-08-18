@@ -6,8 +6,8 @@
 #
 
 segment_url=https://brouter.de/brouter/segments4/
-lookup_url=https://brouter.de/brouter/segments4/
-profiles_url=https://brouter.de/brouter/segments4/
+lookup_url=https://brouter.de/brouter/profiles2/
+profiles_url=https://brouter.de/brouter/profiles2/
 
 
 # these are comma separated arrays

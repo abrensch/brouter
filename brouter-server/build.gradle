@@ -6,12 +6,16 @@ plugins {
 application {
     mainClass.set('btools.server.BRouter')
 
+    distTar.enabled = false
+
     jar {
         manifest {
             attributes "Main-Class": getMainClass(), "Implementation-Version": project.version
         }
     }
     task fatJar(type: Jar) {
+        archiveFileName = 'brouter-' + project.version + '-all.jar'
+
         manifest.from jar.manifest
         classifier = 'all'
         from {
@@ -25,11 +29,50 @@ application {
     }
 }
 
+distZip {
+     archiveFileName = 'brouter-' + project.version + '.zip'
+}
+
+distributions {
+    main {
+
+        contents {
+            exclude('**/brouter-codec*.jar')
+            exclude('**/brouter-core*.jar')
+            exclude('**/brouter-expressions*.jar')
+            exclude('**/brouter-map-creator*.jar')
+            exclude('**/brouter-mapaccess*.jar')
+            exclude('**/brouter-server*.jar')
+            exclude('**/brouter-util*.jar')
+            exclude('**/brouter-server')
+            exclude('**/brouter-server.bat')
+            exclude('**/all.brf')
+            exclude('**/softaccess.brf')
+            from ('../misc') {
+                include 'readmes/*'
+                include 'profiles2/*'
+            }
+            from ('../brouter-routing-app/build/outputs/apk/prod/release') {
+                include '*.apk'
+            }
+            from ('../brouter-routing-app/build/outputs/apk/minApi10/release') {
+                include '*.apk'
+            }
+            from ('../brouter-server/build/libs') {
+                include 'brouter-*-all.jar'
+            }
+        }
+    }
+}
+
 dependencies {
     testImplementation 'junit:junit:4.13.1' 
-	
-    implementation project(':brouter-util')
+
+    implementation project(':brouter-codec')
     implementation project(':brouter-core')
+    implementation project(':brouter-expressions')
+    implementation project(':brouter-map-creator')
     implementation project(':brouter-mapaccess')
+    implementation project(':brouter-util')
 
 }
