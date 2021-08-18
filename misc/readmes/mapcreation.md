@@ -23,7 +23,7 @@ more efficient. If you want to use the latter one, you will have to build the
     `lib/default/osmosis-osm-binary-*.jar` files from the unzipped Osmosis
     archive to `misc/pbfparser/protobuf.jar` and `misc/pbfparser/osmosis.jar`.
 * Build BRouter and copy
-    `brouter-server/target/brouter-server-*-jar-with-dependencies.jar` to
+    `brouter-server/build/libs/brouter-*-all.jar` to
     `misc/pbfparser/brouter.jar`.
 * You can build the `pbfparser` using, in the `misc/pbfparser/`
     folder,

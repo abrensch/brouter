@@ -16,7 +16,7 @@ CUSTOMPROFILESPATH=${CUSTOMPROFILESPATH:-"../customprofiles"}
 
 # Otherwise try to locate files inside the source checkout
 if [ ! -e "$CLASSPATH" ]; then
-    CLASSPATH="$(ls ../../../brouter-server/target/brouter-server-*jar-with-dependencies.jar | sort --reverse --version-sort | head --lines 1)"
+    CLASSPATH="$(ls ../../../brouter-server/build/libs/brouter-*-all.jar | sort --reverse --version-sort | head --lines 1)"
 fi
 if [ ! -e "$SEGMENTSPATH" ]; then
     SEGMENTSPATH="../../segments4"
