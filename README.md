@@ -66,12 +66,17 @@ app), use
 gradlew clean build -x :brouter-routing-app:build
 
 ```
-Then build jars for server and map creator with all dependent classes
+Then build a jar for server and map creator with all dependent classes
 
 ```
 gradlew farJar
 ```
 
+Build a zip file for distribution. Contains readmes, profiles, apk and jar 
+
+```
+gradlew distZip
+```
 
 
 ### Get the required segments (data) files

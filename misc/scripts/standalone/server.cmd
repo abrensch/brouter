@@ -17,7 +17,7 @@ set CUSTOMPROFILESPATH=..\customprofiles
 REM Otherwise try to locate files inside the source checkout
 if not exist "%CLASSPATH%" (
     for /f "tokens=*" %%w in (
-        'where /R ..\..\..\brouter-server\target brouter-server*-jar-with-dependencies.jar'
+        'where /R ..\..\..\brouter-server\build\libs brouter-*-all.jar'
     ) do (
         set CLASSPATH=%%w
     )

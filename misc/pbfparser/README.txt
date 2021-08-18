@@ -11,7 +11,7 @@ by doing the following:
 this folder
 -> copy lib/default/protobuf-java-*.jar in the archive to protobuf.jar in this
 folder
--> copy the brouter-server/target/brouter-server...with-dependencies.jar to
+-> copy the brouter-server/build/libs/brouter-...-all.jar to
 brouter.jar in this folder
 -> compile the PBF-Parser using:
    javac -d . -cp protobuf.jar:osmosis.jar:brouter.jar *.java

@@ -1,33 +1,7 @@
 plugins {
-    id 'application'
+    id 'java-library'
 }
 
-
-application {
-    // Gradles 'application' plugin requires one main class; since we have multiple ones, just specify
-    // one of them, since the applications won't be run from gradle anyways.
-    mainClass.set('btools.mapcreator.PosUnifier')
-	
-	jar {
-        manifest {
-            attributes "Main-Class": getMainClass(), "Implementation-Version": project.version 
-        }
-    }
-
-    task fatJar(type: Jar) {
-        manifest.from jar.manifest
-        classifier = 'all'
-        from {
-            configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-        } {
-            exclude "META-INF/*.SF"
-            exclude "META-INF/*.DSA"
-            exclude "META-INF/*.RSA"
-        }
-        with jar
-    }
-
-}
 
 dependencies {
     implementation project(':brouter-codec')
