@@ -357,7 +357,7 @@ public class DownloadService extends Service implements ProgressListener  {
                 }
                 return null;
             } catch (Exception e) {
-                e.printStackTrace(); ;
+                //e.printStackTrace(); ;
                 return e.toString();
             } finally {
                 try {

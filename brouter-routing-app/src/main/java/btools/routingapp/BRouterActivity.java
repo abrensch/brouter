@@ -16,6 +16,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.PowerManager;
@@ -453,11 +457,28 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
 
   private String maptoolDirCandidate;
 
-  public boolean isOnline()
+  public boolean isOnline(Context context)
   {
-    ConnectivityManager cm = (ConnectivityManager) getSystemService( Context.CONNECTIVITY_SERVICE );
+    boolean result = false;
+    ConnectivityManager connectivityManager = (ConnectivityManager)  context.getSystemService(Context.CONNECTIVITY_SERVICE);
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      Network nw = connectivityManager.getActiveNetwork();
+      if (nw == null) return false;
+      NetworkCapabilities nwc = connectivityManager.getNetworkCapabilities(nw);
+      if (nwc == null)return false;
+      result = nwc.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) |
+              nwc.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) |
+              nwc.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ;
 
-    return cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnectedOrConnecting();
+    } else {
+      NetworkInfo ni = connectivityManager.getActiveNetworkInfo();
+      if (ni == null) return false;
+      result = ni.getType() == ConnectivityManager.TYPE_WIFI ||
+              ni.getType() == ConnectivityManager.TYPE_MOBILE ||
+              ni.getType() == ConnectivityManager.TYPE_ETHERNET;
+    }
+
+    return result;
   }
 
   @SuppressWarnings("deprecation")
@@ -466,7 +487,7 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
     availableProfiles = items;
 
     // if we have internet access, first show the main action dialog
-    if ( isOnline() )
+    if ( isOnline(this) )
     {
       showDialog( DIALOG_MAINACTION_ID );
     }
