@@ -46,36 +46,35 @@ A full documentation on how to set this up is available at
 
 ### Build and Install
 
-To compile BRouter including the BRouter Android app, add a file 'local.properties' to main folder with your Android path 
+To compile the BRouter Android app, the Android SDK path must first be set in a file called `local.properties` in the main folder:
 
 ```
 sdk.dir=<your/android/sdk/path>
 ```
 
 
-and use
+Build BRouter with the Android app (if Android SDK path is set):
 
 ```
-gradlew clean build
+./gradlew clean build
 ```
 
-If you only want to compile BRouter and the server part (skipping the Android
-app), use
+Build BRouter without the Android app:
 
 ```
-gradlew clean build -x :brouter-routing-app:build
-
-```
-Then build a jar for server and map creator with all dependent classes
-
-```
-gradlew farJar
+./gradlew clean build -x :brouter-routing-app:build
 ```
 
-Build a zip file for distribution. Contains readmes, profiles, apk and jar 
+Build JAR file for server and map creator with all dependent classes:
 
 ```
-gradlew distZip
+./gradlew clean build fatJar # places JAR file in brouter-server/build/libs/
+```
+
+Build ZIP file for distribution with readmes, profiles, APK and JAR:
+
+```
+./gradlew distZip # places ZIP file in brouter-server/build/distributions/
 ```
 
 
