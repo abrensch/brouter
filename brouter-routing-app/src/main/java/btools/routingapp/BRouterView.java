@@ -37,9 +37,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.core.os.EnvironmentCompat;
 
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
@@ -131,7 +128,7 @@ public class BRouterView extends View
           if (brd.getAbsolutePath().contains("/Android/data/")) {
             String message = "(previous basedir " + baseDir + " has to migrate )" ;
 
-            ( (BRouterActivity) getContext() ).selectBasedir( getStorageDirectories(), guessBaseDir(), message );
+            ( (BRouterActivity) getContext() ).selectBasedir( ( (BRouterActivity) getContext() ).getStorageDirectories(), guessBaseDir(), message );
             waitingForSelection = true;
             waitingForMigration = true;
             oldMigrationPath = brd.getAbsolutePath();
@@ -145,7 +142,7 @@ public class BRouterView extends View
       String message = baseDir == null ? "(no basedir configured previously)" : "(previous basedir " + baseDir
           + ( bdValid ? " does not contain 'brouter' subfolder)" : " is not valid)" );
 
-      ( (BRouterActivity) getContext() ).selectBasedir( getStorageDirectories(), guessBaseDir(), message );
+      ( (BRouterActivity) getContext() ).selectBasedir( ( (BRouterActivity) getContext() ).getStorageDirectories(), guessBaseDir(), message );
       waitingForSelection = true;
     }
     catch (Exception e)
@@ -179,11 +176,11 @@ public class BRouterView extends View
       }
 
       if ( !td.isDirectory() ) {
-        if (ContextCompat.checkSelfPermission (getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+        if ( ( (BRouterActivity) getContext() ).checkSelfPermission (getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+        // if (ContextCompat.checkSelfPermission (getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
           retryBaseDir = baseDir;
-          ActivityCompat.requestPermissions ((BRouterActivity) getContext(), new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
         } else {
-          ( (BRouterActivity) getContext() ).selectBasedir( getStorageDirectories (), guessBaseDir(), "Cannot access " + baseDir.getAbsolutePath () + "; select another");
+          ( (BRouterActivity) getContext() ).selectBasedir( ( (BRouterActivity) getContext() ).getStorageDirectories (), guessBaseDir(), "Cannot access " + baseDir.getAbsolutePath () + "; select another");
         }
         return;
       }
@@ -1175,23 +1172,4 @@ public class BRouterView extends View
     }
   }
 
-  private ArrayList<File> getStorageDirectories () {
-    ArrayList<File> list = null;
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-      list = new ArrayList<File>(Arrays.asList(getContext().getExternalMediaDirs()));
-    } else {
-      list = new ArrayList<File>(Arrays.asList(getContext().getExternalFilesDirs(null)));
-    }
-    ArrayList<File> res = new ArrayList<File>();
-
-    for (File f : list) {
-      if (f != null) {
-        if (EnvironmentCompat.getStorageState(f).equals(Environment.MEDIA_MOUNTED))
-          res.add (f);
-      }
-    }
-
-//    res.add(getContext().getFilesDir());
-    return res;
-  }
 }

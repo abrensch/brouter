@@ -4,6 +4,7 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.net.TrafficStats;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -88,8 +89,9 @@ public class DownloadService extends Service implements ProgressListener  {
         availableSize = -1;
        try
         {
-            StatFs stat = new StatFs(baseDir);
-            availableSize = (long)stat.getAvailableBlocksLong()*stat.getBlockSizeLong();
+            availableSize = BInstallerActivity.getAvailableSpace(baseDir);
+            //StatFs stat = new StatFs(baseDir);
+            //availableSize = (long)stat.getAvailableBlocksLong()*stat.getBlockSizeLong();
         }
         catch (Exception e) { /* ignore */ }
 
@@ -228,7 +230,9 @@ public class DownloadService extends Service implements ProgressListener  {
         {
             try
             {
-                TrafficStats.setThreadStatsTag(1);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+                    TrafficStats.setThreadStatsTag(1);
+                }
 
                 int slidx = surl.lastIndexOf( "segments4/" );
                 String name = surl.substring( slidx+10 );
@@ -249,6 +253,7 @@ public class DownloadService extends Service implements ProgressListener  {
                     URL urlDelta = new URL(surlDelta);
 
                     connection = (HttpURLConnection) urlDelta.openConnection();
+                    connection.setConnectTimeout(5000);
                     connection.connect();
 
                     // 404 kind of expected here, means there's no delta file
@@ -262,11 +267,12 @@ public class DownloadService extends Service implements ProgressListener  {
 
                 if ( connection == null )
                 {
-                    updateProgress( "Connecting.." + surl );
+                    updateProgress( "Connecting.." + name );
 
                     delta = false;
                     URL url = new URL(surl);
                     connection = (HttpURLConnection) url.openConnection();
+                    connection.setConnectTimeout(5000);
                     connection.connect();
                 }
 
@@ -333,7 +339,7 @@ public class DownloadService extends Service implements ProgressListener  {
                     tmp_file = new File( fname + "_tmp" );
                     Rd5DiffTool.recoverFromDelta( fname, diffFile, tmp_file, this );
                     diffFile.delete();
-               }
+                }
                 if (isCanceled())
                 {
                     return "Canceled!";
@@ -348,7 +354,7 @@ public class DownloadService extends Service implements ProgressListener  {
                         }
                         return check_result;
                     }
-
+                    if (fname.exists()) fname.delete();
                     if ( !tmp_file.renameTo( fname ) )
                     {
                         return "Could not rename to " + fname.getAbsolutePath();
@@ -429,12 +435,15 @@ public class DownloadService extends Service implements ProgressListener  {
         {
             try
             {
-                TrafficStats.setThreadStatsTag(1);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+                    TrafficStats.setThreadStatsTag(1);
+                }
 
                 if ( connection == null )
                 {
                     URL url = new URL(surl);
                     connection = (HttpURLConnection) url.openConnection();
+                    connection.setConnectTimeout(5000);
                     connection.connect();
                 }
                 // expect HTTP 200 OK, so we don't mistakenly save error report

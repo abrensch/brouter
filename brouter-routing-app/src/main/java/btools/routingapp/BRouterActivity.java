@@ -1,8 +1,10 @@
 package btools.routingapp;
 
 import java.io.File;
+import java.lang.reflect.Method;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -30,12 +32,11 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.widget.EditText;
 
-import androidx.core.app.ActivityCompat;
 
 import btools.router.OsmNodeNamed;
 
-public class BRouterActivity extends Activity implements OnInitListener, ActivityCompat.OnRequestPermissionsResultCallback
-{
+public class BRouterActivity extends BRouterMainActivity {
+
   private static final int DIALOG_SELECTPROFILE_ID = 1;
   private static final int DIALOG_EXCEPTION_ID = 2;
   private static final int DIALOG_SHOW_DM_INFO_ID = 3;
@@ -138,7 +139,7 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
             {
               Intent intent = new Intent( BRouterActivity.this, BInstallerActivity.class );
               startActivity( intent );
-              finish();
+              // finish();
             }
           } ).setNegativeButton( "Cancel", new DialogInterface.OnClickListener()
           {
@@ -666,19 +667,4 @@ public class BRouterActivity extends Activity implements OnInitListener, Activit
     mWakeLock.release();
   }
 
-  @Override
-  public void onInit( int i )
-  {
-  }
-
-  @Override
-  public void onRequestPermissionsResult (int requestCode, String[] permissions, int[] grantResults) {
-    if (requestCode == 0) {
-      if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-        mBRouterView.startSetup(null, true);
-      } else {
-        mBRouterView.init();
-      }
-    }
-  }
 }
