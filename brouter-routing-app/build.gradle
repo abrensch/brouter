@@ -7,8 +7,6 @@ android {
 
     defaultConfig {
         applicationId "btools.routingapp"
-        minSdkVersion 19
-        targetSdkVersion 30
 
         versionCode 41
         versionName project.version
@@ -19,27 +17,27 @@ android {
     }
 
 	if(project.hasProperty("RELEASE_STORE_FILE")) {
-	signingConfigs {
-		// this uses a file  ~/.gradle/gradle.properties
-		// with content:
-		// RELEASE_STORE_FILE={path to your keystore}
-        // RELEASE_STORE_PASSWORD=*****
-        // RELEASE_KEY_ALIAS=*****
-        // RELEASE_KEY_PASSWORD=*****
-		// 
-	    release {
-		   // enable signingConfig in buildTypes to get a signed apk file
-		   storeFile file(RELEASE_STORE_FILE)
-		   storePassword RELEASE_STORE_PASSWORD
-		   keyAlias RELEASE_KEY_ALIAS
-		   keyPassword RELEASE_KEY_PASSWORD
+        signingConfigs {
+            // this uses a file  ~/.gradle/gradle.properties
+            // with content:
+            // RELEASE_STORE_FILE={path to your keystore}
+            // RELEASE_STORE_PASSWORD=*****
+            // RELEASE_KEY_ALIAS=*****
+            // RELEASE_KEY_PASSWORD=*****
+            //
+            release {
+               // enable signingConfig in buildTypes to get a signed apk file
+               storeFile file(RELEASE_STORE_FILE)
+               storePassword RELEASE_STORE_PASSWORD
+               keyAlias RELEASE_KEY_ALIAS
+               keyPassword RELEASE_KEY_PASSWORD
 
-		   // Optional, specify signing versions used
-		   v1SigningEnabled true
-		   v2SigningEnabled true
-		  
-	   }
-	}
+               // Optional, specify signing versions used
+               v1SigningEnabled true
+               v2SigningEnabled true
+
+           }
+        }
 	}
 	
     buildTypes {
@@ -60,19 +58,36 @@ android {
 	lintOptions {
 		disable 'InvalidPackage'
 		checkReleaseBuilds false //added this line to the build.gradle under the /android/app/build.gradle 
-	}
+    }
 	
 	compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    flavorDimensions "api"
+    productFlavors {
+        api10 {
+            dimension "api"
+
+            minSdkVersion 10
+            targetSdkVersion 19
+        }
+        api19 {
+            dimension "api"
+
+            minSdkVersion 19
+            targetSdkVersion 30
+
+        }
+    }
+
 }
 
 dependencies {
 
-    implementation 'androidx.appcompat:appcompat:1.3.1'
-	
+    api19Implementation 'androidx.appcompat:appcompat:1.3.1'
+
     implementation project(':brouter-mapaccess')
     implementation project(':brouter-core')
     implementation project(':brouter-expressions')

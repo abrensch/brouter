@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
@@ -102,9 +103,9 @@ public class BRouterService extends Service
           try
           {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            baos.write( "z64".getBytes(StandardCharsets.UTF_8) ); // marker prefix
+            baos.write( "z64".getBytes(Charset.forName("UTF-8")) ); // marker prefix
             OutputStream os = new GZIPOutputStream( baos );
-            byte[] ab = gpxMessage.getBytes(StandardCharsets.UTF_8);
+            byte[] ab = gpxMessage.getBytes(Charset.forName("UTF-8")); //StandardCharsets.UTF_8
             gpxMessage = null;
             os.write( ab );
             ab = null;

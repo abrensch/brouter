@@ -269,8 +269,9 @@ public class BInstallerView extends View
       availableSize = -1;
       try
       {
-        StatFs stat = new StatFs(baseDir.getAbsolutePath ());
-        availableSize = (long)stat.getAvailableBlocksLong()*stat.getBlockSizeLong();
+        availableSize = (long)((BInstallerActivity)getContext()).getAvailableSpace(baseDir.getAbsolutePath ());
+        //StatFs stat = new StatFs(baseDir.getAbsolutePath ());
+        //availableSize = (long)stat.getAvailableBlocksLong()*stat.getBlockSizeLong();
       }
       catch (Exception e) { /* ignore */ }
     }
