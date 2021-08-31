@@ -16,9 +16,10 @@ import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.speech.tts.TextToSpeech.OnInitListener;
+import android.os.StatFs;
 import android.util.Log;
 
-public class BInstallerActivity  extends Activity implements OnInitListener {
+public class BInstallerActivity  extends BInstallerMainActivity {
 
     public static final String DOWNLOAD_ACTION = "btools.routingapp.download";
 
@@ -101,11 +102,6 @@ public class BInstallerActivity  extends Activity implements OnInitListener {
         System.exit(0);
     }
 
-    @Override
-    public void onInit(int i)
-    {
-    }
-
   @Override
   @SuppressWarnings("deprecation")
   protected Dialog onCreateDialog( int id )
@@ -153,5 +149,6 @@ public class BInstallerActivity  extends Activity implements OnInitListener {
     dialogIds.add( Integer.valueOf( id ) );
     showDialog( id );
   }
+
 
 }

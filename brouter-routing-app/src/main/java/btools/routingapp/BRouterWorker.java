@@ -409,7 +409,7 @@ public class BRouterWorker
     private List<OsmNodeNamed> readPoisList(Bundle params )
     {
         // lon,lat,name|...
-        String pois = params.getString( "pois", null );
+        String pois = params.getString( "pois" );
         if ( pois == null ) return null;
 
         String[] lonLatNameList = pois.split("\\|");
