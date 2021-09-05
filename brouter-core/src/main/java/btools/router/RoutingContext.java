@@ -148,7 +148,7 @@ public final class RoutingContext
     waypointCatchingRange = expctxGlobal.getVariableValue( "waypointCatchingRange", 250.f );
 
     // turn-restrictions used per default for car profiles
-    considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue( "considerTurnRestrictions", carMode ? 1.f : 0.f );
+    considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue( "considerTurnRestrictions", 1.f );
 
     // process tags not used in the profile (to have them in the data-tab)
     processUnusedTags = 0.f != expctxGlobal.getVariableValue( "processUnusedTags", 0.f );
