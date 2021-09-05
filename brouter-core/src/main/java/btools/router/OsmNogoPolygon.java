@@ -91,7 +91,7 @@ public class OsmNogoPolygon extends OsmNodeNamed
     int cx = (cxmax+cxmin) / 2; // center of circle
     int cy = (cymax+cymin) / 2;
 
-    double[] lonlat2m = CheapRuler.getLonLatToMeterScales( cy );
+    double[] lonlat2m = CheapRuler.getLonLatToMeterScales( cy ); // conversion-factors at the center of circle
     double dlon2m = lonlat2m[0];
     double dlat2m = lonlat2m[1];
 
@@ -106,7 +106,13 @@ public class OsmNogoPolygon extends OsmNodeNamed
       for (int i = 0; i < points.size(); i++)
       {
         final Point p = points.get(i);
-        final double dist = CheapRuler.distance(p.x, p.y, (int) cx, (int) cy);
+
+        // to get precisely the same results as in RoutingContext.calcDistance()
+        // it's crucial to use the factors of the center!
+        final double x1 = (cx - p.x) * dlon2m;
+        final double y1 = (cy - p.y) * dlat2m;
+        final double dist = Math.sqrt( x1*x1 + y1*y1 );
+
         if (dist <= rad)
         {
           continue;
@@ -128,14 +134,21 @@ public class OsmNogoPolygon extends OsmNodeNamed
       cx += (int)(dd * (p.x - cx) + 0.5); // shift center toward point
       cy += (int)(dd * (p.y - cy) + 0.5);
 
-      dmax = rad = CheapRuler.distance(p.x, p.y, (int) cx, (int) cy);
+      // get new factors at shifted centerpoint
+      lonlat2m = CheapRuler.getLonLatToMeterScales( cy ); 
+      dlon2m = lonlat2m[0];
+      dlat2m = lonlat2m[1];
+
+      final double x1 = (cx - p.x) * dlon2m;
+      final double y1 = (cy - p.y) * dlat2m;
+      dmax = rad = Math.sqrt( x1*x1 + y1*y1 );
       i_max = -1;
     }
     while (true);
 
     ilon = cx;
     ilat = cy;
-    radius = rad;
+    radius = rad * 1.001 + 1.0; // ensure the outside-of-enclosing-circle test in RoutingContext.calcDistance() is not passed by segments ending very close to the radius due to limited numerical precision
     return;
   }
 
