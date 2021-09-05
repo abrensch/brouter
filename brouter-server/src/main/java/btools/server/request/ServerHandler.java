@@ -244,6 +244,9 @@ public class ServerHandler extends RequestHandler {
     {
       String[] lonLatName = lonLatNameList[i].split(",");
 
+      if (lonLatName.length != 3)
+        continue;
+
       OsmNodeNamed n = new OsmNodeNamed();
       n.ilon = (int)( ( Double.parseDouble(lonLatName[0]) + 180. ) *1000000. + 0.5);
       n.ilat = (int)( ( Double.parseDouble(lonLatName[1]) +  90. ) *1000000. + 0.5);
