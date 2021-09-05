@@ -29,8 +29,7 @@ at least one of them:
 Which one to use is a matter of taste. Maybe OsmAnd is
 more plug&play and has a reasonable voice-guidig. Locus
 and Oruxmaps are more powerful and better for outdoor
-use. Locus and Oruxmaps have elevation profile diagrams
-which OsmAnd has not.
+use. All three have elevation profile diagrams.
 
 Locus and Oruxmaps are best used with third-party vector
 maps, check http://www.openandromaps.org if you consider
