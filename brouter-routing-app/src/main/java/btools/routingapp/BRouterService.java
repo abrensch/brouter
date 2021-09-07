@@ -203,7 +203,7 @@ public class BRouterService extends Service
       // add nogos from waypoint database
       int deviceLevel =  android.os.Build.VERSION.SDK_INT;
       int targetSdkVersion = getApplicationInfo().targetSdkVersion;
-      boolean canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 10;
+      boolean canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 19;
       AppLogger.log( "dev/target=" + deviceLevel + "/" + targetSdkVersion + " canAccessSdCard=" + canAccessSdCard );
       if ( canAccessSdCard )
       {

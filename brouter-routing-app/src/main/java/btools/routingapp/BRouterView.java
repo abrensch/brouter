@@ -221,7 +221,7 @@ public class BRouterView extends View
       
       int deviceLevel =  android.os.Build.VERSION.SDK_INT;
       int targetSdkVersion = getContext().getApplicationInfo().targetSdkVersion;
-      canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 10;
+      canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 19;
       if ( canAccessSdCard )
       {
         cor = CoordinateReader.obtainValidReader( basedir, segmentDir );
