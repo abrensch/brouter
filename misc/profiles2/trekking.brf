@@ -14,7 +14,7 @@ assign allow_ferries            = true   # %allow_ferries% | set to false to dis
 assign ignore_cycleroutes       = false  # %ignore_cycleroutes% | Set to true for better elevation results | boolean
 assign stick_to_cycleroutes     = false  # %stick_to_cycleroutes% | Set to true to just follow cycleroutes | boolean
 assign avoid_unsafe             = false  # %avoid_unsafe% | Set to true to avoid standard highways | boolean
-assign considerTurnRestrictions = false  # %considerTurnRestrictions% | Set to true to take turn restrictions into account | boolean
+assign considerTurnRestrictions = true   # %considerTurnRestrictions% | Set to true to take turn restrictions into account | boolean
 assign processUnusedTags        = false  # %processUnusedTags% | Set to true to output unused tags in data tab | boolean
 
 # Change elevation parameters
