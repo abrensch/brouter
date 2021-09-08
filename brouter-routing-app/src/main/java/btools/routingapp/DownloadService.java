@@ -36,8 +36,8 @@ public class DownloadService extends Service implements ProgressListener  {
     private static final boolean DEBUG = false;
 
     String segmenturl = "https://brouter.de/brouter/segments4/";
-    String lookupurl = "https://brouter.de/brouter/segments4/";
-    String profilesurl = "https://brouter.de/brouter/segments4/";
+    String lookupurl = "https://brouter.de/brouter/profile2/";
+    String profilesurl = "https://brouter.de/brouter/profile2/";
     String checkLookup = "lookups.dat";
     String checkProfiles = "";
 

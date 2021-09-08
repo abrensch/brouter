@@ -14,6 +14,7 @@ assign initialcost 0
 
 assign costfactor
   switch railway=rail 1
+  switch railway=narrow_gauge 1
   100000
 
 ---context:node  # following code refers to node tags
