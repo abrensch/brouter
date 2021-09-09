@@ -119,7 +119,7 @@ assign bikeaccess =
          else if vehicle= then ( if highway=footway then false else defaultaccess )
          else not vehicle=private|no
        )
-       else not bicycle=private|no|dismount
+       else not bicycle=private|no|dismount|use_sidepath
 
 #
 # calculate logical foot access
