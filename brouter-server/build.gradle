@@ -47,6 +47,7 @@ distributions {
             exclude('**/brouter-server')
             exclude('**/brouter-server.bat')
             exclude('**/all.brf')
+            exclude('**/dummy.brf')
             exclude('**/softaccess.brf')
             from ('../misc') {
                 include 'readmes/*'
