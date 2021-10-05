@@ -33,8 +33,8 @@ import btools.util.StringUtils;
 
 public final class OsmTrack
 {
-  final public static String version = "1.6.1";
-  final public static String versionDate = "01032020";
+  final public static String version = "1.6.2";
+  final public static String versionDate = "10102021";
 
   // csv-header-line
   private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy";
