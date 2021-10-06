@@ -7,7 +7,7 @@ publishing {
     repositories {
         maven {
             name = "Github"
-            url = uri("https://maven.pkg.github.com/<USERNAME>/<REPO>")
+            url = uri("https://maven.pkg.github.com/afischerdev/brouter")
             credentials {
                 username = findProperty("github.username")
                 password = findProperty("github.token")
