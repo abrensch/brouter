@@ -5,6 +5,9 @@ name: Gradle Package
 
 on:
   workflow_dispatch:
+  branches:
+      - main
+      - af-patch-gradle
   release:
     types: [created]
 
