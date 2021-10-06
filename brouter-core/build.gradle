@@ -1,5 +1,27 @@
 plugins {
     id 'java-library'
+    id 'maven-publish'
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "Github"
+            url = uri("https://maven.pkg.github.com/<USERNAME>/<REPO>")
+            credentials {
+                username = findProperty("github.username")
+                password = findProperty("github.token")
+            }
+        }
+    }
+    publications {
+        register("jar", MavenPublication) {
+            from(components["java"])
+            pom {
+                url.set("https://github.com/<OWNER>/<REPO>.git")
+            }
+        }
+    }
 }
 
 dependencies {
