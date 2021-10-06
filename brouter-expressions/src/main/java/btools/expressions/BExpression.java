@@ -25,6 +25,7 @@ final class BExpression
   private static final int NUMBER_EXP = 33;
   private static final int VARIABLE_EXP = 34;
   private static final int FOREIGN_VARIABLE_EXP = 35;
+  private static final int VARIABLE_GET_EXP = 36;
 
   private int typ;
   private BExpression op1;
@@ -180,10 +181,23 @@ final class BExpression
           }
           else if ( ( idx = operator.indexOf( ':' ) ) >= 0 )
           {
-            String context = operator.substring( 0, idx );
-            String varname = operator.substring( idx+1 );
-            exp.typ = FOREIGN_VARIABLE_EXP;
-            exp.variableIdx = ctx.getForeignVariableIdx( context, varname );
+            /*
+            use of variable values
+            assign no_height
+               switch and not      maxheight=
+	                      lesser v:maxheight  my_height  true
+	           false
+             */
+			if (operator.startsWith("v:")) {
+				String name = operator.substring(2);
+				exp.typ = VARIABLE_GET_EXP;
+				exp.lookupNameIdx = ctx.getLookupNameIdx( name );
+			} else {				
+	            String context = operator.substring( 0, idx );
+	            String varname = operator.substring( idx+1 );
+	            exp.typ = FOREIGN_VARIABLE_EXP;
+	            exp.variableIdx = ctx.getForeignVariableIdx( context, varname );
+            }
           }
           else if ( (idx = ctx.getVariableIdx( operator, false )) >= 0 )
           {
@@ -268,6 +282,7 @@ final class BExpression
       case NUMBER_EXP: return numberValue;
       case VARIABLE_EXP: return ctx.getVariableValue( variableIdx );
       case FOREIGN_VARIABLE_EXP: return ctx.getForeignVariableValue( variableIdx );
+	  case VARIABLE_GET_EXP: return ctx.getLookupValue(lookupNameIdx);
       case NOT_EXP: return op1.evaluate(ctx) == 0.f ? 1.f : 0.f;
       default: throw new IllegalArgumentException( "unknown op-code: " + typ );
     }
