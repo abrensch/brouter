@@ -1,27 +1,5 @@
 plugins {
     id 'java-library'
-    id 'maven-publish'
-}
-
-publishing {
-    repositories {
-        maven {
-            name = "Github"
-            url = uri("https://maven.pkg.github.com/afischerdev/brouter")
-            credentials {
-                username = findProperty("github.username")
-                password = findProperty("github.token")
-            }
-        }
-    }
-    publications {
-        register("jar", MavenPublication) {
-            from(components["java"])
-            pom {
-                url.set("https://github.com/afischerdev/brouter.git")
-            }
-        }
-    }
 }
 
 dependencies {
