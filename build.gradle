@@ -1,6 +1,5 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
-
 buildscript {
 	
     repositories {
@@ -23,12 +22,29 @@ allprojects {
     // app: build.gradle (versionCode only)
     // OsmTrack (version and versionDate)
     project.version  "1.6.2"
+    group 'org.btools'
 	
     repositories {
         mavenCentral()
         google()
     }
 	
+    apply plugin: "maven-publish"
+    publishing {
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/$System.env.REPO")
+                credentials {
+                    username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                    password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+                }
+            }
+        }
+        publications {
+            gpr(MavenPublication)
+        }
+    }
 }
 
 task clean(type: Delete) {
