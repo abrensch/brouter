@@ -26,3 +26,8 @@ jobs:
       run: touch local.properties
     - name: Build with Gradle
       run: ./gradlew build
+    - name: Upload ZIP
+      uses: actions/upload-artifact@v2
+      with:
+        name: ZIP
+        path: brouter-server/build/distributions/brouter-*.zip
