@@ -11,8 +11,8 @@ public class MapcreatorTest {
   @Ignore("Fails with PBF parser")
   @Test
   public void mapcreatorTest() throws Exception {
-    URL mapurl = this.getClass().getResource("/dreieich.osm.gz");
-    Assert.assertNotNull("test-osm-map dreieich.osm not found", mapurl);
+    URL mapurl = this.getClass().getResource("/dreieich.pbf");
+    Assert.assertNotNull("test-osm-map dreieich.pbf not found", mapurl);
     File mapFile = new File(mapurl.getFile());
     File workingDir = mapFile.getParentFile();
     File profileDir = new File(workingDir, "/../../../../misc/profiles2");
