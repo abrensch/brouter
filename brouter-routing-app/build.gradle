@@ -16,7 +16,7 @@ android {
 
     }
 
-	if(project.hasProperty("RELEASE_STORE_FILE")) {
+    if(project.hasProperty("RELEASE_STORE_FILE")) {
         signingConfigs {
             // this uses a file  ~/.gradle/gradle.properties
             // with content:
@@ -38,29 +38,29 @@ android {
 
            }
         }
-	}
-	
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             debuggable false
-			if(project.hasProperty("RELEASE_STORE_FILE")) {
-				signingConfig signingConfigs.release
-			}
+            if(project.hasProperty("RELEASE_STORE_FILE")) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
             minifyEnabled false
-			debuggable true
+            debuggable true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-	lintOptions {
-		disable 'InvalidPackage'
-		checkReleaseBuilds false //added this line to the build.gradle under the /android/app/build.gradle 
+    lintOptions {
+        disable 'InvalidPackage'
+        checkReleaseBuilds false //added this line to the build.gradle under the /android/app/build.gradle
     }
-	
-	compileOptions {
+
+    compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
@@ -92,5 +92,5 @@ dependencies {
     implementation project(':brouter-core')
     implementation project(':brouter-expressions')
     implementation project(':brouter-util')
-	
+
 }
