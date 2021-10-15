@@ -16,6 +16,8 @@ android {
 
     }
 
+    sourceSets.main.assets.srcDirs += new File(project.buildDir, 'assets')
+
     if(project.hasProperty("RELEASE_STORE_FILE")) {
         signingConfigs {
             // this uses a file  ~/.gradle/gradle.properties
@@ -82,6 +84,9 @@ android {
         }
     }
 
+    applicationVariants.all {
+        variant -> tasks["merge${variant.name.capitalize()}Assets"].dependsOn(generateProfilesZip)
+    }
 }
 
 dependencies {
@@ -93,4 +98,19 @@ dependencies {
     implementation project(':brouter-expressions')
     implementation project(':brouter-util')
 
+}
+
+task generateProfiles(type: Exec) {
+    commandLine = "../misc/scripts/generate_profile_variants.sh"
+}
+
+task generateProfilesZip(type: Zip) {
+    dependsOn generateProfiles
+    archiveFileName = "profiles2.zip"
+    from "../misc/profiles2"
+    exclude "all.brf"
+    exclude "car-traffic_analysis.brf"
+    exclude "car-vario.brf"
+    exclude "softaccess.brf"
+    destinationDirectory = layout.buildDirectory.dir('assets')
 }
