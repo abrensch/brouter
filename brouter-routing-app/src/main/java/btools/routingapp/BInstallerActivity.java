@@ -19,7 +19,7 @@ public class BInstallerActivity extends Activity {
 
   private static final int DIALOG_CONFIRM_DELETE_ID = 1;
   private BInstallerView mBInstallerView;
-  private DownloadReceiver myReceiver;
+  private DownloadReceiver downloadReceiver;
 
   static public long getAvailableSpace(String baseDir) {
     StatFs stat = new StatFs(baseDir);
@@ -49,8 +49,8 @@ public class BInstallerActivity extends Activity {
     IntentFilter filter = new IntentFilter();
     filter.addAction(DOWNLOAD_ACTION);
 
-    myReceiver = new DownloadReceiver();
-    registerReceiver(myReceiver, filter);
+    downloadReceiver = new DownloadReceiver();
+    registerReceiver(downloadReceiver, filter);
   }
 
   @Override
@@ -61,7 +61,7 @@ public class BInstallerActivity extends Activity {
   @Override
   public void onDestroy() {
     super.onDestroy();
-    if (myReceiver != null) unregisterReceiver(myReceiver);
+    if (downloadReceiver != null) unregisterReceiver(downloadReceiver);
     System.exit(0);
   }
 
