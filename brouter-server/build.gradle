@@ -30,7 +30,8 @@ application {
 }
 
 distZip {
-     archiveFileName = 'brouter-' + project.version + '.zip'
+    dependsOn fatJar
+    archiveFileName = 'brouter-' + project.version + '.zip'
 }
 
 distributions {
