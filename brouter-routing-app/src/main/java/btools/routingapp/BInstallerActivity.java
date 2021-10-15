@@ -59,7 +59,12 @@ public class BInstallerActivity extends Activity {
     setContentView(R.layout.activity_binstaller);
     mBInstallerView = findViewById(R.id.BInstallerView);
     mBInstallerView.setOnClickListener(
-      view -> mBInstallerView.toggleDownload()
+      view -> {
+        if (mBInstallerView.getSelectedTiles(MASK_DELETED_RD5).size() > 0) {
+          showConfirmDelete();
+        }
+        mBInstallerView.toggleDownload();
+      }
     );
     mDownloadInfo = findViewById(R.id.view_download_progress);
     mDownloadInfoText = findViewById(R.id.textViewDownloadProgress);
@@ -70,14 +75,6 @@ public class BInstallerActivity extends Activity {
 
     mBaseDir = ConfigHelper.getBaseDir(this);
     scanExistingFiles();
-  }
-
-  private String baseNameForTile(int tileIndex) {
-    int lon = (tileIndex % 72) * 5 - 180;
-    int lat = (tileIndex / 72) * 5 - 90;
-    String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
-    String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
-    return slon + "_" + slat;
   }
 
   private void deleteRawTracks() {
@@ -149,7 +146,7 @@ public class BInstallerActivity extends Activity {
           .setTitle("Confirm Delete")
           .setMessage("Really delete?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int id) {
-            mBInstallerView.deleteSelectedTiles();
+            deleteSelectedTiles();
           }
         }).setNegativeButton("No", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int id) {
@@ -199,6 +196,14 @@ public class BInstallerActivity extends Activity {
     }
   }
 
+  private void deleteSelectedTiles() {
+    ArrayList<Integer> selectedTiles = mBInstallerView.getSelectedTiles(MASK_DELETED_RD5);
+    for (int tileIndex : selectedTiles) {
+      new File(mBaseDir, "brouter/segments4/" + baseNameForTile(tileIndex) + ".rd5").delete();
+    }
+    scanExistingFiles();
+  }
+
   private int tileForBaseName(String basename) {
     String uname = basename.toUpperCase(Locale.ROOT);
     int idx = uname.indexOf("_");
@@ -212,6 +217,14 @@ public class BInstallerActivity extends Activity {
     if (ilon < -180 || ilon >= 180 || ilon % 5 != 0) return -1;
     if (ilat < -90 || ilat >= 90 || ilat % 5 != 0) return -1;
     return (ilon + 180) / 5 + 72 * ((ilat + 90) / 5);
+  }
+
+  protected String baseNameForTile(int tileIndex) {
+    int lon = (tileIndex % 72) * 5 - 180;
+    int lat = (tileIndex / 72) * 5 - 90;
+    String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
+    String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
+    return slon + "_" + slat;
   }
 
   public class DownloadReceiver extends BroadcastReceiver {
