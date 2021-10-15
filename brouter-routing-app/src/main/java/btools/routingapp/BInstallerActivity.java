@@ -62,8 +62,11 @@ public class BInstallerActivity extends Activity {
       view -> {
         if (mBInstallerView.getSelectedTiles(MASK_DELETED_RD5).size() > 0) {
           showConfirmDelete();
+        } else if (mBInstallerView.getSelectedTiles(MASK_SELECTED_RD5).size() > 0) {
+          downloadSelectedTiles();
+        } else {
+          downloadInstalledTiles();
         }
-        mBInstallerView.toggleDownload();
       }
     );
     mDownloadInfo = findViewById(R.id.view_download_progress);
@@ -204,6 +207,17 @@ public class BInstallerActivity extends Activity {
     scanExistingFiles();
   }
 
+  private void downloadSelectedTiles() {
+    ArrayList<Integer> selectedTiles = mBInstallerView.getSelectedTiles(MASK_SELECTED_RD5);
+    downloadAll(selectedTiles);
+    mBInstallerView.clearAllTilesStatus(MASK_SELECTED_RD5);
+  }
+
+  private void downloadInstalledTiles() {
+    ArrayList<Integer> selectedTiles = mBInstallerView.getSelectedTiles(MASK_INSTALLED_RD5);
+    downloadAll(selectedTiles);
+  }
+
   private int tileForBaseName(String basename) {
     String uname = basename.toUpperCase(Locale.ROOT);
     int idx = uname.indexOf("_");
@@ -219,7 +233,7 @@ public class BInstallerActivity extends Activity {
     return (ilon + 180) / 5 + 72 * ((ilat + 90) / 5);
   }
 
-  protected String baseNameForTile(int tileIndex) {
+  private String baseNameForTile(int tileIndex) {
     int lon = (tileIndex % 72) * 5 - 180;
     int lat = (tileIndex / 72) * 5 - 90;
     String slon = lon < 0 ? "W" + (-lon) : "E" + lon;

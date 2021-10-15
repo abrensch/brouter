@@ -26,7 +26,6 @@ public class BInstallerView extends View {
   public static final int MASK_DELETED_RD5 = 2;
   public static final int MASK_INSTALLED_RD5 = 4;
   public static final int MASK_CURRENT_RD5 = 8;
-  private final File baseDir;
   private final File segmentDir;
   private final Matrix mat;
   private final Bitmap bmp;
@@ -42,7 +41,6 @@ public class BInstallerView extends View {
   Paint pnt_1 = new Paint();
   Paint pnt_2 = new Paint();
   Paint paint = new Paint();
-  Activity mActivity;
   int btnh = 40;
   int btnw = 160;
   float tx, ty;
@@ -57,7 +55,6 @@ public class BInstallerView extends View {
 
   public BInstallerView(Context context, AttributeSet attrs) {
     super(context, attrs);
-    mActivity = (Activity) context;
 
     DisplayMetrics metrics = new DisplayMetrics();
     ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(metrics);
@@ -73,7 +70,7 @@ public class BInstallerView extends View {
     imgw = (int) (imgwOrig / scaleOrig);
     imgh = (int) (imghOrig / scaleOrig);
 
-    baseDir = ConfigHelper.getBaseDir(getContext());
+    File baseDir = ConfigHelper.getBaseDir(getContext());
     segmentDir = new File(baseDir, "brouter/segments4");
 
     try {
@@ -133,44 +130,8 @@ public class BInstallerView extends View {
     mOnClickListener = listener;
   }
 
-  protected String baseNameForTile(int tileIndex) {
-    int lon = (tileIndex % 72) * 5 - 180;
-    int lat = (tileIndex / 72) * 5 - 90;
-    String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
-    String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
-    return slon + "_" + slat;
-  }
-
   private int gridPos2Tileindex(int ix, int iy) {
     return (35 - iy) * 72 + (ix >= 70 ? ix - 70 : ix + 2);
-  }
-
-  public void toggleDownload() {
-    int min_size = Integer.MAX_VALUE;
-
-    ArrayList<Integer> downloadList = new ArrayList<>();
-    // prepare download list
-    for (int ix = 0; ix < 72; ix++) {
-      for (int iy = 0; iy < 36; iy++) {
-        int tidx = gridPos2Tileindex(ix, iy);
-        if ((tileStatus[tidx] & MASK_SELECTED_RD5) != 0) {
-          int tilesize = BInstallerSizes.getRd5Size(tidx);
-          downloadList.add(tidx);
-          if (tilesize > 0 && tilesize < min_size) {
-            min_size = tilesize;
-          }
-        }
-      }
-    }
-
-    if (downloadList.size() > 0) {
-      // isDownloading = true;
-      ((BInstallerActivity) getContext()).downloadAll(downloadList);
-      for (Integer i : downloadList) {
-        tileStatus[i] ^= tileStatus[i] & MASK_SELECTED_RD5;
-      }
-      downloadList.clear();
-    }
   }
 
   private int tileIndex(float x, float y) {
