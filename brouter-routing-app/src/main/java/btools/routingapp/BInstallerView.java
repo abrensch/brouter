@@ -18,15 +18,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Locale;
 
 import btools.router.RoutingHelper;
 
 public class BInstallerView extends View {
-  private static final int MASK_SELECTED_RD5 = 1;
-  private static final int MASK_DELETED_RD5 = 2;
-  private static final int MASK_INSTALLED_RD5 = 4;
-  private static final int MASK_CURRENT_RD5 = 8;
+  public static final int MASK_SELECTED_RD5 = 1;
+  public static final int MASK_DELETED_RD5 = 2;
+  public static final int MASK_INSTALLED_RD5 = 4;
+  public static final int MASK_CURRENT_RD5 = 8;
   private final File baseDir;
   private final File segmentDir;
   private final Matrix mat;
@@ -54,6 +53,7 @@ public class BInstallerView extends View {
   private long totalSize = 0;
   private long rd5Tiles = 0;
   private long delTiles = 0;
+  private OnClickListener mOnClickListener;
 
   public BInstallerView(Context context, AttributeSet attrs) {
     super(context, attrs);
@@ -97,6 +97,33 @@ public class BInstallerView extends View {
     mat.postScale(viewscale, viewscale);
   }
 
+  private void scanExistingFiles() {
+
+  }
+
+  public void setAvailableSize(long availableSize) {
+    this.availableSize = availableSize;
+  }
+
+  public void setTileStatus(int tileIndex, int tileMask) {
+    tileStatus[tileIndex] |= tileMask;
+  }
+
+  public void clearAllTilesStatus(int tileMask) {
+    for (int ix = 0; ix < 72; ix++) {
+      for (int iy = 0; iy < 36; iy++) {
+        int tileIndex = gridPos2Tileindex(ix, iy);
+        tileStatus[tileIndex] ^= tileStatus[tileIndex] & tileMask;
+      }
+    }
+    invalidate();
+  }
+
+  @Override
+  public void setOnClickListener(OnClickListener listener) {
+    mOnClickListener = listener;
+  }
+
   protected String baseNameForTile(int tileIndex) {
     int lon = (tileIndex % 72) * 5 - 180;
     int lat = (tileIndex / 72) * 5 - 90;
@@ -109,22 +136,7 @@ public class BInstallerView extends View {
     return (35 - iy) * 72 + (ix >= 70 ? ix - 70 : ix + 2);
   }
 
-  private int tileForBaseName(String basename) {
-    String uname = basename.toUpperCase(Locale.ROOT);
-    int idx = uname.indexOf("_");
-    if (idx < 0) return -1;
-    String slon = uname.substring(0, idx);
-    String slat = uname.substring(idx + 1);
-    int ilon = slon.charAt(0) == 'W' ? -Integer.parseInt(slon.substring(1)) :
-      (slon.charAt(0) == 'E' ? Integer.parseInt(slon.substring(1)) : -1);
-    int ilat = slat.charAt(0) == 'S' ? -Integer.parseInt(slat.substring(1)) :
-      (slat.charAt(0) == 'N' ? Integer.parseInt(slat.substring(1)) : -1);
-    if (ilon < -180 || ilon >= 180 || ilon % 5 != 0) return -1;
-    if (ilat < -90 || ilat >= 90 || ilat % 5 != 0) return -1;
-    return (ilon + 180) / 5 + 72 * ((ilat + 90) / 5);
-  }
-
-  private void toggleDownload() {
+  public void toggleDownload() {
     if (delTiles > 0) {
       ((BInstallerActivity) getContext()).showConfirmDelete();
       return;
@@ -164,52 +176,11 @@ public class BInstallerView extends View {
     return -1;
   }
 
-  private void clearTileSelection(int mask) {
-    // clear selection if zooming out
-    for (int ix = 0; ix < 72; ix++)
-      for (int iy = 0; iy < 36; iy++) {
-        int tidx = gridPos2Tileindex(ix, iy);
-        tileStatus[tidx] ^= tileStatus[tidx] & mask;
-      }
-  }
-
   // get back the current image scale
   private float currentScale() {
     testVector[1] = 1.f;
     mat.mapVectors(testVector);
     return testVector[1] / viewscale;
-  }
-
-  private void scanExistingFiles() {
-    clearTileSelection(MASK_INSTALLED_RD5 | MASK_CURRENT_RD5);
-
-    scanExistingFiles(new File(baseDir, "brouter/segments4"));
-
-    File secondary = RoutingHelper.getSecondarySegmentDir(new File(baseDir, "brouter/segments4"));
-    if (secondary != null) {
-      scanExistingFiles(secondary);
-    }
-
-    availableSize = -1;
-    try {
-      availableSize = BInstallerActivity.getAvailableSpace(baseDir.getAbsolutePath());
-    } catch (Exception e) { /* ignore */ }
-  }
-
-  private void scanExistingFiles(File dir) {
-    String[] fileNames = dir.list();
-    if (fileNames == null) return;
-    String suffix = ".rd5";
-    for (String fileName : fileNames) {
-      if (fileName.endsWith(suffix)) {
-        String basename = fileName.substring(0, fileName.length() - suffix.length());
-        int tidx = tileForBaseName(basename);
-        tileStatus[tidx] |= MASK_INSTALLED_RD5;
-
-        long age = System.currentTimeMillis() - new File(dir, fileName).lastModified();
-        if (age < 10800000) tileStatus[tidx] |= MASK_CURRENT_RD5; // 3 hours
-      }
-    }
   }
 
   @Override
@@ -394,7 +365,7 @@ public class BInstallerView extends View {
 
             boolean tilesv = currentScale() >= 3.f;
             if (tilesVisible && !tilesv) {
-              clearTileSelection(MASK_SELECTED_RD5 | MASK_DELETED_RD5);
+              clearAllTilesStatus(MASK_SELECTED_RD5 | MASK_DELETED_RD5);
             }
             tilesVisible = tilesv;
           }
@@ -432,7 +403,9 @@ public class BInstallerView extends View {
               }
             }
           }
-          toggleDownload();
+          if (mOnClickListener != null) {
+            mOnClickListener.onClick(null);
+          }
           invalidate();
           break;
         }

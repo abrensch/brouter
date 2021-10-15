@@ -1,5 +1,10 @@
 package btools.routingapp;
 
+import static btools.routingapp.BInstallerView.MASK_CURRENT_RD5;
+import static btools.routingapp.BInstallerView.MASK_DELETED_RD5;
+import static btools.routingapp.BInstallerView.MASK_INSTALLED_RD5;
+import static btools.routingapp.BInstallerView.MASK_SELECTED_RD5;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -18,20 +23,23 @@ import android.widget.TextView;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Locale;
+
+import btools.router.RoutingHelper;
 
 public class BInstallerActivity extends Activity {
 
   public static final String DOWNLOAD_ACTION = "btools.routingapp.download";
   private static final int DIALOG_CONFIRM_DELETE_ID = 1;
   public static boolean downloadCanceled = false;
-  private File baseDir;
+  private File mBaseDir;
   private BInstallerView mBInstallerView;
   private DownloadReceiver downloadReceiver;
   private View mDownloadInfo;
   private TextView mDownloadInfoText;
   private Button mButtonDownloadCancel;
 
-  static public long getAvailableSpace(String baseDir) {
+  public static long getAvailableSpace(String baseDir) {
     StatFs stat = new StatFs(baseDir);
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
@@ -50,6 +58,9 @@ public class BInstallerActivity extends Activity {
 
     setContentView(R.layout.activity_binstaller);
     mBInstallerView = findViewById(R.id.BInstallerView);
+    mBInstallerView.setOnClickListener(
+      view -> mBInstallerView.toggleDownload()
+    );
     mDownloadInfo = findViewById(R.id.view_download_progress);
     mDownloadInfoText = findViewById(R.id.textViewDownloadProgress);
     mButtonDownloadCancel = findViewById(R.id.buttonDownloadCancel);
@@ -57,7 +68,8 @@ public class BInstallerActivity extends Activity {
       cancelDownload();
     });
 
-    baseDir = ConfigHelper.getBaseDir(this);
+    mBaseDir = ConfigHelper.getBaseDir(this);
+    scanExistingFiles();
   }
 
   private String baseNameForTile(int tileIndex) {
@@ -69,7 +81,7 @@ public class BInstallerActivity extends Activity {
   }
 
   private void deleteRawTracks() {
-    File modeDir = new File(baseDir, "brouter/modes");
+    File modeDir = new File(mBaseDir, "brouter/modes");
     String[] fileNames = modeDir.list();
     if (fileNames == null) return;
     for (String fileName : fileNames) {
@@ -97,7 +109,7 @@ public class BInstallerActivity extends Activity {
     mDownloadInfoText.setText(R.string.download_info_start);
 
     Intent intent = new Intent(this, DownloadService.class);
-    intent.putExtra("dir", baseDir.getAbsolutePath() + "/brouter/");
+    intent.putExtra("dir", mBaseDir.getAbsolutePath() + "/brouter/");
     intent.putExtra("urlparts", urlparts);
     startService(intent);
 
@@ -152,6 +164,54 @@ public class BInstallerActivity extends Activity {
 
   public void showConfirmDelete() {
     showDialog(DIALOG_CONFIRM_DELETE_ID);
+  }
+
+  private void scanExistingFiles() {
+    mBInstallerView.clearAllTilesStatus(MASK_INSTALLED_RD5 | MASK_CURRENT_RD5);
+
+    scanExistingFiles(new File(mBaseDir, "brouter/segments4"));
+
+    File secondary = RoutingHelper.getSecondarySegmentDir(new File(mBaseDir, "brouter/segments4"));
+    if (secondary != null) {
+      scanExistingFiles(secondary);
+    }
+
+    long availableSize = -1;
+    try {
+      availableSize = getAvailableSpace(mBaseDir.getAbsolutePath());
+    } catch (Exception e) { /* ignore */ }
+    mBInstallerView.setAvailableSize(availableSize);
+  }
+
+  private void scanExistingFiles(File dir) {
+    String[] fileNames = dir.list();
+    if (fileNames == null) return;
+    String suffix = ".rd5";
+    for (String fileName : fileNames) {
+      if (fileName.endsWith(suffix)) {
+        String basename = fileName.substring(0, fileName.length() - suffix.length());
+        int tileIndex = tileForBaseName(basename);
+        mBInstallerView.setTileStatus(tileIndex, MASK_INSTALLED_RD5);
+
+        long age = System.currentTimeMillis() - new File(dir, fileName).lastModified();
+        if (age < 10800000) mBInstallerView.setTileStatus(tileIndex, MASK_CURRENT_RD5); // 3 hours
+      }
+    }
+  }
+
+  private int tileForBaseName(String basename) {
+    String uname = basename.toUpperCase(Locale.ROOT);
+    int idx = uname.indexOf("_");
+    if (idx < 0) return -1;
+    String slon = uname.substring(0, idx);
+    String slat = uname.substring(idx + 1);
+    int ilon = slon.charAt(0) == 'W' ? -Integer.parseInt(slon.substring(1)) :
+      (slon.charAt(0) == 'E' ? Integer.parseInt(slon.substring(1)) : -1);
+    int ilat = slat.charAt(0) == 'S' ? -Integer.parseInt(slat.substring(1)) :
+      (slat.charAt(0) == 'N' ? Integer.parseInt(slat.substring(1)) : -1);
+    if (ilon < -180 || ilon >= 180 || ilon % 5 != 0) return -1;
+    if (ilat < -90 || ilat >= 90 || ilat % 5 != 0) return -1;
+    return (ilon + 180) / 5 + 72 * ((ilat + 90) / 5);
   }
 
   public class DownloadReceiver extends BroadcastReceiver {
