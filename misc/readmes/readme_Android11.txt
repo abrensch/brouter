@@ -1,4 +1,4 @@
-BRouter - Version 1.4 - Setting up the Android App
+BRouter - Version 1.6.2 - Setting up the Android App
 ====================================================
 
 Choosing and Installing a Map-Tool
