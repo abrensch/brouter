@@ -352,11 +352,9 @@ public class BInstallerView extends View {
       RoutingHelper.hasDirectoryAnyDatafiles(segmentDir)) btnText = "Update all";
 
     if (btnText != null) {
-      canvas.drawLine(imgw - btnw, imgh - btnh, imgw - btnw, imgh - 2, paint);
-      canvas.drawLine(imgw - btnw, imgh - btnh, imgw - 2, imgh - btnh, paint);
-      canvas.drawLine(imgw - btnw, imgh - btnh, imgw - btnw, imgh - 2, paint);
-      canvas.drawLine(imgw - 2, imgh - btnh, imgw - 2, imgh - 2, paint);
-      canvas.drawLine(imgw - btnw, imgh - 2, imgw - 2, imgh - 2, paint);
+      paint.setStyle(Paint.Style.STROKE);
+      canvas.drawRect(imgw - btnw, imgh - btnh, imgw - 2, imgh - 2, paint);
+      paint.setStyle(Paint.Style.FILL);
       canvas.drawText(btnText, imgw - btnw + 5, imgh - 10, paint);
     }
   }
