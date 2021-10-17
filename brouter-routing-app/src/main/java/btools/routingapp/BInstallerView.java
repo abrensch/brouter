@@ -284,24 +284,26 @@ public class BInstallerView extends View {
     boolean drawGrid = tilesVisible && !isDownloading;
 
     if (drawGrid) {
-
       pnt_1.setColor(Color.GREEN);
-
-      for (int ix = 1; ix < 72; ix++) {
-        float fx = fw * ix;
-        canvas.drawLine(fx, 0, fx, ih, pnt_1);
-      }
-      for (int iy = 1; iy < 36; iy++) {
-        float fy = fh * iy;
-        canvas.drawLine(0, fy, iw, fy, pnt_1);
+      pnt_1.setStyle(Paint.Style.STROKE);
+      for (int ix = 0; ix < 72; ix++) {
+        for (int iy = 0; iy < 36; iy++) {
+          int tidx = gridPos2Tileindex(ix, iy);
+          int tilesize = BInstallerSizes.getRd5Size(tidx);
+          if (tilesize > 0) {
+            canvas.drawRect(fw * ix, fh * (iy + 1), fw * (ix + 1), fh * iy, pnt_1);
+          }
+        }
       }
     }
+
     rd5Tiles = 0;
     delTiles = 0;
     totalSize = 0;
     int mask2 = MASK_SELECTED_RD5 | MASK_DELETED_RD5 | MASK_INSTALLED_RD5;
     int mask3 = mask2 | MASK_CURRENT_RD5;
 
+    pnt_2.setStyle(Paint.Style.STROKE);
     pnt_2.setColor(Color.GRAY);
     pnt_2.setStrokeWidth(1);
     drawSelectedTiles(canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5, mask3, false, false, drawGrid);
@@ -381,10 +383,7 @@ public class BInstallerView extends View {
             canvas.drawLine(fw * ix, fh * (iy + 1), fw * (ix + 1), fh * iy, pnt);
 
             // draw frame
-            canvas.drawLine(fw * ix, fh * iy, fw * (ix + 1), fh * iy, pnt);
-            canvas.drawLine(fw * ix, fh * (iy + 1), fw * (ix + 1), fh * (iy + 1), pnt);
-            canvas.drawLine(fw * ix, fh * iy, fw * ix, fh * (iy + 1), pnt);
-            canvas.drawLine(fw * (ix + 1), fh * iy, fw * (ix + 1), fh * (iy + 1), pnt);
+            canvas.drawRect(fw * ix, fh * (iy + 1), fw * (ix + 1), fh * iy, pnt);
           }
         }
       }
