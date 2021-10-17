@@ -1,4 +1,5 @@
 import java.io.*;
+import java.net.*;
 
 public class ReadSizes {
   private static int[] tileSizes = new int[72 * 36];
@@ -40,9 +41,51 @@ public class ReadSizes {
     }
   }
 
+  // Extract segment information from directory listing on https://brouter.de/brouter/segments4/
+  private static void scanTilesIndex(String tilesUrl) {
+    try {
+      URL url = new URL(tilesUrl);
+      HttpURLConnection con = (HttpURLConnection) url.openConnection();
+      con.setRequestMethod("GET");
+      BufferedReader in = new BufferedReader(
+        new InputStreamReader(con.getInputStream()));
+      String inputLine;
+      while ((inputLine = in.readLine()) != null) {
+        parseAndUpdateTileSize(inputLine);
+      }
+      in.close();
+    } catch (MalformedURLException e) {
+      System.out.println("Invalid URL");
+    } catch (ProtocolException e) {
+      System.out.println("Unable to download segment index");
+    } catch (IOException e) {
+      System.out.println("Unable to download segment index");
+    }
+  }
+
+  // Extract filename and size from each line in directory listing
+  // Example (stripped multiple spaces): "<a href="E0_N10.rd5">E0_N10.rd5</a> 17-Oct-2021 01:03 9648604"
+  private static void parseAndUpdateTileSize(String indexLine) {
+    String suffix = ".rd5";
+
+    if (!indexLine.contains(suffix)) {
+      return;
+    }
+
+    String fileName = indexLine.substring(indexLine.indexOf('"') + 1, indexLine.lastIndexOf('"'));
+    int fileSize = Integer.parseInt(indexLine.substring(indexLine.lastIndexOf(" ") + 1));
+
+    String basename = fileName.substring(0, fileName.length() - suffix.length());
+    int tidx = tileForBaseName(basename);
+    tileSizes[tidx] = fileSize;
+  }
 
   public static void main(String[] args) {
-    scanExistingFiles(new File(args[0]));
+    if (args[0].startsWith("http")) {
+      scanTilesIndex(args[0]);
+    } else {
+      scanExistingFiles(new File(args[0]));
+    }
     StringBuilder sb = new StringBuilder();
     for (int tidx = 0; tidx < tileSizes.length; tidx++) {
       if ((tidx % 12) == 0) sb.append("\n        ");
