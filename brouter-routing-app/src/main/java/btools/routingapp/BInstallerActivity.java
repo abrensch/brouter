@@ -36,9 +36,6 @@ public class BInstallerActivity extends Activity {
     }
   }
 
-  /**
-   * Called when the activity is first created.
-   */
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -52,7 +49,6 @@ public class BInstallerActivity extends Activity {
 
     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
-    // instantiate our simulation view and set it as the activity's content
     mBInstallerView = new BInstallerView(this);
     setContentView(mBInstallerView);
   }
@@ -72,9 +68,6 @@ public class BInstallerActivity extends Activity {
 
     myReceiver = new DownloadReceiver();
     registerReceiver(myReceiver, filter);
-
-    // Start the download manager
-    mBInstallerView.startInstaller();
   }
 
   @Override
