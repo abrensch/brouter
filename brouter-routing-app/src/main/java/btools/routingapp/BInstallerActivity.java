@@ -28,7 +28,7 @@ public class BInstallerActivity extends Activity {
   private PowerManager mPowerManager;
   private WakeLock mWakeLock;
   private DownloadReceiver myReceiver;
-  private final Set<Integer> dialogIds = new HashSet<Integer>();
+  private final Set<Integer> dialogIds = new HashSet<>();
 
   /**
    * Called when the activity is first created.
@@ -120,10 +120,10 @@ public class BInstallerActivity extends Activity {
   }
 
   private void showNewDialog(int id) {
-    if (dialogIds.contains(Integer.valueOf(id))) {
+    if (dialogIds.contains(id)) {
       removeDialog(id);
     }
-    dialogIds.add(Integer.valueOf(id));
+    dialogIds.add(id);
     showDialog(id);
   }
 

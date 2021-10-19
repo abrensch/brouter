@@ -13,7 +13,6 @@ import android.graphics.Paint;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,11 +51,8 @@ public class BInstallerView extends View {
   private File baseDir;
   private File segmentDir;
   private boolean isDownloading = false;
-  private long currentDownloadSize;
-  private final String currentDownloadFile = "";
   private volatile String currentDownloadOperation = "";
   private String downloadAction = "";
-  private final String newDownloadAction = "";
   private long totalSize = 0;
   private long rd5Tiles = 0;
   private long delTiles = 0;
@@ -71,7 +67,7 @@ public class BInstallerView extends View {
     ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(metrics);
     imgwOrig = metrics.widthPixels;
     imghOrig = metrics.heightPixels;
-    int im = imgwOrig > imghOrig ? imgwOrig : imghOrig;
+    int im = Math.max(imgwOrig, imghOrig);
 
     scaleOrig = im / 480.f;
 
@@ -80,10 +76,6 @@ public class BInstallerView extends View {
 
     imgw = (int) (imgwOrig / scaleOrig);
     imgh = (int) (imghOrig / scaleOrig);
-
-    totalSize = 0;
-    rd5Tiles = 0;
-    delTiles = 0;
   }
 
   protected String baseNameForTile(int tileIndex) {
@@ -113,10 +105,6 @@ public class BInstallerView extends View {
     return (ilon + 180) / 5 + 72 * ((ilat + 90) / 5);
   }
 
-  public boolean isDownloadCanceled() {
-    return downloadCanceled;
-  }
-
   private void toggleDownload() {
     if (isDownloading) {
       downloadCanceled = true;
@@ -129,7 +117,6 @@ public class BInstallerView extends View {
       return;
     }
 
-    int tidx_min = -1;
     int min_size = Integer.MAX_VALUE;
 
     ArrayList<Integer> downloadList = new ArrayList<>();
@@ -141,7 +128,6 @@ public class BInstallerView extends View {
           int tilesize = BInstallerSizes.getRd5Size(tidx);
           downloadList.add(tidx);
           if (tilesize > 0 && tilesize < min_size) {
-            tidx_min = tidx;
             min_size = tilesize;
           }
         }
@@ -152,7 +138,7 @@ public class BInstallerView extends View {
       isDownloading = true;
       downloadAll(downloadList);
       for (Integer i : downloadList) {
-        tileStatus[i.intValue()] ^= tileStatus[i.intValue()] & MASK_SELECTED_RD5;
+        tileStatus[i] ^= tileStatus[i] & MASK_SELECTED_RD5;
       }
       downloadList.clear();
     }
@@ -161,7 +147,7 @@ public class BInstallerView extends View {
   private void downloadAll(ArrayList<Integer> downloadList) {
     ArrayList<String> urlparts = new ArrayList<>();
     for (Integer i : downloadList) {
-      urlparts.add(baseNameForTile(i.intValue()));
+      urlparts.add(baseNameForTile(i));
     }
 
     currentDownloadOperation = "Start download ...";
@@ -169,23 +155,12 @@ public class BInstallerView extends View {
     downloadCanceled = false;
     isDownloading = true;
 
-    //final DownloadBackground downloadTask = new DownloadBackground(getContext(), urlparts, baseDir);
-    //downloadTask.execute(  );
     Intent intent = new Intent(mActivity, DownloadService.class);
     intent.putExtra("dir", baseDir.getAbsolutePath() + "/brouter/");
     intent.putExtra("urlparts", urlparts);
     mActivity.startService(intent);
 
     deleteRawTracks(); // invalidate raw-tracks after data update
-  }
-
-  public void downloadDone(boolean success) {
-    isDownloading = false;
-    if (success) {
-      scanExistingFiles();
-      toggleDownload(); // keep on if no error
-    }
-    invalidate();
   }
 
   public void setState(String txt, boolean b) {
@@ -245,9 +220,7 @@ public class BInstallerView extends View {
 
     availableSize = -1;
     try {
-      availableSize = ((BInstallerActivity) getContext()).getAvailableSpace(baseDir.getAbsolutePath());
-      //StatFs stat = new StatFs(baseDir.getAbsolutePath ());
-      //availableSize = (long)stat.getAvailableBlocksLong()*stat.getBlockSizeLong();
+      availableSize = BInstallerActivity.getAvailableSpace(baseDir.getAbsolutePath());
     } catch (Exception e) { /* ignore */ }
   }
 
@@ -286,7 +259,7 @@ public class BInstallerView extends View {
     float scaleX = imgwOrig / ((float) bmp.getWidth());
     float scaley = imghOrig / ((float) bmp.getHeight());
 
-    viewscale = scaleX < scaley ? scaleX : scaley;
+    viewscale = Math.min(scaleX, scaley);
 
     mat = new Matrix();
     mat.postScale(viewscale, viewscale);
@@ -296,10 +269,6 @@ public class BInstallerView extends View {
   @Override
   protected void onSizeChanged(int w, int h, int oldw, int oldh) {
     super.onSizeChanged(w, h, oldw, oldh);
-  }
-
-  private void toast(String msg) {
-    Toast.makeText(getContext(), msg, Toast.LENGTH_LONG).show();
   }
 
   @Override
@@ -359,7 +328,6 @@ public class BInstallerView extends View {
     long mb = 1024 * 1024;
 
     if (isDownloading) {
-      String sizeHint = currentDownloadSize > 0 ? " (" + ((currentDownloadSize + mb - 1) / mb) + " MB)" : "";
       paint.setTextSize(30);
       canvas.drawText(currentDownloadOperation, 30, (imgh / 3) * 2 - 30, paint);
       //  canvas.drawText( currentDownloadOperation +  " " + currentDownloadFile + sizeHint, 30, (imgh/3)*2-30, paint);
@@ -442,12 +410,6 @@ public class BInstallerView extends View {
 
   @Override
   public boolean onTouchEvent(MotionEvent event) {
-
-    // get pointer index from the event object
-    int pointerIndex = event.getActionIndex();
-
-    // get pointer ID
-    int pointerId = event.getPointerId(pointerIndex);
 
     // get masked (not specific to a pointer) action
     int maskedAction = event.getActionMasked();
