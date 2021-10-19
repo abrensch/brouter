@@ -28,50 +28,63 @@ public class BInstallerView extends View {
   private static final int MASK_DELETED_RD5 = 2;
   private static final int MASK_INSTALLED_RD5 = 4;
   private static final int MASK_CURRENT_RD5 = 8;
-
-  private int imgwOrig;
-  private int imghOrig;
-  private float scaleOrig;
-
-  private int imgw;
-  private int imgh;
-
-  private float lastDownX;
-  private float lastDownY;
-
-  private Bitmap bmp;
-
-  private float viewscale;
-
-  private float[] testVector = new float[2];
-
-  private int[] tileStatus;
-
-  private boolean tilesVisible = false;
-
-  private long availableSize;
-  private File baseDir;
-  private File segmentDir;
-
-  private boolean isDownloading = false;
   public static boolean downloadCanceled = false;
-
-  private long currentDownloadSize;
-  private String currentDownloadFile = "";
-  private volatile String currentDownloadOperation = "";
-  private String downloadAction = "";
-  private volatile String newDownloadAction = "";
-
-  private long totalSize = 0;
-  private long rd5Tiles = 0;
-  private long delTiles = 0;
-
   Paint pnt_1 = new Paint();
   Paint pnt_2 = new Paint();
   Paint paint = new Paint();
-
   Activity mActivity;
+  int btnh = 40;
+  int btnw = 160;
+  float tx, ty;
+  private final int imgwOrig;
+  private final int imghOrig;
+  private final float scaleOrig;
+  private final int imgw;
+  private final int imgh;
+  private float lastDownX;
+  private float lastDownY;
+  private Bitmap bmp;
+  private float viewscale;
+  private final float[] testVector = new float[2];
+  private int[] tileStatus;
+  private boolean tilesVisible = false;
+  private long availableSize;
+  private File baseDir;
+  private File segmentDir;
+  private boolean isDownloading = false;
+  private long currentDownloadSize;
+  private final String currentDownloadFile = "";
+  private volatile String currentDownloadOperation = "";
+  private String downloadAction = "";
+  private final String newDownloadAction = "";
+  private long totalSize = 0;
+  private long rd5Tiles = 0;
+  private long delTiles = 0;
+  private Matrix mat;
+  private final Matrix matText;
 
+  public BInstallerView(Context context) {
+    super(context);
+    mActivity = (Activity) context;
+
+    DisplayMetrics metrics = new DisplayMetrics();
+    ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(metrics);
+    imgwOrig = metrics.widthPixels;
+    imghOrig = metrics.heightPixels;
+    int im = imgwOrig > imghOrig ? imgwOrig : imghOrig;
+
+    scaleOrig = im / 480.f;
+
+    matText = new Matrix();
+    matText.preScale(scaleOrig, scaleOrig);
+
+    imgw = (int) (imgwOrig / scaleOrig);
+    imgh = (int) (imghOrig / scaleOrig);
+
+    totalSize = 0;
+    rd5Tiles = 0;
+    delTiles = 0;
+  }
 
   protected String baseNameForTile(int tileIndex) {
     int lon = (tileIndex % 72) * 5 - 180;
@@ -99,7 +112,6 @@ public class BInstallerView extends View {
     if (ilat < -90 || ilat >= 90 || ilat % 5 != 0) return -1;
     return (ilon + 180) / 5 + 72 * ((ilat + 90) / 5);
   }
-
 
   public boolean isDownloadCanceled() {
     return downloadCanceled;
@@ -167,7 +179,6 @@ public class BInstallerView extends View {
     deleteRawTracks(); // invalidate raw-tracks after data update
   }
 
-
   public void downloadDone(boolean success) {
     isDownloading = false;
     if (success) {
@@ -234,7 +245,7 @@ public class BInstallerView extends View {
 
     availableSize = -1;
     try {
-      availableSize = (long) ((BInstallerActivity) getContext()).getAvailableSpace(baseDir.getAbsolutePath());
+      availableSize = ((BInstallerActivity) getContext()).getAvailableSpace(baseDir.getAbsolutePath());
       //StatFs stat = new StatFs(baseDir.getAbsolutePath ());
       //availableSize = (long)stat.getAvailableBlocksLong()*stat.getBlockSizeLong();
     } catch (Exception e) { /* ignore */ }
@@ -255,9 +266,6 @@ public class BInstallerView extends View {
       }
     }
   }
-
-  private Matrix mat;
-  private Matrix matText;
 
   public void startInstaller() {
 
@@ -283,29 +291,6 @@ public class BInstallerView extends View {
     mat = new Matrix();
     mat.postScale(viewscale, viewscale);
     tilesVisible = false;
-  }
-
-  public BInstallerView(Context context) {
-    super(context);
-    mActivity = (Activity) context;
-
-    DisplayMetrics metrics = new DisplayMetrics();
-    ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(metrics);
-    imgwOrig = metrics.widthPixels;
-    imghOrig = metrics.heightPixels;
-    int im = imgwOrig > imghOrig ? imgwOrig : imghOrig;
-
-    scaleOrig = im / 480.f;
-
-    matText = new Matrix();
-    matText.preScale(scaleOrig, scaleOrig);
-
-    imgw = (int) (imgwOrig / scaleOrig);
-    imgh = (int) (imghOrig / scaleOrig);
-
-    totalSize = 0;
-    rd5Tiles = 0;
-    delTiles = 0;
   }
 
   @Override
@@ -410,12 +395,6 @@ public class BInstallerView extends View {
       canvas.drawText(btnText, imgw - btnw + 5, imgh - 10, paint);
     }
   }
-
-  int btnh = 40;
-  int btnw = 160;
-
-
-  float tx, ty;
 
   private void drawSelectedTiles(Canvas canvas, Paint pnt, float fw, float fh, int status, int mask, boolean doCount, boolean cntDel, boolean doDraw) {
     for (int ix = 0; ix < 72; ix++)
