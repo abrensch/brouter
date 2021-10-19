@@ -35,6 +35,12 @@ public class BInstallerView extends View {
   private final int imgh;
   private final float[] testVector = new float[2];
   private final Matrix matText;
+  private final File baseDir;
+  private final File segmentDir;
+  private final Matrix mat;
+  private final Bitmap bmp;
+  private final float viewscale;
+  private final int[] tileStatus;
   Paint pnt_1 = new Paint();
   Paint pnt_2 = new Paint();
   Paint paint = new Paint();
@@ -44,20 +50,14 @@ public class BInstallerView extends View {
   float tx, ty;
   private float lastDownX;
   private float lastDownY;
-  private Bitmap bmp;
-  private float viewscale;
-  private int[] tileStatus;
   private boolean tilesVisible = false;
   private long availableSize;
-  private File baseDir;
-  private File segmentDir;
   private boolean isDownloading = false;
   private volatile String currentDownloadOperation = "";
   private String downloadAction = "";
   private long totalSize = 0;
   private long rd5Tiles = 0;
   private long delTiles = 0;
-  private Matrix mat;
 
   public BInstallerView(Context context) {
     super(context);
@@ -76,6 +76,29 @@ public class BInstallerView extends View {
 
     imgw = (int) (imgwOrig / scaleOrig);
     imgh = (int) (imghOrig / scaleOrig);
+
+    baseDir = ConfigHelper.getBaseDir(getContext());
+    segmentDir = new File(baseDir, "brouter/segments4");
+
+    try {
+      AssetManager assetManager = getContext().getAssets();
+      InputStream istr = assetManager.open("world.png");
+      bmp = BitmapFactory.decodeStream(istr);
+      istr.close();
+    } catch (IOException io) {
+      throw new RuntimeException("cannot read world.png from assets");
+    }
+
+    tileStatus = new int[72 * 36];
+    scanExistingFiles();
+
+    float scaleX = imgwOrig / ((float) bmp.getWidth());
+    float scaley = imghOrig / ((float) bmp.getHeight());
+
+    viewscale = Math.min(scaleX, scaley);
+
+    mat = new Matrix();
+    mat.postScale(viewscale, viewscale);
   }
 
   protected String baseNameForTile(int tileIndex) {
@@ -238,32 +261,6 @@ public class BInstallerView extends View {
         if (age < 10800000) tileStatus[tidx] |= MASK_CURRENT_RD5; // 3 hours
       }
     }
-  }
-
-  public void startInstaller() {
-
-    baseDir = ConfigHelper.getBaseDir(getContext());
-    segmentDir = new File(baseDir, "brouter/segments4");
-    try {
-      AssetManager assetManager = getContext().getAssets();
-      InputStream istr = assetManager.open("world.png");
-      bmp = BitmapFactory.decodeStream(istr);
-      istr.close();
-    } catch (IOException io) {
-      throw new RuntimeException("cannot read world.png from assets");
-    }
-
-    tileStatus = new int[72 * 36];
-    scanExistingFiles();
-
-    float scaleX = imgwOrig / ((float) bmp.getWidth());
-    float scaley = imghOrig / ((float) bmp.getHeight());
-
-    viewscale = Math.min(scaleX, scaley);
-
-    mat = new Matrix();
-    mat.postScale(viewscale, viewscale);
-    tilesVisible = false;
   }
 
   @Override
