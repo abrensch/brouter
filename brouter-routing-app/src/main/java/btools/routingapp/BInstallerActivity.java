@@ -28,20 +28,7 @@ public class BInstallerActivity extends Activity {
   private PowerManager mPowerManager;
   private WakeLock mWakeLock;
   private DownloadReceiver myReceiver;
-
-
-  public class DownloadReceiver extends BroadcastReceiver {
-
-    @Override
-    public void onReceive(Context context, Intent intent) {
-      if (intent.hasExtra("txt")) {
-        String txt = intent.getStringExtra("txt");
-        boolean ready = intent.getBooleanExtra("ready", false);
-        mBInstallerView.setState(txt, ready);
-      }
-    }
-  }
-
+  private final Set<Integer> dialogIds = new HashSet<Integer>();
 
   /**
    * Called when the activity is first created.
@@ -132,14 +119,24 @@ public class BInstallerActivity extends Activity {
     showDialog(DIALOG_CONFIRM_DELETE_ID);
   }
 
-  private Set<Integer> dialogIds = new HashSet<Integer>();
-
   private void showNewDialog(int id) {
     if (dialogIds.contains(Integer.valueOf(id))) {
       removeDialog(id);
     }
     dialogIds.add(Integer.valueOf(id));
     showDialog(id);
+  }
+
+  public class DownloadReceiver extends BroadcastReceiver {
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+      if (intent.hasExtra("txt")) {
+        String txt = intent.getStringExtra("txt");
+        boolean ready = intent.getBooleanExtra("ready", false);
+        mBInstallerView.setState(txt, ready);
+      }
+    }
   }
 
 
