@@ -14,7 +14,8 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
-        android:allowBackup="false">
+        android:allowBackup="false"
+        android:preserveLegacyExternalStorage="true">
         <activity android:name=".BRouterActivity"
             android:label="@string/app_name"
             android:exported="true"
