@@ -38,6 +38,9 @@ import android.view.View;
 import android.widget.Toast;
 
 
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.OsmNode;
@@ -176,9 +179,9 @@ public class BRouterView extends View
       }
 
       if ( !td.isDirectory() ) {
-        if ( ( (BRouterActivity) getContext() ).checkSelfPermission (getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-        // if (ContextCompat.checkSelfPermission (getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+        if (ContextCompat.checkSelfPermission (getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
           retryBaseDir = baseDir;
+          ActivityCompat.requestPermissions ((BRouterActivity) getContext(), new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
         } else {
           ( (BRouterActivity) getContext() ).selectBasedir( ( (BRouterActivity) getContext() ).getStorageDirectories (), guessBaseDir(), "Cannot access " + baseDir.getAbsolutePath () + "; select another");
         }
