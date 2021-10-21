@@ -38,7 +38,7 @@ import androidx.core.os.EnvironmentCompat;
 
 import btools.router.OsmNodeNamed;
 
-public class BRouterActivity extends Activity {
+public class BRouterActivity extends Activity implements ActivityCompat.OnRequestPermissionsResultCallback {
 
   private static final int DIALOG_SELECTPROFILE_ID = 1;
   private static final int DIALOG_EXCEPTION_ID = 2;
@@ -670,15 +670,6 @@ public class BRouterActivity extends Activity {
     mWakeLock.release();
   }
 
-  public boolean checkSelfPermission (Context context, String perm ) {
-    boolean b = checkSelfPermission(context, perm);
-    if (b) {
-      ActivityCompat.requestPermissions (this, new String[]{perm}, 0);
-    }
-
-    return b;
-  }
-
   private String getStorageState(File f) {
     return EnvironmentCompat.getStorageState(f); //Environment.MEDIA_MOUNTED
   }
@@ -727,5 +718,16 @@ public class BRouterActivity extends Activity {
       // ignore
     }
     return isWritable;
+  }
+
+  @Override
+  public void onRequestPermissionsResult (int requestCode, String[] permissions, int[] grantResults) {
+    if (requestCode == 0) {
+      if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        mBRouterView.startSetup(null, true);
+      } else {
+        mBRouterView.init();
+      }
+    }
   }
 }
