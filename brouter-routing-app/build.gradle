@@ -13,7 +13,6 @@ android {
 
         resValue('string', 'app_version', defaultConfig.versionName)
         setProperty("archivesBaseName","BRouterApp." + defaultConfig.versionName)
-
     }
 
 	if(project.hasProperty("RELEASE_STORE_FILE")) {
@@ -65,20 +64,20 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+
     flavorDimensions "api"
     productFlavors {
-        api10 {
+        api19 {
             dimension "api"
 
             minSdkVersion 10
             targetSdkVersion 19
         }
-        api19 {
+        api30 {
             dimension "api"
 
             minSdkVersion 19
             targetSdkVersion 30
-
         }
     }
 
@@ -86,7 +85,7 @@ android {
 
 dependencies {
 
-    api19Implementation 'androidx.appcompat:appcompat:1.3.1'
+    api30Implementation 'androidx.appcompat:appcompat:1.3.1'
 
     implementation project(':brouter-mapaccess')
     implementation project(':brouter-core')
