@@ -12,6 +12,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
@@ -19,7 +20,7 @@ import android.speech.tts.TextToSpeech.OnInitListener;
 import android.os.StatFs;
 import android.util.Log;
 
-public class BInstallerActivity  extends BInstallerMainActivity {
+public class BInstallerActivity extends Activity {
 
     public static final String DOWNLOAD_ACTION = "btools.routingapp.download";
 
@@ -151,4 +152,14 @@ public class BInstallerActivity  extends BInstallerMainActivity {
   }
 
 
+  static public long getAvailableSpace (String baseDir) {
+    StatFs stat = new StatFs(baseDir);
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+      return stat.getAvailableBlocksLong()*stat.getBlockSizeLong();
+    }
+    else {
+      return stat.getAvailableBlocks()*stat.getBlockSize();
+    }
+  }
 }
