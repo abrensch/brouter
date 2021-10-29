@@ -1,3 +1,5 @@
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+
 plugins {
     id 'com.android.application'
 }
@@ -105,7 +107,12 @@ task generateProfiles(type: Exec) {
 }
 
 task generateProfilesZip(type: Zip) {
-    dependsOn generateProfiles
+    if (DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) {
+        logger.warn("Note: On Windows run script '../misc/scripts/generate_profile_variants.sh' manually to include all profiles")
+    }
+    else {
+        dependsOn generateProfiles
+    }
     archiveFileName = "profiles2.zip"
     from "../misc/profiles2"
     exclude "all.brf"
