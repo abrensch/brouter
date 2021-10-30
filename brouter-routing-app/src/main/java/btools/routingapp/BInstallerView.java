@@ -2,7 +2,6 @@ package btools.routingapp;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -28,7 +27,12 @@ public class BInstallerView extends View {
   private static final int MASK_DELETED_RD5 = 2;
   private static final int MASK_INSTALLED_RD5 = 4;
   private static final int MASK_CURRENT_RD5 = 8;
-  public static boolean downloadCanceled = false;
+  private final File baseDir;
+  private final File segmentDir;
+  private final Matrix mat;
+  private final Bitmap bmp;
+  private final float viewscale;
+  private final int[] tileStatus;
   private final int imgwOrig;
   private final int imghOrig;
   private final float scaleOrig;
@@ -36,12 +40,6 @@ public class BInstallerView extends View {
   private final int imgh;
   private final float[] testVector = new float[2];
   private final Matrix matText;
-  private final File baseDir;
-  private final File segmentDir;
-  private final Matrix mat;
-  private final Bitmap bmp;
-  private final float viewscale;
-  private final int[] tileStatus;
   Paint pnt_1 = new Paint();
   Paint pnt_2 = new Paint();
   Paint paint = new Paint();
@@ -53,9 +51,6 @@ public class BInstallerView extends View {
   private float lastDownY;
   private boolean tilesVisible = false;
   private long availableSize;
-  private boolean isDownloading = false;
-  private volatile String currentDownloadOperation = "";
-  private String downloadAction = "";
   private long totalSize = 0;
   private long rd5Tiles = 0;
   private long delTiles = 0;
@@ -130,12 +125,6 @@ public class BInstallerView extends View {
   }
 
   private void toggleDownload() {
-    if (isDownloading) {
-      downloadCanceled = true;
-      downloadAction = "Canceling...";
-      return;
-    }
-
     if (delTiles > 0) {
       ((BInstallerActivity) getContext()).showConfirmDelete();
       return;
@@ -159,42 +148,13 @@ public class BInstallerView extends View {
     }
 
     if (downloadList.size() > 0) {
-      isDownloading = true;
-      downloadAll(downloadList);
+      // isDownloading = true;
+      ((BInstallerActivity) getContext()).downloadAll(downloadList);
       for (Integer i : downloadList) {
         tileStatus[i] ^= tileStatus[i] & MASK_SELECTED_RD5;
       }
       downloadList.clear();
     }
-  }
-
-  private void downloadAll(ArrayList<Integer> downloadList) {
-    ArrayList<String> urlparts = new ArrayList<>();
-    for (Integer i : downloadList) {
-      urlparts.add(baseNameForTile(i));
-    }
-
-    currentDownloadOperation = "Start download ...";
-    downloadAction = "";
-    downloadCanceled = false;
-    isDownloading = true;
-
-    Intent intent = new Intent(mActivity, DownloadService.class);
-    intent.putExtra("dir", baseDir.getAbsolutePath() + "/brouter/");
-    intent.putExtra("urlparts", urlparts);
-    mActivity.startService(intent);
-
-    deleteRawTracks(); // invalidate raw-tracks after data update
-  }
-
-  public void setState(String txt, boolean b) {
-    currentDownloadOperation = txt;
-    downloadAction = "";
-    isDownloading = b;
-    if (!b) {
-      scanExistingFiles();
-    }
-    invalidate();
   }
 
   private int tileIndex(float x, float y) {
@@ -218,18 +178,6 @@ public class BInstallerView extends View {
     testVector[1] = 1.f;
     mat.mapVectors(testVector);
     return testVector[1] / viewscale;
-  }
-
-  private void deleteRawTracks() {
-    File modeDir = new File(baseDir, "brouter/modes");
-    String[] fileNames = modeDir.list();
-    if (fileNames == null) return;
-    for (String fileName : fileNames) {
-      if (fileName.endsWith("_rawtrack.dat")) {
-        File f = new File(modeDir, fileName);
-        f.delete();
-      }
-    }
   }
 
   private void scanExistingFiles() {
@@ -271,10 +219,8 @@ public class BInstallerView extends View {
 
   @Override
   protected void onDraw(Canvas canvas) {
-    if (!isDownloading) {
-      canvas.setMatrix(mat);
-      canvas.drawBitmap(bmp, 0, 0, null);
-    }
+    canvas.setMatrix(mat);
+    canvas.drawBitmap(bmp, 0, 0, null);
     // draw 5*5 lattice starting at scale=3
 
     int iw = bmp.getWidth();
@@ -282,9 +228,7 @@ public class BInstallerView extends View {
     float fw = iw / 72.f;
     float fh = ih / 36.f;
 
-    boolean drawGrid = tilesVisible && !isDownloading;
-
-    if (drawGrid) {
+    if (tilesVisible) {
       pnt_1.setColor(Color.GREEN);
       pnt_1.setStyle(Paint.Style.STROKE);
       for (int ix = 0; ix < 72; ix++) {
@@ -307,19 +251,19 @@ public class BInstallerView extends View {
     pnt_2.setStyle(Paint.Style.STROKE);
     pnt_2.setColor(Color.GRAY);
     pnt_2.setStrokeWidth(1);
-    drawSelectedTiles(canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5, mask3, false, false, drawGrid);
+    drawSelectedTiles(canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5, mask3, false, false, tilesVisible);
     pnt_2.setColor(Color.BLUE);
     pnt_2.setStrokeWidth(1);
-    drawSelectedTiles(canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5 | MASK_CURRENT_RD5, mask3, false, false, drawGrid);
+    drawSelectedTiles(canvas, pnt_2, fw, fh, MASK_INSTALLED_RD5 | MASK_CURRENT_RD5, mask3, false, false, tilesVisible);
     pnt_2.setColor(Color.GREEN);
     pnt_2.setStrokeWidth(2);
-    drawSelectedTiles(canvas, pnt_2, fw, fh, MASK_SELECTED_RD5, mask2, true, false, drawGrid);
+    drawSelectedTiles(canvas, pnt_2, fw, fh, MASK_SELECTED_RD5, mask2, true, false, tilesVisible);
     pnt_2.setColor(Color.YELLOW);
     pnt_2.setStrokeWidth(2);
-    drawSelectedTiles(canvas, pnt_2, fw, fh, MASK_SELECTED_RD5 | MASK_INSTALLED_RD5, mask2, true, false, drawGrid);
+    drawSelectedTiles(canvas, pnt_2, fw, fh, MASK_SELECTED_RD5 | MASK_INSTALLED_RD5, mask2, true, false, tilesVisible);
     pnt_2.setColor(Color.RED);
     pnt_2.setStrokeWidth(2);
-    drawSelectedTiles(canvas, pnt_2, fw, fh, MASK_DELETED_RD5 | MASK_INSTALLED_RD5, mask2, false, true, drawGrid);
+    drawSelectedTiles(canvas, pnt_2, fw, fh, MASK_DELETED_RD5 | MASK_INSTALLED_RD5, mask2, false, true, tilesVisible);
 
     canvas.setMatrix(matText);
 
@@ -327,13 +271,7 @@ public class BInstallerView extends View {
 
     long mb = 1024 * 1024;
 
-    if (isDownloading) {
-      paint.setTextSize(30);
-      canvas.drawText(currentDownloadOperation, 30, (imgh / 3) * 2 - 30, paint);
-      //  canvas.drawText( currentDownloadOperation +  " " + currentDownloadFile + sizeHint, 30, (imgh/3)*2-30, paint);
-      canvas.drawText(downloadAction, 30, (imgh / 3) * 2, paint);
-    }
-    if (!tilesVisible && !isDownloading) {
+    if (!this.tilesVisible) {
       paint.setTextSize(35);
       canvas.drawText("Touch region to zoom in!", 30, (imgh / 3) * 2, paint);
     }
@@ -347,10 +285,9 @@ public class BInstallerView extends View {
 
 
     String btnText = null;
-    if (isDownloading) btnText = "Cancel Download";
-    else if (delTiles > 0) btnText = "Delete " + delTiles + " tiles";
+    if (delTiles > 0) btnText = "Delete " + delTiles + " tiles";
     else if (rd5Tiles > 0) btnText = "Start Download";
-    else if (tilesVisible &&
+    else if (this.tilesVisible &&
       rd5Tiles == 0 &&
       RoutingHelper.hasDirectoryAnyDatafiles(segmentDir)) btnText = "Update all";
 
@@ -420,7 +357,6 @@ public class BInstallerView extends View {
       }
       case MotionEvent.ACTION_MOVE: { // a pointer was moved
 
-        if (isDownloading) break;
         int np = event.getPointerCount();
         int nh = event.getHistorySize();
         if (nh == 0) break;
@@ -482,7 +418,7 @@ public class BInstallerView extends View {
         }
 
         // download button?
-        if ((delTiles > 0 || rd5Tiles >= 0 || isDownloading) && event.getX() > imgwOrig - btnw * scaleOrig && event.getY() > imghOrig - btnh * scaleOrig) {
+        if ((delTiles > 0 || rd5Tiles >= 0) && event.getX() > imgwOrig - btnw * scaleOrig && event.getY() > imghOrig - btnh * scaleOrig) {
           if (rd5Tiles == 0) {
             for (int ix = 0; ix < 72; ix++) {
               for (int iy = 0; iy < 36; iy++) {
@@ -510,8 +446,6 @@ public class BInstallerView extends View {
           }
           break;
         }
-
-        if (isDownloading) break;
 
         Matrix imat = new Matrix();
         if (mat.invert(imat)) {

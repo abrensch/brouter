@@ -16,6 +16,9 @@
 
 <resources>
     <string name="app_name">BRouter</string>
+    <string name="cancel_download">Cancel Download</string>
     <string name="import_profile">Import Profile</string>
     <string name="profile_filename_example">filename.brf</string>
+    <string name="download_info_start">Starting download…</string>
+    <string name="download_info_cancel">Cancelling…</string>
 </resources>
