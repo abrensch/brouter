@@ -10,6 +10,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
@@ -59,8 +60,8 @@ public class BInstallerView extends View {
   private long rd5Tiles = 0;
   private long delTiles = 0;
 
-  public BInstallerView(Context context) {
-    super(context);
+  public BInstallerView(Context context, AttributeSet attrs) {
+    super(context, attrs);
     mActivity = (Activity) context;
 
     DisplayMetrics metrics = new DisplayMetrics();

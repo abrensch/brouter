@@ -38,8 +38,8 @@ public class BInstallerActivity extends Activity {
 
     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
-    mBInstallerView = new BInstallerView(this);
-    setContentView(mBInstallerView);
+    setContentView(R.layout.activity_binstaller);
+    mBInstallerView = findViewById(R.id.BInstallerView);
   }
 
   @Override
