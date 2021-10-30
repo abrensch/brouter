@@ -481,7 +481,7 @@ public class DownloadService extends Service implements ProgressListener {
 
 
   public boolean isCanceled() {
-    return BInstallerView.downloadCanceled;
+    return BInstallerActivity.downloadCanceled;
   }
 
 }
