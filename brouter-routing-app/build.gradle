@@ -1,3 +1,5 @@
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+
 plugins {
     id 'com.android.application'
 }
@@ -16,7 +18,9 @@ android {
 
     }
 
-	if(project.hasProperty("RELEASE_STORE_FILE")) {
+    sourceSets.main.assets.srcDirs += new File(project.buildDir, 'assets')
+
+    if(project.hasProperty("RELEASE_STORE_FILE")) {
         signingConfigs {
             // this uses a file  ~/.gradle/gradle.properties
             // with content:
@@ -38,29 +42,29 @@ android {
 
            }
         }
-	}
-	
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             debuggable false
-			if(project.hasProperty("RELEASE_STORE_FILE")) {
-				signingConfig signingConfigs.release
-			}
+            if(project.hasProperty("RELEASE_STORE_FILE")) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
             minifyEnabled false
-			debuggable true
+            debuggable true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-	lintOptions {
-		disable 'InvalidPackage'
-		checkReleaseBuilds false //added this line to the build.gradle under the /android/app/build.gradle 
+    lintOptions {
+        disable 'InvalidPackage'
+        checkReleaseBuilds false //added this line to the build.gradle under the /android/app/build.gradle
     }
-	
-	compileOptions {
+
+    compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
@@ -82,6 +86,9 @@ android {
         }
     }
 
+    applicationVariants.all {
+        variant -> tasks["merge${variant.name.capitalize()}Assets"].dependsOn(generateProfilesZip)
+    }
 }
 
 dependencies {
@@ -92,5 +99,25 @@ dependencies {
     implementation project(':brouter-core')
     implementation project(':brouter-expressions')
     implementation project(':brouter-util')
-	
+
+}
+
+task generateProfiles(type: Exec) {
+    commandLine = "../misc/scripts/generate_profile_variants.sh"
+}
+
+task generateProfilesZip(type: Zip) {
+    if (DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) {
+        logger.warn("Note: On Windows run script '../misc/scripts/generate_profile_variants.sh' manually to include all profiles")
+    }
+    else {
+        dependsOn generateProfiles
+    }
+    archiveFileName = "profiles2.zip"
+    from "../misc/profiles2"
+    exclude "all.brf"
+    exclude "car-traffic_analysis.brf"
+    exclude "car-vario.brf"
+    exclude "softaccess.brf"
+    destinationDirectory = layout.buildDirectory.dir('assets')
 }
