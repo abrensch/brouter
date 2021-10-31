@@ -13,11 +13,15 @@ application {
             attributes "Main-Class": getMainClass(), "Implementation-Version": project.version
         }
     }
+	
     task fatJar(type: Jar) {
         archiveFileName = 'brouter-' + project.version + '-all.jar'
 
-        manifest.from jar.manifest
+        manifest {
+            attributes "Main-Class": getMainClass(), "Implementation-Version": project.version
+        }
         classifier = 'all'
+        dependsOn configurations.runtimeClasspath
         from {
             configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
         } {
