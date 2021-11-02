@@ -222,20 +222,21 @@ public class BRouterView extends View
         waitingForMigration = false;
       }
       
-      int deviceLevel =  android.os.Build.VERSION.SDK_INT;
+      int deviceLevel = Build.VERSION.SDK_INT;
       int targetSdkVersion = getContext().getApplicationInfo().targetSdkVersion;
-      canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 19;
-      if ( canAccessSdCard )
-      {
-        cor = CoordinateReader.obtainValidReader( basedir, segmentDir );
+      canAccessSdCard = true;
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !Environment.isExternalStorageLegacy()) {
+        canAccessSdCard = false;
       }
-      else
-      {
-        if (deviceLevel >= android.os.Build.VERSION_CODES.Q) {
-          cor = new CoordinateReaderInternal(basedir);
-        } else {
-          cor = new CoordinateReaderNone();
-        }
+      if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+        canAccessSdCard = false;
+      }
+
+      if (canAccessSdCard) {
+        cor = CoordinateReader.obtainValidReader(basedir, segmentDir);
+      }
+      else {
+        cor = new CoordinateReaderInternal(basedir);
         cor.readFromTo();
       }
       

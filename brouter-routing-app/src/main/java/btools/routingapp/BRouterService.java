@@ -17,13 +17,20 @@ import java.util.List;
 import java.util.zip.GZIPOutputStream;
 import java.util.ArrayList;
 
+import android.Manifest;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 import android.util.Base64;
+
+import androidx.core.content.ContextCompat;
+
 import btools.router.OsmNodeNamed;
 
 public class BRouterService extends Service
@@ -203,7 +210,13 @@ public class BRouterService extends Service
       // add nogos from waypoint database
       int deviceLevel =  android.os.Build.VERSION.SDK_INT;
       int targetSdkVersion = getApplicationInfo().targetSdkVersion;
-      boolean canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 19;
+      boolean canAccessSdCard = true;
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !Environment.isExternalStorageLegacy()) {
+        canAccessSdCard = false;
+      }
+      if (ContextCompat.checkSelfPermission(BRouterService.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+        canAccessSdCard = false;
+      }
       AppLogger.log( "dev/target=" + deviceLevel + "/" + targetSdkVersion + " canAccessSdCard=" + canAccessSdCard );
       if ( canAccessSdCard )
       {
@@ -211,16 +224,11 @@ public class BRouterService extends Service
         worker.nogoList = new ArrayList<OsmNodeNamed>( cor.nogopoints );
         worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
       }
-      else if (deviceLevel >= android.os.Build.VERSION_CODES.Q)  {
+      else {
         CoordinateReader cor = new CoordinateReaderInternal( baseDir );
         cor.readFromTo();
 
         worker.nogoList = new ArrayList<OsmNodeNamed>( cor.nogopoints );
-        worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
-      }
-      else
-      {
-        worker.nogoList = new ArrayList<OsmNodeNamed>();
         worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
       }
 
