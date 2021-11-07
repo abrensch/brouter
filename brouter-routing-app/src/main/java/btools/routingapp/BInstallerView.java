@@ -64,6 +64,7 @@ public class BInstallerView extends View
     
     private long availableSize;
     private File baseDir;
+    private File segmentDir;
     
     private boolean isDownloading = false;
     public static boolean downloadCanceled = false;
@@ -301,7 +302,7 @@ public class BInstallerView extends View
        public void startInstaller() {
 
            baseDir = ConfigHelper.getBaseDir( getContext() );
-
+           segmentDir = new File( baseDir, "brouter/segments4");
            try
            {
              AssetManager assetManager = getContext().getAssets();
@@ -448,7 +449,9 @@ public class BInstallerView extends View
             if ( isDownloading ) btnText = "Cancel Download";
             else if ( delTiles > 0 ) btnText = "Delete " + delTiles + " tiles";
             else if ( rd5Tiles > 0 ) btnText = "Start Download";
-            else if ( tilesVisible && rd5Tiles == 0) btnText = "Update all";
+            else if ( tilesVisible &&
+              rd5Tiles == 0 &&
+              RoutingHelper.hasDirectoryAnyDatafiles( segmentDir )) btnText = "Update all";
 
             if ( btnText != null )
             {
