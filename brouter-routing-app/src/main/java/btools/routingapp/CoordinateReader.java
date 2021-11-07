@@ -149,76 +149,70 @@ public abstract class CoordinateReader
   protected abstract void readPointmap() throws Exception;
   
 
-  public static CoordinateReader obtainValidReader( String basedir, File segmentDir ) throws Exception
+  public static CoordinateReader obtainValidReader( String basedir, File segmentDir, boolean canAccessSdCard ) throws Exception
   {
-    return obtainValidReader( basedir, segmentDir, false );
+    return obtainValidReader( basedir, segmentDir, canAccessSdCard, false );
   }
 
-  public static CoordinateReader obtainValidReader( String basedir, File segmentDir, boolean nogosOnly ) throws Exception
+  public static CoordinateReader obtainValidReader( String basedir, File segmentDir, boolean canAccessSdCard, boolean nogosOnly ) throws Exception
   {
     CoordinateReader cor = null;
     ArrayList<CoordinateReader> rl = new ArrayList<CoordinateReader>();
 
-    AppLogger.log( "adding standard maptool-base: " + basedir );
-    rl.add( new CoordinateReaderOsmAnd( basedir ) );
-    rl.add( new CoordinateReaderLocus( basedir ) );
-    rl.add( new CoordinateReaderOrux( basedir ) );
+    if (canAccessSdCard) {
+      AppLogger.log("adding standard maptool-base: " + basedir);
+      rl.add(new CoordinateReaderOsmAnd(basedir));
+      rl.add(new CoordinateReaderLocus(basedir));
+      rl.add(new CoordinateReaderOrux(basedir));
 
-    // eventually add standard-sd
-    File standardbase = Environment.getExternalStorageDirectory();
-    if ( standardbase != null )
-    {
-      String base2 = standardbase.getAbsolutePath();
-      if ( !base2.equals( basedir ) )
-      {
-        AppLogger.log( "adding internal sd maptool-base: " + base2 );
-        rl.add( new CoordinateReaderOsmAnd( base2 ) );
-        rl.add( new CoordinateReaderLocus( base2 ) );
-        rl.add( new CoordinateReaderOrux( base2 ) );
-      }
-    }
-
-    // eventually add explicit directory
-    File additional = RoutingHelper.getAdditionalMaptoolDir( segmentDir );
-    if ( additional != null )
-    {
-      String base3 = additional.getAbsolutePath();
-
-      AppLogger.log( "adding maptool-base from storage-config: " + base3 );
-
-      rl.add( new CoordinateReaderOsmAnd( base3 ) );
-      rl.add( new CoordinateReaderOsmAnd( base3, true ) );
-      rl.add( new CoordinateReaderLocus( base3 ) );
-      rl.add( new CoordinateReaderOrux( base3 ) );
-    }
-
-    long tmax = 0;
-    for ( CoordinateReader r : rl )
-    {
-      if ( AppLogger.isLogging() )
-      {
-        AppLogger.log( "reading timestamp at systime " + new Date() );
-      }
-
-      long t = r.getTimeStamp();
-
-      if ( t != 0 )
-      {
-        if ( AppLogger.isLogging() )
-        {
-          AppLogger.log( "found coordinate source at " + r.basedir + r.rootdir + " with timestamp " + new Date( t ) );
+      // eventually add standard-sd
+      File standardbase = Environment.getExternalStorageDirectory();
+      if (standardbase != null) {
+        String base2 = standardbase.getAbsolutePath();
+        if (!base2.equals(basedir)) {
+          AppLogger.log("adding internal sd maptool-base: " + base2);
+          rl.add(new CoordinateReaderOsmAnd(base2));
+          rl.add(new CoordinateReaderLocus(base2));
+          rl.add(new CoordinateReaderOrux(base2));
         }
       }
 
-      if ( t > tmax )
-      {
-        tmax = t;
-        cor = r;
+      // eventually add explicit directory
+      File additional = RoutingHelper.getAdditionalMaptoolDir(segmentDir);
+      if (additional != null) {
+        String base3 = additional.getAbsolutePath();
+
+        AppLogger.log("adding maptool-base from storage-config: " + base3);
+
+        rl.add(new CoordinateReaderOsmAnd(base3));
+        rl.add(new CoordinateReaderOsmAnd(base3, true));
+        rl.add(new CoordinateReaderLocus(base3));
+        rl.add(new CoordinateReaderOrux(base3));
+      }
+
+      long tmax = 0;
+      for (CoordinateReader r : rl) {
+        if (AppLogger.isLogging()) {
+          AppLogger.log("reading timestamp at systime " + new Date());
+        }
+
+        long t = r.getTimeStamp();
+
+        if (t != 0) {
+          if (AppLogger.isLogging()) {
+            AppLogger.log("found coordinate source at " + r.basedir + r.rootdir + " with timestamp " + new Date(t));
+          }
+        }
+
+        if (t > tmax) {
+          tmax = t;
+          cor = r;
+        }
       }
     }
     if ( cor == null )
     {
-      cor = new CoordinateReaderNone();
+      cor = new CoordinateReaderInternal(basedir);
     }
     cor.nogosOnly = nogosOnly;
     cor.readFromTo();

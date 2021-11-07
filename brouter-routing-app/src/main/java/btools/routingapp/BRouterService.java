@@ -218,20 +218,10 @@ public class BRouterService extends Service
         canAccessSdCard = false;
       }
       AppLogger.log( "dev/target=" + deviceLevel + "/" + targetSdkVersion + " canAccessSdCard=" + canAccessSdCard );
-      if ( canAccessSdCard )
-      {
-        CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir, true );
-        worker.nogoList = new ArrayList<OsmNodeNamed>( cor.nogopoints );
-        worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
-      }
-      else {
-        CoordinateReader cor = new CoordinateReaderInternal( baseDir );
-        cor.readFromTo();
 
-        worker.nogoList = new ArrayList<OsmNodeNamed>( cor.nogopoints );
-        worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
-      }
-
+      CoordinateReader cor = CoordinateReader.obtainValidReader( baseDir, worker.segmentDir, canAccessSdCard, true );
+      worker.nogoList = new ArrayList<OsmNodeNamed>( cor.nogopoints );
+      worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
     }
 
 

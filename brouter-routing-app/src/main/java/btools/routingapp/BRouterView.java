@@ -232,13 +232,7 @@ public class BRouterView extends View
         canAccessSdCard = false;
       }
 
-      if (canAccessSdCard) {
-        cor = CoordinateReader.obtainValidReader(basedir, segmentDir);
-      }
-      else {
-        cor = new CoordinateReaderInternal(basedir);
-        cor.readFromTo();
-      }
+      cor = CoordinateReader.obtainValidReader(basedir, segmentDir, canAccessSdCard);
       
       wpList = cor.waypoints;
       nogoList = cor.nogopoints;
@@ -586,7 +580,7 @@ public class BRouterView extends View
         for ( int i = 0; i < wpList.size(); i++ )
           msg += ( i > 0 ? "->" : "" ) + wpList.get( i ).name;
       }
-      ( (BRouterActivity) getContext() ).showResultMessage( "Select Action", msg, cor instanceof CoordinateReaderNone ? -2 : wpList.size() );
+      ( (BRouterActivity) getContext() ).showResultMessage( "Select Action", msg, wpList.size() );
       return;
     }
 
