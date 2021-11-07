@@ -33,9 +33,12 @@ import android.view.KeyEvent;
 import android.widget.EditText;
 
 
+import androidx.core.app.ActivityCompat;
+import androidx.core.os.EnvironmentCompat;
+
 import btools.router.OsmNodeNamed;
 
-public class BRouterActivity extends BRouterMainActivity {
+public class BRouterActivity extends Activity implements ActivityCompat.OnRequestPermissionsResultCallback {
 
   private static final int DIALOG_SELECTPROFILE_ID = 1;
   private static final int DIALOG_EXCEPTION_ID = 2;
@@ -54,7 +57,7 @@ public class BRouterActivity extends BRouterMainActivity {
   private static final int DIALOG_SHOW_WP_SCANRESULT_ID = 15;
   private static final int DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID = 16;
   private static final int DIALOG_SHOW_API23_HELP_ID = 17;
-  
+
 
   private BRouterView mBRouterView;
   private PowerManager mPowerManager;
@@ -667,4 +670,64 @@ public class BRouterActivity extends BRouterMainActivity {
     mWakeLock.release();
   }
 
+  private String getStorageState(File f) {
+    return EnvironmentCompat.getStorageState(f); //Environment.MEDIA_MOUNTED
+  }
+
+  public ArrayList<File> getStorageDirectories () {
+    ArrayList<File> list = null;
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      list = new ArrayList<File>(Arrays.asList(getExternalMediaDirs()));
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+      list = new ArrayList<File>(Arrays.asList(getExternalFilesDirs(null)));
+    }
+    ArrayList<File> res = new ArrayList<File>();
+
+    for (File f : list) {
+      if (f != null) {
+        if (getStorageState(f).equals(Environment.MEDIA_MOUNTED))
+          res.add (f);
+      }
+    }
+
+    if (checkExternalStorageWritable()) {
+      res.add(Environment.getExternalStorageDirectory());
+    }
+
+    return res;
+  }
+
+  private boolean checkExternalStorageWritable() {
+    boolean isWritable = false;
+    try {
+      File sd = Environment.getExternalStorageDirectory();
+      File testDir = new File( sd, "brouter" );
+      boolean didExist = testDir.isDirectory();
+      if ( !didExist )
+      {
+        testDir.mkdir();
+      }
+      File testFile = new File( testDir, "test" + System.currentTimeMillis() );
+      testFile.createNewFile();
+      if ( testFile.exists() ) {
+        testFile.delete();
+        isWritable = true;
+      }
+    }
+    catch (Throwable t) {
+      // ignore
+    }
+    return isWritable;
+  }
+
+  @Override
+  public void onRequestPermissionsResult (int requestCode, String[] permissions, int[] grantResults) {
+    if (requestCode == 0) {
+      if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        mBRouterView.startSetup(null, true);
+      } else {
+        mBRouterView.init();
+      }
+    }
+  }
 }

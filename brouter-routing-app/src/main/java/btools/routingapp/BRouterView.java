@@ -38,6 +38,9 @@ import android.view.View;
 import android.widget.Toast;
 
 
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.OsmNode;
@@ -176,9 +179,9 @@ public class BRouterView extends View
       }
 
       if ( !td.isDirectory() ) {
-        if ( ( (BRouterActivity) getContext() ).checkSelfPermission (getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-        // if (ContextCompat.checkSelfPermission (getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+        if (ContextCompat.checkSelfPermission (getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
           retryBaseDir = baseDir;
+          ActivityCompat.requestPermissions ((BRouterActivity) getContext(), new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
         } else {
           ( (BRouterActivity) getContext() ).selectBasedir( ( (BRouterActivity) getContext() ).getStorageDirectories (), guessBaseDir(), "Cannot access " + baseDir.getAbsolutePath () + "; select another");
         }
@@ -219,22 +222,17 @@ public class BRouterView extends View
         waitingForMigration = false;
       }
       
-      int deviceLevel =  android.os.Build.VERSION.SDK_INT;
+      int deviceLevel = Build.VERSION.SDK_INT;
       int targetSdkVersion = getContext().getApplicationInfo().targetSdkVersion;
-      canAccessSdCard =  deviceLevel < 23 || targetSdkVersion == 19;
-      if ( canAccessSdCard )
-      {
-        cor = CoordinateReader.obtainValidReader( basedir, segmentDir );
+      canAccessSdCard = true;
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !Environment.isExternalStorageLegacy()) {
+        canAccessSdCard = false;
       }
-      else
-      {
-        if (deviceLevel >= android.os.Build.VERSION_CODES.Q) {
-          cor = new CoordinateReaderInternal(basedir);
-        } else {
-          cor = new CoordinateReaderNone();
-        }
-        cor.readFromTo();
+      if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+        canAccessSdCard = false;
       }
+
+      cor = CoordinateReader.obtainValidReader(basedir, segmentDir, canAccessSdCard);
       
       wpList = cor.waypoints;
       nogoList = cor.nogopoints;
@@ -582,7 +580,7 @@ public class BRouterView extends View
         for ( int i = 0; i < wpList.size(); i++ )
           msg += ( i > 0 ? "->" : "" ) + wpList.get( i ).name;
       }
-      ( (BRouterActivity) getContext() ).showResultMessage( "Select Action", msg, cor instanceof CoordinateReaderNone ? -2 : wpList.size() );
+      ( (BRouterActivity) getContext() ).showResultMessage( "Select Action", msg, wpList.size() );
       return;
     }
 
