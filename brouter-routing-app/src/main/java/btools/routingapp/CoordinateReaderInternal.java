@@ -41,9 +41,9 @@ public class CoordinateReaderInternal extends CoordinateReader
     }
     else
     {
-      internalDir = basedir + "/import";
-      tracksdir = "/import/tracks";
-      rootdir = "/import";
+      internalDir = basedir + "/brouter/import";
+      tracksdir = "/brouter/import/tracks";
+      rootdir = "/brouter/import";
     }
   }
 
