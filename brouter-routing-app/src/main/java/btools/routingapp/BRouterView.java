@@ -128,7 +128,8 @@ public class BRouterView extends View
         File brd = new File( baseDir, "brouter" );
         if ( brd.isDirectory() )
         {
-          if (brd.getAbsolutePath().contains("/Android/data/")) {
+          if ( android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q &&
+               !brd.getAbsolutePath().contains("/Android/media/btools.routingapp")) {
             String message = "(previous basedir " + baseDir + " has to migrate )" ;
 
             ( (BRouterActivity) getContext() ).selectBasedir( ( (BRouterActivity) getContext() ).getStorageDirectories(), guessBaseDir(), message );
