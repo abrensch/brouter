@@ -7,7 +7,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.text.format.Formatter;
-import android.widget.TextView;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
@@ -21,14 +23,28 @@ import java.io.InputStreamReader;
 public class BImportActivity extends Activity {
   // profile size is generally < 30 kb, so set max size to 100 kb
   private static final int MAX_PROFILE_SIZE = 100000;
-  TextView mImportResultView;
+  private EditText mTextFilename;
+  private Button mButtonImport;
+  private String mProfileData;
+  private EditText mTextProfile;
 
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
     setContentView(R.layout.import_intent);
-    mImportResultView = findViewById(R.id.Info_brouter);
+    mTextFilename = findViewById(R.id.editTextFilename);
+    mButtonImport = findViewById(R.id.buttonImport);
+    mButtonImport.setEnabled(false);
+    mButtonImport.setOnClickListener(view -> {
+      String filename = mTextFilename.getText().toString();
+      if (isValidProfileFilename(filename)) {
+        writeProfile(filename, mProfileData);
+      } else {
+        displayMessage("ERROR: File extention must be \".brf\"\n");
+      }
+    });
+    mTextProfile = findViewById(R.id.editTextProfile);
 
     Intent intent = getIntent();
     String action = intent.getAction();
@@ -37,17 +53,17 @@ public class BImportActivity extends Activity {
     }
   }
 
+  private boolean isValidProfileFilename(String filename) {
+    return filename.endsWith(".brf");
+  }
+
   private void importProfile(Intent intent) {
-    StringBuilder resultMessage = new StringBuilder();
     if (intent.getData() == null) {
       return;
     }
-    setContentView(R.layout.import_intent);
-    mImportResultView = findViewById(R.id.Info_brouter);
-    mImportResultView.setText("Start importing profile: \n");
 
+    StringBuilder resultMessage = new StringBuilder();
     Uri dataUri = intent.getData();
-    System.out.println("Brouter DATA=" + dataUri);
 
     // by some apps (bluemail) the file name must be "extracted" from the URI, as example with the following code
     // see https://stackoverflow.com/questions/14364091/retrieve-file-path-from-caught-downloadmanager-intent
@@ -61,24 +77,21 @@ public class BImportActivity extends Activity {
         filesize = cursor.getLong(cursor.getColumnIndex(OpenableColumns.SIZE));
       }
     }
-    System.out.println("Brouter filename=" + filename + "\n file size=" + filesize);
-    resultMessage.append("File name=").append(filename).append("\n");
-    resultMessage.append("File size=").append(Formatter.formatFileSize(this, filesize)).append(" bytes\n");
-    mImportResultView.setText(resultMessage);
-    //  is the file extention ".brf" in the file name
-    if (filename == null || !filename.endsWith(".brf")) {
+    // is the file extention ".brf" in the file name
+    if (filename == null || !isValidProfileFilename(filename)) {
       resultMessage.append("ERROR: File extention must be \".brf\"\n");
-      mImportResultView.setText(resultMessage);
+      displayMessage(resultMessage.toString());
       return;
     }
 
     if (filesize > MAX_PROFILE_SIZE) {
-      resultMessage.append("ERROR: File size exceeds limit (").append(Formatter.formatFileSize(this, MAX_PROFILE_SIZE)).append(")\n");
-      mImportResultView.setText(resultMessage);
+      String errorMessage = String.format("ERROR: File size (%s) exceeds limit (%s)\n",
+        Formatter.formatFileSize(this, filesize),
+        Formatter.formatFileSize(this, MAX_PROFILE_SIZE));
+      displayMessage(errorMessage);
       return;
     }
 
-    String profileData = "";
     try (
       InputStream inputStream = getContentResolver().openInputStream(dataUri);
       BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
@@ -90,20 +103,25 @@ public class BImportActivity extends Activity {
         sb.append(System.getProperty("line.separator"));
         line = br.readLine();
       }
-      profileData = sb.toString();
+      mProfileData = sb.toString();
     } catch (IOException e) {
-      System.out.println(e);
-      resultMessage.append("ERROR: " + e + "\n");
-      mImportResultView.setText(resultMessage);
+      resultMessage.append(String.format("ERROR: failed to load profile content (%S)", e.getMessage()));
+      displayMessage(resultMessage.toString());
     }
 
-    if (!profileData.contains("highway=") || (!profileData.contains("costfactor")) || (!profileData.contains("---context:global"))) {
+    if (!mProfileData.contains("highway=") || (!mProfileData.contains("costfactor")) || (!mProfileData.contains("---context:global"))) {
       resultMessage.append("ERROR: this file is not a valid brouter-profile\n");
-      mImportResultView.setText(resultMessage);
+      displayMessage(resultMessage.toString());
       return;
     }
 
-    writeProfile(filename, profileData);
+    mTextFilename.setText(filename);
+    mTextProfile.setText(mProfileData);
+    mButtonImport.setEnabled(true);
+  }
+
+  void displayMessage(String message) {
+    Toast.makeText(this, message, Toast.LENGTH_LONG).show();
   }
 
   void writeProfile(String filename, String profileData) {
@@ -114,13 +132,9 @@ public class BImportActivity extends Activity {
       FileOutputStream stream = new FileOutputStream(file);
       stream.write(profileData.getBytes());
       stream.close();
-      System.out.println("Brouter: profile was installed in ./brouter/profiles2");
-      // report success in UI and stop
-      mImportResultView.setText(mImportResultView.getText() + "Profile successfully imported into:\n" + baseDir + "brouter/profiles2/" + filename + " \n\nIt can be used now in the same way as a basis profile! ");
+      displayMessage("Profile successfully imported");
     } catch (IOException e) {
-      System.out.println("Exception, File write failed: " + e.toString());
-      // report error in UI and stop
-      mImportResultView.setText(mImportResultView.getText() + "ERROR: " + e + " \n");
+      displayMessage(String.format("Profile import failed: %s", e.getMessage()));
     }
   }
 

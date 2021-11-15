@@ -36,9 +36,9 @@
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"></activity>
         <activity
             android:name=".BImportActivity"
-            android:label="BRouter Profile Import"
+            android:label="Import Profile"
             android:exported="true"
-            android:theme="@android:style/Theme">
+            android:theme="@android:style/Theme.NoTitleBar">
             <!-- some apps (bluemail) do not recognize the .brf file extention, startactivity+intent is done for attachement with text/plain -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
