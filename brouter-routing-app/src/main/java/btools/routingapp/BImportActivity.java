@@ -36,28 +36,31 @@ public class BImportActivity extends Activity {
     mTextFilename = findViewById(R.id.editTextFilename);
     mButtonImport = findViewById(R.id.buttonImport);
     mButtonImport.setEnabled(false);
-    mButtonImport.setOnClickListener(view -> {
-      String filename = mTextFilename.getText().toString();
-      if (isValidProfileFilename(filename)) {
-        writeProfile(filename, mProfileData);
-      } else {
-        displayMessage("ERROR: File extention must be \".brf\"\n");
-      }
-    });
+    mButtonImport.setOnClickListener(view -> importProfile());
     mTextProfile = findViewById(R.id.editTextProfile);
 
     Intent intent = getIntent();
     String action = intent.getAction();
     if (Intent.ACTION_VIEW.equals(action)) {
-      importProfile(intent);
+      parseIntent(intent);
     }
   }
 
-  private boolean isValidProfileFilename(String filename) {
-    return filename.endsWith(".brf");
+  private boolean isBuiltinProfile(String filename) {
+    String[] builtinProfiles = new ServerConfig(this).getProfiles();
+    for (String builtinProfile : builtinProfiles) {
+      if (filename.equals(builtinProfile)) {
+        return true;
+      }
+    }
+    return false;
   }
 
-  private void importProfile(Intent intent) {
+  private boolean isInvalidProfileFilename(String filename) {
+    return !filename.endsWith(".brf");
+  }
+
+  private void parseIntent(Intent intent) {
     if (intent.getData() == null) {
       return;
     }
@@ -78,7 +81,7 @@ public class BImportActivity extends Activity {
       }
     }
     // is the file extention ".brf" in the file name
-    if (filename == null || !isValidProfileFilename(filename)) {
+    if (filename == null || isInvalidProfileFilename(filename)) {
       resultMessage.append("ERROR: File extention must be \".brf\"\n");
       displayMessage(resultMessage.toString());
       return;
@@ -105,7 +108,7 @@ public class BImportActivity extends Activity {
       }
       mProfileData = sb.toString();
     } catch (IOException e) {
-      resultMessage.append(String.format("ERROR: failed to load profile content (%S)", e.getMessage()));
+      resultMessage.append(String.format("ERROR: failed to load profile content (%s)", e.getMessage()));
       displayMessage(resultMessage.toString());
     }
 
@@ -122,6 +125,20 @@ public class BImportActivity extends Activity {
 
   void displayMessage(String message) {
     Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+  }
+
+  boolean importProfile() {
+    String filename = mTextFilename.getText().toString();
+    if (isInvalidProfileFilename(filename)) {
+      displayMessage("ERROR: File extention must be \".brf\"\n");
+      return false;
+    } else if (isBuiltinProfile(filename)) {
+      displayMessage("ERROR: Built-in profile exists\n");
+      return false;
+    }
+
+    writeProfile(filename, mProfileData);
+    return true;
   }
 
   void writeProfile(String filename, String profileData) {
