@@ -112,7 +112,7 @@ public class BImportActivity extends Activity {
       displayMessage(resultMessage.toString());
     }
 
-    if (!mProfileData.contains("highway=") || (!mProfileData.contains("costfactor")) || (!mProfileData.contains("---context:global"))) {
+    if (!mProfileData.contains("---context:global") || (!mProfileData.contains("---context:way"))) {
       resultMessage.append("ERROR: this file is not a valid brouter-profile\n");
       displayMessage(resultMessage.toString());
       return;
