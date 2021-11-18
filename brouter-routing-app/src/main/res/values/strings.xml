@@ -16,4 +16,6 @@
 
 <resources>
     <string name="app_name">BRouter</string>
+    <string name="import_profile">Import Profile</string>
+    <string name="profile_filename_example">filename.brf</string>
 </resources>
