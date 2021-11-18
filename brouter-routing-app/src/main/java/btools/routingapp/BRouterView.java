@@ -214,7 +214,7 @@ public class BRouterView extends View
       assertDirectoryExists( "modes directory", modesDir, "modes.zip", version );
       assertDirectoryExists( "readmes directory", new File (basedir, "brouter/readmes"), "readmes.zip", version );
 
-      File inputDir = new File (basedir, "/import");
+      File inputDir = new File (basedir, "brouter/import");
       assertDirectoryExists( "input directory", inputDir, null, version );
 
       // new init is done move old files
