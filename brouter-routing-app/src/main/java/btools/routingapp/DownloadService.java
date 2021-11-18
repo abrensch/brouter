@@ -11,14 +11,11 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
-import android.os.StatFs;
 import android.util.Log;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -35,11 +32,7 @@ public class DownloadService extends Service implements ProgressListener  {
 
     private static final boolean DEBUG = false;
 
-    String segmenturl = "https://brouter.de/brouter/segments4/";
-    String lookupurl = "https://brouter.de/brouter/profile2/";
-    String profilesurl = "https://brouter.de/brouter/profile2/";
-    String checkLookup = "lookups.dat";
-    String checkProfiles = "";
+    private ServerConfig mServerConfig;
 
     private NotificationHelper mNotificationHelper;
     private List<String> mUrlList;
@@ -78,6 +71,7 @@ public class DownloadService extends Service implements ProgressListener  {
     public void onCreate() {
         if (DEBUG) Log.d("SERVICE", "onCreate");
         serviceState = true;
+        mServerConfig = new ServerConfig(getApplicationContext());
 
         HandlerThread thread = new HandlerThread("ServiceStartArguments", 1);
         thread.start();
@@ -109,38 +103,6 @@ public class DownloadService extends Service implements ProgressListener  {
             List<String> urlparts = extra.getStringArrayList("urlparts");
             mUrlList = urlparts;
             baseDir = dir;
-
-            File configFile = new File (dir, "segments4/serverconfig.txt");
-            if ( configFile.exists() ) {
-                try {
-                    BufferedReader br = new BufferedReader( new FileReader( configFile ) );
-                    for ( ;; )
-                    {
-                        String line = br.readLine();
-                        if ( line == null ) break;
-                        if ( line.trim().startsWith( "segment_url=" ) ) {
-                            segmenturl = line.substring(12);
-                        }
-                        else if ( line.trim().startsWith( "lookup_url=" ) ) {
-                            lookupurl = line.substring(11);
-                        }
-                        else if ( line.trim().startsWith( "profiles_url=" ) ) {
-                            profilesurl = line.substring(13);
-                        }
-                        else if ( line.trim().startsWith( "check_lookup=" ) ) {
-                            checkLookup = line.substring(13);
-                        }
-                        else if ( line.trim().startsWith( "check_profiles=" ) ) {
-                            checkProfiles = line.substring(15);
-                        }
-                    }
-                    br.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            }
-
         }
 
         mNotificationHelper.startNotification(this);
@@ -185,7 +147,7 @@ public class DownloadService extends Service implements ProgressListener  {
         int count = 1;
         int size = mUrlList.size();
         for (String part: mUrlList) {
-            String url = segmenturl + part  + ".rd5";
+            String url = mServerConfig.getSegmentUrl() + part  + ".rd5";
             if (DEBUG) Log.d("BR", "downlaod " + url);
 
             result = download(count, size, url);
@@ -386,7 +348,7 @@ public class DownloadService extends Service implements ProgressListener  {
 
     private String checkScripts() {
 
-        String[] sa = checkLookup.split(",");
+        String[] sa = mServerConfig.getLookups();
         for (String f: sa) {
             if (f.length()>0) {
                 File file = new File(baseDir + "profiles2", f);
@@ -394,7 +356,7 @@ public class DownloadService extends Service implements ProgressListener  {
             }
         }
 
-        sa = checkProfiles.split(",");
+        sa = mServerConfig.getProfiles();
         for (String f : sa) {
             if (f.length()>0) {
                 File file = new File(baseDir + "profiles2", f);
@@ -410,12 +372,12 @@ public class DownloadService extends Service implements ProgressListener  {
     }
 
     private String checkOrDownloadLookup(String fileName, File f) {
-        String url = lookupurl + fileName;
+        String url = mServerConfig.getLookupUrl() + fileName;
         return downloadScript(url, f);
     }
 
     private String checkOrDownloadScript(String fileName, File f) {
-        String url = profilesurl + fileName;
+        String url = mServerConfig.getProfilesUrl() + fileName;
         return downloadScript(url, f);
     }
 
