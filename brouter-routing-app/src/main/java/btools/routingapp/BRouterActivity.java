@@ -533,14 +533,21 @@ public class BRouterActivity extends Activity implements ActivityCompat.OnReques
       dirFreeSizes.add( Long.valueOf( size ) );
     }
 
-    basedirOptions = new String[items.size() + 1];
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      basedirOptions = new String[items.size()];
+    } else {
+      basedirOptions = new String[items.size() + 1];
+    }
+
     int bdidx = 0;
     DecimalFormat df = new DecimalFormat( "###0.00" );
     for ( int idx = 0; idx < availableBasedirs.size(); idx++ )
     {
       basedirOptions[bdidx++] = availableBasedirs.get( idx ) + " (" + df.format( dirFreeSizes.get( idx ) / 1024. / 1024. / 1024. ) + " GB free)";
     }
-    basedirOptions[bdidx] = "Enter path manually";
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+      basedirOptions[bdidx] = "Enter path manually";
+    }
 
     showDialog( DIALOG_SELECTBASEDIR_ID );
   }
