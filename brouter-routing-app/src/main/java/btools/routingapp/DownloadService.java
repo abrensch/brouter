@@ -132,7 +132,7 @@ public class DownloadService extends Service implements ProgressListener  {
 
     public void downloadFiles() {
 
-        // first check lookup table and prifles
+        // first check lookup table and profiles
         String result = checkScripts();
         if ( result != null) {
             if (DEBUG) Log.d("BR", "error: " + result);
