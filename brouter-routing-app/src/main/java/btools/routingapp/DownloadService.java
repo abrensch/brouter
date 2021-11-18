@@ -132,7 +132,7 @@ public class DownloadService extends Service implements ProgressListener  {
 
     public void downloadFiles() {
 
-        // first check lookup table and prifles
+        // first check lookup table and profiles
         String result = checkScripts();
         if ( result != null) {
             if (DEBUG) Log.d("BR", "error: " + result);
@@ -192,9 +192,7 @@ public class DownloadService extends Service implements ProgressListener  {
         {
             try
             {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-                    TrafficStats.setThreadStatsTag(1);
-                }
+                TrafficStats.setThreadStatsTag(1);
 
                 int slidx = surl.lastIndexOf( "segments4/" );
                 String name = surl.substring( slidx+10 );
@@ -397,17 +395,13 @@ public class DownloadService extends Service implements ProgressListener  {
         {
             try
             {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-                    TrafficStats.setThreadStatsTag(1);
-                }
+                TrafficStats.setThreadStatsTag(1);
 
-                if ( connection == null )
-                {
-                    URL url = new URL(surl);
-                    connection = (HttpURLConnection) url.openConnection();
-                    connection.setConnectTimeout(5000);
-                    connection.connect();
-                }
+                URL url = new URL(surl);
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setConnectTimeout(5000);
+                connection.connect();
+
                 // expect HTTP 200 OK, so we don't mistakenly save error report
                 // instead of the file
                 if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
