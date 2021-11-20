@@ -1,8 +1,5 @@
 package btools.routingapp;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -16,9 +13,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
-import android.speech.tts.TextToSpeech.OnInitListener;
 import android.os.StatFs;
-import android.util.Log;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class BInstallerActivity extends Activity {
 
