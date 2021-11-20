@@ -1,0 +1,6 @@
+# Commits which should be ignored by git blame
+
+# You have to instruct git to use this file using either
+# `git blame --ignore-revs-file .git-blame-ignore-revs`
+# or update you git config to always include those commits
+# `git config blame.ignoreRevsFile .git-blame-ignore-revs`
