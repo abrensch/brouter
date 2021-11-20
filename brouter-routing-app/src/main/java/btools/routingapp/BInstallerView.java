@@ -1,15 +1,5 @@
 package btools.routingapp;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Locale;
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -20,21 +10,18 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.os.AsyncTask;
-import android.os.PowerManager;
-import android.os.StatFs;
-import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
 
-import btools.mapaccess.PhysicalFile;
-import btools.mapaccess.Rd5DiffManager;
-import btools.mapaccess.Rd5DiffTool;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Locale;
+
 import btools.router.RoutingHelper;
-import btools.util.ProgressListener;
 
 public class BInstallerView extends View {
   private static final int MASK_SELECTED_RD5 = 1;
