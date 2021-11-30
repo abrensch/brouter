@@ -1,3 +1,7 @@
+---
+parent: Features
+---
+
 ## Following long distance cycle routes
 
 The long distance cycle network (see

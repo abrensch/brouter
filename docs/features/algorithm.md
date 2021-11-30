@@ -1,5 +1,6 @@
 ---
 title: "Routing algorithm"
+parent: Features
 ---
 
 ## Routing algorithm: 2-pass routing with adaptive cost-cutoff

@@ -1,3 +1,7 @@
+---
+parent: Features
+---
+
 ## Ofline routing on Android phones
 
 BRouter is first and foremost an offline tool. It runs on any Android phone. The

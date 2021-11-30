@@ -1,3 +1,7 @@
+---
+parent: Features
+---
+
 ## Alternative route calculations
 
 Sometimes the routing result is not what you want, and you are looking for some
