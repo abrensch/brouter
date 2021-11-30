@@ -27,5 +27,5 @@ See some [sample profiles](profiles2) provided for the online router.
 See the trekking-profile [`trekking.brf`](profiles2/trekking.brf) as the
 reference-profile with some explanations on the meaning of this script.
 
-See the [profile_developers_guide.txt](profile_developers_guide.txt) for a
-technical reference.
+See the [Profile Developers Guide](../developers/profile_developers_guide.md)
+for a technical reference.
