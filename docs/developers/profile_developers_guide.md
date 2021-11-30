@@ -1,5 +1,15 @@
-Profile developers guide - Technical reference for BRouter profile scripts
-==========================================================================
+---
+parent: Developers
+---
+
+Profile developers guide
+========================
+{: .no_toc}
+
+Technical reference for BRouter profile scripts
+
+1. TOC
+{:toc}
 
 The tag-value lookup table
 --------------------------
