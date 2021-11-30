@@ -1,3 +1,7 @@
+---
+parent: Features
+---
+
 ## Via-Points and NoGo-Areas
 
 BRouter can process via-points and nogo-areas, and [brouter-web](/brouter-web)

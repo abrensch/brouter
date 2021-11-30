@@ -1,5 +1,7 @@
 ---
 layout: default
+title: Home
+nav_order: 1
 ---
 
 ## BRouter: Let's get serious about bike routing

@@ -1,3 +1,7 @@
+---
+parent: Features
+---
+
 ## Freely configurable routing profile
 
 A major reason for the limited usefulness of most bike routing software is that
