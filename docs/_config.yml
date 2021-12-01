@@ -23,7 +23,7 @@ description: >- # this means to ignore newlines until "baseurl:"
   BRouter is a configurable OSM offline router with elevation awareness, Java +
   Android. Designed to be multi-modal with a particular emphasis on bicycle and
   energy-based car routing.
-# baseurl: "" # the subpath of your site, e.g. /blog
+baseurl: "/brouter" # the subpath of your site, e.g. /blog
 # url: "" # the base hostname & protocol for your site, e.g. http://example.com
 
 # Build settings
