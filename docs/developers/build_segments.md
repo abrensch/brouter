@@ -1,10 +1,15 @@
-Build your own BRouter segments files
-=====================================
+---
+parent: Developers
+---
+
+Build your own segments files
+=============================
 
 BRouter uses its own data format (`.rd5` files), split in tiles of 5 x 5
 in latitude and longitude. You can download the official segment files (weekly
 built) from [brouter.de](http://brouter.de/brouter/segments4/) but you can
-also build them yourself from an OSM dump.
+also build them yourself from an OSM dump (e.g. planet or [GeoFabrik
+extract](https://download.geofabrik.de/))
 
 
 ## Build the pbfparser
