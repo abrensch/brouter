@@ -433,8 +433,8 @@ public class DownloadService extends Service implements ProgressListener {
 
             output.write(data, 0, count);
 
-            // enforce < 2 Mbit/s
-            long dt = t0 + total / 524 - System.currentTimeMillis();
+            // enforce < 16 Mbit/s
+            long dt = t0 + total / 2096 - System.currentTimeMillis();
             if (dt > 0) {
               try {
                 Thread.sleep(dt);
