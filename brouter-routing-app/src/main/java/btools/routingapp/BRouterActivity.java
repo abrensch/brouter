@@ -129,7 +129,7 @@ public class BRouterActivity extends Activity implements ActivityCompat.OnReques
           .setMessage(
             "*** Attention: ***\n\n" + "The Download Manager is used to download routing-data "
               + "files which can be up to 170MB each. Do not start the Download Manager " + "on a cellular data connection without a data plan! "
-              + "Download speed is restricted to 4 MBit/s.").setPositiveButton("I know", new DialogInterface.OnClickListener() {
+              + "Download speed is restricted to 16 MBit/s.").setPositiveButton("I know", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int id) {
             Intent intent = new Intent(BRouterActivity.this, BInstallerActivity.class);
             startActivity(intent);
