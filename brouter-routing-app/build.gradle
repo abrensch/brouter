@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId "btools.routingapp"
 
-        versionCode 42
+        versionCode 43
         versionName project.version
 
         resValue('string', 'app_version', defaultConfig.versionName)
