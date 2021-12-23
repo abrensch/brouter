@@ -1,0 +1,47 @@
+# This workflow will build a package using Gradle, no releasee 
+
+name: Gradle Package Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    environment: BRouter
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 11
+      uses: actions/setup-java@v2
+      with:
+        java-version: '11'
+        distribution: 'zulu'
+        cache: gradle
+    - name: Create local.properties
+      run: touch local.properties
+    - name: Setup keystore
+      env:
+        BROUTER_KEYSTORE_BASE64: ${{ secrets.BROUTER_KEYSTORE_BASE64 }}
+      run: |
+        echo $BROUTER_KEYSTORE_BASE64 | base64 -di > ${{ github.workspace }}/brouter.jks
+    - name: Build with Gradle
+      env:
+        BROUTER_KEYSTORE_FILE: ${{ secrets.BROUTER_KEYSTORE_FILE }}
+        BROUTER_KEY_ALIAS: ${{ secrets.BROUTER_KEY_ALIAS }}
+        BROUTER_KEY_PASSWORD: ${{ secrets.BROUTER_KEY_PASSWORD }}
+        BROUTER_STORE_PASSWORD: ${{ secrets.BROUTER_STORE_PASSWORD }} 
+      run: ./gradlew build
+    - name: Upload BRouter zip
+      uses: actions/upload-artifact@v2
+      with:
+        name: BRouter_current
+        path: brouter-server/build/distributions/brouter-*.zip
+    # The USERNAME and TOKEN need to correspond to the credentials environment variables used in
+    # the publishing section of your build.gradle
+    #- name: Publish to GitHub Packages
+    #  run: gradle publish
+    #  env:
+    #    USERNAME: ${{ github.actor }}
+    #    TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #    REPO: ${{ github.repository }}
