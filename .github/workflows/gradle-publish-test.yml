@@ -27,11 +27,11 @@ jobs:
         echo $BROUTER_KEYSTORE_BASE64 | base64 -di > ${{ github.workspace }}/brouter.jks
     - name: Build with Gradle
       env:
-        BROUTER_KEYSTORE_FILE: ${{ secrets.BROUTER_KEYSTORE_FILE }}
-        BROUTER_KEY_ALIAS: ${{ secrets.BROUTER_KEY_ALIAS }}
-        BROUTER_KEY_PASSWORD: ${{ secrets.BROUTER_KEY_PASSWORD }}
-        BROUTER_STORE_PASSWORD: ${{ secrets.BROUTER_STORE_PASSWORD }} 
-      run: ./gradlew clean build -PBROUTER_KEYSTORE_FILE=$BROUTER_KEYSTORE_FILE -PBROUTER_KEY_ALIAS=$BROUTER_KEY_ALIAS -PBROUTER_KEY_ALIAS=$BROUTER_KEY_ALIAS -PBROUTER_STORE_PASSWORD=$BROUTER_STORE_PASSWORD
+        RELEASE_STORE_FILE: ${{ secrets.BROUTER_KEYSTORE_FILE }}
+        RELEASE_KEY_ALIAS: ${{ secrets.BROUTER_KEY_ALIAS }}
+        RELEASE_KEY_PASSWORD: ${{ secrets.BROUTER_KEY_PASSWORD }}
+        RELEASE_STORE_PASSWORD: ${{ secrets.BROUTER_STORE_PASSWORD }} 
+      run: ./gradlew clean build
     - name: Upload BRouter zip
       uses: actions/upload-artifact@v2
       with:
