@@ -31,7 +31,7 @@ jobs:
         BROUTER_KEY_ALIAS: ${{ secrets.BROUTER_KEY_ALIAS }}
         BROUTER_KEY_PASSWORD: ${{ secrets.BROUTER_KEY_PASSWORD }}
         BROUTER_STORE_PASSWORD: ${{ secrets.BROUTER_STORE_PASSWORD }} 
-      run: ./gradlew build
+      run: ./gradlew clean build
     - name: Upload BRouter zip
       uses: actions/upload-artifact@v2
       with:
