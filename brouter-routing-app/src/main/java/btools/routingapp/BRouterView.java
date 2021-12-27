@@ -204,7 +204,9 @@ public class BRouterView extends View {
 
       // new init is done move old files
       if (waitingForMigration) {
-        moveFolders(oldMigrationPath, basedir + "/brouter");
+        Log.d("BR", "path " + oldMigrationPath + " " + basedir);
+        if (!oldMigrationPath.equals(basedir + "/brouter"))
+          moveFolders(oldMigrationPath, basedir + "/brouter");
         waitingForMigration = false;
       }
 
