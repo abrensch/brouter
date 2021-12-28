@@ -123,6 +123,15 @@ public class BRouterView extends View {
         if (brd.isDirectory()) {
           if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q &&
             !brd.getAbsolutePath().contains("/Android/media/btools.routingapp")) {
+
+            // don't ask twice
+            String version = "v" + getContext().getString(R.string.app_version);
+            File vFile = new File(brd, "profiles2/"+version );
+            if (android.os.Build.VERSION.SDK_INT == android.os.Build.VERSION_CODES.Q
+                && vFile.exists()) {
+              startSetup(baseDir, false);
+              return;
+            }
             String message = "(previous basedir " + baseDir + " has to migrate )";
 
             ((BRouterActivity) getContext()).selectBasedir(((BRouterActivity) getContext()).getStorageDirectories(), guessBaseDir(), message);
@@ -608,16 +617,18 @@ public class BRouterView extends View {
               break;
             String name = ze.getName();
             File outfile = new File(path, name);
-            outfile.getParentFile().mkdirs();
-            FileOutputStream fos = new FileOutputStream(outfile);
+            if (!outfile.exists()) {
+              outfile.getParentFile().mkdirs();
+              FileOutputStream fos = new FileOutputStream(outfile);
 
-            for (; ; ) {
-              int len = zis.read(data, 0, 1024);
-              if (len < 0)
-                break;
-              fos.write(data, 0, len);
+              for (; ; ) {
+                int len = zis.read(data, 0, 1024);
+                if (len < 0)
+                  break;
+                fos.write(data, 0, len);
+              }
+              fos.close();
             }
-            fos.close();
           }
           is.close();
           return true;
