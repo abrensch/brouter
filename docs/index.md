@@ -24,7 +24,7 @@ Here's what makes BRouter unique:
 - It works [fully offline on any Android phone](features/offline.md) and is
   interfaced to some of the most popular Android map tools
 
-- It uses a sophisticated [routing-algorithm](features/algorithm.md) with
+- It uses a sophisticated [routing-algorithm](developers/algorithm.md) with
   [elevation consideration](features/elevation.md)
 
 - It offers [alternative route calculations](features/alternatives.md)
