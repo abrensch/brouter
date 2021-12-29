@@ -2,7 +2,7 @@
 parent: Features
 ---
 
-## Elevation algorithm
+## Elevation awareness
 
 Elevation awareness is the most important issue in bike routing if not routing
 in a flat country. But in most routing software, elevation is either not handled
