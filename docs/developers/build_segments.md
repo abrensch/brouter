@@ -1,5 +1,6 @@
 ---
 parent: Developers
+title: Build segment files
 ---
 
 Build your own segments files

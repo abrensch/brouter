@@ -4,7 +4,7 @@ title: Home
 nav_order: 1
 ---
 
-## BRouter: Let's get serious about bike routing
+# BRouter: Let's get serious about bike routing
 
 There's a lot of routing software on the market, both free and commercial, both
 online and offline, both OSM and proprietary maps. However, when it comes to
@@ -20,17 +20,12 @@ result.
 Here's what makes BRouter unique:
 
 - It uses [freely configurable routing profiles](features/costfunctions.md)
-
 - It works [fully offline on any Android phone](features/offline.md) and is
   interfaced to some of the most popular Android map tools
-
 - It uses a sophisticated [routing-algorithm](developers/algorithm.md) with
   [elevation consideration](features/elevation.md)
-
 - It offers [alternative route calculations](features/alternatives.md)
-
 - It supports [via and nogo-points](features/vianogo.md)
-
 - It can [consider long distance cycle routes](features/cycleroutes.md)
 
 Routing data is available worldwide with automatic weekly updates
@@ -49,7 +44,7 @@ if you want to use BRouter online.
 
 ### Android app for offline routing
 
-See [offline routing app](features/offline.md) for how to setup BRouter for
+See [Android quickstart guide](users/android_quickstart.md) for how to setup BRouter for
 offline routing on an Android smartphone.
 
 ### Revision history
