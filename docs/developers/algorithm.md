@@ -3,7 +3,7 @@ title: "Routing algorithm"
 parent: Developers
 ---
 
-## Routing algorithm: 2-pass routing with adaptive cost-cutoff
+# Routing algorithm: 2-pass routing with adaptive cost-cutoff
 
 There's not so much to say about the routing algorithm, because the basic ideas
 like [Dijkstra's algorithm](http://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
