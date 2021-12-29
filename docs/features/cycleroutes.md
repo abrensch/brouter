@@ -2,7 +2,7 @@
 parent: Features
 ---
 
-## Following long distance cycle routes
+# Following long distance cycle routes
 
 The long distance cycle network (see
 [www.opencyclemap.org](http://www.opencyclemap.org)) is the first thing to

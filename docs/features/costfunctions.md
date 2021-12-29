@@ -2,7 +2,7 @@
 parent: Features
 ---
 
-## Freely configurable routing profile
+# Freely configurable routing profile
 
 A major reason for the limited usefulness of most bike routing software is that
 routing preferences are a personal issue. Not even will MTB and racing cyclist

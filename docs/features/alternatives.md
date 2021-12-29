@@ -2,7 +2,7 @@
 parent: Features
 ---
 
-## Alternative route calculations
+# Alternative route calculations
 
 Sometimes the routing result is not what you want, and you are looking for some
 other way, following the same routing preferences, but not following the way of

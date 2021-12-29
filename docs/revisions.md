@@ -1,4 +1,4 @@
-## Revision history
+# Revision history
 
 (ZIP-Archives including APK, readme + profiles)
 

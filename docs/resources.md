@@ -1,7 +1,4 @@
----
-title: Resources
----
-
+# Resources
 ## International resources
 
 - Please use the [osm-android-bikerouting](http://groups.google.com/group/osm-android-bikerouting)
