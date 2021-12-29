@@ -260,7 +260,7 @@
 
 ### [brouter_0_9_6.zip](../brouter_bin/brouter_0_9_6.zip) (27.10.2013)
 
--   added html-page about [routing-algorithm](features/algorithm.md)
+-   added html-page about [routing-algorithm](developers/algorithm.md)
 -   changed from 3-pass to 2-pass calculation
 -   added profile-parameters for routing coefficients
 -   lowered pass1-coefficient for car-test to 1.3
