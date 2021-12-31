@@ -21,7 +21,7 @@ android {
 
     sourceSets.main.assets.srcDirs += new File(project.buildDir, 'assets')
 
-    if(project.hasProperty("RELEASE_STORE_FILE")) {
+    if(project.hasProperty("RELEASE_STORE_FILE") && RELEASE_STORE_FILE.length() > 0) {
         signingConfigs {
             // this uses a file  ~/.gradle/gradle.properties
             // with content:
@@ -49,7 +49,7 @@ android {
         release {
             minifyEnabled false
             debuggable false
-            if(project.hasProperty("RELEASE_STORE_FILE")) {
+            if(project.hasProperty("RELEASE_STORE_FILE") && RELEASE_STORE_FILE.length() > 0) {
                 signingConfig signingConfigs.release
             }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
