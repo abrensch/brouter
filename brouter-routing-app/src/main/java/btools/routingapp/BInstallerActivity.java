@@ -167,7 +167,7 @@ public class BInstallerActivity extends Activity {
   }
 
   private void scanExistingFiles() {
-    mBInstallerView.clearAllTilesStatus(MASK_INSTALLED_RD5 | MASK_CURRENT_RD5);
+    mBInstallerView.clearAllTilesStatus(MASK_CURRENT_RD5 | MASK_INSTALLED_RD5 | MASK_DELETED_RD5 | MASK_SELECTED_RD5);
 
     scanExistingFiles(new File(mBaseDir, "brouter/segments4"));
 
