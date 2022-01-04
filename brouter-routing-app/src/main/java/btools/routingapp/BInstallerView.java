@@ -28,6 +28,13 @@ public class BInstallerView extends View {
   private static final int MASK_INSTALLED_RD5 = 4;
   private static final int MASK_CURRENT_RD5 = 8;
   public static boolean downloadCanceled = false;
+  private final int imgwOrig;
+  private final int imghOrig;
+  private final float scaleOrig;
+  private final int imgw;
+  private final int imgh;
+  private final float[] testVector = new float[2];
+  private final Matrix matText;
   Paint pnt_1 = new Paint();
   Paint pnt_2 = new Paint();
   Paint paint = new Paint();
@@ -35,16 +42,10 @@ public class BInstallerView extends View {
   int btnh = 40;
   int btnw = 160;
   float tx, ty;
-  private final int imgwOrig;
-  private final int imghOrig;
-  private final float scaleOrig;
-  private final int imgw;
-  private final int imgh;
   private float lastDownX;
   private float lastDownY;
   private Bitmap bmp;
   private float viewscale;
-  private final float[] testVector = new float[2];
   private int[] tileStatus;
   private boolean tilesVisible = false;
   private long availableSize;
@@ -57,7 +58,6 @@ public class BInstallerView extends View {
   private long rd5Tiles = 0;
   private long delTiles = 0;
   private Matrix mat;
-  private final Matrix matText;
 
   public BInstallerView(Context context) {
     super(context);
