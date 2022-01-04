@@ -15,26 +15,31 @@ import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.StatFs;
 
-import java.util.HashSet;
-import java.util.Set;
-
 public class BInstallerActivity extends Activity {
 
   public static final String DOWNLOAD_ACTION = "btools.routingapp.download";
 
   private static final int DIALOG_CONFIRM_DELETE_ID = 1;
-
   private BInstallerView mBInstallerView;
   private PowerManager mPowerManager;
   private WakeLock mWakeLock;
   private DownloadReceiver myReceiver;
-  private final Set<Integer> dialogIds = new HashSet<>();
+
+  static public long getAvailableSpace(String baseDir) {
+    StatFs stat = new StatFs(baseDir);
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+      return stat.getAvailableBlocksLong() * stat.getBlockSizeLong();
+    } else {
+      //noinspection deprecation
+      return (long) stat.getAvailableBlocks() * stat.getBlockSize();
+    }
+  }
 
   /**
    * Called when the activity is first created.
    */
   @Override
-  @SuppressWarnings("deprecation")
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
@@ -91,7 +96,6 @@ public class BInstallerActivity extends Activity {
   }
 
   @Override
-  @SuppressWarnings("deprecation")
   protected Dialog onCreateDialog(int id) {
     AlertDialog.Builder builder;
     switch (id) {
@@ -114,17 +118,8 @@ public class BInstallerActivity extends Activity {
     }
   }
 
-  @SuppressWarnings("deprecation")
   public void showConfirmDelete() {
     showDialog(DIALOG_CONFIRM_DELETE_ID);
-  }
-
-  private void showNewDialog(int id) {
-    if (dialogIds.contains(id)) {
-      removeDialog(id);
-    }
-    dialogIds.add(id);
-    showDialog(id);
   }
 
   public class DownloadReceiver extends BroadcastReceiver {
@@ -136,17 +131,6 @@ public class BInstallerActivity extends Activity {
         boolean ready = intent.getBooleanExtra("ready", false);
         mBInstallerView.setState(txt, ready);
       }
-    }
-  }
-
-
-  static public long getAvailableSpace(String baseDir) {
-    StatFs stat = new StatFs(baseDir);
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-      return stat.getAvailableBlocksLong() * stat.getBlockSizeLong();
-    } else {
-      return stat.getAvailableBlocks() * stat.getBlockSize();
     }
   }
 }
