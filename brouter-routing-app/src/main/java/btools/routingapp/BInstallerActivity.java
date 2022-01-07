@@ -14,9 +14,11 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
+import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StatFs;
+import android.text.format.Formatter;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -38,6 +40,9 @@ public class BInstallerActivity extends Activity {
   private View mDownloadInfo;
   private TextView mDownloadInfoText;
   private Button mButtonDownloadCancel;
+  private Button mButtonDownload;
+  private TextView mSummaryInfo;
+  private View mSegmentsView;
 
   public static long getAvailableSpace(String baseDir) {
     StatFs stat = new StatFs(baseDir);
@@ -57,8 +62,16 @@ public class BInstallerActivity extends Activity {
     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
     setContentView(R.layout.activity_binstaller);
+    mSummaryInfo = findViewById(R.id.textViewSegmentSummary);
+    mSegmentsView = findViewById(R.id.view_segments);
     mBInstallerView = findViewById(R.id.BInstallerView);
-    mBInstallerView.setOnClickListener(
+    mBInstallerView.setOnSelectListener(
+      () -> {
+        updateDownloadButton();
+      }
+    );
+    mButtonDownload = findViewById(R.id.buttonDownload);
+    mButtonDownload.setOnClickListener(
       view -> {
         if (mBInstallerView.getSelectedTiles(MASK_DELETED_RD5).size() > 0) {
           showConfirmDelete();
@@ -78,6 +91,37 @@ public class BInstallerActivity extends Activity {
 
     mBaseDir = ConfigHelper.getBaseDir(this);
     scanExistingFiles();
+  }
+
+  private String getSegmentsPlural(int count) {
+    Resources res = getResources();
+    return res.getQuantityString(R.plurals.numberOfSegments, count, count);
+  }
+
+  private void updateDownloadButton() {
+    final ArrayList<Integer> selectedTilesDownload = mBInstallerView.getSelectedTiles(MASK_SELECTED_RD5);
+    final ArrayList<Integer> selectedTilesUpdate = mBInstallerView.getSelectedTiles(MASK_INSTALLED_RD5);
+    final ArrayList<Integer> selectedTilesDelete = mBInstallerView.getSelectedTiles(MASK_DELETED_RD5);
+    mSummaryInfo.setText("");
+
+    if (selectedTilesDelete.size() > 0) {
+      mButtonDownload.setText(getString(R.string.action_delete, getSegmentsPlural(selectedTilesDelete.size())));
+      mButtonDownload.setEnabled(true);
+    } else if (selectedTilesDownload.size() > 0) {
+      long tileSize = 0;
+      for (int tileIndex : selectedTilesDownload) {
+        tileSize += BInstallerSizes.getRd5Size(tileIndex);
+      }
+      mButtonDownload.setText(getString(R.string.action_download, getSegmentsPlural(selectedTilesDownload.size())));
+      mButtonDownload.setEnabled(true);
+      mSummaryInfo.setText(getString(R.string.summary_segments, Formatter.formatFileSize(this, tileSize), Formatter.formatFileSize(this, getAvailableSpace(mBaseDir.getAbsolutePath()))));
+    } else if (selectedTilesUpdate.size() > 0) {
+      mButtonDownload.setText(getString(R.string.action_update, getSegmentsPlural(selectedTilesUpdate.size())));
+      mButtonDownload.setEnabled(true);
+    } else {
+      mButtonDownload.setText(getString(R.string.action_select));
+      mButtonDownload.setEnabled(false);
+    }
   }
 
   private void deleteRawTracks() {
@@ -103,7 +147,7 @@ public class BInstallerActivity extends Activity {
       urlparts.add(baseNameForTile(i));
     }
 
-    mBInstallerView.setVisibility(View.GONE);
+    mSegmentsView.setVisibility(View.GONE);
     mDownloadInfo.setVisibility(View.VISIBLE);
     downloadCanceled = false;
     mDownloadInfoText.setText(R.string.download_info_start);
@@ -175,12 +219,6 @@ public class BInstallerActivity extends Activity {
     if (secondary != null) {
       scanExistingFiles(secondary);
     }
-
-    long availableSize = -1;
-    try {
-      availableSize = getAvailableSpace(mBaseDir.getAbsolutePath());
-    } catch (Exception e) { /* ignore */ }
-    mBInstallerView.setAvailableSize(availableSize);
   }
 
   private void scanExistingFiles(File dir) {
@@ -249,7 +287,7 @@ public class BInstallerActivity extends Activity {
         String txt = intent.getStringExtra("txt");
         boolean ready = intent.getBooleanExtra("ready", false);
         if (!ready) {
-          mBInstallerView.setVisibility(View.VISIBLE);
+          mSegmentsView.setVisibility(View.VISIBLE);
           mDownloadInfo.setVisibility(View.GONE);
           scanExistingFiles();
         }
