@@ -1,10 +1,8 @@
 package btools.routingapp;
 
-import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.net.TrafficStats;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -42,10 +40,7 @@ public class DownloadService extends Service implements ProgressListener {
   private volatile String currentDownloadOperation = "";
   private long availableSize;
 
-  private Looper mServiceLooper;
   private ServiceHandler mServiceHandler;
-  private NotificationManager mNM;
-  String downloadUrl;
   public static boolean serviceState = false;
   private boolean bIsDownloading;
 
@@ -77,14 +72,12 @@ public class DownloadService extends Service implements ProgressListener {
     thread.start();
 
     // Get the HandlerThread's Looper and use it for our Handler
-    mServiceLooper = thread.getLooper();
-    mServiceHandler = new ServiceHandler(mServiceLooper);
+    Looper serviceLooper = thread.getLooper();
+    mServiceHandler = new ServiceHandler(serviceLooper);
 
     availableSize = -1;
     try {
       availableSize = BInstallerActivity.getAvailableSpace(baseDir);
-      //StatFs stat = new StatFs(baseDir);
-      //availableSize = (long)stat.getAvailableBlocksLong()*stat.getBlockSizeLong();
     } catch (Exception e) { /* ignore */ }
 
   }
@@ -98,8 +91,7 @@ public class DownloadService extends Service implements ProgressListener {
     Bundle extra = intent.getExtras();
     if (extra != null) {
       String dir = extra.getString("dir");
-      List<String> urlparts = extra.getStringArrayList("urlparts");
-      mUrlList = urlparts;
+      mUrlList = extra.getStringArrayList("urlparts");
       baseDir = dir;
     }
 
@@ -171,7 +163,6 @@ public class DownloadService extends Service implements ProgressListener {
       intent.putExtra("txt", progress);
       intent.putExtra("ready", bIsDownloading);
       sendBroadcast(intent);
-      ;
       newDownloadAction = progress;
       mNotificationHelper.progressUpdate(newDownloadAction);
     }
@@ -182,7 +173,6 @@ public class DownloadService extends Service implements ProgressListener {
     InputStream input = null;
     OutputStream output = null;
     HttpURLConnection connection = null;
-    File fname = null;
     File tmp_file = null;
     try {
       try {
@@ -191,7 +181,7 @@ public class DownloadService extends Service implements ProgressListener {
         int slidx = surl.lastIndexOf("segments4/");
         String name = surl.substring(slidx + 10);
         String surlBase = surl.substring(0, slidx + 10);
-        fname = new File(baseDir, "segments4/" + name);
+        File fname = new File(baseDir, "segments4/" + name);
 
         boolean delta = true;
 
@@ -239,7 +229,6 @@ public class DownloadService extends Service implements ProgressListener {
         // this will be useful to display download percentage
         // might be -1: server did not report the length
         int fileLength = connection.getContentLength();
-        long currentDownloadSize = fileLength;
         if (availableSize >= 0 && fileLength > availableSize) return "not enough space on sd-card";
 
         currentDownloadOperation = delta ? "Updating" : "Loading";
@@ -276,7 +265,7 @@ public class DownloadService extends Service implements ProgressListener {
           if (dt > 0) {
             try {
               Thread.sleep(dt);
-            } catch (InterruptedException ie) {
+            } catch (InterruptedException ignored) {
             }
           }
         }
@@ -374,7 +363,6 @@ public class DownloadService extends Service implements ProgressListener {
     OutputStream output = null;
     HttpURLConnection connection = null;
     File tmp_file = null;
-    File targetFile = f;
 
     try {
       try {
@@ -401,7 +389,6 @@ public class DownloadService extends Service implements ProgressListener {
         long fileLength = (long) connection.getContentLength();
         if (DEBUG) Log.d("BR", "file size " + size + " == " + fileLength + " " + f.getName());
         if (fileLength != size) {
-          long currentDownloadSize = fileLength;
           if (availableSize >= 0 && fileLength > availableSize)
             return "not enough space on sd-card";
 
@@ -413,7 +400,7 @@ public class DownloadService extends Service implements ProgressListener {
           tmp_file = new File(f.getAbsolutePath() + "_tmp");
           output = new FileOutputStream(tmp_file);
 
-          byte data[] = new byte[4096];
+          byte[] data = new byte[4096];
           long total = 0;
           long t0 = System.currentTimeMillis();
           int count;
