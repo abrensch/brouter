@@ -60,11 +60,13 @@ public class BInstallerView extends View {
   }
 
   private void setRatio(float ratio, float focusX, float focusY) {
-    mat.postScale(ratio, ratio, focusX, focusY);
-    fitBounds();
-    tilesVisible = currentScale() >= SCALE_GRID_VISIBLE;
+    if (currentScale() * ratio >= 1) {
+      mat.postScale(ratio, ratio, focusX, focusY);
+      fitBounds();
+      tilesVisible = currentScale() >= SCALE_GRID_VISIBLE;
 
-    invalidate();
+      invalidate();
+    }
   }
 
   private void setScale(float scale, float focusX, float focusY) {
