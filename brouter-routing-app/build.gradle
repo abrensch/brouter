@@ -17,6 +17,8 @@ android {
         setProperty("archivesBaseName","BRouterApp." + defaultConfig.versionName)
 
         minSdkVersion 14
+        
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     sourceSets.main.assets.srcDirs += new File(project.buildDir, 'assets')
@@ -99,6 +101,10 @@ dependencies {
     implementation project(':brouter-expressions')
     implementation project(':brouter-util')
 
+    testImplementation 'junit:junit:4.13.2'
+
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }
 
 task generateProfiles(type: Exec) {
