@@ -127,7 +127,7 @@ public class BRouterView extends View {
             // don't ask twice
             String version = "v" + getContext().getString(R.string.app_version);
             File vFile = new File(brd, "profiles2/"+version );
-            if (android.os.Build.VERSION.SDK_INT == android.os.Build.VERSION_CODES.Q
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
                 && vFile.exists()) {
               startSetup(baseDir, false);
               return;

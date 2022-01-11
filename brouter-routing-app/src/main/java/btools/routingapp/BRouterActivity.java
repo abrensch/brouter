@@ -596,8 +596,7 @@ public class BRouterActivity extends Activity implements ActivityCompat.OnReques
       }
     }
 
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R
-        && checkExternalStorageWritable()) {
+    if (checkExternalStorageWritable()) {
       res.add(Environment.getExternalStorageDirectory());
     }
 
