@@ -12,6 +12,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Arrays;
 
 import btools.codec.DataBuffers;
@@ -60,7 +61,7 @@ final public class Rd5DiffTool implements ProgressListener
               return false;
             }
 
-  private static long[] readFileIndex( DataInputStream dis, DataOutputStream dos ) throws Exception
+  private static long[] readFileIndex( DataInputStream dis, DataOutputStream dos ) throws IOException
   {
     long[] fileIndex = new long[25];
     for( int i=0; i<25; i++ )
@@ -85,7 +86,7 @@ final public class Rd5DiffTool implements ProgressListener
     return index[tileIndex];
   }
 
-  private static int[] readPosIndex( DataInputStream dis, DataOutputStream dos ) throws Exception
+  private static int[] readPosIndex( DataInputStream dis, DataOutputStream dos ) throws IOException
   {
     int[] posIndex = new int[1024];
     for( int i=0; i<1024; i++ )
@@ -105,7 +106,7 @@ final public class Rd5DiffTool implements ProgressListener
     return idx == -1 ? 4096 : posIdx[idx];
   }
 
-  private static byte[] createMicroCache( int[] posIdx, int tileIdx, DataInputStream dis, boolean deltaMode ) throws Exception
+  private static byte[] createMicroCache( int[] posIdx, int tileIdx, DataInputStream dis, boolean deltaMode ) throws IOException
   {
     if ( posIdx == null )
     {
@@ -125,7 +126,7 @@ final public class Rd5DiffTool implements ProgressListener
     return ab;
   }
 
-  private static MicroCache createMicroCache( byte[] ab, DataBuffers dataBuffers ) throws Exception
+  private static MicroCache createMicroCache( byte[] ab, DataBuffers dataBuffers )
   {
     if ( ab == null || ab.length == 0 )
     {
@@ -286,7 +287,7 @@ final public class Rd5DiffTool implements ProgressListener
   }
 
 
-  public static void recoverFromDelta( File f1, File f2, File outFile, ProgressListener progress /* , File cmpFile */ ) throws Exception
+  public static void recoverFromDelta( File f1, File f2, File outFile, ProgressListener progress /* , File cmpFile */ ) throws IOException
   {
     if ( f2.length() == 0L )
     {
@@ -468,7 +469,7 @@ final public class Rd5DiffTool implements ProgressListener
     }
   }
 
-  public static void copyFile( File f1, File outFile, ProgressListener progress ) throws Exception
+  public static void copyFile( File f1, File outFile, ProgressListener progress ) throws IOException
   {
     boolean canceled = false;
     DataInputStream dis1 = new DataInputStream( new BufferedInputStream( new FileInputStream( f1 ) ) );
@@ -756,7 +757,7 @@ final public class Rd5DiffTool implements ProgressListener
       this.dataBuffers = dataBuffers;
     }
 
-    public MicroCache readMC() throws Exception
+    public MicroCache readMC() throws IOException
     {
       if (skips < 0 )
       {
@@ -775,7 +776,7 @@ final public class Rd5DiffTool implements ProgressListener
       return mc;
     }
 
-    public void finish() throws Exception
+    public void finish()
     {
       skips = -1;
     }
