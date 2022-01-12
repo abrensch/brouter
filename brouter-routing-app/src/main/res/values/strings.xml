@@ -15,7 +15,19 @@
 -->
 
 <resources>
+    <plurals name="numberOfSegments">
+        <item quantity="one">%d segment</item>
+        <item quantity="other">%d segments</item>
+    </plurals>
     <string name="app_name">BRouter</string>
+    <string name="cancel_download">Cancel Download</string>
     <string name="import_profile">Import Profile</string>
     <string name="profile_filename_example">filename.brf</string>
+    <string name="download_info_start">Starting download…</string>
+    <string name="download_info_cancel">Cancelling…</string>
+    <string name="action_download">Download %s</string>
+    <string name="action_delete">Delete %s</string>
+    <string name="action_update">Update %s</string>
+    <string name="action_select">Select segments</string>
+    <string name="summary_segments">Size=%s\nFree=%s</string>
 </resources>

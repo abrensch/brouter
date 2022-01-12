@@ -1,7 +1,9 @@
 package btools.routingapp;
 
-import java.util.HashSet;
-import java.util.Set;
+import static btools.routingapp.BInstallerView.MASK_CURRENT_RD5;
+import static btools.routingapp.BInstallerView.MASK_DELETED_RD5;
+import static btools.routingapp.BInstallerView.MASK_INSTALLED_RD5;
+import static btools.routingapp.BInstallerView.MASK_SELECTED_RD5;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -12,101 +14,176 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
+import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.PowerManager;
-import android.os.PowerManager.WakeLock;
-import android.speech.tts.TextToSpeech.OnInitListener;
 import android.os.StatFs;
-import android.util.Log;
+import android.text.format.Formatter;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Locale;
+
+import btools.router.RoutingHelper;
 
 public class BInstallerActivity extends Activity {
 
   public static final String DOWNLOAD_ACTION = "btools.routingapp.download";
-
   private static final int DIALOG_CONFIRM_DELETE_ID = 1;
-
+  public static boolean downloadCanceled = false;
+  private File mBaseDir;
   private BInstallerView mBInstallerView;
-  private PowerManager mPowerManager;
-  private WakeLock mWakeLock;
-  private DownloadReceiver myReceiver;
+  private DownloadReceiver downloadReceiver;
+  private View mDownloadInfo;
+  private TextView mDownloadInfoText;
+  private Button mButtonDownloadCancel;
+  private Button mButtonDownload;
+  private TextView mSummaryInfo;
+  private View mSegmentsView;
 
+  public static long getAvailableSpace(String baseDir) {
+    StatFs stat = new StatFs(baseDir);
 
-  public class DownloadReceiver extends BroadcastReceiver {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+      return stat.getAvailableBlocksLong() * stat.getBlockSizeLong();
+    } else {
+      //noinspection deprecation
+      return (long) stat.getAvailableBlocks() * stat.getBlockSize();
+    }
+  }
 
-    @Override
-    public void onReceive(Context context, Intent intent) {
-      if (intent.hasExtra("txt")) {
-        String txt = intent.getStringExtra("txt");
-        boolean ready = intent.getBooleanExtra("ready", false);
-        mBInstallerView.setState(txt, ready);
+  @Override
+  public void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+
+    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+    setContentView(R.layout.activity_binstaller);
+    mSummaryInfo = findViewById(R.id.textViewSegmentSummary);
+    mSegmentsView = findViewById(R.id.view_segments);
+    mBInstallerView = findViewById(R.id.BInstallerView);
+    mBInstallerView.setOnSelectListener(
+      () -> {
+        updateDownloadButton();
+      }
+    );
+    mButtonDownload = findViewById(R.id.buttonDownload);
+    mButtonDownload.setOnClickListener(
+      view -> {
+        if (mBInstallerView.getSelectedTiles(MASK_DELETED_RD5).size() > 0) {
+          showConfirmDelete();
+        } else if (mBInstallerView.getSelectedTiles(MASK_SELECTED_RD5).size() > 0) {
+          downloadSelectedTiles();
+        } else {
+          downloadInstalledTiles();
+        }
+      }
+    );
+    mDownloadInfo = findViewById(R.id.view_download_progress);
+    mDownloadInfoText = findViewById(R.id.textViewDownloadProgress);
+    mButtonDownloadCancel = findViewById(R.id.buttonDownloadCancel);
+    mButtonDownloadCancel.setOnClickListener(view -> {
+      cancelDownload();
+    });
+
+    mBaseDir = ConfigHelper.getBaseDir(this);
+    scanExistingFiles();
+  }
+
+  private String getSegmentsPlural(int count) {
+    Resources res = getResources();
+    return res.getQuantityString(R.plurals.numberOfSegments, count, count);
+  }
+
+  private void updateDownloadButton() {
+    final ArrayList<Integer> selectedTilesDownload = mBInstallerView.getSelectedTiles(MASK_SELECTED_RD5);
+    final ArrayList<Integer> selectedTilesUpdate = mBInstallerView.getSelectedTiles(MASK_INSTALLED_RD5);
+    final ArrayList<Integer> selectedTilesDelete = mBInstallerView.getSelectedTiles(MASK_DELETED_RD5);
+    mSummaryInfo.setText("");
+
+    if (selectedTilesDelete.size() > 0) {
+      mButtonDownload.setText(getString(R.string.action_delete, getSegmentsPlural(selectedTilesDelete.size())));
+      mButtonDownload.setEnabled(true);
+    } else if (selectedTilesDownload.size() > 0) {
+      long tileSize = 0;
+      for (int tileIndex : selectedTilesDownload) {
+        tileSize += BInstallerSizes.getRd5Size(tileIndex);
+      }
+      mButtonDownload.setText(getString(R.string.action_download, getSegmentsPlural(selectedTilesDownload.size())));
+      mButtonDownload.setEnabled(true);
+      mSummaryInfo.setText(getString(R.string.summary_segments, Formatter.formatFileSize(this, tileSize), Formatter.formatFileSize(this, getAvailableSpace(mBaseDir.getAbsolutePath()))));
+    } else if (selectedTilesUpdate.size() > 0) {
+      mButtonDownload.setText(getString(R.string.action_update, getSegmentsPlural(selectedTilesUpdate.size())));
+      mButtonDownload.setEnabled(true);
+    } else {
+      mButtonDownload.setText(getString(R.string.action_select));
+      mButtonDownload.setEnabled(false);
+    }
+  }
+
+  private void deleteRawTracks() {
+    File modeDir = new File(mBaseDir, "brouter/modes");
+    String[] fileNames = modeDir.list();
+    if (fileNames == null) return;
+    for (String fileName : fileNames) {
+      if (fileName.endsWith("_rawtrack.dat")) {
+        File f = new File(modeDir, fileName);
+        f.delete();
       }
     }
   }
 
+  private void cancelDownload() {
+    downloadCanceled = true;
+    mDownloadInfoText.setText(getString(R.string.download_info_cancel));
+  }
 
-  /**
-   * Called when the activity is first created.
-   */
-  @Override
-  @SuppressWarnings("deprecation")
-  public void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
+  public void downloadAll(ArrayList<Integer> downloadList) {
+    ArrayList<String> urlparts = new ArrayList<>();
+    for (Integer i : downloadList) {
+      urlparts.add(baseNameForTile(i));
+    }
 
-    // Get an instance of the PowerManager
-    mPowerManager = (PowerManager) getSystemService(POWER_SERVICE);
+    mSegmentsView.setVisibility(View.GONE);
+    mDownloadInfo.setVisibility(View.VISIBLE);
+    downloadCanceled = false;
+    mDownloadInfoText.setText(R.string.download_info_start);
 
-    // Create a bright wake lock
-    mWakeLock = mPowerManager.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, getClass()
-      .getName());
+    Intent intent = new Intent(this, DownloadService.class);
+    intent.putExtra("dir", mBaseDir.getAbsolutePath() + "/brouter/");
+    intent.putExtra("urlparts", urlparts);
+    startService(intent);
 
-    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-
-    // instantiate our simulation view and set it as the activity's content
-    mBInstallerView = new BInstallerView(this);
-    setContentView(mBInstallerView);
+    deleteRawTracks(); // invalidate raw-tracks after data update
   }
 
   @Override
   protected void onResume() {
     super.onResume();
-    /*
-     * when the activity is resumed, we acquire a wake-lock so that the
-     * screen stays on, since the user will likely not be fiddling with the
-     * screen or buttons.
-     */
-    mWakeLock.acquire();
 
     IntentFilter filter = new IntentFilter();
     filter.addAction(DOWNLOAD_ACTION);
 
-    myReceiver = new DownloadReceiver();
-    registerReceiver(myReceiver, filter);
-
-    // Start the download manager
-    mBInstallerView.startInstaller();
+    downloadReceiver = new DownloadReceiver();
+    registerReceiver(downloadReceiver, filter);
   }
 
   @Override
   protected void onPause() {
     super.onPause();
-
-
-    super.onPause();
-
-    mWakeLock.release();
-
   }
 
   @Override
   public void onDestroy() {
     super.onDestroy();
-    if (myReceiver != null) unregisterReceiver(myReceiver);
+    if (downloadReceiver != null) unregisterReceiver(downloadReceiver);
     System.exit(0);
   }
 
   @Override
-  @SuppressWarnings("deprecation")
   protected Dialog onCreateDialog(int id) {
     AlertDialog.Builder builder;
     switch (id) {
@@ -116,7 +193,7 @@ public class BInstallerActivity extends Activity {
           .setTitle("Confirm Delete")
           .setMessage("Really delete?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int id) {
-            mBInstallerView.deleteSelectedTiles();
+            deleteSelectedTiles();
           }
         }).setNegativeButton("No", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int id) {
@@ -129,29 +206,93 @@ public class BInstallerActivity extends Activity {
     }
   }
 
-  @SuppressWarnings("deprecation")
   public void showConfirmDelete() {
     showDialog(DIALOG_CONFIRM_DELETE_ID);
   }
 
-  private Set<Integer> dialogIds = new HashSet<Integer>();
+  private void scanExistingFiles() {
+    mBInstallerView.clearAllTilesStatus(MASK_CURRENT_RD5 | MASK_INSTALLED_RD5 | MASK_DELETED_RD5 | MASK_SELECTED_RD5);
 
-  private void showNewDialog(int id) {
-    if (dialogIds.contains(Integer.valueOf(id))) {
-      removeDialog(id);
+    scanExistingFiles(new File(mBaseDir, "brouter/segments4"));
+
+    File secondary = RoutingHelper.getSecondarySegmentDir(new File(mBaseDir, "brouter/segments4"));
+    if (secondary != null) {
+      scanExistingFiles(secondary);
     }
-    dialogIds.add(Integer.valueOf(id));
-    showDialog(id);
   }
 
+  private void scanExistingFiles(File dir) {
+    String[] fileNames = dir.list();
+    if (fileNames == null) return;
+    String suffix = ".rd5";
+    for (String fileName : fileNames) {
+      if (fileName.endsWith(suffix)) {
+        String basename = fileName.substring(0, fileName.length() - suffix.length());
+        int tileIndex = tileForBaseName(basename);
+        mBInstallerView.setTileStatus(tileIndex, MASK_INSTALLED_RD5);
 
-  static public long getAvailableSpace(String baseDir) {
-    StatFs stat = new StatFs(baseDir);
+        long age = System.currentTimeMillis() - new File(dir, fileName).lastModified();
+        if (age < 10800000) mBInstallerView.setTileStatus(tileIndex, MASK_CURRENT_RD5); // 3 hours
+      }
+    }
+  }
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-      return stat.getAvailableBlocksLong() * stat.getBlockSizeLong();
-    } else {
-      return stat.getAvailableBlocks() * stat.getBlockSize();
+  private void deleteSelectedTiles() {
+    ArrayList<Integer> selectedTiles = mBInstallerView.getSelectedTiles(MASK_DELETED_RD5);
+    for (int tileIndex : selectedTiles) {
+      new File(mBaseDir, "brouter/segments4/" + baseNameForTile(tileIndex) + ".rd5").delete();
+    }
+    scanExistingFiles();
+  }
+
+  private void downloadSelectedTiles() {
+    ArrayList<Integer> selectedTiles = mBInstallerView.getSelectedTiles(MASK_SELECTED_RD5);
+    downloadAll(selectedTiles);
+    mBInstallerView.clearAllTilesStatus(MASK_SELECTED_RD5);
+  }
+
+  private void downloadInstalledTiles() {
+    ArrayList<Integer> selectedTiles = mBInstallerView.getSelectedTiles(MASK_INSTALLED_RD5);
+    downloadAll(selectedTiles);
+  }
+
+  private int tileForBaseName(String basename) {
+    String uname = basename.toUpperCase(Locale.ROOT);
+    int idx = uname.indexOf("_");
+    if (idx < 0) return -1;
+    String slon = uname.substring(0, idx);
+    String slat = uname.substring(idx + 1);
+    int ilon = slon.charAt(0) == 'W' ? -Integer.parseInt(slon.substring(1)) :
+      (slon.charAt(0) == 'E' ? Integer.parseInt(slon.substring(1)) : -1);
+    int ilat = slat.charAt(0) == 'S' ? -Integer.parseInt(slat.substring(1)) :
+      (slat.charAt(0) == 'N' ? Integer.parseInt(slat.substring(1)) : -1);
+    if (ilon < -180 || ilon >= 180 || ilon % 5 != 0) return -1;
+    if (ilat < -90 || ilat >= 90 || ilat % 5 != 0) return -1;
+    return (ilon + 180) / 5 + 72 * ((ilat + 90) / 5);
+  }
+
+  private String baseNameForTile(int tileIndex) {
+    int lon = (tileIndex % 72) * 5 - 180;
+    int lat = (tileIndex / 72) * 5 - 90;
+    String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
+    String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
+    return slon + "_" + slat;
+  }
+
+  public class DownloadReceiver extends BroadcastReceiver {
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+      if (intent.hasExtra("txt")) {
+        String txt = intent.getStringExtra("txt");
+        boolean ready = intent.getBooleanExtra("ready", false);
+        if (!ready) {
+          mSegmentsView.setVisibility(View.VISIBLE);
+          mDownloadInfo.setVisibility(View.GONE);
+          scanExistingFiles();
+        }
+        mDownloadInfoText.setText(txt);
+      }
     }
   }
 }
