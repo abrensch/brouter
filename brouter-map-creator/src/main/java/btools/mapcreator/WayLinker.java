@@ -138,6 +138,9 @@ public class WayLinker extends MapCreatorBase implements Runnable
     
     new WayLinker().process( new File( args[0] ), new File( args[1] ), new File( args[2] ), new File( args[3] ), new File( args[4] ), new File( args[5] ), new File(
         args[6] ), args[7] );
+
+    System.out.println( "dumping bad TRs" );
+    RestrictionData.dumpBadTRs();
   }
 
   public void process( File nodeTilesIn, File wayTilesIn, File borderFileIn, File restrictionsFileIn, File lookupFile, File profileFile, File dataTilesOut,
@@ -287,6 +290,8 @@ public class WayLinker extends MapCreatorBase implements Runnable
                 nodesMap.put( res.viaNid, n );
               }
               OsmNodePT nt = (OsmNodePT) n;
+              res.viaLon = nt.ilon;
+              res.viaLat = nt.ilat;
               res.next = nt.firstRestriction;
               nt.firstRestriction = res;
               ntr++;
@@ -351,35 +356,48 @@ public class WayLinker extends MapCreatorBase implements Runnable
   // the leg according to the mapped direction
   private void checkRestriction( OsmNodeP n1, OsmNodeP n2, WayData w )
   {
-    checkRestriction( n1, n2, w.wid, true );
-    checkRestriction( n2, n1, w.wid, false );
+    checkRestriction( n1, n2, w, true );
+    checkRestriction( n2, n1, w, false );
   }
 
-  private void checkRestriction( OsmNodeP n1, OsmNodeP n2, long wid, boolean checkFrom )
+  private void checkRestriction( OsmNodeP n1, OsmNodeP n2, WayData w, boolean checkFrom )
   {
     RestrictionData r = n2.getFirstRestriction();
     while ( r != null )
     {
-      if ( r.fromWid == wid )
+      if ( r.fromWid == w.wid )
       {
         if ( r.fromLon == 0 || checkFrom )
         {
           r.fromLon = n1.ilon;
           r.fromLat = n1.ilat;
           n1.bits |= OsmNodeP.DP_SURVIVOR_BIT;
+          if ( !isEndNode( n2, w ) )
+          {
+            r.badWayMatch = true;
+          }
         }
       }
-      if ( r.toWid == wid )
+      if ( r.toWid == w.wid )
       {
         if ( r.toLon == 0 || !checkFrom )
         {
           r.toLon = n1.ilon;
           r.toLat = n1.ilat;
           n1.bits |= OsmNodeP.DP_SURVIVOR_BIT;
+          if ( !isEndNode( n2, w ) )
+          {
+            r.badWayMatch = true;
+          }
         }
       }
       r = r.next;
     }
+  }
+  
+  private boolean isEndNode( OsmNodeP n, WayData w )
+  {
+    return  n == nodesMap.get( w.nodes.get( 0 ) ) ||  n == nodesMap.get( w.nodes.get( w.nodes.size() - 1 ) );
   }
 
   @Override
