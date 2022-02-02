@@ -98,7 +98,7 @@ Segments files from the whole planet are generated weekly at
 [https://brouter.de/brouter/segments4/](http://brouter.de/brouter/segments4/).
 
 You can download one or more segments files, covering the area of the planet
-your want to route, into the `misc/segments4` directory.
+you want to route, into the `misc/segments4` directory.
 
 #### Generate your own segments files
 
