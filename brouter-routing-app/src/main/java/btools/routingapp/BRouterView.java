@@ -265,7 +265,7 @@ public class BRouterView extends View {
         }
       }
       if (tracksDir == null) {
-        tracksDir = new File(basedir, "router"); // fallback
+        tracksDir = new File(basedir, "brouter"); // fallback
       }
 
       String[] fileNames = profileDir.list();
@@ -580,7 +580,7 @@ public class BRouterView extends View {
       // for profile remote, use ref-track logic same as service interface
       rc.rawTrackPath = rawTrackPath;
 
-      cr = new RoutingEngine(tracksDir + "/brouter", null, segmentDir, wpList, rc);
+      cr = new RoutingEngine(tracksDir.getAbsolutePath()+"/brouter", null, segmentDir, wpList, rc);
       cr.start();
       invalidate();
 
