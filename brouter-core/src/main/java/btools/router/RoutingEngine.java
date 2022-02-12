@@ -1034,8 +1034,10 @@ public class RoutingEngine extends Thread
       }
 
       int nPathPossible = 0;
+      int nPathPossibleAnyAngle = 0;
+
       routingContext.foundNodeBlock = false;
-      routingContext.foundWayBlock = 0;
+      routingContext.foundWayBlock = null;
 
       for( OsmLink link = currentNode.firstlink; link != null; link = link.getNext( currentNode) )
       {
@@ -1071,14 +1073,11 @@ public class RoutingEngine extends Thread
             // not along the guide-track, discard, but register for voice-hint processing
             if ( routingContext.turnInstructionMode > 0 )
             {
-              Map<Long,Integer> trSuspects = routingContext.suspectTRs;
-              routingContext.suspectTRs = null;
               OsmPath detour = routingContext.createPath( path, link, refTrack, true );
               if ( detour.cost >= 0. && nextId != startNodeId1 && nextId != startNodeId2 )
               {
                 guideTrack.registerDetourForId( currentNode.getIdFromPos(), OsmPathElement.create( detour, false ) );
               }
-              routingContext.suspectTRs = trSuspects;
             }
             continue;
           }
@@ -1119,7 +1118,11 @@ public class RoutingEngine extends Thread
         }
         if ( bestPath != null )
         {
-          nPathPossible++;
+          if ( bestPath.startAngle > -130. && bestPath.startAngle < 130. )
+          {
+            nPathPossible++;
+          }
+          nPathPossibleAnyAngle++;
 
           boolean trafficSim = endPos == null;
 
@@ -1160,23 +1163,28 @@ public class RoutingEngine extends Thread
       // report oneway dead-ends as suspects
       if ( routingContext.suspectNodes != null && path.priorityclassifier > 20 && currentNode.virgin && path.cost > 2000 && routingContext.inverseDirection == routingContext.inverseRouting && guideTrack == null )
       {
-        int suspectPrio = 0;
-        if ( nPathPossible == 0 && (!routingContext.foundNodeBlock) )
+        SuspectInfo info = null;
+        if ( nPathPossible == 0 && !routingContext.foundNodeBlock )
         {
-          suspectPrio = path.priorityclassifier;
-        }
-        else if ( routingContext.foundWayBlock != 0 )
-        {
-          suspectPrio = routingContext.foundWayBlock;
-        }
-        if ( suspectPrio > 20 )
-        {
-          Long id = Long.valueOf( currentNode.getIdFromPos() );
-          Integer val = routingContext.suspectNodes.get( id );
-          if ( val == null || suspectPrio > val.intValue() )
+          int trigger = nPathPossibleAnyAngle > 0 ? SuspectInfo.TRIGGER_SHARP_ENTRY : SuspectInfo.TRIGGER_DEAD_END;
+          if ( routingContext.inverseDirection )
           {
-            routingContext.suspectNodes.put( id, Integer.valueOf( suspectPrio ) );
+            trigger = nPathPossibleAnyAngle > 0 ? SuspectInfo.TRIGGER_SHARP_EXIT : SuspectInfo.TRIGGER_DEAD_START;
           }
+          info = SuspectInfo.addTrigger( info, path.priorityclassifier, trigger );
+        }
+        if ( routingContext.foundWayBlock != null )
+        {
+          SuspectInfo wb = routingContext.foundWayBlock;
+          info = SuspectInfo.addTrigger( info, wb.prio, wb.triggers );
+        }
+        if ( routingContext.badTRs != null && routingContext.badTRs.contains(currentNode.getIdFromPos() ) )
+        {
+          info = SuspectInfo.addTrigger( info, path.priorityclassifier, SuspectInfo.TRIGGER_BAD_TR );
+        }
+        if ( info != null && info.prio > 20 )
+        {
+          SuspectInfo.addSuspect(routingContext.suspectNodes, currentNode.getIdFromPos(), info.prio, info.triggers );
         }
       }
 

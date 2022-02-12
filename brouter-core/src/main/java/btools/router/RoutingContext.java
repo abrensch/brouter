@@ -8,7 +8,6 @@ package btools.router;
 import java.io.DataOutput;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +16,7 @@ import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.mapaccess.GeometryDecoder;
 import btools.mapaccess.OsmLink;
+import btools.util.CompactLongSet;
 
 public final class RoutingContext
 {
@@ -36,10 +36,10 @@ public final class RoutingContext
   
   public String rawTrackPath;
 
-  public Map<Long,Integer> suspectNodes;
-  public Map<Long,Integer> suspectTRs;
+  public CompactLongSet badTRs;
+  public Map<Long,SuspectInfo> suspectNodes;
   public boolean foundNodeBlock;
-  public int foundWayBlock;
+  public SuspectInfo foundWayBlock;
   
   public int maxcost;
   

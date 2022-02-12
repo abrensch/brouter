@@ -44,6 +44,8 @@ abstract class OsmPath implements OsmLinkHolder
   public int originLon;
   public int originLat;
 
+  public double startAngle;
+
   // the classifier of the segment just before this paths position
   protected float lastClassifier;
   protected float lastInitialCost;
@@ -292,18 +294,6 @@ abstract class OsmPath implements OsmLinkHolder
             cost = -1;
             return;
           }
-          if ( !rc.considerTurnRestrictions && detailMode ) // detect effective (=suspect) TRs
-          {
-            if ( rc.suspectTRs != null && priorityclassifier > 20 && cost > 2000 && cost < rc.maxcost - 2000 )
-            {
-              Long id = Long.valueOf( sourceNode.getIdFromPos() );
-              if ( rc.suspectTRs.get( id ) == null )
-              {
-System.out.println( "bad TR candidate: " + id );
-                rc.suspectTRs.put( id, Integer.valueOf( priorityclassifier ) );
-              }
-            }
-          }
         }
       }
 
@@ -372,6 +362,19 @@ System.out.println( "bad TR candidate: " + id );
       double angle = rc.calcAngle( lon0, lat0, lon1, lat1, lon2, lat2 );
       double cosangle = rc.getCosAngle();
 
+      if ( nsection == 0 )
+      {
+        startAngle = angle;
+      }
+      else
+      {
+        if ( rc.suspectNodes != null &&  priorityclassifier > 20 && ! ( angle > -130. && angle < 130. ) )
+        {
+          long id1 = ( (long) lon1 ) << 32 | lat1;
+          SuspectInfo.addSuspect(rc.suspectNodes, id1, priorityclassifier, SuspectInfo.TRIGGER_SHARP_LINK );
+        } 
+      }
+
       // *** elevation stuff
       double delta_h = 0.;
       if ( ele2 == Short.MIN_VALUE ) ele2 = ele1;
@@ -389,9 +392,13 @@ System.out.println( "bad TR candidate: " + id );
       double sectionCost = processWaySection( rc, dist, delta_h, elevation, angle, cosangle, isStartpoint, nsection, lastpriorityclassifier );
       if ( ( sectionCost < 0. || costfactor > 9996. && !detailMode ) || sectionCost + cost >= 2000000000. )
       {
-        if ( ( costfactor == 9998. && priorityclassifier == lastpriorityclassifier ) || costfactor == 9997. )
+        if ( costfactor == 9998. && priorityclassifier == lastpriorityclassifier )
         {
-          rc.foundWayBlock = Math.max( rc.foundWayBlock, priorityclassifier );
+          rc.foundWayBlock = SuspectInfo.addTrigger( rc.foundWayBlock, priorityclassifier, SuspectInfo.TRIGGER_BAD_ACCESS );
+        }
+        if ( costfactor == 9997. )
+        {
+          rc.foundWayBlock = SuspectInfo.addTrigger( rc.foundWayBlock, priorityclassifier, SuspectInfo.TRIGGER_UNK_ACCESS );
         }
         cost = -1;
         return;
@@ -484,14 +491,8 @@ System.out.println( "bad TR candidate: " + id );
       if ( rc.suspectNodes != null && priorityclassifier > 20 && rc.inverseDirection == rc.inverseRouting )
       {
         rc.foundNodeBlock = true;
-        Long id = Long.valueOf( targetNode.getIdFromPos() );
-        Integer val = rc.suspectNodes.get( id );
-        if ( val == null || priorityclassifier > val.intValue() )
-        {
-          rc.suspectNodes.put( id, Integer.valueOf( priorityclassifier ) );
-        }
+        SuspectInfo.addSuspect( rc.suspectNodes, targetNode.getIdFromPos(), priorityclassifier, SuspectInfo.TRIGGER_NODE_BLOCK );
       }
-
       cost = -1;
       return;
     }

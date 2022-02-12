@@ -9,7 +9,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
-import java.util.TreeSet;
+
+import btools.router.SuspectInfo;
 
 
 public class IssueSorter
@@ -45,7 +46,7 @@ public class IssueSorter
       r.close();
     }
   
-    TreeMap<String,TreeMap<Long,Integer>> keys = new TreeMap<String,TreeMap<Long,Integer>>();
+    TreeMap<String,TreeMap<Long,SuspectInfo>> keys = new TreeMap<String,TreeMap<Long,SuspectInfo>>();
   
     BufferedReader br = new BufferedReader( new FileReader( new File( args[0] ) ) );
     for(;;)
@@ -54,7 +55,9 @@ public class IssueSorter
       if ( line == null ) break;
       StringTokenizer tk = new StringTokenizer( line );
       long id = Long.parseLong( tk.nextToken() );
-      int prio = Integer.parseInt( tk.nextToken() );
+      SuspectInfo info = new SuspectInfo();
+      info.prio = Integer.parseInt( tk.nextToken() );
+      info.triggers = tk.hasMoreTokens() ? Integer.parseInt( tk.nextToken() ) : 0;
 
       if ( filterSet != null && !filterSet.contains( Long.valueOf( id ) ) )
       {
@@ -64,13 +67,13 @@ public class IssueSorter
       int ilat = (int) ( id & 0xffffffff );
       
       String key = getKey( ilon, ilat );
-      TreeMap<Long,Integer> map = keys.get( key );
+      TreeMap<Long,SuspectInfo> map = keys.get( key );
       if ( map == null )
       {
-        map = new TreeMap<Long,Integer>();
+        map = new TreeMap<Long,SuspectInfo>();
         keys.put( key, map );
       }
-      map.put( Long.valueOf( id ), Integer.valueOf( prio ) );
+      map.put( Long.valueOf( id ), info );
     }
     br.close(); 
   
@@ -78,10 +81,11 @@ public class IssueSorter
     BufferedWriter bw = new BufferedWriter( new FileWriter( new File( args[1] ) ) );
     for( String key : keys.keySet() )
     {
-      TreeMap<Long,Integer> map = keys.get( key );
+      TreeMap<Long,SuspectInfo> map = keys.get( key );
       for( Long suspect : map.keySet() )
       {
-        bw.write( suspect + " " + map.get( suspect ) + "\r\n" );
+        SuspectInfo info =  map.get( suspect );
+        bw.write( suspect + " " + info.prio + " " + info.triggers + "\r\n" );
       }
     }
     bw.close();
@@ -94,7 +98,7 @@ public class IssueSorter
       bw.write( "<osm version=\"0.6\">\n" );
       for( String key : keys.keySet() )
       {
-        TreeMap<Long,Integer> map = keys.get( key );
+        TreeMap<Long,SuspectInfo> map = keys.get( key );
         for( Long suspect : map.keySet() )
         {
           long id = suspect.longValue();
