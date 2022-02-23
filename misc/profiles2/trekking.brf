@@ -183,7 +183,7 @@ assign costfactor
   # exclude motorways and proposed roads
   #
   else if ( highway=motorway|motorway_link ) then   10000
-  else if ( highway=proposed|abandoned     ) then   10000
+  else if ( highway=proposed|abandoned|no  ) then   10000
 
   #
   # all other exclusions below (access, steps, ferries,..)
