@@ -203,18 +203,21 @@ public class DownloadService extends Service implements ProgressListener {
     return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
   }
 
+
   private void downloadFile(URL downloadUrl, File outputFile, boolean limitDownloadSpeed) throws IOException, InterruptedException {
+    // For all those small files the progress reporting is really noisy
+    boolean reportDownloadProgress = limitDownloadSpeed;
     HttpURLConnection connection = (HttpURLConnection) downloadUrl.openConnection();
     connection.setConnectTimeout(5000);
     connection.connect();
 
-    updateProgress("Connecting...");
+    if (reportDownloadProgress) updateProgress("Connecting...");
 
     if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
       throw new IOException("HTTP Request failed");
     }
     int fileLength = connection.getContentLength();
-    updateProgress("Loading");
+    if (reportDownloadProgress) updateProgress("Loading");
 
     try (
       InputStream input = connection.getInputStream();
@@ -233,9 +236,9 @@ public class DownloadService extends Service implements ProgressListener {
         if (fileLength > 0) // only if total length is known
         {
           int pct = (int) (total * 100 / fileLength);
-          updateProgress("Progress " + pct + "%");
+          if (reportDownloadProgress) updateProgress("Progress " + pct + "%");
         } else {
-          updateProgress("Progress (unknown size)");
+          if (reportDownloadProgress) updateProgress("Progress (unknown size)");
         }
         output.write(buffer, 0, count);
 
