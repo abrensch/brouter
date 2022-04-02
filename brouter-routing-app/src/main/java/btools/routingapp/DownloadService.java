@@ -29,38 +29,16 @@ import btools.util.ProgressListener;
 public class DownloadService extends Service implements ProgressListener {
 
   private static final boolean DEBUG = false;
-
+  public static boolean serviceState = false;
   private ServerConfig mServerConfig;
-
   private NotificationHelper mNotificationHelper;
   private List<String> mUrlList;
   private String baseDir;
-
   private volatile String newDownloadAction = "";
   private volatile String currentDownloadOperation = "";
   private long availableSize;
-
   private ServiceHandler mServiceHandler;
-  public static boolean serviceState = false;
   private boolean bIsDownloading;
-
-  // Handler that receives messages from the thread
-  private final class ServiceHandler extends Handler {
-    public ServiceHandler(Looper looper) {
-      super(looper);
-    }
-
-    @Override
-    public void handleMessage(Message msg) {
-      bIsDownloading = true;
-      downloadFiles();
-
-      stopForeground(true);
-      stopSelf(msg.arg1);
-      mNotificationHelper.stopNotification();
-    }
-  }
-
 
   @Override
   public void onCreate() {
@@ -81,7 +59,6 @@ public class DownloadService extends Service implements ProgressListener {
     } catch (Exception e) { /* ignore */ }
 
   }
-
 
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
@@ -105,7 +82,6 @@ public class DownloadService extends Service implements ProgressListener {
     return START_STICKY;
   }
 
-
   @Override
   public void onDestroy() {
     if (DEBUG) Log.d("SERVICE", "onDestroy");
@@ -113,12 +89,10 @@ public class DownloadService extends Service implements ProgressListener {
     super.onDestroy();
   }
 
-
   @Override
   public IBinder onBind(Intent intent) {
     return null;
   }
-
 
   public void downloadFiles() {
 
@@ -154,7 +128,6 @@ public class DownloadService extends Service implements ProgressListener {
     bIsDownloading = false;
     updateProgress("finished ");
   }
-
 
   public void updateProgress(String progress) {
     if (!newDownloadAction.equals(progress)) {
@@ -466,9 +439,25 @@ public class DownloadService extends Service implements ProgressListener {
 
   }
 
-
   public boolean isCanceled() {
     return BInstallerActivity.downloadCanceled;
+  }
+
+  // Handler that receives messages from the thread
+  private final class ServiceHandler extends Handler {
+    public ServiceHandler(Looper looper) {
+      super(looper);
+    }
+
+    @Override
+    public void handleMessage(Message msg) {
+      bIsDownloading = true;
+      downloadFiles();
+
+      stopForeground(true);
+      stopSelf(msg.arg1);
+      mNotificationHelper.stopNotification();
+    }
   }
 
 }
