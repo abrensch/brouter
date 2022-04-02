@@ -59,10 +59,59 @@ public class DownloadWorker extends Worker {
 
     notificationBuilder = createNotificationBuilder();
 
+    downloadProgressListener = new DownloadProgressListener() {
+      private String currentDownloadName;
+      private DownloadType currentDownloadType;
+      private int lastProgressPercent;
+
+      @Override
+      public void onDownloadStart(String downloadName, DownloadType downloadType) {
+        currentDownloadName = downloadName;
+        currentDownloadType = downloadType;
+        if (downloadType == DownloadType.SEGMENT) {
+          progressBuilder.putString(PROGRESS_SEGMENT_NAME, downloadName);
+          notificationBuilder.setContentText(downloadName);
+        }
+      }
+
+      @Override
+      public void onDownloadInfo(String info) {
+        notificationBuilder.setContentText(info);
+        notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
+      }
+
+      @Override
+      public void onDownloadProgress(int max, int progress) {
+        int progressPercent = (int) (progress * 100L / max);
+
+        // Only report segments and update if it changed to avoid hammering NotificationManager
+        if (currentDownloadType != DownloadType.SEGMENT || progressPercent == lastProgressPercent) {
+          return;
+        }
+
+        if (max > 0) {
+          notificationBuilder.setProgress(max, progress, false);
+          progressBuilder.putInt(PROGRESS_SEGMENT_PERCENT, progressPercent);
+        } else {
+          notificationBuilder.setProgress(0, 0, true);
+          progressBuilder.putInt(PROGRESS_SEGMENT_PERCENT, -1);
+        }
+        notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
+        setProgressAsync(progressBuilder.build());
+
+        lastProgressPercent = progressPercent;
+      }
+
+      @Override
+      public void onDownloadFinished() {
+      }
+    };
+
     diffProgressListener = new ProgressListener() {
       @Override
-      public void updateProgress(String progress) {
-        notificationManager.notify(NOTIFICATION_ID, createNotification(progress));
+      public void updateProgress(String task, int progress) {
+        downloadProgressListener.onDownloadInfo(task);
+        downloadProgressListener.onDownloadProgress(100, progress);
       }
 
       @Override
@@ -70,32 +119,6 @@ public class DownloadWorker extends Worker {
         return isStopped();
       }
     };
-
-    downloadProgressListener = new DownloadProgressListener() {
-      @Override
-      public void updateProgress(int max, int progress) {
-        if (max > 0) {
-          notificationBuilder.setProgress(max, progress, false);
-          notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
-          progressBuilder.putInt(PROGRESS_SEGMENT_PERCENT, progress * 100 / max);
-          setProgressAsync(progressBuilder.build());
-        } else {
-          notificationBuilder.setProgress(0, 0, true);
-          notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
-          progressBuilder.putInt(PROGRESS_SEGMENT_PERCENT, -1);
-          setProgressAsync(progressBuilder.build());
-        }
-      }
-
-      @Override
-      public void updateProgress(String content) {
-        notificationBuilder.setContentText(content);
-        notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
-      }
-    };
-
-    progressBuilder.putInt(PROGRESS_SEGMENT_PERCENT, 0);
-    setProgressAsync(progressBuilder.build());
   }
 
   @NonNull
@@ -109,14 +132,11 @@ public class DownloadWorker extends Worker {
     // Mark the Worker as important
     setForegroundAsync(new ForegroundInfo(NOTIFICATION_ID, createNotification("Starting Download")));
     try {
-      notificationManager.notify(NOTIFICATION_ID, createNotification("Updating profiles"));
       downloadLookupAndProfiles();
 
       int segmentIndex = 1;
       for (String segmentName : segmentNames) {
-        notificationManager.notify(NOTIFICATION_ID, createNotification(String.format("%s (%d/%d)", segmentName, segmentIndex, segmentNames.length)));
-        progressBuilder.putString(PROGRESS_SEGMENT_NAME, segmentName);
-        setProgressAsync(progressBuilder.build());
+        downloadProgressListener.onDownloadStart(segmentName, DownloadType.SEGMENT);
         downloadSegment(mServerConfig.getSegmentUrl(), segmentName + SEGMENT_SUFFIX);
         segmentIndex++;
       }
@@ -135,7 +155,9 @@ public class DownloadWorker extends Worker {
         File lookupFile = new File(baseDir, PROFILES_DIR + fileName);
         String lookupLocation = mServerConfig.getLookupUrl() + fileName;
         URL lookupUrl = new URL(lookupLocation);
+        downloadProgressListener.onDownloadStart(fileName, DownloadType.LOOKUP);
         downloadFile(lookupUrl, lookupFile, false);
+        downloadProgressListener.onDownloadFinished();
       }
     }
 
@@ -146,7 +168,9 @@ public class DownloadWorker extends Worker {
         if (profileFile.exists()) {
           String profileLocation = mServerConfig.getProfilesUrl() + fileName;
           URL profileUrl = new URL(profileLocation);
+          downloadProgressListener.onDownloadStart(fileName, DownloadType.PROFILE);
           downloadFile(profileUrl, profileFile, false);
+          downloadProgressListener.onDownloadFinished();
         }
       }
     }
@@ -157,7 +181,7 @@ public class DownloadWorker extends Worker {
     File segmentFileTemp = new File(segmentFile.getAbsolutePath() + "_tmp");
     try {
       if (segmentFile.exists()) {
-        downloadProgressListener.updateProgress("Calculating local checksum...");
+        downloadProgressListener.onDownloadInfo("Calculating local checksum...");
         String md5 = Rd5DiffManager.getMD5(segmentFile);
         String segmentDeltaLocation = segmentBaseUrl + "diff/" + segmentName.replace(SEGMENT_SUFFIX, "/" + md5 + SEGMENT_DIFF_SUFFIX);
         URL segmentDeltaUrl = new URL(segmentDeltaLocation);
@@ -165,7 +189,7 @@ public class DownloadWorker extends Worker {
           File segmentDeltaFile = new File(segmentFile.getAbsolutePath() + "_diff");
           try {
             downloadFile(segmentDeltaUrl, segmentDeltaFile, true);
-            downloadProgressListener.updateProgress("Applying delta...");
+            downloadProgressListener.onDownloadInfo("Applying delta...");
             Rd5DiffTool.recoverFromDelta(segmentFile, segmentDeltaFile, segmentFileTemp, diffProgressListener);
           } catch (IOException e) {
             throw new IOException("Failed to download & apply delta update", e);
@@ -205,13 +229,9 @@ public class DownloadWorker extends Worker {
   }
 
   private void downloadFile(URL downloadUrl, File outputFile, boolean limitDownloadSpeed) throws IOException, InterruptedException {
-    // For all those small files the progress reporting is really noisy
-    boolean reportDownloadProgress = limitDownloadSpeed;
     HttpURLConnection connection = (HttpURLConnection) downloadUrl.openConnection();
     connection.setConnectTimeout(5000);
     connection.connect();
-
-    if (reportDownloadProgress) downloadProgressListener.updateProgress("Connecting...");
 
     if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
       throw new IOException("HTTP Request failed");
@@ -232,8 +252,7 @@ public class DownloadWorker extends Worker {
         total += count;
         output.write(buffer, 0, count);
 
-        // publishing the progress....
-        downloadProgressListener.updateProgress(fileLength, total);
+        downloadProgressListener.onDownloadProgress(fileLength, total);
 
         if (limitDownloadSpeed) {
           // enforce < 16 Mbit/s
@@ -244,8 +263,6 @@ public class DownloadWorker extends Worker {
         }
       }
     }
-
-    setProgressAsync(new Data.Builder().putInt(PROGRESS_SEGMENT_PERCENT, 100).build());
   }
 
   @NonNull
@@ -292,8 +309,19 @@ public class DownloadWorker extends Worker {
     notificationManager.createNotificationChannel(channel);
   }
 
+  enum DownloadType {
+    LOOKUP,
+    PROFILE,
+    SEGMENT
+  }
+
   interface DownloadProgressListener {
-    void updateProgress(int max, int progress);
-    void updateProgress(String content);
+    void onDownloadStart(String downloadName, DownloadType downloadType);
+
+    void onDownloadInfo(String info);
+
+    void onDownloadProgress(int max, int progress);
+
+    void onDownloadFinished();
   }
 }
