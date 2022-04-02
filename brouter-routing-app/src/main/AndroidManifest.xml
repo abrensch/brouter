@@ -3,7 +3,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="btools.routingapp">
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -11,14 +13,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="@string/app_name"
         android:allowBackup="false"
-        android:preserveLegacyExternalStorage="true">
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:preserveLegacyExternalStorage="true"
+        android:roundIcon="@mipmap/ic_launcher_round">
         <activity
             android:name=".BRouterActivity"
-            android:label="@string/app_name"
             android:exported="true"
             android:screenOrientation="unspecified"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
@@ -29,20 +30,20 @@
         </activity>
         <activity
             android:name=".BInstallerActivity"
-            android:label="@string/app_name"
-            android:screenOrientation="landscape"
-            android:launchMode="singleTask"
             android:exported="true"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"></activity>
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
         <activity
             android:name=".BImportActivity"
-            android:label="Import Profile"
             android:exported="true"
+            android:label="Import Profile"
             android:theme="@android:style/Theme.NoTitleBar">
-            <!-- some apps (bluemail) do not recognize the .brf file extention, startactivity+intent is done for attachement with text/plain -->
+            <!-- some apps (bluemail) do not recognize the .brf file extension, startactivity+intent is done for attachment with text/plain -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:scheme="file" />
                 <data android:scheme="content" />
                 <data android:mimeType="text/plain" />
@@ -88,15 +89,15 @@
         </activity>
 
         <service
-            android:exported="true"
             android:name=".BRouterService"
             android:enabled="true"
+            android:exported="true"
             android:process=":brouter_service" />
         <service
             android:name="btools.routingapp.DownloadService"
-            android:label="Download Service"
+            android:enabled="true"
             android:icon="@mipmap/ic_launcher"
-            android:enabled="true" />
+            android:label="Download Service" />
 
     </application>
 </manifest>
