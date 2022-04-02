@@ -35,7 +35,6 @@ import btools.router.RoutingHelper;
 
 public class BInstallerActivity extends AppCompatActivity {
 
-  public static final String DOWNLOAD_ACTION = "btools.routingapp.download";
   private static final int DIALOG_CONFIRM_DELETE_ID = 1;
   public static boolean downloadCanceled = false;
   private File mBaseDir;

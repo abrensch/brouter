@@ -91,11 +91,6 @@
             android:enabled="true"
             android:exported="true"
             android:process=":brouter_service" />
-        <service
-            android:name="btools.routingapp.DownloadService"
-            android:enabled="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="Download Service" />
 
     </application>
 </manifest>
