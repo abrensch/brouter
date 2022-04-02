@@ -7,11 +7,7 @@ import static btools.routingapp.BInstallerView.MASK_SELECTED_RD5;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.content.res.Resources;
 import android.os.Build;
@@ -23,6 +19,13 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.work.Constraints;
+import androidx.work.Data;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
+import androidx.work.WorkRequest;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -37,7 +40,6 @@ public class BInstallerActivity extends AppCompatActivity {
   public static boolean downloadCanceled = false;
   private File mBaseDir;
   private BInstallerView mBInstallerView;
-  private DownloadReceiver downloadReceiver;
   private View mDownloadInfo;
   private TextView mDownloadInfoText;
   private Button mButtonDownloadCancel;
@@ -153,34 +155,59 @@ public class BInstallerActivity extends AppCompatActivity {
     downloadCanceled = false;
     mDownloadInfoText.setText(R.string.download_info_start);
 
-    Intent intent = new Intent(this, DownloadService.class);
-    intent.putExtra("dir", mBaseDir.getAbsolutePath() + "/brouter/");
-    intent.putExtra("urlparts", urlparts);
-    startService(intent);
+    Data inputData = new Data.Builder()
+      .putStringArray(DownloadWorker.KEY_INPUT_SEGMENT_NAMES, urlparts.toArray(new String[0]))
+      .build();
+
+    Constraints constraints = new Constraints.Builder()
+      .setRequiredNetworkType(NetworkType.CONNECTED)
+      .build();
+
+    WorkRequest downloadWorkRequest =
+      new OneTimeWorkRequest.Builder(DownloadWorker.class)
+        .setInputData(inputData)
+        .setConstraints(constraints)
+        .build();
+
+    WorkManager workManager = WorkManager.getInstance(getApplicationContext());
+    workManager.enqueue(downloadWorkRequest);
+
+    mButtonDownloadCancel.setOnClickListener(view -> {
+      mDownloadInfoText.setText("Cancelling...");
+      workManager.cancelWorkById(downloadWorkRequest.getId());
+    });
+
+    workManager
+      .getWorkInfoByIdLiveData(downloadWorkRequest.getId())
+      .observe(this, workInfo -> {
+        if (workInfo != null) {
+          if (workInfo.getState() == WorkInfo.State.ENQUEUED) {
+            mDownloadInfoText.setText("Waiting for download to start. Check internet connection if it takes too long");
+          }
+
+          if (workInfo.getState() == WorkInfo.State.RUNNING) {
+            Data progress = workInfo.getProgress();
+            String segmentName = progress.getString(DownloadWorker.PROGRESS_SEGMENT_NAME);
+            int percent = progress.getInt(DownloadWorker.PROGRESS_SEGMENT_PERCENT, 0);
+            if (segmentName != null) {
+              mDownloadInfoText.setText(String.format("Download %s - %d%%", segmentName, percent));
+            }
+          }
+
+          if (workInfo.getState().isFinished()) {
+            mSegmentsView.setVisibility(View.VISIBLE);
+            mDownloadInfo.setVisibility(View.GONE);
+            scanExistingFiles();
+          }
+        }
+      });
 
     deleteRawTracks(); // invalidate raw-tracks after data update
   }
 
   @Override
-  protected void onResume() {
-    super.onResume();
-
-    IntentFilter filter = new IntentFilter();
-    filter.addAction(DOWNLOAD_ACTION);
-
-    downloadReceiver = new DownloadReceiver();
-    registerReceiver(downloadReceiver, filter);
-  }
-
-  @Override
-  protected void onPause() {
-    super.onPause();
-  }
-
-  @Override
   public void onDestroy() {
     super.onDestroy();
-    if (downloadReceiver != null) unregisterReceiver(downloadReceiver);
     System.exit(0);
   }
 
@@ -278,22 +305,5 @@ public class BInstallerActivity extends AppCompatActivity {
     String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
     String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
     return slon + "_" + slat;
-  }
-
-  public class DownloadReceiver extends BroadcastReceiver {
-
-    @Override
-    public void onReceive(Context context, Intent intent) {
-      if (intent.hasExtra("txt")) {
-        String txt = intent.getStringExtra("txt");
-        boolean ready = intent.getBooleanExtra("ready", false);
-        if (!ready) {
-          mSegmentsView.setVisibility(View.VISIBLE);
-          mDownloadInfo.setVisibility(View.GONE);
-          scanExistingFiles();
-        }
-        mDownloadInfoText.setText(txt);
-      }
-    }
   }
 }
