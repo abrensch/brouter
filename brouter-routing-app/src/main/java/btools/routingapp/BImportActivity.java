@@ -1,6 +1,5 @@
 package btools.routingapp;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -12,6 +11,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-public class BImportActivity extends Activity {
+public class BImportActivity extends AppCompatActivity {
   // profile size is generally < 30 kb, so set max size to 100 kb
   private static final int MAX_PROFILE_SIZE = 100000;
   private EditText mTextFilename;

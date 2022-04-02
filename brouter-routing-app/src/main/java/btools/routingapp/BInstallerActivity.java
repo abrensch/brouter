@@ -5,7 +5,6 @@ import static btools.routingapp.BInstallerView.MASK_DELETED_RD5;
 import static btools.routingapp.BInstallerView.MASK_INSTALLED_RD5;
 import static btools.routingapp.BInstallerView.MASK_SELECTED_RD5;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.BroadcastReceiver;
@@ -23,13 +22,15 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Locale;
 
 import btools.router.RoutingHelper;
 
-public class BInstallerActivity extends Activity {
+public class BInstallerActivity extends AppCompatActivity {
 
   public static final String DOWNLOAD_ACTION = "btools.routingapp.download";
   private static final int DIALOG_CONFIRM_DELETE_ID = 1;
