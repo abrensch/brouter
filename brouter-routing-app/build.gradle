@@ -14,16 +14,16 @@ android {
         versionName project.version
 
         resValue('string', 'app_version', defaultConfig.versionName)
-        setProperty("archivesBaseName","BRouterApp." + defaultConfig.versionName)
+        setProperty("archivesBaseName", "BRouterApp." + defaultConfig.versionName)
 
         minSdkVersion 14
-        
+
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     sourceSets.main.assets.srcDirs += new File(project.buildDir, 'assets')
 
-    if(project.hasProperty("RELEASE_STORE_FILE") && RELEASE_STORE_FILE.length() > 0) {
+    if (project.hasProperty("RELEASE_STORE_FILE") && RELEASE_STORE_FILE.length() > 0) {
         signingConfigs {
             // this uses a file  ~/.gradle/gradle.properties
             // with content:
@@ -33,17 +33,17 @@ android {
             // RELEASE_KEY_PASSWORD=*****
             //
             release {
-               // enable signingConfig in buildTypes to get a signed apk file
-               storeFile file(RELEASE_STORE_FILE)
-               storePassword RELEASE_STORE_PASSWORD
-               keyAlias RELEASE_KEY_ALIAS
-               keyPassword RELEASE_KEY_PASSWORD
+                // enable signingConfig in buildTypes to get a signed apk file
+                storeFile file(RELEASE_STORE_FILE)
+                storePassword RELEASE_STORE_PASSWORD
+                keyAlias RELEASE_KEY_ALIAS
+                keyPassword RELEASE_KEY_PASSWORD
 
-               // Optional, specify signing versions used
-               v1SigningEnabled true
-               v2SigningEnabled true
+                // Optional, specify signing versions used
+                v1SigningEnabled true
+                v2SigningEnabled true
 
-           }
+            }
         }
     }
 
@@ -51,7 +51,7 @@ android {
         release {
             minifyEnabled false
             debuggable false
-            if(project.hasProperty("RELEASE_STORE_FILE") && RELEASE_STORE_FILE.length() > 0) {
+            if (project.hasProperty("RELEASE_STORE_FILE") && RELEASE_STORE_FILE.length() > 0) {
                 signingConfig signingConfigs.release
             }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -64,7 +64,8 @@ android {
     }
     lintOptions {
         disable 'InvalidPackage'
-        checkReleaseBuilds false //added this line to the build.gradle under the /android/app/build.gradle
+        checkReleaseBuilds false
+        //added this line to the build.gradle under the /android/app/build.gradle
     }
 
     compileOptions {
@@ -96,6 +97,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation "androidx.constraintlayout:constraintlayout:2.1.3"
     implementation 'androidx.work:work-runtime:2.7.1'
+    implementation 'com.google.android.material:material:1.5.0'
 
     implementation project(':brouter-mapaccess')
     implementation project(':brouter-core')
@@ -116,8 +118,7 @@ task generateProfiles(type: Exec) {
 task generateProfilesZip(type: Zip) {
     if (DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) {
         logger.warn("Note: On Windows run script '../misc/scripts/generate_profile_variants.sh' manually to include all profiles")
-    }
-    else {
+    } else {
         dependsOn generateProfiles
     }
     archiveFileName = "profiles2.zip"

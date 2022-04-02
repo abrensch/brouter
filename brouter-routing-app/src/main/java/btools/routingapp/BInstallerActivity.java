@@ -14,9 +14,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.StatFs;
 import android.text.format.Formatter;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.work.Constraints;
@@ -26,6 +26,8 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import androidx.work.WorkRequest;
+
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -39,12 +41,9 @@ public class BInstallerActivity extends AppCompatActivity {
   public static boolean downloadCanceled = false;
   private File mBaseDir;
   private BInstallerView mBInstallerView;
-  private View mDownloadInfo;
-  private TextView mDownloadInfoText;
-  private Button mButtonDownloadCancel;
   private Button mButtonDownload;
   private TextView mSummaryInfo;
-  private View mSegmentsView;
+  private LinearProgressIndicator mProgressIndicator;
 
   public static long getAvailableSpace(String baseDir) {
     StatFs stat = new StatFs(baseDir);
@@ -65,7 +64,6 @@ public class BInstallerActivity extends AppCompatActivity {
 
     setContentView(R.layout.activity_binstaller);
     mSummaryInfo = findViewById(R.id.textViewSegmentSummary);
-    mSegmentsView = findViewById(R.id.view_segments);
     mBInstallerView = findViewById(R.id.BInstallerView);
     mBInstallerView.setOnSelectListener(
       () -> {
@@ -84,12 +82,7 @@ public class BInstallerActivity extends AppCompatActivity {
         }
       }
     );
-    mDownloadInfo = findViewById(R.id.view_download_progress);
-    mDownloadInfoText = findViewById(R.id.textViewDownloadProgress);
-    mButtonDownloadCancel = findViewById(R.id.buttonDownloadCancel);
-    mButtonDownloadCancel.setOnClickListener(view -> {
-      cancelDownload();
-    });
+    mProgressIndicator = findViewById(R.id.progressDownload);
 
     mBaseDir = ConfigHelper.getBaseDir(this);
     scanExistingFiles();
@@ -138,21 +131,13 @@ public class BInstallerActivity extends AppCompatActivity {
     }
   }
 
-  private void cancelDownload() {
-    downloadCanceled = true;
-    mDownloadInfoText.setText(getString(R.string.download_info_cancel));
-  }
-
   public void downloadAll(ArrayList<Integer> downloadList) {
     ArrayList<String> urlparts = new ArrayList<>();
     for (Integer i : downloadList) {
       urlparts.add(baseNameForTile(i));
     }
 
-    mSegmentsView.setVisibility(View.GONE);
-    mDownloadInfo.setVisibility(View.VISIBLE);
     downloadCanceled = false;
-    mDownloadInfoText.setText(R.string.download_info_start);
 
     Data inputData = new Data.Builder()
       .putStringArray(DownloadWorker.KEY_INPUT_SEGMENT_NAMES, urlparts.toArray(new String[0]))
@@ -171,31 +156,44 @@ public class BInstallerActivity extends AppCompatActivity {
     WorkManager workManager = WorkManager.getInstance(getApplicationContext());
     workManager.enqueue(downloadWorkRequest);
 
-    mButtonDownloadCancel.setOnClickListener(view -> {
-      mDownloadInfoText.setText("Cancelling...");
-      workManager.cancelWorkById(downloadWorkRequest.getId());
-    });
-
     workManager
       .getWorkInfoByIdLiveData(downloadWorkRequest.getId())
       .observe(this, workInfo -> {
         if (workInfo != null) {
           if (workInfo.getState() == WorkInfo.State.ENQUEUED) {
-            mDownloadInfoText.setText("Waiting for download to start. Check internet connection if it takes too long");
+            Toast.makeText(this, "Download scheduled. Check internet connection if it doesn't start.", Toast.LENGTH_LONG).show();
+            mProgressIndicator.hide();
+            mProgressIndicator.setIndeterminate(true);
+            mProgressIndicator.show();
           }
 
           if (workInfo.getState() == WorkInfo.State.RUNNING) {
             Data progress = workInfo.getProgress();
             String segmentName = progress.getString(DownloadWorker.PROGRESS_SEGMENT_NAME);
             int percent = progress.getInt(DownloadWorker.PROGRESS_SEGMENT_PERCENT, 0);
-            if (segmentName != null) {
-              mDownloadInfoText.setText(String.format("Download %s - %d%%", segmentName, percent));
+            if (percent > 0) {
+              mProgressIndicator.setIndeterminate(false);
             }
+            mProgressIndicator.setProgress(percent);
           }
 
           if (workInfo.getState().isFinished()) {
-            mSegmentsView.setVisibility(View.VISIBLE);
-            mDownloadInfo.setVisibility(View.GONE);
+            String result;
+            switch (workInfo.getState()) {
+              case FAILED:
+                result = "failed.";
+                break;
+              case CANCELLED:
+                result = "cancelled";
+                break;
+              case SUCCEEDED:
+                result = "succeeded";
+                break;
+              default:
+                result = "";
+            }
+            Toast.makeText(this, "Download " + result + ".", Toast.LENGTH_SHORT).show();
+            mProgressIndicator.hide();
             scanExistingFiles();
           }
         }

@@ -50,9 +50,8 @@ final public class Rd5DiffTool implements ProgressListener
   }
 
             @Override
-            public void updateProgress( String progress )
-            {
-              System.out.println( progress );
+            public void updateProgress(String task, int progress) {
+              System.out.println(task + ": " + progress + "%");
             }
   
             @Override
@@ -342,7 +341,7 @@ final public class Rd5DiffTool implements ProgressListener
            int pct =  (int)(100. * bytesProcessed / getTileEnd( fileIndex1, 24 ) + 0.5 );
            if ( pct != lastPct )
            {
-             progress.updateProgress( "Applying delta: " + pct + "%" );
+             progress.updateProgress("Applying delta", pct);
              lastPct = pct;
            }
 
@@ -490,7 +489,7 @@ final public class Rd5DiffTool implements ProgressListener
         int pct =  (int)( (100. * sizeRead) / (sizeTotal+1) + 0.5 );
         if ( pct != lastPct )
         {
-          progress.updateProgress( "Copying: " + pct + "%" );
+          progress.updateProgress("Copying", pct);
           lastPct = pct;
         }
         int len = dis1.read( buf );

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.App" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="linearProgressIndicatorStyle">@style/Widget.App.LinearProgressIndicator</item>
+    </style>
+
+    <style name="Widget.App.LinearProgressIndicator" parent="Widget.MaterialComponents.LinearProgressIndicator">
+        <item name="trackThickness">20dp</item>
+    </style>
+</resources>
