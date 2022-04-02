@@ -2,7 +2,6 @@ package btools.routingapp;
 
 import android.app.Service;
 import android.content.Intent;
-import android.net.TrafficStats;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -27,18 +26,22 @@ import btools.mapaccess.Rd5DiffTool;
 import btools.util.ProgressListener;
 
 public class DownloadService extends Service implements ProgressListener {
+  private static final String PROFILES_DIR = "profiles2/";
+  private static final String SEGMENTS_DIR = "segments4/";
+  private static final String SEGMENT_DIFF_SUFFIX = ".df5";
+  private static final String SEGMENT_SUFFIX = ".rd5";
 
   private static final boolean DEBUG = false;
   public static boolean serviceState = false;
   private ServerConfig mServerConfig;
   private NotificationHelper mNotificationHelper;
-  private List<String> mUrlList;
+  private List<String> mSegmentNames;
   private String baseDir;
-  private volatile String newDownloadAction = "";
-  private volatile String currentDownloadOperation = "";
-  private long availableSize;
+  private volatile String lastProgress = "";
   private ServiceHandler mServiceHandler;
   private boolean bIsDownloading;
+  private int mSegmentIndex;
+  private int mSegmentCount;
 
   @Override
   public void onCreate() {
@@ -52,12 +55,6 @@ public class DownloadService extends Service implements ProgressListener {
     // Get the HandlerThread's Looper and use it for our Handler
     Looper serviceLooper = thread.getLooper();
     mServiceHandler = new ServiceHandler(serviceLooper);
-
-    availableSize = -1;
-    try {
-      availableSize = BInstallerActivity.getAvailableSpace(baseDir);
-    } catch (Exception e) { /* ignore */ }
-
   }
 
   @Override
@@ -68,7 +65,7 @@ public class DownloadService extends Service implements ProgressListener {
     Bundle extra = intent.getExtras();
     if (extra != null) {
       String dir = extra.getString("dir");
-      mUrlList = extra.getStringArrayList("urlparts");
+      mSegmentNames = extra.getStringArrayList("urlparts");
       baseDir = dir;
     }
 
@@ -95,348 +92,162 @@ public class DownloadService extends Service implements ProgressListener {
   }
 
   public void downloadFiles() {
+    try {
+      mSegmentIndex = 0;
+      downloadLookupAndProfiles();
 
-    // first check lookup table and profiles
-    String result = checkScripts();
-    if (result != null) {
-      if (DEBUG) Log.d("BR", "error: " + result);
-      bIsDownloading = false;
-      updateProgress("finished ");
-
-      Toast.makeText(this, result, Toast.LENGTH_LONG).show();
-      return;
-    }
-
-
-    int count = 1;
-    int size = mUrlList.size();
-    for (String part : mUrlList) {
-      String url = mServerConfig.getSegmentUrl() + part + ".rd5";
-      if (DEBUG) Log.d("BR", "downlaod " + url);
-
-      result = download(count, size, url);
-      if (result != null) {
-        if (DEBUG) Log.d("BR", "" + result);
-        Toast.makeText(this, result, Toast.LENGTH_LONG).show();
-        break;
-      } else {
-        updateProgress("Download " + part + " " + count + "/" + size + " finshed");
+      mSegmentIndex = 1;
+      mSegmentCount = mSegmentNames.size();
+      for (String segmentName : mSegmentNames) {
+        downloadSegment(mServerConfig.getSegmentUrl(), segmentName + SEGMENT_SUFFIX);
+        mSegmentIndex++;
       }
-      count++;
+    } catch (IOException e) {
+      Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show();
+    } catch (InterruptedException e) {
+      updateProgress("canceled");
+    } finally {
+      bIsDownloading = false;
+      updateProgress("finished");
     }
-
-    bIsDownloading = false;
-    updateProgress("finished ");
   }
 
   public void updateProgress(String progress) {
-    if (!newDownloadAction.equals(progress)) {
+    if (!lastProgress.equals(progress)) {
+      if (mSegmentIndex > 0) {
+        progress = mSegmentIndex + "/" + mSegmentCount + " " + progress;
+      }
       if (DEBUG) Log.d("BR", "up " + progress);
       Intent intent = new Intent(BInstallerActivity.DOWNLOAD_ACTION);
       intent.putExtra("txt", progress);
       intent.putExtra("ready", bIsDownloading);
       sendBroadcast(intent);
-      newDownloadAction = progress;
-      mNotificationHelper.progressUpdate(newDownloadAction);
+      mNotificationHelper.progressUpdate(progress);
+      lastProgress = progress;
     }
-
   }
 
-  private String download(int counter, int size, String surl) {
-    InputStream input = null;
-    OutputStream output = null;
-    HttpURLConnection connection = null;
-    File tmp_file = null;
+  private void downloadLookupAndProfiles() throws IOException, InterruptedException {
+    String[] lookups = mServerConfig.getLookups();
+    for (String fileName : lookups) {
+      if (fileName.length() > 0) {
+        File lookupFile = new File(baseDir, PROFILES_DIR + fileName);
+        String lookupLocation = mServerConfig.getLookupUrl() + fileName;
+        URL lookupUrl = new URL(lookupLocation);
+        downloadFile(lookupUrl, lookupFile, false);
+      }
+    }
+
+    String[] profiles = mServerConfig.getProfiles();
+    for (String fileName : profiles) {
+      if (fileName.length() > 0) {
+        File profileFile = new File(baseDir, PROFILES_DIR + fileName);
+        if (profileFile.exists()) {
+          String profileLocation = mServerConfig.getProfilesUrl() + fileName;
+          URL profileUrl = new URL(profileLocation);
+          downloadFile(profileUrl, profileFile, false);
+        }
+      }
+    }
+  }
+
+  private void downloadSegment(String segmentBaseUrl, String segmentName) throws IOException, InterruptedException {
+    File segmentFile = new File(baseDir, SEGMENTS_DIR + segmentName);
+    File segmentFileTemp = new File(segmentFile.getAbsolutePath() + "_tmp");
     try {
-      try {
-        TrafficStats.setThreadStatsTag(1);
-
-        int slidx = surl.lastIndexOf("segments4/");
-        String name = surl.substring(slidx + 10);
-        String surlBase = surl.substring(0, slidx + 10);
-        File fname = new File(baseDir, "segments4/" + name);
-
-        boolean delta = true;
-
-        // if (!targetFile.getParentFile().exists())  targetFile.getParentFile().mkdirs();
-        if (fname.exists()) {
-          updateProgress("Calculating local checksum..");
-
-          // first check for a delta file
-          String md5 = Rd5DiffManager.getMD5(fname);
-          String surlDelta = surlBase + "diff/" + name.replace(".rd5", "/" + md5 + ".df5");
-
-          URL urlDelta = new URL(surlDelta);
-
-          connection = (HttpURLConnection) urlDelta.openConnection();
-          connection.setConnectTimeout(5000);
-          connection.connect();
-
-          // 404 kind of expected here, means there's no delta file
-          if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-            connection = null;
-          } else {
-            updateProgress("Connecting.." + surlDelta);
+      if (segmentFile.exists()) {
+        updateProgress("Calculating local checksum...");
+        String md5 = Rd5DiffManager.getMD5(segmentFile);
+        String segmentDeltaLocation = segmentBaseUrl + "diff/" + segmentName.replace(SEGMENT_SUFFIX, "/" + md5 + SEGMENT_DIFF_SUFFIX);
+        URL segmentDeltaUrl = new URL(segmentDeltaLocation);
+        if (httpFileExists(segmentDeltaUrl)) {
+          File segmentDeltaFile = new File(segmentFile.getAbsolutePath() + "_diff");
+          try {
+            downloadFile(segmentDeltaUrl, segmentDeltaFile, true);
+            updateProgress("Applying delta...");
+            Rd5DiffTool.recoverFromDelta(segmentFile, segmentDeltaFile, segmentFileTemp, this);
+          } catch (IOException e) {
+            throw new IOException("Failed to download & apply delta update", e);
+          } finally {
+            segmentDeltaFile.delete();
           }
         }
+      }
 
-        if (connection == null) {
-          updateProgress("Connecting.." + name);
+      if (!segmentFileTemp.exists()) {
+        URL segmentUrl = new URL(segmentBaseUrl + segmentName);
+        downloadFile(segmentUrl, segmentFileTemp, true);
+      }
 
-          delta = false;
-          URL url = new URL(surl);
-          connection = (HttpURLConnection) url.openConnection();
-          connection.setConnectTimeout(5000);
-          connection.connect();
+      PhysicalFile.checkFileIntegrity(segmentFileTemp);
+      if (segmentFile.exists()) {
+        if (!segmentFile.delete()) {
+          throw new IOException("Failed to delete existing " + segmentFile.getAbsolutePath());
         }
+      }
 
-        updateProgress("Connecting.." + counter + "/" + size);
+      if (!segmentFileTemp.renameTo(segmentFile)) {
+        throw new IOException("Failed to write " + segmentFile.getAbsolutePath());
+      }
+    } finally {
+      segmentFileTemp.delete();
+    }
+  }
 
-        // expect HTTP 200 OK, so we don't mistakenly save error report
-        // instead of the file
-        if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-          return "Server returned HTTP " + connection.getResponseCode()
-            + " " + connection.getResponseMessage();
+  private boolean httpFileExists(URL downloadUrl) throws IOException {
+    HttpURLConnection connection = (HttpURLConnection) downloadUrl.openConnection();
+    connection.setConnectTimeout(5000);
+    connection.setRequestMethod("HEAD");
+    connection.connect();
+
+    return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
+  }
+
+  private void downloadFile(URL downloadUrl, File outputFile, boolean limitDownloadSpeed) throws IOException, InterruptedException {
+    HttpURLConnection connection = (HttpURLConnection) downloadUrl.openConnection();
+    connection.setConnectTimeout(5000);
+    connection.connect();
+
+    updateProgress("Connecting...");
+
+    if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+      throw new IOException("HTTP Request failed");
+    }
+    int fileLength = connection.getContentLength();
+    updateProgress("Loading");
+
+    try (
+      InputStream input = connection.getInputStream();
+      OutputStream output = new FileOutputStream(outputFile)
+    ) {
+      byte[] buffer = new byte[4096];
+      long total = 0;
+      long t0 = System.currentTimeMillis();
+      int count;
+      while ((count = input.read(buffer)) != -1) {
+        if (isCanceled()) {
+          throw new InterruptedException();
         }
+        total += count;
+        // publishing the progress....
+        if (fileLength > 0) // only if total length is known
+        {
+          int pct = (int) (total * 100 / fileLength);
+          updateProgress("Progress " + pct + "%");
+        } else {
+          updateProgress("Progress (unknown size)");
+        }
+        output.write(buffer, 0, count);
 
-        // this will be useful to display download percentage
-        // might be -1: server did not report the length
-        int fileLength = connection.getContentLength();
-        if (availableSize >= 0 && fileLength > availableSize) return "not enough space on sd-card";
-
-        currentDownloadOperation = delta ? "Updating" : "Loading";
-        updateProgress(currentDownloadOperation);
-
-        // download the file
-        input = connection.getInputStream();
-
-        tmp_file = new File(fname.getAbsolutePath() + (delta ? "_diff" : "_tmp"));
-        output = new FileOutputStream(tmp_file);
-
-        byte[] data = new byte[4096];
-        long total = 0;
-        long t0 = System.currentTimeMillis();
-        int count;
-        while ((count = input.read(data)) != -1) {
-          if (isCanceled()) {
-            return "Download canceled!";
-          }
-          total += count;
-          // publishing the progress....
-          if (fileLength > 0) // only if total length is known
-          {
-            int pct = (int) (total * 100 / fileLength);
-            updateProgress("Progress " + counter + "/" + size + " .. " + pct + "%");
-          } else {
-            updateProgress("Progress (unnown size)");
-          }
-
-          output.write(data, 0, count);
-
-          // enforce < 2 Mbit/s
-          long dt = t0 + total / 524 - System.currentTimeMillis();
+        if (limitDownloadSpeed) {
+          // enforce < 16 Mbit/s
+          long dt = t0 + total / 2096 - System.currentTimeMillis();
           if (dt > 0) {
-            try {
-              Thread.sleep(dt);
-            } catch (InterruptedException ignored) {
-            }
-          }
-        }
-        output.close();
-        output = null;
-
-        if (delta) {
-          updateProgress("Applying delta..");
-          File diffFile = tmp_file;
-          tmp_file = new File(fname + "_tmp");
-          Rd5DiffTool.recoverFromDelta(fname, diffFile, tmp_file, this);
-          diffFile.delete();
-        }
-        if (isCanceled()) {
-          return "Canceled!";
-        }
-        if (tmp_file != null) {
-          updateProgress("Verifying integrity..");
-          String check_result = PhysicalFile.checkFileIntegrity(tmp_file);
-          if (check_result != null) {
-            if (check_result.startsWith("version old lookups.dat")) {
-
-            }
-            return check_result;
-          }
-          if (fname.exists()) fname.delete();
-          if (!tmp_file.renameTo(fname)) {
-            return "Could not rename to " + fname.getAbsolutePath();
-          }
-
-        }
-        return null;
-      } catch (Exception e) {
-        //e.printStackTrace(); ;
-        return e.toString();
-      } finally {
-        try {
-          if (output != null)
-            output.close();
-          if (input != null)
-            input.close();
-        } catch (IOException ignored) {
-        }
-
-        if (connection != null)
-          connection.disconnect();
-      }
-    } finally {
-      if (tmp_file != null) tmp_file.delete(); // just to be sure
-    }
-  }
-
-  private String checkScripts() {
-
-    String[] sa = mServerConfig.getLookups();
-    for (String f : sa) {
-      if (f.length() > 0) {
-        File file = new File(baseDir + "profiles2", f);
-        checkOrDownloadLookup(f, file);
-      }
-    }
-
-    sa = mServerConfig.getProfiles();
-    for (String f : sa) {
-      if (f.length() > 0) {
-        File file = new File(baseDir + "profiles2", f);
-        if (file.exists()) {
-          String result = checkOrDownloadScript(f, file);
-          if (result != null) {
-            return result;
+            Thread.sleep(dt);
           }
         }
       }
     }
-    return null;
-  }
-
-  private String checkOrDownloadLookup(String fileName, File f) {
-    String url = mServerConfig.getLookupUrl() + fileName;
-    return downloadScript(url, f);
-  }
-
-  private String checkOrDownloadScript(String fileName, File f) {
-    String url = mServerConfig.getProfilesUrl() + fileName;
-    return downloadScript(url, f);
-  }
-
-  private String downloadScript(String surl, File f) {
-    long size = 0L;
-    if (f.exists()) {
-      size = f.length();
-    }
-
-    InputStream input = null;
-    OutputStream output = null;
-    HttpURLConnection connection = null;
-    File tmp_file = null;
-
-    try {
-      try {
-        TrafficStats.setThreadStatsTag(1);
-
-        URL url = new URL(surl);
-        connection = (HttpURLConnection) url.openConnection();
-        connection.setConnectTimeout(5000);
-        connection.connect();
-
-        // expect HTTP 200 OK, so we don't mistakenly save error report
-        // instead of the file
-        if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-          return null;
-        }
-        if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-          return "Server returned HTTP " + connection.getResponseCode()
-            + " " + connection.getResponseMessage() + " " + f.getName();
-        }
-
-
-        // this will be useful to display download percentage
-        // might be -1: server did not report the length
-        long fileLength = (long) connection.getContentLength();
-        if (DEBUG) Log.d("BR", "file size " + size + " == " + fileLength + " " + f.getName());
-        if (fileLength != size) {
-          if (availableSize >= 0 && fileLength > availableSize)
-            return "not enough space on sd-card";
-
-          currentDownloadOperation = "Updating";
-
-          // download the file
-          input = connection.getInputStream();
-
-          tmp_file = new File(f.getAbsolutePath() + "_tmp");
-          output = new FileOutputStream(tmp_file);
-
-          byte[] data = new byte[4096];
-          long total = 0;
-          long t0 = System.currentTimeMillis();
-          int count;
-          while ((count = input.read(data)) != -1) {
-            if (isCanceled()) {
-              return "Download canceled!";
-            }
-            total += count;
-            // publishing the progress....
-            if (fileLength > 0) // only if total length is known
-            {
-              int pct = (int) (total * 100 / fileLength);
-              updateProgress("Progress " + pct + "%");
-            } else {
-              updateProgress("Progress (unnown size)");
-            }
-
-            output.write(data, 0, count);
-
-            // enforce < 16 Mbit/s
-            long dt = t0 + total / 2096 - System.currentTimeMillis();
-            if (dt > 0) {
-              try {
-                Thread.sleep(dt);
-              } catch (InterruptedException ie) {
-              }
-            }
-          }
-          output.close();
-          output = null;
-        }
-
-        if (isCanceled()) {
-          return "Canceled!";
-        }
-        if (tmp_file != null) {
-          f.delete();
-
-          if (!tmp_file.renameTo(f)) {
-            return "Could not rename to " + f.getName();
-          }
-          if (DEBUG) Log.d("BR", "update " + f.getName());
-        }
-        return null;
-      } catch (Exception e) {
-        return e.toString();
-      } finally {
-        try {
-          if (output != null)
-            output.close();
-          if (input != null)
-            input.close();
-        } catch (IOException ignored) {
-        }
-
-        if (connection != null)
-          connection.disconnect();
-
-      }
-    } finally {
-      if (tmp_file != null) tmp_file.delete(); // just to be sure
-    }
-
   }
 
   public boolean isCanceled() {
