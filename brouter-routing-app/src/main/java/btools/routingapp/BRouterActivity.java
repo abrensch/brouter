@@ -32,13 +32,13 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.widget.EditText;
 
-
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.os.EnvironmentCompat;
 
 import btools.router.OsmNodeNamed;
 
-public class BRouterActivity extends Activity implements ActivityCompat.OnRequestPermissionsResultCallback {
+public class BRouterActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
 
   private static final int DIALOG_SELECTPROFILE_ID = 1;
   private static final int DIALOG_EXCEPTION_ID = 2;
@@ -626,6 +626,7 @@ public class BRouterActivity extends Activity implements ActivityCompat.OnReques
 
   @Override
   public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     if (requestCode == 0) {
       if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
         mBRouterView.startSetup(null, true);
