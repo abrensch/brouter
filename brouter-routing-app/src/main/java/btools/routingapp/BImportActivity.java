@@ -76,8 +76,8 @@ public class BImportActivity extends AppCompatActivity {
     try (Cursor cursor = this.getContentResolver().query(intent.getData(), new String[]{
       OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE}, null, null, null)) {
       if (cursor != null && cursor.moveToFirst()) {
-        filename = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
-        filesize = cursor.getLong(cursor.getColumnIndex(OpenableColumns.SIZE));
+        filename = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
+        filesize = cursor.getLong(cursor.getColumnIndexOrThrow(OpenableColumns.SIZE));
       }
     }
     // is the file extention ".brf" in the file name
