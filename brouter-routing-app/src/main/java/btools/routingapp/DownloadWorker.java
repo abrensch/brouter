@@ -1,6 +1,5 @@
 package btools.routingapp;
 
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -40,13 +39,13 @@ public class DownloadWorker extends Worker {
   private static final String SEGMENT_DIFF_SUFFIX = ".df5";
   private static final String SEGMENT_SUFFIX = ".rd5";
 
-  private NotificationManager notificationManager;
-  private ServerConfig mServerConfig;
-  private File baseDir;
-  private ProgressListener diffProgressListener;
-  private DownloadProgressListener downloadProgressListener;
-  private Data.Builder progressBuilder = new Data.Builder();
-  private NotificationCompat.Builder notificationBuilder;
+  private final NotificationManager notificationManager;
+  private final ServerConfig mServerConfig;
+  private final File baseDir;
+  private final ProgressListener diffProgressListener;
+  private final DownloadProgressListener downloadProgressListener;
+  private final Data.Builder progressBuilder = new Data.Builder();
+  private final NotificationCompat.Builder notificationBuilder;
 
   public DownloadWorker(
     @NonNull Context context,
@@ -76,7 +75,7 @@ public class DownloadWorker extends Worker {
 
       @Override
       public void onDownloadInfo(String info) {
-        notificationBuilder.setContentText(info);
+        notificationBuilder.setContentText(currentDownloadName + ": " + info);
         notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
       }
 
@@ -129,16 +128,15 @@ public class DownloadWorker extends Worker {
     if (segmentNames == null) {
       return Result.failure();
     }
+    notificationBuilder.setContentText("Starting Download");
     // Mark the Worker as important
-    setForegroundAsync(new ForegroundInfo(NOTIFICATION_ID, createNotification("Starting Download")));
+    setForegroundAsync(new ForegroundInfo(NOTIFICATION_ID, notificationBuilder.build()));
     try {
       downloadLookupAndProfiles();
 
-      int segmentIndex = 1;
       for (String segmentName : segmentNames) {
         downloadProgressListener.onDownloadStart(segmentName, DownloadType.SEGMENT);
         downloadSegment(mServerConfig.getSegmentUrl(), segmentName + SEGMENT_SUFFIX);
-        segmentIndex++;
       }
     } catch (IOException e) {
       return Result.failure();
@@ -289,14 +287,6 @@ public class DownloadWorker extends Worker {
       // Add the cancel action to the notification which can
       // be used to cancel the worker
       .addAction(android.R.drawable.ic_delete, cancel, intent);
-  }
-
-  @NonNull
-  private Notification createNotification(@NonNull String content) {
-    notificationBuilder.setContentText(content);
-    // Reset progress from previous download
-    notificationBuilder.setProgress(0, 0, false);
-    return notificationBuilder.build();
   }
 
   @RequiresApi(Build.VERSION_CODES.O)
