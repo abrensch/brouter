@@ -35,7 +35,7 @@ final class OsmFile
   private int ncaches;
   private int indexsize;
 
-  public OsmFile( PhysicalFile rafile, int lonDegree, int latDegree, DataBuffers dataBuffers ) throws Exception
+  public OsmFile( PhysicalFile rafile, int lonDegree, int latDegree, DataBuffers dataBuffers ) throws IOException
   {
     this.lonDegree = lonDegree;
     this.latDegree = latDegree;
@@ -111,7 +111,7 @@ final class OsmFile
     return idx == -1 ? indexsize : posIdx[idx];
   }
 
-  public int getDataInputForSubIdx( int subIdx, byte[] iobuffer ) throws Exception
+  public int getDataInputForSubIdx( int subIdx, byte[] iobuffer ) throws IOException
   {
     int startPos = getPosIdx( subIdx - 1 );
     int endPos = getPosIdx( subIdx );
@@ -128,7 +128,7 @@ final class OsmFile
   }
 
   public MicroCache createMicroCache( int lonIdx, int latIdx, DataBuffers dataBuffers, TagValueValidator wayValidator,
-      WaypointMatcher waypointMatcher, boolean reallyDecode, OsmNodesMap hollowNodes ) throws Exception
+      WaypointMatcher waypointMatcher, boolean reallyDecode, OsmNodesMap hollowNodes ) throws IOException
   {
     int subIdx = ( latIdx - divisor * latDegree ) * divisor + ( lonIdx - divisor * lonDegree );
 
