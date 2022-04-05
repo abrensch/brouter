@@ -1,6 +1,5 @@
 package btools.routingapp;
 
-import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -124,7 +123,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
           public void onClick(DialogInterface dialog, int id) {
             Intent intent = new Intent(BRouterActivity.this, BInstallerActivity.class);
             startActivity(intent);
-            // finish();
+            showNewDialog(DIALOG_MAINACTION_ID);
           }
         }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int id) {

@@ -203,12 +203,6 @@ public class BInstallerActivity extends AppCompatActivity {
   }
 
   @Override
-  public void onDestroy() {
-    super.onDestroy();
-    System.exit(0);
-  }
-
-  @Override
   protected Dialog onCreateDialog(int id) {
     AlertDialog.Builder builder;
     switch (id) {
