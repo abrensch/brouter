@@ -12,7 +12,7 @@ assign   validForFoot        1
 
 ---context:way   # following code refers to way-tags
 
-assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+assign any_cycleroute or network=icn or network=ncn or network=rcn network=lcn
 assign nodeaccessgranted or any_cycleroute lcn=yes
 
 assign turncost 0
@@ -110,7 +110,7 @@ assign isgoodforcars = if greater priorityclassifier 6 then true
 
 # ... encoded into a bitmask
 
-assign classifiermask add multiply isroundabout   4
+assign xclassifiermask add multiply isroundabout   4
                       add multiply islinktype     8
                           multiply isgoodforcars 16
 
