@@ -156,7 +156,6 @@ bicycle;0000000001 customers
 bicycle;0000000001 permit
 bicycle;0000000001 delivery
 
-
 motorcar;0000135124 no
 motorcar;0000045407 yes
 motorcar;0000021494 agricultural forestry agricultural;forestry
@@ -457,16 +456,6 @@ route;0000000194 canoe
 route;0000000151 road
 route;0000000104 bus
 
-network;00000000001 lcn
-network;00000000001 rcn
-network;00000000001 ncn
-network;00000000001 icn
-network;00000000001 lwn
-network;00000000001 rwn
-network;00000000001 nwn
-network;00000000001 iwn
-
- 
 smoothness;0000068136 good
 smoothness;0000042124 bad Bad
 smoothness;0000040763 intermediate
@@ -514,6 +503,36 @@ class:bicycle;0000000516 -2
 class:bicycle;0000000245 -3
 class:bicycle;0000000170 0
 class:bicycle;0000000108 3 +3
+
+route_bicycle_icn;0000088753 yes
+route_bicycle_icn;0000000001 proposed
+route_bicycle_ncn;0000268180 yes
+route_bicycle_ncn;00000000001 proposed
+route_bicycle_rcn;0000718163 yes
+route_bicycle_rcn;00000000001 proposed
+route_bicycle_lcn;0000469215 yes
+route_bicycle_lcn;00000000001 proposed
+
+route_bicycle_;0000024662 yes
+route_bicycle_radweit;0000004604 yes
+
+route_hiking_iwn;0000056005 yes
+route_hiking_nwn;0000315813 yes
+route_hiking_rwn;0000343219 yes
+route_hiking_lwn;0000359332 yes
+route_hiking_;0000103733 yes
+
+route_foot_nwn;0000047923 yes
+route_foot_lwn;0000135371 yes
+route_foot_rwn;0000115325 yes
+route_foot_;0000070583 yes
+
+route_mtb_;0000066263 yes
+route_mtb_lcn;0000023718 yes
+route_mtb_ncn;0000004853 yes
+route_mtb_rcn;0000013321 yes
+route_mtb_mtb;0000006853 yes
+route_bicycle_mtb;0000002240 yes
 
 brouter_route_placeholder_dummy_01;0000000001 dummy
 brouter_route_placeholder_dummy_02;0000000001 dummy

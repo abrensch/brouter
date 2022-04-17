@@ -12,7 +12,7 @@ assign   validForFoot        1
 
 ---context:way   # following code refers to way-tags
 
-assign any_cycleroute or network=icn or network=ncn or network=rcn network=lcn
+assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
 assign nodeaccessgranted or any_cycleroute lcn=yes
 
 assign turncost 0

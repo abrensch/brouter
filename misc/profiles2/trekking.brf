@@ -51,10 +51,10 @@ assign classifier_ferry = 2
 #
 
 assign any_cycleroute =
-     if      network=icn then true
-     else if network=ncn then true
-     else if network=rcn then true
-     else if network=lcn then true
+     if      route_bicycle_icn=yes then true
+     else if route_bicycle_ncn=yes then true
+     else if route_bicycle_rcn=yes then true
+     else if route_bicycle_lcn=yes then true
      else false
 
 assign nodeaccessgranted =

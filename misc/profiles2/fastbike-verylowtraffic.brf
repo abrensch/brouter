@@ -61,7 +61,7 @@ assign any_cycleway  or cycleway=track|lane|shared_lane|shared cycleway_right
 # as soon it is supported in lookup, add ==> bicycle_road=yes in any_cycleway 
 
 # in relation with "route=bicycle" ? 
-assign any_cycleroute or network=icn or network=ncn or network=rcn network=lcn
+assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
 
 assign nodeaccessgranted or any_cycleroute lcn=yes
 

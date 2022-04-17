@@ -60,7 +60,7 @@ assign elevationbufferreduce 1 # im Bereich zwischen elevationpenaltybuffer und 
 # Parameter für die Wege
 #zusätzliche Kosten in Meter für jeden Streckenabschnitt
 
-assign any_cycleroute or network=icn or network=ncn or network=rcn network=lcn
+assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
 assign nodeaccessgranted or any_cycleroute lcn=yes
 
 assign cycleway
