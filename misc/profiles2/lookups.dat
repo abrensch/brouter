@@ -18,7 +18,7 @@ highway;0000568118 living_street
 highway;0000515044 motorway
 highway;0000451760 motorway_link
 highway;0000442502 steps
-highway;0000360177 road
+highway;0000360177 road yes
 highway;0000318426 pedestrian
 highway;0000210535 trunk_link
 highway;0000192461 primary_link
@@ -34,7 +34,6 @@ highway;0000002942 abandoned disused razed demolished dismantled no
 highway;0000002631 services
 highway;0000002133 corridor
 highway;0000001440 bus_stop
-highway;0000001274 yes
 highway;0000000001 busway
 highway;0000000001 elevator
 highway;0000000001 via_ferrata
@@ -46,10 +45,10 @@ tracktype;0000568372 grade4 grade3-5
 tracktype;0000405959 grade5
 
 surface;0002497676 asphalt
-surface;0001568957 paved
+surface;0001568957 paved bricks brick
 surface;0001562253 unpaved
 surface;0000727427 gravel
-surface;0000560191 ground
+surface;0000560191 ground soil
 surface;0000350378 dirt
 surface;0000237226 grass
 surface;0000212587 concrete concrete:plates concrete:lanes
@@ -68,28 +67,27 @@ surface;0000004398 clay
 surface;0000003760 metal
 surface;0000000001 artificial_turf
 surface;0000000001 tartan
-surface;0000000001 rock
+surface;0000000001 rock rocks rocky
 surface;0000000001 stone
-surface;0000000001 soil
 
-maxspeed;0001058313 50 30_mph 30mph
-maxspeed;0000860780 30 20_mph 20mph
-maxspeed;0000025232 10 5 7 15
-maxspeed;0000083989 20 10_mph 10mph 15_mph 15mph
+maxspeed;0001058313 50 55 56 30_mph 30mph
+maxspeed;0000860780 30 35 20_mph 20mph
+maxspeed;0000025232 10 15 5 6 8 5_mph 6_mph
+maxspeed;0000083989 20 25 10_mph 10mph 15_mph 15mph
 maxspeed;0000195097 40 45 25_mph 25mph
-maxspeed;0000204646 60 35_mph 35mph 40_mph 40mph
-maxspeed;0000130108 70 45_mph 45mph
-maxspeed;0000225071 80 50_mph 50mph
-maxspeed;0000106719 90 55_mph 55mph
+maxspeed;0000204646 60 65 35_mph 35mph 40_mph 40mph
+maxspeed;0000130108 70 75 45_mph 45mph
+maxspeed;0000225071 80 85 50_mph 50mph
+maxspeed;0000106719 90 95 55_mph 55mph
 maxspeed;0000134522 100 60_mph 60mph 65_mph 65mph
 maxspeed;0000025242 110 70_mph 70mph
 maxspeed;0000038763 120 75_mph 75mph
-maxspeed;0000026953 130
+maxspeed;0000026953 130 80_mph 79_mph
 maxspeed;0000138654 urban RO:urban RU:urban FR:urban IT:urban AT:urban DE:urban UA:urban
 maxspeed;0000138654 rural RO:rural RU:rural FR:rural IT:rural AT:rural DE:rural UA:rural
 
 service;0001433919 parking_aisle
-service;0001305879 driveway
+service;0001305879 driveway driveway2
 service;0000382788 alley
 service;0000018777 drive-through drive_through
 service;0000008290 emergency_access
@@ -100,10 +98,9 @@ service;0000000001 yard
 service;0000000001 spur
 service;0000000001 siding
 service;0000000001 crossover
-service;0000000001 driveway2
 
 lit;0000809223 yes
-lit;0000800001 sunset-sunrise
+lit;0000800001 sunset-sunrise dusk-dawn
 lit;0000800001 24/7 
 lit;0000800001 automatic 
 
@@ -111,24 +108,23 @@ lanes;0002838405 2
 lanes;0000718138 1
 lanes;0000259502 3
 lanes;0000141651 4
-lanes;0000018473 -1
 lanes;0000017934 5
 lanes;0000008241 6
 lanes;0000003643 1.5
 lanes;0000001087 7
+lanes;0000000001 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
 
-access;0002688349 private restricted
+access;0002688349 private restricted residents employees
 access;0000319927 yes public
 access;0000144799 no
 access;0000140215 permissive
-access;0000108802 destination
-access;0000099899 agricultural forestry
+access;0000108802 destination visitors
+access;0000099899 agricultural forestry agricultural;forestry
 access;0000039934 designated official
 access;0000011813 customers
 access;0000004007 delivery
 access;0000000100 psv
 access;0000000100 hov
-access;0000000001 service
 access;0000000001 permit
 access;0000000001 military
 
@@ -136,10 +132,9 @@ foot;0001659694 yes allowed
 foot;0000424847 designated official
 foot;0000202364 no
 foot;0000053031 permissive
-foot;0000011661 destination
+foot;0000011661 destination customers
 foot;0000007289 private
 foot;0000000167 use_sidepath sidewalk
-foot;0000000001 customers
 foot;0000000001 permit
 
 bicycle;0001245560 yes allowed
@@ -148,50 +143,44 @@ bicycle;0000324902 designated official
 bicycle;0000025707 dismount
 bicycle;0000020440 permissive
 bicycle;0000008286 private
-bicycle;0000001553 destination
+bicycle;0000001553 destination customers delivery
 bicycle;0000000719 use_sidepath use_cycleway
 bicycle;0000000385 mtb
 bicycle;0000000117 opposite
-bicycle;0000000001 customers
 bicycle;0000000001 permit
-bicycle;0000000001 delivery
+
 
 motorcar;0000135124 no
 motorcar;0000045407 yes
 motorcar;0000021494 agricultural forestry agricultural;forestry
-motorcar;0000012090 destination
+motorcar;0000012090 destination delivery
 motorcar;0000008733 private
 motorcar;0000005757 designated official
 motorcar;0000004116 permissive
 motorcar;0000000979 restricted
 motorcar;0000000001 permit
-motorcar;0000000001 delivery
 
 motor_vehicle;0000212692 no
 motor_vehicle;0000184982 yes
 motor_vehicle;0000045128 private
 motor_vehicle;0000032622 agricultural forestry agricultural;forestry forestry;agricultural agricultural;destination
 motor_vehicle;0000025396 designated official
-motor_vehicle;0000025092 destination
+motor_vehicle;0000025092 destination customers delivery
 motor_vehicle;0000010895 permissive
 motor_vehicle;0000000175 emergency Emergency
-motor_vehicle;0000000100 psv
-motor_vehicle;0000000001 customers
 motor_vehicle;0000000001 permit
-motor_vehicle;0000000001 delivery
 
 motorcycle;0000092079 no
 motorcycle;0000027978 yes
 motorcycle;0000014652 agricultural forestry agricultural;forestry
-motorcycle;0000008862 destination
+motorcycle;0000008862 destination delivery
 motorcycle;0000004877 designated official
 motorcycle;0000003936 private
 motorcycle;0000002209 permissive
 motorcycle;0000000001 permit
-motorcycle;0000000001 delivery
 
 vehicle;0000030218 no
-vehicle;0000013333 destination
+vehicle;0000013333 destination delivery customers
 vehicle;0000011692 yes
 vehicle;0000007147 agricultural forestry agricultural;forestry
 vehicle;0000006305 private
@@ -199,17 +188,14 @@ vehicle;0000001294 permissive
 vehicle;0000000105 designated
 vehicle;0000000100 psv
 vehicle;0000000001 permit
-vehicle;0000000001 delivery
-vehicle;0000000001 customers
 vehicle;0000000001 military
 vehicle;0000000001 emergency
 
 horse;0000227398 no
 horse;0000144432 yes
-horse;0000014566 designated
+horse;0000014566 designated official
 horse;0000007223 permissive
 horse;0000004755 private
-horse;0000000983 official
 horse;0000000968 unknown
 horse;0000000205 destination
 
@@ -226,20 +212,20 @@ hgv;0000043783 no
 hgv;0000019115 destination
 hgv;0000005273 delivery
 hgv;0000003055 local
-hgv;0000001088 agricultural forestry
+hgv;0000001088 agricultural forestry agricultural;forestry
 hgv;0000000461 private
 hgv;0000000320 unsuitable
 hgv;0000000306 permissive
 
 agricultural;0000000001 no
-agricultural;0000000001 yes designated official
-agricultural;0000000001 private permissive
+agricultural;0000000001 yes designated official permissive
+agricultural;0000000001 private
 agricultural;0000000001 destination delivery
 
 cycleway;0000137526 no
 cycleway;0000001883 none
 cycleway;0000124777 lane
-cycleway;0000106948 track
+cycleway;0000106948 track path
 cycleway;0000044652 opposite
 cycleway;0000011237 shared
 cycleway;0000007312 opposite_lane
@@ -258,7 +244,6 @@ cycleway;0000000344 shoulder
 cycleway;0000000326 designated
 cycleway;0000000247 proposed planned virtual
 cycleway;0000000224 cyclestreet
-cycleway;0000000172 path
 cycleway;0000000154 sidewalk
 
 footway;0000104998 sidewalk
@@ -398,7 +383,7 @@ incline;0000003109 10% 9 10 9% 10°
 incline;0000001297 15% 11 12 13 14 15 11% 12% 13% 14%
 incline;0000000997 20% 16 17 18 19 20 16% 17% 18% 19% 10°
 incline;0000000409 25% 21 22 23 24 25 21% 22% 23% 24%
-incline;0000000263 30% 30 40 50 40% 50%
+incline;0000000263 30% 30 40 50 40% 50% 35%
 incline;0000000861 -3% -1 -2 -3 -1% -2% -3%
 incline;0000000724 -5% -4 -5 -4%
 incline;0000000530 -8% -6 -7 -8 -6% -7%
@@ -411,14 +396,12 @@ incline;0000000172 -30% -30 -40 -50 -40% -50%
 toll;0000090536 yes true
 
 railway;0000157547 rail
-railway;0000019316 abandoned
+railway;0000019316 abandoned disused razed
 railway;0000016982 tram
 railway;0000014387 platform
-railway;0000011143 disused
 railway;0000004623 light_rail
 railway;0000002982 subway
 railway;0000002422 narrow_gauge
-railway;0000001960 razed
 railway;0000001859 preserved
 
 seamark:type;0001564 recommended_track
@@ -448,9 +431,9 @@ motorboat;0000000808 no
 motorboat;0000000025 private privat
 
 route;0000000850 ferry
-route;0000000539 hiking
+route;0000000539 hiking foot
 route;0000000505 bicycle
-route;0000000454 ski
+route;0000000454 ski piste
 route;0000000413 mtb
 route;0000000194 canoe
 route;0000000151 road
@@ -484,8 +467,8 @@ ford;0000000289 stepping_stones
 trail_visibility;0000067438 good
 trail_visibility;0000041280 intermediate
 trail_visibility;0000039801 excellent
-trail_visibility;0000023482 bad
-trail_visibility;0000005853 horrible
+trail_visibility;0000023482 bad poor
+trail_visibility;0000005853 horrible very_bad
 trail_visibility;0000002222 no
 
 class:bicycle:mtb;0000002079 1 +1
@@ -593,7 +576,7 @@ crossing;0000000457 marked
 crossing;0000000131 pedestrian_signals
 crossing;0000000122 no
 
-informal;0000002424 yes
+informal;0000002424 yes true
 
 indoor;0000058418 yes
 indoor;0000025038 room
@@ -615,7 +598,6 @@ concrete;0000000013 lanes
 bus;0001178365 yes
 bus;0000006419 designated
 bus;0000005602 no
-bus;0000001424 urban
 
 psv;0000072077 yes
 psv;0000007456 no
@@ -644,7 +626,7 @@ cycleway:right:oneway;0000002499 no
 cycleway:right:oneway;0000000017 -1
 
 zone:maxspeed;0000001616 20 DE:20 FR:20
-zone:maxspeed;0000063721 30 DE:30 FR:30 BE:30 HU:30 NO:30 AT:30 ES:30 NL:30
+zone:maxspeed;0000063721 30 DE:30 FR:30 BE:30 HU:30 NO:30 AT:30 ES:30 NL:30 IT:30 CZ:30
 
 cycleway:surface;0000002609 asphalt
 cycleway:surface;0000000150 paved
@@ -657,35 +639,35 @@ cycleway:surface;0000000013 compacted
 cycleway:surface;0000000006 fine_gravel
 cycleway:surface;0000000011 sett
 
-maxspeed:backward;0001058313 50 30_mph 30mph
-maxspeed:backward;0000860780 30 20_mph 20mph
-maxspeed:backward;0000025232 10 5 7 15
-maxspeed:backward;0000083989 20 10_mph 10mph 15_mph 15mph
+maxspeed:backward;0001058313 50 55 56 30_mph 30mph
+maxspeed:backward;0000860780 30 35 20_mph 20mph
+maxspeed:backward;0000025232 10 15 5 6 8 5_mph 6_mph
+maxspeed:backward;0000083989 20 25 10_mph 10mph 15_mph 15mph
 maxspeed:backward;0000195097 40 45 25_mph 25mph
-maxspeed:backward;0000204646 60 35_mph 35mph 40_mph 40mph
-maxspeed:backward;0000130108 70 45_mph 45mph
-maxspeed:backward;0000225071 80 50_mph 50mph
-maxspeed:backward;0000106719 90 55_mph 55mph
+maxspeed:backward;0000204646 60 65 35_mph 35mph 40_mph 40mph
+maxspeed:backward;0000130108 70 75 45_mph 45mph
+maxspeed:backward;0000225071 80 85 50_mph 50mph
+maxspeed:backward;0000106719 90 95 55_mph 55mph
 maxspeed:backward;0000134522 100 60_mph 60mph 65_mph 65mph
 maxspeed:backward;0000025242 110 70_mph 70mph
 maxspeed:backward;0000038763 120 75_mph 75mph
-maxspeed:backward;0000026953 130
+maxspeed:backward;0000026953 130 80_mph 79_mph
 maxspeed:backward;0000138654 urban RO:urban RU:urban FR:urban IT:urban AT:urban DE:urban UA:urban
 maxspeed:backward;0000138654 rural RO:rural RU:rural FR:rural IT:rural AT:rural DE:rural UA:rural
 
-maxspeed:forward;0001058313 50 30_mph 30mph
-maxspeed:forward;0000860780 30 20_mph 20mph
-maxspeed:forward;0000025232 10 5 7 15
-maxspeed:forward;0000083989 20 10_mph 10mph 15_mph 15mph
+maxspeed:forward;0001058313 50 55 56 30_mph 30mph
+maxspeed:forward;0000860780 30 35 20_mph 20mph
+maxspeed:forward;0000025232 10 15 5 6 8 5_mph 6_mph
+maxspeed:forward;0000083989 20 25 10_mph 10mph 15_mph 15mph
 maxspeed:forward;0000195097 40 45 25_mph 25mph
-maxspeed:forward;0000204646 60 35_mph 35mph 40_mph 40mph
-maxspeed:forward;0000130108 70 45_mph 45mph
-maxspeed:forward;0000225071 80 50_mph 50mph
-maxspeed:forward;0000106719 90 55_mph 55mph
+maxspeed:forward;0000204646 60 65 35_mph 35mph 40_mph 40mph
+maxspeed:forward;0000130108 70 75 45_mph 45mph
+maxspeed:forward;0000225071 80 85 50_mph 50mph
+maxspeed:forward;0000106719 90 95 55_mph 55mph
 maxspeed:forward;0000134522 100 60_mph 60mph 65_mph 65mph
 maxspeed:forward;0000025242 110 70_mph 70mph
 maxspeed:forward;0000038763 120 75_mph 75mph
-maxspeed:forward;0000026953 130
+maxspeed:forward;0000026953 130 80_mph 79_mph
 maxspeed:forward;0000138654 urban RO:urban RU:urban FR:urban IT:urban AT:urban DE:urban UA:urban
 maxspeed:forward;0000138654 rural RO:rural RU:rural FR:rural IT:rural AT:rural DE:rural UA:rural
 
@@ -709,36 +691,17 @@ construction;0029035962 residential
 construction;0010319731 service
 construction;0007688809 track
 construction;0007656124 unclassified
-construction;0004141444 footway
-construction;0003493551 tertiary
+construction;0004141444 footway pedestrian
+construction;0003493551 tertiary tertiary_link
 construction;0002852601 path
-construction;0002185240 secondary
-construction;0001447719 primary
+construction;0002185240 secondary secondary_link
+construction;0001447719 primary primary_link
 construction;0000699577 cycleway
-construction;0000608469 trunk
+construction;0000608469 trunk trunk_link
 construction;0000568118 living_street
-construction;0000515044 motorway
-construction;0000451760 motorway_link
+construction;0000515044 motorway motorway_link
 construction;0000442502 steps
-construction;0000360177 road
-construction;0000318426 pedestrian
-construction;0000210535 trunk_link
-construction;0000192461 primary_link
-construction;0000120758 secondary_link
-construction;0000079637 tertiary_link
-construction;0000070238 construction
-construction;0000058257 bridleway
-construction;0000039003 platform
-construction;0000037192 proposed
-construction;0000010307 raceway
-construction;0000003152 rest_area
-construction;0000002942 abandoned
-construction;0000002631 services
-construction;0000002133 corridor
-construction;0000002093 crossing
-construction;0000001440 bus_stop
-construction;0000001274 yes
-construction;0000000037 driveway
+construction;0000360177 road highway
 
 
  ---context:node
@@ -746,7 +709,7 @@ construction;0000000037 driveway
 highway;0001314954 bus_stop
 highway;0001130090 crossing
 highway;0001031274 turning_circle
-highway;0000609262 traffic_signals
+highway;0000609262 traffic_signals traffic_signals;crossing
 highway;0000306900 street_lamp
 highway;0000136339 stop
 highway;0000105097 motorway_junction
@@ -774,7 +737,7 @@ highway;0000001724 priority
 highway;0000000001 elevator
 highway;0000000001 toll_gantry
 
-barrier;0000606512 gate
+barrier;0000606512 gate wicket_gate
 barrier;0000164120 bollard
 barrier;0000112184 lift_gate
 barrier;0000046779 stile
@@ -819,26 +782,25 @@ barrier;0000000118 jersey_barrier
 barrier;0000000114 motorcycle_barrier
 barrier;0000000114 barrier
 barrier;0000000108 rope
-barrier;0000000095 stone
+barrier;0000000095 stone rock
 barrier;0000000001 height_restrictor
-barrier;0000000001 sliding_gate
+barrier;0000000001 sliding_gate slide_gate
 
 access;0000078544 private
 access;0000014933 yes public
 access;0000014456 no
 access;0000008670 permissive
-access;0000006316 destination customers
+access;0000006316 destination customers delivery
 access;0000000973 agricultural forestry
 access;0000000942 designated official
 access;0000000001 permit
-access;0000000001 delivery
 
 foot;0000272169 yes
 foot;0000036271 no
 foot;0000001118 designated official
 foot;0000000960 private
 foot;0000000833 permissive
-foot;0000000127 destination
+foot;0000000127 destination customers
 
 bicycle;0000267569 yes
 bicycle;0000067796 no
@@ -859,13 +821,11 @@ motorcar;0000000084 designated official
 motor_vehicle;0000000066 yes
 motor_vehicle;0000000001 permissive
 motor_vehicle;0000000000 designated official
-motor_vehicle;0000000030 destination
+motor_vehicle;0000000030 destination customers delivery
 motor_vehicle;0000000073 agricultural forestry
 motor_vehicle;0000000136 private
 motor_vehicle;0000000469 no
 motor_vehicle;0000000001 permit
-motor_vehicle;0000000001 customers
-motor_vehicle;0000000001 delivery
 
 motorcycle;0000028697 yes
 motorcycle;0000007061 no
@@ -901,10 +861,9 @@ wheelchair;0000000005 partial
 
 hgv;0000001141 no
 hgv;0000000359 yes true
-hgv;0000000111 destination
+hgv;0000000111 destination delivery
 hgv;0000000108 designated official
 hgv;0000000065 private
-hgv;0000000053 delivery
 hgv;0000000016 agricultural forestry
 hgv;0000000010 permissive
 
@@ -949,9 +908,9 @@ entrance;0000000285 shop
 entrance;0000000258 private
 entrance;0000000001 secondary
 
-traffic_calming;0000045987 bump bump;choker
+traffic_calming;0000045987 bump bump;choker mini_bumps
 traffic_calming;0000040022 hump hump;choker
-traffic_calming;0000012499 table table;choker
+traffic_calming;0000012499 table table;choker choked_table
 traffic_calming;0000006808 yes
 traffic_calming;0000005754 cushion cushion;choker
 traffic_calming;0000005466 choker choker;cushion choker;hump choker;table choker;bump
@@ -965,15 +924,15 @@ ford;0000000310 stepping_stones
 
 direction;0000274642 forward
 direction;0000249637 backward
-direction;0000021634 both
+direction;0000021634 both forward;backward backward;forward
 
 traffic_sign:direction;0000000001 forward
 traffic_sign:direction;0000000001 backward
-traffic_sign:direction;0000000001 both
+traffic_sign:direction;0000000001 both forward;backward backward;forward
 
 traffic_signals:direction;0000062645 forward
 traffic_signals:direction;0000033961 backward
-traffic_signals:direction;0000007309 both
+traffic_signals:direction;0000007309 both forward;backward backward;forward
 
 traffic_signals;0000000001 signal traffic_lights pedestrian_crossing yes crossing junction level_crossing crossing_only pedestrian normal signals on_demand crossing_on_demand
 traffic_signals;0000000001 blinker emergency no blink_mode continuous_green blink emergency_priority
@@ -981,5 +940,3 @@ traffic_signals;0000000001 tram_priority bus_priority stop tram_priority;blinker
 traffic_signals;0000000001 ramp_meter
 
 monitoring:bicycle;0000000001 yes induction_loop
-
-
