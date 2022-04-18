@@ -591,8 +591,10 @@ public final class OsmTrack
 
     if ( turnInstructionMode == 2 )
     {
-      sb.append( "  <extensions><locus:rteComputeType>" ).append( "" + voiceHints.getLocusRouteType() ).append( "</locus:rteComputeType></extensions>\n" );
-      sb.append( "  <extensions><locus:rteSimpleRoundabouts>1</locus:rteSimpleRoundabouts></extensions>\n" );
+      sb.append( "  <extensions>\n" );
+      sb.append( "   <locus:rteComputeType>" ).append( "" + voiceHints.getLocusRouteType() ).append( "</locus:rteComputeType>\n" );
+      sb.append( "   <locus:rteSimpleRoundabouts>1</locus:rteSimpleRoundabouts>\n" );
+      sb.append( "  </extensions>\n" );
     }
 
     sb.append( "  <trkseg>\n" );
