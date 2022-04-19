@@ -5,6 +5,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.os.Build;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -22,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Random;
 
 import btools.mapaccess.PhysicalFile;
 import btools.mapaccess.Rd5DiffManager;
@@ -33,11 +35,13 @@ public class DownloadWorker extends Worker {
   public static final String PROGRESS_SEGMENT_NAME = "PROGRESS_SEGMENT_NAME";
   public static final String PROGRESS_SEGMENT_PERCENT = "PROGRESS_SEGMENT_PERCENT";
 
-  private static final int NOTIFICATION_ID = 1;
+  private final static boolean DEBUG = false;
+  private static final int NOTIFICATION_ID = new Random().nextInt();
   private static final String PROFILES_DIR = "profiles2/";
   private static final String SEGMENTS_DIR = "segments4/";
   private static final String SEGMENT_DIFF_SUFFIX = ".df5";
   private static final String SEGMENT_SUFFIX = ".rd5";
+  private static final String LOG_TAG = "DownloadWorker";
 
   private final NotificationManager notificationManager;
   private final ServerConfig mServerConfig;
@@ -126,23 +130,29 @@ public class DownloadWorker extends Worker {
     Data inputData = getInputData();
     String[] segmentNames = inputData.getStringArray(KEY_INPUT_SEGMENT_NAMES);
     if (segmentNames == null) {
+      if (DEBUG) Log.d(LOG_TAG, "Failure: no segmentNames");
       return Result.failure();
     }
     notificationBuilder.setContentText("Starting Download");
     // Mark the Worker as important
     setForegroundAsync(new ForegroundInfo(NOTIFICATION_ID, notificationBuilder.build()));
     try {
+      if (DEBUG) Log.d(LOG_TAG, "Download lookup & profiles");
       downloadLookupAndProfiles();
 
       for (String segmentName : segmentNames) {
         downloadProgressListener.onDownloadStart(segmentName, DownloadType.SEGMENT);
+        if (DEBUG) Log.d(LOG_TAG, "Download segment " + segmentName);
         downloadSegment(mServerConfig.getSegmentUrl(), segmentName + SEGMENT_SUFFIX);
       }
     } catch (IOException e) {
+      Log.w(LOG_TAG, e);
       return Result.failure();
     } catch (InterruptedException e) {
+      Log.w(LOG_TAG, e);
       return Result.failure();
     }
+    if (DEBUG) Log.d(LOG_TAG, "doWork finished");
     return Result.success();
   }
 
@@ -179,7 +189,7 @@ public class DownloadWorker extends Worker {
     File segmentFileTemp = new File(segmentFile.getAbsolutePath() + "_tmp");
     try {
       if (segmentFile.exists()) {
-        downloadProgressListener.onDownloadInfo("Calculating local checksum...");
+        if (DEBUG) Log.d(LOG_TAG, "Calculating local checksum");
         String md5 = Rd5DiffManager.getMD5(segmentFile);
         String segmentDeltaLocation = segmentBaseUrl + "diff/" + segmentName.replace(SEGMENT_SUFFIX, "/" + md5 + SEGMENT_DIFF_SUFFIX);
         URL segmentDeltaUrl = new URL(segmentDeltaLocation);
@@ -187,7 +197,7 @@ public class DownloadWorker extends Worker {
           File segmentDeltaFile = new File(segmentFile.getAbsolutePath() + "_diff");
           try {
             downloadFile(segmentDeltaUrl, segmentDeltaFile, true);
-            downloadProgressListener.onDownloadInfo("Applying delta...");
+            if (DEBUG) Log.d(LOG_TAG, "Applying delta");
             Rd5DiffTool.recoverFromDelta(segmentFile, segmentDeltaFile, segmentFileTemp, diffProgressListener);
           } catch (IOException e) {
             throw new IOException("Failed to download & apply delta update", e);
