@@ -5,23 +5,29 @@ import static btools.routingapp.BInstallerView.MASK_DELETED_RD5;
 import static btools.routingapp.BInstallerView.MASK_INSTALLED_RD5;
 import static btools.routingapp.BInstallerView.MASK_SELECTED_RD5;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StatFs;
 import android.text.format.Formatter;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.work.Constraints;
+import androidx.work.Data;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
+import androidx.work.WorkRequest;
+
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -29,20 +35,15 @@ import java.util.Locale;
 
 import btools.router.RoutingHelper;
 
-public class BInstallerActivity extends Activity {
+public class BInstallerActivity extends AppCompatActivity {
 
-  public static final String DOWNLOAD_ACTION = "btools.routingapp.download";
   private static final int DIALOG_CONFIRM_DELETE_ID = 1;
   public static boolean downloadCanceled = false;
   private File mBaseDir;
   private BInstallerView mBInstallerView;
-  private DownloadReceiver downloadReceiver;
-  private View mDownloadInfo;
-  private TextView mDownloadInfoText;
-  private Button mButtonDownloadCancel;
   private Button mButtonDownload;
   private TextView mSummaryInfo;
-  private View mSegmentsView;
+  private LinearProgressIndicator mProgressIndicator;
 
   public static long getAvailableSpace(String baseDir) {
     StatFs stat = new StatFs(baseDir);
@@ -63,7 +64,6 @@ public class BInstallerActivity extends Activity {
 
     setContentView(R.layout.activity_binstaller);
     mSummaryInfo = findViewById(R.id.textViewSegmentSummary);
-    mSegmentsView = findViewById(R.id.view_segments);
     mBInstallerView = findViewById(R.id.BInstallerView);
     mBInstallerView.setOnSelectListener(
       () -> {
@@ -82,12 +82,7 @@ public class BInstallerActivity extends Activity {
         }
       }
     );
-    mDownloadInfo = findViewById(R.id.view_download_progress);
-    mDownloadInfoText = findViewById(R.id.textViewDownloadProgress);
-    mButtonDownloadCancel = findViewById(R.id.buttonDownloadCancel);
-    mButtonDownloadCancel.setOnClickListener(view -> {
-      cancelDownload();
-    });
+    mProgressIndicator = findViewById(R.id.progressDownload);
 
     mBaseDir = ConfigHelper.getBaseDir(this);
     scanExistingFiles();
@@ -136,51 +131,75 @@ public class BInstallerActivity extends Activity {
     }
   }
 
-  private void cancelDownload() {
-    downloadCanceled = true;
-    mDownloadInfoText.setText(getString(R.string.download_info_cancel));
-  }
-
   public void downloadAll(ArrayList<Integer> downloadList) {
     ArrayList<String> urlparts = new ArrayList<>();
     for (Integer i : downloadList) {
       urlparts.add(baseNameForTile(i));
     }
 
-    mSegmentsView.setVisibility(View.GONE);
-    mDownloadInfo.setVisibility(View.VISIBLE);
     downloadCanceled = false;
-    mDownloadInfoText.setText(R.string.download_info_start);
 
-    Intent intent = new Intent(this, DownloadService.class);
-    intent.putExtra("dir", mBaseDir.getAbsolutePath() + "/brouter/");
-    intent.putExtra("urlparts", urlparts);
-    startService(intent);
+    Data inputData = new Data.Builder()
+      .putStringArray(DownloadWorker.KEY_INPUT_SEGMENT_NAMES, urlparts.toArray(new String[0]))
+      .build();
+
+    Constraints constraints = new Constraints.Builder()
+      .setRequiredNetworkType(NetworkType.CONNECTED)
+      .build();
+
+    WorkRequest downloadWorkRequest =
+      new OneTimeWorkRequest.Builder(DownloadWorker.class)
+        .setInputData(inputData)
+        .setConstraints(constraints)
+        .build();
+
+    WorkManager workManager = WorkManager.getInstance(getApplicationContext());
+    workManager.enqueue(downloadWorkRequest);
+
+    workManager
+      .getWorkInfoByIdLiveData(downloadWorkRequest.getId())
+      .observe(this, workInfo -> {
+        if (workInfo != null) {
+          if (workInfo.getState() == WorkInfo.State.ENQUEUED) {
+            Toast.makeText(this, "Download scheduled. Check internet connection if it doesn't start.", Toast.LENGTH_LONG).show();
+            mProgressIndicator.hide();
+            mProgressIndicator.setIndeterminate(true);
+            mProgressIndicator.show();
+          }
+
+          if (workInfo.getState() == WorkInfo.State.RUNNING) {
+            Data progress = workInfo.getProgress();
+            String segmentName = progress.getString(DownloadWorker.PROGRESS_SEGMENT_NAME);
+            int percent = progress.getInt(DownloadWorker.PROGRESS_SEGMENT_PERCENT, 0);
+            if (percent > 0) {
+              mProgressIndicator.setIndeterminate(false);
+            }
+            mProgressIndicator.setProgress(percent);
+          }
+
+          if (workInfo.getState().isFinished()) {
+            String result;
+            switch (workInfo.getState()) {
+              case FAILED:
+                result = "failed.";
+                break;
+              case CANCELLED:
+                result = "cancelled";
+                break;
+              case SUCCEEDED:
+                result = "succeeded";
+                break;
+              default:
+                result = "";
+            }
+            Toast.makeText(this, "Download " + result + ".", Toast.LENGTH_SHORT).show();
+            mProgressIndicator.hide();
+            scanExistingFiles();
+          }
+        }
+      });
 
     deleteRawTracks(); // invalidate raw-tracks after data update
-  }
-
-  @Override
-  protected void onResume() {
-    super.onResume();
-
-    IntentFilter filter = new IntentFilter();
-    filter.addAction(DOWNLOAD_ACTION);
-
-    downloadReceiver = new DownloadReceiver();
-    registerReceiver(downloadReceiver, filter);
-  }
-
-  @Override
-  protected void onPause() {
-    super.onPause();
-  }
-
-  @Override
-  public void onDestroy() {
-    super.onDestroy();
-    if (downloadReceiver != null) unregisterReceiver(downloadReceiver);
-    System.exit(0);
   }
 
   @Override
@@ -277,22 +296,5 @@ public class BInstallerActivity extends Activity {
     String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
     String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
     return slon + "_" + slat;
-  }
-
-  public class DownloadReceiver extends BroadcastReceiver {
-
-    @Override
-    public void onReceive(Context context, Intent intent) {
-      if (intent.hasExtra("txt")) {
-        String txt = intent.getStringExtra("txt");
-        boolean ready = intent.getBooleanExtra("ready", false);
-        if (!ready) {
-          mSegmentsView.setVisibility(View.VISIBLE);
-          mDownloadInfo.setVisibility(View.GONE);
-          scanExistingFiles();
-        }
-        mDownloadInfoText.setText(txt);
-      }
-    }
   }
 }

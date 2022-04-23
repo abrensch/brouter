@@ -1,6 +1,5 @@
 package btools.routingapp;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -12,6 +11,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-public class BImportActivity extends Activity {
+public class BImportActivity extends AppCompatActivity {
   // profile size is generally < 30 kb, so set max size to 100 kb
   private static final int MAX_PROFILE_SIZE = 100000;
   private EditText mTextFilename;
@@ -76,8 +76,8 @@ public class BImportActivity extends Activity {
     try (Cursor cursor = this.getContentResolver().query(intent.getData(), new String[]{
       OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE}, null, null, null)) {
       if (cursor != null && cursor.moveToFirst()) {
-        filename = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
-        filesize = cursor.getLong(cursor.getColumnIndex(OpenableColumns.SIZE));
+        filename = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
+        filesize = cursor.getLong(cursor.getColumnIndexOrThrow(OpenableColumns.SIZE));
       }
     }
     // is the file extention ".brf" in the file name

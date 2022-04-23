@@ -20,7 +20,7 @@ public final class DirectWeaver extends ByteDataWriter
 
   private int size = 0;
 
-  public DirectWeaver( StatCoderContext bc, DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes ) throws Exception
+  public DirectWeaver( StatCoderContext bc, DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes )
   {
     super( null );
     int cellsize = 1000000 / divisor;
