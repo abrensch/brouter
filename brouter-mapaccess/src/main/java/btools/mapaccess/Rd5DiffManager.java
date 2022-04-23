@@ -8,8 +8,10 @@ package btools.mapaccess;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 final public class Rd5DiffManager
 {
@@ -93,30 +95,31 @@ final public class Rd5DiffManager
     }
   }
 
-  public static String getMD5( File f ) throws Exception
+  public static String getMD5( File f ) throws IOException
   {
-    MessageDigest md = MessageDigest.getInstance("MD5");
-    BufferedInputStream bis = new BufferedInputStream( new FileInputStream( f ) );
-    DigestInputStream dis = new DigestInputStream(bis, md);
-    byte[] buf = new byte[8192];
-    for(;;)
-    {
-      int len = dis.read( buf );
-      if ( len <= 0 )
-      {
-        break;
+    try {
+      MessageDigest md = MessageDigest.getInstance("MD5");
+      BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
+      DigestInputStream dis = new DigestInputStream(bis, md);
+      byte[] buf = new byte[8192];
+      for (; ; ) {
+        int len = dis.read(buf);
+        if (len <= 0) {
+          break;
+        }
       }
-    }
-    dis.close();
-    byte[] bytes = md.digest();
+      dis.close();
+      byte[] bytes = md.digest();
 
-    StringBuilder sb = new StringBuilder();
-    for (int j = 0; j < bytes.length; j++)
-    {
-      int v = bytes[j] & 0xff;
-      sb.append( hexChar( v >>> 4 ) ).append( hexChar( v & 0xf ) );
+      StringBuilder sb = new StringBuilder();
+      for (int j = 0; j < bytes.length; j++) {
+        int v = bytes[j] & 0xff;
+        sb.append(hexChar(v >>> 4)).append(hexChar(v & 0xf));
+      }
+      return sb.toString();
+    } catch (NoSuchAlgorithmException e) {
+      throw new IOException("MD5 algorithm not available", e);
     }
-    return sb.toString();
   }
   
   private static char hexChar( int v )
