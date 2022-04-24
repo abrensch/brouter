@@ -14,6 +14,7 @@ import android.os.PowerManager.WakeLock;
 import android.os.StatFs;
 import android.widget.EditText;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.os.EnvironmentCompat;
@@ -22,6 +23,7 @@ import java.io.File;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -65,7 +67,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private Set<String> selectedVias;
   private List<OsmNodeNamed> nogoList;
   private String maptoolDirCandidate;
-  private final Set<Integer> dialogIds = new HashSet<Integer>();
+  private final Set<Integer> dialogIds = new HashSet<>();
   private String errorMessage;
   private String title;
   private int wpCount;
@@ -74,7 +76,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
    * Called when the activity is first created.
    */
   @Override
-  @SuppressWarnings("deprecation")
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
@@ -94,7 +95,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   }
 
   @Override
-  @SuppressWarnings("deprecation")
   protected Dialog onCreateDialog(int id) {
     AlertDialog.Builder builder;
     builder = new AlertDialog.Builder(this);
@@ -372,11 +372,10 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
 
   private boolean[] getCheckedBooleanArray(int size) {
     boolean[] checked = new boolean[size];
-    for (int i = 0; i < checked.length; i++) checked[i] = true;
+    Arrays.fill(checked, true);
     return checked;
   }
 
-  @SuppressWarnings("deprecation")
   public void selectProfile(String[] items) {
     availableProfiles = items;
 
@@ -384,7 +383,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     showDialog(DIALOG_MAINACTION_ID);
   }
 
-  @SuppressWarnings("deprecation")
   public void startDownloadManager() {
     if (!mBRouterView.hasUpToDateLookups()) {
       showDialog(DIALOG_OLDDATAHINT_ID);
@@ -393,19 +391,18 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     }
   }
 
-  @SuppressWarnings("deprecation")
   public void selectBasedir(ArrayList<File> items, String defaultBasedir, String message) {
     this.defaultbasedir = defaultBasedir;
     this.message = message;
     availableBasedirs = items;
-    ArrayList<Long> dirFreeSizes = new ArrayList<Long>();
+    ArrayList<Long> dirFreeSizes = new ArrayList<>();
     for (File f : items) {
       long size = 0L;
       try {
         StatFs stat = new StatFs(f.getAbsolutePath());
         size = (long) stat.getAvailableBlocks() * stat.getBlockSize();
       } catch (Exception e) { /* ignore */ }
-      dirFreeSizes.add(Long.valueOf(size));
+      dirFreeSizes.add(size);
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -426,7 +423,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     showDialog(DIALOG_SELECTBASEDIR_ID);
   }
 
-  @SuppressWarnings("deprecation")
   public void selectRoutingModes(String[] modes, boolean[] modesChecked, String message) {
     routingModes = modes;
     routingModesChecked = modesChecked;
@@ -434,28 +430,23 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     showDialog(DIALOG_ROUTINGMODES_ID);
   }
 
-  @SuppressWarnings("deprecation")
   public void showModeConfigOverview(String message) {
     this.message = message;
     showDialog(DIALOG_MODECONFIGOVERVIEW_ID);
   }
 
-  @SuppressWarnings("deprecation")
   public void selectVias(String[] items) {
     availableVias = items;
-    selectedVias = new HashSet<String>(availableVias.length);
-    for (String via : items)
-      selectedVias.add(via);
+    selectedVias = new HashSet<>(availableVias.length);
+    Collections.addAll(selectedVias, items);
     showDialog(DIALOG_VIASELECT_ID);
   }
 
-  @SuppressWarnings("deprecation")
   public void selectWaypoint(String[] items) {
     availableWaypoints = items;
     showNewDialog(DIALOG_PICKWAYPOINT_ID);
   }
 
-  @SuppressWarnings("deprecation")
   public void showWaypointDatabaseHelp() {
     if (mBRouterView.canAccessSdCard) {
       showNewDialog(DIALOG_SHOW_WP_HELP_ID);
@@ -464,38 +455,33 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     }
   }
 
-  @SuppressWarnings("deprecation")
   public void showRepeatTimeoutHelp() {
     showNewDialog(DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID);
   }
 
-  @SuppressWarnings("deprecation")
   public void showWpDatabaseScanSuccess(String bestGuess) {
     maptoolDirCandidate = bestGuess;
     showNewDialog(DIALOG_SHOW_WP_SCANRESULT_ID);
   }
 
-  @SuppressWarnings("deprecation")
   public void selectNogos(List<OsmNodeNamed> nogoList) {
     this.nogoList = nogoList;
     showDialog(DIALOG_NOGOSELECT_ID);
   }
 
   private void showNewDialog(int id) {
-    if (dialogIds.contains(Integer.valueOf(id))) {
+    if (dialogIds.contains(id)) {
       removeDialog(id);
     }
-    dialogIds.add(Integer.valueOf(id));
+    dialogIds.add(id);
     showDialog(id);
   }
 
-  @SuppressWarnings("deprecation")
   public void showErrorMessage(String msg) {
     errorMessage = msg;
     showNewDialog(DIALOG_EXCEPTION_ID);
   }
 
-  @SuppressWarnings("deprecation")
   public void showResultMessage(String title, String msg, int wpCount) {
     errorMessage = msg;
     this.title = title;
@@ -535,16 +521,18 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   public ArrayList<File> getStorageDirectories() {
     ArrayList<File> list = null;
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      list = new ArrayList<File>(Arrays.asList(getExternalMediaDirs()));
+      list = new ArrayList<>(Arrays.asList(getExternalMediaDirs()));
     } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-      list = new ArrayList<File>(Arrays.asList(getExternalFilesDirs(null)));
+      list = new ArrayList<>(Arrays.asList(getExternalFilesDirs(null)));
     }
-    ArrayList<File> res = new ArrayList<File>();
+    ArrayList<File> res = new ArrayList<>();
 
-    for (File f : list) {
-      if (f != null) {
-        if (getStorageState(f).equals(Environment.MEDIA_MOUNTED))
-          res.add(f);
+    if (list != null) {
+      for (File f : list) {
+        if (f != null) {
+          if (getStorageState(f).equals(Environment.MEDIA_MOUNTED))
+            res.add(f);
+        }
       }
     }
 
@@ -577,7 +565,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   }
 
   @Override
-  public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+  public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
     super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     if (requestCode == 0) {
       if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {

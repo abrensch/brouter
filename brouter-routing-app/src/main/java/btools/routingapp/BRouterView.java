@@ -66,7 +66,6 @@ public class BRouterView extends View {
   private File tracksDir;
   private File segmentDir;
   private File profileDir;
-  private String profilePath;
   private String profileName;
   private String sourceHint;
   private boolean waitingForSelection = false;
@@ -109,8 +108,7 @@ public class BRouterView extends View {
             // don't ask twice
             String version = "v" + getContext().getString(R.string.app_version);
             File vFile = new File(brd, "profiles2/" + version);
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
-              && vFile.exists()) {
+            if (vFile.exists()) {
               startSetup(baseDir, false);
               return;
             }
@@ -120,11 +118,10 @@ public class BRouterView extends View {
             waitingForSelection = true;
             waitingForMigration = true;
             oldMigrationPath = brd.getAbsolutePath();
-            return;
           } else {
             startSetup(baseDir, false);
-            return;
           }
+          return;
         }
       }
       String message = baseDir == null ? "(no basedir configured previously)" : "(previous basedir " + baseDir
@@ -212,7 +209,7 @@ public class BRouterView extends View {
 
       wpList = cor.waypoints;
       nogoList = cor.nogopoints;
-      nogoVetoList = new ArrayList<OsmNodeNamed>();
+      nogoVetoList = new ArrayList<>();
 
       sourceHint = "(dev/trgt=" + deviceLevel + "/" + targetSdkVersion + " coordinate-source: " + cor.basedir + cor.rootdir + ")";
 
@@ -248,15 +245,17 @@ public class BRouterView extends View {
       }
 
       String[] fileNames = profileDir.list();
-      ArrayList<String> profiles = new ArrayList<String>();
+      ArrayList<String> profiles = new ArrayList<>();
 
       boolean lookupsFound = false;
-      for (String fileName : fileNames) {
-        if (fileName.endsWith(".brf")) {
-          profiles.add(fileName.substring(0, fileName.length() - 4));
+      if (fileNames != null) {
+        for (String fileName : fileNames) {
+          if (fileName.endsWith(".brf")) {
+            profiles.add(fileName.substring(0, fileName.length() - 4));
+          }
+          if (fileName.equals("lookups.dat"))
+            lookupsFound = true;
         }
-        if (fileName.equals("lookups.dat"))
-          lookupsFound = true;
       }
 
       // add a "last timeout" dummy profile
@@ -298,24 +297,26 @@ public class BRouterView extends View {
   private void moveFolders(String oldMigrationPath, String basedir) {
     File oldDir = new File(oldMigrationPath);
     File[] oldFiles = oldDir.listFiles();
-    for (File f : oldFiles) {
-      if (f.isDirectory()) {
-        int index = f.getAbsolutePath().lastIndexOf("/");
-        String tmpdir = basedir + f.getAbsolutePath().substring(index);
-        moveFolders(f.getAbsolutePath(), tmpdir);
-      } else {
-        if (!f.getName().startsWith("v1.6")) {
-          moveFile(oldMigrationPath, f.getName(), basedir);
+    if (oldFiles != null) {
+      for (File f : oldFiles) {
+        if (f.isDirectory()) {
+          int index = f.getAbsolutePath().lastIndexOf("/");
+          String tmpdir = basedir + f.getAbsolutePath().substring(index);
+          moveFolders(f.getAbsolutePath(), tmpdir);
+        } else {
+          if (!f.getName().startsWith("v1.6")) {
+            moveFile(oldMigrationPath, f.getName(), basedir);
+          }
         }
-      }
 
+      }
     }
   }
 
   private void moveFile(String inputPath, String inputFile, String outputPath) {
 
-    InputStream in = null;
-    OutputStream out = null;
+    InputStream in;
+    OutputStream out;
     try {
 
       //create output directory if it doesn't exist
@@ -334,12 +335,10 @@ public class BRouterView extends View {
         out.write(buffer, 0, read);
       }
       in.close();
-      in = null;
 
       // write the output file
       out.flush();
       out.close();
-      out = null;
 
       // delete the original file
       new File(inputPath + "/" + inputFile).delete();
@@ -365,7 +364,7 @@ public class BRouterView extends View {
   }
 
   public void updateViaList(Set<String> selectedVias) {
-    ArrayList<OsmNodeNamed> filtered = new ArrayList<OsmNodeNamed>(wpList.size());
+    ArrayList<OsmNodeNamed> filtered = new ArrayList<>(wpList.size());
     for (OsmNodeNamed n : wpList) {
       String name = n.name;
       if ("from".equals(name) || "to".equals(name) || selectedVias.contains(name))
@@ -442,7 +441,7 @@ public class BRouterView extends View {
 
   private List<OsmNodeNamed> readWpList(BufferedReader br, boolean isNogo) throws Exception {
     int cnt = Integer.parseInt(br.readLine());
-    List<OsmNodeNamed> res = new ArrayList<OsmNodeNamed>(cnt);
+    List<OsmNodeNamed> res = new ArrayList<>(cnt);
     for (int i = 0; i < cnt; i++) {
       OsmNodeNamed wp = OsmNodeNamed.decodeNogo(br.readLine());
       wp.isNogo = isNogo;
@@ -471,7 +470,7 @@ public class BRouterView extends View {
       rawTrackPath = modesDir + "/remote_rawtrack.dat";
     }
 
-    profilePath = profileDir + "/" + profile + ".brf";
+    String profilePath = profileDir + "/" + profile + ".brf";
     profileName = profile;
 
     if (needsViaSelection) {
@@ -490,15 +489,15 @@ public class BRouterView extends View {
     }
 
     if (needsWaypointSelection) {
-      String msg;
+      StringBuilder msg;
       if (wpList.size() == 0) {
-        msg = "Expecting waypoint selection\n" + sourceHint;
+        msg = new StringBuilder("Expecting waypoint selection\n" + sourceHint);
       } else {
-        msg = "current waypoint selection:\n";
+        msg = new StringBuilder("current waypoint selection:\n");
         for (int i = 0; i < wpList.size(); i++)
-          msg += (i > 0 ? "->" : "") + wpList.get(i).name;
+          msg.append(i > 0 ? "->" : "").append(wpList.get(i).name);
       }
-      ((BRouterActivity) getContext()).showResultMessage("Select Action", msg, wpList.size());
+      ((BRouterActivity) getContext()).showResultMessage("Select Action", msg.toString(), wpList.size());
       return;
     }
 
@@ -578,7 +577,7 @@ public class BRouterView extends View {
       File vtag = new File(path, versionTag);
       try {
         exists = !vtag.createNewFile();
-      } catch (IOException io) {
+      } catch (IOException ignored) {
       } // well..
     }
 
@@ -599,7 +598,7 @@ public class BRouterView extends View {
             }
             String name = ze.getName();
             File outfile = new File(path, name);
-            if (!outfile.exists()) {
+            if (!outfile.exists() && outfile.getParentFile() != null) {
               outfile.getParentFile().mkdirs();
               FileOutputStream fos = new FileOutputStream(outfile);
 
@@ -647,7 +646,7 @@ public class BRouterView extends View {
     int ir = (int) (n.radius * scaleMeter2Pixel);
     if (ir > minradius) {
       Paint paint = new Paint();
-      paint.setColor(Color.RED);
+      paint.setColor(color);
       paint.setStyle(Paint.Style.STROKE);
       canvas.drawCircle((float) x, (float) y, (float) ir, paint);
     }
@@ -705,7 +704,7 @@ public class BRouterView extends View {
       cr = null;
       try {
         Thread.sleep(2000);
-      } catch (InterruptedException ie) {
+      } catch (InterruptedException ignored) {
       }
       ((BRouterActivity) getContext()).showErrorMessage(t.toString());
       waitingForSelection = true;
@@ -715,7 +714,7 @@ public class BRouterView extends View {
   private void showDatabaseScanning(Canvas canvas) {
     try {
       Thread.sleep(100);
-    } catch (InterruptedException ie) {
+    } catch (InterruptedException ignored) {
     }
     Paint paint1 = new Paint();
     paint1.setColor(Color.WHITE);
@@ -768,7 +767,7 @@ public class BRouterView extends View {
 
     try {
       Thread.sleep(sleeptime);
-    } catch (InterruptedException ie) {
+    } catch (InterruptedException ignored) {
     }
     lastTs = System.currentTimeMillis();
 
@@ -776,9 +775,6 @@ public class BRouterView extends View {
       if (cr != null) {
         if (cr.getErrorMessage() != null) {
           ((BRouterActivity) getContext()).showErrorMessage(cr.getErrorMessage());
-          cr = null;
-          waitingForSelection = true;
-          return;
         } else {
           String memstat = memoryClass + "mb pathPeak " + ((cr.getPathPeak() + 500) / 1000) + "k";
           String result = "version = BRouter-" + getContext().getString(R.string.app_version) + "\n" + "mem = " + memstat + "\ndistance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
@@ -796,10 +792,10 @@ public class BRouterView extends View {
             title += " / " + cr.getAlternativeIndex() + ". Alternative";
 
           ((BRouterActivity) getContext()).showResultMessage(title, result, rawTrackPath == null ? -1 : -3);
-          cr = null;
-          waitingForSelection = true;
-          return;
         }
+        cr = null;
+        waitingForSelection = true;
+        return;
       } else if (System.currentTimeMillis() > lastDataTime) {
         System.exit(0);
       }
@@ -812,17 +808,18 @@ public class BRouterView extends View {
         paintPosition(openSet[si], openSet[si + 1], 0xffffff, 1);
       }
       // paint nogos on top (red)
+      int minradius = 4;
       for (int ngi = 0; ngi < nogoList.size(); ngi++) {
         OsmNodeNamed n = nogoList.get(ngi);
         int color = 0xff0000;
-        paintPosition(n.ilon, n.ilat, color, 4);
+        paintPosition(n.ilon, n.ilat, color, minradius);
       }
 
       // paint start/end/vias on top (yellow/green/blue)
       for (int wpi = 0; wpi < wpList.size(); wpi++) {
         OsmNodeNamed n = wpList.get(wpi);
         int color = wpi == 0 ? 0xffff00 : wpi < wpList.size() - 1 ? 0xff : 0xff00;
-        paintPosition(n.ilon, n.ilat, color, 4);
+        paintPosition(n.ilon, n.ilat, color, minradius);
       }
 
       canvas.drawBitmap(imgPixels, 0, imgw, (float) 0., (float) 0., imgw, imgh, false, null);
@@ -831,10 +828,10 @@ public class BRouterView extends View {
       for (int ngi = 0; ngi < nogoList.size(); ngi++) {
         OsmNodeNamed n = nogoList.get(ngi);
         if (n instanceof OsmNogoPolygon) {
-          paintPolygon(canvas, (OsmNogoPolygon) n, 4);
+          paintPolygon(canvas, (OsmNogoPolygon) n, minradius);
         } else {
-          int color = 0xff0000;
-          paintCircle(canvas, n, color, 4);
+          int color = Color.RED;
+          paintCircle(canvas, n, color, minradius);
         }
       }
 
@@ -857,7 +854,7 @@ public class BRouterView extends View {
     File basedir = Environment.getExternalStorageDirectory();
     try {
       File bd2 = new File(basedir, "external_sd");
-      ArrayList<String> basedirGuesses = new ArrayList<String>();
+      ArrayList<String> basedirGuesses = new ArrayList<>();
       basedirGuesses.add(basedir.getAbsolutePath());
 
       if (bd2.exists()) {
@@ -865,7 +862,7 @@ public class BRouterView extends View {
         basedirGuesses.add(basedir.getAbsolutePath());
       }
 
-      ArrayList<CoordinateReader> rl = new ArrayList<CoordinateReader>();
+      ArrayList<CoordinateReader> rl = new ArrayList<>();
       for (String bdg : basedirGuesses) {
         rl.add(new CoordinateReaderOsmAnd(bdg));
         rl.add(new CoordinateReaderLocus(bdg));
@@ -897,7 +894,7 @@ public class BRouterView extends View {
     if (rawTrack != null) {
       try {
         rawTrack.writeBinary(rawTrackPath);
-      } catch (Exception e) {
+      } catch (Exception ignored) {
       }
     } else {
       new File(rawTrackPath).delete();
@@ -916,7 +913,7 @@ public class BRouterView extends View {
 
   public void configureService(String[] routingModes, boolean[] checkedModes) {
     // read in current config
-    TreeMap<String, ServiceModeConfig> map = new TreeMap<String, ServiceModeConfig>();
+    TreeMap<String, ServiceModeConfig> map = new TreeMap<>();
     BufferedReader br = null;
     String modesFile = modesDir + "/serviceconfig.dat";
     try {
@@ -928,12 +925,12 @@ public class BRouterView extends View {
         ServiceModeConfig smc = new ServiceModeConfig(line);
         map.put(smc.mode, smc);
       }
-    } catch (Exception e) {
+    } catch (Exception ignored) {
     } finally {
       if (br != null)
         try {
           br.close();
-        } catch (Exception ee) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -961,12 +958,12 @@ public class BRouterView extends View {
         bw.write('\n');
         msg.append(smc).append('\n');
       }
-    } catch (Exception e) {
+    } catch (Exception ignored) {
     } finally {
       if (bw != null)
         try {
           bw.close();
-        } catch (Exception ee) {
+        } catch (Exception ignored) {
         }
     }
     ((BRouterActivity) getContext()).showModeConfigOverview(msg.toString());
