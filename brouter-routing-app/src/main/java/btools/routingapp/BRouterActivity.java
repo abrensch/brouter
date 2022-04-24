@@ -48,10 +48,27 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private static final int DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID = 16;
   private static final int DIALOG_SHOW_API23_HELP_ID = 17;
 
-
   private BRouterView mBRouterView;
   private PowerManager mPowerManager;
   private WakeLock mWakeLock;
+  private String[] availableProfiles;
+  private String selectedProfile = null;
+  private List<File> availableBasedirs;
+  private String[] basedirOptions;
+  private int selectedBasedir;
+  private String[] availableWaypoints;
+  private String[] routingModes;
+  private boolean[] routingModesChecked;
+  private String defaultbasedir = null;
+  private String message = null;
+  private String[] availableVias;
+  private Set<String> selectedVias;
+  private List<OsmNodeNamed> nogoList;
+  private String maptoolDirCandidate;
+  private Set<Integer> dialogIds = new HashSet<Integer>();
+  private String errorMessage;
+  private String title;
+  private int wpCount;
 
   /**
    * Called when the activity is first created.
@@ -359,28 +376,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     return checked;
   }
 
-  private String[] availableProfiles;
-  private String selectedProfile = null;
-
-  private List<File> availableBasedirs;
-  private String[] basedirOptions;
-  private int selectedBasedir;
-
-  private String[] availableWaypoints;
-
-  private String[] routingModes;
-  private boolean[] routingModesChecked;
-
-  private String defaultbasedir = null;
-  private String message = null;
-
-  private String[] availableVias;
-  private Set<String> selectedVias;
-
-  private List<OsmNodeNamed> nogoList;
-
-  private String maptoolDirCandidate;
-
   @SuppressWarnings("deprecation")
   public void selectProfile(String[] items) {
     availableProfiles = items;
@@ -486,8 +481,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     showDialog(DIALOG_NOGOSELECT_ID);
   }
 
-  private Set<Integer> dialogIds = new HashSet<Integer>();
-
   private void showNewDialog(int id) {
     if (dialogIds.contains(Integer.valueOf(id))) {
       removeDialog(id);
@@ -495,10 +488,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     dialogIds.add(Integer.valueOf(id));
     showDialog(id);
   }
-
-  private String errorMessage;
-  private String title;
-  private int wpCount;
 
   @SuppressWarnings("deprecation")
   public void showErrorMessage(String msg) {

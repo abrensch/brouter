@@ -47,10 +47,11 @@ import btools.router.RoutingHelper;
 import btools.util.CheapRuler;
 
 public class BRouterView extends View {
+
+  public boolean canAccessSdCard;
   RoutingEngine cr;
   private int imgw;
   private int imgh;
-
   private int centerLon;
   private int centerLat;
   private double scaleLon;  // ilon -> pixel
@@ -60,7 +61,6 @@ public class BRouterView extends View {
   private List<OsmNodeNamed> nogoList;
   private List<OsmNodeNamed> nogoVetoList;
   private OsmTrack rawTrack;
-
   private File retryBaseDir;
   private File modesDir;
   private File tracksDir;
@@ -73,30 +73,24 @@ public class BRouterView extends View {
   private boolean waitingForMigration = false;
   private String rawTrackPath;
   private String oldMigrationPath;
-
   private boolean needsViaSelection;
   private boolean needsNogoSelection;
   private boolean needsWaypointSelection;
-
   private WpDatabaseScanner dataBaseScanner;
-
   private long lastDataTime = System.currentTimeMillis();
-
   private CoordinateReader cor;
-
   private int[] imgPixels;
-
   private int memoryClass;
-
-  public boolean canAccessSdCard;
-
-  public void stopRouting() {
-    if (cr != null) cr.terminate();
-  }
+  private long lastTs = System.currentTimeMillis();
+  private long startTime = 0L;
 
   public BRouterView(Context context, int memoryClass) {
     super(context);
     this.memoryClass = memoryClass;
+  }
+
+  public void stopRouting() {
+    if (cr != null) cr.terminate();
   }
 
   public void init() {
@@ -114,9 +108,9 @@ public class BRouterView extends View {
 
             // don't ask twice
             String version = "v" + getContext().getString(R.string.app_version);
-            File vFile = new File(brd, "profiles2/"+version );
+            File vFile = new File(brd, "profiles2/" + version);
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
-                && vFile.exists()) {
+              && vFile.exists()) {
               startSetup(baseDir, false);
               return;
             }
@@ -568,7 +562,7 @@ public class BRouterView extends View {
       // for profile remote, use ref-track logic same as service interface
       rc.rawTrackPath = rawTrackPath;
 
-      cr = new RoutingEngine(tracksDir.getAbsolutePath()+"/brouter", null, segmentDir, wpList, rc);
+      cr = new RoutingEngine(tracksDir.getAbsolutePath() + "/brouter", null, segmentDir, wpList, rc);
       cr.start();
       invalidate();
 
@@ -702,9 +696,6 @@ public class BRouterView extends View {
     Toast.makeText(getContext(), msg, Toast.LENGTH_LONG).show();
     lastDataTime += 4000; // give time for the toast before exiting
   }
-
-  private long lastTs = System.currentTimeMillis();
-  private long startTime = 0L;
 
   @Override
   protected void onDraw(Canvas canvas) {
