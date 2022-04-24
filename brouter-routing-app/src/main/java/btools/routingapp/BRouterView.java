@@ -80,7 +80,7 @@ public class BRouterView extends View {
   private long lastDataTime = System.currentTimeMillis();
   private CoordinateReader cor;
   private int[] imgPixels;
-  private int memoryClass;
+  private final int memoryClass;
   private long lastTs = System.currentTimeMillis();
   private long startTime = 0L;
 
@@ -203,10 +203,7 @@ public class BRouterView extends View {
 
       int deviceLevel = Build.VERSION.SDK_INT;
       int targetSdkVersion = getContext().getApplicationInfo().targetSdkVersion;
-      canAccessSdCard = true;
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !Environment.isExternalStorageLegacy()) {
-        canAccessSdCard = false;
-      }
+      canAccessSdCard = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || Environment.isExternalStorageLegacy();
       if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
         canAccessSdCard = false;
       }
@@ -393,7 +390,7 @@ public class BRouterView extends View {
       try {
         cor.readAllPoints();
       } catch (Exception e) {
-        msg = "Error reading waypoints: " + e.toString();
+        msg = "Error reading waypoints: " + e;
       }
 
       int size = cor.allpoints.size();
@@ -962,7 +959,7 @@ public class BRouterView extends View {
       for (ServiceModeConfig smc : map.values()) {
         bw.write(smc.toLine());
         bw.write('\n');
-        msg.append(smc.toString()).append('\n');
+        msg.append(smc).append('\n');
       }
     } catch (Exception e) {
     } finally {
