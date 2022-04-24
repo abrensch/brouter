@@ -65,7 +65,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private Set<String> selectedVias;
   private List<OsmNodeNamed> nogoList;
   private String maptoolDirCandidate;
-  private Set<Integer> dialogIds = new HashSet<Integer>();
+  private final Set<Integer> dialogIds = new HashSet<Integer>();
   private String errorMessage;
   private String title;
   private int wpCount;
