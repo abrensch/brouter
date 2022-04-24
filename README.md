@@ -100,6 +100,11 @@ Segments files from the whole planet are generated weekly at
 You can download one or more segments files, covering the area of the planet
 you want to route, into the `misc/segments4` directory.
 
+There is the command to download all segments to current folder (Linux):
+```
+curl http://brouter.de/brouter/segments4/ | sed '/rd5/!d' | sed 's/<a href="/http:\/\/brouter.de\/brouter\/segments4\//' | sed 's/".*//' | xargs -n10 -P5 wget -N
+```
+
 #### Generate your own segments files
 
 You can also generate the segments files you need directly from a planet dump
