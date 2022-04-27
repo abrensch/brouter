@@ -65,8 +65,6 @@ surface;0000005778 mud
 surface;0000004549 grass_paver
 surface;0000004398 clay
 surface;0000003760 metal
-surface;0000000001 artificial_turf
-surface;0000000001 tartan
 surface;0000000001 rock rocks rocky
 surface;0000000001 stone
 
@@ -101,8 +99,8 @@ service;0000000001 crossover
 
 lit;0000809223 yes
 lit;0000800001 sunset-sunrise dusk-dawn
-lit;0000800001 24/7 
-lit;0000800001 automatic 
+lit;0000800001 24/7
+lit;0000800001 automatic
 
 lanes;0002838405 2
 lanes;0000718138 1
@@ -146,7 +144,6 @@ bicycle;0000008286 private
 bicycle;0000001553 destination customers delivery
 bicycle;0000000719 use_sidepath use_cycleway
 bicycle;0000000385 mtb
-bicycle;0000000117 opposite
 bicycle;0000000001 permit
 
 
@@ -192,9 +189,8 @@ vehicle;0000000001 military
 vehicle;0000000001 emergency
 
 horse;0000227398 no
-horse;0000144432 yes
+horse;0000144432 yes permissive
 horse;0000014566 designated official
-horse;0000007223 permissive
 horse;0000004755 private
 horse;0000000968 unknown
 horse;0000000205 destination
@@ -239,11 +235,9 @@ cycleway;0000001542 right
 cycleway;0000001291 segregated
 cycleway;0000001065 both
 cycleway;0000000892 left
-cycleway;0000000399 street
 cycleway;0000000344 shoulder
 cycleway;0000000326 designated
 cycleway;0000000247 proposed planned virtual
-cycleway;0000000224 cyclestreet
 cycleway;0000000154 sidewalk
 
 footway;0000104998 sidewalk
@@ -323,7 +317,6 @@ lcn;0000002631 proposed
 
 oneway:bicycle;0000012034 no
 oneway:bicycle;0000005217 yes
-oneway:bicycle;0000000161 opposite
 
 cycleway:right;0000012522 lane Lane
 cycleway:right;0000006644 track
@@ -379,15 +372,15 @@ incline;0000000779 steep
 incline;0000000861 3% 0 1 2 3 0% 1% 2% 3%
 incline;0000000724 5% 4 5 4%
 incline;0000000530 8% 6 7 8 6% 7%
-incline;0000003109 10% 9 10 9% 10°
+incline;0000003109 10% 9 10 9% 10Â°
 incline;0000001297 15% 11 12 13 14 15 11% 12% 13% 14%
-incline;0000000997 20% 16 17 18 19 20 16% 17% 18% 19% 10°
+incline;0000000997 20% 16 17 18 19 20 16% 17% 18% 19% 10Â°
 incline;0000000409 25% 21 22 23 24 25 21% 22% 23% 24%
 incline;0000000263 30% 30 40 50 40% 50% 35%
 incline;0000000861 -3% -1 -2 -3 -1% -2% -3%
 incline;0000000724 -5% -4 -5 -4%
 incline;0000000530 -8% -6 -7 -8 -6% -7%
-incline;0000001515 -10% -9 -10 -9% -10°
+incline;0000001515 -10% -9 -10 -9% -10Â°
 incline;0000001297 -15% -11 -12 -13 -14 -15 -11% -12% -13% -14%
 incline;0000000997 -20% -16 -17 -18 -19 -20 -16% -17% -18% -19%
 incline;0000000409 -25% -21 -22 -23 -24 -25 -21% -22% -23% -24%
@@ -578,16 +571,6 @@ crossing;0000000122 no
 
 informal;0000002424 yes true
 
-indoor;0000058418 yes
-indoor;0000025038 room
-indoor;0000005295 wall
-indoor;0000004322 corridor
-indoor;0000002410 area
-indoor;0000000816 column
-indoor;0000000568 no
-indoor;0000000129 shop
-indoor;0000000099 steps
-
 4wd_only;0000008129 yes Yes
 4wd_only;0000000487 recommended
 4wd_only;0000000041 no
@@ -743,7 +726,7 @@ barrier;0000112184 lift_gate
 barrier;0000046779 stile
 barrier;0000046255 cycle_barrier
 barrier;0000038597 entrance
-barrier;0000027579 block
+barrier;0000027579 block stone rock
 barrier;0000023074 toll_booth
 barrier;0000016782 cattle_grid
 barrier;0000016154 kissing_gate
@@ -758,13 +741,12 @@ barrier;0000001912 bump_gate
 barrier;0000001856 yes
 barrier;0000001683 hampshire_gate
 barrier;0000000445 wall
-barrier;0000000440 bus_trap
+barrier;0000000440 bus_trap sump_buster
 barrier;0000000435 ditch
 barrier;0000000420 debris
 barrier;0000000381 log
 barrier;0000000336 chicane
 barrier;0000000316 kerb
-barrier;0000000270 sump_buster
 barrier;0000000268 obstacle
 barrier;0000000223 no
 barrier;0000000213 horse_stile
@@ -782,7 +764,6 @@ barrier;0000000118 jersey_barrier
 barrier;0000000114 motorcycle_barrier
 barrier;0000000114 barrier
 barrier;0000000108 rope
-barrier;0000000095 stone rock
 barrier;0000000001 height_restrictor
 barrier;0000000001 sliding_gate slide_gate
 
@@ -827,12 +808,11 @@ motor_vehicle;0000000136 private
 motor_vehicle;0000000469 no
 motor_vehicle;0000000001 permit
 
-motorcycle;0000028697 yes
+motorcycle;0000028697 yes permissive
 motorcycle;0000007061 no
 motorcycle;0000000243 private
 motorcycle;0000000237 designated
 motorcycle;0000000117 destination
-motorcycle;0000000080 permissive
 motorcycle;0000000029 agricultural forestry
 
 vehicle;0000002176 no
@@ -843,10 +823,9 @@ vehicle;0000000138 agricultural forestry
 vehicle;0000000105 permissive
 vehicle;0000000003 designated official
 
-horse;0000021837 yes
+horse;0000021837 yes permissive
 horse;0000010811 no
 horse;0000000105 private
-horse;0000000065 permissive
 horse;0000000053 designated official
 horse;0000000007 destination
 
@@ -860,12 +839,11 @@ wheelchair;0000000031 half
 wheelchair;0000000005 partial
 
 hgv;0000001141 no
-hgv;0000000359 yes true
+hgv;0000000359 yes true permissive
 hgv;0000000111 destination delivery
 hgv;0000000108 designated official
 hgv;0000000065 private
 hgv;0000000016 agricultural forestry
-hgv;0000000010 permissive
 
 crossing;0000251032 uncontrolled
 crossing;0000200387 traffic_signals traffic_signals;marked
@@ -893,19 +871,15 @@ waterway;0000000170 lock
 
 noexit;0000195286 yes
 
-entrance;0000301732 yes
-entrance;0000159853 main
+entrance;0000301732 yes entrance
+entrance;0000159853 main main_entrance
 entrance;0000025621 staircase
-entrance;0000006666 home
+entrance;0000006666 home residence
 entrance;0000005428 service
 entrance;0000001853 emergency
 entrance;0000001144 exit
-entrance;0000000953 residence
 entrance;0000000620 garage
-entrance;0000000558 entrance
-entrance;0000000504 main_entrance
 entrance;0000000285 shop
-entrance;0000000258 private
 entrance;0000000001 secondary
 
 traffic_calming;0000045987 bump bump;choker mini_bumps
