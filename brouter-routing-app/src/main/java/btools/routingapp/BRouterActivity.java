@@ -45,11 +45,9 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private static final int DIALOG_SELECTBASEDIR_ID = 11;
   private static final int DIALOG_MAINACTION_ID = 12;
   private static final int DIALOG_OLDDATAHINT_ID = 13;
-  private static final int DIALOG_SHOW_WP_HELP_ID = 14;
-  private static final int DIALOG_SHOW_WP_SCANRESULT_ID = 15;
   private static final int DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID = 16;
   private static final int DIALOG_SHOW_API23_HELP_ID = 17;
-
+  private final Set<Integer> dialogIds = new HashSet<>();
   private BRouterView mBRouterView;
   private PowerManager mPowerManager;
   private WakeLock mWakeLock;
@@ -66,8 +64,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private String[] availableVias;
   private Set<String> selectedVias;
   private List<OsmNodeNamed> nogoList;
-  private String maptoolDirCandidate;
-  private final Set<Integer> dialogIds = new HashSet<>();
   private String errorMessage;
   private String title;
   private int wpCount;
@@ -148,27 +144,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
           }
         });
         return builder.create();
-      case DIALOG_SHOW_WP_HELP_ID:
-        builder
-          .setTitle("No Waypoint Database found")
-          .setMessage(
-            "The simple scan did not find any map-tool directory including a waypoint database. "
-              + "Reason could be there is no map-tool installed (osmand, locus or oruxmaps), or at an "
-              + "unusual path, or it contains no waypoints yet. That's o.k. if you want to use BRouter "
-              + "in server-mode only - in that case you can still use the 'Server-Mode' button to "
-              + "configure the profile mapping. But you will not be able to use nogo-points or do "
-              + "long distance calculations. If you know the path to your map-tool, you can manually "
-              + "configure it in 'storageconfig.txt'. Or I can do an extended scan searching "
-              + "your sd-card for a valid waypoint database").setPositiveButton("Scan", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            mBRouterView.startWpDatabaseScan();
-          }
-        }).setNegativeButton("Exit", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            finish();
-          }
-        });
-        return builder.create();
       case DIALOG_SHOW_API23_HELP_ID:
         builder
           .setTitle("Android >=6 limitations")
@@ -197,20 +172,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
               + "when started from your map-tool. If you repeat the same request from your "
               + "maptool, with the exact same destination point and a close-by starting point, "
               + "this request is guaranteed not to time out.").setNegativeButton("Exit", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            finish();
-          }
-        });
-        return builder.create();
-      case DIALOG_SHOW_WP_SCANRESULT_ID:
-        builder
-          .setTitle("Waypoint Database ")
-          .setMessage("Found Waypoint-Database(s) for maptool-dir: " + maptoolDirCandidate
-            + " Configure that?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            mBRouterView.saveMaptoolDir(maptoolDirCandidate);
-          }
-        }).setNegativeButton("No", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int id) {
             finish();
           }
@@ -448,20 +409,11 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   }
 
   public void showWaypointDatabaseHelp() {
-    if (mBRouterView.canAccessSdCard) {
-      showNewDialog(DIALOG_SHOW_WP_HELP_ID);
-    } else {
-      showNewDialog(DIALOG_SHOW_API23_HELP_ID);
-    }
+    showNewDialog(DIALOG_SHOW_API23_HELP_ID);
   }
 
   public void showRepeatTimeoutHelp() {
     showNewDialog(DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID);
-  }
-
-  public void showWpDatabaseScanSuccess(String bestGuess) {
-    maptoolDirCandidate = bestGuess;
-    showNewDialog(DIALOG_SHOW_WP_SCANRESULT_ID);
   }
 
   public void selectNogos(List<OsmNodeNamed> nogoList) {
