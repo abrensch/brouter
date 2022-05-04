@@ -75,7 +75,6 @@ public class BRouterView extends View {
   private boolean needsViaSelection;
   private boolean needsNogoSelection;
   private boolean needsWaypointSelection;
-  private WpDatabaseScanner dataBaseScanner;
   private long lastDataTime = System.currentTimeMillis();
   private CoordinateReader cor;
   private int[] imgPixels;
@@ -428,17 +427,6 @@ public class BRouterView extends View {
     }
   }
 
-  public void startWpDatabaseScan() {
-    dataBaseScanner = new WpDatabaseScanner();
-    dataBaseScanner.start();
-    invalidate();
-  }
-
-  public void saveMaptoolDir(String dir) {
-    ConfigMigration.saveAdditionalMaptoolDir(segmentDir, dir);
-    ((BRouterActivity) getContext()).showResultMessage("Success", "please restart to use new config", -1);
-  }
-
   public void finishWaypointSelection() {
     needsWaypointSelection = false;
   }
@@ -715,51 +703,7 @@ public class BRouterView extends View {
     }
   }
 
-  private void showDatabaseScanning(Canvas canvas) {
-    try {
-      Thread.sleep(100);
-    } catch (InterruptedException ignored) {
-    }
-    Paint paint1 = new Paint();
-    paint1.setColor(Color.WHITE);
-    paint1.setTextSize(20);
-
-    Paint paint2 = new Paint();
-    paint2.setColor(Color.WHITE);
-    paint2.setTextSize(10);
-
-    String currentDir = dataBaseScanner.getCurrentDir();
-    String bestGuess = dataBaseScanner.getBestGuess();
-
-    if (currentDir == null) // scan finished
-    {
-      if (bestGuess.length() == 0) {
-        ((BRouterActivity) getContext()).showErrorMessage("scan did not find any possible waypoint database");
-      } else {
-        ((BRouterActivity) getContext()).showWpDatabaseScanSuccess(bestGuess);
-      }
-      cr = null;
-      dataBaseScanner = null;
-      waitingForSelection = true;
-      return;
-    }
-
-    canvas.drawText("Scanning:", 10, 30, paint1);
-    canvas.drawText(currentDir, 0, 60, paint2);
-    canvas.drawText("Best Guess:", 10, 90, paint1);
-    canvas.drawText(bestGuess, 0, 120, paint2);
-    canvas.drawText("Last Error:", 10, 150, paint1);
-    canvas.drawText(dataBaseScanner.getLastError(), 0, 180, paint2);
-
-    invalidate();
-  }
-
   private void _onDraw(Canvas canvas) {
-    if (dataBaseScanner != null) {
-      showDatabaseScanning(canvas);
-      return;
-    }
-
     if (waitingForSelection)
       return;
 
