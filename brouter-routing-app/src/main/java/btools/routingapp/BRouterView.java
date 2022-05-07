@@ -24,7 +24,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -189,25 +188,6 @@ public class BRouterView extends View {
       if (cor.tracksdir != null) {
         tracksDir = new File(cor.basedir, cor.tracksdir);
         assertDirectoryExists("track directory", tracksDir, null, null);
-
-        // output redirect: look for a pointerfile in tracksdir
-        File tracksDirPointer = new File(tracksDir, "brouter.redirect");
-        if (tracksDirPointer.isFile()) {
-          String tracksDirStr = readSingleLineFile(tracksDirPointer);
-          if (tracksDirStr == null)
-            throw new IllegalArgumentException("redirect pointer file is empty: " + tracksDirPointer);
-          tracksDir = new File(tracksDirStr);
-          if (!(tracksDir.isDirectory()))
-            throw new IllegalArgumentException("redirect pointer file " + tracksDirPointer + " does not point to a directory: " + tracksDir);
-        } else {
-          File writeTest = new File(tracksDir + "/brouter.writetest");
-          try {
-            writeTest.createNewFile();
-            writeTest.delete();
-          } catch (Exception e) {
-            tracksDir = null;
-          }
-        }
       }
       if (tracksDir == null) {
         tracksDir = new File(basedir, "brouter"); // fallback
@@ -866,16 +846,6 @@ public class BRouterView extends View {
         }
     }
     ((BRouterActivity) getContext()).showModeConfigOverview(msg.toString());
-  }
-
-  private String readSingleLineFile(File f) {
-    try (FileInputStream fis = new FileInputStream(f);
-         InputStreamReader isr = new InputStreamReader(fis);
-         BufferedReader br = new BufferedReader(isr)) {
-      return br.readLine();
-    } catch (Exception e) {
-      return null;
-    }
   }
 
 }
