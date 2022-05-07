@@ -7,8 +7,6 @@ import android.content.res.AssetManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.os.Build;
-import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -48,7 +46,7 @@ import btools.util.CheapRuler;
 
 public class BRouterView extends View {
 
-  public boolean canAccessSdCard;
+  private final int memoryClass;
   RoutingEngine cr;
   private int imgw;
   private int imgh;
@@ -67,7 +65,6 @@ public class BRouterView extends View {
   private File segmentDir;
   private File profileDir;
   private String profileName;
-  private String sourceHint;
   private boolean waitingForSelection = false;
   private boolean waitingForMigration = false;
   private String rawTrackPath;
@@ -78,7 +75,6 @@ public class BRouterView extends View {
   private long lastDataTime = System.currentTimeMillis();
   private CoordinateReader cor;
   private int[] imgPixels;
-  private final int memoryClass;
   private long lastTs = System.currentTimeMillis();
   private long startTime = 0L;
 
@@ -113,7 +109,7 @@ public class BRouterView extends View {
             }
             String message = "(previous basedir " + baseDir + " has to migrate )";
 
-            ((BRouterActivity) getContext()).selectBasedir(((BRouterActivity) getContext()).getStorageDirectories(), guessBaseDir(), message);
+            ((BRouterActivity) getContext()).selectBasedir(((BRouterActivity) getContext()).getStorageDirectories(), message);
             waitingForSelection = true;
             waitingForMigration = true;
             oldMigrationPath = brd.getAbsolutePath();
@@ -126,7 +122,7 @@ public class BRouterView extends View {
       String message = baseDir == null ? "(no basedir configured previously)" : "(previous basedir " + baseDir
         + (bdValid ? " does not contain 'brouter' subfolder)" : " is not valid)");
 
-      ((BRouterActivity) getContext()).selectBasedir(((BRouterActivity) getContext()).getStorageDirectories(), guessBaseDir(), message);
+      ((BRouterActivity) getContext()).selectBasedir(((BRouterActivity) getContext()).getStorageDirectories(), message);
       waitingForSelection = true;
     } catch (Exception e) {
       String msg = e instanceof IllegalArgumentException ? e.getMessage() : e.toString();
@@ -158,7 +154,7 @@ public class BRouterView extends View {
           retryBaseDir = baseDir;
           ActivityCompat.requestPermissions((BRouterActivity) getContext(), new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
         } else {
-          ((BRouterActivity) getContext()).selectBasedir(((BRouterActivity) getContext()).getStorageDirectories(), guessBaseDir(), "Cannot access " + baseDir.getAbsolutePath() + "; select another");
+          ((BRouterActivity) getContext()).selectBasedir(((BRouterActivity) getContext()).getStorageDirectories(), "Cannot access " + baseDir.getAbsolutePath() + "; select another");
         }
         return;
       }
@@ -180,20 +176,11 @@ public class BRouterView extends View {
         waitingForMigration = false;
       }
 
-      int deviceLevel = Build.VERSION.SDK_INT;
-      int targetSdkVersion = getContext().getApplicationInfo().targetSdkVersion;
-      canAccessSdCard = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || Environment.isExternalStorageLegacy();
-      if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-        canAccessSdCard = false;
-      }
-
-      cor = CoordinateReader.obtainValidReader(basedir, segmentDir, canAccessSdCard);
+      cor = CoordinateReader.obtainValidReader(basedir);
 
       wpList = cor.waypoints;
       nogoList = cor.nogopoints;
       nogoVetoList = new ArrayList<>();
-
-      sourceHint = "(dev/trgt=" + deviceLevel + "/" + targetSdkVersion + " coordinate-source: " + cor.basedir + cor.rootdir + ")";
 
       needsViaSelection = wpList.size() > 2;
       needsNogoSelection = nogoList.size() > 0;
@@ -483,7 +470,7 @@ public class BRouterView extends View {
     if (needsWaypointSelection) {
       StringBuilder msg;
       if (wpList.size() == 0) {
-        msg = new StringBuilder("Expecting waypoint selection\n" + sourceHint);
+        msg = new StringBuilder("Expecting waypoint selection\n" + "(coordinate-source: " + cor.basedir + cor.rootdir + ")");
       } else {
         msg = new StringBuilder("current waypoint selection:\n");
         for (int i = 0; i < wpList.size(); i++)
@@ -796,42 +783,6 @@ public class BRouterView extends View {
     }
     // and make sure to redraw asap
     invalidate();
-  }
-
-  private String guessBaseDir() {
-    File basedir = Environment.getExternalStorageDirectory();
-    try {
-      File bd2 = new File(basedir, "external_sd");
-      ArrayList<String> basedirGuesses = new ArrayList<>();
-      basedirGuesses.add(basedir.getAbsolutePath());
-
-      if (bd2.exists()) {
-        basedir = bd2;
-        basedirGuesses.add(basedir.getAbsolutePath());
-      }
-
-      ArrayList<CoordinateReader> rl = new ArrayList<>();
-      for (String bdg : basedirGuesses) {
-        rl.add(new CoordinateReaderOsmAnd(bdg));
-        rl.add(new CoordinateReaderLocus(bdg));
-        rl.add(new CoordinateReaderOrux(bdg));
-      }
-      long tmax = 0;
-      CoordinateReader cor = null;
-      for (CoordinateReader r : rl) {
-        long t = r.getTimeStamp();
-        if (t > tmax) {
-          tmax = t;
-          cor = r;
-        }
-      }
-      if (cor != null) {
-        return cor.basedir;
-      }
-    } catch (Exception e) {
-      System.out.println("guessBaseDir:" + e);
-    }
-    return basedir.getAbsolutePath();
   }
 
   private void writeRawTrackToMode(String mode) {
