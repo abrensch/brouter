@@ -514,10 +514,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     mWakeLock.release();
   }
 
-  private String getStorageState(File f) {
-    return EnvironmentCompat.getStorageState(f); //Environment.MEDIA_MOUNTED
-  }
-
   public ArrayList<File> getStorageDirectories() {
     ArrayList<File> list = null;
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -530,7 +526,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     if (list != null) {
       for (File f : list) {
         if (f != null) {
-          if (getStorageState(f).equals(Environment.MEDIA_MOUNTED))
+          if (EnvironmentCompat.getStorageState(f).equals(Environment.MEDIA_MOUNTED))
             res.add(f);
         }
       }

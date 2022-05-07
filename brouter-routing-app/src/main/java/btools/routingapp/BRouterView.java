@@ -171,24 +171,7 @@ public class BRouterView extends View {
       String basedir = baseDir.getAbsolutePath();
       AppLogger.log("using basedir: " + basedir);
 
-      String version = "v" + getContext().getString(R.string.app_version);
-
-      // create missing directories
-      assertDirectoryExists("project directory", new File(basedir, "brouter"), null, null);
-      segmentDir = new File(basedir, "/brouter/segments4");
-      if (assertDirectoryExists("data directory", segmentDir, "segments4.zip", null)) {
-        ConfigMigration.tryMigrateStorageConfig(
-          new File(basedir + "/brouter/segments3/storageconfig.txt"),
-          new File(basedir + "/brouter/segments4/storageconfig.txt"));
-      }
-      profileDir = new File(basedir, "brouter/profiles2");
-      assertDirectoryExists("profile directory", profileDir, "profiles2.zip", version);
-      modesDir = new File(basedir, "/brouter/modes");
-      assertDirectoryExists("modes directory", modesDir, "modes.zip", version);
-      assertDirectoryExists("readmes directory", new File(basedir, "brouter/readmes"), "readmes.zip", version);
-
-      File inputDir = new File(basedir, "brouter/import");
-      assertDirectoryExists("input directory", inputDir, null, version);
+      populateBasedir(basedir);
 
       // new init is done move old files
       if (waitingForMigration) {
@@ -292,6 +275,27 @@ public class BRouterView extends View {
       ((BRouterActivity) getContext()).showErrorMessage(msg + "\n" + AppLogger.formatThrowable(e));
     }
     waitingForSelection = true;
+  }
+
+  private void populateBasedir(String basedir) {
+    String version = "v" + getContext().getString(R.string.app_version);
+
+    // create missing directories
+    assertDirectoryExists("project directory", new File(basedir, "brouter"), null, null);
+    segmentDir = new File(basedir, "/brouter/segments4");
+    if (assertDirectoryExists("data directory", segmentDir, "segments4.zip", null)) {
+      ConfigMigration.tryMigrateStorageConfig(
+        new File(basedir + "/brouter/segments3/storageconfig.txt"),
+        new File(basedir + "/brouter/segments4/storageconfig.txt"));
+    }
+    profileDir = new File(basedir, "brouter/profiles2");
+    assertDirectoryExists("profile directory", profileDir, "profiles2.zip", version);
+    modesDir = new File(basedir, "/brouter/modes");
+    assertDirectoryExists("modes directory", modesDir, "modes.zip", version);
+    assertDirectoryExists("readmes directory", new File(basedir, "brouter/readmes"), "readmes.zip", version);
+
+    File inputDir = new File(basedir, "brouter/import");
+    assertDirectoryExists("input directory", inputDir, null, version);
   }
 
   private void moveFolders(String oldMigrationPath, String basedir) {
