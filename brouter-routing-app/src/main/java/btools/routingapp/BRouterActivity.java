@@ -9,8 +9,6 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.PowerManager;
-import android.os.PowerManager.WakeLock;
 import android.os.StatFs;
 import android.widget.EditText;
 
@@ -49,8 +47,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private static final int DIALOG_SHOW_API23_HELP_ID = 17;
   private final Set<Integer> dialogIds = new HashSet<>();
   private BRouterView mBRouterView;
-  private PowerManager mPowerManager;
-  private WakeLock mWakeLock;
   private String[] availableProfiles;
   private String selectedProfile = null;
   private List<File> availableBasedirs;
@@ -74,12 +70,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-
-    // Get an instance of the PowerManager
-    mPowerManager = (PowerManager) getSystemService(POWER_SERVICE);
-
-    // Create a bright wake lock
-    mWakeLock = mPowerManager.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, getClass().getName());
 
     ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
     int memoryClass = am.getMemoryClass();
@@ -442,28 +432,11 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   }
 
   @Override
-  protected void onResume() {
-    super.onResume();
-    /*
-     * when the activity is resumed, we acquire a wake-lock so that the screen
-     * stays on, since the user will likely not be fiddling with the screen or
-     * buttons.
-     */
-    mWakeLock.acquire();
-  }
-
-  @Override
   protected void onPause() {
     super.onPause();
-    /*
-     * When the activity is paused, we make sure to stop the router
-     */
 
-    // Stop the simulation
+    // When the activity is paused, we make sure to stop the router
     mBRouterView.stopRouting();
-
-    // and release our wake-lock
-    mWakeLock.release();
   }
 
   public ArrayList<File> getStorageDirectories() {
