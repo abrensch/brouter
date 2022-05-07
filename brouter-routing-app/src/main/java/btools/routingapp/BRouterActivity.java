@@ -55,7 +55,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private String[] availableWaypoints;
   private String[] routingModes;
   private boolean[] routingModesChecked;
-  private String defaultbasedir = null;
   private String message = null;
   private String[] availableVias;
   private Set<String> selectedVias;
@@ -206,7 +205,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         builder.setTitle("Enter SDCARD base dir:");
         builder.setMessage(message);
         final EditText input = new EditText(this);
-        input.setText(defaultbasedir);
+        // input.setText(defaultbasedir);
         builder.setView(input);
         builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
@@ -342,8 +341,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     }
   }
 
-  public void selectBasedir(ArrayList<File> items, String defaultBasedir, String message) {
-    this.defaultbasedir = defaultBasedir;
+  public void selectBasedir(ArrayList<File> items, String message) {
     this.message = message;
     availableBasedirs = items;
     ArrayList<Long> dirFreeSizes = new ArrayList<>();
