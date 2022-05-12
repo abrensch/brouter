@@ -22,9 +22,9 @@ has a surface=asphalt tag, it probably is. On the other hand, a grade5-track
 with surface=asphalt is primarily a grade5-track and you should not ignore that.
 Such logic is not implementable in one-dimensional parameter sets.
 
-See some [sample profiles](profiles2) provided for the online router.
+See some [sample profiles](https://brouter.de/brouter/profiles2/) provided for the online router.
 
-See the trekking-profile [`trekking.brf`](profiles2/trekking.brf) as the
+See the trekking-profile [`trekking.brf`](https://brouter.de/brouter/profiles2/trekking.brf) as the
 reference-profile with some explanations on the meaning of this script.
 
 See the [Profile Developers Guide](../developers/profile_developers_guide.md)

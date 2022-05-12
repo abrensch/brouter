@@ -8,8 +8,8 @@ nav_order: 4
 
 ## Profile Development
 
-BRouter offers [freely configurable routing
-profiles](../features/costfunctions.md). To extend existing profiles or develop
+BRouter offers [freely configurable routing profiles](../features/costfunctions.md).
+To extend existing profiles or develop
 you own profile see [Profile Developers Guide](profile_developers_guide.md) for
 a technical reference.
 
