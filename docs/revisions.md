@@ -223,7 +223,7 @@
 -   special, fast handling for trivial recalculations for timeout-free
     recalculations
 -   fixed the scaling for high-density screens in the download manager
--   added more [configuration options](kitkat_survival_readme.txt) to work
+-   added more [configuration options](https://brouter.de/brouter/kitkat_survival_readme.txt) to work
     around the kitkat (Android 4.4) issues
 
 ### [brouter_0_9_9.zip](../brouter_bin/brouter_0_9_9.zip) (18.4.2014, hot-fix 11.5.2014)

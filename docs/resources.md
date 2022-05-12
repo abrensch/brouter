@@ -17,6 +17,6 @@ Artikel zu BRouter:
 Vorträge zu BRouter auf der FOSSGIS Konferenz bei YouTube:
 
 - 2014: [Höhenbewusstes Routing mit Radardaten](https://www.youtube.com/watch?v=c0TehKCX4Ao)
-- 2015: [Neues zu BRouter](https://www.youtube.com/watch?v=Eba4fcYI4h4) [(lokales mp4)](brouter_bin/fossgis_2015_neues_zu_brouter.mp4)
+- 2015: [Neues zu BRouter](https://www.youtube.com/watch?v=Eba4fcYI4h4) [(lokales mp4)](https://brouter.de/brouter_bin/fossgis_2015_neues_zu_brouter.mp4)
 - 2018: [Energieeffizientes PKW Routing mit OpenStreetMap](https://youtu.be/IHV2sL7n0Qo)
-- 2020: [Routenplanung mit BRouter und BRouter-Web](https://www.youtube.com/watch?v=l6X2Sm1YDLs) [(lokales mp4)](brouter_bin/fossgis_2020_routenplanung.mp4)
+- 2020: [Routenplanung mit BRouter und BRouter-Web](https://www.youtube.com/watch?v=l6X2Sm1YDLs) [(lokales mp4)](https://brouter.de/brouter_bin/fossgis_2015_neues_zu_brouter.mp4)

@@ -26,8 +26,8 @@ recalculations.
 _routing-profiles_.
 
 `segments4` contains `storageconfig.txt` and routing data files (\*.rd5). You
-can download them using the _Download Manager_ or as described in [Download
-Routing Segments](users/download_segments.md).
+can download them using the _Download Manager_ or as described in
+[Download Routing Segments](download_segments.md).
 
 ### Configuration files
 
