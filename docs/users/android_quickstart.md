@@ -63,7 +63,7 @@ To use BRouter in your map tool you have to configure the map tool to use
 BRouter as navigation service.
 
 - [Instructions for LocusMap](https://docs.locusmap.eu/doku.php?id=manual:faq:how_to_navigate_offline)
-- [Instructions for OsmAnd](https://osmand.net/features/navigation-profiles#create_brouter)
+- [Instructions for OsmAnd](osmand.md)
 
   Note: OsmAnd only displays BRouter as navigation service if BRouter is
   installed. You have to install BRouter before configuring OsmAnd.
