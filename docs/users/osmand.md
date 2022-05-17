@@ -1,9 +1,14 @@
-Using BRouter on Android with OSMAnd
+---
+parent: Using BRouter
+title: OsmAnd
+---
+
+Using BRouter on Android with OsmAnd
 ====================================
 
-BRouter integration in OSMAnd changed a lot during the summer of 2019. This
+BRouter integration in OsmAnd changed a lot during the summer of 2019. This
 guide assumes you are using the BRouter Android app in version 1.5.0 or higher
-as well as OSMAnd in version 3.4 or higher.
+as well as OsmAnd in version 3.4 or higher.
 
 
 ## Installing BRouter app on your Android device
@@ -26,9 +31,9 @@ the areas you want to route in. Then click "Start Download" and BRouter will
 start downloading the [segments](http://brouter.de/brouter/segments4/) files
 for the selected areas.
 
-<img src="./brouter-main.png" alt="Main menu of BRouter android app"/>
+<img src="osmand/brouter-main.png" alt="Main menu of BRouter android app"/>
 
-<img src="./brouter-grid.png" alt="Grid selection of segments to download"/>
+<img src="osmand/brouter-grid.png" alt="Grid selection of segments to download"/>
 
 Note that you will have to repeat this step periodically, whenever you want to have an
 updated version of the OSM data used for the routing.
@@ -41,24 +46,24 @@ entry on the main menu. Select the routing profile you want to use and click
 "Server-Mode". Then, tick the boxes for the routing modes you want to use this
 profile for. You can use two different profiles per transportation mode, which
 will be mapped to the "shortest" and "fastest" presets (these are just
-labelling) in OSMAnd.
+labelling) in OsmAnd.
 
-<img src="./brouter-profiles.png" alt="Profiles selection"/>
+<img src="osmand/brouter-profiles.png" alt="Profiles selection"/>
 
-<img src="./brouter-profiles-summary.png" alt="Profiles selection summary"/>
+<img src="osmand/brouter-profiles-summary.png" alt="Profiles selection summary"/>
 
 
-## Configure OSMAnd to make use of BRouter offline navigation
+## Configure OsmAnd to make use of BRouter offline navigation
 
-You can now create an "Application profile" in OSMAnd which will be using
+You can now create an "Application profile" in OsmAnd which will be using
 BRouter for offline routing. Go to Settings -> Application profiles -> Add and
 create a new profile based on the base profile of your choice (cycling here,
 for bicycle routing), with a custom name of your choice ("BRouter" on the
 screenshot below) and making use of "BRouter (offline)" for navigation.
 
-<img src="./brouter-osmand.png" alt="BRouter configuration in OSMAnd
+<img src="osmand/brouter-osmand.png" alt="BRouter configuration in OsmAnd
 application profiles"/>
 
-The BRouter app should be launched before OSMAnd for this specific entry to
-appear in OSMAnd. Therefore, if you cannot find "BRouter (offline)" navigation
-option, you should force quit OSMAnd and restart it.
+The BRouter app should be launched before OsmAnd for this specific entry to
+appear in OsmAnd. Therefore, if you cannot find "BRouter (offline)" navigation
+option, you should force quit OsmAnd and restart it.
