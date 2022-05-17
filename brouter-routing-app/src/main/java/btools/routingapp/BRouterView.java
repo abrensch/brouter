@@ -1,5 +1,21 @@
 package btools.routingapp;
 
+import android.Manifest;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.os.Build;
+import android.os.Environment;
+import android.util.Log;
+import android.view.View;
+import android.widget.Toast;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -12,36 +28,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import android.Manifest;
-import android.app.Activity;
-import android.content.Context;
-import android.content.pm.PackageManager;
-import android.content.res.AssetManager;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.os.Build;
-import android.os.Environment;
-import android.util.DisplayMetrics;
-import android.util.Log;
-import android.view.View;
-import android.widget.Toast;
-
-
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
-import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.OsmNode;
 import btools.router.OsmNodeNamed;
@@ -108,11 +101,6 @@ public class BRouterView extends View {
 
   public void init() {
     try {
-      DisplayMetrics metrics = new DisplayMetrics();
-      ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(metrics);
-      imgw = metrics.widthPixels;
-      imgh = metrics.heightPixels;
-
       // get base dir from private file
       File baseDir = ConfigHelper.getBaseDir(getContext());
       // check if valid
@@ -123,6 +111,15 @@ public class BRouterView extends View {
         if (brd.isDirectory()) {
           if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q &&
             !brd.getAbsolutePath().contains("/Android/media/btools.routingapp")) {
+
+            // don't ask twice
+            String version = "v" + getContext().getString(R.string.app_version);
+            File vFile = new File(brd, "profiles2/"+version );
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
+                && vFile.exists()) {
+              startSetup(baseDir, false);
+              return;
+            }
             String message = "(previous basedir " + baseDir + " has to migrate )";
 
             ((BRouterActivity) getContext()).selectBasedir(((BRouterActivity) getContext()).getStorageDirectories(), guessBaseDir(), message);
@@ -204,7 +201,9 @@ public class BRouterView extends View {
 
       // new init is done move old files
       if (waitingForMigration) {
-        moveFolders(oldMigrationPath, basedir + "/brouter");
+        Log.d("BR", "path " + oldMigrationPath + " " + basedir);
+        if (!oldMigrationPath.equals(basedir + "/brouter"))
+          moveFolders(oldMigrationPath, basedir + "/brouter");
         waitingForMigration = false;
       }
 
@@ -254,7 +253,7 @@ public class BRouterView extends View {
         }
       }
       if (tracksDir == null) {
-        tracksDir = new File(basedir, "router"); // fallback
+        tracksDir = new File(basedir, "brouter"); // fallback
       }
 
       String[] fileNames = profileDir.list();
@@ -569,7 +568,7 @@ public class BRouterView extends View {
       // for profile remote, use ref-track logic same as service interface
       rc.rawTrackPath = rawTrackPath;
 
-      cr = new RoutingEngine(tracksDir + "/brouter", null, segmentDir, wpList, rc);
+      cr = new RoutingEngine(tracksDir.getAbsolutePath()+"/brouter", null, segmentDir, wpList, rc);
       cr.start();
       invalidate();
 
@@ -606,16 +605,18 @@ public class BRouterView extends View {
               break;
             String name = ze.getName();
             File outfile = new File(path, name);
-            outfile.getParentFile().mkdirs();
-            FileOutputStream fos = new FileOutputStream(outfile);
+            if (!outfile.exists()) {
+              outfile.getParentFile().mkdirs();
+              FileOutputStream fos = new FileOutputStream(outfile);
 
-            for (; ; ) {
-              int len = zis.read(data, 0, 1024);
-              if (len < 0)
-                break;
-              fos.write(data, 0, len);
+              for (; ; ) {
+                int len = zis.read(data, 0, 1024);
+                if (len < 0)
+                  break;
+                fos.write(data, 0, len);
+              }
+              fos.close();
             }
-            fos.close();
           }
           is.close();
           return true;
@@ -690,6 +691,8 @@ public class BRouterView extends View {
 
   @Override
   protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+    imgw = w;
+    imgh = h;
   }
 
   private void toast(String msg) {

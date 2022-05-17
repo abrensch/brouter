@@ -175,11 +175,11 @@ public class OsmNodeP extends OsmLinkP
     RestrictionData r = getFirstRestriction();
     while( r != null )
     {
-      if ( r.fromLon != 0 && r.toLon != 0 )
+      if ( r.isValid() && r.fromLon != 0 && r.toLon != 0 )
       {
         mc.writeBoolean( true ); // restriction follows
         mc.writeShort( r.exceptions );
-        mc.writeBoolean( r.isPositive );
+        mc.writeBoolean( r.isPositive() );
         mc.writeInt( r.fromLon );
         mc.writeInt( r.fromLat );
         mc.writeInt( r.toLon );

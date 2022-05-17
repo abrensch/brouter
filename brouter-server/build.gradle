@@ -56,6 +56,7 @@ distributions {
             exclude('**/softaccess.brf')
             from ('../misc') {
                 include 'readmes/*'
+                include 'readmes/osmand/*'
                 include 'profiles2/*'
             }
             from ('../brouter-routing-app/build/outputs/apk/api19/release') {

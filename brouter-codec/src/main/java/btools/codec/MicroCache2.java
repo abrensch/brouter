@@ -15,7 +15,7 @@ public final class MicroCache2 extends MicroCache
   private int latBase;
   private int cellsize;
 
-  public MicroCache2( int size, byte[] databuffer, int lonIdx, int latIdx, int divisor ) throws Exception
+  public MicroCache2( int size, byte[] databuffer, int lonIdx, int latIdx, int divisor )
   {
     super( databuffer ); // sets ab=databuffer, aboffset=0
 
@@ -34,7 +34,7 @@ public final class MicroCache2 extends MicroCache
   	return b;
   }
 
-  public MicroCache2( StatCoderContext bc, DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher ) throws Exception
+  public MicroCache2( StatCoderContext bc, DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher )
   {
     super( null );
     cellsize = 1000000 / divisor;

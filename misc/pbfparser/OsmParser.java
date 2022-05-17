@@ -140,6 +140,11 @@ public class OsmParser extends MapCreatorBase
       rListener.nextRelation( r );
       if ( fromWid == null || toWid == null || viaNid == null || viaNid.size() != 1 )
       {
+        // dummy-TR for each viaNid
+        for( int vi =  0; vi < ( viaNid == null ? 0 : viaNid.size() ); vi++ )
+        {
+          rListener.nextRestriction( r, 0L, 0L, viaNid.get( vi ) );
+        }
         return;
       }
       for( int fi =  0; fi < fromWid.size(); fi++ )
@@ -152,7 +157,7 @@ public class OsmParser extends MapCreatorBase
     }
     catch( Exception e )
     {
-      throw new RuntimeException( "error writing relation: " + e );
+      throw new RuntimeException( "error writing relation", e );
     } 
   }
 

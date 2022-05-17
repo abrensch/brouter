@@ -260,30 +260,11 @@ public class OsmCutter extends MapCreatorBase
   @Override
   public void nextRestriction( RelationData r, long fromWid, long toWid, long viaNid ) throws Exception
   {
-    if ( fromWid == 0 || toWid == 0 || viaNid == 0 )
-    {
-      return;
-    }
     String type = r.getTag( "type" );
     if ( type == null || !"restriction".equals( type ) )
     {
       return;
     }
-    String restriction = r.getTag( "restriction" );
-    if ( restriction == null )
-    {
-      return;
-    }
-    boolean isPositive = true;
-    if ( restriction.startsWith( "no_" ) )
-    {
-      isPositive = false;
-    }
-    else if ( !restriction.startsWith( "only_" ) )
-    {
-      return;
-    }
-
     short exceptions = 0;
     String except = r.getTag( "except" );
     if ( except != null )
@@ -296,23 +277,31 @@ public class OsmCutter extends MapCreatorBase
       exceptions |= toBit( "hgv"          , 4, except );
     }
 
-    // System.out.println( "restriction id = " + r.rid + " isPositive=" + isPositive + " fromWid = " + fromWid + " toWid = " + toWid+ " viaNid = " + viaNid );
-    RestrictionData res = new RestrictionData();
-    res.isPositive = isPositive;
-    res.exceptions = exceptions;
-    res.fromWid = fromWid;
-    res.toWid = toWid;
-    res.viaNid = viaNid;
-    
-    if ( restrictionsDos != null )
+    for( String restrictionKey : r.getTagsOrNull().keySet() )
     {
-      res.writeTo( restrictionsDos );
-    }
-    if ( restrictionCutter != null )
-    {
-      restrictionCutter.nextRestriction( res );
-    }
+      if ( !( restrictionKey.equals( "restriction" ) || restrictionKey.startsWith( "restriction:" ) ) )
+      {
+        continue;
+      }
+      String restriction = r.getTag( restrictionKey );
+
+      RestrictionData res = new RestrictionData();
+      res.restrictionKey = restrictionKey;
+      res.restriction = restriction;
+      res.exceptions = exceptions;
+      res.fromWid = fromWid;
+      res.toWid = toWid;
+      res.viaNid = viaNid;
     
+      if ( restrictionsDos != null )
+      {
+        res.writeTo( restrictionsDos );
+      }
+      if ( restrictionCutter != null )
+      {
+        restrictionCutter.nextRestriction( res );
+      }
+    }
   }
 
   private static short toBit( String tag, int bitpos, String s )
