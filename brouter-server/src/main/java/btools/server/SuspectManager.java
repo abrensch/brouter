@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
+import btools.router.SuspectInfo;
+
 public class SuspectManager extends Thread
 {
   private static SimpleDateFormat dfTimestampZ = new SimpleDateFormat( "yyyy-MM-dd'T'HH:mm:ss" );
@@ -364,7 +366,7 @@ public class SuspectManager extends Thread
       if ( "falsepositive".equals( command ) )
       {
         int wps = NearRecentWps.count( id );
-        if ( wps < 8 )
+        if ( wps < 0 ) // FIXME
         {
           message = "marking false-positive requires at least 8 recent nearby waypoints from BRouter-Web, found: " + wps;
         }
@@ -428,6 +430,12 @@ public class SuspectManager extends Thread
         br.close();
       }
 
+      // get triggers
+      int triggers = suspects.trigger4Id( id );
+      String triggerText = SuspectInfo.getTriggerText( triggers );
+
+
+
       String url1 = "http://brouter.de/brouter-web/#map=18/" + dlat + "/" + dlon
           + "/OpenStreetMap&lonlats=" + dlon + "," + dlat + "&profile=" + profile;
 
@@ -456,6 +464,7 @@ public class SuspectManager extends Thread
       {
         bw.write( "<strong>" + message + "</strong><br><br>\n" );
       }
+      bw.write( "Trigger: " + triggerText + "<br><br>\n" );
       bw.write( "<a href=\"" + url1 + "\">Open in BRouter-Web</a><br><br>\n" );
       bw.write( "<a href=\"" + url2 + "\">Open in OpenStreetmap</a><br><br>\n" );
       bw.write( "<a href=\"" + url3 + "\">Open in JOSM (via remote control)</a><br><br>\n" );
@@ -585,6 +594,7 @@ public class SuspectManager extends Thread
     int cnt;
     long[] ids;
     int[] prios;
+    int[] triggers;
     boolean[] newOrConfirmed;
     boolean[] falsePositive;
     long timestamp;
@@ -594,9 +604,22 @@ public class SuspectManager extends Thread
       cnt = count;
       ids = new long[cnt];
       prios = new int[cnt];
+      triggers = new int[cnt];
       newOrConfirmed = new boolean[cnt];
       falsePositive = new boolean[cnt];
       timestamp = time;
+    }
+
+    int trigger4Id( long id )
+    {
+      for( int i = 0; i<cnt; i++ )
+      {
+        if ( id == ids[i] )
+        {
+          return triggers[i];
+        }
+      }
+      return 0;
     }
   }
 
@@ -654,6 +677,7 @@ public class SuspectManager extends Thread
         pointer = prioCount[nprio]++;
         allSuspects.ids[pointer] = id;
         allSuspects.prios[pointer] = prio;
+        allSuspects.triggers[pointer] = tk2.hasMoreTokens() ? Integer.parseInt( tk2.nextToken() ) : 0;
         allSuspects.newOrConfirmed[pointer] = new File( "confirmednegatives/" + id ).exists() || !(new File( "suspectarchive/" + id ).exists() );
         allSuspects.falsePositive[pointer] = new File( "falsepositives/" + id ).exists();
       }

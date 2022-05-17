@@ -622,8 +622,8 @@ public abstract class BExpressionContext implements IByteArrayUnifier
       if ( lookupData2 != null )
       {
         // do not create unknown value for external data array,
-        // record as 'other' instead
-        lookupData2[inum] = 0;
+        // record as 'unknown' instead
+        lookupData2[inum] = 1; // 1 == unknown
  	    if (bFoundAsterix) {
 		  // found value for lookup *
 		  //System.out.println( "add unknown " + name + "  " + value );	

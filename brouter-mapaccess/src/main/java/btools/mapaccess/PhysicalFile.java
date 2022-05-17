@@ -31,13 +31,12 @@ final public class PhysicalFile
   {
     MicroCache.debug = true;
 
-    String message = checkFileIntegrity( new File( args[0] ) );
-
-    if ( message != null )
-    {
-      System.out.println( "************************************" );
-      System.out.println( message );
-      System.out.println( "************************************" );
+    try {
+      checkFileIntegrity( new File( args[0] ) );
+    } catch (IOException e) {
+      System.err.println( "************************************" );
+      e.printStackTrace();
+      System.err.println( "************************************" );
     }
   }
 
@@ -46,7 +45,7 @@ final public class PhysicalFile
    *
    * @return the error message if file corrupt, else null
    */
-  public static String checkFileIntegrity( File f )
+  public static String checkFileIntegrity( File f ) throws IOException
   {
     PhysicalFile pf = null;
     try
@@ -66,14 +65,6 @@ final public class PhysicalFile
         }
       }
     }
-    catch (IllegalArgumentException iae)
-    {
-      return iae.getMessage();
-    }
-    catch (Exception e)
-    {
-      return e.toString();
-    }
     finally
     {
       if ( pf != null )
@@ -88,7 +79,7 @@ final public class PhysicalFile
     return null;
   }
 
-  public PhysicalFile( File f, DataBuffers dataBuffers, int lookupVersion, int lookupMinorVersion ) throws Exception
+  public PhysicalFile( File f, DataBuffers dataBuffers, int lookupVersion, int lookupMinorVersion ) throws IOException
   {
     fileName = f.getName();
     byte[] iobuffer = dataBuffers.iobuffer;
@@ -102,7 +93,7 @@ final public class PhysicalFile
       short readVersion = (short)(lv >> 48);
       if ( i == 0 && lookupVersion != -1 && readVersion != lookupVersion )
       {
-        throw new IllegalArgumentException( "lookup version mismatch (old rd5?) lookups.dat="
+        throw new IOException( "lookup version mismatch (old rd5?) lookups.dat="
                  + lookupVersion + " " + f. getAbsolutePath() + "=" + readVersion );
       }
       fileIndex[i] = lv & 0xffffffffffffL;

@@ -255,8 +255,8 @@ abstract class OsmPath implements OsmLinkHolder
       if ( nsection == 0 && rc.considerTurnRestrictions && !detailMode&& !isStartpoint )
       {
         if ( rc.inverseDirection
-           ? TurnRestriction.isTurnForbidden( sourceNode.firstRestriction, lon2, lat2, lon0, lat0, rc.bikeMode, rc.carMode )
-           : TurnRestriction.isTurnForbidden( sourceNode.firstRestriction, lon0, lat0, lon2, lat2, rc.bikeMode, rc.carMode ) )
+           ? TurnRestriction.isTurnForbidden( sourceNode.firstRestriction, lon2, lat2, lon0, lat0, rc.bikeMode || rc.footMode, rc.carMode )
+           : TurnRestriction.isTurnForbidden( sourceNode.firstRestriction, lon0, lat0, lon2, lat2, rc.bikeMode || rc.footMode, rc.carMode ) )
         {
           cost = -1;
           return;
