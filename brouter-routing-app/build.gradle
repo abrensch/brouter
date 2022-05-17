@@ -14,14 +14,14 @@ android {
         versionName project.version
 
         resValue('string', 'app_version', defaultConfig.versionName)
-        setProperty("archivesBaseName","BRouterApp." + defaultConfig.versionName)
+        setProperty("archivesBaseName", "BRouterApp." + defaultConfig.versionName)
 
         minSdkVersion 14
     }
 
     sourceSets.main.assets.srcDirs += new File(project.buildDir, 'assets')
 
-    if(project.hasProperty("RELEASE_STORE_FILE")) {
+    if (project.hasProperty("RELEASE_STORE_FILE")) {
         signingConfigs {
             // this uses a file  ~/.gradle/gradle.properties
             // with content:
@@ -31,17 +31,17 @@ android {
             // RELEASE_KEY_PASSWORD=*****
             //
             release {
-               // enable signingConfig in buildTypes to get a signed apk file
-               storeFile file(RELEASE_STORE_FILE)
-               storePassword RELEASE_STORE_PASSWORD
-               keyAlias RELEASE_KEY_ALIAS
-               keyPassword RELEASE_KEY_PASSWORD
+                // enable signingConfig in buildTypes to get a signed apk file
+                storeFile file(RELEASE_STORE_FILE)
+                storePassword RELEASE_STORE_PASSWORD
+                keyAlias RELEASE_KEY_ALIAS
+                keyPassword RELEASE_KEY_PASSWORD
 
-               // Optional, specify signing versions used
-               v1SigningEnabled true
-               v2SigningEnabled true
+                // Optional, specify signing versions used
+                v1SigningEnabled true
+                v2SigningEnabled true
 
-           }
+            }
         }
     }
 
@@ -49,7 +49,7 @@ android {
         release {
             minifyEnabled false
             debuggable false
-            if(project.hasProperty("RELEASE_STORE_FILE")) {
+            if (project.hasProperty("RELEASE_STORE_FILE")) {
                 signingConfig signingConfigs.release
             }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -62,7 +62,8 @@ android {
     }
     lintOptions {
         disable 'InvalidPackage'
-        checkReleaseBuilds false //added this line to the build.gradle under the /android/app/build.gradle
+        checkReleaseBuilds false
+        //added this line to the build.gradle under the /android/app/build.gradle
     }
 
     compileOptions {
@@ -86,7 +87,11 @@ android {
     }
 
     applicationVariants.all {
-        variant -> tasks["merge${variant.name.capitalize()}Assets"].dependsOn(generateProfilesZip)
+        variant ->
+            {
+                tasks["merge${variant.name.capitalize()}Assets"].dependsOn(generateProfilesZip)
+                tasks["merge${variant.name.capitalize()}Assets"].dependsOn(generateReadmesZip)
+            }
     }
 }
 
@@ -108,15 +113,26 @@ task generateProfiles(type: Exec) {
 task generateProfilesZip(type: Zip) {
     if (DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) {
         logger.warn("Note: On Windows run script '../misc/scripts/generate_profile_variants.sh' manually to include all profiles")
-    }
-    else {
+    } else {
         dependsOn generateProfiles
     }
     archiveFileName = "profiles2.zip"
-    from "../misc/profiles2"
-    exclude "all.brf"
-    exclude "car-traffic_analysis.brf"
-    exclude "car-vario.brf"
-    exclude "softaccess.brf"
-    destinationDirectory = layout.buildDirectory.dir('assets')
+    from("../misc/profiles2") {
+        exclude "all.brf"
+        exclude "car-traffic_analysis.brf"
+        exclude "car-vario.brf"
+        exclude "softaccess.brf"
+    }
+    destinationDirectory = layout.buildDirectory.dir("assets")
+}
+
+task generateReadmesZip(type: Zip) {
+    archiveFileName = "readmes.zip"
+    from("../docs") {
+        include("users/android_quickstart.md")
+        include("users/android_advanced.md")
+        include("developers/profile_developers_guide.md")
+        include("developers/build_segments.md")
+    }
+    destinationDirectory = layout.buildDirectory.dir("assets")
 }
