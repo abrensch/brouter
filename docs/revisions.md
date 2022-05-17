@@ -2,7 +2,15 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### [brouter_1_6_1.zip](../brouter_bin/brouter_1_6_1.zip) (current revision, 01.03.2020)
+### [brouter-1.6.3.zip](../brouter_bin/brouter-1.6.3.zip) (current revision, 21.12.2021)
+
+-   Enable Android 11
+-   Move storage to /Android/media/btools.routingapp
+-   Coord reader in app specific folder (favourites.gpx and nogo*.gpx)
+-   new Logo
+-   increased download speed limit from 4 to 16 MBit/s
+
+### [brouter_1_6_1.zip](../brouter_bin/brouter_1_6_1.zip) (01.03.2020)
 
 -   download manager: direct jump-in zoom to workaround a problem with
     S10+Android10
