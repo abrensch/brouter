@@ -21,8 +21,8 @@ interface IBRouterService {
     //
     //  "lonlats"         = lon,lat|... (unlimited list of lon,lat waypoints separated by |)
     //  "nogos"           = lon,lat,radius|... (optional, radius in meters)
-    //  "polylines"       = lon,lat,weight|... (unlimited list of lon,lat and weight (optional) separated by |)
-    //  "polygons"        = lon,lat,weight|... (unlimited list of lon,lat and weight (optional) separated by |)
+    //  "polylines"       = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
+    //  "polygons"        = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
     //  "profile"         = profile file name without .brf 
     //  "alternativeidx"  = [0|1|2|3] (optional, default 0)
     //  "exportWaypoints" = 1 to export them (optional, default is no export)
