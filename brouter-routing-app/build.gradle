@@ -89,7 +89,11 @@ android {
     }
 
     applicationVariants.all {
-        variant -> tasks["merge${variant.name.capitalize()}Assets"].dependsOn(generateProfilesZip)
+        variant ->
+            {
+                tasks["merge${variant.name.capitalize()}Assets"].dependsOn(generateProfilesZip)
+                tasks["merge${variant.name.capitalize()}Assets"].dependsOn(generateReadmesZip)
+            }
     }
 }
 
@@ -122,10 +126,22 @@ task generateProfilesZip(type: Zip) {
         dependsOn generateProfiles
     }
     archiveFileName = "profiles2.zip"
-    from "../misc/profiles2"
-    exclude "all.brf"
-    exclude "car-traffic_analysis.brf"
-    exclude "car-vario.brf"
-    exclude "softaccess.brf"
-    destinationDirectory = layout.buildDirectory.dir('assets')
+    from("../misc/profiles2") {
+        exclude "all.brf"
+        exclude "car-traffic_analysis.brf"
+        exclude "car-vario.brf"
+        exclude "softaccess.brf"
+    }
+    destinationDirectory = layout.buildDirectory.dir("assets")
+}
+
+task generateReadmesZip(type: Zip) {
+    archiveFileName = "readmes.zip"
+    from("../docs") {
+        include("users/android_quickstart.md")
+        include("users/android_advanced.md")
+        include("developers/profile_developers_guide.md")
+        include("developers/build_segments.md")
+    }
+    destinationDirectory = layout.buildDirectory.dir("assets")
 }

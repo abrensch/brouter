@@ -15,7 +15,7 @@ You can install the BRouter app on your Android device from
 Store](https://play.google.com/store/apps/details?id=btools.routingapp). You
 can also [build BRouter](#build-and-install) yourself. You can find detailed
 documentation of the BRouter Android app in
-[`misc/readmes/readme.txt`](misc/readmes/readme.txt).
+[`docs/users/android_quickstart.md`](docs/users/android_quickstart.md).
 
 <a href="https://f-droid.org/packages/btools.routingapp" target="_blank">
 <img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="90"/></a>
@@ -39,7 +39,7 @@ Alternatively, you can also use BRouter as the offline routing engine for
 [OSMAnd](https://osmand.net/) on your Android device.
 
 A full documentation on how to set this up is available at
-[`misc/readmes/osmand/README.md`](misc/readmes/osmand/README.md).
+[`docs/users/osmand.md`](docs/users/osmand.md).
 
 
 ## BRouter on Windows/Linux/Mac OS
@@ -106,7 +106,7 @@ You can also generate the segments files you need directly from a planet dump
 of OpenStreetMap data (or a [GeoFabrik extract](https://download.geofabrik.de/)).
 
 More documentation of this is available in the
-[`misc/readmes/mapcreation.md`](misc/readmes/mapcreation.md) file.
+[`docs/developers/build_segments.md`](docs/developers/build_segments.md) file.
 
 
 ### (Optional) Generate profile variants
@@ -120,7 +120,7 @@ to help you quickly generate variants based on the default profiles, to create
 a default set of profiles covering most of the basic use cases.
 
 Have a look at the
-[`misc/readmes/profile_developers_guide.txt`](misc/readmes/profile_developers_guide.txt)
+[`docs/developers/profile_developers_guide.md`](docs/developers/profile_developers_guide.md)
 for an in-depth guide on profiles edition and customization.
 
 
@@ -140,7 +140,7 @@ file.
 
 ## Documentation
 
-More documentation is available in the [`misc/readmes`](misc/readmes) folder.
+More documentation is available in the [`docs`](docs) folder.
 
 
 ## Related Projects
