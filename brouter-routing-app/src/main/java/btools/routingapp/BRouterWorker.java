@@ -319,39 +319,6 @@ public class BRouterWorker {
 
   private static void parseNogoPolygons(String polygons, List<OsmNodeNamed> result, boolean closed) {
     if (polygons != null) {
-      OsmNogoPolygon polygon = new OsmNogoPolygon(closed);
-      polygon.name = "nogopoly";
-      String nogoWeight = "NaN";
-      String[] polygonList = polygons.split("\\|");
-      for (int i = 0; i < polygonList.length; i++) {
-        String[] lonLatList = polygonList[i].split(",");
-        if (lonLatList.length > 1) {
-          int j;
-          for (j = 0; j < 2 * (lonLatList.length / 2) - 1; ) {
-            String slon = lonLatList[j++];
-            String slat = lonLatList[j++];
-            int lon = (int) ((Double.parseDouble(slon) + 180.) * 1000000. + 0.5);
-            int lat = (int) ((Double.parseDouble(slat) + 90.) * 1000000. + 0.5);
-            polygon.addVertex(lon, lat);
-          }
-
-
-          if (j < lonLatList.length) {
-            nogoWeight = lonLatList[j];
-          }
-        }
-      }
-      polygon.nogoWeight = Double.parseDouble(nogoWeight);
-
-      if (polygon.points.size() > 0) {
-        polygon.calcBoundingCircle();
-        result.add(polygon);
-      }
-    }
-  }
-
-  private static void parseNogoPolygons_alt(String polygons, List<OsmNodeNamed> result, boolean closed) {
-    if (polygons != null) {
       String[] polygonList = polygons.split("\\|");
       for (int i = 0; i < polygonList.length; i++) {
         String[] lonLatList = polygonList[i].split(",");
