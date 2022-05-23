@@ -328,6 +328,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
 
   public void selectProfile(String[] items) {
     availableProfiles = items;
+    Arrays.sort(availableProfiles);
 
     // show main dialog
     showDialog(DIALOG_MAINACTION_ID);
