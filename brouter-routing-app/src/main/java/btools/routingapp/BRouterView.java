@@ -603,6 +603,9 @@ public class BRouterView extends View {
             ZipEntry ze = zis.getNextEntry();
             if (ze == null)
               break;
+            if (ze.isDirectory()) {
+              continue;
+            }
             String name = ze.getName();
             File outfile = new File(path, name);
             if (!outfile.exists()) {
