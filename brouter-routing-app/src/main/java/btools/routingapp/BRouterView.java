@@ -2,6 +2,7 @@ package btools.routingapp;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.graphics.Canvas;
@@ -13,6 +14,7 @@ import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -68,6 +70,7 @@ public class BRouterView extends View {
   private boolean waitingForMigration = false;
   private String rawTrackPath;
   private String oldMigrationPath;
+  private String trackOutfile;
   private boolean needsViaSelection;
   private boolean needsNogoSelection;
   private boolean needsWaypointSelection;
@@ -283,21 +286,19 @@ public class BRouterView extends View {
     }
   }
 
-  private void moveFile(String inputPath, String inputFile, String outputPath) {
-
+  private void copyFile(String inputPath, String inputFile, String outputPath) {
     InputStream in;
     OutputStream out;
-    try {
 
+    try {
       //create output directory if it doesn't exist
       File dir = new File(outputPath);
       if (!dir.exists()) {
         dir.mkdirs();
       }
 
-
-      in = new FileInputStream(inputPath + "/" + inputFile);
-      out = new FileOutputStream(outputPath + "/" + inputFile);
+      in = new FileInputStream(new File(inputPath, inputFile));
+      out = new FileOutputStream(new File(outputPath, inputFile));
 
       byte[] buffer = new byte[1024];
       int read;
@@ -310,16 +311,17 @@ public class BRouterView extends View {
       out.flush();
       out.close();
 
-      // delete the original file
-      new File(inputPath + "/" + inputFile).delete();
-
-
-    } catch (FileNotFoundException fnfe1) {
-      Log.e("tag", fnfe1.getMessage());
+    } catch (FileNotFoundException fileNotFoundException) {
+      Log.e("tag", fileNotFoundException.getMessage());
     } catch (Exception e) {
       Log.e("tag", e.getMessage());
     }
+  }
 
+  private void moveFile(String inputPath, String inputFile, String outputPath) {
+    copyFile(inputPath, inputFile, outputPath);
+    // delete the original file
+    new File(inputPath, inputFile).delete();
   }
 
   public boolean hasUpToDateLookups() {
@@ -707,6 +709,7 @@ public class BRouterView extends View {
             title += " / " + cr.getAlternativeIndex() + ". Alternative";
 
           ((BRouterActivity) getContext()).showResultMessage(title, result, rawTrackPath == null ? -1 : -3);
+          trackOutfile = cr.getOutfile();
         }
         cr = null;
         waitingForSelection = true;
@@ -848,4 +851,16 @@ public class BRouterView extends View {
     ((BRouterActivity) getContext()).showModeConfigOverview(msg.toString());
   }
 
+  public void shareTrack() {
+    File track = new File(trackOutfile);
+    // Copy file to cache to ensure FileProvider allows sharing the file
+    File cacheDir = getContext().getCacheDir();
+    copyFile(track.getParent(), track.getName(), cacheDir.getAbsolutePath());
+    Intent intent = new Intent();
+    intent.setDataAndType(FileProvider.getUriForFile(getContext(), "btools.routing.fileprovider", new File(cacheDir, track.getName())),
+      "application/gpx+xml");
+    intent.setAction(Intent.ACTION_VIEW);
+    intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    getContext().startActivity(intent);
+  }
 }

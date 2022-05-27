@@ -122,16 +122,16 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
             "*** Attention: ***\n\n" + "The Download Manager is used to download routing-data "
               + "files which can be up to 170MB each. Do not start the Download Manager " + "on a cellular data connection without a data plan! "
               + "Download speed is restricted to 16 MBit/s.").setPositiveButton("I know", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            Intent intent = new Intent(BRouterActivity.this, BInstallerActivity.class);
-            startActivity(intent);
-            showNewDialog(DIALOG_MAINACTION_ID);
-          }
-        }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            finish();
-          }
-        });
+            public void onClick(DialogInterface dialog, int id) {
+              Intent intent = new Intent(BRouterActivity.this, BInstallerActivity.class);
+              startActivity(intent);
+              showNewDialog(DIALOG_MAINACTION_ID);
+            }
+          }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+              finish();
+            }
+          });
         return builder.create();
       case DIALOG_SHOW_API23_HELP_ID:
         builder
@@ -148,10 +148,10 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
               + "the APK of the BRouter App from the release page ( http://brouter.de/brouter/revisions.html ), which "
               + "is still built against Android API 10, and does not have these limitations. "
           ).setNegativeButton("Exit", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            finish();
-          }
-        });
+            public void onClick(DialogInterface dialog, int id) {
+              finish();
+            }
+          });
         return builder.create();
       case DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID:
         builder
@@ -161,10 +161,10 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
               + "when started from your map-tool. If you repeat the same request from your "
               + "maptool, with the exact same destination point and a close-by starting point, "
               + "this request is guaranteed not to time out.").setNegativeButton("Exit", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            finish();
-          }
-        });
+            public void onClick(DialogInterface dialog, int id) {
+              finish();
+            }
+          });
         return builder.create();
       case DIALOG_OLDDATAHINT_ID:
         builder
@@ -272,31 +272,49 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         });
         return builder.create();
       case DIALOG_SHOWRESULT_ID:
-        String leftLabel = wpCount < 0 ? (wpCount != -2 ? "Exit" : "Help") : (wpCount == 0 ? "Select from" : "Select to/via");
-        String rightLabel = wpCount < 2 ? (wpCount == -3 ? "Help" : "Server-Mode") : "Calc Route";
+        // -3: Repeated route calculation
+        // -2: No waypoints?
+        // -1: Route calculated
+        // other: Select waypoints for route calculation
+        builder.setTitle(title).setMessage(errorMessage);
 
-        builder.setTitle(title).setMessage(errorMessage).setPositiveButton(leftLabel, new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            if (wpCount == -2) {
-              showWaypointDatabaseHelp();
-            } else if (wpCount == -1 || wpCount == -3) {
-              finish();
-            } else {
-              mBRouterView.pickWaypoints();
-            }
-          }
-        }).setNegativeButton(rightLabel, new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            if (wpCount == -3) {
-              showRepeatTimeoutHelp();
-            } else if (wpCount < 2) {
-              mBRouterView.startConfigureService();
-            } else {
-              mBRouterView.finishWaypointSelection();
-              mBRouterView.startProcessing(selectedProfile);
-            }
-          }
+        // Neutral button
+        if (wpCount == 0) {
+          builder.setNeutralButton("Server-Mode", (dialog, which) -> {
+            mBRouterView.startConfigureService();
+          });
+        } else if (wpCount == -3) {
+          builder.setNeutralButton("Info", (dialog, which) -> {
+            showRepeatTimeoutHelp();
+          });
+        } else if (wpCount == -2) {
+          builder.setNeutralButton("Help", (dialog, which) -> {
+            showWaypointDatabaseHelp();
+          });
+        } else if (wpCount >= 2) {
+          builder.setNeutralButton("Calc Route", (dialog, which) -> {
+            mBRouterView.finishWaypointSelection();
+            mBRouterView.startProcessing(selectedProfile);
+          });
+        }
+
+        // Positive button
+        if (wpCount == -3 || wpCount == -1) {
+          builder.setPositiveButton("Share GPX", (dialog, which) -> {
+            mBRouterView.shareTrack();
+          });
+        } else if (wpCount >= 0) {
+          String selectLabel = wpCount == 0 ? "Select from" : "Select to/via";
+          builder.setPositiveButton(selectLabel, (dialog, which) -> {
+            mBRouterView.pickWaypoints();
+          });
+        }
+
+        // Negative button
+        builder.setNegativeButton("Exit", (dialog, which) -> {
+          finish();
         });
+
         return builder.create();
       case DIALOG_MODECONFIGOVERVIEW_ID:
         builder.setTitle("Success").setMessage(message).setPositiveButton("Exit", new DialogInterface.OnClickListener() {
