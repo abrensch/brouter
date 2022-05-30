@@ -181,18 +181,23 @@ public class BInstallerActivity extends AppCompatActivity {
             String result;
             switch (workInfo.getState()) {
               case FAILED:
-                result = "failed.";
+                result = "Download failed";
                 break;
               case CANCELLED:
-                result = "cancelled";
+                result = "Download cancelled";
                 break;
               case SUCCEEDED:
-                result = "succeeded";
+                result = "Download succeeded";
                 break;
               default:
                 result = "";
             }
-            Toast.makeText(this, "Download " + result + ".", Toast.LENGTH_SHORT).show();
+            if (workInfo.getState() != WorkInfo.State.FAILED) {
+              Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
+            } else {
+              String error = workInfo.getOutputData().getString(DownloadWorker.KEY_OUTPUT_ERROR);
+              Toast.makeText(this, result + ": " + error, Toast.LENGTH_LONG).show();
+            }
             mProgressIndicator.hide();
             scanExistingFiles();
           }

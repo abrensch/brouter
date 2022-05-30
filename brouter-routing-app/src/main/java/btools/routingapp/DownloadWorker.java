@@ -32,6 +32,7 @@ import btools.util.ProgressListener;
 
 public class DownloadWorker extends Worker {
   public static final String KEY_INPUT_SEGMENT_NAMES = "SEGMENT_NAMES";
+  public static final String KEY_OUTPUT_ERROR = "ERROR";
   public static final String PROGRESS_SEGMENT_NAME = "PROGRESS_SEGMENT_NAME";
   public static final String PROGRESS_SEGMENT_PERCENT = "PROGRESS_SEGMENT_PERCENT";
 
@@ -128,6 +129,7 @@ public class DownloadWorker extends Worker {
   @Override
   public Result doWork() {
     Data inputData = getInputData();
+    Data.Builder output = new Data.Builder();
     String[] segmentNames = inputData.getStringArray(KEY_INPUT_SEGMENT_NAMES);
     if (segmentNames == null) {
       if (DEBUG) Log.d(LOG_TAG, "Failure: no segmentNames");
@@ -147,10 +149,12 @@ public class DownloadWorker extends Worker {
       }
     } catch (IOException e) {
       Log.w(LOG_TAG, e);
-      return Result.failure();
+      output.putString(KEY_OUTPUT_ERROR, e.toString());
+      return Result.failure(output.build());
     } catch (InterruptedException e) {
       Log.w(LOG_TAG, e);
-      return Result.failure();
+      output.putString(KEY_OUTPUT_ERROR, e.toString());
+      return Result.failure(output.build());
     }
     if (DEBUG) Log.d(LOG_TAG, "doWork finished");
     return Result.success();
@@ -242,7 +246,7 @@ public class DownloadWorker extends Worker {
     connection.connect();
 
     if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-      throw new IOException("HTTP Request failed");
+      throw new IOException("HTTP Request failed: " + downloadUrl + " returned " + connection.getResponseCode());
     }
     int fileLength = connection.getContentLength();
     try (
