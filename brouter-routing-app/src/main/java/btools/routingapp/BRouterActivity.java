@@ -44,7 +44,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private static final int DIALOG_MAINACTION_ID = 12;
   private static final int DIALOG_OLDDATAHINT_ID = 13;
   private static final int DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID = 16;
-  private static final int DIALOG_SHOW_API23_HELP_ID = 17;
   private final Set<Integer> dialogIds = new HashSet<>();
   private BRouterView mBRouterView;
   private String[] availableProfiles;
@@ -128,26 +127,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
               showNewDialog(DIALOG_MAINACTION_ID);
             }
           }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-              finish();
-            }
-          });
-        return builder.create();
-      case DIALOG_SHOW_API23_HELP_ID:
-        builder
-          .setTitle("Android >=6 limitations")
-          .setMessage(
-            "You are using the BRouter APP on Android >= 6, where classic mode is no longer supported. "
-              + "Reason is that security policy does not permit any longer to read the waypoint databases of other apps. "
-              + "That's o.k. if you want to use BRouter in server-mode only, where the apps actively send the waypoints "
-              + "via a remote procedure call to BRouter (And Locus can also send nogo areas). "
-              + "So the only functions you need to start the BRouter App are 1) to initially define the base directory "
-              + "2) to download routing data files and 3) to configure the profile mapping via the 'Server-Mode' button. "
-              + "You will eventually not be able to define nogo-areas (OsmAnd, Orux) or to do "
-              + "very long distance calculations. If you want to get classic mode back, you can manually install "
-              + "the APK of the BRouter App from the release page ( http://brouter.de/brouter/revisions.html ), which "
-              + "is still built against Android API 10, and does not have these limitations. "
-          ).setNegativeButton("Exit", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               finish();
             }
@@ -273,7 +252,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         return builder.create();
       case DIALOG_SHOWRESULT_ID:
         // -3: Repeated route calculation
-        // -2: No waypoints?
+        // -2: Unused?
         // -1: Route calculated
         // other: Select waypoints for route calculation
         builder.setTitle(title).setMessage(errorMessage);
@@ -286,10 +265,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         } else if (wpCount == -3) {
           builder.setNeutralButton("Info", (dialog, which) -> {
             showRepeatTimeoutHelp();
-          });
-        } else if (wpCount == -2) {
-          builder.setNeutralButton("Help", (dialog, which) -> {
-            showWaypointDatabaseHelp();
           });
         } else if (wpCount >= 2) {
           builder.setNeutralButton("Calc Route", (dialog, which) -> {
@@ -413,10 +388,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   public void selectWaypoint(String[] items) {
     availableWaypoints = items;
     showNewDialog(DIALOG_PICKWAYPOINT_ID);
-  }
-
-  public void showWaypointDatabaseHelp() {
-    showNewDialog(DIALOG_SHOW_API23_HELP_ID);
   }
 
   public void showRepeatTimeoutHelp() {
