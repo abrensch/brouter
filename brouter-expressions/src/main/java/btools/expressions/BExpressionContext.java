@@ -941,6 +941,15 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     if ( num != null )
     {
       variableData[num.intValue()] = value;
+    } else if (create) {
+      num = getVariableIdx( name, create );
+      float[] readOnlyData = variableData;
+	  int minWriteIdx = readOnlyData.length;
+      variableData = new float[variableNumbers.size()];
+      for( int i=0; i<minWriteIdx; i++ ) {
+        variableData[i] = readOnlyData[i];
+      }
+	  variableData[num.intValue()] = value;
     }
   }
 
@@ -962,7 +971,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier
     {
       if ( create )
       {
-        num = new Integer( variableNumbers.size() );
+        num = Integer.valueOf( variableNumbers.size() );
         variableNumbers.put( name, num );
       }
       else

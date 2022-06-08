@@ -96,6 +96,27 @@ public class VoiceHint
     }
   }
   
+  public String getCommandString(int c)
+  {
+    switch ( c )
+    {
+      case TU   : return "TU";
+      case TSHL : return "TSHL";
+      case TL   : return "TL";
+      case TSLL : return "TSLL";
+      case KL   : return "KL";
+      case C    : return "C";
+      case KR   : return "KR";
+      case TSLR : return "TSLR";
+      case TR   : return "TR";
+      case TSHR : return "TSHR";
+      case TRU  : return "TRU";
+      case RNDB : return "RNDB" + roundaboutExit;
+      case RNLB : return "RNLB" + (-roundaboutExit);
+      default : return "unknown command: " + c ;
+    }
+  }
+
   public String getSymbolString()
   {
     switch ( cmd )

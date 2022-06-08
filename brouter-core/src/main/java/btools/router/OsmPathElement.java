@@ -71,6 +71,14 @@ public class OsmPathElement implements OsmPos
     }
   }
 
+  public final void setAngle( float e )
+  {
+    if ( message != null )
+    {
+      message.turnangle = e;
+    }
+  }
+
   public final long getIdFromPos()
   {
     return ((long)ilon)<<32 | ilat;
@@ -114,6 +122,11 @@ public class OsmPathElement implements OsmPos
   public String toString()
   {
     return ilon + "_" + ilat;
+  }
+
+  public boolean equals(OsmPathElement e) {
+	  //RoutingEngine.equalCounter++;
+	  return this.ilat == e.ilat && this.ilon == e.ilon;
   }
 
   public void writeToStream( DataOutput dos ) throws IOException

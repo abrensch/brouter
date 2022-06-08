@@ -80,6 +80,8 @@ public final class RoutingContext
   public boolean transitonly;
 
   public double waypointCatchingRange;
+  public boolean avoidPeaks;
+  public double avoidPeaksDistance;
 
   private void setModel( String className )
   {
@@ -128,8 +130,8 @@ public final class RoutingContext
       // add parameter to context
       for (Map.Entry<String, String> e : keyValues.entrySet()) {
         float f = Float.parseFloat(e.getValue());
-        expctxWay.setVariableValue(e.getKey(), f, false );
-        expctxNode.setVariableValue(e.getKey(), f, false );
+        expctxWay.setVariableValue(e.getKey(), f, true );
+        expctxNode.setVariableValue(e.getKey(), f, true );
       }
     }
 
@@ -150,6 +152,9 @@ public final class RoutingContext
     // turn-restrictions not used per default for foot profiles
     considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue( "considerTurnRestrictions", footMode ? 0.f : 1.f );
 
+    avoidPeaks =  0.f != expctxGlobal.getVariableValue( "avoidPeaks", 1.f );
+    avoidPeaksDistance =  expctxGlobal.getVariableValue( "avoidPeaksDistance", 0.f );
+	
     // process tags not used in the profile (to have them in the data-tab)
     processUnusedTags = 0.f != expctxGlobal.getVariableValue( "processUnusedTags", 0.f );
 
@@ -182,7 +187,7 @@ public final class RoutingContext
     inverseRouting = 0.f != expctxGlobal.getVariableValue( "inverseRouting", 0.f );
 
     int tiMode = (int)expctxGlobal.getVariableValue( "turnInstructionMode", 0.f );
-    if ( tiMode != 1 ) // automatic selection from coordinate source
+    //if ( tiMode != 1 ) // automatic selection from coordinate source
     {
       turnInstructionMode = tiMode;
     }

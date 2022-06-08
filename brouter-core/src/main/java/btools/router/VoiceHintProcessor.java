@@ -10,12 +10,16 @@ import java.util.List;
 
 public final class VoiceHintProcessor
 {
+	
+  double SIGNIFICANT_ANGLE = 22.5;
+  double INTERNAL_CATCHING_RANGE = 2.;
+
   private double catchingRange; // range to catch angles and merge turns
   private boolean explicitRoundabouts;
 
   public VoiceHintProcessor( double catchingRange, boolean explicitRoundabouts )
   {
-    this.catchingRange = catchingRange;
+    this.catchingRange = catchingRange; 
     this.explicitRoundabouts = explicitRoundabouts;
   }
 
@@ -23,7 +27,7 @@ public final class VoiceHintProcessor
   {
     double distance = 0.;
     float angle = 0.f;
-    while( offset >= 0 && distance < catchingRange )
+    while( offset >= 0 && distance < INTERNAL_CATCHING_RANGE )
     {
       VoiceHint input = inputs.get( offset-- );
       if ( input.turnAngleConsumed )
@@ -168,11 +172,12 @@ public final class VoiceHintProcessor
       // unconditional triggers are all junctions with
       // - higher detour prios than the minimum route prio (except link->highway junctions)
       // - or candidate detours with higher prio then the route exit leg
-      boolean unconditionalTrigger = hasSomethingMoreStraight || ( maxPrioAll > minPrio && !isLink2Highway ) || ( maxPrioCandidates > currentPrio );
+      boolean unconditionalTrigger = hasSomethingMoreStraight || ( maxPrioAll > minPrio && !isLink2Highway ) || ( maxPrioCandidates > currentPrio ) || ( Math.abs(turnAngle) == 180f );
 
       // conditional triggers (=real turning angle required) are junctions
       // with candidate detours equal in priority than the route exit leg
       boolean conditionalTrigger = maxPrioCandidates >= minPrio;
+
 
       if ( unconditionalTrigger || conditionalTrigger )
       {
@@ -181,22 +186,25 @@ public final class VoiceHintProcessor
         boolean isStraight = input.cmd == VoiceHint.C;
         input.needsRealTurn = (!unconditionalTrigger) && isStraight;
 
+
         // check for KR/KL
-        if ( maxAngle < turnAngle && maxAngle > turnAngle - 45.f - (turnAngle > 0.f ? turnAngle : 0.f ) )
-        {
-          input.cmd = VoiceHint.KR;
-        }
-        if ( minAngle > turnAngle && minAngle < turnAngle + 45.f - (turnAngle < 0.f ? turnAngle : 0.f ) )
-        {
-          input.cmd = VoiceHint.KL;
-        }
+   		if (Math.abs(turnAngle) > 5.) { // don't use to small angles
+          if ( maxAngle < turnAngle && maxAngle > turnAngle - 45.f - (turnAngle > 0.f ? turnAngle : 0.f ) )
+          {
+            input.cmd = VoiceHint.KR;
+          }
+          if ( minAngle > turnAngle && minAngle < turnAngle + 45.f - (turnAngle < 0.f ? turnAngle : 0.f ) )
+          {
+            input.cmd = VoiceHint.KL;
+          }
+		}
 
         input.angle = sumNonConsumedWithinCatchingRange( inputs, hintIdx );
         input.distanceToNext = distance;
         distance = 0.;
         results.add( input );
       }
-      if ( results.size() > 0 && distance < catchingRange )
+      if ( results.size() > 0 && distance <  INTERNAL_CATCHING_RANGE) //catchingRange
       {
         results.get( results.size()-1 ).angle += sumNonConsumedWithinCatchingRange( inputs, hintIdx );
       }
@@ -214,11 +222,11 @@ public final class VoiceHintProcessor
       {
         hint.calcCommand();
       }
-      if ( ! ( hint.needsRealTurn && hint.cmd == VoiceHint.C ) )
+     if ( ! ( hint.needsRealTurn && hint.cmd == VoiceHint.C ) )
       {
         double dist = hint.distanceToNext;
         // sum up other hints within the catching range (e.g. 40m)
-        while( dist < catchingRange && i > 0 )
+        while( dist < INTERNAL_CATCHING_RANGE && i > 0 )
         {
           VoiceHint h2 = results.get(i-1);
           dist = h2.distanceToNext;
@@ -241,7 +249,44 @@ public final class VoiceHintProcessor
         results2.add( hint );
       }
     }
+	
     return results2;
   }
+
+  public List<VoiceHint> postProcess( List<VoiceHint> inputs, double catchingRange  ) {
+	List<VoiceHint> results = new ArrayList<VoiceHint>();
+	double distance = 0;
+	VoiceHint inputLast = null;
+    for ( int hintIdx = 0; hintIdx < inputs.size(); hintIdx++ ) {
+      VoiceHint input = inputs.get( hintIdx );
+
+      float turnAngle = input.goodWay.turnangle;
+      distance += input.goodWay.linkdist;
+	  if (input.distanceToNext < catchingRange) {
+        double dist = input.distanceToNext;
+		int i = 1;
+        while( dist < catchingRange && hintIdx+i < inputs.size()) {
+          VoiceHint h2 = inputs.get(hintIdx+i);
+          dist += h2.distanceToNext;
+		  if (Math.abs(input.angle) > SIGNIFICANT_ANGLE) {		// drop only small angle
+			results.add(input);
+		  } else {
+			if (inputLast != null) { // when drop add distance to last
+			  inputLast.distanceToNext += input.distanceToNext;	
+			}
+		  }
+		  i++;
+		  break; // run only one time at the moment
+		}
+		if (i==1) results.add(input);	// add when last
+      }
+	  else {
+	    results.add(input);
+	  }
+	  inputLast = input;
+	}
+	return results;
+  }
+
 
 }
