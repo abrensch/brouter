@@ -277,6 +277,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         if (wpCount == -3 || wpCount == -1) {
           builder.setPositiveButton("Share GPX", (dialog, which) -> {
             mBRouterView.shareTrack();
+            finish();
           });
         } else if (wpCount >= 0) {
           String selectLabel = wpCount == 0 ? "Select from" : "Select to/via";
