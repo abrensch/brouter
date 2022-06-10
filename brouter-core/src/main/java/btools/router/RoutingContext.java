@@ -509,7 +509,7 @@ public final class RoutingContext
         }
       }
     }
-    return (int)(d + 1.0 );
+    return (int)(d + 0.5 );
   }
 
   public OsmPathModel pm;
