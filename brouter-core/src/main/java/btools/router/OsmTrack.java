@@ -685,8 +685,8 @@ public final class OsmTrack
           if ( hint.indexInTrack == idx )
           {
             sele += "<name>" + hint.getMessageString() + "</name>";
-            sele += "<sym>" + hint.getCommandString() + "</sym>";
 			sele += "<cmt>" + (int)(hint.distanceToNext) + "," + hint.formatGeometry() +"</cmt>";
+            sele += "<sym>" + hint.getCommandString() + "</sym>";
           }
         }
       }
