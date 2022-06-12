@@ -138,6 +138,27 @@ public class VoiceHint
     }
   }
 
+  public String getLocusSymbolString()
+  {
+    switch ( cmd )
+    {
+      case TU   : return "u-turn";
+      case TSHL : return "left_sharp";
+      case TL   : return "left";
+      case TSLL : return "left_slight";
+      case KL   : return "stay_left"; // ?
+      case C    : return "straight";
+      case KR   : return "stay_right"; // ?
+      case TSLR : return "right_slight";
+      case TR   : return "right";
+      case TSHR : return "right_sharp";
+      case TRU  : return "u-turn_right";
+      case RNDB : return "roundabout_e" + roundaboutExit;
+      case RNLB : return "roundabout_e" + (-roundaboutExit);
+      default : throw new IllegalArgumentException( "unknown command: " + cmd );
+    }
+  }
+
   public String getMessageString()
   {
     switch ( cmd )

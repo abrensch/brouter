@@ -571,7 +571,7 @@ public final class OsmTrack
       sb.append("</rte>\n");
     }
 
-    if ( turnInstructionMode == 2 ) // locus style
+    if ( turnInstructionMode == 2 ) // locus style old
     {
       float lastRteTime = getVoiceHintTime( 0 );
 
@@ -678,17 +678,27 @@ public final class OsmTrack
     {
       OsmPathElement n = nodes.get(idx);
       String sele = n.getSElev() == Short.MIN_VALUE ? "" : "<ele>" + n.getElev() + "</ele>";
-      if ( turnInstructionMode == 1 ) // trkpt/sym style
+      if ( turnInstructionMode == 1 || turnInstructionMode == 7 ) // trkpt/sym style // locus style new
       {
         for ( VoiceHint hint : voiceHints.list )
         {
           if ( hint.indexInTrack == idx )
           {
             sele += "<name>" + hint.getMessageString() + "</name>";
-			sele += "<cmt>" + (int)(hint.distanceToNext) + "," + hint.formatGeometry() +"</cmt>";
-            sele += "<sym>" + hint.getCommandString() + "</sym>";
+			if (turnInstructionMode==1) sele += "<cmt>" + (int)(hint.distanceToNext) + "," + hint.formatGeometry() +"</cmt>";
+            sele += "<sym>" + (turnInstructionMode==7?hint.getLocusSymbolString():hint.getCommandString()) + "</sym>";
           }
         }
+		if (idx==0 && turnInstructionMode==7) {
+		  sele +=  "<name>Start</name>";
+		  sele +=  "<sym>pass_place</sym>";
+		  sele +=  "<type>Via</type>";
+		}
+		else if (idx==nodes.size()-1 && turnInstructionMode==7) {
+		  sele +=  "<name>End</name>";
+		  sele +=  "<sym>pass_place</sym>";
+		  sele +=  "<type>Via</type>";
+		}
       }
       sb.append( "   <trkpt lon=\"" ).append( formatILon( n.getILon() ) ).append( "\" lat=\"" )
           .append( formatILat( n.getILat() ) ).append( "\">" ).append( sele ).append( "</trkpt>\n" );
