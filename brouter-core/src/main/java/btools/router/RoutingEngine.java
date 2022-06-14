@@ -273,6 +273,109 @@ public class RoutingEngine extends Thread
     }
   }
 
+  private void postElevationCheck(OsmTrack track) {
+	OsmPathElement lastPt = null;
+	OsmPathElement startPt = null;
+	short lastElev = Short.MIN_VALUE;
+	short startElev = Short.MIN_VALUE;
+	short endElev = Short.MIN_VALUE;
+	int startIdx = 0;
+	int endIdx = -1;
+	int dist = 0;
+    for ( int idx = 0; idx < track.nodes.size(); idx++ )
+    {
+      OsmPathElement n = track.nodes.get(idx);
+      if ( n.getSElev() == Short.MIN_VALUE && lastElev != Short.MIN_VALUE) {
+		// start one point before entry point to get better elevation results
+		if (idx > 1) 
+			startElev = track.nodes.get(idx-2).getSElev(); 
+		if (startElev == Short.MIN_VALUE) startElev = lastElev;
+		startIdx = idx;
+		startPt = lastPt;
+		dist = 0;
+		if (lastPt!= null) dist += n.calcDistance(lastPt);
+	  } else if (n.getSElev() != Short.MIN_VALUE && lastElev == Short.MIN_VALUE && startElev != Short.MIN_VALUE) {
+		// end one point behind exit point to get better elevation results
+		endElev = track.nodes.get(idx+1).getSElev(); //n.getSElev();
+		if (endElev == Short.MIN_VALUE) endElev = n.getSElev();
+		endIdx = idx;
+		OsmPathElement tmpPt = track.nodes.get(startIdx>1 ? startIdx-2 : startIdx-1);
+		int diffElev = endElev - startElev;
+		dist += tmpPt.calcDistance(startPt);
+		dist += n.calcDistance(lastPt);
+		int distRest = dist;
+		double incline = diffElev / (dist / 100.); 
+		String lastMsg = "";
+        double tmpincline = 0;	
+        double startincline = 0;	
+		double selev = track.nodes.get(startIdx-2).getSElev();
+		boolean hasInclineTags = false;
+    	for (int i = startIdx-1; i < endIdx+1; i++) {
+		  OsmPathElement tmp = track.nodes.get(i);
+		  if (tmp.message != null ) {
+			  MessageData md = tmp.message.copy();
+			  String msg = md.wayKeyValues;
+			  if (!msg.equals(lastMsg)) {
+				  boolean revers = msg.contains("reversedirection=yes" );
+				  int pos = msg.indexOf("incline=" );
+				  if (pos != -1) {
+					  hasInclineTags = true;
+					  String s = msg.substring(pos+8);
+					  pos = s.indexOf(" ");
+					  if (pos != -1) s = s.substring(0, pos);
+					  
+					  if ( s.length() > 0) {
+						  try{
+							int ind = s.indexOf("%");
+							if (ind != -1) s = s.substring(0,ind);
+							ind = s.indexOf("°");
+							if (ind != -1) s = s.substring(0,ind);
+							tmpincline = Double.parseDouble(s.trim());
+							if (revers) tmpincline *= -1;
+						  } catch (NumberFormatException e) {
+							tmpincline = 0;
+						  }
+					  }
+				  } else {
+					  tmpincline = 0;
+				  }
+				  if (startincline == 0) {
+					  startincline = tmpincline;
+				  } else if (startincline < 0 && tmpincline > 0) {
+					  // for the way üp find the exit point
+					  double diff = endElev - selev;
+					  tmpincline = diff / (distRest / 100.); 
+				  }
+			  }
+			  lastMsg = msg;
+		  }
+		  int tmpdist = tmp.calcDistance(tmpPt);
+		  distRest -= tmpdist;
+		  if (hasInclineTags) incline = tmpincline;
+		  selev = (selev + (tmpdist/100. * incline));
+		  tmp.setSElev( (short)selev );
+		  tmpPt = tmp;
+		}
+		dist = 0;
+	  } else if ( n.getSElev() != Short.MIN_VALUE && lastElev == Short.MIN_VALUE && startIdx == 0) {
+		  // fill at start
+		  for (int i = 0; i < idx; i++) {
+			  track.nodes.get(i).setSElev(n.getSElev());
+		  }
+	  } else if ( n.getSElev() == Short.MIN_VALUE &&  idx == track.nodes.size()-1) {
+		  // fill at end
+		  for (int i = startIdx; i < track.nodes.size(); i++) {
+			 track.nodes.get(i).setSElev(startElev);
+		  }
+	  } else if ( n.getSElev() == Short.MIN_VALUE ) {
+		  if (lastPt!= null) dist += n.calcDistance(lastPt);
+	  }
+	  lastElev = n.getSElev();
+	  lastPt = n;
+    }
+	
+  }
+
   private void logException( Throwable t )
   {
     errorMessage = t instanceof IllegalArgumentException ? t.getMessage() : t.toString();
@@ -505,6 +608,8 @@ public class RoutingEngine extends Thread
 
 	recalcTrack(totaltrack);
 	
+	postElevationCheck(totaltrack);
+
 	totaltrack.processVoiceHints( routingContext );
 	totaltrack.prepareSpeedProfile( routingContext );
 

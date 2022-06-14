@@ -40,6 +40,11 @@ public class OsmPathElement implements OsmPos
     return selev;
   }
 
+  public final void setSElev(short s)
+  {
+    selev = s;
+  }
+
   public final double getElev()
   {
     return selev / 4.;
@@ -95,7 +100,7 @@ public class OsmPathElement implements OsmPos
   public static final OsmPathElement create( OsmPath path, boolean countTraffic )
   {
     OsmNode n = path.getTargetNode();
-    OsmPathElement pe = create( n.getILon(), n.getILat(), path.selev, path.originElement, countTraffic );
+    OsmPathElement pe = create( n.getILon(), n.getILat(), n.getSElev(), path.originElement, countTraffic );
     pe.cost = path.cost;
     pe.message = path.message;
     return pe;

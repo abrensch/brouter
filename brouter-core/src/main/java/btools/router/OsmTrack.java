@@ -119,12 +119,14 @@ public final class OsmTrack
 		    tmpDetourMap.put( id, v );
 		  }
 
-		  long[] idlist = ((FrozenLongMap)source.detourMap).getKeyArray();
-		  for (int i = 0; i < idlist.length; i++) {
-			long id = idlist[i];
-			OsmPathElementHolder v = source.detourMap.get(id);  
+          if (source.detourMap != null) {
+		    long[] idlist = ((FrozenLongMap)source.detourMap).getKeyArray();
+		    for (int i = 0; i < idlist.length; i++) {
+			  long id = idlist[i];
+			  OsmPathElementHolder v = source.detourMap.get(id);  
 				
-		    tmpDetourMap.put( id, v );
+		      tmpDetourMap.put( id, v );
+		    }
 		  }
 		  detourMap = new FrozenLongMap<OsmPathElementHolder>( tmpDetourMap);
 	  }
