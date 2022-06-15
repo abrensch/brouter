@@ -106,6 +106,7 @@ public class ServerHandler extends RequestHandler {
       if (lonLat.length < 2)
         throw new IllegalArgumentException( "we need two lat/lon points at least!" );
       wplist.add( readPosition( lonLat[0], lonLat[1], "via" + i ) );
+	  if (lonLat.length > 2 && lonLat[2].equals("d")) wplist.get(wplist.size()-1).direct = true;
     }
 
     wplist.get(0).name = "from";

@@ -460,7 +460,7 @@ public class RoutingEngine extends Thread
     {
       for( OsmNodeNamed wp : waypoints )
       {
-        logInfo( "wp=" + wp );
+        logInfo( "wp=" + wp  + (wp.direct ? " direct" : ""));
       }
     }
 
@@ -490,6 +490,7 @@ public class RoutingEngine extends Thread
         MatchedWaypoint mwp = new MatchedWaypoint();
         mwp.waypoint = waypoints.get(i);
         mwp.name = waypoints.get(i).name;
+		mwp.direct = waypoints.get(i).direct;
         matchedWaypoints.add( mwp );
       }
       matchWaypointsToNodes( matchedWaypoints );
@@ -597,7 +598,7 @@ public class RoutingEngine extends Thread
       if ( seg == null ) return null;
 	  
 	  boolean changed = false;
-	  if (routingContext.avoidPeaks) {
+	  if (routingContext.avoidPeaks && !matchedWaypoints.get(i).direct) {
 	    changed = snappPathConnection(totaltrack, seg, routingContext.inverseRouting?matchedWaypoints.get(i+1):matchedWaypoints.get(i));
 	  }
 	  
@@ -829,11 +830,8 @@ public class RoutingEngine extends Thread
     // remove nogos with waypoints inside
     try
     {
-      List<OsmNode> wpts2 = new ArrayList<OsmNode>();
-      wpts2.add( startWp.waypoint );
-      wpts2.add( endWp.waypoint );
-      boolean calcBeeline = routingContext.allInOneNogo(wpts2);
-		
+      boolean calcBeeline = startWp.direct; 
+			
       if ( !calcBeeline ) return searchRoutedTrack( startWp, endWp, nearbyTrack, refTrack );
       
       // we want a beeline-segment

@@ -26,7 +26,7 @@ public class OsmNode extends OsmLink implements OsmPos
   /**
    * The elevation
    */
-  public short selev;
+  public short selev = Short.MIN_VALUE;
 
   /**
    * The node-tags, if any

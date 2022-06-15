@@ -135,12 +135,26 @@ abstract class OsmPath implements OsmLinkHolder
 
   protected abstract void resetState();
 
-
+  static int seg = 1;
   protected void addAddionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, OsmLink link, RoutingContext rc )
   {
     byte[] description = link.descriptionBitmap;
     if ( description == null )
     {
+	  message = new MessageData();
+	  if (message != null) {
+		message.turnangle = 0;
+        message.time = (float)1;
+        message.energy = (float)0;
+        message.priorityclassifier = 0;
+        message.classifiermask = 0;
+        message.lon = targetNode.getILon(); 
+        message.lat = targetNode.getILat(); 
+        message.ele = 0;
+		message.linkdist = rc.calcDistance( sourceNode.getILon(), sourceNode.getILat(), targetNode.getILon(),  targetNode.getILat() );;
+        message.wayKeyValues = "direct segment " + seg;
+	  }
+	  seg++;
       return; // could be a beeline path
     }
 

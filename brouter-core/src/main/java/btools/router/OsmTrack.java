@@ -686,7 +686,7 @@ public final class OsmTrack
         {
           if ( hint.indexInTrack == idx )
           {
-            sele += "<name>" + hint.getMessageString() + "</name>";
+            if (turnInstructionMode==1) sele += "<name>" + hint.getMessageString() + "</name>";
 			if (turnInstructionMode==1) sele += "<cmt>" + (int)(hint.distanceToNext) + "," + hint.formatGeometry() +"</cmt>";
             sele += "<sym>" + (turnInstructionMode==7?hint.getLocusSymbolString():hint.getCommandString()) + "</sym>";
           }

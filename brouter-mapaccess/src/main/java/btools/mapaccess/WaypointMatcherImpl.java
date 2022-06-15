@@ -52,10 +52,26 @@ public final class WaypointMatcherImpl implements WaypointMatcher
     if ( d == 0. )
       return;
 
-    for ( MatchedWaypoint mwp : waypoints )
+    //for ( MatchedWaypoint mwp : waypoints )
+    for ( int i = 0; i< waypoints.size(); i++ )
     {
-      OsmNode wp = mwp.waypoint;
+	  MatchedWaypoint mwp = waypoints.get(i);	
 
+	  if ( mwp.direct && 
+	      (i == 0  ||
+	       waypoints.get(i-1).direct )
+	   ) {
+	    if (mwp.crosspoint == null) {
+		  mwp.crosspoint = new OsmNode();
+		  mwp.crosspoint.ilon = mwp.waypoint.ilon;
+		  mwp.crosspoint.ilat = mwp.waypoint.ilat;
+		  mwp.hasUpdate = true;
+		  anyUpdate = true;
+		}
+		continue;
+	  }
+
+      OsmNode wp = mwp.waypoint;
       double x1 = ( lon1 - wp.ilon ) * dlon2m;
       double y1 = ( lat1 - wp.ilat ) * dlat2m;
       double x2 = ( lon2 - wp.ilon ) * dlon2m;
