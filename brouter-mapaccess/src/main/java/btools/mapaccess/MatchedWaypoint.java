@@ -20,6 +20,7 @@ public final class MatchedWaypoint
   public String name;  // waypoint name used in error messages
   public double radius;  // distance in meter between waypoint and crosspoint
   public boolean direct;  // from this point go direct to next = beeline routing
+  public int indexInTrack = 0;
   
   public boolean hasUpdate;
 

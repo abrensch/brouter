@@ -701,6 +701,13 @@ public final class OsmTrack
 		  sele +=  "<sym>pass_place</sym>";
 		  sele +=  "<type>Via</type>";
 		}
+		else if (turnInstructionMode==7 && !sele.contains("sym")) {
+		  for (MatchedWaypoint wp :matchedWaypoints) {
+			if ( idx == wp.indexInTrack ) {	
+			  sele +=  "<sym>pass_place</sym><type>Via</type>";
+			}
+		  }
+		} 
       }
       sb.append( "   <trkpt lon=\"" ).append( formatILon( n.getILon() ) ).append( "\" lat=\"" )
           .append( formatILat( n.getILat() ) ).append( "\">" ).append( sele ).append( "</trkpt>\n" );

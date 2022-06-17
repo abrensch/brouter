@@ -585,15 +585,18 @@ public class RoutingEngine extends Thread
       }
 
       OsmTrack seg;
+	  int wptIndex;
       if ( routingContext.inverseRouting )
       {
         routingContext.inverseDirection = true;
         seg = searchTrack( matchedWaypoints.get(i+1), matchedWaypoints.get(i),  null, refTracks[i] );
         routingContext.inverseDirection = false;
+		wptIndex = i+1;
       }
       else
       {
         seg = searchTrack( matchedWaypoints.get(i), matchedWaypoints.get(i+1), i == matchedWaypoints.size()-2 ? nearbyTrack : null, refTracks[i] );
+		wptIndex = i;
       }
       if ( seg == null ) return null;
 	  
@@ -601,6 +604,7 @@ public class RoutingEngine extends Thread
 	  if (routingContext.avoidPeaks && !matchedWaypoints.get(i).direct) {
 	    changed = snappPathConnection(totaltrack, seg, routingContext.inverseRouting?matchedWaypoints.get(i+1):matchedWaypoints.get(i));
 	  }
+	  if (wptIndex>0) matchedWaypoints.get(wptIndex-1).indexInTrack = totaltrack.nodes.size()-1;
 	  
       totaltrack.appendTrack( seg );
       lastTracks[i] = seg;
