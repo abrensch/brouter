@@ -701,12 +701,24 @@ public final class OsmTrack
 		  sele +=  "<sym>pass_place</sym>";
 		  sele +=  "<type>Via</type>";
 		}
-		else if (turnInstructionMode==7 && !sele.contains("sym")) {
-		  for (MatchedWaypoint wp :matchedWaypoints) {
-			if ( idx == wp.indexInTrack ) {	
-			  sele +=  "<sym>pass_place</sym><type>Via</type>";
+		else if (turnInstructionMode==7) {
+			for (MatchedWaypoint wp :matchedWaypoints) {
+			  if ( idx == wp.indexInTrack ) {	
+				if (sele.contains("sym") &&
+   				    !sele.contains("name") &&
+					!wp.name.startsWith("via") ) {
+				  int pos = sele.indexOf("<sym");	
+				  if (pos != -1)				  
+				    sele = sele.substring(0,pos) + "<name>" + wp.name+ "</name>" + sele.substring(pos) + "<type>Via</type>";
+				} else if ( wp.name.startsWith("via")) {
+			      sele +=  "<sym>pass_place</sym><type>Shaping</type>";
+			    } else {
+				  sele +=  "<name>" + wp.name+ "</name>";
+				  sele +=  "<sym>pass_place</sym><type>Via</type>";
+			    }
+				break;
+			  }
 			}
-		  }
 		} 
       }
       sb.append( "   <trkpt lon=\"" ).append( formatILon( n.getILon() ) ).append( "\" lat=\"" )

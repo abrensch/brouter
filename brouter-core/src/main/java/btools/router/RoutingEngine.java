@@ -604,7 +604,7 @@ public class RoutingEngine extends Thread
 	  if (routingContext.avoidPeaks && !matchedWaypoints.get(i).direct) {
 	    changed = snappPathConnection(totaltrack, seg, routingContext.inverseRouting?matchedWaypoints.get(i+1):matchedWaypoints.get(i));
 	  }
-	  if (wptIndex>0) matchedWaypoints.get(wptIndex-1).indexInTrack = totaltrack.nodes.size()-1;
+	  if (wptIndex>0) matchedWaypoints.get(wptIndex).indexInTrack = totaltrack.nodes.size()-1;
 	  
       totaltrack.appendTrack( seg );
       lastTracks[i] = seg;
@@ -625,6 +625,8 @@ public class RoutingEngine extends Thread
   
   // check for way back on way point
   private boolean snappPathConnection(OsmTrack tt, OsmTrack t, MatchedWaypoint startWp) {
+	  if (!startWp.name.startsWith("via")) return false;
+	  
 	  int ourSize = tt.nodes.size();
   	  if (ourSize > 0) {
 		  OsmPathElement testPoint = tt.nodes.get(ourSize-1);
@@ -657,7 +659,8 @@ public class RoutingEngine extends Thread
 		  int indexfore = 0;
 		  int stop = (indexback-MAX_STEPS_CHECK > 1 ? indexback -MAX_STEPS_CHECK : 1);
 		  double wayDistance = 0;
-
+          double nextDist = 0;
+		  
 		  while (indexback >= 1 && indexback >= stop && indexfore < t.nodes.size()) {
 			  int junctions = 0;
 			  tmpback = tt.nodes.get(indexback);
@@ -685,14 +688,8 @@ public class RoutingEngine extends Thread
 					removeForeList.add(tmpfore);
 					removeVoiceHintList.add(indexback); 
 				  }
-				  wayDistance += testPoint.calcDistance( tmpfore );
-				  if ( routingContext.avoidPeaksDistance > 0 && 
-					   wayDistance > routingContext.avoidPeaksDistance) {
-				    removeVoiceHintList.clear();
-				    removeBackList.clear();
-				    removeForeList.clear();
-				    return false;
-				  }
+				  nextDist = testPoint.calcDistance( tmpfore );
+				  wayDistance += nextDist;
 
 			  }
 			  if (dist > 1 || indexback == 1) {
@@ -700,6 +697,7 @@ public class RoutingEngine extends Thread
 				  // recover last - should be the cross point
 				  removeBackList.remove(removeBackList.get(removeBackList.size()-1));
 				  removeForeList.remove(removeForeList.get(removeForeList.size()-1));
+				  wayDistance -= nextDist;
 				  break;  
 				} else {
 				  return false;
@@ -709,6 +707,13 @@ public class RoutingEngine extends Thread
 			indexfore++;
 		  }
 		  
+		  if ( routingContext.avoidPeaksDistance > 0 && 
+			   wayDistance > routingContext.avoidPeaksDistance) {
+		    removeVoiceHintList.clear();
+		    removeBackList.clear();
+		    removeForeList.clear();
+		    return false;
+		  }
 
 		  // time hold
 		  float atime = 0;
