@@ -255,7 +255,7 @@ public final class VoiceHintProcessor
     return results2;
   }
 
-  public List<VoiceHint> postProcess( List<VoiceHint> inputs, double catchingRange  ) {
+  public List<VoiceHint> postProcess( List<VoiceHint> inputs, double catchingRange, double minRange ) {
 	List<VoiceHint> results = new ArrayList<VoiceHint>();
 	double distance = 0;
 	VoiceHint inputLast = null;
@@ -268,24 +268,36 @@ public final class VoiceHintProcessor
 		  continue;
 		}
 	  } else {
-        float turnAngle = input.goodWay.turnangle;
-        distance += input.goodWay.linkdist;
 	    if (input.distanceToNext < catchingRange) {
           double dist = input.distanceToNext;
+		  float angles = input.angle;
 		  int i = 1;
-          while( dist < catchingRange && hintIdx+i < inputs.size()) {
-            VoiceHint h2 = inputs.get(hintIdx+i);
-            dist += h2.distanceToNext;
-		    if (Math.abs(input.angle) > SIGNIFICANT_ANGLE) {		// drop only small angle
-		      results.add(input);
-		    } else {
-			  if (inputLast != null) { // when drop add distance to last
-			    inputLast.distanceToNext += input.distanceToNext;	
+			while( dist < catchingRange && hintIdx+i < inputs.size()) {
+			  VoiceHint h2 = inputs.get(hintIdx+i);
+			  dist += h2.distanceToNext;
+			  angles += h2.angle;
+			  if (Math.abs(angles) > 180-SIGNIFICANT_ANGLE) {		// u-turn, collects e.g. two left turns in range
+			    input.angle = angles;
+				input.calcCommand();
+				input.distanceToNext += h2.distanceToNext;
+				results.add(input);
+				hintIdx++;
+			  } else if (Math.abs(angles) <SIGNIFICANT_ANGLE && input.distanceToNext < minRange ) {		// u-turn, collects e.g. two left turns in range
+			    input.angle = angles;
+				input.calcCommand();
+				input.distanceToNext += h2.distanceToNext;
+				results.add(input);
+				hintIdx++;
+			  } else if (Math.abs(input.angle) > SIGNIFICANT_ANGLE) {		// drop only small angle
+				results.add(input);
+			  } else {
+				if (inputLast != null) { // when drop add distance to last
+				  inputLast.distanceToNext += input.distanceToNext;	
+				}
 			  }
-		    }
-		    i++;
-		    break; // run only one time at the moment
-		  }
+			  i++;
+			  break; // run only one time at the moment
+			}
 		  if (i==1) results.add(input);	// add when last
         }
 	    else {

@@ -1536,7 +1536,7 @@ public class RoutingEngine extends Thread
     OsmPathElement element = OsmPathElement.create( path, false );
 	
     // for final track, cut endnode
-    if ( guideTrack != null )
+    if ( guideTrack != null  && element.origin != null)
     {
       element = element.origin;
     }

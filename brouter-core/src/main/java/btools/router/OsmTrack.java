@@ -394,7 +394,7 @@ public final class OsmTrack
 	int i = 0;
 		
     int ourSize = nodes.size();
-	if (ourSize > 0) {
+	if (ourSize > 0 && t.nodes.size() > 1) {
 		OsmPathElement olde = nodes.get(ourSize-1);
 		t.nodes.get(1).origin = olde;
 	}
@@ -1236,12 +1236,24 @@ public final class OsmTrack
     VoiceHintProcessor vproc = new VoiceHintProcessor( rc.turnInstructionCatchingRange, rc.turnInstructionRoundabouts );
     List<VoiceHint> results = vproc.process( inputs );
 
-	List<VoiceHint> resultsLast = vproc.postProcess( results, rc.turnInstructionCatchingRange );
+	double minDistance = getMinDistance();
+	List<VoiceHint> resultsLast = vproc.postProcess( results, rc.turnInstructionCatchingRange, minDistance );
     for( VoiceHint hint : resultsLast )
     {
       voiceHints.list.add( hint );
     }
 	
+  }
+
+  int getMinDistance( ) {
+	if (voiceHints != null) {
+	  switch (voiceHints.getTransportMode()) {
+		case "car":  return 30;
+		case "bike": return 10;
+		case "foot": return 5;
+	  }
+	}
+	return 4;
   }
 
   private float getVoiceHintTime( int i )
