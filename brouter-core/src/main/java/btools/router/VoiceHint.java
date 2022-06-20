@@ -25,6 +25,7 @@ public class VoiceHint
   static final int OFFR = 12; // Off route
   static final int RNDB = 13; // Roundabout
   static final int RNLB = 14; // Roundabout left
+  static final int TUS = 15; // 180 degree u-turn
 
   int ilon;
   int ilat;
@@ -80,6 +81,7 @@ public class VoiceHint
     switch ( cmd )
     {
       case TU   : return "TU";
+      case TUS  : return "TU";
       case TSHL : return "TSHL";
       case TL   : return "TL";
       case TSLL : return "TSLL";
@@ -101,6 +103,7 @@ public class VoiceHint
     switch ( c )
     {
       case TU   : return "TU";
+      case TUS  : return "TU";
       case TSHL : return "TSHL";
       case TL   : return "TL";
       case TSLL : return "TSLL";
@@ -122,6 +125,7 @@ public class VoiceHint
     switch ( cmd )
     {
       case TU   : return "TU";
+      case TUS  : return "TU";
       case TSHL : return "TSHL";
       case TL   : return "Left";
       case TSLL : return "TSLL";
@@ -142,7 +146,8 @@ public class VoiceHint
   {
     switch ( cmd )
     {
-      case TU   : return "u-turn";
+      case TU   : return "u-turn_left";
+      case TUS  : return "u-turn";
       case TSHL : return "left_sharp";
       case TL   : return "left";
       case TSLL : return "left_slight";
@@ -164,6 +169,7 @@ public class VoiceHint
     switch ( cmd )
     {
       case TU   : return "u-turn";
+      case TUS  : return "u-turn";
       case TSHL : return "sharp left";
       case TL   : return "left";
       case TSLL : return "slight left";
@@ -185,6 +191,7 @@ public class VoiceHint
     switch ( cmd )
     {
       case TU   : return 13;
+      case TUS  : return 12;
       case TSHL : return 5;
       case TL   : return 4;
       case TSLL : return 3;
@@ -206,6 +213,7 @@ public class VoiceHint
       switch ( cmd )
       {
         case TU   : return 1003;
+        case TUS  : return 1003;
         case TSHL : return 1019;
         case TL   : return 1000;
         case TSLL : return 1017;
@@ -261,7 +269,11 @@ public class VoiceHint
     {
       cmd = RNLB;
     }
-    else if ( cmdAngle < -159. )
+    else if ( cmdAngle == -180.f )
+    {
+      cmd = TUS;
+    }
+    else if ( cmdAngle < -159.f )
     {
       cmd = TU;
     }
@@ -325,6 +337,10 @@ public class VoiceHint
     else if ( cmdAngle < 159. )
     {
       cmd = TSHR;
+    }
+    else if ( cmdAngle == 180.f )
+    {
+      cmd = TUS;
     }
     else
     {
