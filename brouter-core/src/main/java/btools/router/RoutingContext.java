@@ -187,7 +187,7 @@ public final class RoutingContext
     inverseRouting = 0.f != expctxGlobal.getVariableValue( "inverseRouting", 0.f );
 
     int tiMode = (int)expctxGlobal.getVariableValue( "turnInstructionMode", 0.f );
-    //if ( tiMode != 1 ) // automatic selection from coordinate source
+    if ( tiMode != 1 ) // automatic selection from coordinate source
     {
       turnInstructionMode = tiMode;
     }
@@ -250,7 +250,7 @@ public final class RoutingContext
 
   public OsmPrePath firstPrePath;
 
-  public int turnInstructionMode; // 0=none, 1=auto, 2=locus, 3=osmand, 4=comment-style, 5=gpsies-style
+  public int turnInstructionMode; // 0=none, 1=auto, 2=locus, 3=osmand, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-new-style
   public double turnInstructionCatchingRange;
   public boolean turnInstructionRoundabouts;
 
