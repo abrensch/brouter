@@ -20,12 +20,12 @@ public class VoiceHint
   static final int TSHR = 7; // turn sharply right
   static final int KL = 8; // keep left
   static final int KR = 9; // keep right
-  static final int TU = 10; // U-turn
-  static final int TRU = 11; // Right U-turn
-  static final int OFFR = 12; // Off route
-  static final int RNDB = 13; // Roundabout
-  static final int RNLB = 14; // Roundabout left
-  static final int TUS = 15; // 180 degree u-turn
+  static final int TLU = 10; // U-turn
+  static final int TU = 11; // 180 degree u-turn
+  static final int TRU = 12; // Right U-turn
+  static final int OFFR = 13; // Off route
+  static final int RNDB = 14; // Roundabout
+  static final int RNLB = 15; // Roundabout left
 
   int ilon;
   int ilat;
@@ -80,8 +80,8 @@ public class VoiceHint
   {
     switch ( cmd )
     {
+      case TLU  : return "TU";
       case TU   : return "TU";
-      case TUS  : return "TU";
       case TSHL : return "TSHL";
       case TL   : return "TL";
       case TSLL : return "TSLL";
@@ -102,8 +102,8 @@ public class VoiceHint
   {
     switch ( c )
     {
+      case TLU  : return "TU";
       case TU   : return "TU";
-      case TUS  : return "TU";
       case TSHL : return "TSHL";
       case TL   : return "TL";
       case TSLL : return "TSLL";
@@ -124,8 +124,8 @@ public class VoiceHint
   {
     switch ( cmd )
     {
+      case TLU  : return "TU";
       case TU   : return "TU";
-      case TUS  : return "TU";
       case TSHL : return "TSHL";
       case TL   : return "Left";
       case TSLL : return "TSLL";
@@ -146,8 +146,8 @@ public class VoiceHint
   {
     switch ( cmd )
     {
-      case TU   : return "u-turn_left";
-      case TUS  : return "u-turn";
+      case TLU  : return "u-turn_left";
+      case TU   : return "u-turn";
       case TSHL : return "left_sharp";
       case TL   : return "left";
       case TSLL : return "left_slight";
@@ -168,8 +168,8 @@ public class VoiceHint
   {
     switch ( cmd )
     {
+      case TLU  : return "u-turn";
       case TU   : return "u-turn";
-      case TUS  : return "u-turn";
       case TSHL : return "sharp left";
       case TL   : return "left";
       case TSLL : return "slight left";
@@ -190,8 +190,8 @@ public class VoiceHint
   {
     switch ( cmd )
     {
-      case TU   : return 13;
-      case TUS  : return 12;
+      case TLU  : return 13;
+      case TU   : return 12;
       case TSHL : return 5;
       case TL   : return 4;
       case TSLL : return 3;
@@ -212,8 +212,8 @@ public class VoiceHint
     {
       switch ( cmd )
       {
+        case TLU  : return 1003;
         case TU   : return 1003;
-        case TUS  : return 1003;
         case TSHL : return 1019;
         case TL   : return 1000;
         case TSLL : return 1017;
@@ -271,11 +271,11 @@ public class VoiceHint
     }
     else if ( cmdAngle == -180.f )
     {
-      cmd = TUS;
+      cmd = TU;
     }
     else if ( cmdAngle < -159.f )
     {
-      cmd = TU;
+      cmd = TLU;
     }
     else if ( cmdAngle < -135. )
     {
@@ -340,7 +340,7 @@ public class VoiceHint
     }
     else if ( cmdAngle == 180.f )
     {
-      cmd = TUS;
+      cmd = TU;
     }
     else
     {
