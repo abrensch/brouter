@@ -314,6 +314,8 @@ tunnel;0000000114 covered
 
 man_made;0000000001 pier
 
+public_transport;0000000001 platform
+
 lcn;0000073956 yes
 lcn;0000002631 proposed
 
