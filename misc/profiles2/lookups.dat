@@ -312,6 +312,8 @@ tunnel;0000000241 culvert
 tunnel;0000000122 avalanche_protector
 tunnel;0000000114 covered
 
+man_made;0000000001 pier
+
 lcn;0000073956 yes
 lcn;0000002631 proposed
 
