@@ -276,7 +276,9 @@ public final class VoiceHintProcessor
 			  VoiceHint h2 = inputs.get(hintIdx+i);
 			  dist += h2.distanceToNext;
 			  angles += h2.angle;
-			  if (Math.abs(angles) > 180-SIGNIFICANT_ANGLE) {		// u-turn, collects e.g. two left turns in range
+			  if (Math.abs(input.angle) == 180 || Math.abs(h2.angle) == 180) {  // add 180 deg u-turn
+				results.add(input);
+			  } else if (Math.abs(angles) > 180-SIGNIFICANT_ANGLE) {		// u-turn, collects e.g. two left turns in range
 			    input.angle = angles;
 				input.calcCommand();
 				input.distanceToNext += h2.distanceToNext;
