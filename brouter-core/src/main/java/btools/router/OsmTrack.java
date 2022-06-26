@@ -34,8 +34,8 @@ import btools.util.CheapAngleMeter;
 
 public final class OsmTrack
 {
-  final public static String version = "1.6.3";
-  final public static String versionDate = "21122021";
+  final public static String version = "1.6.4";
+  final public static String versionDate = "01072022";
 
   // csv-header-line
   private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy";
