@@ -67,6 +67,7 @@ public class RoutingEngine extends Thread
   private Object[] extract;
 
   private boolean directWeaving = !Boolean.getBoolean( "disableDirectWeaving" );
+  private String outfile;
 
   public RoutingEngine( String outfileBase, String logfileBase, File segmentDir,
           List<OsmNodeNamed> waypoints, RoutingContext rc )
@@ -189,6 +190,7 @@ public class RoutingEngine extends Thread
           track.writeGpx( filename );
           foundTrack = track;
           alternativeIndex = i;
+          outfile = filename;
         }
         else
         {
@@ -1762,33 +1764,8 @@ public class RoutingEngine extends Thread
 	  return terminated;
   }
 
-  private static String formatILon( int ilon )
-  {
-    return formatPos(  ilon - 180000000 );
-  }
-
-  private static String formatILat( int ilat )
-  {
-    return formatPos(  ilat - 90000000 );
-  }
-
-  private static String formatPos( int p )
-  {
-    boolean negative = p < 0;
-    if ( negative )
-      p = -p;
-    char[] ac = new char[12];
-    int i = 11;
-    while (p != 0 || i > 3)
-    {
-      ac[i--] = (char) ( '0' + ( p % 10 ) );
-      p /= 10;
-      if ( i == 5 )
-        ac[i--] = '.';
-    }
-    if ( negative )
-      ac[i--] = '-';
-    return new String( ac, i + 1, 11 - i );
+  public String getOutfile() {
+    return outfile;
   }
 
 }
