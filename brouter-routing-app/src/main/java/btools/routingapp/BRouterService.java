@@ -1,7 +1,16 @@
 package btools.routingapp;
 
 
+import android.app.Service;
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.os.RemoteException;
+import android.util.Base64;
+import android.util.Log;
+
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -10,26 +19,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.ByteArrayOutputStream;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.zip.GZIPOutputStream;
 import java.util.ArrayList;
-
-import android.Manifest;
-import android.app.Service;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Environment;
-import android.os.IBinder;
-import android.os.RemoteException;
-import android.util.Log;
-import android.util.Base64;
-
-import androidx.core.content.ContextCompat;
+import java.util.zip.GZIPOutputStream;
 
 import btools.router.OsmNodeNamed;
 
@@ -185,18 +177,7 @@ public class BRouterService extends Service {
 
     private void readNogos(BRouterWorker worker, String baseDir) throws Exception {
       // add nogos from waypoint database
-      int deviceLevel = android.os.Build.VERSION.SDK_INT;
-      int targetSdkVersion = getApplicationInfo().targetSdkVersion;
-      boolean canAccessSdCard = true;
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !Environment.isExternalStorageLegacy()) {
-        canAccessSdCard = false;
-      }
-      if (ContextCompat.checkSelfPermission(BRouterService.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-        canAccessSdCard = false;
-      }
-      AppLogger.log("dev/target=" + deviceLevel + "/" + targetSdkVersion + " canAccessSdCard=" + canAccessSdCard);
-
-      CoordinateReader cor = CoordinateReader.obtainValidReader(baseDir, worker.segmentDir, canAccessSdCard, true);
+      CoordinateReader cor = CoordinateReader.obtainValidReader(baseDir, true);
       worker.nogoList = new ArrayList<OsmNodeNamed>(cor.nogopoints);
       worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
     }

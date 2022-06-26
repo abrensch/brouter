@@ -17,6 +17,7 @@ android {
         setProperty("archivesBaseName", "BRouterApp." + defaultConfig.versionName)
 
         minSdkVersion 14
+        targetSdkVersion 30
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -71,21 +72,6 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-
-    flavorDimensions "api"
-    productFlavors {
-        api19 {
-            dimension "api"
-
-            targetSdkVersion 19
-        }
-        api30 {
-            dimension "api"
-
-            targetSdkVersion 30
-        }
     }
 
     applicationVariants.all {
