@@ -63,6 +63,7 @@ public class RoutingEngine extends Thread
   private Object[] extract;
 
   private boolean directWeaving = !Boolean.getBoolean( "disableDirectWeaving" );
+  private String outfile;
 
   public RoutingEngine( String outfileBase, String logfileBase, File segmentDir,
           List<OsmNodeNamed> waypoints, RoutingContext rc )
@@ -185,6 +186,7 @@ public class RoutingEngine extends Thread
           track.writeGpx( filename );
           foundTrack = track;
           alternativeIndex = i;
+          outfile = filename;
         }
         else
         {
@@ -1369,4 +1371,7 @@ public class RoutingEngine extends Thread
 	  return terminated;
   }
 
+  public String getOutfile() {
+    return outfile;
+  }
 }
