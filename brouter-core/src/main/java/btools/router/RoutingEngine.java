@@ -330,7 +330,7 @@ public class RoutingEngine extends Thread
 						  try{
 							int ind = s.indexOf("%");
 							if (ind != -1) s = s.substring(0,ind);
-							ind = s.indexOf("°");
+							ind = s.indexOf("ï¿½");
 							if (ind != -1) s = s.substring(0,ind);
 							tmpincline = Double.parseDouble(s.trim());
 							if (revers) tmpincline *= -1;
@@ -344,7 +344,7 @@ public class RoutingEngine extends Thread
 				  if (startincline == 0) {
 					  startincline = tmpincline;
 				  } else if (startincline < 0 && tmpincline > 0) {
-					  // for the way üp find the exit point
+					  // for the way ï¿½p find the exit point
 					  double diff = endElev - selev;
 					  tmpincline = diff / (distRest / 100.); 
 				  }
