@@ -176,6 +176,12 @@ motorcycle;0000003936 private
 motorcycle;0000002209 permissive
 motorcycle;0000000001 permit
 
+atv;0000000001 no
+atv;0000000001 yes
+atv;0000000001 designated official
+atv;0000000001 private
+atv;0000000001 permissive
+
 vehicle;0000030218 no
 vehicle;0000013333 destination delivery customers
 vehicle;0000011692 yes
