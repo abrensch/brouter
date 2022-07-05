@@ -298,7 +298,7 @@ public class RoutingEngine extends Thread
 		if (lastPt!= null) dist += n.calcDistance(lastPt);
 	  } else if (n.getSElev() != Short.MIN_VALUE && lastElev == Short.MIN_VALUE && startElev != Short.MIN_VALUE) {
 		// end one point behind exit point to get better elevation results
-		endElev = track.nodes.get(idx+1).getSElev(); //n.getSElev();
+	    if (idx+1 < track.nodes.size()) endElev = track.nodes.get(idx+1).getSElev();
 		if (endElev == Short.MIN_VALUE) endElev = n.getSElev();
 		endIdx = idx;
 		OsmPathElement tmpPt = track.nodes.get(startIdx>1 ? startIdx-2 : startIdx-1);
