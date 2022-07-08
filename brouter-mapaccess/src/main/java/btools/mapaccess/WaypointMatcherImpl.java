@@ -44,12 +44,12 @@ public final class WaypointMatcherImpl implements WaypointMatcher
     {
       mwp.radius = maxDistance;
       if (last != null && mwp.directionToNext == -1) {
-        last.directionToNext = CheapAngleMeter.getAngle(last.waypoint.ilon, last.waypoint.ilat, mwp.waypoint.ilon, mwp.waypoint.ilat);
+        last.directionToNext = CheapAngleMeter.getDirection(last.waypoint.ilon, last.waypoint.ilat, mwp.waypoint.ilon, mwp.waypoint.ilat);
       }
       last = mwp;
     }
     // last point has no angle so we are looking back
-    last.directionToNext =  CheapAngleMeter.getAngle(last.waypoint.ilon, last.waypoint.ilat, waypoints.get(waypoints.size()-2).waypoint.ilon, waypoints.get(waypoints.size()-2).waypoint.ilat);
+    last.directionToNext =  CheapAngleMeter.getDirection(last.waypoint.ilon, last.waypoint.ilat, waypoints.get(waypoints.size()-2).waypoint.ilon, waypoints.get(waypoints.size()-2).waypoint.ilat);
 
     // sort result list
     comparator = new Comparator<MatchedWaypoint>() {
@@ -231,25 +231,20 @@ public final class WaypointMatcherImpl implements WaypointMatcher
           updateWayList(mwp.wayNearest, mw);
 
           MatchedWaypoint way = mwp.wayNearest.get(0);
-          mwp.crosspoint = way.crosspoint;
-          mwp.node1 = way.node1;
-          mwp.node2 = way.node2;
-          mwp.directionDiff = mw.directionDiff;
-          mwp.radius = mw.radius;
+          mwp.crosspoint.ilon = way.crosspoint.ilon;
+          mwp.crosspoint.ilat = way.crosspoint.ilat;
+          mwp.node1 = new OsmNode(way.node1.ilon, way.node1.ilat);
+          mwp.node2 = new OsmNode(way.node2.ilon, way.node2.ilat);
+          mwp.directionDiff = way.directionDiff;
+          mwp.radius = way.radius;
 
         }
       }
     }
   }
 
-  // check for double points
   // check limit of list size (avoid long runs)
   void updateWayList(List<MatchedWaypoint> ways, MatchedWaypoint mw) {
-    for (MatchedWaypoint wp: ways) {
-      if (wp.crosspoint.equals(mw.crosspoint) &&
-          wp.node1.equals(mw.node1) &&
-          wp.node2.equals(mw.node2) ) return;
-    }
     ways.add(mw);
     // use only shortest distances by smallest direction difference
     Collections.sort(ways, comparator);
