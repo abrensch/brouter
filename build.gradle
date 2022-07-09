@@ -45,6 +45,8 @@ allprojects {
             gpr(MavenPublication)
         }
     }
+
+    apply plugin: "checkstyle"
 }
 
 task clean(type: Delete) {
