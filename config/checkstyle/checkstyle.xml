@@ -8,9 +8,11 @@
       <property name="file" value="${config_loc}/suppressions.xml"/>
   </module>
 
-  <!-- <module name="FileTabCharacter"/> -->
+  <module name="FileTabCharacter"/>
 
   <module name="TreeWalker">
-    <!-- <module name="Indentation"/> -->
+    <module name="Indentation">
+      <property name="basicOffset" value="2"/>
+    </module>
   </module>
 </module>
