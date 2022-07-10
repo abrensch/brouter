@@ -42,7 +42,7 @@ public class VoiceHint
     return oldWay == null ? 0.f : oldWay.time;
   }
 
-  float angle;
+  float angle = Float.MAX_VALUE;
   boolean turnAngleConsumed;
   boolean needsRealTurn;
 
@@ -256,8 +256,11 @@ public class VoiceHint
     float cmdAngle= angle;
 
     // fall back to local angle if otherwise inconsistent
-    if ( lowerBadWayAngle > angle || higherBadWayAngle < angle )
-    {
+    //if ( lowerBadWayAngle > angle || higherBadWayAngle < angle )
+    //{
+      //cmdAngle = goodWay.turnangle;
+    //}
+    if (angle == Float.MAX_VALUE) {
       cmdAngle = goodWay.turnangle;
     }
 

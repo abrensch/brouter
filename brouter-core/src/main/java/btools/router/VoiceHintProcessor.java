@@ -226,6 +226,7 @@ public final class VoiceHintProcessor{
     List < VoiceHint > results = new ArrayList < VoiceHint > ();
     double distance = 0;
     VoiceHint inputLast = null;
+    ArrayList<VoiceHint> tmpList = new ArrayList<>();
     for (int hintIdx = 0; hintIdx < inputs.size(); hintIdx++) {
       VoiceHint input = inputs.get(hintIdx);
 
@@ -239,36 +240,46 @@ public final class VoiceHintProcessor{
           double dist = input.distanceToNext;
           float angles = input.angle;
           int i = 1;
+          boolean save = true;
+          tmpList.clear();
           while (dist < catchingRange && hintIdx + i < inputs.size()) {
             VoiceHint h2 = inputs.get(hintIdx + i);
             dist += h2.distanceToNext;
             angles += h2.angle;
-            if (Math.abs(input.angle) == 180 || Math.abs(h2.angle) == 180) { // add 180 deg u-turn
-              results.add(input);
+            if (Math.abs(input.angle) == 180 || Math.abs(h2.angle) == 180) {  // u-turn, 180 degree
+              save = true;
+              break;
             } else if (Math.abs(angles) > 180 - SIGNIFICANT_ANGLE) { // u-turn, collects e.g. two left turns in range
               input.angle = angles;
               input.calcCommand();
               input.distanceToNext += h2.distanceToNext;
-              results.add(input);
+              save = true;
               hintIdx++;
-            } else if (Math.abs(angles) < SIGNIFICANT_ANGLE && input.distanceToNext < minRange) { // u-turn, collects e.g. two left turns in range
+              break;
+            } else if (Math.abs(angles) < SIGNIFICANT_ANGLE && input.distanceToNext < minRange) {
               input.angle = angles;
               input.calcCommand();
               input.distanceToNext += h2.distanceToNext;
-              results.add(input);
+              save = true;
               hintIdx++;
-            } else if (Math.abs(input.angle) > SIGNIFICANT_ANGLE) { // drop only small angle
-              results.add(input);
+              break;
+            } else if (Math.abs(input.angle) > SIGNIFICANT_ANGLE) { 
+              tmpList.add(h2);
             } else {
               if (inputLast != null) { // when drop add distance to last
                 inputLast.distanceToNext += input.distanceToNext;
               }
+              save = false;
             }
             i++;
-            break; // run only one time at the moment
           }
-          if (i == 1)
+          if (save) {
             results.add(input); // add when last
+            if (tmpList.size() > 0) { // add when something in stock
+              results.addAll(tmpList);
+              hintIdx += tmpList.size() - 1;
+            }
+          }
         } else {
           results.add(input);
         }

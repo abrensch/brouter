@@ -1105,15 +1105,15 @@ public final class OsmTrack{
   int getMinDistance() {
     if (voiceHints != null) {
       switch (voiceHints.getTransportMode()) {
-      case "car":
-        return 30;
-      case "bike":
-        return 10;
-      case "foot":
-        return 5;
+        case "car":
+          return 20;
+        case "bike":
+          return 5;
+        case "foot":
+          return 3;
       }
     }
-    return 4;
+    return 2;
   }
 
   private float getVoiceHintTime(int i) {
