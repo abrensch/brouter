@@ -59,10 +59,7 @@ distributions {
                 include 'readmes/osmand/*'
                 include 'profiles2/*'
             }
-            from ('../brouter-routing-app/build/outputs/apk/api19/release') {
-                include '*.apk'
-            }
-            from ('../brouter-routing-app/build/outputs/apk/api30/release') {
+            from ('../brouter-routing-app/build/outputs/apk/release') {
                 include '*.apk'
             }
              from ('../brouter-server/build/libs') {
