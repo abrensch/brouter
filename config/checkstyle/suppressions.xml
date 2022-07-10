@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE suppressions PUBLIC
+  "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+  "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+  <suppress files="brouter-codec/.*" checks=".*"/>
+  <suppress files="brouter-core/.*" checks=".*"/>
+  <suppress files="brouter-expressions/.*" checks=".*"/>
+  <suppress files="brouter-map-creator/.*" checks=".*"/>
+  <suppress files="brouter-mapaccess/.*" checks=".*"/>
+  <suppress files="brouter-server/.*" checks=".*"/>
+  <suppress files="brouter-util/.*" checks=".*"/>
+</suppressions>
