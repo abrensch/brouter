@@ -6,45 +6,38 @@
 package btools.mapcreator;
 
 
-public class OsmNodePT extends OsmNodeP
-{
-    public byte[] descriptionBits;
+public class OsmNodePT extends OsmNodeP {
+  public byte[] descriptionBits;
 
-    public RestrictionData firstRestriction;
-    
-    public OsmNodePT()
-    {
-    }
+  public RestrictionData firstRestriction;
 
-    public OsmNodePT( OsmNodeP n )
-    {
-      ilat = n.ilat;
-      ilon = n.ilon;
-      selev = n.selev;
-      bits = n.bits;
-    }
+  public OsmNodePT() {
+  }
 
-    public OsmNodePT( byte[] descriptionBits )
-    {
-      this.descriptionBits = descriptionBits;
-    }
+  public OsmNodePT(OsmNodeP n) {
+    ilat = n.ilat;
+    ilon = n.ilon;
+    selev = n.selev;
+    bits = n.bits;
+  }
 
-    @Override
-    public final byte[] getNodeDecsription()
-    {
-      return descriptionBits;
-    }
+  public OsmNodePT(byte[] descriptionBits) {
+    this.descriptionBits = descriptionBits;
+  }
 
-    @Override
-    public final RestrictionData getFirstRestriction()
-    {
-      return firstRestriction;
-    }
+  @Override
+  public final byte[] getNodeDecsription() {
+    return descriptionBits;
+  }
 
-    @Override
-    public boolean isTransferNode()
-    {
-      return false; // always have descriptionBits so never transfernode
-    }
+  @Override
+  public final RestrictionData getFirstRestriction() {
+    return firstRestriction;
+  }
+
+  @Override
+  public boolean isTransferNode() {
+    return false; // always have descriptionBits so never transfernode
+  }
 
 }

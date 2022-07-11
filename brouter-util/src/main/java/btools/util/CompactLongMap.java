@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 /**
  * Memory efficient Map to map a long-key to an object-value
- *
+ * <p>
  * Implementation is such that basically the 12 bytes
  * per entry is allocated that's needed to store
  * a long- and an object-value.
@@ -14,8 +14,7 @@ import java.util.ArrayList;
  *
  * @author ab
  */
-public class CompactLongMap<V>
-{
+public class CompactLongMap<V> {
   private long[][] al;
   private int[] pa;
   private int size = 0;
@@ -27,8 +26,7 @@ public class CompactLongMap<V>
   protected static final int MAXLISTS = 31; // enough for size Integer.MAX_VALUE
   private static boolean earlyDuplicateCheck;
 
-  public CompactLongMap()
-  {
+  public CompactLongMap() {
     // pointer array
     pa = new int[MAXLISTS];
 
@@ -40,7 +38,7 @@ public class CompactLongMap<V>
     vla = new Object[MAXLISTS][];
     vla[0] = new Object[1];
 
-    earlyDuplicateCheck = Boolean.getBoolean( "earlyDuplicateCheck" );
+    earlyDuplicateCheck = Boolean.getBoolean("earlyDuplicateCheck");
   }
 
 
@@ -70,21 +68,16 @@ public class CompactLongMap<V>
   private Object[][] vla; // value list array
 
 
-  public boolean put( long id, V value )
-  {
-    try
-    {    
+  public boolean put(long id, V value) {
+    try {
       value_in = value;
-      if ( contains( id, true ) )
-      {
+      if (contains(id, true)) {
         return true;
       }
       vla[0][0] = value;
-      _add( id );
+      _add(id);
       return false;
-    }
-    finally
-    {
+    } finally {
       value_in = null;
       value_out = null;
     }
@@ -98,37 +91,31 @@ public class CompactLongMap<V>
    * with System parameter earlyDuplicateCheck=true you
    * can enforce the early duplicate check for debugging
    *
-   * @param id the key to insert
+   * @param id    the key to insert
    * @param value the value to insert object
-   * @exception IllegalArgumentException for duplicates if enabled
+   * @throws IllegalArgumentException for duplicates if enabled
    */
-  public void fastPut( long id, V value )
-  {
-    if ( earlyDuplicateCheck && contains( id ) )
-    {
-      throw new IllegalArgumentException( "duplicate key found in early check: " + id );
+  public void fastPut(long id, V value) {
+    if (earlyDuplicateCheck && contains(id)) {
+      throw new IllegalArgumentException("duplicate key found in early check: " + id);
     }
     vla[0][0] = value;
-    _add( id );
+    _add(id);
   }
 
   /**
    * Get the value for the given id
+   *
    * @param id the key to query
    * @return the object, or null if id not known
    */
-  public V get( long id )
-  {
-    try
-    {
-      if ( contains( id, false ) )
-      {
+  public V get(long id) {
+    try {
+      if (contains(id, false)) {
         return value_out;
       }
       return null;
-    }
-    finally
-    {
+    } finally {
       value_out = null;
     }
   }
@@ -137,17 +124,14 @@ public class CompactLongMap<V>
   /**
    * @return the number of entries in this map
    */
-  public int size()
-  {
+  public int size() {
     return size;
   }
 
 
-  private boolean _add( long id )
-  {
-    if ( size == Integer.MAX_VALUE )
-    {
-      throw new IllegalArgumentException( "cannot grow beyond size Integer.MAX_VALUE" );
+  private boolean _add(long id) {
+    if (size == Integer.MAX_VALUE) {
+      throw new IllegalArgumentException("cannot grow beyond size Integer.MAX_VALUE");
     }
 
     // put the new entry in the first array
@@ -161,34 +145,28 @@ public class CompactLongMap<V>
     pa[0] = 1;
     pa[1] = 1;
 
-    while ( (bp&1) == 1 )
-    {
+    while ((bp & 1) == 1) {
       bp >>= 1;
       pa[idx++] = n;
       n <<= 1;
     }
 
     // create it if not existant
-    if ( al[idx] == null )
-    {
+    if (al[idx] == null) {
       al[idx] = new long[n];
       vla[idx] = new Object[n];
     }
 
     // now merge the contents of arrays 0...idx-1 into idx
-    while ( n > 0 )
-    {
+    while (n > 0) {
       long maxId = 0;
       int maxIdx = -1;
 
-      for ( int i=0; i<idx; i++ )
-      {
+      for (int i = 0; i < idx; i++) {
         int p = pa[i];
-        if ( p > 0 )
-        {
-          long currentId = al[i][p-1];
-          if ( maxIdx < 0 || currentId > maxId )
-          {
+        if (p > 0) {
+          long currentId = al[i][p - 1];
+          if (maxIdx < 0 || currentId > maxId) {
             maxIdx = i;
             maxId = currentId;
           }
@@ -196,20 +174,18 @@ public class CompactLongMap<V>
       }
 
       // current maximum found, copy to target array
-      if ( n < al[idx].length && maxId == al[idx][n] )
-      {
-        throw new IllegalArgumentException( "duplicate key found in late check: " + maxId );
+      if (n < al[idx].length && maxId == al[idx][n]) {
+        throw new IllegalArgumentException("duplicate key found in late check: " + maxId);
       }
       --n;
       al[idx][n] = maxId;
-      vla[idx][n] = vla[maxIdx][pa[maxIdx]-1];
+      vla[idx][n] = vla[maxIdx][pa[maxIdx] - 1];
 
       --pa[maxIdx];
     }
 
     // de-allocate empty arrays of a certain size (fix at 64kByte)
-    while ( idx-- > _maxKeepExponent )
-    {
+    while (idx-- > _maxKeepExponent) {
       al[idx] = null;
       vla[idx] = null;
     }
@@ -220,31 +196,23 @@ public class CompactLongMap<V>
   /**
    * @return true if "id" is contained in this set.
    */
-  public boolean contains( long id )
-  {
-    try
-    {
-      return contains( id, false );
-    }
-    finally
-    {
+  public boolean contains(long id) {
+    try {
+      return contains(id, false);
+    } finally {
       value_out = null;
     }
   }
 
-  protected boolean contains( long id, boolean doPut )
-  {
+  protected boolean contains(long id, boolean doPut) {
     // determine the first empty array
     int bp = size; // treat size as bitpattern
     int idx = 1;
 
-    while ( bp != 0 )
-    {
-      if ( (bp&1) == 1 )
-      {
+    while (bp != 0) {
+      if ((bp & 1) == 1) {
         // array at idx is valid, check
-        if ( contains( idx, id, doPut ) )
-        {
+        if (contains(idx, id, doPut)) {
           return true;
         }
       }
@@ -256,52 +224,42 @@ public class CompactLongMap<V>
 
 
   // does sorted array "a" contain "id" ?
-  private boolean contains( int idx, long id, boolean doPut )
-  {
+  private boolean contains(int idx, long id, boolean doPut) {
     long[] a = al[idx];
     int offset = a.length;
     int n = 0;
 
-    while ( (offset >>= 1) > 0 )
-    {
+    while ((offset >>= 1) > 0) {
       int nn = n + offset;
-      if ( a[nn] <= id )
-      {
+      if (a[nn] <= id) {
         n = nn;
       }
     }
-    if ( a[n] == id )
-    {
-      value_out = (V)vla[idx][n];
-      if ( doPut ) vla[idx][n] = value_in;
+    if (a[n] == id) {
+      value_out = (V) vla[idx][n];
+      if (doPut) vla[idx][n] = value_in;
       return true;
     }
     return false;
   }
 
-  protected void moveToFrozenArrays( long[] faid, ArrayList<V> flv )
-  {
-    for( int i=1; i<MAXLISTS; i++ )
-    {
+  protected void moveToFrozenArrays(long[] faid, ArrayList<V> flv) {
+    for (int i = 1; i < MAXLISTS; i++) {
       pa[i] = 0;
     }
 
-    for( int ti = 0; ti < size; ti++ ) // target-index
+    for (int ti = 0; ti < size; ti++) // target-index
     {
       int bp = size; // treat size as bitpattern
       int minIdx = -1;
       long minId = 0;
       int idx = 1;
-      while ( bp != 0 )
-      {
-        if ( (bp&1) == 1 )
-        {
+      while (bp != 0) {
+        if ((bp & 1) == 1) {
           int p = pa[idx];
-          if ( p < al[idx].length )
-          {
+          if (p < al[idx].length) {
             long currentId = al[idx][p];
-            if ( minIdx < 0 || currentId < minId )
-            {
+            if (minIdx < 0 || currentId < minId) {
               minIdx = idx;
               minId = currentId;
             }
@@ -311,12 +269,11 @@ public class CompactLongMap<V>
         bp >>= 1;
       }
       faid[ti] = minId;
-      flv.add( (V)vla[minIdx][pa[minIdx]] );
+      flv.add((V) vla[minIdx][pa[minIdx]]);
       pa[minIdx]++;
 
-      if ( ti > 0 && faid[ti-1] == minId )
-      {
-        throw new IllegalArgumentException( "duplicate key found in late check: " + minId );
+      if (ti > 0 && faid[ti - 1] == minId) {
+        throw new IllegalArgumentException("duplicate key found in late check: " + minId);
       }
     }
 

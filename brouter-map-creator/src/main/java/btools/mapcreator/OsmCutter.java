@@ -18,8 +18,7 @@ import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 
-public class OsmCutter extends MapCreatorBase
-{
+public class OsmCutter extends MapCreatorBase {
   private long recordCnt;
   private long nodesParsed;
   private long waysParsed;
@@ -33,26 +32,24 @@ public class OsmCutter extends MapCreatorBase
   public WayCutter wayCutter;
   public RestrictionCutter restrictionCutter;
   public NodeFilter nodeFilter;
-  
-  public static void main(String[] args) throws Exception
-  {
+
+  public static void main(String[] args) throws Exception {
     System.out.println("*** OsmCutter: cut an osm map in node-tiles + a way file");
-    if (args.length != 6 && args.length != 7)
-    {
+    if (args.length != 6 && args.length != 7) {
       System.out.println("usage: bzip2 -dc <map> | java OsmCutter <lookup-file> <out-tile-dir> <out-way-file> <out-rel-file> <out-res-file> <filter-profile>");
       System.out.println("or   : java OsmCutter <lookup-file> <out-tile-dir> <out-way-file> <out-rel-file> <out-res-file> <filter-profile> <inputfile> ");
       return;
     }
 
     new OsmCutter().process(
-                   new File( args[0] )
-                 , new File( args[1] )
-                 , new File( args[2] )
-                 , new File( args[3] )
-                 , new File( args[4] )
-                 , new File( args[5] )
-                 , args.length > 6 ? new File( args[6] ) : null
-                		 );
+      new File(args[0])
+      , new File(args[1])
+      , new File(args[2])
+      , new File(args[3])
+      , new File(args[4])
+      , new File(args[5])
+      , args.length > 6 ? new File(args[6]) : null
+    );
   }
 
   private BExpressionContextWay _expctxWay;
@@ -61,50 +58,46 @@ public class OsmCutter extends MapCreatorBase
   // private BExpressionContextWay _expctxWayStat;
   // private BExpressionContextNode _expctxNodeStat;
 
-  public void process (File lookupFile, File outTileDir, File wayFile, File relFile, File resFile, File profileFile, File mapFile ) throws Exception
-  {
-    if ( !lookupFile.exists() )
-    {
-      throw new IllegalArgumentException( "lookup-file: " +  lookupFile + " does not exist" );
+  public void process(File lookupFile, File outTileDir, File wayFile, File relFile, File resFile, File profileFile, File mapFile) throws Exception {
+    if (!lookupFile.exists()) {
+      throw new IllegalArgumentException("lookup-file: " + lookupFile + " does not exist");
     }
 
     BExpressionMetaData meta = new BExpressionMetaData();
 
-    _expctxWay = new BExpressionContextWay( meta );
-    _expctxNode = new BExpressionContextNode( meta );
-    meta.readMetaData( lookupFile );
-    _expctxWay.parseFile( profileFile, "global" );
+    _expctxWay = new BExpressionContextWay(meta);
+    _expctxNode = new BExpressionContextNode(meta);
+    meta.readMetaData(lookupFile);
+    _expctxWay.parseFile(profileFile, "global");
 
-    
-   // _expctxWayStat = new BExpressionContextWay( null );
-   // _expctxNodeStat = new BExpressionContextNode( null );
+
+    // _expctxWayStat = new BExpressionContextWay( null );
+    // _expctxNodeStat = new BExpressionContextNode( null );
 
     this.outTileDir = outTileDir;
-    if ( !outTileDir.isDirectory() ) throw new RuntimeException( "out tile directory " + outTileDir + " does not exist" );
+    if (!outTileDir.isDirectory())
+      throw new RuntimeException("out tile directory " + outTileDir + " does not exist");
 
-    wayDos = wayFile == null ? null : new DataOutputStream( new BufferedOutputStream( new FileOutputStream( wayFile ) ) );
-    cyclewayDos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( relFile ) ) );
-    if ( resFile != null )
-    {
-      restrictionsDos = new DataOutputStream( new BufferedOutputStream( new FileOutputStream( resFile ) ) );
+    wayDos = wayFile == null ? null : new DataOutputStream(new BufferedOutputStream(new FileOutputStream(wayFile)));
+    cyclewayDos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(relFile)));
+    if (resFile != null) {
+      restrictionsDos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(resFile)));
     }
 
     // read the osm map into memory
     long t0 = System.currentTimeMillis();
-    new OsmParser().readMap( mapFile, this, this, this );
+    new OsmParser().readMap(mapFile, this, this, this);
     long t1 = System.currentTimeMillis();
-    
-    System.out.println( "parsing time (ms) =" + (t1-t0) );
+
+    System.out.println("parsing time (ms) =" + (t1 - t0));
 
     // close all files
     closeTileOutStreams();
-    if ( wayDos != null )
-    {
+    if (wayDos != null) {
       wayDos.close();
     }
     cyclewayDos.close();
-    if ( restrictionsDos != null )
-    {
+    if (restrictionsDos != null) {
       restrictionsDos.close();
     }
 
@@ -113,177 +106,151 @@ public class OsmCutter extends MapCreatorBase
 //    System.out.println( "-------- node-statistics -------- " );
 //    _expctxNodeStat.dumpStatistics();
 
-    System.out.println( statsLine() );
+    System.out.println(statsLine());
   }
 
-  private void checkStats()
-  {
-    if ( (++recordCnt % 100000) == 0 ) System.out.println( statsLine() );
+  private void checkStats() {
+    if ((++recordCnt % 100000) == 0) System.out.println(statsLine());
   }
 
-  private String statsLine()
-  {
+  private String statsLine() {
     return "records read: " + recordCnt + " nodes=" + nodesParsed + " ways=" + waysParsed + " rels=" + relsParsed + " changesets=" + changesetsParsed;
   }
 
 
   @Override
-  public void nextNode( NodeData n ) throws Exception
-  {
+  public void nextNode(NodeData n) throws Exception {
     nodesParsed++;
     checkStats();
 
-    if ( n.getTagsOrNull() != null )
-    {
+    if (n.getTagsOrNull() != null) {
       int[] lookupData = _expctxNode.createNewLookupData();
-      for( Map.Entry<String,String> e : n.getTagsOrNull().entrySet() )
-      {
-        _expctxNode.addLookupValue( e.getKey(), e.getValue(), lookupData );
+      for (Map.Entry<String, String> e : n.getTagsOrNull().entrySet()) {
+        _expctxNode.addLookupValue(e.getKey(), e.getValue(), lookupData);
         // _expctxNodeStat.addLookupValue( key, value, null );
       }
       n.description = _expctxNode.encode(lookupData);
     }
     // write node to file
-    int tileIndex = getTileIndex( n.ilon, n.ilat );
-    if ( tileIndex >= 0 )
-    {
-      n.writeTo( getOutStreamForTile( tileIndex ) );
-      if ( wayCutter != null )
-      {
-        wayCutter.nextNode( n );
+    int tileIndex = getTileIndex(n.ilon, n.ilat);
+    if (tileIndex >= 0) {
+      n.writeTo(getOutStreamForTile(tileIndex));
+      if (wayCutter != null) {
+        wayCutter.nextNode(n);
       }
     }
   }
 
 
-  private void generatePseudoTags( HashMap<String,String> map )
-  {
+  private void generatePseudoTags(HashMap<String, String> map) {
     // add pseudo.tags for concrete:lanes and concrete:plates
-  
+
     String concrete = null;
-    for( Map.Entry<String,String> e : map.entrySet() )
-    {
+    for (Map.Entry<String, String> e : map.entrySet()) {
       String key = e.getKey();
-    
-      if ( "concrete".equals( key ) )
-      {
+
+      if ("concrete".equals(key)) {
         return;
       }
-      if ( "surface".equals( key ) )
-      {
+      if ("surface".equals(key)) {
         String value = e.getValue();
-        if ( value.startsWith( "concrete:" ) )
-        {
-          concrete = value.substring( "concrete:".length() );
+        if (value.startsWith("concrete:")) {
+          concrete = value.substring("concrete:".length());
         }
       }
     }
-    if ( concrete != null )
-    {
-      map.put( "concrete", concrete );
+    if (concrete != null) {
+      map.put("concrete", concrete);
     }
   }
 
 
   @Override
-  public void nextWay( WayData w ) throws Exception
-  {
+  public void nextWay(WayData w) throws Exception {
     waysParsed++;
     checkStats();
 
     // encode tags
-    if ( w.getTagsOrNull() == null ) return;
+    if (w.getTagsOrNull() == null) return;
 
-    generatePseudoTags( w.getTagsOrNull() );
+    generatePseudoTags(w.getTagsOrNull());
 
     int[] lookupData = _expctxWay.createNewLookupData();
-    for( String key : w.getTagsOrNull().keySet() )
-    {
-      String value = w.getTag( key );
-      _expctxWay.addLookupValue( key, value.replace( ' ', '_' ), lookupData );
+    for (String key : w.getTagsOrNull().keySet()) {
+      String value = w.getTag(key);
+      _expctxWay.addLookupValue(key, value.replace(' ', '_'), lookupData);
       // _expctxWayStat.addLookupValue( key, value, null );
     }
     w.description = _expctxWay.encode(lookupData);
-    
-    if ( w.description == null ) return;
+
+    if (w.description == null) return;
 
     // filter according to profile
-    _expctxWay.evaluate( false, w.description );
-    boolean ok = _expctxWay.getCostfactor() < 10000.; 
-    _expctxWay.evaluate( true, w.description );
+    _expctxWay.evaluate(false, w.description);
+    boolean ok = _expctxWay.getCostfactor() < 10000.;
+    _expctxWay.evaluate(true, w.description);
     ok |= _expctxWay.getCostfactor() < 10000.;
-    if ( !ok ) return;
-    
-    if ( wayDos != null )
-    {
-      w.writeTo( wayDos );
+    if (!ok) return;
+
+    if (wayDos != null) {
+      w.writeTo(wayDos);
     }
-    if ( wayCutter != null )
-    {
-      wayCutter.nextWay( w );
+    if (wayCutter != null) {
+      wayCutter.nextWay(w);
     }
-    if ( nodeFilter != null )
-    {
-      nodeFilter.nextWay( w );
+    if (nodeFilter != null) {
+      nodeFilter.nextWay(w);
     }
   }
 
   @Override
-  public void nextRelation( RelationData r ) throws Exception
-  {
+  public void nextRelation(RelationData r) throws Exception {
     relsParsed++;
     checkStats();
 
-    String route = r.getTag( "route" );
+    String route = r.getTag("route");
     // filter out non-cycle relations
-    if ( route == null )
-    {
+    if (route == null) {
       return;
     }
 
-    String network =  r.getTag( "network" );
-    if ( network == null ) network = "";
-    String state =  r.getTag( "state" );
-    if ( state == null ) state = "";
-    writeId( cyclewayDos, r.rid );
-    cyclewayDos.writeUTF( route );
-    cyclewayDos.writeUTF( network );
-    cyclewayDos.writeUTF( state );
-    for ( int i=0; i<r.ways.size();i++ )
-    {
+    String network = r.getTag("network");
+    if (network == null) network = "";
+    String state = r.getTag("state");
+    if (state == null) state = "";
+    writeId(cyclewayDos, r.rid);
+    cyclewayDos.writeUTF(route);
+    cyclewayDos.writeUTF(network);
+    cyclewayDos.writeUTF(state);
+    for (int i = 0; i < r.ways.size(); i++) {
       long wid = r.ways.get(i);
-      writeId( cyclewayDos, wid );
+      writeId(cyclewayDos, wid);
     }
-    writeId( cyclewayDos, -1 );
+    writeId(cyclewayDos, -1);
   }
 
   @Override
-  public void nextRestriction( RelationData r, long fromWid, long toWid, long viaNid ) throws Exception
-  {
-    String type = r.getTag( "type" );
-    if ( type == null || !"restriction".equals( type ) )
-    {
+  public void nextRestriction(RelationData r, long fromWid, long toWid, long viaNid) throws Exception {
+    String type = r.getTag("type");
+    if (type == null || !"restriction".equals(type)) {
       return;
     }
     short exceptions = 0;
-    String except = r.getTag( "except" );
-    if ( except != null )
-    {
-      exceptions |= toBit( "bicycle"      , 0, except );
-      exceptions |= toBit( "motorcar"     , 1, except );
-      exceptions |= toBit( "agricultural" , 2, except );
-      exceptions |= toBit( "forestry"     , 2, except );
-      exceptions |= toBit( "psv"          , 3, except );
-      exceptions |= toBit( "hgv"          , 4, except );
+    String except = r.getTag("except");
+    if (except != null) {
+      exceptions |= toBit("bicycle", 0, except);
+      exceptions |= toBit("motorcar", 1, except);
+      exceptions |= toBit("agricultural", 2, except);
+      exceptions |= toBit("forestry", 2, except);
+      exceptions |= toBit("psv", 3, except);
+      exceptions |= toBit("hgv", 4, except);
     }
 
-    for( String restrictionKey : r.getTagsOrNull().keySet() )
-    {
-      if ( !( restrictionKey.equals( "restriction" ) || restrictionKey.startsWith( "restriction:" ) ) )
-      {
+    for (String restrictionKey : r.getTagsOrNull().keySet()) {
+      if (!(restrictionKey.equals("restriction") || restrictionKey.startsWith("restriction:"))) {
         continue;
       }
-      String restriction = r.getTag( restrictionKey );
+      String restriction = r.getTag(restrictionKey);
 
       RestrictionData res = new RestrictionData();
       res.restrictionKey = restrictionKey;
@@ -292,39 +259,33 @@ public class OsmCutter extends MapCreatorBase
       res.fromWid = fromWid;
       res.toWid = toWid;
       res.viaNid = viaNid;
-    
-      if ( restrictionsDos != null )
-      {
-        res.writeTo( restrictionsDos );
+
+      if (restrictionsDos != null) {
+        res.writeTo(restrictionsDos);
       }
-      if ( restrictionCutter != null )
-      {
-        restrictionCutter.nextRestriction( res );
+      if (restrictionCutter != null) {
+        restrictionCutter.nextRestriction(res);
       }
     }
   }
 
-  private static short toBit( String tag, int bitpos, String s )
-  {
-    return (short) ( s.indexOf( tag ) < 0 ? 0 : 1 << bitpos );
+  private static short toBit(String tag, int bitpos, String s) {
+    return (short) (s.indexOf(tag) < 0 ? 0 : 1 << bitpos);
   }
 
-  private int getTileIndex( int ilon, int ilat )
-  {
-     int lon = ilon / 45000000;
-     int lat = ilat / 30000000;
-     if ( lon < 0 || lon > 7 || lat < 0 || lat > 5 )
-     {
-       System.out.println( "warning: ignoring illegal pos: " + ilon + "," + ilat );
-       return -1;
-     }
-     return lon*6 + lat;
+  private int getTileIndex(int ilon, int ilat) {
+    int lon = ilon / 45000000;
+    int lat = ilat / 30000000;
+    if (lon < 0 || lon > 7 || lat < 0 || lat > 5) {
+      System.out.println("warning: ignoring illegal pos: " + ilon + "," + ilat);
+      return -1;
+    }
+    return lon * 6 + lat;
   }
 
-  protected String getNameForTile( int tileIndex )
-  {
-    int lon = (tileIndex / 6 ) * 45 - 180;
-    int lat = (tileIndex % 6 ) * 30 - 90;
+  protected String getNameForTile(int tileIndex) {
+    int lon = (tileIndex / 6) * 45 - 180;
+    int lat = (tileIndex % 6) * 30 - 90;
     String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
     String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
     return slon + "_" + slat + ".ntl";

@@ -5,8 +5,7 @@
  */
 package btools.mapaccess;
 
-public final class TurnRestriction
-{
+public final class TurnRestriction {
   public boolean isPositive;
   public short exceptions;
 
@@ -17,57 +16,45 @@ public final class TurnRestriction
   public int toLat;
 
   public TurnRestriction next;
-  
-  public boolean exceptBikes()
-  {
-    return ( exceptions & 1 ) != 0;
+
+  public boolean exceptBikes() {
+    return (exceptions & 1) != 0;
   }
 
-  public boolean exceptMotorcars()
-  {
-    return ( exceptions & 2 ) != 0;
+  public boolean exceptMotorcars() {
+    return (exceptions & 2) != 0;
   }
 
-  public static boolean isTurnForbidden( TurnRestriction first, int fromLon, int fromLat, int toLon, int toLat, boolean bikeMode, boolean carMode )
-  {
+  public static boolean isTurnForbidden(TurnRestriction first, int fromLon, int fromLat, int toLon, int toLat, boolean bikeMode, boolean carMode) {
     boolean hasAnyPositive = false;
     boolean hasPositive = false;
     boolean hasNegative = false;
     TurnRestriction tr = first;
-    while (tr != null)
-    {
-      if ( ( tr.exceptBikes() && bikeMode ) || ( tr.exceptMotorcars() && carMode ) )
-      {
+    while (tr != null) {
+      if ((tr.exceptBikes() && bikeMode) || (tr.exceptMotorcars() && carMode)) {
         tr = tr.next;
         continue;
       }
-      if ( tr.fromLon == fromLon && tr.fromLat == fromLat )
-      {
-        if ( tr.isPositive )
-        {
+      if (tr.fromLon == fromLon && tr.fromLat == fromLat) {
+        if (tr.isPositive) {
           hasAnyPositive = true;
         }
-        if ( tr.toLon == toLon && tr.toLat == toLat )
-        {
-          if ( tr.isPositive )
-          {
+        if (tr.toLon == toLon && tr.toLat == toLat) {
+          if (tr.isPositive) {
             hasPositive = true;
-          }
-          else
-          {
+          } else {
             hasNegative = true;
           }
         }
       }
       tr = tr.next;
     }
-    return !hasPositive && ( hasAnyPositive || hasNegative );
+    return !hasPositive && (hasAnyPositive || hasNegative);
   }
 
   @Override
-  public String toString()
-  {
+  public String toString() {
     return "pos=" + isPositive + " fromLon=" + fromLon + " fromLat=" + fromLat + " toLon=" + toLon + " toLat=" + toLat;
   }
-    
+
 }

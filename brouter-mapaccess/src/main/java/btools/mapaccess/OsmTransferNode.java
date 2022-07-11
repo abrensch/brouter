@@ -6,10 +6,7 @@
 package btools.mapaccess;
 
 
-
-
-public final class OsmTransferNode
-{
+public final class OsmTransferNode {
   public OsmTransferNode next;
 
   public int ilon;
