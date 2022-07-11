@@ -216,13 +216,13 @@ public class BInstallerActivity extends AppCompatActivity {
         builder
           .setTitle("Confirm Delete")
           .setMessage("Really delete?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            deleteSelectedTiles();
-          }
-        }).setNegativeButton("No", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-          }
-        });
+            public void onClick(DialogInterface dialog, int id) {
+              deleteSelectedTiles();
+            }
+          }).setNegativeButton("No", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+            }
+          });
         return builder.create();
 
       default:

@@ -12,15 +12,12 @@ import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 
 
-final class StdModel extends OsmPathModel
-{
-  public OsmPrePath createPrePath()
-  {
+final class StdModel extends OsmPathModel {
+  public OsmPrePath createPrePath() {
     return null;
   }
 
-  public OsmPath createPath()
-  {
+  public OsmPath createPath() {
     return new StdPath();
   }
 
@@ -29,11 +26,10 @@ final class StdModel extends OsmPathModel
 
 
   @Override
-  public void init( BExpressionContextWay expctxWay, BExpressionContextNode expctxNode, Map<String,String> keyValues )
-  {
+  public void init(BExpressionContextWay expctxWay, BExpressionContextNode expctxNode, Map<String, String> keyValues) {
     ctxWay = expctxWay;
     ctxNode = expctxNode;
-  
+
     BExpressionContext expctxGlobal = expctxWay; // just one of them...
 
   }
