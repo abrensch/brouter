@@ -141,8 +141,8 @@ final class BExpression {
             use of variable values
             assign no_height
                switch and not      maxheight=
-	                      lesser v:maxheight  my_height  true
-	           false
+                        lesser v:maxheight  my_height  true
+            false
              */
             if (operator.startsWith("v:")) {
               String name = operator.substring(2);
