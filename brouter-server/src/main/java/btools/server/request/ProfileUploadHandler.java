@@ -59,9 +59,9 @@ public class ProfileUploadHandler {
       response.write(toJSON(responseData));
     } finally {
       if (fileWriter != null) try {
-        fileWriter.close();
-      } catch (Exception e) {
-      }
+          fileWriter.close();
+        } catch (Exception e) {
+        }
     }
   }
 
