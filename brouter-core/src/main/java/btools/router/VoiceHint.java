@@ -253,7 +253,7 @@ public class VoiceHint
       }
     }
 
-    float cmdAngle= angle;
+    float cmdAngle = angle;
 
     // fall back to local angle if otherwise inconsistent
     //if ( lowerBadWayAngle > angle || higherBadWayAngle < angle )
@@ -264,89 +264,52 @@ public class VoiceHint
       cmdAngle = goodWay.turnangle;
     }
 
-    if (roundaboutExit > 0)
-    {
+    if (roundaboutExit > 0) {
       cmd = RNDB;
-    }
-    else if (roundaboutExit < 0)
-    {
+    } else if (roundaboutExit < 0) {
       cmd = RNLB;
-    }
-    else if ( cmdAngle == -180.f )
-    {
+    } else if (cmdAngle == -180.f) {
       cmd = TU;
-    }
-    else if ( cmdAngle < -159.f )
-    {
+    } else if (cmdAngle < -159.f) {
       cmd = TLU;
-    }
-    else if ( cmdAngle < -135. )
-    {
+    } else if (cmdAngle < -135.f) {
       cmd = TSHL;
-    }
-    else if ( cmdAngle < -45. )
-    {
-      // a TL can be pushed in either direction by a close-by alternative
-      if ( higherBadWayAngle > -90. && higherBadWayAngle < -15. && lowerBadWayAngle < -180. )
-      {
+    } else if (cmdAngle < -45.f) {
+      if (cmdAngle < -95.f && higherBadWayAngle < -30.f && lowerBadWayAngle < -180.f) {
         cmd = TSHL;
       }
-      else if ( lowerBadWayAngle > -180. && lowerBadWayAngle < -90. && higherBadWayAngle > 0. )
-      {
+      else if (cmdAngle > -85.f && lowerBadWayAngle > -180.f && higherBadWayAngle > -10.f) {
         cmd = TSLL;
-      }
-      else
-      {
+      } else {
         cmd = TL;
       }
-    }
-    else if ( cmdAngle < -21. )
-    {
-      if ( cmd != KR ) // don't overwrite KR with TSLL
+    } else if (cmdAngle < -21.f) {
+      if (cmd != KR) // don't overwrite KR with TSLL
       {
         cmd = TSLL;
       }
     }
-    else if ( cmdAngle < 21. )
-    {
-      if ( cmd != KR && cmd != KL ) // don't overwrite KL/KR hints!
-      {
+     else if (cmdAngle < -5.f) {
+      cmd = KL;
+    } else if (cmdAngle < 5.f) {
         cmd = C;
-      }
-    }
-    else if ( cmdAngle < 45. )
-    {
-      if ( cmd != KL ) // don't overwrite KL with TSLR
-      {
+    } else if (cmdAngle < 21.f) {
+      cmd = KR;
+    } else if (cmdAngle < 45.f) {
         cmd = TSLR;
-      }
-    }
-    else if ( cmdAngle < 135. )
-    {
-      // a TR can be pushed in either direction by a close-by alternative
-      if ( higherBadWayAngle > 90. && higherBadWayAngle < 180. && lowerBadWayAngle < 0. )
-      {
+    } else if (cmdAngle < 135.f) {
+      if (cmdAngle < 85.f && higherBadWayAngle < 180.f && lowerBadWayAngle < 10.f) {
         cmd = TSLR;
-      }
-      else if ( lowerBadWayAngle > 15. && lowerBadWayAngle < 90. && higherBadWayAngle > 180. )
-      {
+      } else if (cmdAngle > 95.f && lowerBadWayAngle > 30.f && higherBadWayAngle > 180.f) {
         cmd = TSHR;
-      }
-      else
-      {
+      } else {
         cmd = TR;
       }
-    }
-    else if ( cmdAngle < 159. )
-    {
+    } else if (cmdAngle < 159.f) {
       cmd = TSHR;
-    }
-    else if ( cmdAngle == 180.f )
-    {
+    } else if (cmdAngle == 180.f) {
       cmd = TU;
-    }
-    else
-    {
+    } else {
       cmd = TRU;
     }
   }
