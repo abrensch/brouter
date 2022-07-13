@@ -536,7 +536,7 @@ public class RoutingEngine extends Thread {
         return null;
 
       boolean changed = false;
-      if (routingContext.avoidPeaks && !matchedWaypoints.get(i).direct) {
+      if (routingContext.correctMisplacedViaPoints && !matchedWaypoints.get(i).direct) {
         changed = snappPathConnection(totaltrack, seg, routingContext.inverseRouting ? matchedWaypoints.get(i + 1) : matchedWaypoints.get(i));
       }
       if (wptIndex > 0)
@@ -649,8 +649,8 @@ public class RoutingEngine extends Thread {
         indexfore++;
       }
 
-      if (routingContext.avoidPeaksDistance > 0 &&
-        wayDistance > routingContext.avoidPeaksDistance) {
+      if (routingContext.correctMisplacedViaPointsDistance > 0 &&
+        wayDistance > routingContext.correctMisplacedViaPointsDistance) {
         removeVoiceHintList.clear();
         removeBackList.clear();
         removeForeList.clear();

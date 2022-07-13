@@ -80,8 +80,8 @@ public final class RoutingContext
   public boolean transitonly;
 
   public double waypointCatchingRange;
-  public boolean avoidPeaks;
-  public double avoidPeaksDistance;
+  public boolean correctMisplacedViaPoints;
+  public double correctMisplacedViaPointsDistance;
 
   private void setModel( String className )
   {
@@ -152,8 +152,8 @@ public final class RoutingContext
     // turn-restrictions not used per default for foot profiles
     considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue( "considerTurnRestrictions", footMode ? 0.f : 1.f );
 
-    avoidPeaks =  0.f != expctxGlobal.getVariableValue( "avoidPeaks", 1.f );
-    avoidPeaksDistance =  expctxGlobal.getVariableValue( "avoidPeaksDistance", 0.f );
+    correctMisplacedViaPoints =  0.f != expctxGlobal.getVariableValue( "correctMisplacedViaPoints", 0.f );
+    correctMisplacedViaPointsDistance =  expctxGlobal.getVariableValue( "correctMisplacedViaPointsDistance", 40.f );
 	
     // process tags not used in the profile (to have them in the data-tab)
     processUnusedTags = 0.f != expctxGlobal.getVariableValue( "processUnusedTags", 0.f );
