@@ -230,6 +230,48 @@ public class VoiceHint
       }
   }
 
+  public String getCruiserCommandString() {
+    switch (cmd) {
+    case TLU : return "TLU";
+    case TU  : return "TU";
+    case TSHL: return "TSHL";
+    case TL  : return "TL";
+    case TSLL: return "TSLL";
+    case KL  : return "KL";
+    case C   : return "C";
+    case KR  : return "KR";
+    case TSLR: return "TSLR";
+    case TR  : return "TR";
+    case TSHR: return "TSHR";
+    case TRU : return "TRU";
+    case RNDB: return "RNDB" + roundaboutExit;
+    case RNLB: return "RNLB" + (-roundaboutExit);
+    default:
+      throw new IllegalArgumentException("unknown command: " + cmd);
+    }
+  }
+
+  public String getCruiserMessageString() {
+    switch (cmd) {
+    case TLU : return "u-turn left";
+    case TU  : return "u-turn";
+    case TSHL: return "sharp left";
+    case TL  : return "left";
+    case TSLL: return "slight left";
+    case KL  : return "keep left";
+    case C   : return "straight";
+    case KR  : return "keep right";
+    case TSLR: return "slight right";
+    case TR  : return "right";
+    case TSHR: return "sharp right";
+    case TRU : return "u-turn right";
+    case RNDB: return "Take exit " + roundaboutExit;
+    case RNLB: return "Take exit " + (-roundaboutExit);
+    default:
+      throw new IllegalArgumentException("unknown command: " + cmd);
+    }
+  }
+
   public void calcCommand()
   {
     float lowerBadWayAngle = -181;

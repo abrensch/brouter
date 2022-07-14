@@ -452,7 +452,7 @@ public final class OsmTrack{
       sb.append(" creator=\"BRouter-" + version + "\" version=\"1.1\">\n");
     }
 
-    if (turnInstructionMode == 3) // osmand style
+    if (turnInstructionMode == 3 || turnInstructionMode == 8) // osmand style
     {
       float lastRteTime = 0;
 
@@ -476,7 +476,9 @@ public final class OsmTrack{
         VoiceHint hint = voiceHints.list.get(i);
         sb.append("  <rtept lat=\"").append(formatILat(hint.ilat)).append("\" lon=\"")
         .append(formatILon(hint.ilon)).append("\">\n")
-        .append("   <desc>").append(hint.getMessageString()).append("</desc>\n   <extensions>\n");
+        .append("   <desc>")
+        .append(turnInstructionMode == 3 ? hint.getMessageString() : hint.getCruiserMessageString())
+        .append("</desc>\n   <extensions>\n");
 
         rteTime = getVoiceHintTime(i + 1);
 
@@ -486,7 +488,9 @@ public final class OsmTrack{
           sb.append("    <time>").append("" + (int)(t + 0.5)).append("</time>\n");
           lastRteTime = rteTime;
         }
-        sb.append("    <turn>").append(hint.getCommandString()).append("</turn>\n    <turn-angle>").append("" + (int)hint.angle)
+        sb.append("    <turn>")
+        .append(turnInstructionMode == 3 ? hint.getCommandString() : hint.getCruiserCommandString())
+        .append("</turn>\n    <turn-angle>").append("" + (int)hint.angle)
         .append("</turn-angle>\n    <offset>").append("" + hint.indexInTrack).append("</offset>\n  </extensions>\n </rtept>\n");
       }
       sb.append("  <rtept lat=\"").append(formatILat(nodes.get(nodes.size() - 1).getILat())).append("\" lon=\"")

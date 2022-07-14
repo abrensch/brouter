@@ -30,7 +30,7 @@ interface IBRouterService {
     //  "exportWaypoints" = 1 to export them (optional, default is no export)
     //  "pois"            = lon,lat,name|... (optional)
     //  "extraParams"     = Bundle key=value list for a profile setup (like "profile:")
-    //  "timode"          = turnInstructionMode [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-new-style] default 0
+    //  "timode"          = turnInstructionMode [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-new-style, 7=cruiser-style] default 0
 
     // return null if all ok and no path given, the track if ok and path given, an error message if it was wrong
     //        the resultas string when 'pathToFileResult' is null, this should be default when Android Q or later
