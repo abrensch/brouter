@@ -148,7 +148,7 @@ public final class VoiceHintProcessor{
       // unconditional triggers are all junctions with
       // - higher detour prios than the minimum route prio (except link->highway junctions)
       // - or candidate detours with higher prio then the route exit leg
-      boolean unconditionalTrigger = hasSomethingMoreStraight || (maxPrioAll > minPrio && !isLink2Highway) || (maxPrioCandidates > currentPrio) || (Math.abs(turnAngle) == 180f);
+      boolean unconditionalTrigger = hasSomethingMoreStraight || (maxPrioAll > minPrio && !isLink2Highway) || (maxPrioCandidates > currentPrio) || VoiceHint.is180DegAngle(turnAngle);
 
       // conditional triggers (=real turning angle required) are junctions
       // with candidate detours equal in priority than the route exit leg
@@ -246,7 +246,7 @@ public final class VoiceHintProcessor{
             VoiceHint h2 = inputs.get(hintIdx + i);
             dist += h2.distanceToNext;
             angles += h2.angle;
-            if (Math.abs(input.angle) == 180 || Math.abs(h2.angle) == 180) {  // u-turn, 180 degree
+            if (VoiceHint.is180DegAngle(input.angle) || VoiceHint.is180DegAngle(h2.angle) ) {  // u-turn, 180 degree
               save = true;
               break;
             } else if (Math.abs(angles) > 180 - SIGNIFICANT_ANGLE) { // u-turn, collects e.g. two left turns in range

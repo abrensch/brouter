@@ -268,7 +268,7 @@ public class VoiceHint
       cmd = RNDB;
     } else if (roundaboutExit < 0) {
       cmd = RNLB;
-    } else if (cmdAngle == -180.f) {
+    } else if (is180DegAngle(cmdAngle) && cmdAngle <= -179.f && higherBadWayAngle==181.f && lowerBadWayAngle==-181.f) {
       cmd = TU;
     } else if (cmdAngle < -159.f) {
       cmd = TLU;
@@ -307,15 +307,19 @@ public class VoiceHint
       }
     } else if (cmdAngle < 159.f) {
       cmd = TSHR;
-    } else if (cmdAngle == 180.f) {
+    } else if (is180DegAngle(cmdAngle) && cmdAngle >= 179.f && higherBadWayAngle==181.f && lowerBadWayAngle==-181.f) {
       cmd = TU;
     } else {
       cmd = TRU;
     }
   }
 
-  public String formatGeometry()
-  {
+  static boolean is180DegAngle(float angle) {
+    if( Math.abs(angle) <= 180.f && Math.abs(angle) >= 179.f ) return true;
+    return false;
+  }
+
+  public String formatGeometry() {
     float oldPrio = oldWay == null ? 0.f : oldWay.priorityclassifier;
     StringBuilder sb = new StringBuilder(30);
     sb.append( ' ' ).append( (int)oldPrio );
