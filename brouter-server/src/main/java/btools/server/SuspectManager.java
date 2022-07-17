@@ -11,11 +11,16 @@ import java.util.HashMap;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
+import btools.mapaccess.OsmNode;
+import btools.router.OsmNodeNamed;
 import btools.router.SuspectInfo;
 
 public class SuspectManager extends Thread
 {
   private static SimpleDateFormat dfTimestampZ = new SimpleDateFormat( "yyyy-MM-dd'T'HH:mm:ss" );
+
+  static NearRecentWps nearRecentWps = new NearRecentWps();
+  static NearRecentWps hiddenWps = new NearRecentWps();
 
   private static String formatZ( Date date )
   {
@@ -73,7 +78,7 @@ public class SuspectManager extends Thread
 
   }
 
-  public static void newAndConfirmedJson( SuspectList suspects, BufferedWriter bw, String filter, int level ) throws IOException
+  public static void newAndConfirmedJson( SuspectList suspects, BufferedWriter bw, String filter, int level, Area polygon ) throws IOException
   {
     bw.write( "{\n" );
     bw.write( "\"type\": \"FeatureCollection\",\n" );
@@ -98,6 +103,11 @@ public class SuspectManager extends Thread
       if ( "fp".equals( filter ) ^ suspects.falsePositive[isuspect] )
       {
         continue; // wrong false-positive state
+      }
+
+      if ( polygon != null && !polygon.isInBoundingBox( id ) )
+      {
+        continue; // not in selected polygon (pre-check)
       }
 
       String dueTime = null;
@@ -130,6 +140,11 @@ public class SuspectManager extends Thread
           }
         }
         dueTime = hideTime < 0 ? "(asap)" : formatAge( hideTime + 43200000 );
+      }
+
+      if ( polygon != null && !polygon.isInArea( id ) )
+      {
+        continue; // not in selected polygon
       }
 
       File confirmedEntry = new File( "confirmednegatives/" + id );
@@ -186,7 +201,25 @@ public class SuspectManager extends Thread
   
   public static void process( String url, BufferedWriter bw ) throws IOException
   {
-    StringTokenizer tk = new StringTokenizer( url, "/" );
+    try
+    {
+      _process( url, bw );
+    }
+    catch( IllegalArgumentException iae )
+    {
+      try
+      {
+        bw.write( "<br><br>ERROR: " + iae.getMessage() + "<br><br>\n\n" );
+        bw.write( "(press Browser-Back to continue)\n" );
+        bw.flush();
+      }
+      catch (IOException _ignore){}
+    }
+  }
+
+  private static void _process( String url, BufferedWriter bw ) throws IOException
+  {
+    StringTokenizer tk = new StringTokenizer( url, "/?" );
     tk.nextToken();
     tk.nextToken();
     long id = 0L;
@@ -218,12 +251,26 @@ public class SuspectManager extends Thread
     
     SuspectList suspects = getAllSuspects( suspectFilename );
 
+    Area polygon = null;
+    if ( !("/world".equals( country ) || "".equals( country ) ) )
+    { 
+      File polyFile = new File( "worldpolys" + country + ".poly" );
+      if ( !polyFile.exists() )
+      {
+        bw.write( "polygon file for country '" + country + "' not found\n" );
+        bw.write( "</body></html>\n" );
+        bw.flush();
+        return;
+      }
+      polygon = new Area( polyFile );
+    }
+
     if ( url.endsWith( ".json" ) )
     {
       StringTokenizer tk2 = new StringTokenizer( tk.nextToken(), "." );
       int level = Integer.parseInt( tk2.nextToken() ); 
       
-      newAndConfirmedJson( suspects, bw, filter, level );
+      newAndConfirmedJson( suspects, bw, filter, level, polygon );
       return;
     }
     
@@ -262,20 +309,6 @@ public class SuspectManager extends Thread
       bw.write( "</body></html>\n" );
       bw.flush();
       return;
-    }
-
-    Area polygon = null;
-    if ( !"/world".equals( country ) )
-    { 
-      File polyFile = new File( "worldpolys" + country + ".poly" );
-      if ( !polyFile.exists() )
-      {
-        bw.write( "polygon file for country '" + country + "' not found\n" );
-        bw.write( "</body></html>\n" );
-        bw.flush();
-        return;
-      }
-      polygon = new Area( polyFile );
     }
 
     File suspectFile = new File( "worldsuspects.txt" );
@@ -365,10 +398,11 @@ public class SuspectManager extends Thread
       String command = tk.nextToken();
       if ( "falsepositive".equals( command ) )
       {
-        int wps = NearRecentWps.count( id );
-        if ( wps < 0 ) // FIXME
+        int wps = nearRecentWps.count( id );
+        if ( wps < 8 )
         {
-          message = "marking false-positive requires at least 8 recent nearby waypoints from BRouter-Web, found: " + wps;
+          message = "marking false-positive requires at least 8 recent nearby waypoints from BRouter-Web, found: " + wps
+            + "<br><br>****** DO SOME MORE TEST-ROUTINGS IN BROUTER-WEB ******* before marking false positive";
         }
         else
         {
@@ -379,10 +413,11 @@ public class SuspectManager extends Thread
       }
       if ( "confirm".equals( command ) )
       {
-        int wps = NearRecentWps.count( id );
+        int wps = nearRecentWps.count( id );
         if ( wps < 2 )
         {
-          message = "marking confirmed requires at least 2 recent nearby waypoints from BRouter-Web, found: " + wps;
+          message = "marking confirmed requires at least 2 recent nearby waypoints from BRouter-Web, found: " + wps
+          + "<br><br>****** DO AT LEAST ONE TEST-ROUTING IN BROUTER-WEB ******* before marking confirmed";
         }
         else
         {
@@ -401,12 +436,33 @@ public class SuspectManager extends Thread
         if ( tk.hasMoreTokens() )
         {
           String param = tk.nextToken();
-          hideDays = Integer.parseInt( param ); // hiding, not fixing
+          if ( param.startsWith( "ndays=" ) )
+          {
+            param = param.substring( "ndays=".length() );
+          }
+          try
+          {
+            hideDays = Integer.parseInt( param ); // hiding, not fixing
+          }
+          catch( NumberFormatException nfe )
+          {
+            throw new IllegalArgumentException( "not a number: " + param );
+          }
+          if ( hideDays < 1 || hideDays > 999 )
+          {
+            throw new IllegalArgumentException( "hideDays must be within 1..999" );
+          }
           message = "Hide issue " + id + " for " + hideDays + " days";
         }
         else
         {
           message = "Marked issue " + id + " as fixed";
+        }
+        if ( hideDays > 0 )
+        {
+          OsmNodeNamed nn = new OsmNodeNamed ( new OsmNode( id ) );
+          nn.name = "" + hideDays;
+          hiddenWps.add( nn );
         }
         id = 0L;
         fixedMarker.setLastModified( System.currentTimeMillis() + hideDays*86400000L );
@@ -432,6 +488,11 @@ public class SuspectManager extends Thread
 
       // get triggers
       int triggers = suspects.trigger4Id( id );
+      SuspectList daily = getDailySuspectsIfLoaded();
+      if ( daily != null && daily != suspects )
+      {
+        triggers |= daily.trigger4Id( id ); // hack, because osmoscope does not echo type of analysis
+      }
       String triggerText = SuspectInfo.getTriggerText( triggers );
 
 
@@ -484,6 +545,11 @@ public class SuspectManager extends Thread
         {
           String prefix = "<a href=\"/brouter/suspects" + countryId + "/fixed";
           String prefix2 = " &nbsp;&nbsp;" + prefix;
+
+          OsmNodeNamed nc = hiddenWps.closest( id );
+          String proposal = nc == null ? "" : nc.name;
+          String prefix2d = "<form action=\"/brouter/suspects" + countryId + "/fixed\" method=\"get\">hide for days: &nbsp;&nbsp;<input type=\"text\" name=\"ndays\" value=\"" + proposal + "\" autofocus><button type=\"submit\">OK</button></form>";
+
           bw.write( prefix + "\">mark as fixed</a><br><br>\n" );
           bw.write( "hide for:  weeks:" );
           bw.write( prefix2 + "/7\">1w</a>" );
@@ -496,6 +562,7 @@ public class SuspectManager extends Thread
           bw.write( prefix2 + "/122\">4m</a>" );
           bw.write( prefix2 + "/152\">5m</a>" );
           bw.write( prefix2 + "/183\">6m</a><br><br>\n" );
+          bw.write( prefix2d + "<br><br>\n" );
         }
         else
         {
@@ -625,6 +692,14 @@ public class SuspectManager extends Thread
 
   private static HashMap<String,SuspectList> allSuspectsMap = new HashMap<String,SuspectList>();
   
+  private static SuspectList getDailySuspectsIfLoaded() throws IOException
+  {
+    synchronized( allSuspectsMap )
+    {
+      return allSuspectsMap.get( "dailysuspects.txt" );
+    }
+  }
+
   private static SuspectList getAllSuspects( String suspectFileName ) throws IOException
   {
     synchronized( allSuspectsMap )

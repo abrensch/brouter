@@ -240,7 +240,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer>
 
             if ( wplist.size() < 10 )
             {
-              NearRecentWps.add( wplist );
+              SuspectManager.nearRecentWps.add( wplist );
             }
             for( Map.Entry<String,String> e : params.entrySet() )
             {
