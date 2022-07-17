@@ -1,69 +1,47 @@
 package btools.server;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.StringTokenizer;
-import java.util.TreeMap;
-import java.util.TreeSet;
 
+import btools.mapaccess.OsmNode;
 import btools.router.OsmNodeNamed;
-import btools.router.OsmTrack;
-import btools.router.RoutingContext;
-import btools.router.RoutingEngine;
-import btools.server.request.ProfileUploadHandler;
-import btools.server.request.RequestHandler;
-import btools.server.request.ServerHandler;
 
 public class NearRecentWps 
 {
-  private static OsmNodeNamed[] recentWaypoints = new OsmNodeNamed[2000];
-  private static int nextRecentIndex = 0;
+  private OsmNodeNamed[] recentWaypoints = new OsmNodeNamed[2000];
+  private int nextRecentIndex = 0;
 
-  public static void add( List<OsmNodeNamed> wplist )
+  public void add( List<OsmNodeNamed> wplist )
   {
     synchronized( recentWaypoints )
     {
       for( OsmNodeNamed wp : wplist )
       {
-        recentWaypoints[nextRecentIndex++] = wp;
-        if ( nextRecentIndex >= recentWaypoints.length )
-        {
-          nextRecentIndex = 0;
-        }
+        add( wp );
       }
     }
   }
 
-  public static int count( long id )
+  public void add( OsmNodeNamed wp )
+  {
+    recentWaypoints[nextRecentIndex++] = wp;
+    if ( nextRecentIndex >= recentWaypoints.length )
+    {
+      nextRecentIndex = 0;
+    }
+  }
+
+  public int count( long id )
   {
     int cnt = 0;
-    int ilon = (int) ( id >> 32 );
-    int ilat = (int) ( id & 0xffffffff );
+    OsmNode n = new OsmNode( id );
     synchronized( recentWaypoints )
     {
       for ( int i=0; i<recentWaypoints.length; i++ )
       {
-        OsmNodeNamed n = recentWaypoints[i];
-        if ( n != null )
+        OsmNodeNamed nn = recentWaypoints[i];
+        if ( nn != null )
         {
-          int dlat = ilat - n.ilat;
-          int dlon = ilon - n.ilon;
-          if ( dlat > -29999 && dlat < 29999 && dlon > -39999 && dlon < 39999 )
+          if ( nn.calcDistance( n ) < 4000 )
           {
             cnt++;
           }
@@ -72,4 +50,29 @@ public class NearRecentWps
     }
     return cnt;
   }
+
+  public OsmNodeNamed closest( long id )
+  {
+    int dmin = 0;
+    OsmNodeNamed nc = null;
+    OsmNode n = new OsmNode( id );
+    synchronized( recentWaypoints )
+    {
+      for ( int i=0; i<recentWaypoints.length; i++ )
+      {
+        OsmNodeNamed nn = recentWaypoints[i];
+        if ( nn != null )
+        {
+          int d = nn.calcDistance( n );
+          if ( d < 4000 && ( nc == null || d < dmin ) )
+          {
+            dmin = d;
+            nc = nn;
+          }
+        }
+      }
+    }
+    return nc;
+  }
+
 }
