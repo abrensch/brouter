@@ -330,6 +330,8 @@ abstract class OsmPath implements OsmLinkHolder
         }
       }
 
+      if (dist == 0) dist = 1;  // dist is rounded +0.5, could be zero
+
       if ( message != null )
       {
         message.linkdist += dist;

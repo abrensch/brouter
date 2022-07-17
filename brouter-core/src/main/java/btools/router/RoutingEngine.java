@@ -294,7 +294,7 @@ public class RoutingEngine extends Thread {
                     int ind = s.indexOf("%");
                     if (ind != -1)
                       s = s.substring(0, ind);
-                    ind = s.indexOf("�");
+                    ind = s.indexOf("°");
                     if (ind != -1)
                       s = s.substring(0, ind);
                     tmpincline = Double.parseDouble(s.trim());
@@ -546,9 +546,9 @@ public class RoutingEngine extends Thread {
       lastTracks[i] = seg;
     }
 
-    recalcTrack(totaltrack);
-
     postElevationCheck(totaltrack);
+
+    recalcTrack(totaltrack);
 
     totaltrack.processVoiceHints(routingContext);
     totaltrack.prepareSpeedProfile(routingContext);
@@ -740,8 +740,18 @@ public class RoutingEngine extends Thread {
     int totaltime = 0;
     int dist;
     double angle;
-    for (i = 0; i < t.nodes.size(); i++) {
+
+    double ascend = 0;
+    double ehb = 0.;
+    int ourSize = t.nodes.size();
+
+    short ele_start = Short.MIN_VALUE;
+    short ele_end = Short.MIN_VALUE;
+    double eleFactor = routingContext.inverseRouting ? 0.25: -0.25 ;
+
+    for (i = 0; i < ourSize; i++) {
       OsmPathElement n = t.nodes.get(i);
+      OsmPathElement nLast = null;
       if (i == 0) {
         lon0 = t.nodes.get(0).getILon();
         lat0 = t.nodes.get(0).getILat();
@@ -757,6 +767,7 @@ public class RoutingEngine extends Thread {
         lat1 = t.nodes.get(1).getILat();
         lon2 = t.nodes.get(i).getILon();
         lat2 = t.nodes.get(i).getILat();
+        nLast = t.nodes.get(0);
         dist = routingContext.calcDistance(lon0, lat0, lon1, lat1);
       } else {
         lon0 = t.nodes.get(i - 2).getILon();
@@ -765,6 +776,7 @@ public class RoutingEngine extends Thread {
         lat1 = t.nodes.get(i - 1).getILat();
         lon2 = t.nodes.get(i).getILon();
         lat2 = t.nodes.get(i).getILat();
+        nLast = t.nodes.get(i-1);
         dist = routingContext.calcDistance(lon1, lat1, lon2, lat2);
       }
       angle = routingContext.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
@@ -773,7 +785,30 @@ public class RoutingEngine extends Thread {
       totaldist += dist;
       totaltime += n.getTime();
 
+      short ele = n.getSElev();
+      if (ele != Short.MIN_VALUE)
+        ele_end = ele;
+      if (ele_start == Short.MIN_VALUE)
+        ele_start = ele;
+
+      if (nLast != null) {
+        short ele_last = nLast.getSElev();
+        if (ele_last != Short.MIN_VALUE) {
+          ehb = ehb + (ele_last - ele) * eleFactor;
+        }
+        if (ehb > 10.) {
+          ascend += ehb - 10.;
+          ehb = 10.;
+        } else if (ehb < 0.) {
+          ehb = 0.;
+        }
+      }
+
     }
+    ascend += ehb;
+
+    t.ascend = (int)ascend;
+    t.plainAscend = (int)((ele_start - ele_end) * eleFactor + 0.5);
 
     t.distance = totaldist;
     //t.energy = totalenergy;
