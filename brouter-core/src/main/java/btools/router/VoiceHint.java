@@ -52,7 +52,7 @@ public class VoiceHint
   {
     return roundaboutExit != 0;
   }
-  
+
   public void addBadWay( MessageData badWay )
   {
     if ( badWay == null )
@@ -97,7 +97,7 @@ public class VoiceHint
       default : throw new IllegalArgumentException( "unknown command: " + cmd );
     }
   }
-  
+
   public String getCommandString(int c)
   {
     switch ( c )
@@ -207,7 +207,7 @@ public class VoiceHint
       default : throw new IllegalArgumentException( "unknown command: " + cmd );
     }
   }
-    
+
     public int getOruxAction()
     {
       switch ( cmd )
@@ -319,33 +319,31 @@ public class VoiceHint
     } else if (cmdAngle < -45.f) {
       if (cmdAngle < -95.f && higherBadWayAngle < -30.f && lowerBadWayAngle < -180.f) {
         cmd = TSHL;
-      }
-      else if (cmdAngle > -85.f && lowerBadWayAngle > -180.f && higherBadWayAngle > -10.f) {
+      } else if (cmdAngle > -85.f && lowerBadWayAngle > -180.f && higherBadWayAngle > -10.f) {
         cmd = TSLL;
       } else {
-        cmd = TL;
+        if (cmdAngle < - 110. ) {cmd = TSHL;} else if (cmdAngle > -70. ) {cmd = TSLL;} else {cmd = TL;}
       }
     } else if (cmdAngle < -21.f) {
-      if (cmd != KR) // don't overwrite KR with TSLL
-      {
+      if (cmd != KR) { // don't overwrite KR with TSLL
         cmd = TSLL;
       }
     }
      else if (cmdAngle < -5.f) {
       cmd = KL;
     } else if (cmdAngle < 5.f) {
-        cmd = C;
+      cmd = C;
     } else if (cmdAngle < 21.f) {
       cmd = KR;
     } else if (cmdAngle < 45.f) {
-        cmd = TSLR;
+      cmd = TSLR;
     } else if (cmdAngle < 135.f) {
       if (cmdAngle < 85.f && higherBadWayAngle < 180.f && lowerBadWayAngle < 10.f) {
         cmd = TSLR;
       } else if (cmdAngle > 95.f && lowerBadWayAngle > 30.f && higherBadWayAngle > 180.f) {
         cmd = TSHR;
       } else {
-        cmd = TR;
+        if (cmdAngle > 110. ) {cmd = TSHR;} else if (cmdAngle < 70. ) {cmd = TSLR;} else {cmd = TR;}
       }
     } else if (cmdAngle < 159.f) {
       cmd = TSHR;
