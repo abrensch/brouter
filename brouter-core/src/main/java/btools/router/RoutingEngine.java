@@ -813,6 +813,9 @@ public class RoutingEngine extends Thread {
     t.distance = totaldist;
     //t.energy = totalenergy;
 
+    logInfo("track-totallength = " + t.distance);
+    logInfo("filtered ascend = " + t.ascend);
+
   }
 
   // geometric position matching finding the nearest routable way-section
@@ -1439,11 +1442,6 @@ public class RoutingEngine extends Thread {
     track.energy = (int)path.getTotalEnergy();
 
     int distance = 0;
-    double ascend = 0;
-    double ehb = 0.;
-
-    short ele_start = Short.MIN_VALUE;
-    short ele_end = Short.MIN_VALUE;
 
     double eleFactor = routingContext.inverseRouting ? -0.25 : 0.25;
     while (element != null) {
@@ -1464,33 +1462,13 @@ public class RoutingEngine extends Thread {
         track.nodes.add(0, element);
       }
 
-      short ele = element.getSElev();
-      if (ele != Short.MIN_VALUE)
-        ele_start = ele;
-      if (ele_end == Short.MIN_VALUE)
-        ele_end = ele;
-
       if (nextElement != null) {
         distance += element.calcDistance(nextElement);
-        short ele_next = nextElement.getSElev();
-        if (ele_next != Short.MIN_VALUE) {
-          ehb = ehb + (ele - ele_next) * eleFactor;
-        }
-        if (ehb > 10.) {
-          ascend += ehb - 10.;
-          ehb = 10.;
-        } else if (ehb < 0.) {
-          ehb = 0.;
-        }
       }
       element = nextElement;
     }
-    ascend += ehb;
     track.distance = distance;
-    track.ascend = (int)ascend;
-    track.plainAscend = (int)((ele_end - ele_start) * eleFactor + 0.5);
     logInfo("track-length = " + track.distance);
-    logInfo("filtered ascend = " + track.ascend);
     track.buildMap();
 
     // for final track..
