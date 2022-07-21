@@ -44,9 +44,6 @@ Since Android 11 apps can only write to their app-specific storage so BRouter
 can only use `<...>/Android/media/btools.routingapp/` as base directory. The
 app-specific storage can be located on internal or external storage.
 
-On Android versions prior to 11 it is possible to read and write to other
-locations which is used for the _file interface_. For the _service interface_
-access to other apps app-specific storage isn't required.
 
 ### Download routing segments
 
@@ -64,6 +61,8 @@ BRouter as navigation service.
 
 - [Instructions for LocusMap](https://docs.locusmap.eu/doku.php?id=manual:faq:how_to_navigate_offline)
 - [Instructions for OsmAnd](osmand.md)
+- [Instructions for Kurviger](https://docs.kurviger.de/start?id=app/offline_routing)
+- [Orux Forum](https://oruxmaps.org/forum/)
 
   Note: OsmAnd only displays BRouter as navigation service if BRouter is
   installed. You have to install BRouter before configuring OsmAnd.
