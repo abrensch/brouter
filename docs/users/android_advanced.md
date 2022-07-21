@@ -61,22 +61,9 @@ use.
 * `additional_maptool_dir` points to a directory that should be scanned for
   maptool-installations in addition to the standard-guesses.
 
-#### Redirect files
-
-When using the _file interface_ with waypoints from other app's storage BRouter
-tries to write the calculated tracks to the app storage. Depending on the
-Android version this won't work. BRouter can be configured to write tracks to a
-different directory by creating a `brouter.redirect` file which contains a
-single line with the absolute path to the folder where the tracks should be
-written.
-
-* For LocusMap `brouter.redirect` has to be located in `Locus/mapItems`
-* For OruxMaps `brouter.redirect` has to be located in `oruxmaps/tracklogs`
-* For OsmAnd `brouter.redirect` has to be located in `osmand/tracks`
-
 ## Using nogo-areas
 
-There's a special naming-convention to specify nogo-areas:
+There's a special naming-convention to specify nogo-areas/lines:
 
 `nogo[radius] [name]` defines a nogo-area, where radius (in Meter) is optional
 and defaults to 20m, and the name is also optional. So `nogo`, `nogo1000`, `nogo
@@ -103,26 +90,16 @@ prefered option when calculating long-distance-routes that would not finish
 within the 60 seconds timout if calculated via the _service interface_.
 
 To do this, start the BRouter app, select two or more waypoints and then start
-the route calculation. BRouter either reads waypoints from the `import` folder
-or tries to read waypoints from other map tools if it has the required
-permission. These waypoints are called _Favorites_ in OsmAnd, _POIs_ in Locus or
-_Waypoints_ in Oruxmaps and allow to associate a location with a name.
+the route calculation. BRouter reads waypoints from the `import` folder 
+`favourites.gpx` file.
 
 If your waypoint database contains a `from` and `to` waypoint the waypoint
 selection will be skipped. BRouter also uses `via1`, ..., `via9` as via
 waypoints.
 
-If a route is calculated, it is stored as `brouter0.gpx`. Depending on the
-waypoint database and permissions BRouter stores the route in
-`<basedir>/import/tracks` or in the map tool track directory. If started once
-more with identical input, BRouter will store a second route broute1.gpx for the
-first alternative and so on.
-
-### Permission issues
-
-If using the file interface BRouter needs to access the files from other apps.
-Depending on your android version, your BRouter version and location of other
-apps locations it will be impossible to read or write those files.
+If a route is calculated, it is stored as `brouter0.gpx`. BRouter stores the route in
+`<basedir>/import/tracks` directory. If started once more with identical input, 
+BRouter will store a second route broute1.gpx for the first alternative and so on.
 
 ## Mixed operation: _timeout-free recalculations_
 

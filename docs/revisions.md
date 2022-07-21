@@ -2,6 +2,28 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
+### [brouter-1.6.4.zip](../brouter_bin/brouter-1.6.4.zip) (current revision, 01.07.2022)
+
+Android
+
+-   remove external coord readers (OsmAnd, Locus, Orux) 
+-   remove brouter.redirect
+-   remove version for Android 19
+-   sort profiles
+   
+
+Library
+
+-   u-turn command (180 degree, not available in all clients)
+-   recalculation of ascend over all segments
+-   recalculation on elevations (bridges/tunnel)
+-   rework on turn instructions
+-   allow straight lines between 2 via points
+-   correction of misplaced via points
+-   remove double points
+-   new locus export with info on trkpt
+
+
 ### [brouter-1.6.3.zip](../brouter_bin/brouter-1.6.3.zip) (current revision, 21.12.2021)
 
 -   Enable Android 11
