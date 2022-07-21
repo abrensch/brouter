@@ -8,7 +8,11 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.NodesCache;
@@ -738,6 +742,12 @@ public class RoutingEngine extends Thread {
     lat2;
     int totaldist = 0;
     int totaltime = 0;
+    float lasttime = 0;
+    float speed_avg = 0;
+    float speed_min = 9999;
+    Map<Integer, Integer> directMap = new HashMap<>();
+    float tmptime = 1;
+    float speed = 1;
     int dist;
     double angle;
 
@@ -784,6 +794,15 @@ public class RoutingEngine extends Thread {
       n.message.turnangle = (float)angle;
       totaldist += dist;
       totaltime += n.getTime();
+      tmptime = (n.getTime() -lasttime);
+      if (dist > 0) {
+        speed = dist / tmptime * 3.6f;
+        speed_min = Math.min(speed_min, speed);
+      }
+      if (tmptime == 1.f) { // no time used here
+        directMap.put(i, dist);
+      }
+      lasttime = n.getTime();
 
       short ele = n.getSElev();
       if (ele != Short.MIN_VALUE)
@@ -813,9 +832,18 @@ public class RoutingEngine extends Thread {
     t.distance = totaldist;
     //t.energy = totalenergy;
 
-    logInfo("track-totallength = " + t.distance);
-    logInfo("filtered ascend = " + t.ascend);
+    SortedSet<Integer> keys = new TreeSet<>(directMap.keySet());
+    for (Integer key : keys) {
+      int value = directMap.get(key);
+      float addTime = (value/(speed_min/3.6f));
+      for (int j = key; j<ourSize; j++) {
+        OsmPathElement n = t.nodes.get(j);
+        n.setTime(n.getTime() + addTime);
+      }
+    }
 
+    logInfo("track-length = " + t.distance);
+    logInfo("filtered ascend = " + t.ascend);
   }
 
   // geometric position matching finding the nearest routable way-section
