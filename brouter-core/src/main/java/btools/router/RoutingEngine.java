@@ -327,6 +327,7 @@ public class RoutingEngine extends Thread {
             incline = tmpincline;
           selev = (selev + (tmpdist / 100. * incline));
           tmp.setSElev((short)selev);
+          tmp.message.ele = (short)selev;
           tmpPt = tmp;
         }
         dist = 0;
@@ -743,6 +744,7 @@ public class RoutingEngine extends Thread {
     int totaldist = 0;
     int totaltime = 0;
     float lasttime = 0;
+    float lastenergy = 0;
     float speed_avg = 0;
     float speed_min = 9999;
     Map<Integer, Integer> directMap = new HashMap<>();
@@ -802,6 +804,8 @@ public class RoutingEngine extends Thread {
       if (tmptime == 1.f) { // no time used here
         directMap.put(i, dist);
       }
+
+      lastenergy = n.getEnergy();
       lasttime = n.getTime();
 
       short ele = n.getSElev();
@@ -836,9 +840,19 @@ public class RoutingEngine extends Thread {
     for (Integer key : keys) {
       int value = directMap.get(key);
       float addTime = (value/(speed_min/3.6f));
+
+      double addEnergy = 0;
+      if (key < ourSize-1) {
+        double GRAVITY = 9.81;  // in meters per second^(-2)
+        double incline = ( t.nodes.get(key).getElev() - t.nodes.get(key+1).getElev() ) / value;
+        double f_roll = routingContext.totalMass * GRAVITY * ( routingContext.defaultC_r + incline );
+        double spd = speed_min / 3.6;
+        addEnergy = value*(routingContext.S_C_x * spd*spd + f_roll);
+      }
       for (int j = key; j<ourSize; j++) {
         OsmPathElement n = t.nodes.get(j);
         n.setTime(n.getTime() + addTime);
+        n.setEnergy(n.getEnergy() + (float)addEnergy);
       }
     }
 
