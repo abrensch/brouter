@@ -635,7 +635,7 @@ public class RoutingEngine extends Thread {
             removeForeList.add(tmpfore);
             removeVoiceHintList.add(indexback);
           }
-          nextDist = testPoint.calcDistance(tmpfore);
+          nextDist = t.nodes.get(indexfore-1).calcDistance(tmpfore);
           wayDistance += nextDist;
 
         }
@@ -644,7 +644,6 @@ public class RoutingEngine extends Thread {
             // recover last - should be the cross point
             removeBackList.remove(removeBackList.get(removeBackList.size() - 1));
             removeForeList.remove(removeForeList.get(removeForeList.size() - 1));
-            wayDistance -= nextDist;
             break;
           } else {
             return false;
