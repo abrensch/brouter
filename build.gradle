@@ -9,20 +9,32 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:7.4.2'
 
-
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
 }
 
+plugins {
+    id 'me.qoomon.git-versioning' version '6.3.6'
+}
+
+gitVersioning.apply {
+    refs {
+        considerTagsOnBranches = true
+        tag('v(?<version>.*)') {
+            version = '${ref.version}'
+        }
+        branch('.+') {
+            version = '${describe.tag.version}-${describe.distance}-${ref}-g${commit.short}'
+        }
+    }
+
+    rev {
+        version = '${commit}'
+    }
+}
+
 allprojects {
-    // NOTE:
-    // there are four places to change the version number
-    // this file
-    // app: build.gradle (versionCode only)
-    // OsmTrack (version and versionDate)
-    // docs revisions.md (version and versionDate)
-    project.version  "1.7.3"
     group 'org.btools'
 
     repositories {
