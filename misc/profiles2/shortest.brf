@@ -110,7 +110,7 @@ assign isgoodforcars = if greater priorityclassifier 6 then true
 
 # ... encoded into a bitmask
 
-assign xclassifiermask add multiply isroundabout   4
+assign classifiermask add multiply isroundabout   4
                       add multiply islinktype     8
                           multiply isgoodforcars 16
 
