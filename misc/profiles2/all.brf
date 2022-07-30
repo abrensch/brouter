@@ -17,6 +17,7 @@ assign costfactor
   switch not railway=     1
   switch not or waterway= waterway=unknown  1
   switch not route=       1
+  switch man_made=pier    1
   100000
 
 ---context:node  # following code refers to node tags
