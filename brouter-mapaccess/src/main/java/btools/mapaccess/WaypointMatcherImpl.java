@@ -49,7 +49,12 @@ public final class WaypointMatcherImpl implements WaypointMatcher
       last = mwp;
     }
     // last point has no angle so we are looking back
-    last.directionToNext =  CheapAngleMeter.getDirection(last.waypoint.ilon, last.waypoint.ilat, waypoints.get(waypoints.size()-2).waypoint.ilon, waypoints.get(waypoints.size()-2).waypoint.ilat);
+    int lastidx = waypoints.size()-2;
+    if (lastidx < 0) {
+      last.directionToNext = -1;
+    } else {
+      last.directionToNext = CheapAngleMeter.getDirection(last.waypoint.ilon, last.waypoint.ilat, waypoints.get(lastidx).waypoint.ilon, waypoints.get(lastidx).waypoint.ilat);
+    }
 
     // sort result list
     comparator = new Comparator<MatchedWaypoint>() {
