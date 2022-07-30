@@ -134,11 +134,12 @@ public class CoordinateReader {
   }
 
   private void _readNogoLine(File file) throws Exception {
+    FileReader freader = new FileReader(file);
     XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
     factory.setNamespaceAware(false);
     XmlPullParser xpp = factory.newPullParser();
 
-    xpp.setInput(new FileReader(file));
+    xpp.setInput(freader);
 
     List<Point> tmpPts = new ArrayList<>();
     int eventType = xpp.getEventType();
@@ -186,6 +187,7 @@ public class CoordinateReader {
       }
       eventType = xpp.next();
     }
+    freader.close();
   }
 
   public void readAllPoints() throws Exception {
