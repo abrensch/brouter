@@ -330,11 +330,25 @@ public class VoiceHint
       }
     }
      else if (cmdAngle < -5.f) {
-      cmd = KL;
+      if  (lowerBadWayAngle < -100. && higherBadWayAngle < 15.) {
+        cmd = TSLL;
+      } else {
+        cmd = KL;
+      }
     } else if (cmdAngle < 5.f) {
-      cmd = C;
+      if  (lowerBadWayAngle > -30. ) {
+        cmd = KR;
+      } else if ( higherBadWayAngle < 30. ) {
+        cmd = KL;
+      } else {
+        cmd = C;
+      }
     } else if (cmdAngle < 21.f) {
-      cmd = KR;
+      if  (lowerBadWayAngle > -15. && higherBadWayAngle > 100.) {
+        cmd = TSLR;
+      } else {
+        cmd = KR;
+      }
     } else if (cmdAngle < 45.f) {
       cmd = TSLR;
     } else if (cmdAngle < 135.f) {
@@ -343,7 +357,13 @@ public class VoiceHint
       } else if (cmdAngle > 95.f && lowerBadWayAngle > 30.f && higherBadWayAngle > 180.f) {
         cmd = TSHR;
       } else {
-        if (cmdAngle > 110. ) {cmd = TSHR;} else if (cmdAngle < 70. ) {cmd = TSLR;} else {cmd = TR;}
+        if (cmdAngle > 110. ) {
+          cmd = TSHR;
+        } else if (cmdAngle < 70. ) {
+          cmd = TSLR;
+        } else {
+          cmd = TR;
+        }
       }
     } else if (cmdAngle < 159.f) {
       cmd = TSHR;

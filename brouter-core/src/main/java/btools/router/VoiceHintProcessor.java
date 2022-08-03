@@ -70,6 +70,7 @@ public final class VoiceHintProcessor{
       int minPrio = Math.min(oldPrio, currentPrio);
 
       boolean isLink2Highway = input.oldWay.isLinktType() && !input.goodWay.isLinktType();
+      boolean isHighway2Link = !input.oldWay.isLinktType() && input.goodWay.isLinktType();
 
       if (input.oldWay.isRoundabout()) {
         roundAboutTurnAngle += sumNonConsumedWithinCatchingRange(inputs, hintIdx);
@@ -104,14 +105,18 @@ public final class VoiceHintProcessor{
       float minAngle = 180.f;
       float minAbsAngeRaw = 180.f;
 
+      boolean isBadwayLink = false;
+
       if (input.badWays != null) {
         for (MessageData badWay: input.badWays) {
           int badPrio = badWay.getPrio();
           float badTurn = badWay.turnangle;
+          if (badWay.isLinktType()) {
+            isBadwayLink = true;
+          }
+          boolean isBadHighway2Link = !input.oldWay.isLinktType() && badWay.isLinktType();
 
-          boolean isHighway2Link = !input.oldWay.isLinktType() && badWay.isLinktType();
-
-          if (badPrio > maxPrioAll && !isHighway2Link) {
+          if (badPrio > maxPrioAll && !isBadHighway2Link) {
             maxPrioAll = badPrio;
           }
 
@@ -148,7 +153,14 @@ public final class VoiceHintProcessor{
       // unconditional triggers are all junctions with
       // - higher detour prios than the minimum route prio (except link->highway junctions)
       // - or candidate detours with higher prio then the route exit leg
-      boolean unconditionalTrigger = hasSomethingMoreStraight || (maxPrioAll > minPrio && !isLink2Highway) || (maxPrioCandidates > currentPrio) || VoiceHint.is180DegAngle(turnAngle);
+        boolean unconditionalTrigger = hasSomethingMoreStraight ||
+                                       (maxPrioAll > minPrio && !isLink2Highway) ||
+                                       (maxPrioCandidates > currentPrio) ||
+                                       VoiceHint.is180DegAngle(turnAngle) ||
+                                       (!isHighway2Link && isBadwayLink && Math.abs(turnAngle) > 5.f) ||
+                                       (isHighway2Link && !isBadwayLink && Math.abs(turnAngle) < 5.f)
+                                       ;
+// end
 
       // conditional triggers (=real turning angle required) are junctions
       // with candidate detours equal in priority than the route exit leg
