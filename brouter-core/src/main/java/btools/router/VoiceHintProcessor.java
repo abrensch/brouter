@@ -277,6 +277,7 @@ public final class VoiceHintProcessor{
               break;
             } else if (Math.abs(input.angle) > SIGNIFICANT_ANGLE) { 
               tmpList.add(h2);
+              hintIdx++;
             } else {
               if (inputLast != null) { // when drop add distance to last
                 inputLast.distanceToNext += input.distanceToNext;
