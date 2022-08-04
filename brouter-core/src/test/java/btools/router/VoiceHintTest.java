@@ -2,12 +2,14 @@ package btools.router;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
 
 import java.io.File;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 
@@ -25,6 +27,11 @@ public class VoiceHintTest {
 
   @Test
   public void Locus() {
+    URL segmentUrl = this.getClass().getResource("/E5_N45.rd5");
+    assertThat(segmentUrl, is(notNullValue()));
+    File segmentFile = new File(segmentUrl.getFile());
+    File segmentDir = segmentFile.getParentFile();
+
     RoutingContext routingContext = new RoutingContext();
     routingContext.localFunction = "../misc/profiles2/trekking.brf";
     routingContext.turnInstructionMode = 2;
@@ -33,7 +40,7 @@ public class VoiceHintTest {
       new OsmNodeNamed(new OsmNode(toOsmLon(8.705796), toOsmLat(50.003124))),
       new OsmNodeNamed(new OsmNode(toOsmLon(8.705859), toOsmLat(50.003959)))
     );
-    RoutingEngine routingEngine = new RoutingEngine(null, null, new File("../brouter-map-creator/build/resources/test/tmp/segments/"), waypoints, routingContext);
+    RoutingEngine routingEngine = new RoutingEngine(null, null, segmentDir, waypoints, routingContext);
     routingEngine.doRun(0);
 
     assertThat(routingEngine.getErrorMessage(), is(nullValue()));
