@@ -7,16 +7,40 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import btools.mapaccess.OsmNode;
 import btools.util.CheapRuler;
 
+@RunWith(Parameterized.class)
 public class VoiceHintTest {
+  @Parameterized.Parameter()
+  public double startLon;
+  @Parameterized.Parameter(1)
+  public double startLat;
+  @Parameterized.Parameter(2)
+  public double endLon;
+  @Parameterized.Parameter(3)
+  public double endLat;
+  @Parameterized.Parameter(4)
+  public String action;
+
+  @Parameterized.Parameters
+  public static Collection<Object[]> data() {
+    return Arrays.asList(new Object[][]{
+      {8.706193, 50.003673, 8.706000, 50.003905, "1"}, // straight
+      {8.705796, 50.003124, 8.706185, 50.003705, "4"}, // left
+      {8.706496, 50.003643, 8.706177, 50.003724, "7"}, // right
+    });
+  }
+
   static int toOsmLon(double lon) {
     return (int) ((lon + 180.) / CheapRuler.ILATLNG_TO_LATLNG + 0.5);
   }
@@ -35,12 +59,12 @@ public class VoiceHintTest {
     RoutingContext routingContext = new RoutingContext();
     routingContext.localFunction = "../misc/profiles2/trekking.brf";
     routingContext.turnInstructionMode = 2;
-    // https://brouter.de/brouter-web/#map=17/50.00408/8.70788/standard&lonlats=8.705796,50.003124;8.705859,50.003959
     List<OsmNodeNamed> waypoints = Arrays.asList(
-      new OsmNodeNamed(new OsmNode(toOsmLon(8.705796), toOsmLat(50.003124))),
-      new OsmNodeNamed(new OsmNode(toOsmLon(8.705859), toOsmLat(50.003959)))
+      new OsmNodeNamed(new OsmNode(toOsmLon(startLon), toOsmLat(startLat))),
+      new OsmNodeNamed(new OsmNode(toOsmLon(endLon), toOsmLat(endLat)))
     );
     RoutingEngine routingEngine = new RoutingEngine(null, null, segmentDir, waypoints, routingContext);
+    routingEngine.quite = true;
     routingEngine.doRun(0);
 
     assertThat(routingEngine.getErrorMessage(), is(nullValue()));
@@ -48,7 +72,6 @@ public class VoiceHintTest {
     OsmTrack track = routingEngine.getFoundTrack();
     String gpx = track.formatAsGpx();
 
-    assertThat(gpx, containsString("<locus:rtePointAction>4</locus:rtePointAction>")); // left turn
-    assertThat(gpx, containsString("<locus:rtePointAction>1</locus:rtePointAction>")); // straight
+    assertThat(gpx, containsString("<locus:rtePointAction>" + action + "</locus:rtePointAction>"));
   }
 }
