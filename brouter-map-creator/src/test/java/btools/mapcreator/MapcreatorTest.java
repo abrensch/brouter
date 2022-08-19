@@ -1,16 +1,16 @@
 package btools.mapcreator;
 
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
 import java.net.URL;
 
 public class MapcreatorTest {
-  @Ignore("Fails with PBF parser")
   @Test
   public void mapcreatorTest() throws Exception {
+    System.setProperty("avoidMapPolling", "true");
+
     URL mapurl = this.getClass().getResource("/dreieich.pbf");
     Assert.assertNotNull("test-osm-map dreieich.pbf not found", mapurl);
     File mapFile = new File(mapurl.getFile());
