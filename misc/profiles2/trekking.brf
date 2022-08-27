@@ -232,6 +232,24 @@ assign town_penalty
      switch estimated_town_class=6  1.6 99 0
 
 #
+# re-assign isbike considering the presence of a usable cycleway on the highway
+#
+assign isbike = 
+       or isbike
+       or cycleway=lane|track|shared_lane|share_busway
+       or and badoneway cycleway=opposite|opposite_lane|opposite_track
+       or 
+         and cycleway:left=lane|track|shared_lane|share_busway
+           switch badoneway
+             cycleway:left:oneway=no|-1
+             true
+         and cycleway:right=lane|track|shared_lane|share_busway
+           switch badoneway
+             cycleway:right:oneway=no|-1
+             true
+
+
+#
 # calculate the cost-factor, which is the factor
 # by which the distance of a way-segment is multiplied
 # to calculate the cost of that segment. The costfactor
