@@ -322,7 +322,7 @@ public class VoiceHint
       } else if (cmdAngle > -85.f && lowerBadWayAngle > -180.f && higherBadWayAngle > -10.f) {
         cmd = TSLL;
       } else {
-        if (cmdAngle < - 110. ) {cmd = TSHL;} else if (cmdAngle > -70. ) {cmd = TSLL;} else {cmd = TL;}
+        if (cmdAngle < - 110. ) {cmd = TSHL;} else if (cmdAngle > -60. ) {cmd = TSLL;} else {cmd = TL;}
       }
     } else if (cmdAngle < -21.f) {
       if (cmd != KR) { // don't overwrite KR with TSLL
@@ -359,7 +359,7 @@ public class VoiceHint
       } else {
         if (cmdAngle > 110. ) {
           cmd = TSHR;
-        } else if (cmdAngle < 70. ) {
+        } else if (cmdAngle < 60. ) {
           cmd = TSLR;
         } else {
           cmd = TR;
