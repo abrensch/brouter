@@ -102,7 +102,7 @@ public class VoiceHint
   {
     switch ( c )
     {
-      case TLU  : return "TU";
+      case TLU  : return "TLU";
       case TU   : return "TU";
       case TSHL : return "TSHL";
       case TL   : return "TL";

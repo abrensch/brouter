@@ -99,7 +99,7 @@ public final class OsmTrack{
     if (detourMap != null) {
       CompactLongMap < OsmPathElementHolder > tmpDetourMap = new CompactLongMap < OsmPathElementHolder > ();
 
-      List < OsmPathElementHolder > oldlist = ((FrozenLongMap)detourMap).getValueList();
+      List oldlist = ((FrozenLongMap)detourMap).getValueList();
       long[] oldidlist = ((FrozenLongMap)detourMap).getKeyArray();
       for (int i = 0; i < oldidlist.length; i++) {
         long id = oldidlist[i];
@@ -452,7 +452,7 @@ public final class OsmTrack{
       sb.append(" creator=\"BRouter-" + version + "\" version=\"1.1\">\n");
     }
 
-    if (turnInstructionMode == 3 || turnInstructionMode == 8) // osmand style
+    if (turnInstructionMode == 3 || turnInstructionMode == 8) // osmand style, cruiser
     {
       float lastRteTime = 0;
 
@@ -601,11 +601,13 @@ public final class OsmTrack{
       {
         for (VoiceHint hint: voiceHints.list) {
           if (hint.indexInTrack == idx) {
-            if (turnInstructionMode == 1)
+            if (turnInstructionMode == 1) {
               sele += "<name>" + hint.getMessageString() + "</name>";
-            if (turnInstructionMode == 1)
               sele += "<cmt>" + (int)(hint.distanceToNext) + "," + hint.formatGeometry() + "</cmt>";
-            sele += "<sym>" + (turnInstructionMode == 7 ? hint.getLocusSymbolString() : hint.getCommandString()) + "</sym>";
+              sele += "<sym>" + hint.getCommandString() + "</sym>";
+            } else if (turnInstructionMode == 7) {
+              sele += "<sym>" + hint.getLocusSymbolString() + "</sym>";
+            }
           }
         }
         if (idx == 0 && turnInstructionMode == 7) {
@@ -625,6 +627,8 @@ public final class OsmTrack{
                 int pos = sele.indexOf("<sym");
                 if (pos != -1)
                   sele = sele.substring(0, pos) + "<name>" + wp.name + "</name>" + sele.substring(pos) + "<type>Via</type>";
+              } else if (sele.contains("sym") && wp.name.startsWith("via")) {
+                sele += "<type>Via</type>";
               } else if (wp.name.startsWith("via")) {
                 sele += "<sym>pass_place</sym><type>Shaping</type>";
               } else {
