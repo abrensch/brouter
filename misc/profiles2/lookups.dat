@@ -36,6 +36,7 @@ highway;0000002133 corridor
 highway;0000001440 bus_stop
 highway;0000000001 busway
 highway;0000000001 elevator
+highway;0000000001 funicular
 highway;0000000001 via_ferrata
 
 tracktype;0000887965 grade2
@@ -727,7 +728,7 @@ highway;0000000134 traffic_sign
 highway;0000000115 trailhead
 highway;0000002967 traffic_mirror
 highway;0000001724 priority
-highway;0000000001 elevator
+highway;0000000001 funicular
 highway;0000000001 toll_gantry
 
 barrier;0000606512 gate wicket_gate
