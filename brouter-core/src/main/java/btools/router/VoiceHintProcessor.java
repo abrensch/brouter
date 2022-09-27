@@ -148,7 +148,7 @@ public final class VoiceHintProcessor{
         }
       }
 
-      boolean hasSomethingMoreStraight = Math.abs(turnAngle) - minAbsAngeRaw > 20.;
+      boolean hasSomethingMoreStraight = (Math.abs(turnAngle) - minAbsAngeRaw) > 20.;
 
       // unconditional triggers are all junctions with
       // - higher detour prios than the minimum route prio (except link->highway junctions)
@@ -242,7 +242,7 @@ public final class VoiceHintProcessor{
     for (int hintIdx = 0; hintIdx < inputs.size(); hintIdx++) {
       VoiceHint input = inputs.get(hintIdx);
 
-      if (input.cmd == VoiceHint.C) {
+      if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
         if (inputLast != null) { // when drop add distance to last
           inputLast.distanceToNext += input.distanceToNext;
           continue;
@@ -278,6 +278,8 @@ public final class VoiceHintProcessor{
             } else if (Math.abs(input.angle) > SIGNIFICANT_ANGLE) { 
               tmpList.add(h2);
               hintIdx++;
+            } else if (dist > catchingRange) { // distance reached
+              break;
             } else {
               if (inputLast != null) { // when drop add distance to last
                 inputLast.distanceToNext += input.distanceToNext;

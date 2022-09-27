@@ -322,32 +322,41 @@ public class VoiceHint
       } else if (cmdAngle > -85.f && lowerBadWayAngle > -180.f && higherBadWayAngle > -10.f) {
         cmd = TSLL;
       } else {
-        if (cmdAngle < - 110. ) {cmd = TSHL;} else if (cmdAngle > -60. ) {cmd = TSLL;} else {cmd = TL;}
+        if (cmdAngle < - 110.f ) {
+          cmd = TSHL;
+        } else if (cmdAngle > -60.f ) {
+          cmd = TSLL;
+        } else {
+          cmd = TL;
+        }
       }
     } else if (cmdAngle < -21.f) {
       if (cmd != KR) { // don't overwrite KR with TSLL
         cmd = TSLL;
       }
-    }
-     else if (cmdAngle < -5.f) {
-      if  (lowerBadWayAngle < -100. && higherBadWayAngle < 15.) {
+    } else if (cmdAngle < -5.f) {
+      if  (lowerBadWayAngle < -100.f && higherBadWayAngle < 45.f) {
         cmd = TSLL;
-      } else {
+      } else if  (lowerBadWayAngle >= -100.f && higherBadWayAngle < 45.f) {
         cmd = KL;
+      } else {
+        cmd = C;
       }
     } else if (cmdAngle < 5.f) {
-      if  (lowerBadWayAngle > -30. ) {
+      if  (lowerBadWayAngle > -30.f ) {
         cmd = KR;
-      } else if ( higherBadWayAngle < 30. ) {
+      } else if ( higherBadWayAngle < 30.f ) {
         cmd = KL;
       } else {
         cmd = C;
       }
     } else if (cmdAngle < 21.f) {
-      if  (lowerBadWayAngle > -15. && higherBadWayAngle > 100.) {
+      if  (lowerBadWayAngle > -45.f && higherBadWayAngle > 100.f) {
         cmd = TSLR;
-      } else {
+      } else if (lowerBadWayAngle > -45.f && higherBadWayAngle <= 100.f)  {
         cmd = KR;
+      } else {
+        cmd = C;
       }
     } else if (cmdAngle < 45.f) {
       cmd = TSLR;
