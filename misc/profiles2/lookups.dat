@@ -36,7 +36,6 @@ highway;0000002133 corridor
 highway;0000001440 bus_stop
 highway;0000000001 busway
 highway;0000000001 elevator
-highway;0000000001 funicular
 highway;0000000001 via_ferrata
 
 tracktype;0000887965 grade2
@@ -407,6 +406,7 @@ railway;0000004623 light_rail
 railway;0000002982 subway
 railway;0000002422 narrow_gauge
 railway;0000001859 preserved
+railway;0000000001 funicular
 
 seamark:type;0001564 recommended_track
 seamark:type;0000522 fairway
@@ -728,7 +728,6 @@ highway;0000000134 traffic_sign
 highway;0000000115 trailhead
 highway;0000002967 traffic_mirror
 highway;0000001724 priority
-highway;0000000001 funicular
 highway;0000000001 toll_gantry
 
 barrier;0000606512 gate wicket_gate
@@ -874,6 +873,7 @@ railway;0000037871 tram_stop
 railway;0000024038 halt stop 
 railway;0000014285 subway_entrance
 railway;0000010890 signal
+railway;0000000001 funicular
 
 waterway;0000004698 weir
 waterway;0000001647 lock_gate
