@@ -67,6 +67,7 @@ public class BRouterWorker {
 
     if (params.containsKey("direction")) {
       rc.startDirection = params.getInt("direction");
+      rc.forceUseStartDirection = true;
     }
     if (params.containsKey("alternativeidx")) {
       rc.alternativeIdx = params.getInt("alternativeidx");
