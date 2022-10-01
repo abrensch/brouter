@@ -113,7 +113,7 @@ public final class OsmTrack{
         for (int i = 0; i < idlist.length; i++) {
           long id = idlist[i];
           OsmPathElementHolder v = source.detourMap.get(id);
-          if (!tmpDetourMap.contains(id)) {
+          if (!tmpDetourMap.contains(id) && source.nodesMap.contains(id)) {
             tmpDetourMap.put(id, v);
           }
         }
