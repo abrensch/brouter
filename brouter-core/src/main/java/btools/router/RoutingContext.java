@@ -20,30 +20,28 @@ import btools.mapaccess.OsmNode;
 import btools.util.CheapAngleMeter;
 import btools.util.CheapRuler;
 
-public final class RoutingContext
-{
-  public void setAlternativeIdx(int idx )
-  {
+public final class RoutingContext {
+  public void setAlternativeIdx(int idx) {
     alternativeIdx = idx;
   }
-  public int getAlternativeIdx(int min, int max)
-  {
+
+  public int getAlternativeIdx(int min, int max) {
     return alternativeIdx < min ? min : (alternativeIdx > max ? max : alternativeIdx);
   }
+
   public int alternativeIdx = 0;
   public String localFunction;
   public long profileTimestamp;
 
-  public Map<String,String> keyValues;
+  public Map<String, String> keyValues;
 
   public String rawTrackPath;
 
-  public String getProfileName()
-  {
+  public String getProfileName() {
     String name = localFunction == null ? "unknown" : localFunction;
-    if ( name.endsWith( ".brf" ) ) name = name.substring( 0, localFunction.length() - 4 );
-    int idx = name.lastIndexOf( File.separatorChar );
-    if ( idx >= 0 ) name = name.substring( idx+1 );
+    if (name.endsWith(".brf")) name = name.substring(0, localFunction.length() - 4);
+    int idx = name.lastIndexOf(File.separatorChar);
+    if (idx >= 0) name = name.substring(idx + 1);
     return name;
   }
 
@@ -81,129 +79,117 @@ public final class RoutingContext
 
   public double waypointCatchingRange;
 
-  private void setModel( String className )
-  {
-    if ( className == null )
-    {
+  private void setModel(String className) {
+    if (className == null) {
       pm = new StdModel();
-    }
-    else
-    {
-      try
-      {
-        Class clazz = Class.forName( className );
+    } else {
+      try {
+        Class clazz = Class.forName(className);
         pm = (OsmPathModel) clazz.newInstance();
-      }
-      catch( Exception e )
-      {
-        throw new RuntimeException( "Cannot create path-model: " + e );
+      } catch (Exception e) {
+        throw new RuntimeException("Cannot create path-model: " + e);
       }
     }
     initModel();
   }
 
-  public void initModel()
-  {
-    pm.init( expctxWay, expctxNode, keyValues );
+  public void initModel() {
+    pm.init(expctxWay, expctxNode, keyValues);
   }
 
-  public long getKeyValueChecksum()
-  {
+  public long getKeyValueChecksum() {
     long s = 0L;
-    if ( keyValues != null )
-    {
-      for( Map.Entry<String,String> e : keyValues.entrySet() )
-      {
+    if (keyValues != null) {
+      for (Map.Entry<String, String> e : keyValues.entrySet()) {
         s += e.getKey().hashCode() + e.getValue().hashCode();
       }
     }
     return s;
   }
 
-  public void readGlobalConfig()
-  {
+  public void readGlobalConfig() {
     BExpressionContext expctxGlobal = expctxWay; // just one of them...
 
     if (keyValues != null) {
       // add parameter to context
       for (Map.Entry<String, String> e : keyValues.entrySet()) {
         float f = Float.parseFloat(e.getValue());
-        expctxWay.setVariableValue(e.getKey(), f, false );
-        expctxNode.setVariableValue(e.getKey(), f, false );
+        expctxWay.setVariableValue(e.getKey(), f, false);
+        expctxNode.setVariableValue(e.getKey(), f, false);
       }
     }
 
-    setModel( expctxGlobal._modelClass );
+    setModel(expctxGlobal._modelClass);
 
-    downhillcostdiv = (int)expctxGlobal.getVariableValue( "downhillcost", 0.f );
-    downhillcutoff = (int)(expctxGlobal.getVariableValue( "downhillcutoff", 0.f )*10000);
-    uphillcostdiv = (int)expctxGlobal.getVariableValue( "uphillcost", 0.f );
-    uphillcutoff = (int)(expctxGlobal.getVariableValue( "uphillcutoff", 0.f )*10000);
-    if ( downhillcostdiv != 0 ) downhillcostdiv = 1000000/downhillcostdiv;
-    if ( uphillcostdiv != 0 ) uphillcostdiv = 1000000/uphillcostdiv;
-    carMode = 0.f != expctxGlobal.getVariableValue( "validForCars", 0.f );
-    bikeMode = 0.f != expctxGlobal.getVariableValue( "validForBikes", 0.f );
-    footMode = 0.f != expctxGlobal.getVariableValue( "validForFoot", 0.f );
+    downhillcostdiv = (int) expctxGlobal.getVariableValue("downhillcost", 0.f);
+    downhillcutoff = (int) (expctxGlobal.getVariableValue("downhillcutoff", 0.f) * 10000);
+    uphillcostdiv = (int) expctxGlobal.getVariableValue("uphillcost", 0.f);
+    uphillcutoff = (int) (expctxGlobal.getVariableValue("uphillcutoff", 0.f) * 10000);
+    if (downhillcostdiv != 0) downhillcostdiv = 1000000 / downhillcostdiv;
+    if (uphillcostdiv != 0) uphillcostdiv = 1000000 / uphillcostdiv;
+    carMode = 0.f != expctxGlobal.getVariableValue("validForCars", 0.f);
+    bikeMode = 0.f != expctxGlobal.getVariableValue("validForBikes", 0.f);
+    footMode = 0.f != expctxGlobal.getVariableValue("validForFoot", 0.f);
 
-    waypointCatchingRange = expctxGlobal.getVariableValue( "waypointCatchingRange", 250.f );
+    waypointCatchingRange = expctxGlobal.getVariableValue("waypointCatchingRange", 250.f);
 
     // turn-restrictions not used per default for foot profiles
-    considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue( "considerTurnRestrictions", footMode ? 0.f : 1.f );
+    considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue("considerTurnRestrictions", footMode ? 0.f : 1.f);
 
     // process tags not used in the profile (to have them in the data-tab)
-    processUnusedTags = 0.f != expctxGlobal.getVariableValue( "processUnusedTags", 0.f );
+    processUnusedTags = 0.f != expctxGlobal.getVariableValue("processUnusedTags", 0.f);
 
-    forceSecondaryData = 0.f != expctxGlobal.getVariableValue( "forceSecondaryData", 0.f );
-    pass1coefficient = expctxGlobal.getVariableValue( "pass1coefficient", 1.5f );
-    pass2coefficient = expctxGlobal.getVariableValue( "pass2coefficient", 0.f );
-    elevationpenaltybuffer = (int)(expctxGlobal.getVariableValue( "elevationpenaltybuffer", 5.f )*1000000);
-    elevationmaxbuffer = (int)(expctxGlobal.getVariableValue( "elevationmaxbuffer", 10.f )*1000000);
-    elevationbufferreduce = (int)(expctxGlobal.getVariableValue( "elevationbufferreduce", 0.f )*10000);
+    forceSecondaryData = 0.f != expctxGlobal.getVariableValue("forceSecondaryData", 0.f);
+    pass1coefficient = expctxGlobal.getVariableValue("pass1coefficient", 1.5f);
+    pass2coefficient = expctxGlobal.getVariableValue("pass2coefficient", 0.f);
+    elevationpenaltybuffer = (int) (expctxGlobal.getVariableValue("elevationpenaltybuffer", 5.f) * 1000000);
+    elevationmaxbuffer = (int) (expctxGlobal.getVariableValue("elevationmaxbuffer", 10.f) * 1000000);
+    elevationbufferreduce = (int) (expctxGlobal.getVariableValue("elevationbufferreduce", 0.f) * 10000);
 
-    cost1speed           = expctxGlobal.getVariableValue( "cost1speed", 22.f );
-    additionalcostfactor = expctxGlobal.getVariableValue( "additionalcostfactor", 1.5f );
-    changetime           = expctxGlobal.getVariableValue( "changetime", 180.f );
-    buffertime           = expctxGlobal.getVariableValue( "buffertime", 120.f );
-    waittimeadjustment   = expctxGlobal.getVariableValue( "waittimeadjustment", 0.9f );
-    inittimeadjustment   = expctxGlobal.getVariableValue( "inittimeadjustment", 0.2f );
-    starttimeoffset      = expctxGlobal.getVariableValue( "starttimeoffset", 0.f );
-    transitonly          = expctxGlobal.getVariableValue( "transitonly", 0.f ) != 0.f;
+    cost1speed = expctxGlobal.getVariableValue("cost1speed", 22.f);
+    additionalcostfactor = expctxGlobal.getVariableValue("additionalcostfactor", 1.5f);
+    changetime = expctxGlobal.getVariableValue("changetime", 180.f);
+    buffertime = expctxGlobal.getVariableValue("buffertime", 120.f);
+    waittimeadjustment = expctxGlobal.getVariableValue("waittimeadjustment", 0.9f);
+    inittimeadjustment = expctxGlobal.getVariableValue("inittimeadjustment", 0.2f);
+    starttimeoffset = expctxGlobal.getVariableValue("starttimeoffset", 0.f);
+    transitonly = expctxGlobal.getVariableValue("transitonly", 0.f) != 0.f;
 
-    farTrafficWeight        = expctxGlobal.getVariableValue( "farTrafficWeight", 2.f );
-    nearTrafficWeight        = expctxGlobal.getVariableValue( "nearTrafficWeight", 2.f );
-    farTrafficDecayLength      = expctxGlobal.getVariableValue( "farTrafficDecayLength", 30000.f );
-    nearTrafficDecayLength      = expctxGlobal.getVariableValue( "nearTrafficDecayLength", 3000.f );
-    trafficDirectionFactor      = expctxGlobal.getVariableValue( "trafficDirectionFactor", 0.9f );
-    trafficSourceExponent      = expctxGlobal.getVariableValue( "trafficSourceExponent", -0.7f );
-    trafficSourceMinDist      = expctxGlobal.getVariableValue( "trafficSourceMinDist", 3000.f );
+    farTrafficWeight = expctxGlobal.getVariableValue("farTrafficWeight", 2.f);
+    nearTrafficWeight = expctxGlobal.getVariableValue("nearTrafficWeight", 2.f);
+    farTrafficDecayLength = expctxGlobal.getVariableValue("farTrafficDecayLength", 30000.f);
+    nearTrafficDecayLength = expctxGlobal.getVariableValue("nearTrafficDecayLength", 3000.f);
+    trafficDirectionFactor = expctxGlobal.getVariableValue("trafficDirectionFactor", 0.9f);
+    trafficSourceExponent = expctxGlobal.getVariableValue("trafficSourceExponent", -0.7f);
+    trafficSourceMinDist = expctxGlobal.getVariableValue("trafficSourceMinDist", 3000.f);
 
-    showspeed = 0.f != expctxGlobal.getVariableValue( "showspeed", 0.f );
-    showSpeedProfile = 0.f != expctxGlobal.getVariableValue( "showSpeedProfile", 0.f );
-    inverseRouting = 0.f != expctxGlobal.getVariableValue( "inverseRouting", 0.f );
+    showspeed = 0.f != expctxGlobal.getVariableValue("showspeed", 0.f);
+    showSpeedProfile = 0.f != expctxGlobal.getVariableValue("showSpeedProfile", 0.f);
+    inverseRouting = 0.f != expctxGlobal.getVariableValue("inverseRouting", 0.f);
 
-    int tiMode = (int)expctxGlobal.getVariableValue( "turnInstructionMode", 0.f );
-    if ( tiMode != 1 ) // automatic selection from coordinate source
+    int tiMode = (int) expctxGlobal.getVariableValue("turnInstructionMode", 0.f);
+    if (tiMode != 1) // automatic selection from coordinate source
     {
       turnInstructionMode = tiMode;
     }
-    turnInstructionCatchingRange = expctxGlobal.getVariableValue( "turnInstructionCatchingRange", 40.f );
-    turnInstructionRoundabouts = expctxGlobal.getVariableValue( "turnInstructionRoundabouts", 1.f ) != 0.f;
+    turnInstructionCatchingRange = expctxGlobal.getVariableValue("turnInstructionCatchingRange", 40.f);
+    turnInstructionRoundabouts = expctxGlobal.getVariableValue("turnInstructionRoundabouts", 1.f) != 0.f;
 
     // Speed computation model (for bikes)
     // Total mass (biker + bike + luggages or hiker), in kg
-    totalMass = expctxGlobal.getVariableValue( "totalMass", 90.f );
+    totalMass = expctxGlobal.getVariableValue("totalMass", 90.f);
     // Max speed (before braking), in km/h in profile and m/s in code
     if (footMode) {
-      maxSpeed = expctxGlobal.getVariableValue( "maxSpeed", 6.f ) / 3.6;
+      maxSpeed = expctxGlobal.getVariableValue("maxSpeed", 6.f) / 3.6;
     } else {
-      maxSpeed = expctxGlobal.getVariableValue( "maxSpeed", 45.f ) / 3.6;
+      maxSpeed = expctxGlobal.getVariableValue("maxSpeed", 45.f) / 3.6;
     }
     // Equivalent surface for wind, S * C_x, F = -1/2 * S * C_x * v^2 = - S_C_x * v^2
-    S_C_x = expctxGlobal.getVariableValue( "S_C_x", 0.5f * 0.45f );
+    S_C_x = expctxGlobal.getVariableValue("S_C_x", 0.5f * 0.45f);
     // Default resistance of the road, F = - m * g * C_r (for good quality road)
-    defaultC_r = expctxGlobal.getVariableValue( "C_r", 0.01f );
+    defaultC_r = expctxGlobal.getVariableValue("C_r", 0.01f);
     // Constant power of the biker (in W)
-    bikerPower = expctxGlobal.getVariableValue( "bikerPower", 100.f );
+    bikerPower = expctxGlobal.getVariableValue("bikerPower", 100.f);
   }
 
   public List<OsmNodeNamed> poipoints;
@@ -256,22 +242,19 @@ public final class RoutingContext
   public double defaultC_r;
   public double bikerPower;
 
-  public static void prepareNogoPoints( List<OsmNodeNamed> nogos )
-  {
-    for( OsmNodeNamed nogo : nogos )
-    {
-      if (nogo instanceof OsmNogoPolygon)
-      {
+  public static void prepareNogoPoints(List<OsmNodeNamed> nogos) {
+    for (OsmNodeNamed nogo : nogos) {
+      if (nogo instanceof OsmNogoPolygon) {
         continue;
       }
       String s = nogo.name;
-      int idx = s.indexOf( ' ' );
-      if ( idx > 0 ) s = s.substring( 0 , idx );
+      int idx = s.indexOf(' ');
+      if (idx > 0) s = s.substring(0, idx);
       int ir = 20; // default radius
-      if ( s.length() > 4 )
-      {
-        try { ir = Integer.parseInt( s.substring( 4 ) ); }
-        catch( Exception e ) { /* ignore */ }
+      if (s.length() > 4) {
+        try {
+          ir = Integer.parseInt(s.substring(4));
+        } catch (Exception e) { /* ignore */ }
       }
       // Radius of the nogo point in meters
       nogo.radius = ir;
@@ -281,57 +264,48 @@ public final class RoutingContext
   /**
    * restore the full nogolist previously saved by cleanNogoList
    */
-  public void restoreNogoList()
-  {
+  public void restoreNogoList() {
     nogopoints = nogopoints_all;
   }
 
   /**
    * clean the nogolist (previoulsy saved by saveFullNogolist())
    * by removing nogos with waypoints within
-   * 
+   *
    * @return true if all wayoints are all in the same (full-weigth) nogo area (triggering bee-line-mode)
    */
-  public void cleanNogoList( List<OsmNode> waypoints )
-  {
+  public void cleanNogoList(List<OsmNode> waypoints) {
     nogopoints_all = nogopoints;
-    if ( nogopoints == null ) return;
+    if (nogopoints == null) return;
     List<OsmNodeNamed> nogos = new ArrayList<OsmNodeNamed>();
-    for( OsmNodeNamed nogo : nogopoints )
-    {
+    for (OsmNodeNamed nogo : nogopoints) {
       boolean goodGuy = true;
-      for( OsmNode wp : waypoints )
-      {
-        if ( wp.calcDistance( nogo ) < nogo.radius
-            && (!(nogo instanceof OsmNogoPolygon)
-                || (((OsmNogoPolygon)nogo).isClosed
-                    ? ((OsmNogoPolygon)nogo).isWithin(wp.ilon, wp.ilat)
-                        : ((OsmNogoPolygon)nogo).isOnPolyline(wp.ilon, wp.ilat))))
-        {
+      for (OsmNode wp : waypoints) {
+        if (wp.calcDistance(nogo) < nogo.radius
+          && (!(nogo instanceof OsmNogoPolygon)
+          || (((OsmNogoPolygon) nogo).isClosed
+          ? ((OsmNogoPolygon) nogo).isWithin(wp.ilon, wp.ilat)
+          : ((OsmNogoPolygon) nogo).isOnPolyline(wp.ilon, wp.ilat)))) {
           goodGuy = false;
         }
       }
-      if ( goodGuy ) nogos.add( nogo );
+      if (goodGuy) nogos.add(nogo);
     }
     nogopoints = nogos.isEmpty() ? null : nogos;
   }
 
-  public boolean allInOneNogo( List<OsmNode> waypoints )
-  {
-    if ( nogopoints == null ) return false;
+  public boolean allInOneNogo(List<OsmNode> waypoints) {
+    if (nogopoints == null) return false;
     boolean allInTotal = false;
-    for( OsmNodeNamed nogo : nogopoints )
-    {
-      boolean allIn = Double.isNaN( nogo.nogoWeight );
-      for( OsmNode wp : waypoints )
-      {
-        int dist = wp.calcDistance( nogo );
-        if ( dist < nogo.radius
-            && (!(nogo instanceof OsmNogoPolygon)
-                || (((OsmNogoPolygon)nogo).isClosed
-                    ? ((OsmNogoPolygon)nogo).isWithin(wp.ilon, wp.ilat)
-                        : ((OsmNogoPolygon)nogo).isOnPolyline(wp.ilon, wp.ilat))))
-        {
+    for (OsmNodeNamed nogo : nogopoints) {
+      boolean allIn = Double.isNaN(nogo.nogoWeight);
+      for (OsmNode wp : waypoints) {
+        int dist = wp.calcDistance(nogo);
+        if (dist < nogo.radius
+          && (!(nogo instanceof OsmNogoPolygon)
+          || (((OsmNogoPolygon) nogo).isClosed
+          ? ((OsmNogoPolygon) nogo).isWithin(wp.ilon, wp.ilat)
+          : ((OsmNogoPolygon) nogo).isOnPolyline(wp.ilon, wp.ilat)))) {
           continue;
         }
         allIn = false;
@@ -341,93 +315,84 @@ public final class RoutingContext
     return allInTotal;
   }
 
-  public long[] getNogoChecksums()
-  {
+  public long[] getNogoChecksums() {
     long[] cs = new long[3];
     int n = nogopoints == null ? 0 : nogopoints.size();
-    for( int i=0; i<n; i++ )
-    {
+    for (int i = 0; i < n; i++) {
       OsmNodeNamed nogo = nogopoints.get(i);
       cs[0] += nogo.ilon;
       cs[1] += nogo.ilat;
       // 10 is an arbitrary constant to get sub-integer precision in the checksum
-      cs[2] += (long) ( nogo.radius*10.);
+      cs[2] += (long) (nogo.radius * 10.);
     }
     return cs;
   }
 
-  public void setWaypoint( OsmNodeNamed wp, boolean endpoint )
-  {
-    setWaypoint( wp, null, endpoint );
+  public void setWaypoint(OsmNodeNamed wp, boolean endpoint) {
+    setWaypoint(wp, null, endpoint);
   }
 
-  public void setWaypoint( OsmNodeNamed wp, OsmNodeNamed pendingEndpoint, boolean endpoint )
-  {
+  public void setWaypoint(OsmNodeNamed wp, OsmNodeNamed pendingEndpoint, boolean endpoint) {
     keepnogopoints = nogopoints;
     nogopoints = new ArrayList<OsmNodeNamed>();
-    nogopoints.add( wp );
-    if ( keepnogopoints != null ) nogopoints.addAll( keepnogopoints );
+    nogopoints.add(wp);
+    if (keepnogopoints != null) nogopoints.addAll(keepnogopoints);
     isEndpoint = endpoint;
     this.pendingEndpoint = pendingEndpoint;
   }
 
-  public boolean checkPendingEndpoint()
-  {
-    if ( pendingEndpoint != null )
-    {
+  public boolean checkPendingEndpoint() {
+    if (pendingEndpoint != null) {
       isEndpoint = true;
-      nogopoints.set( 0, pendingEndpoint );
+      nogopoints.set(0, pendingEndpoint);
       pendingEndpoint = null;
       return true;
     }
     return false;
   }
 
-  public void unsetWaypoint()
-  {
+  public void unsetWaypoint() {
     nogopoints = keepnogopoints;
     pendingEndpoint = null;
     isEndpoint = false;
   }
 
-  public int calcDistance( int lon1, int lat1, int lon2, int lat2 )
-  {
-    double[] lonlat2m = CheapRuler.getLonLatToMeterScales( (lat1+lat2) >> 1 );
+  public int calcDistance(int lon1, int lat1, int lon2, int lat2) {
+    double[] lonlat2m = CheapRuler.getLonLatToMeterScales((lat1 + lat2) >> 1);
     double dlon2m = lonlat2m[0];
     double dlat2m = lonlat2m[1];
-    double dx = (lon2 - lon1 ) * dlon2m;
-    double dy = (lat2 - lat1 ) * dlat2m;
-    double d = Math.sqrt( dy*dy + dx*dx );
+    double dx = (lon2 - lon1) * dlon2m;
+    double dy = (lat2 - lat1) * dlat2m;
+    double d = Math.sqrt(dy * dy + dx * dx);
 
     shortestmatch = false;
 
-    if ( nogopoints != null && !nogopoints.isEmpty() && d > 0. )
-    {
-      for( int ngidx = 0; ngidx < nogopoints.size(); ngidx++ )
-      {
+    if (nogopoints != null && !nogopoints.isEmpty() && d > 0.) {
+      for (int ngidx = 0; ngidx < nogopoints.size(); ngidx++) {
         OsmNodeNamed nogo = nogopoints.get(ngidx);
         double x1 = (lon1 - nogo.ilon) * dlon2m;
         double y1 = (lat1 - nogo.ilat) * dlat2m;
         double x2 = (lon2 - nogo.ilon) * dlon2m;
         double y2 = (lat2 - nogo.ilat) * dlat2m;
-        double r12 = x1*x1 + y1*y1;
-        double r22 = x2*x2 + y2*y2;
-        double radius = Math.abs( r12 < r22 ? y1*dx - x1*dy : y2*dx - x2*dy ) / d;
+        double r12 = x1 * x1 + y1 * y1;
+        double r22 = x2 * x2 + y2 * y2;
+        double radius = Math.abs(r12 < r22 ? y1 * dx - x1 * dy : y2 * dx - x2 * dy) / d;
 
-        if ( radius < nogo.radius ) // 20m
+        if (radius < nogo.radius) // 20m
         {
-          double s1 = x1*dx + y1*dy;
-          double s2 = x2*dx + y2*dy;
+          double s1 = x1 * dx + y1 * dy;
+          double s2 = x2 * dx + y2 * dy;
 
 
-          if ( s1 < 0. ) { s1 = -s1; s2 = -s2; }
-          if ( s2 > 0. )
-          {
-            radius = Math.sqrt( s1 < s2 ? r12 : r22 );
-            if ( radius > nogo.radius ) continue;
+          if (s1 < 0.) {
+            s1 = -s1;
+            s2 = -s2;
           }
-          if ( nogo.isNogo )
-          {
+          if (s2 > 0.) {
+            radius = Math.sqrt(s1 < s2 ? r12 : r22);
+            if (radius > nogo.radius) continue;
+          }
+          if (nogo.isNogo) {
             if (!(nogo instanceof OsmNogoPolygon)) {  // nogo is a circle
               if (Double.isNaN(nogo.nogoWeight)) {
                 // default nogo behaviour (ignore completely)
@@ -436,46 +401,37 @@ public final class RoutingContext
                 // nogo weight, compute distance within the circle
                 nogoCost = nogo.distanceWithinRadius(lon1, lat1, lon2, lat2, d) * nogo.nogoWeight;
               }
-            }
-            else if (((OsmNogoPolygon)nogo).intersects(lon1, lat1, lon2, lat2))
-            {
+            } else if (((OsmNogoPolygon) nogo).intersects(lon1, lat1, lon2, lat2)) {
               // nogo is a polyline/polygon, we have to check there is indeed
               // an intersection in this case (radius check is not enough).
               if (Double.isNaN(nogo.nogoWeight)) {
                 // default nogo behaviour (ignore completely)
                 nogoCost = -1;
               } else {
-                if (((OsmNogoPolygon)nogo).isClosed) {
+                if (((OsmNogoPolygon) nogo).isClosed) {
                   // compute distance within the polygon
-                  nogoCost = ((OsmNogoPolygon)nogo).distanceWithinPolygon(lon1, lat1, lon2, lat2) * nogo.nogoWeight;
+                  nogoCost = ((OsmNogoPolygon) nogo).distanceWithinPolygon(lon1, lat1, lon2, lat2) * nogo.nogoWeight;
                 } else {
                   // for a polyline, just add a constant penalty
                   nogoCost = nogo.nogoWeight;
                 }
               }
             }
-          }
-          else
-          {
+          } else {
             shortestmatch = true;
             nogo.radius = radius; // shortest distance to way
             // calculate remaining distance
-            if ( s2 < 0. )
-            {
-              wayfraction = -s2 / (d*d);
-              double xm = x2 - wayfraction*dx;
-              double ym = y2 - wayfraction*dy;
-              ilonshortest = (int)(xm / dlon2m + nogo.ilon);
-              ilatshortest = (int)(ym / dlat2m + nogo.ilat);
-            }
-            else if ( s1 > s2 )
-            {
+            if (s2 < 0.) {
+              wayfraction = -s2 / (d * d);
+              double xm = x2 - wayfraction * dx;
+              double ym = y2 - wayfraction * dy;
+              ilonshortest = (int) (xm / dlon2m + nogo.ilon);
+              ilatshortest = (int) (ym / dlat2m + nogo.ilat);
+            } else if (s1 > s2) {
               wayfraction = 0.;
               ilonshortest = lon2;
               ilatshortest = lat2;
-            }
-            else
-            {
+            } else {
               wayfraction = 1.;
               ilonshortest = lon1;
               ilatshortest = lat1;
@@ -485,51 +441,44 @@ public final class RoutingContext
             // *after* the shortest distance point. In case of a shortest-match
             // we use the reduced way segment for nogo-matching, in order not
             // to cut our escape-way if we placed a nogo just in front of where we are
-            if ( isEndpoint )
-            {
+            if (isEndpoint) {
               wayfraction = 1. - wayfraction;
               lon2 = ilonshortest;
               lat2 = ilatshortest;
-            }
-            else
-            {
+            } else {
               nogoCost = 0.;
               lon1 = ilonshortest;
               lat1 = ilatshortest;
             }
-            dx = (lon2 - lon1 ) * dlon2m;
-            dy = (lat2 - lat1 ) * dlat2m;
-            d = Math.sqrt( dy*dy + dx*dx );
+            dx = (lon2 - lon1) * dlon2m;
+            dy = (lat2 - lat1) * dlat2m;
+            d = Math.sqrt(dy * dy + dx * dx);
           }
         }
       }
     }
-    return (int)(d + 1.0 );
+    return (int) (d + 1.0);
   }
 
   public OsmPathModel pm;
 
-  public OsmPrePath createPrePath( OsmPath origin, OsmLink link )
-  {
+  public OsmPrePath createPrePath(OsmPath origin, OsmLink link) {
     OsmPrePath p = pm.createPrePath();
-    if ( p != null )
-    {
-      p.init( origin, link, this );
+    if (p != null) {
+      p.init(origin, link, this);
     }
     return p;
   }
 
-  public OsmPath createPath( OsmLink link )
-  {
+  public OsmPath createPath(OsmLink link) {
     OsmPath p = pm.createPath();
-    p.init( link );
+    p.init(link);
     return p;
   }
 
-  public OsmPath createPath( OsmPath origin, OsmLink link, OsmTrack refTrack, boolean detailMode )
-  {
+  public OsmPath createPath(OsmPath origin, OsmLink link, OsmTrack refTrack, boolean detailMode) {
     OsmPath p = pm.createPath();
-    p.init( origin, link, refTrack, detailMode, this );
+    p.init(origin, link, refTrack, detailMode, this);
     return p;
   }
 

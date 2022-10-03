@@ -6,8 +6,7 @@
 package btools.mapaccess;
 
 
-final class NodesList
-{
+final class NodesList {
   public OsmNode node;
   public NodesList next;
 }

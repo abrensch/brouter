@@ -12,11 +12,11 @@ import btools.util.CheapRuler;
 
 public class OsmNodeNamedTest {
   static int toOsmLon(double lon) {
-    return (int)( ( lon + 180. ) / CheapRuler.ILATLNG_TO_LATLNG + 0.5);
+    return (int) ((lon + 180.) / CheapRuler.ILATLNG_TO_LATLNG + 0.5);
   }
 
   static int toOsmLat(double lat) {
-    return (int)( ( lat +  90. ) / CheapRuler.ILATLNG_TO_LATLNG + 0.5);
+    return (int) ((lat + 90.) / CheapRuler.ILATLNG_TO_LATLNG + 0.5);
   }
 
   @Test
