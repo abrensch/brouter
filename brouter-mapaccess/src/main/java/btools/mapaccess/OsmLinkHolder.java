@@ -5,9 +5,8 @@
  */
 package btools.mapaccess;
 
-public interface OsmLinkHolder
-{
-  void setNextForLink( OsmLinkHolder holder );
+public interface OsmLinkHolder {
+  void setNextForLink(OsmLinkHolder holder);
 
   OsmLinkHolder getNextForLink();
 }

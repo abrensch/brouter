@@ -13,90 +13,77 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-final public class Rd5DiffManager
-{
-  public static void main( String[] args ) throws Exception
-  {
-    calcDiffs( new File( args[0] ),new File( args[1] ) );
+final public class Rd5DiffManager {
+  public static void main(String[] args) throws Exception {
+    calcDiffs(new File(args[0]), new File(args[1]));
   }
 
   /**
    * Compute diffs for all RD5 files
    */
-  public static void calcDiffs( File oldDir, File newDir ) throws Exception
-  {
-    File oldDiffDir = new File( oldDir, "diff" );
-    File newDiffDir = new File( newDir, "diff" );
+  public static void calcDiffs(File oldDir, File newDir) throws Exception {
+    File oldDiffDir = new File(oldDir, "diff");
+    File newDiffDir = new File(newDir, "diff");
 
     File[] filesNew = newDir.listFiles();
-    
-    for( File fn : filesNew )
-    {
+
+    for (File fn : filesNew) {
       String name = fn.getName();
-      if ( !name.endsWith( ".rd5" ) )
-      {
+      if (!name.endsWith(".rd5")) {
         continue;
       }
-      if ( fn.length() < 1024*1024 )
-      {
+      if (fn.length() < 1024 * 1024) {
         continue; // exclude very small files from diffing
       }
-      String basename = name.substring( 0, name.length() - 4 );
-      File fo = new File( oldDir, name );
-      if ( !fo.isFile() )
-      {
+      String basename = name.substring(0, name.length() - 4);
+      File fo = new File(oldDir, name);
+      if (!fo.isFile()) {
         continue;
       }
-      
-      // calculate MD5 of old file
-      String md5 = getMD5( fo );
 
-      String md5New = getMD5( fn );
-      
-      System.out.println( "name=" + name + " md5=" + md5 );
-      
-      File specificNewDiffs = new File( newDiffDir, basename );
+      // calculate MD5 of old file
+      String md5 = getMD5(fo);
+
+      String md5New = getMD5(fn);
+
+      System.out.println("name=" + name + " md5=" + md5);
+
+      File specificNewDiffs = new File(newDiffDir, basename);
       specificNewDiffs.mkdirs();
-      
+
       String diffFileName = md5 + ".df5";
-      File diffFile = new File( specificNewDiffs, diffFileName );
-      
+      File diffFile = new File(specificNewDiffs, diffFileName);
+
       String dummyDiffFileName = md5New + ".df5";
-      File dummyDiffFile = new File( specificNewDiffs, dummyDiffFileName );
+      File dummyDiffFile = new File(specificNewDiffs, dummyDiffFileName);
       dummyDiffFile.createNewFile();
 
       // calc the new diff
-      Rd5DiffTool.diff2files( fo, fn, diffFile  );
-      
+      Rd5DiffTool.diff2files(fo, fn, diffFile);
+
       // ... and add that to old diff files
-      File specificOldDiffs = new File( oldDiffDir, basename );
-      if ( specificOldDiffs.isDirectory() )
-      {
+      File specificOldDiffs = new File(oldDiffDir, basename);
+      if (specificOldDiffs.isDirectory()) {
         File[] oldDiffs = specificOldDiffs.listFiles();
-        for( File od : oldDiffs )
-        {
-          if ( !od.getName().endsWith( ".df5" ) )
-          {
+        for (File od : oldDiffs) {
+          if (!od.getName().endsWith(".df5")) {
             continue;
           }
-          if ( System.currentTimeMillis() - od.lastModified() > 9*86400000L )
-          {
+          if (System.currentTimeMillis() - od.lastModified() > 9 * 86400000L) {
             continue; // limit diff history to 9 days
           }
-          
-          File updatedDiff = new File( specificNewDiffs, od.getName() );
-          if ( !updatedDiff.exists() )
-          {        
-            Rd5DiffTool.addDeltas( od, diffFile, updatedDiff  );
-            updatedDiff.setLastModified( od.lastModified() );
+
+          File updatedDiff = new File(specificNewDiffs, od.getName());
+          if (!updatedDiff.exists()) {
+            Rd5DiffTool.addDeltas(od, diffFile, updatedDiff);
+            updatedDiff.setLastModified(od.lastModified());
           }
         }
       }
     }
   }
 
-  public static String getMD5( File f ) throws IOException
-  {
+  public static String getMD5(File f) throws IOException {
     try {
       MessageDigest md = MessageDigest.getInstance("MD5");
       BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
@@ -121,9 +108,8 @@ final public class Rd5DiffManager
       throw new IOException("MD5 algorithm not available", e);
     }
   }
-  
-  private static char hexChar( int v )
-  {
-    return (char) ( v > 9 ? 'a' + (v-10) : '0' + v );
+
+  private static char hexChar(int v) {
+    return (char) (v > 9 ? 'a' + (v - 10) : '0' + v);
   }
 }
