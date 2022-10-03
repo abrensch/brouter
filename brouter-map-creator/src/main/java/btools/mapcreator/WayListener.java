@@ -7,11 +7,10 @@ import java.io.File;
  *
  * @author ab
  */
-public interface WayListener
-{
-  boolean wayFileStart( File wayfile ) throws Exception;
+public interface WayListener {
+  boolean wayFileStart(File wayfile) throws Exception;
 
-  void nextWay( WayData data ) throws Exception;
+  void nextWay(WayData data) throws Exception;
 
-  void wayFileEnd( File wayfile ) throws Exception;
+  void wayFileEnd(File wayfile) throws Exception;
 }

@@ -5,8 +5,7 @@ package btools.util;
  *
  * @author ab
  */
-public class CompactLongSet
-{
+public class CompactLongSet {
   private long[][] al;
   private int[] pa;
   private int size = 0;
@@ -14,8 +13,7 @@ public class CompactLongSet
 
   protected static final int MAXLISTS = 31; // enough for size Integer.MAX_VALUE
 
-  public CompactLongSet()
-  {
+  public CompactLongSet() {
     // pointer array
     pa = new int[MAXLISTS];
 
@@ -28,36 +26,31 @@ public class CompactLongSet
   /**
    * @return the number of entries in this set
    */
-  public int size()
-  {
+  public int size() {
     return size;
   }
 
   /**
    * add a long value to this set if not yet in.
+   *
    * @param id the value to add to this set.
    * @return true if "id" already contained in this set.
    */
-  public boolean add( long id )
-  {
-    if ( contains( id ) )
-    {
+  public boolean add(long id) {
+    if (contains(id)) {
       return true;
     }
-    _add( id );
+    _add(id);
     return false;
   }
 
-  public void fastAdd( long id )
-  {
-    _add( id );
+  public void fastAdd(long id) {
+    _add(id);
   }
 
-  private void _add( long id )
-  {
-    if ( size == Integer.MAX_VALUE )
-    {
-      throw new IllegalArgumentException( "cannot grow beyond size Integer.MAX_VALUE" );
+  private void _add(long id) {
+    if (size == Integer.MAX_VALUE) {
+      throw new IllegalArgumentException("cannot grow beyond size Integer.MAX_VALUE");
     }
 
     // put the new entry in the first array
@@ -71,33 +64,27 @@ public class CompactLongSet
     pa[0] = 1;
     pa[1] = 1;
 
-    while ( (bp&1) == 1 )
-    {
+    while ((bp & 1) == 1) {
       bp >>= 1;
       pa[idx++] = n;
       n <<= 1;
     }
 
     // create it if not existant
-    if ( al[idx] == null )
-    {
+    if (al[idx] == null) {
       al[idx] = new long[n];
     }
 
     // now merge the contents of arrays 0...idx-1 into idx
-    while ( n > 0 )
-    {
+    while (n > 0) {
       long maxId = 0;
       int maxIdx = -1;
 
-      for ( int i=0; i<idx; i++ )
-      {
+      for (int i = 0; i < idx; i++) {
         int p = pa[i];
-        if ( p > 0 )
-        {
-          long currentId = al[i][p-1];
-          if ( maxIdx < 0 || currentId > maxId )
-          {
+        if (p > 0) {
+          long currentId = al[i][p - 1];
+          if (maxIdx < 0 || currentId > maxId) {
             maxIdx = i;
             maxId = currentId;
           }
@@ -105,9 +92,8 @@ public class CompactLongSet
       }
 
       // current maximum found, copy to target array
-      if ( n < al[idx].length && maxId == al[idx][n] )
-      {
-        throw new IllegalArgumentException( "duplicate key found in late check: " + maxId );
+      if (n < al[idx].length && maxId == al[idx][n]) {
+        throw new IllegalArgumentException("duplicate key found in late check: " + maxId);
       }
       --n;
       al[idx][n] = maxId;
@@ -116,8 +102,7 @@ public class CompactLongSet
     }
 
     // de-allocate empty arrays of a certain size (fix at 64kByte)
-    while ( idx-- > _maxKeepExponent )
-    {
+    while (idx-- > _maxKeepExponent) {
       al[idx] = null;
     }
   }
@@ -125,19 +110,15 @@ public class CompactLongSet
   /**
    * @return true if "id" is contained in this set.
    */
-  public boolean contains( long id )
-  {
+  public boolean contains(long id) {
     // determine the first empty array
     int bp = size; // treat size as bitpattern
     int idx = 1;
 
-    while ( bp != 0 )
-    {
-      if ( (bp&1) == 1 )
-      {
+    while (bp != 0) {
+      if ((bp & 1) == 1) {
         // array at idx is valid, check
-        if ( contains( idx, id ) )
-        {
+        if (contains(idx, id)) {
           return true;
         }
       }
@@ -149,50 +130,40 @@ public class CompactLongSet
 
 
   // does sorted array "a" contain "id" ?
-  private boolean contains( int idx, long id )
-  {
+  private boolean contains(int idx, long id) {
     long[] a = al[idx];
     int offset = a.length;
     int n = 0;
 
-    while ( (offset >>= 1) > 0 )
-    {
+    while ((offset >>= 1) > 0) {
       int nn = n + offset;
-      if ( a[nn] <= id )
-      {
+      if (a[nn] <= id) {
         n = nn;
       }
     }
-    if ( a[n] == id )
-    {
+    if (a[n] == id) {
       return true;
     }
     return false;
   }
 
-  protected void moveToFrozenArray( long[] faid )
-  {
-    for( int i=1; i<MAXLISTS; i++ )
-    {
+  protected void moveToFrozenArray(long[] faid) {
+    for (int i = 1; i < MAXLISTS; i++) {
       pa[i] = 0;
     }
 
-    for( int ti = 0; ti < size; ti++ ) // target-index
+    for (int ti = 0; ti < size; ti++) // target-index
     {
       int bp = size; // treat size as bitpattern
       int minIdx = -1;
       long minId = 0;
       int idx = 1;
-      while ( bp != 0 )
-      {
-        if ( (bp&1) == 1 )
-        {
+      while (bp != 0) {
+        if ((bp & 1) == 1) {
           int p = pa[idx];
-          if ( p < al[idx].length )
-          {
+          if (p < al[idx].length) {
             long currentId = al[idx][p];
-            if ( minIdx < 0 || currentId < minId )
-            {
+            if (minIdx < 0 || currentId < minId) {
               minIdx = idx;
               minId = currentId;
             }
@@ -204,9 +175,8 @@ public class CompactLongSet
       faid[ti] = minId;
       pa[minIdx]++;
 
-      if ( ti > 0 && faid[ti-1] == minId )
-      {
-        throw new IllegalArgumentException( "duplicate key found in late check: " + minId );
+      if (ti > 0 && faid[ti - 1] == minId) {
+        throw new IllegalArgumentException("duplicate key found in late check: " + minId);
       }
     }
 
