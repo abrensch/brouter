@@ -6,15 +6,13 @@
 package btools.mapaccess;
 
 
-
-public class OsmLink
-{
- /**
+public class OsmLink {
+  /**
    * The description bitmap contains the waytags (valid for both directions)
    */
   public byte[] descriptionBitmap;
 
- /**
+  /**
    * The geometry contains intermediate nodes, null for none (valid for both directions)
    */
   public byte[] geometry;
@@ -29,13 +27,11 @@ public class OsmLink
 
   private OsmLinkHolder reverselinkholder = null;
   private OsmLinkHolder firstlinkholder = null;
-  
-  protected OsmLink()
-  {
+
+  protected OsmLink() {
   }
 
-  public OsmLink( OsmNode source, OsmNode target )
-  {
+  public OsmLink(OsmNode source, OsmNode target) {
     n1 = source;
     n2 = target;
   }
@@ -43,8 +39,7 @@ public class OsmLink
   /**
    * Get the relevant target-node for the given source
    */
-  public final OsmNode getTarget( OsmNode source )
-  {
+  public final OsmNode getTarget(OsmNode source) {
     return n2 != source && n2 != null ? n2 : n1;
     /* if ( n2 != null && n2 != source )
     {
@@ -60,12 +55,11 @@ public class OsmLink
       throw new IllegalArgumentException( "internal error: getTarget: unknown source; " + source + " n1=" + n1 + " n2=" + n2 );
     } */
   }
-  
+
   /**
    * Get the relevant next-pointer for the given source
    */
-  public final OsmLink getNext( OsmNode source )
-  {
+  public final OsmLink getNext(OsmNode source) {
     return n2 != source && n2 != null ? next : previous;
     /* if ( n2 != null && n2 != source )
     {
@@ -84,69 +78,49 @@ public class OsmLink
   /**
    * Reset this link for the given direction
    */
-  protected final OsmLink clear( OsmNode source )
-  {
-    OsmLink n; 
-    if ( n2 != null && n2 != source )
-    {
-       n = next;
-       next = null;
-       n2 = null;
-       firstlinkholder = null;
-    }
-    else if ( n1 != null && n1 != source )
-    {
+  protected final OsmLink clear(OsmNode source) {
+    OsmLink n;
+    if (n2 != null && n2 != source) {
+      n = next;
+      next = null;
+      n2 = null;
+      firstlinkholder = null;
+    } else if (n1 != null && n1 != source) {
       n = previous;
       previous = null;
       n1 = null;
       reverselinkholder = null;
+    } else {
+      throw new IllegalArgumentException("internal error: setNext: unknown source");
     }
-    else
-    {
-      throw new IllegalArgumentException( "internal error: setNext: unknown source" );
-    }
-    if ( n1 == null && n2 == null )
-    {
+    if (n1 == null && n2 == null) {
       descriptionBitmap = null;
       geometry = null;
     }
     return n;
-  }  
+  }
 
-  public final void setFirstLinkHolder( OsmLinkHolder holder, OsmNode source )
-  {
-     if ( n2 != null && n2 != source )
-     {
-       firstlinkholder = holder;
-     }
-     else if ( n1 != null && n1 != source )
-     {
-       reverselinkholder = holder;
-     }
-     else
-     {
-       throw new IllegalArgumentException( "internal error: setFirstLinkHolder: unknown source" );
-     }
-  }  
-  
-  public final OsmLinkHolder getFirstLinkHolder( OsmNode source )
-  {
-    if ( n2 != null && n2 != source )
-    {
-      return firstlinkholder;
-    }
-    else if ( n1 != null && n1 != source )
-  {
-      return reverselinkholder;
-    }
-    else
-    {
-      throw new IllegalArgumentException( "internal error: getFirstLinkHolder: unknown source" );
+  public final void setFirstLinkHolder(OsmLinkHolder holder, OsmNode source) {
+    if (n2 != null && n2 != source) {
+      firstlinkholder = holder;
+    } else if (n1 != null && n1 != source) {
+      reverselinkholder = holder;
+    } else {
+      throw new IllegalArgumentException("internal error: setFirstLinkHolder: unknown source");
     }
   }
 
-  public final boolean isReverse( OsmNode source )
-  {
+  public final OsmLinkHolder getFirstLinkHolder(OsmNode source) {
+    if (n2 != null && n2 != source) {
+      return firstlinkholder;
+    } else if (n1 != null && n1 != source) {
+      return reverselinkholder;
+    } else {
+      throw new IllegalArgumentException("internal error: getFirstLinkHolder: unknown source");
+    }
+  }
+
+  public final boolean isReverse(OsmNode source) {
     return n1 != source && n1 != null;
     /* if ( n2 != null && n2 != source )
     {
@@ -162,21 +136,20 @@ public class OsmLink
     } */
   }
 
-  public final boolean isBidirectional()
-  {
+  public final boolean isBidirectional() {
     return n1 != null && n2 != null;
   }
 
-  public final boolean isLinkUnused()
-  {
+  public final boolean isLinkUnused() {
     return n1 == null && n2 == null;
   }
 
-  public final void addLinkHolder( OsmLinkHolder holder, OsmNode source )
-  {
-    OsmLinkHolder firstHolder = getFirstLinkHolder( source );
-    if ( firstHolder != null ) { holder.setNextForLink( firstHolder ); }
-    setFirstLinkHolder( holder, source );
+  public final void addLinkHolder(OsmLinkHolder holder, OsmNode source) {
+    OsmLinkHolder firstHolder = getFirstLinkHolder(source);
+    if (firstHolder != null) {
+      holder.setNextForLink(firstHolder);
+    }
+    setFirstLinkHolder(holder, source);
   }
 
 }

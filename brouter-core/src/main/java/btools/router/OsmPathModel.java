@@ -11,11 +11,10 @@ import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 
 
-abstract class OsmPathModel
-{
+abstract class OsmPathModel {
   public abstract OsmPrePath createPrePath();
 
   public abstract OsmPath createPath();
 
-  public abstract void init( BExpressionContextWay expctxWay, BExpressionContextNode expctxNode, Map<String,String> keyValues );
+  public abstract void init(BExpressionContextWay expctxWay, BExpressionContextNode expctxNode, Map<String, String> keyValues);
 }

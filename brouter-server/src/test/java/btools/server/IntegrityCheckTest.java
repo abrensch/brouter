@@ -8,24 +8,21 @@ import org.junit.Test;
 
 import btools.mapaccess.PhysicalFile;
 
-public class IntegrityCheckTest
-{
+public class IntegrityCheckTest {
   private File workingDir;
 
   @Test
-  public void integrityTest() throws Exception
-  {
-    URL resulturl = this.getClass().getResource( "/testtrack0.gpx" );
-    Assert.assertTrue( "reference result not found: ", resulturl != null );
-    File resultfile = new File( resulturl.getFile() );
+  public void integrityTest() throws Exception {
+    URL resulturl = this.getClass().getResource("/testtrack0.gpx");
+    Assert.assertTrue("reference result not found: ", resulturl != null);
+    File resultfile = new File(resulturl.getFile());
     workingDir = resultfile.getParentFile();
 
-    File segmentDir = new File( workingDir, "/../../../../brouter-map-creator/build/resources/test/tmp/segments" );
+    File segmentDir = new File(workingDir, "/../../../../brouter-map-creator/build/resources/test/tmp/segments");
     File[] files = segmentDir.listFiles();
 
-    for ( File f : files )
-    {
-      PhysicalFile.checkFileIntegrity( f );
+    for (File f : files) {
+      PhysicalFile.checkFileIntegrity(f);
     }
   }
 
