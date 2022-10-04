@@ -23,11 +23,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Locale;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.TimeZone;
 
 import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.OsmPos;
@@ -50,9 +46,6 @@ public final class OsmTrack{
 
   public boolean showspeed;
   public boolean showSpeedProfile;
-  public boolean showTime;
-
-  public Map<String,String> params;
 
   public List < OsmNodeNamed > pois = new ArrayList < OsmNodeNamed > ();
 
@@ -390,8 +383,6 @@ public final class OsmTrack{
 
     showspeed |= t.showspeed;
     showSpeedProfile |= t.showSpeedProfile;
-    showTime |= t.showTime;
-    params = t.params;
   }
 
   public int distance;
@@ -428,14 +419,12 @@ public final class OsmTrack{
     int turnInstructionMode = voiceHints != null ? voiceHints.turnInstructionMode : 0;
 
     sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    if (turnInstructionMode != 9 ) {
-      for (int i = messageList.size() - 1; i >= 0; i--) {
-        String message = messageList.get(i);
-        if (i < messageList.size() - 1)
-          message = "(alt-index " + i + ": " + message + " )";
-        if (message != null)
-          sb.append("<!-- ").append(message).append(" -->\n");
-      }
+    for (int i = messageList.size() - 1; i >= 0; i--) {
+      String message = messageList.get(i);
+      if (i < messageList.size() - 1)
+        message = "(alt-index " + i + ": " + message + " )";
+      if (message != null)
+        sb.append("<!-- ").append(message).append(" -->\n");
     }
 
     if (turnInstructionMode == 4) // comment style
@@ -452,10 +441,6 @@ public final class OsmTrack{
     sb.append("<gpx \n");
     sb.append(" xmlns=\"http://www.topografix.com/GPX/1/1\" \n");
     sb.append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \n");
-    if (turnInstructionMode == 9) // BRouter style
-    {
-      sb.append(" xmlns:brouter=\"Not yet documented\" \n");
-    }
     if (turnInstructionMode == 2) // locus style
     {
       sb.append(" xmlns:locus=\"http://www.locusmap.eu\" \n");
@@ -467,21 +452,7 @@ public final class OsmTrack{
     } else {
       sb.append(" creator=\"BRouter-" + version + "\" version=\"1.1\">\n");
     }
-    if (turnInstructionMode == 9 && params != null && params.size() > 0) {
-      sb.append(" <metadata>\n");
-      sb.append("  <name>").append(name).append("</name>\n");
-      sb.append("  <extensions>\n");
-      sb.append("   <brouter:info>").append(messageList.get(0)).append("</brouter:info>\n");
-      sb.append("   <brouter:params>");
-      int i = 0;
-      for (Map.Entry<String, String> e : params.entrySet()) {
-        if (i++ != 0) sb.append("&amp;");
-        sb.append(e.getKey()).append("=").append(e.getValue());
-      }
-      sb.append("</brouter:params>\n");
-      sb.append("  </extensions>\n");
-      sb.append(" </metadata>\n");
-    }
+
     if (turnInstructionMode == 3 || turnInstructionMode == 8) // osmand style, cruiser
     {
       float lastRteTime = 0;
@@ -609,11 +580,10 @@ public final class OsmTrack{
       }
     }
     sb.append(" <trk>\n");
-    if (turnInstructionMode == 9) { // brouter style
-      sb.append("  <src>").append(name).append("</src>\n");
+    sb.append("  <name>").append(name).append("</name>\n");
+    if (turnInstructionMode == 1) // trkpt/sym style
+    {
       sb.append("  <type>").append(voiceHints.getTransportMode()).append("</type>\n");
-    } else {
-      sb.append("  <name>").append(name).append("</name>\n");
     }
 
     if (turnInstructionMode == 2) {
@@ -624,118 +594,55 @@ public final class OsmTrack{
     }
 
     sb.append("  <trkseg>\n");
-    String lastway = "";
-    boolean bNextDirect = false;
 
     for (int idx = 0; idx < nodes.size(); idx++) {
       OsmPathElement n = nodes.get(idx);
       String sele = n.getSElev() == Short.MIN_VALUE ? "" : "<ele>" + n.getElev() + "</ele>";
-      VoiceHint hint = getVoiceHint(idx);
-      MatchedWaypoint mwpt = getMatchedWaypoint(idx);
-
-      if (showTime) {
-        sele += "<time>" + getFormattedTime3(n.getTime()) + "</time>";
-      }
-
-      boolean bNeedHeader = false;
-      if (turnInstructionMode == 9 || turnInstructionMode == 7) // trkpt/sym style // locus style new
+      if (turnInstructionMode == 1 || turnInstructionMode == 7) // trkpt/sym style // locus style new
       {
-        if (hint != null) {
-          if (turnInstructionMode == 9) {
-            if (mwpt != null && !mwpt.name.startsWith("via")) {
-              sele += "<name>" + mwpt.name + "</name>";
+        for (VoiceHint hint: voiceHints.list) {
+          if (hint.indexInTrack == idx) {
+            if (turnInstructionMode == 1) {
+              sele += "<name>" + hint.getMessageString() + "</name>";
+              sele += "<cmt>" + (int)(hint.distanceToNext) + "," + hint.formatGeometry() + "</cmt>";
+              sele += "<sym>" + hint.getCommandString() + "</sym>";
+            } else if (turnInstructionMode == 7) {
+              sele += "<sym>" + hint.getLocusSymbolString() + "</sym>";
             }
-            sele += "<desc>" + hint.getMessageString() + "</desc>";
-            sele += "<sym>" + hint.getCommandString(hint.cmd) + "</sym>";
-            sele += "<extensions>"
-                      + "<brouter:voicehint>" + hint.getCommandString() + ";" +(int)(hint.distanceToNext) + "," + hint.formatGeometry() + "</brouter:voicehint>";
-            if (n.message != null && n.message.wayKeyValues != null && !n.message.wayKeyValues.equals(lastway)) {
-              sele += "<brouter:way>" + n.message.wayKeyValues + "</brouter:way>";
-              lastway = n.message.wayKeyValues;
-            }
-            if (n.message != null && n.message.nodeKeyValues != null) {
-              sele += "<brouter:node>" + n.message.nodeKeyValues + "</brouter:node>";
-            }
-            sele +=  "</extensions>";
-          } else if (turnInstructionMode == 7) {
-            sele += "<sym>" + hint.getLocusSymbolString() + "</sym>";
           }
         }
-        if (idx == 0 ) {
-          if ( turnInstructionMode == 7) {
-            sele += "<name>Start</name>";
-            sele += "<sym>pass_place</sym>";
-            sele += "<type>Via</type>";
-          } else {
-            sele += "<desc>Start</desc>";
-            sele += "<type>Via</type>";
-          }
-        } else if (idx == nodes.size() - 1 ) {
-          if ( turnInstructionMode == 7) {
-            sele += "<name>End</name>";
-            sele += "<sym>pass_place</sym>";
-            sele += "<type>Via</type>";
-          } else {
-            sele += "<desc>End</desc>";
-            sele += "<type>Via</type>";
-          }
+        if (idx == 0 && turnInstructionMode == 7) {
+          sele += "<name>Start</name>";
+          sele += "<sym>pass_place</sym>";
+          sele += "<type>Via</type>";
+        } else if (idx == nodes.size() - 1 && turnInstructionMode == 7) {
+          sele += "<name>End</name>";
+          sele += "<sym>pass_place</sym>";
+          sele += "<type>Via</type>";
         } else if (turnInstructionMode == 7) {
-          if (mwpt != null) {
+          for (MatchedWaypoint wp: matchedWaypoints) {
+            if (idx == wp.indexInTrack) {
               if (sele.contains("sym") &&
                 !sele.contains("name") &&
-                !mwpt.name.startsWith("via")) {
+                !wp.name.startsWith("via")) {
                 int pos = sele.indexOf("<sym");
                 if (pos != -1)
-                  sele = sele.substring(0, pos) + "<name>" + mwpt.name + "</name>" + sele.substring(pos) + "<type>Via</type>";
-              } else if (sele.contains("sym") && mwpt.name.startsWith("via")) {
+                  sele = sele.substring(0, pos) + "<name>" + wp.name + "</name>" + sele.substring(pos) + "<type>Via</type>";
+              } else if (sele.contains("sym") && wp.name.startsWith("via")) {
                 sele += "<type>Via</type>";
-              } else if (mwpt.direct) {
-                sele += "<sym>beeline</sym><type>Shaping</type>";
-                bNextDirect = true;
-              } else if (mwpt.name.startsWith("via")) {
-                if (bNextDirect) {
-                  sele += "<src>manual</src><sym>pass_place</sym><type>Shaping</type>";
-                } else {
-                  sele += "<sym>pass_place</sym><type>Shaping</type>";
-                }
-                bNextDirect = false;
+              } else if (wp.name.startsWith("via")) {
+                sele += "<sym>pass_place</sym><type>Shaping</type>";
               } else {
-                sele += "<name>" + mwpt.name + "</name>";
+                sele += "<name>" + wp.name + "</name>";
                 sele += "<sym>pass_place</sym><type>Via</type>";
               }
-           }
-        } else if (turnInstructionMode == 9) {
-          if (mwpt != null && hint == null) {
-            if (mwpt.direct) {
-              bNextDirect = true;
-              sele += "<desc>beeline</desc>";
-            } else {
-                sele += "<desc>" + mwpt.name + "</desc>";
+              break;
             }
-            sele += "<type>Via</type>";
-            bNextDirect = false;
           }
         }
-        if (turnInstructionMode == 9 && hint == null) {
-            bNeedHeader = (n.message != null && n.message.wayKeyValues != null && !n.message.wayKeyValues.equals(lastway)) ||
-            (n.message != null && n.message.nodeKeyValues != null );
-            if (bNeedHeader) {
-              sele += "<extensions>";
-              if (n.message != null && n.message.wayKeyValues != null && !n.message.wayKeyValues.equals(lastway)) {
-                sele += "<brouter:way>" + n.message.wayKeyValues + "</brouter:way>";
-                lastway = n.message.wayKeyValues;
-              }
-              if (n.message != null && n.message.nodeKeyValues != null) {
-                sele += "<brouter:node>" + n.message.nodeKeyValues + "</brouter:node>";
-              }
-              sele +=  "</extensions>";
-            }
-        }
-
       }
-
       sb.append("   <trkpt lon=\"").append(formatILon(n.getILon())).append("\" lat=\"")
-        .append(formatILat(n.getILat())).append("\">").append(sele).append("</trkpt>\n");
+      .append(formatILat(n.getILat())).append("\">").append(sele).append("</trkpt>\n");
     }
 
     sb.append("  </trkseg>\n");
@@ -1005,24 +912,6 @@ public final class OsmTrack{
     sb.append("    }");
   }
 
-  private VoiceHint getVoiceHint(int i) {
-    for (VoiceHint hint: voiceHints.list) {
-      if (hint.indexInTrack == i) {
-        return hint;
-      }
-    }
-    return null;
-  }
-
-  private MatchedWaypoint getMatchedWaypoint(int idx) {
-    for (MatchedWaypoint wp: matchedWaypoints) {
-      if (idx == wp.indexInTrack) {
-        return wp;
-      }
-    }
-    return null;
-  }
-
   private int getVNode(int i) {
     MessageData m1 = i + 1 < nodes.size() ? nodes.get(i + 1).message : null;
     MessageData m0 = i < nodes.size() ? nodes.get(i).message : null;
@@ -1053,18 +942,6 @@ public final class OsmTrack{
     if (seconds != 0)
       time = time + seconds + "s";
     return time;
-  }
-
-  static final SimpleDateFormat TIMESTAMP_FORMAT =
-    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-  static {
-    TIMESTAMP_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
-  }
-
-  public String getFormattedTime3(float time) {
-    // yyyy-mm-ddThh:mm:ss.SSSZ
-    Date d = new Date((long)(time * 1000f));
-    return TIMESTAMP_FORMAT.format(d);
   }
 
   public String getFormattedEnergy() {

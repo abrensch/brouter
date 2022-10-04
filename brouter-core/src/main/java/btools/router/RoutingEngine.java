@@ -1277,9 +1277,6 @@ public class RoutingEngine extends Thread {
             OsmTrack t = compileTrack(path, verbose);
             t.showspeed = routingContext.showspeed;
             t.showSpeedProfile = routingContext.showSpeedProfile;
-            t.showTime = routingContext.showTime;
-            t.params = routingContext.keyValues;
-
             return t;
           }
 
