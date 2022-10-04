@@ -93,8 +93,8 @@ public final class RoutingContext
     {
       try
       {
-        Class clazz = Class.forName( className );
-        pm = (OsmPathModel) clazz.newInstance();
+        Class<?> clazz = Class.forName( className );
+        pm =  (OsmPathModel) clazz.getDeclaredConstructor().newInstance();
       }
       catch( Exception e )
       {
@@ -154,7 +154,7 @@ public final class RoutingContext
 
     correctMisplacedViaPoints =  0.f != expctxGlobal.getVariableValue( "correctMisplacedViaPoints", 0.f );
     correctMisplacedViaPointsDistance =  expctxGlobal.getVariableValue( "correctMisplacedViaPointsDistance", 40.f );
-	
+
     // process tags not used in the profile (to have them in the data-tab)
     processUnusedTags = 0.f != expctxGlobal.getVariableValue( "processUnusedTags", 0.f );
 
@@ -185,6 +185,7 @@ public final class RoutingContext
     showspeed = 0.f != expctxGlobal.getVariableValue( "showspeed", 0.f );
     showSpeedProfile = 0.f != expctxGlobal.getVariableValue( "showSpeedProfile", 0.f );
     inverseRouting = 0.f != expctxGlobal.getVariableValue( "inverseRouting", 0.f );
+    showTime  = 0.f != expctxGlobal.getVariableValue( "showtime", 0.f );
 
     int tiMode = (int)expctxGlobal.getVariableValue( "turnInstructionMode", 0.f );
     if ( tiMode != 1 ) // automatic selection from coordinate source
@@ -247,6 +248,7 @@ public final class RoutingContext
   public boolean showspeed;
   public boolean showSpeedProfile;
   public boolean inverseRouting;
+  public boolean showTime;
 
   public OsmPrePath firstPrePath;
 
@@ -294,7 +296,7 @@ public final class RoutingContext
   /**
    * clean the nogolist (previoulsy saved by saveFullNogolist())
    * by removing nogos with waypoints within
-   * 
+   *
    * @return true if all wayoints are all in the same (full-weigth) nogo area (triggering bee-line-mode)
    */
   public void cleanNogoList( List<OsmNode> waypoints )
