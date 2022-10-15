@@ -482,19 +482,30 @@ public final class OsmTrack{
 
       sb.append(" <rte>\n");
 
-      sb.append("  <rtept lat=\"").append(formatILat(nodes.get(0).getILat())).append("\" lon=\"")
-      .append(formatILon(nodes.get(0).getILon())).append("\">\n")
-      .append("   <desc>start</desc>\n   <extensions>\n");
-
       float rteTime = getVoiceHintTime(0);
-
-      if (rteTime != lastRteTime) // add timing only if available
-      {
-        double t = rteTime - lastRteTime;
-        sb.append("    <time>").append("" + (int) (t + 0.5)).append("</time>\n");
-        lastRteTime = rteTime;
+      StringBuffer first = new StringBuffer();
+      // define start point
+        {
+        first.append("  <rtept lat=\"").append(formatILat(nodes.get(0).getILat())).append("\" lon=\"")
+             .append(formatILon(nodes.get(0).getILon())).append("\">\n")
+             .append("   <desc>start</desc>\n   <extensions>\n");
+        if (rteTime != lastRteTime) // add timing only if available
+        {
+          double t = rteTime - lastRteTime;
+          first.append("    <time>").append("" + (int) (t + 0.5)).append("</time>\n");
+          lastRteTime = rteTime;
+        }
+        first.append("    <offset>0</offset>\n  </extensions>\n </rtept>\n");
       }
-      sb.append("    <offset>0</offset>\n  </extensions>\n </rtept>\n");
+      if (turnInstructionMode == 8) {
+        if ( matchedWaypoints.get(0).direct && voiceHints.list.get(0).indexInTrack==0) {
+          // has a voice hint do nothing, voice hint will do
+        } else {
+          sb.append(first.toString());
+        }
+      } else {
+        sb.append(first.toString());
+      }
 
       for (int i = 0; i < voiceHints.list.size(); i++) {
         VoiceHint hint = voiceHints.list.get(i);
@@ -657,20 +668,38 @@ public final class OsmTrack{
         }
         if (idx == 0 ) {
           if ( turnInstructionMode == 7) {
-            sele += "<name>Start</name>";
+            int pos = sele.indexOf("<sym");
+            if (pos != -1) {
+              sele = sele.substring(0, pos);
+            }
+            if (mwpt != null && !mwpt.name.startsWith("from")) sele += "<name>"+mwpt.name+"</name>";
+            if (mwpt != null && mwpt.direct) {
+              bNextDirect = true;
+            }
             sele += "<sym>pass_place</sym>";
             sele += "<type>Via</type>";
           } else {
-            sele += "<desc>Start</desc>";
+            if (mwpt != null && mwpt.direct) {
+              sele += "<desc>beeline</desc>";
+            } else {
+              sele += "<desc>start</desc>";
+            }
             sele += "<type>Via</type>";
           }
         } else if (idx == nodes.size() - 1 ) {
           if ( turnInstructionMode == 7) {
-            sele += "<name>End</name>";
+            int pos = sele.indexOf("<sym");
+            if (pos != -1) {
+              sele = sele.substring(0, pos);
+            }
+            if (mwpt != null && mwpt.name != null && !mwpt.name.startsWith("to")) sele += "<name>"+mwpt.name+"</name>";
+            if (bNextDirect) {
+              sele += "<src>beeline</src>";
+            }
             sele += "<sym>pass_place</sym>";
             sele += "<type>Via</type>";
           } else {
-            sele += "<desc>End</desc>";
+            sele += "<desc>end</desc>";
             sele += "<type>Via</type>";
           }
         } else if (turnInstructionMode == 7) {
@@ -683,12 +712,15 @@ public final class OsmTrack{
                   sele = sele.substring(0, pos) + "<name>" + mwpt.name + "</name>" + sele.substring(pos) + "<type>Via</type>";
               } else if (sele.contains("sym") && mwpt.name.startsWith("via")) {
                 sele += "<type>Via</type>";
+              } else if (mwpt.direct && bNextDirect) {
+                sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
+                bNextDirect = true;
               } else if (mwpt.direct) {
-                sele += "<sym>beeline</sym><type>Shaping</type>";
+                sele += "<sym>pass_place</sym><type>Shaping</type>";
                 bNextDirect = true;
               } else if (mwpt.name.startsWith("via")) {
                 if (bNextDirect) {
-                  sele += "<src>manual</src><sym>pass_place</sym><type>Shaping</type>";
+                  sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
                 } else {
                   sele += "<sym>pass_place</sym><type>Shaping</type>";
                 }
@@ -1000,6 +1032,7 @@ public final class OsmTrack{
   }
 
   private VoiceHint getVoiceHint(int i) {
+    if (voiceHints == null) return null;
     for (VoiceHint hint : voiceHints.list) {
       if (hint.indexInTrack == i) {
         return hint;
@@ -1009,6 +1042,7 @@ public final class OsmTrack{
   }
 
   private MatchedWaypoint getMatchedWaypoint(int idx) {
+    if (matchedWaypoints == null) return null;
     for (MatchedWaypoint wp : matchedWaypoints) {
       if (idx == wp.indexInTrack) {
         return wp;
@@ -1199,7 +1233,14 @@ public final class OsmTrack{
         input.indexInTrack = --nodeNr;
         input.goodWay = node.message;
         input.oldWay = node.origin.message == null ? node.message : node.origin.message;
-
+        if (rc.turnInstructionMode == 8) {
+          MatchedWaypoint mwpt = getMatchedWaypoint(nodeNr);
+          if (mwpt != null && mwpt.direct) {
+            input.cmd = VoiceHint.BL;
+            input.angle = (float)node.message.turnangle;
+            input.distanceToNext = node.calcDistance(node.origin);
+          }
+        }
         OsmPathElementHolder detours = detourMap.get(node.origin.getIdFromPos());
         if (nodeNr >= 0 && detours != null) {
           OsmPathElementHolder h = detours;

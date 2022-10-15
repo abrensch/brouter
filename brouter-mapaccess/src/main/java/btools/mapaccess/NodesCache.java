@@ -40,7 +40,7 @@ public final class NodesCache
   private long cacheSum = 0;
   private long maxmemtiles;
   private boolean detailed;
-  
+
   private boolean garbageCollectionEnabled = false;
   private boolean ghostCleaningDone = false;
 
@@ -48,9 +48,9 @@ public final class NodesCache
   private long cacheSumClean = 0;
   private long ghostSum = 0;
   private long ghostWakeup = 0;
-  
+
   private boolean directWeaving = !Boolean.getBoolean( "disableDirectWeaving" );
-  
+
   public String formatStatus()
   {
     return "collecting=" + garbageCollectionEnabled + " noGhosts=" + ghostCleaningDone + " cacheSum=" + cacheSum + " cacheSumClean=" + cacheSumClean + " ghostSum=" + ghostSum + " ghostWakeup=" + ghostWakeup ;
@@ -67,7 +67,7 @@ public final class NodesCache
     this.lookupMinorVersion = ctxWay.meta.lookupMinorVersion;
     this.forceSecondaryData = forceSecondaryData;
     this.detailed = detailed;
-    
+
     if ( ctxWay != null )
     {
       ctxWay.setDecodeForbidden( detailed );
@@ -113,7 +113,7 @@ public final class NodesCache
     }
     ghostSum = cacheSum;
   }
-  
+
   public void clean( boolean all )
   {
       for ( OsmFile[] fileRow : fileRows )
@@ -155,7 +155,7 @@ public final class NodesCache
         }
       }
     }
-    
+
     if ( garbageCollectionEnabled )
     {
       ghostCleaningDone = true;
@@ -238,7 +238,7 @@ public final class NodesCache
    * make sure the given node is non-hollow,
    * which means it contains not just the id,
    * but also the actual data
-   * 
+   *
    * @return true if successfull, false if node is still hollow
    */
   public boolean obtainNonHollowNode( OsmNode node )
@@ -300,13 +300,13 @@ public final class NodesCache
 
   /**
    * get a node for the given id with all link-targets also non-hollow
-   * 
+   *
    * It is required that an instance of the start-node does not yet
    * exist, not even a hollow instance, so getStartNode should only
    * be called once right after resetting the cache
-   * 
+   *
    * @param id the id of the node to load
-   * 
+   *
    * @return the fully expanded node for id, or null if it was not found
    */
   public OsmNode getStartNode( long id )
@@ -348,11 +348,20 @@ public final class NodesCache
     {
       throw new IllegalArgumentException( "datafile " + first_file_access_name + " not found" );
     }
-    for( MatchedWaypoint mwp : unmatchedWaypoints )
-    {
+    for(int i = 0; i < unmatchedWaypoints.size(); i++) {
+      MatchedWaypoint mwp = unmatchedWaypoints.get(i);
       if ( mwp.crosspoint == null )
       {
-        throw new IllegalArgumentException( mwp.name + "-position not mapped in existing datafile" );
+        if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size()-1 && unmatchedWaypoints.get(i-1).direct) {
+          mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
+          mwp.direct = true;
+        } else {
+          throw new IllegalArgumentException( mwp.name + "-position not mapped in existing datafile" );
+        }
+      }
+      if (i == unmatchedWaypoints.size()-1 && unmatchedWaypoints.get(i-1).direct) {
+        mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
+        mwp.direct = true;
       }
     }
   }

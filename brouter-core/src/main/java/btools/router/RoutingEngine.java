@@ -195,12 +195,15 @@ public class RoutingEngine extends Thread {
       logInfo("execution time = " + (endTime - startTime0) / 1000. + " seconds");
     } catch (IllegalArgumentException e) {
       logException(e);
+      //e.printStackTrace();
     } catch (Exception e) {
       logException(e);
+      //e.printStackTrace();
       logThrowable(e);
     } catch (Error e) {
       cleanOnOOM();
       logException(e);
+      //e.printStackTrace();
       logThrowable(e);
     } finally {
       if (hasInfo() && routingContext.expctxWay != null) {
@@ -223,6 +226,7 @@ public class RoutingEngine extends Thread {
         try {
           infoLogWriter.close();
         } catch (Exception e) {
+          //e.printStackTrace();
         }
         infoLogWriter = null;
       }
@@ -231,6 +235,7 @@ public class RoutingEngine extends Thread {
         try {
           stackSampler.close();
         } catch (Exception e) {
+          //e.printStackTrace();
         }
         stackSampler = null;
       }
@@ -352,6 +357,7 @@ public class RoutingEngine extends Thread {
   }
 
   private void logException(Throwable t) {
+    //t.printStackTrace();
     errorMessage = t instanceof IllegalArgumentException ? t.getMessage() : t.toString();
     logInfo("Error (linksProcessed=" + linksProcessed + " open paths: " + openSet.getSize() + "): " + errorMessage);
   }
@@ -367,11 +373,14 @@ public class RoutingEngine extends Thread {
       findTrack("seededSearch", seedPoint, null, null, null, false);
     } catch (IllegalArgumentException e) {
       logException(e);
+      //e.printStackTrace();
     } catch (Exception e) {
       logException(e);
+      //e.printStackTrace();
       logThrowable(e);
     } catch (Error e) {
       cleanOnOOM();
+      //e.printStackTrace();
       logException(e);
       logThrowable(e);
     } finally {
@@ -387,6 +396,7 @@ public class RoutingEngine extends Thread {
         try {
           infoLogWriter.close();
         } catch (Exception e) {
+          //e.printStackTrace();
         }
         infoLogWriter = null;
       }
@@ -405,6 +415,7 @@ public class RoutingEngine extends Thread {
         islandNodePairs.freezeTempPairs();
         nodesCache.clean(true);
         matchedWaypoints = null;
+        //rie.printStackTrace();
       }
     }
   }
@@ -412,16 +423,16 @@ public class RoutingEngine extends Thread {
   private OsmTrack tryFindTrack(OsmTrack[] refTracks, OsmTrack[] lastTracks) {
     OsmTrack totaltrack = new OsmTrack();
     int nUnmatched = waypoints.size();
+    boolean hasDirectRouting = false;
 
-    if (hasInfo()) {
-      for (OsmNodeNamed wp : waypoints) {
-        logInfo("wp=" + wp + (wp.direct ? " direct" : ""));
-      }
+    for (OsmNodeNamed wp : waypoints) {
+      if (hasInfo()) logInfo("wp=" + wp + (wp.direct ? " direct" : ""));
+      if (wp.direct) hasDirectRouting = true;
     }
 
     // check for a track for that target
     OsmTrack nearbyTrack = null;
-    if (lastTracks[waypoints.size() - 2] == null) {
+    if (!hasDirectRouting && lastTracks[waypoints.size() - 2] == null) {
       StringBuilder debugInfo = hasInfo() ? new StringBuilder() : null;
       nearbyTrack = OsmTrack.readBinary(routingContext.rawTrackPath, waypoints.get(waypoints.size() - 1), routingContext.getNogoChecksums(), routingContext.profileTimestamp, debugInfo);
       if (nearbyTrack != null) {
@@ -451,6 +462,7 @@ public class RoutingEngine extends Thread {
       airDistanceCostFactor = 0.;
       for (int i = 0; i < matchedWaypoints.size() - 1; i++) {
         nodeLimit = MAXNODES_ISLAND_CHECK;
+        if (matchedWaypoints.get(i).direct) continue;
         if (routingContext.inverseRouting) {
           OsmTrack seg = findTrack("start-island-check", matchedWaypoints.get(i), matchedWaypoints.get(i + 1), null, null, false);
           if (seg == null && nodeLimit > 0) {
@@ -514,6 +526,7 @@ public class RoutingEngine extends Thread {
         newTrack.writeGpx(newTrack.name + "_match.gpx");
       } catch (Exception e) {
         System.out.println("Exception " + e.toString());
+        //e.printStackTrace();
       }
 
     }
@@ -553,6 +566,8 @@ public class RoutingEngine extends Thread {
 
     recalcTrack(totaltrack);
 
+    matchedWaypoints.get(matchedWaypoints.size()-1).indexInTrack = totaltrack.nodes.size() - 1;
+    totaltrack.matchedWaypoints = matchedWaypoints;
     totaltrack.processVoiceHints(routingContext);
     totaltrack.prepareSpeedProfile(routingContext);
 
@@ -760,6 +775,7 @@ public class RoutingEngine extends Thread {
 
     for (i = 0; i < ourSize; i++) {
       OsmPathElement n = t.nodes.get(i);
+      if (n.message == null) n.message = new MessageData();
       OsmPathElement nLast = null;
       if (i == 0) {
         lon0 = t.nodes.get(0).getILon();
@@ -853,7 +869,7 @@ public class RoutingEngine extends Thread {
       }
     }
 
-    logInfo("track-length = " + t.distance);
+    logInfo("track-length total = " + t.distance);
     logInfo("filtered ascend = " + t.ascend);
   }
 

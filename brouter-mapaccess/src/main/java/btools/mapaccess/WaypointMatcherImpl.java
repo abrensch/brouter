@@ -209,7 +209,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher
           mw.crosspoint.ilat = mwp.crosspoint.ilat;
           mw.node1 = new OsmNode( lonStart, latStart );
           mw.node2 = new OsmNode( lonTarget, latTarget );
-          mw.name = "w_" + mwp.name + "_" +mwp.crosspoint.hashCode();
+          mw.name = mwp.name + "_w_" + mwp.crosspoint.hashCode();
           mw.radius = mwp.radius;
           mw.directionDiff = diff;
           mw.directionToNext = mwp.directionToNext;
@@ -228,7 +228,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher
           mw.crosspoint.ilat = mwp.crosspoint.ilat;
           mw.node2 = new OsmNode( lonTarget, latTarget );
           mw.node1 = new OsmNode( lonStart, latStart );
-          mw.name = "w2_" + mwp.name + "_" +mwp.crosspoint.hashCode();
+          mw.name = mwp.name + "_w2_" +mwp.crosspoint.hashCode();
           mw.radius = mwp.radius;
           mw.directionDiff = diff;
           mw.directionToNext = mwp.directionToNext;

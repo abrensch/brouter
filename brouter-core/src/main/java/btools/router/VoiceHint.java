@@ -26,6 +26,7 @@ public class VoiceHint
   static final int OFFR = 13; // Off route
   static final int RNDB = 14; // Roundabout
   static final int RNLB = 15; // Roundabout left
+  static final int BL = 16; // Beeline routing
 
   int ilon;
   int ilat;
@@ -160,6 +161,7 @@ public class VoiceHint
       case TRU  : return "u-turn_right";
       case RNDB : return "roundabout_e" + roundaboutExit;
       case RNLB : return "roundabout_e" + (-roundaboutExit);
+      case BL   : return "beeline";
       default : throw new IllegalArgumentException( "unknown command: " + cmd );
     }
   }
@@ -246,6 +248,7 @@ public class VoiceHint
     case TRU : return "TRU";
     case RNDB: return "RNDB" + roundaboutExit;
     case RNLB: return "RNLB" + (-roundaboutExit);
+    case BL  : return "BL" ;
     default:
       throw new IllegalArgumentException("unknown command: " + cmd);
     }
@@ -267,6 +270,7 @@ public class VoiceHint
     case TRU : return "u-turn right";
     case RNDB: return "Take exit " + roundaboutExit;
     case RNLB: return "Take exit " + (-roundaboutExit);
+    case BL  : return "Beeline";
     default:
       throw new IllegalArgumentException("unknown command: " + cmd);
     }
@@ -305,6 +309,7 @@ public class VoiceHint
     if (angle == Float.MAX_VALUE) {
       cmdAngle = goodWay.turnangle;
     }
+    if (cmd == BL) return;
 
     if (roundaboutExit > 0) {
       cmd = RNDB;

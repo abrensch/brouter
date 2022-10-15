@@ -63,6 +63,10 @@ public final class VoiceHintProcessor{
     for (int hintIdx = 0; hintIdx < inputs.size(); hintIdx++) {
       VoiceHint input = inputs.get(hintIdx);
 
+      if (input.cmd == VoiceHint.BL) {
+        results.add(input);
+        continue;
+      }
       float turnAngle = input.goodWay.turnangle;
       distance += input.goodWay.linkdist;
       int currentPrio = input.goodWay.getPrio();
@@ -203,7 +207,7 @@ public final class VoiceHintProcessor{
       if (hint.cmd == 0) {
         hint.calcCommand();
       }
-      if (!(hint.needsRealTurn && hint.cmd == VoiceHint.C)) {
+      if (!(hint.needsRealTurn && (hint.cmd == VoiceHint.C||hint.cmd == VoiceHint.BL))) {
         double dist = hint.distanceToNext;
         // sum up other hints within the catching range (e.g. 40m)
         while (dist < INTERNAL_CATCHING_RANGE && i > 0) {
@@ -225,6 +229,8 @@ public final class VoiceHintProcessor{
         }
         hint.calcCommand();
         results2.add(hint);
+      } else if (hint.cmd == VoiceHint.BL) {
+        results2.add(hint);
       } else {
         if (results2.size() > 0)
           results2.get(results2.size() - 1).distanceToNext += hint.distanceToNext;
@@ -243,8 +249,16 @@ public final class VoiceHintProcessor{
       VoiceHint input = inputs.get(hintIdx);
 
       if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
-        if (inputLast != null) { // when drop add distance to last
-          inputLast.distanceToNext += input.distanceToNext;
+        int badWayPrio = 0;
+        for (MessageData md : input.badWays) {
+          badWayPrio = Math.max(badWayPrio, md.getPrio());
+        }
+        if (input.goodWay.getPrio() < badWayPrio) {
+          results.add(input);
+        } else {
+          if (inputLast != null) { // when drop add distance to last
+            inputLast.distanceToNext += input.distanceToNext;
+          }
           continue;
         }
       } else {
@@ -275,7 +289,7 @@ public final class VoiceHintProcessor{
               save = true;
               hintIdx++;
               break;
-            } else if (Math.abs(input.angle) > SIGNIFICANT_ANGLE) { 
+            } else if (Math.abs(input.angle) > SIGNIFICANT_ANGLE) {
               tmpList.add(h2);
               hintIdx++;
             } else if (dist > catchingRange) { // distance reached
