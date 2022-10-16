@@ -195,15 +195,12 @@ public class RoutingEngine extends Thread {
       logInfo("execution time = " + (endTime - startTime0) / 1000. + " seconds");
     } catch (IllegalArgumentException e) {
       logException(e);
-      //e.printStackTrace();
     } catch (Exception e) {
       logException(e);
-      //e.printStackTrace();
       logThrowable(e);
     } catch (Error e) {
       cleanOnOOM();
       logException(e);
-      //e.printStackTrace();
       logThrowable(e);
     } finally {
       if (hasInfo() && routingContext.expctxWay != null) {
@@ -226,7 +223,6 @@ public class RoutingEngine extends Thread {
         try {
           infoLogWriter.close();
         } catch (Exception e) {
-          //e.printStackTrace();
         }
         infoLogWriter = null;
       }
@@ -235,7 +231,6 @@ public class RoutingEngine extends Thread {
         try {
           stackSampler.close();
         } catch (Exception e) {
-          //e.printStackTrace();
         }
         stackSampler = null;
       }
@@ -373,14 +368,11 @@ public class RoutingEngine extends Thread {
       findTrack("seededSearch", seedPoint, null, null, null, false);
     } catch (IllegalArgumentException e) {
       logException(e);
-      //e.printStackTrace();
     } catch (Exception e) {
       logException(e);
-      //e.printStackTrace();
       logThrowable(e);
     } catch (Error e) {
       cleanOnOOM();
-      //e.printStackTrace();
       logException(e);
       logThrowable(e);
     } finally {
@@ -396,7 +388,6 @@ public class RoutingEngine extends Thread {
         try {
           infoLogWriter.close();
         } catch (Exception e) {
-          //e.printStackTrace();
         }
         infoLogWriter = null;
       }
@@ -415,7 +406,6 @@ public class RoutingEngine extends Thread {
         islandNodePairs.freezeTempPairs();
         nodesCache.clean(true);
         matchedWaypoints = null;
-        //rie.printStackTrace();
       }
     }
   }
@@ -526,7 +516,6 @@ public class RoutingEngine extends Thread {
         newTrack.writeGpx(newTrack.name + "_match.gpx");
       } catch (Exception e) {
         System.out.println("Exception " + e.toString());
-        //e.printStackTrace();
       }
 
     }
