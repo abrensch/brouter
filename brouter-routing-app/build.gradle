@@ -101,6 +101,16 @@ dependencies {
     androidTestImplementation 'androidx.work:work-testing:2.7.1'
 }
 
+check.dependsOn 'checkstyle'
+
+task checkstyle(type: Checkstyle) {
+    source 'src'
+    include '**/*.java'
+    exclude '**/gen/**'
+
+    classpath = files()
+}
+
 task generateProfiles(type: Exec) {
     commandLine = "../misc/scripts/generate_profile_variants.sh"
 }
