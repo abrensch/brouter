@@ -30,7 +30,8 @@ interface IBRouterService {
     //  "extraParams"     = Bundle key=value list for a profile setup (like "profile:")
     //  "timode"          = turnInstructionMode [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style] default 0
     //  "heading"         = angle (optional to give a route a start direction)
-    
+    //  "direction"       = (deprecated) angle
+
     // return null if all ok and no path given, the track if ok and path given, an error message if it was wrong
     //        the resultas string when 'pathToFileResult' is null, this should be default when Android Q or later
     // call in a background thread, heavy task!
