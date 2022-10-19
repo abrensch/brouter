@@ -64,9 +64,12 @@ public class BRouterWorker {
       rc.turnInstructionMode = params.getInt("timode");
     }
 
-
     if (params.containsKey("direction")) {
       rc.startDirection = params.getInt("direction");
+    }
+    if (params.containsKey("heading")) {
+      rc.startDirection = params.getInt("heading");
+      rc.forceUseStartDirection = true;
     }
     if (params.containsKey("alternativeidx")) {
       rc.alternativeIdx = params.getInt("alternativeidx");
