@@ -288,7 +288,7 @@ assign costfactor
   #
   # some other highway types
   #
-  if      ( highway=pedestrian                ) then 3
+  if      ( highway=pedestrian                ) then ( if isbike then 2.2 else 3 )
   else if ( highway=bridleway                 ) then 5
   else if ( highway=cycleway                  ) then 1
   else if ( isresidentialorliving             ) then ( if isunpaved then 1.5 else 1.1 )
