@@ -11,6 +11,7 @@ import java.util.StringTokenizer;
 
 import android.os.Bundle;
 
+import btools.mapaccess.MatchedWaypoint;
 import btools.router.OsmNodeNamed;
 import btools.router.OsmNogoPolygon;
 import btools.router.OsmTrack;
@@ -65,6 +66,9 @@ public class BRouterWorker {
     }
 
 
+    if (params.containsKey("direction")) {
+      rc.startDirection = params.getInt("direction");
+    }
     if (params.containsKey("heading")) {
       rc.startDirection = params.getInt("heading");
       rc.forceUseStartDirection = true;
@@ -118,10 +122,10 @@ public class BRouterWorker {
 				  if (waypoints.size() > v) waypoints.get(v).direct = true;
 				}
 			  } catch (Exception e) {
-				System.err.println("error " + e.getStackTrace()[0].getLineNumber() + " " + e.getStackTrace()[0] + "\n" +e);
-		      } 
+				  System.err.println("error " + e.getStackTrace()[0].getLineNumber() + " " + e.getStackTrace()[0] + "\n" +e);
+		    }
 			} else {
-            rc.keyValues.put(key, value);
+              rc.keyValues.put(key, value);
 			}
           }
         }
@@ -237,13 +241,12 @@ public class BRouterWorker {
         throw new IllegalArgumentException("we need two lat/lon points at least!");
       wplist.add(readPosition(lonLat[0], lonLat[1], "via" + i));
 	  if (lonLat.length > 2) {
-		if ( lonLat[2].equals("d")) {
+		if (lonLat[2].equals("d")) {
 		  wplist.get(wplist.size()-1).direct = true;
 		} else {
 		  wplist.get(wplist.size()-1).name = lonLat[2];
 		}
 	  }
-	  
     }
 
     wplist.get(0).name = "from";
