@@ -112,8 +112,7 @@ assign defaultaccess =
 # calculate logical bike access
 #
 assign bikeaccess =
-       if any_cycleroute then true
-       else if bicycle= then
+       if bicycle= then
        (
          if bicycle_road=yes then true
          else if vehicle= then ( if highway=footway then false else defaultaccess )
@@ -137,6 +136,7 @@ assign footaccess =
 assign accesspenalty =
        if bikeaccess then 0
        else if footaccess then 4
+       else if any_cycleroute then 15
        else 10000
 
 #
