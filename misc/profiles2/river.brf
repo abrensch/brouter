@@ -13,7 +13,7 @@ assign turncost 0
 assign initialcost 0
 
 assign costfactor
-  switch or waterway=canal or waterway=river waterway=lock_gate  1
+  switch or waterway=canal or waterway=river or waterway=fairway waterway=lock_gate  1
   100000
 
 ---context:node  # following code refers to node tags
