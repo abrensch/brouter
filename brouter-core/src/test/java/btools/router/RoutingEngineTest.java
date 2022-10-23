@@ -1,4 +1,4 @@
-package btools.server;
+package btools.router;
 
 import java.util.*;
 
@@ -8,10 +8,7 @@ import org.junit.Test;
 import java.net.URL;
 import java.io.File;
 
-import btools.router.*;
-import btools.mapaccess.*;
-
-public class RouterTest {
+public class RoutingEngineTest {
   private File workingDir;
 
   @Test
