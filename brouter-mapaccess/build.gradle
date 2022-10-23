@@ -6,4 +6,8 @@ dependencies {
     implementation project(':brouter-util')
     implementation project(':brouter-codec')
     implementation project(':brouter-expressions')
+    testImplementation 'junit:junit:4.13.2'
 }
+
+// MapcreatorTest generates segments which are used in tests
+test.dependsOn ':brouter-map-creator:test'

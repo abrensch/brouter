@@ -1,28 +1,24 @@
 package btools.mapaccess;
 
-import java.io.File;
-import java.net.URL;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
-import org.junit.Assert;
 import org.junit.Test;
 
-import btools.mapaccess.PhysicalFile;
+import java.io.File;
+import java.io.IOException;
 
 public class IntegrityCheckTest {
-  private File workingDir;
-
   @Test
-  public void integrityTest() throws Exception {
-    URL resulturl = this.getClass().getResource("/testtrack0.gpx");
-    Assert.assertTrue("reference result not found: ", resulturl != null);
-    File resultfile = new File(resulturl.getFile());
-    workingDir = resultfile.getParentFile();
-
-    File segmentDir = new File(workingDir, "/../../../../brouter-map-creator/build/resources/test/tmp/segments");
+  public void integrityTest() throws IOException {
+    File workingDir = new File(".").getCanonicalFile();
+    File segmentDir = new File(workingDir, "../brouter-map-creator/build/resources/test/tmp/segments");
     File[] files = segmentDir.listFiles();
 
+    assertNotNull("Missing segments", files);
+
     for (File f : files) {
-      PhysicalFile.checkFileIntegrity(f);
+      assertNull(PhysicalFile.checkFileIntegrity(f));
     }
   }
 
