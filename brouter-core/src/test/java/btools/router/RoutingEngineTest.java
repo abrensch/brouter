@@ -7,6 +7,7 @@ import org.junit.Test;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class RoutingEngineTest {
@@ -22,22 +23,36 @@ public class RoutingEngineTest {
 
   @Test
   public void routeCrossingSegmentBorder() {
-    String msg = calcRoute(8.720897, 50.002515, 8.723658, 49.997510, "testtrack");
+    String msg = calcRoute(8.720897, 50.002515, 8.723658, 49.997510, "testtrack", new RoutingContext());
     // error message from router?
     Assert.assertNull("routing failed: " + msg, msg);
 
     // if the track didn't change, we expect the first alternative also
     File a1 = new File(workingDir, "testtrack1.gpx");
-    Assert.assertTrue("result content missmatch", a1.exists());
+    a1.deleteOnExit();
+    Assert.assertTrue("result content mismatch", a1.exists());
   }
 
   @Test
   public void routeDestinationPointFarOff() {
-    String msg = calcRoute(8.720897, 50.002515, 16.723658, 49.997510, "notrack");
+    String msg = calcRoute(8.720897, 50.002515, 16.723658, 49.997510, "notrack", new RoutingContext());
     Assert.assertTrue(msg, msg != null && msg.contains("not found"));
   }
 
-  private String calcRoute(double flon, double flat, double tlon, double tlat, String trackname) {
+  @Test
+  public void overrideParam() {
+    RoutingContext rctx = new RoutingContext();
+    rctx.keyValues = new HashMap<>();
+    rctx.keyValues.put("avoid_unsafe", "1.0");
+    String msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "paramTrack", rctx);
+    Assert.assertNull("routing failed: " + msg, msg);
+
+    File trackFile = new File(workingDir, "paramTrack1.gpx");
+    trackFile.deleteOnExit();
+    Assert.assertTrue("result content mismatch", trackFile.exists());
+  }
+
+  private String calcRoute(double flon, double flat, double tlon, double tlat, String trackname, RoutingContext rctx) {
     String wd = workingDir.getAbsolutePath();
 
     List<OsmNodeNamed> wplist = new ArrayList<>();
@@ -54,7 +69,6 @@ public class RoutingEngineTest {
     n.ilat = 90000000 + (int) (tlat * 1000000 + 0.5);
     wplist.add(n);
 
-    RoutingContext rctx = new RoutingContext();
     rctx.localFunction = wd + "/../../../../misc/profiles2/trekking.brf";
 
     RoutingEngine re = new RoutingEngine(
