@@ -4,7 +4,6 @@ package btools.server;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -101,16 +100,5 @@ public class RouteServerTest {
     httpConnection.connect();
 
     Assert.assertEquals(HttpURLConnection.HTTP_NOT_FOUND, httpConnection.getResponseCode());
-  }
-
-  @Test
-  @Ignore("Broken implementation (uppercase / lowercase issue)")
-  public void invalidReferrer() throws IOException {
-    URL requestUrl = new URL(baseUrl + "brouter/%7C/%2C");
-    HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
-    httpConnection.setRequestProperty("Referer", "http://brouter.de/brouter-web/");
-    httpConnection.connect();
-
-    Assert.assertEquals(HttpURLConnection.HTTP_FORBIDDEN, httpConnection.getResponseCode());
   }
 }
