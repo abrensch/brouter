@@ -21,7 +21,7 @@ public class RouteServerTest {
   private static final String baseUrl = "http://" + host + ":" + port + "/";
 
   @BeforeClass
-  public static void setupServer() throws IOException {
+  public static void setupServer() throws IOException, InterruptedException {
     File workingDir = new File(".").getCanonicalFile();
     File segmentDir = new File(workingDir, "../brouter-map-creator/build/resources/test/tmp/segments");
     File profileDir = new File(workingDir, "../misc/profiles2");
@@ -41,15 +41,16 @@ public class RouteServerTest {
     // Busy-wait for server startup
     URL requestUrl = new URL(baseUrl);
     HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
-    for (int i = 10; i >= 0; i--) {
+    for (int i = 20; i >= 0; i--) {
       try {
-        httpConnection.setConnectTimeout(10);
+        httpConnection.setConnectTimeout(1000);
         httpConnection.connect();
         break;
       } catch (ConnectException e) {
         if (i == 0) {
           throw e;
         }
+        Thread.sleep(100);
       }
     }
   }
