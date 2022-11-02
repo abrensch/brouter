@@ -218,6 +218,12 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
             rc.keyValues = new HashMap<String, String>();
           }
           rc.keyValues.put(e.getKey().substring(8), e.getValue());
+        } else if (e.getKey().equals("straight")) {
+          String[] sa = e.getValue().split(",");
+          for (int i = 0; i<sa.length;i++) {
+            int v = Integer.valueOf(sa[i]);
+            if (wplist.size() > v) wplist.get(v).direct = true;
+          }
         }
       }
       cr = new RoutingEngine(null, null, serviceContext.segmentDir, wplist, rc);
