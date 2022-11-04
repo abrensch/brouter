@@ -274,7 +274,7 @@ sac_scale;0000004549 alpine_hiking
 sac_scale;0000001620 demanding_alpine_hiking
 sac_scale;0000000831 yes
 sac_scale;0000000712 difficult_alpine_hiking
-brouter_route_placeholder_dummy_42;0000000001 dummy
+sac_scale;0000000265 T1-hiking
 
 noexit;0000118665 yes
 
@@ -285,7 +285,7 @@ oneway;0001455407 no
 oneway;0000139188 -1
 oneway;0000000892 reversible
 oneway;0000000756 1
-brouter_route_placeholder_dummy_43;0000000001 dummy
+oneway;0000000481 true
 
 junction;0000321066 roundabout
 junction;0000002828 spui
@@ -826,8 +826,8 @@ highway;0000000115 trailhead
 brouter_route_placeholder_dummy_120;0000000001 dummy
 brouter_route_placeholder_dummy_121;0000000001 dummy
 brouter_route_placeholder_dummy_122;0000000001 dummy
-brouter_route_placeholder_dummy_123;0000000001 dummy
-brouter_route_placeholder_dummy_124;0000000001 dummy
+highway;0000000046 toll_bridge
+highway;0000000037 city_entry
 highway;0000002967 traffic_mirror
 highway;0000001724 priority
 
