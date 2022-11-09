@@ -11,11 +11,11 @@ public class IntegrityCheckProfile {
       return;
     }
 
-	  IntegrityCheckProfile test = new IntegrityCheckProfile();
+    IntegrityCheckProfile test = new IntegrityCheckProfile();
     try {
       File lookupFile = new File( args[0] );
       File profileDir = new File( args[1] );
-	    test.integrityTestProfiles(lookupFile, profileDir);
+      test.integrityTestProfiles(lookupFile, profileDir);
     } catch (Exception e) {
       System.err.println(e.getMessage());
     }
