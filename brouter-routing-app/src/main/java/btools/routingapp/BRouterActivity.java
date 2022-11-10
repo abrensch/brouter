@@ -96,77 +96,80 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         return builder.create();
       case DIALOG_MAINACTION_ID:
         builder.setTitle("Select Main Action");
-        builder
-          .setItems(new String[]
-              {"Download Manager", "BRouter App"}, new DialogInterface.OnClickListener() {
+        builder.setItems(
+            new String[] { "Download Manager", "BRouter App" },
+            new DialogInterface.OnClickListener() {
               public void onClick(DialogInterface dialog, int item) {
                 if (item == 0)
                   startDownloadManager();
                 else
                   showDialog(DIALOG_SELECTPROFILE_ID);
               }
-            }
-          )
-          .setNegativeButton("Close", new DialogInterface.OnClickListener() {
+            })
+            .setNegativeButton("Close", new DialogInterface.OnClickListener() {
               public void onClick(DialogInterface dialog, int id) {
                 finish();
               }
-            }
-          );
+            });
         return builder.create();
       case DIALOG_SHOW_DM_INFO_ID:
         builder
-          .setTitle("BRouter Download Manager")
-          .setMessage(
-            "*** Attention: ***\n\n" + "The Download Manager is used to download routing-data "
-              + "files which can be up to 170MB each. Do not start the Download Manager " + "on a cellular data connection without a data plan! "
-              + "Download speed is restricted to 16 MBit/s.").setPositiveButton("I know", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-              Intent intent = new Intent(BRouterActivity.this, BInstallerActivity.class);
-              startActivity(intent);
-              showNewDialog(DIALOG_MAINACTION_ID);
-            }
-          }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-              finish();
-            }
-          });
+            .setTitle("BRouter Download Manager")
+            .setMessage(
+                "*** Attention: ***\n\n" + "The Download Manager is used to download routing-data "
+                    + "files which can be up to 170MB each. Do not start the Download Manager "
+                    + "on a cellular data connection without a data plan! "
+                    + "Download speed is restricted to 16 MBit/s.")
+            .setPositiveButton("I know", new DialogInterface.OnClickListener() {
+              public void onClick(DialogInterface dialog, int id) {
+                Intent intent = new Intent(BRouterActivity.this, BInstallerActivity.class);
+                startActivity(intent);
+                showNewDialog(DIALOG_MAINACTION_ID);
+              }
+            }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+              public void onClick(DialogInterface dialog, int id) {
+                finish();
+              }
+            });
         return builder.create();
       case DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID:
         builder
-          .setTitle("Successfully prepared a timeout-free calculation")
-          .setMessage(
-            "You successfully repeated a calculation that previously run into a timeout "
-              + "when started from your map-tool. If you repeat the same request from your "
-              + "maptool, with the exact same destination point and a close-by starting point, "
-              + "this request is guaranteed not to time out.").setNegativeButton("Exit", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-              finish();
-            }
-          });
+            .setTitle("Successfully prepared a timeout-free calculation")
+            .setMessage(
+                "You successfully repeated a calculation that previously run into a timeout "
+                    + "when started from your map-tool. If you repeat the same request from your "
+                    + "maptool, with the exact same destination point and a close-by starting point, "
+                    + "this request is guaranteed not to time out.")
+            .setNegativeButton("Exit", new DialogInterface.OnClickListener() {
+              public void onClick(DialogInterface dialog, int id) {
+                finish();
+              }
+            });
         return builder.create();
       case DIALOG_OLDDATAHINT_ID:
         builder
-          .setTitle("Local setup needs reset")
-          .setMessage(
-            "You are currently using an old version of the lookup-table " + "together with routing data made for this old table. "
-              + "Before downloading new datafiles made for the new table, "
-              + "you have to reset your local setup by 'moving away' (or deleting) "
-              + "your <basedir>/brouter directory and start a new setup by calling the " + "BRouter App again.")
-          .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-              finish();
-            }
-          });
+            .setTitle("Local setup needs reset")
+            .setMessage(
+                "You are currently using an old version of the lookup-table "
+                    + "together with routing data made for this old table. "
+                    + "Before downloading new datafiles made for the new table, "
+                    + "you have to reset your local setup by 'moving away' (or deleting) "
+                    + "your <basedir>/brouter directory and start a new setup by calling the " + "BRouter App again.")
+            .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+              public void onClick(DialogInterface dialog, int id) {
+                finish();
+              }
+            });
         return builder.create();
       case DIALOG_ROUTINGMODES_ID:
         builder.setTitle(message);
-        builder.setMultiChoiceItems(routingModes, routingModesChecked, new DialogInterface.OnMultiChoiceClickListener() {
-          @Override
-          public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-            routingModesChecked[which] = isChecked;
-          }
-        });
+        builder.setMultiChoiceItems(routingModes, routingModesChecked,
+            new DialogInterface.OnMultiChoiceClickListener() {
+              @Override
+              public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                routingModesChecked[which] = isChecked;
+              }
+            });
         builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
             mBRouterView.configureService(routingModes, routingModesChecked);
@@ -174,11 +177,15 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         });
         return builder.create();
       case DIALOG_EXCEPTION_ID:
-        builder.setTitle("An Error occured").setMessage(errorMessage).setPositiveButton("OK", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            mBRouterView.continueProcessing();
-          }
-        });
+        builder
+            .setTitle("An Error occured")
+            .setMessage(errorMessage)
+            .setPositiveButton("OK",
+                new DialogInterface.OnClickListener() {
+                  public void onClick(DialogInterface dialog, int id) {
+                    mBRouterView.continueProcessing();
+                  }
+                });
         return builder.create();
       case DIALOG_TEXTENTRY_ID:
         builder.setTitle("Enter SDCARD base dir:");
@@ -214,16 +221,17 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         return builder.create();
       case DIALOG_VIASELECT_ID:
         builder.setTitle("Check VIA Selection:");
-        builder.setMultiChoiceItems(availableVias, getCheckedBooleanArray(availableVias.length), new DialogInterface.OnMultiChoiceClickListener() {
-          @Override
-          public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-            if (isChecked) {
-              selectedVias.add(availableVias[which]);
-            } else {
-              selectedVias.remove(availableVias[which]);
-            }
-          }
-        });
+        builder.setMultiChoiceItems(availableVias, getCheckedBooleanArray(availableVias.length),
+            new DialogInterface.OnMultiChoiceClickListener() {
+              @Override
+              public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                if (isChecked) {
+                  selectedVias.add(availableVias[which]);
+                } else {
+                  selectedVias.remove(availableVias[which]);
+                }
+              }
+            });
         builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
             mBRouterView.updateViaList(selectedVias);
@@ -237,12 +245,13 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         for (int i = 0; i < nogoList.size(); i++)
           nogoNames[i] = nogoList.get(i).name;
         final boolean[] nogoEnabled = getCheckedBooleanArray(nogoList.size());
-        builder.setMultiChoiceItems(nogoNames, getCheckedBooleanArray(nogoNames.length), new DialogInterface.OnMultiChoiceClickListener() {
-          @Override
-          public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-            nogoEnabled[which] = isChecked;
-          }
-        });
+        builder.setMultiChoiceItems(nogoNames, getCheckedBooleanArray(nogoNames.length),
+            new DialogInterface.OnMultiChoiceClickListener() {
+              @Override
+              public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                nogoEnabled[which] = isChecked;
+              }
+            });
         builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
             mBRouterView.updateNogoList(nogoEnabled);
@@ -293,11 +302,15 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
 
         return builder.create();
       case DIALOG_MODECONFIGOVERVIEW_ID:
-        builder.setTitle("Success").setMessage(message).setPositiveButton("Exit", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int id) {
-            finish();
-          }
-        });
+        builder
+            .setTitle("Success")
+            .setMessage(message)
+            .setPositiveButton("Exit",
+                new DialogInterface.OnClickListener() {
+                  public void onClick(DialogInterface dialog, int id) {
+                    finish();
+                  }
+                });
         return builder.create();
       case DIALOG_PICKWAYPOINT_ID:
         builder.setTitle(wpCount > 0 ? "Select to/via" : "Select from");
@@ -345,7 +358,8 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
       try {
         StatFs stat = new StatFs(f.getAbsolutePath());
         size = (long) stat.getAvailableBlocks() * stat.getBlockSize();
-      } catch (Exception e) { /* ignore */ }
+      } catch (Exception e) {
+        /* ignore */ }
       dirFreeSizes.add(size);
     }
 
@@ -358,7 +372,8 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     int bdidx = 0;
     DecimalFormat df = new DecimalFormat("###0.00");
     for (int idx = 0; idx < availableBasedirs.size(); idx++) {
-      basedirOptions[bdidx++] = availableBasedirs.get(idx) + " (" + df.format(dirFreeSizes.get(idx) / 1024. / 1024. / 1024.) + " GB free)";
+      basedirOptions[bdidx++] = availableBasedirs.get(idx) + " ("
+          + df.format(dirFreeSizes.get(idx) / 1024. / 1024. / 1024.) + " GB free)";
     }
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
       basedirOptions[bdidx] = "Enter path manually";

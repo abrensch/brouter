@@ -1,6 +1,5 @@
 package btools.routingapp;
 
-
 import android.app.Service;
 import android.content.Intent;
 import android.os.Bundle;
@@ -49,10 +48,11 @@ public class BRouterService extends Service {
         baseDir = br.readLine();
       } catch (Exception e) {
       } finally {
-        if (configInput != null) try {
-          configInput.close();
-        } catch (Exception ee) {
-        }
+        if (configInput != null)
+          try {
+            configInput.close();
+          } catch (Exception ee) {
+          }
       }
       worker.baseDir = baseDir;
       worker.segmentDir = new File(baseDir, "brouter/segments4");
@@ -94,7 +94,7 @@ public class BRouterService extends Service {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             baos.write("z64".getBytes(Charset.forName("UTF-8"))); // marker prefix
             OutputStream os = new GZIPOutputStream(baos);
-            byte[] ab = gpxMessage.getBytes(Charset.forName("UTF-8")); //StandardCharsets.UTF_8
+            byte[] ab = gpxMessage.getBytes(Charset.forName("UTF-8")); // StandardCharsets.UTF_8
             gpxMessage = null;
             os.write(ab);
             ab = null;
@@ -119,7 +119,7 @@ public class BRouterService extends Service {
       try {
         String modesFile = baseDir + "/brouter/modes/serviceconfig.dat";
         br = new BufferedReader(new FileReader(modesFile));
-        for (; ; ) {
+        for (;;) {
           String line = br.readLine();
           if (line == null)
             break;
@@ -137,10 +137,11 @@ public class BRouterService extends Service {
       } catch (Exception e) {
         return "no brouter service config found, mode " + mode_key;
       } finally {
-        if (br != null) try {
-          br.close();
-        } catch (Exception ee) {
-        }
+        if (br != null)
+          try {
+            br.close();
+          } catch (Exception ee) {
+          }
       }
       return "no brouter service config found for mode " + mode_key;
     }
@@ -163,10 +164,11 @@ public class BRouterService extends Service {
             os = new FileOutputStream(profileFile);
             os.write(profileBytes);
           } finally {
-            if (os != null) try {
-              os.close();
-            } catch (IOException io) {
-            }
+            if (os != null)
+              try {
+                os.close();
+              } catch (IOException io) {
+              }
           }
         }
       } catch (Exception e) {
@@ -182,7 +184,6 @@ public class BRouterService extends Service {
       worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
     }
 
-
     private boolean fileEqual(byte[] fileBytes, File file) throws Exception {
       if (!file.exists()) {
         return false;
@@ -196,8 +197,10 @@ public class BRouterService extends Service {
         is = new FileInputStream(file);
         while (pos < nbytes) {
           int len = is.read(buf, 0, blen);
-          if (len <= 0) return false;
-          if (pos + len > nbytes) return false;
+          if (len <= 0)
+            return false;
+          if (pos + len > nbytes)
+            return false;
           for (int j = 0; j < len; j++) {
             if (fileBytes[pos++] != buf[j]) {
               return false;
@@ -206,21 +209,23 @@ public class BRouterService extends Service {
         }
         return true;
       } finally {
-        if (is != null) try {
-          is.close();
-        } catch (IOException io) {
-        }
+        if (is != null)
+          try {
+            is.close();
+          } catch (IOException io) {
+          }
       }
     }
 
     private String checkForTestDummy(String baseDir) {
       File testdummy = new File(baseDir + "/brouter/profiles2/remotetestdummy.brf");
-      if (!testdummy.exists()) return null;
+      if (!testdummy.exists())
+        return null;
       BufferedReader br = null;
       StringBuilder sb = new StringBuilder();
       try {
         br = new BufferedReader(new FileReader(testdummy));
-        for (; ; ) {
+        for (;;) {
           String line = br.readLine();
           if (line == null)
             break;
@@ -230,10 +235,11 @@ public class BRouterService extends Service {
       } catch (Exception e) {
         throw new RuntimeException("error reading " + testdummy);
       } finally {
-        if (br != null) try {
-          br.close();
-        } catch (Exception ee) {
-        }
+        if (br != null)
+          try {
+            br.close();
+          } catch (Exception ee) {
+          }
       }
     }
 
@@ -261,9 +267,8 @@ public class BRouterService extends Service {
     Log.d(getClass().getSimpleName(), "onDestroy()");
   }
 
-
   // This is the old onStart method that will be called on the pre-2.0
-  // platform.  On 2.0 or later we override onStartCommand() so this
+  // platform. On 2.0 or later we override onStartCommand() so this
   // method will not be called.
   @Override
   @SuppressWarnings("deprecation")
