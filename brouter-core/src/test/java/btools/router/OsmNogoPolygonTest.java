@@ -11,7 +11,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import btools.router.OsmNogoPolygon.Point;
 import btools.util.CheapRuler;
 
 public class OsmNogoPolygonTest {
@@ -77,9 +76,9 @@ public class OsmNogoPolygonTest {
 
   @Test
   public void testIsWithin() {
-    double[] plons = {0.0, 0.5, 1.0, -1.5, -0.5, 1.0, 1.0, 0.5, 0.5, 0.5,};
-    double[] plats = {0.0, 1.5, 0.0, 0.5, -1.5, -1.0, -0.1, -0.1, 0.0, 0.1,};
-    boolean[] within = {true, false, false, false, false, true, true, true, true, true,};
+    double[] plons = {0.0, 0.5, 1.0, -1.5, -0.5, 1.0, 1.0, 0.5, 0.5, 0.5};
+    double[] plats = {0.0, 1.5, 0.0, 0.5, -1.5, -1.0, -0.1, -0.1, 0.0, 0.1};
+    boolean[] within = {true, false, false, false, false, true, true, true, true, true};
 
     for (int i = 0; i < plons.length; i++) {
       assertEquals("(" + plons[i] + "," + plats[i] + ")", within[i], polygon.isWithin(toOsmLon(plons[i], OFFSET_X), toOsmLat(plats[i], OFFSET_Y)));
