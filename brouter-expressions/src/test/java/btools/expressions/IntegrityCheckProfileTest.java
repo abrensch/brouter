@@ -1,7 +1,6 @@
 package btools.expressions;
 
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 import org.junit.Test;
 
@@ -21,12 +20,12 @@ public class IntegrityCheckProfileTest {
     for (File f : files) {
       if (f.getName().endsWith(".brf")) {
         BExpressionMetaData meta = new BExpressionMetaData();
-        BExpressionContext expctxWay = new BExpressionContextWay( meta );
-        BExpressionContext expctxNode = new BExpressionContextNode( meta );
-        meta.readMetaData( new File( profileDir, "lookups.dat") );
+        BExpressionContext expctxWay = new BExpressionContextWay(meta);
+        BExpressionContext expctxNode = new BExpressionContextNode(meta);
+        meta.readMetaData(new File( profileDir, "lookups.dat"));
         expctxNode.setForeignContext(expctxWay);
-        expctxWay.parseFile( f, "global" );
-        expctxNode.parseFile( f, "global" );
+        expctxWay.parseFile(f, "global");
+        expctxNode.parseFile(f, "global");
       }
     }
   }
