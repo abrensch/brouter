@@ -1,13 +1,10 @@
 package btools.mapcreator;
 
-import java.util.Random;
-import java.util.HashMap;
-
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.net.URL;
 import java.io.File;
+import java.net.URL;
 
 public class MapcreatorTest {
   @Test

@@ -9,16 +9,7 @@ package btools.expressions;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.StringTokenizer;
-import java.util.TreeMap;
-
-import btools.util.BitCoderContext;
-import btools.util.Crc32;
 
 
 public final class BExpressionMetaData {

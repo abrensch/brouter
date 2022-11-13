@@ -1,10 +1,9 @@
 package btools.util;
 
-import java.util.Random;
-import java.io.*;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.io.IOException;
 
 public class ReducedMedianFilterTest {
   @Test
