@@ -1,10 +1,10 @@
 package btools.util;
 
-import java.util.Random;
-import java.util.HashMap;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Random;
 
 public class CompactMapTest {
   @Test
@@ -48,8 +48,8 @@ public class CompactMapTest {
       String s = hmap.get(KK);
 
       boolean contained = hmap.containsKey(KK);
-      Assert.assertTrue("containsKey missmatch (slow)", contained == cmap_slow.contains(k));
-      Assert.assertTrue("containsKey missmatch (fast)", contained == cmap_fast.contains(k));
+      Assert.assertEquals("containsKey missmatch (slow)", contained, cmap_slow.contains(k));
+      Assert.assertEquals("containsKey missmatch (fast)", contained, cmap_fast.contains(k));
 
       if (contained) {
         Assert.assertEquals("object missmatch (fast)", s, cmap_fast.get(k));
