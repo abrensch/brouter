@@ -59,7 +59,7 @@ public final class MixCoderDataOutputStream extends DataOutputStream {
     }
   }
 
-  public final void encodeBit(boolean value) throws IOException {
+  public void encodeBit(boolean value) throws IOException {
     if (bm == 0x100) {
       writeByte((byte) b);
       bm = 1;
@@ -71,7 +71,7 @@ public final class MixCoderDataOutputStream extends DataOutputStream {
     bm <<= 1;
   }
 
-  public final void encodeVarBits(int value) throws IOException {
+  public void encodeVarBits(int value) throws IOException {
     int range = 0;
     while (value > range) {
       encodeBit(false);
@@ -82,7 +82,7 @@ public final class MixCoderDataOutputStream extends DataOutputStream {
     encodeBounded(range, value);
   }
 
-  public final void encodeBounded(int max, int value) throws IOException {
+  public void encodeBounded(int max, int value) throws IOException {
     int im = 1; // integer mask
     while (im <= max) {
       if (bm == 0x100) {

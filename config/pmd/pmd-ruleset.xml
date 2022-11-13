@@ -34,7 +34,6 @@
         <exclude name="SimplifyBooleanReturns" />
         <exclude name="UncommentedEmptyConstructor" />
         <exclude name="UncommentedEmptyMethodBody" />
-        <exclude name="UnnecessaryModifier" />
         <exclude name="UnusedFormalParameter" />
         <exclude name="UnusedLocalVariable" />
         <exclude name="UnusedPrivateField" />
