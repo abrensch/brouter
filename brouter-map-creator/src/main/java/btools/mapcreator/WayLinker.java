@@ -38,7 +38,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
   private File trafficTilesIn;
   private File dataTilesOut;
   private File borderFileIn;
-  private File restrictionsFileIn;
 
   private String dataTilesSuffix;
 
@@ -157,7 +156,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     this.trafficTilesIn = new File("../traffic");
     this.dataTilesOut = dataTilesOut;
     this.borderFileIn = borderFileIn;
-    this.restrictionsFileIn = restrictionsFileIn;
     this.dataTilesSuffix = dataTilesSuffix;
 
     BExpressionMetaData meta = new BExpressionMetaData();
