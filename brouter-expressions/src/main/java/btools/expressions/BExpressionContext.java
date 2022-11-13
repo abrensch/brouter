@@ -805,10 +805,9 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       for (int i = 0; i < minWriteIdx; i++) {
         variableData[i] = readOnlyData[i];
       }
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("ParseException " + file + " at line " + linenr + ": " + e.getMessage());
     } catch (Exception e) {
-      if (e instanceof IllegalArgumentException) {
-        throw new IllegalArgumentException("ParseException " + file + " at line " + linenr + ": " + e.getMessage());
-      }
       throw new RuntimeException(e);
     }
     if (expressionList.size() == 0) {
