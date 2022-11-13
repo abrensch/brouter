@@ -882,7 +882,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   }
 
   public final boolean isLookupIdxUsed(int idx) {
-    return idx < lookupIdxUsed.length ? lookupIdxUsed[idx] : false;
+    return idx < lookupIdxUsed.length && lookupIdxUsed[idx];
   }
 
   public final void setAllTagsUsed() {

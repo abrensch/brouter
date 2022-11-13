@@ -32,7 +32,6 @@
         <exclude name="PrimitiveWrapperInstantiation" />
         <exclude name="ReturnEmptyCollectionRatherThanNull" />
         <exclude name="SimplifiableTestAssertion" />
-        <exclude name="SimplifiedTernary" />
         <exclude name="SimplifyBooleanReturns" />
         <exclude name="UncommentedEmptyConstructor" />
         <exclude name="UncommentedEmptyMethodBody" />
