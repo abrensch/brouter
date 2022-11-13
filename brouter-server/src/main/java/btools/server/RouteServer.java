@@ -220,7 +220,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
           rc.keyValues.put(e.getKey().substring(8), e.getValue());
         } else if (e.getKey().equals("straight")) {
           String[] sa = e.getValue().split(",");
-          for (int i = 0; i<sa.length;i++) {
+          for (int i = 0; i < sa.length; i++) {
             int v = Integer.valueOf(sa[i]);
             if (wplist.size() > v) wplist.get(v).direct = true;
           }
@@ -265,17 +265,17 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
     } finally {
       cr = null;
       if (br != null) try {
-          br.close();
-        } catch (Exception e) {
-        }
+        br.close();
+      } catch (Exception e) {
+      }
       if (bw != null) try {
-          bw.close();
-        } catch (Exception e) {
-        }
+        bw.close();
+      } catch (Exception e) {
+      }
       if (clientSocket != null) try {
-          clientSocket.close();
-        } catch (Exception e) {
-        }
+        clientSocket.close();
+      } catch (Exception e) {
+      }
       terminated = true;
       synchronized (threadPoolSync) {
         threadPoolSync.notifyAll();
