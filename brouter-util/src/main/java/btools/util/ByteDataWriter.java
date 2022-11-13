@@ -142,7 +142,6 @@ public class ByteDataWriter extends ByteDataReader {
     ab[aboffset++] = (byte) (i7 | 0x80);
 
     ab[aboffset++] = (byte) (v);
-    return;
   }
 
   public int size() {

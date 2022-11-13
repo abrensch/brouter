@@ -543,7 +543,6 @@ public class SuspectManager extends Thread {
     }
     bw.write("</body></html>\n");
     bw.flush();
-    return;
   }
 
 
