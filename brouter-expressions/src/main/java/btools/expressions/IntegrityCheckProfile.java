@@ -4,7 +4,7 @@ import java.io.File;
 
 public class IntegrityCheckProfile {
 
-  public static void main(final java.lang.String[] args) {
+  public static void main(final String[] args) {
     if (args.length != 2) {
       System.out.println("usage: java IntegrityCheckProfile <lookup-file> <profile-folder>");
       return;

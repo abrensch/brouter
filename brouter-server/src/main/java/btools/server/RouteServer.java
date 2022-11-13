@@ -226,7 +226,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         if (track != null) {
           if (headers != null) // compressed
           {
-            java.io.ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
             Writer w = new OutputStreamWriter(new GZIPOutputStream(baos), "UTF-8");
             w.write(handler.formatTrack(track));
             w.close();
