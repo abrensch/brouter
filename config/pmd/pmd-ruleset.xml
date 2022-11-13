@@ -31,7 +31,6 @@
         <exclude name="PreserveStackTrace" />
         <exclude name="PrimitiveWrapperInstantiation" />
         <exclude name="ReturnEmptyCollectionRatherThanNull" />
-        <exclude name="SimplifyBooleanReturns" />
         <exclude name="UncommentedEmptyConstructor" />
         <exclude name="UncommentedEmptyMethodBody" />
         <exclude name="UnusedFormalParameter" />

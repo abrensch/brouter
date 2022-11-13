@@ -141,10 +141,7 @@ public class CompactLongSet {
         n = nn;
       }
     }
-    if (a[n] == id) {
-      return true;
-    }
-    return false;
+    return a[n] == id;
   }
 
   protected void moveToFrozenArray(long[] faid) {
