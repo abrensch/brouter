@@ -14,7 +14,6 @@
         <exclude name="AssignmentToNonFinalStatic" />
         <exclude name="AvoidBranchingStatementAsLastInLoop" />
         <exclude name="AvoidCatchingThrowable" />
-        <exclude name="AvoidInstanceofChecksInCatchClause" />
         <exclude name="AvoidProtectedFieldInFinalClass" />
         <exclude name="AvoidUsingVolatile" />
         <exclude name="CloseResource" />
