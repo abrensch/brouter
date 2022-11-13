@@ -309,7 +309,7 @@ public class RoutingEngine extends Thread {
       }
       if (hasInfo()) {
         boolean found = nearbyTrack != null;
-        boolean dirty = found ? nearbyTrack.isDirty : false;
+        boolean dirty = found && nearbyTrack.isDirty;
         logInfo("read referenceTrack, found=" + found + " dirty=" + dirty + " " + debugInfo);
       }
     }
