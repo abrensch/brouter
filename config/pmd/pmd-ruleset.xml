@@ -39,7 +39,6 @@
         <exclude name="UncommentedEmptyMethodBody" />
         <exclude name="UnnecessaryFullyQualifiedName" />
         <exclude name="UnnecessaryModifier" />
-        <exclude name="UnnecessaryReturn" />
         <exclude name="UnusedFormalParameter" />
         <exclude name="UnusedLocalVariable" />
         <exclude name="UnusedPrivateField" />
