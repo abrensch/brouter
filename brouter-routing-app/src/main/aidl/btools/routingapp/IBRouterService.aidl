@@ -33,7 +33,7 @@ interface IBRouterService {
     //  "extraParams"     = Bundle key=value list for a profile setup (like "profile:")
     //  "timode"          = turnInstructionMode [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-new-style, 8=cruiser-stylem, 9=brouter-intern] default 0
     //  "heading"         = angle (optional to give a route a start direction)
-    //  "direction"       = angle (optional, used on recalculation, only used by Locus)
+    //  "direction"       = angle (optional, used like "heading" on a recalculation request by Locus as start direction)
 
     // return null if all ok and no path given, the track if ok and path given, an error message if it was wrong
     //        the resultas string when 'pathToFileResult' is null, this should be default when Android Q or later
