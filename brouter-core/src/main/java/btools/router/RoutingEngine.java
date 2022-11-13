@@ -1078,7 +1078,7 @@ public class RoutingEngine extends Thread {
 
     synchronized (openSet) {
       if (guideTrack != null) {
-        ArrayList<OsmPathElement> nodes = guideTrack.nodes;
+        List<OsmPathElement> nodes = guideTrack.nodes;
         int[] res = new int[nodes.size() * 2];
         int i = 0;
         for (OsmPathElement n : nodes) {

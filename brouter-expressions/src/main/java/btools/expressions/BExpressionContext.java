@@ -37,9 +37,9 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   public String _modelClass;
 
   private Map<String, Integer> lookupNumbers = new HashMap<String, Integer>();
-  private ArrayList<BExpressionLookupValue[]> lookupValues = new ArrayList<BExpressionLookupValue[]>();
-  private ArrayList<String> lookupNames = new ArrayList<String>();
-  private ArrayList<int[]> lookupHistograms = new ArrayList<int[]>();
+  private List<BExpressionLookupValue[]> lookupValues = new ArrayList<BExpressionLookupValue[]>();
+  private List<String> lookupNames = new ArrayList<String>();
+  private List<int[]> lookupHistograms = new ArrayList<int[]>();
   private boolean[] lookupIdxUsed;
 
   private boolean lookupDataFrozen = false;

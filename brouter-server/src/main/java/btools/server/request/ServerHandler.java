@@ -4,8 +4,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import btools.router.OsmNodeNamed;
 import btools.router.OsmNogoPolygon;
@@ -36,7 +36,7 @@ public class ServerHandler extends RequestHandler {
 
   private RoutingContext rc;
 
-  public ServerHandler(ServiceContext serviceContext, HashMap<String, String> params) {
+  public ServerHandler(ServiceContext serviceContext, Map<String, String> params) {
     super(serviceContext, params);
   }
 
