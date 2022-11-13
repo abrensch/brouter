@@ -1,14 +1,14 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-	
+
     repositories {
         mavenCentral()
         google()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.0.2'
-        
+
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -23,12 +23,12 @@ allprojects {
     // OsmTrack (version and versionDate)
     project.version  "1.6.3"
     group 'org.btools'
-	
+
     repositories {
         mavenCentral()
         google()
     }
-	
+
     apply plugin: "maven-publish"
     publishing {
         repositories {
@@ -47,6 +47,16 @@ allprojects {
     }
 
     apply plugin: "checkstyle"
+    apply plugin: "pmd"
+
+    pmd {
+        consoleOutput = true
+        toolVersion = "6.51.0"
+        rulesMinimumPriority = 5
+        ruleSetFiles = files("${rootProject.rootDir}/config/pmd/pmd-ruleset.xml")
+        ruleSets = []
+        // ignoreFailures = true
+    }
 }
 
 task clean(type: Delete) {
