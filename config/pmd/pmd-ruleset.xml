@@ -26,7 +26,6 @@
         <exclude name="ForLoopCanBeForeach" />
         <exclude name="LiteralsFirstInComparisons" />
         <exclude name="LogicInversion" />
-        <exclude name="LooseCoupling" />
         <exclude name="MissingOverride" />
         <exclude name="OneDeclarationPerLine" />
         <exclude name="OverrideBothEqualsAndHashcode" />

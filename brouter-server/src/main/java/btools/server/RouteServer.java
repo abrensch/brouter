@@ -146,7 +146,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       }
 
       String url = getline.split(" ")[1];
-      HashMap<String, String> params = getUrlParams(url);
+      Map<String, String> params = getUrlParams(url);
 
       long maxRunningTime = getMaxRunningTime();
 
@@ -359,7 +359,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
   }
 
 
-  private static HashMap<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
+  private static Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
     HashMap<String, String> params = new HashMap<String, String>();
     String decoded = URLDecoder.decode(url, "UTF-8");
     StringTokenizer tk = new StringTokenizer(decoded, "?&");

@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.util.HashMap;
+import java.util.Map;
 
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
@@ -19,7 +20,7 @@ import btools.util.FrozenLongSet;
  * @author ab
  */
 public class RelationMerger extends MapCreatorBase {
-  private HashMap<String, CompactLongSet> routesets;
+  private Map<String, CompactLongSet> routesets;
   private CompactLongSet routesetall;
   private BExpressionContextWay expctxReport;
   private BExpressionContextWay expctxCheck;

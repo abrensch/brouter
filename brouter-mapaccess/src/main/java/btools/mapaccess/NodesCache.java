@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import btools.codec.DataBuffers;
 import btools.codec.MicroCache;
@@ -26,7 +27,7 @@ public final class NodesCache {
   private boolean forceSecondaryData;
   private String currentFileName;
 
-  private HashMap<String, PhysicalFile> fileCache;
+  private Map<String, PhysicalFile> fileCache;
   private DataBuffers dataBuffers;
 
   private OsmFile[][] fileRows;

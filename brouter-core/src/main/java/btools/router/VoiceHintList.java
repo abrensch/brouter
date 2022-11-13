@@ -7,11 +7,12 @@
 package btools.router;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class VoiceHintList {
   private String transportMode;
   int turnInstructionMode;
-  ArrayList<VoiceHint> list = new ArrayList<VoiceHint>();
+  List<VoiceHint> list = new ArrayList<VoiceHint>();
 
   public void setTransportMode(boolean isCar, boolean isBike) {
     transportMode = isCar ? "car" : (isBike ? "bike" : "foot");

@@ -14,7 +14,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 
 import btools.expressions.BExpressionContextWay;
 import btools.util.CheapRuler;
@@ -188,7 +188,7 @@ public class OsmTrafficMap {
     return map.get(n);
   }
 
-  public byte[] addTrafficClass(ArrayList<OsmNodeP> linkNodes, byte[] description) throws IOException {
+  public byte[] addTrafficClass(List<OsmNodeP> linkNodes, byte[] description) throws IOException {
     double distance = 0.;
     double sum = 0.;
 

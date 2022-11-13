@@ -11,7 +11,7 @@ import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.HashMap;
+import java.io.IOException;
 import java.util.Map;
 
 import btools.expressions.BExpressionContextNode;
@@ -142,7 +142,7 @@ public class OsmCutter extends MapCreatorBase {
   }
 
 
-  private void generatePseudoTags(HashMap<String, String> map) {
+  private void generatePseudoTags(Map<String, String> map) {
     // add pseudo.tags for concrete:lanes and concrete:plates
 
     String concrete = null;
@@ -204,7 +204,7 @@ public class OsmCutter extends MapCreatorBase {
   }
 
   @Override
-  public void nextRelation(RelationData r) throws Exception {
+  public void nextRelation(RelationData r) throws IOException {
     relsParsed++;
     checkStats();
 

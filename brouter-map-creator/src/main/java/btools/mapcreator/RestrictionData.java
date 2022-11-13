@@ -6,6 +6,8 @@ import java.io.DataOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 import btools.util.CheapAngleMeter;
@@ -35,8 +37,8 @@ public class RestrictionData extends MapCreatorBase {
 
   public boolean badWayMatch;
 
-  private static HashMap<String, String> names = new HashMap<>();
-  private static TreeSet<Long> badTRs = new TreeSet<>();
+  private static Map<String, String> names = new HashMap<>();
+  private static Set<Long> badTRs = new TreeSet<>();
 
   public RestrictionData() {
   }

@@ -1,11 +1,12 @@
 package btools.codec;
 
+import java.util.Map;
 import java.util.TreeMap;
 
 import btools.util.BitCoderContext;
 
 public final class StatCoderContext extends BitCoderContext {
-  private static TreeMap<String, long[]> statsPerName;
+  private static Map<String, long[]> statsPerName;
   private long lastbitpos = 0;
 
 
