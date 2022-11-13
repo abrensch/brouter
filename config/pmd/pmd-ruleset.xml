@@ -34,7 +34,6 @@
         <exclude name="SimplifiableTestAssertion" />
         <exclude name="SimplifiedTernary" />
         <exclude name="SimplifyBooleanReturns" />
-        <exclude name="SingularField" />
         <exclude name="UncommentedEmptyConstructor" />
         <exclude name="UncommentedEmptyMethodBody" />
         <exclude name="UnnecessaryFullyQualifiedName" />

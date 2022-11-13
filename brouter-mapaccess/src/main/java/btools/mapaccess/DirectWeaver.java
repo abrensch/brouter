@@ -16,8 +16,6 @@ import btools.util.ByteDataWriter;
 public final class DirectWeaver extends ByteDataWriter {
   private long id64Base;
 
-  private int size = 0;
-
   public DirectWeaver(StatCoderContext bc, DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) {
     super(null);
     int cellsize = 1000000 / divisor;
@@ -31,7 +29,7 @@ public final class DirectWeaver extends ByteDataWriter {
     NoisyDiffCoder extLatDiff = new NoisyDiffCoder(bc);
     NoisyDiffCoder transEleDiff = new NoisyDiffCoder(bc);
 
-    size = bc.decodeNoisyNumber(5);
+    int size = bc.decodeNoisyNumber(5);
 
     int[] faid = size > dataBuffers.ibuf2.length ? new int[size] : dataBuffers.ibuf2;
 

@@ -39,7 +39,7 @@ public final class NodesCache {
 
   private long cacheSum = 0;
   private long maxmemtiles;
-  private boolean detailed;
+  private boolean detailed; // NOPMD used in constructor
 
   private boolean garbageCollectionEnabled = false;
   private boolean ghostCleaningDone = false;
