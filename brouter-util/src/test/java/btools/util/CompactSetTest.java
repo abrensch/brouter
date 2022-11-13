@@ -1,10 +1,10 @@
 package btools.util;
 
-import java.util.Random;
-import java.util.HashSet;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.HashSet;
+import java.util.Random;
 
 public class CompactSetTest {
   @Test
@@ -46,8 +46,8 @@ public class CompactSetTest {
       Long KK = new Long(k);
 
       boolean contained = hset.contains(KK);
-      Assert.assertTrue("contains missmatch (slow)", contained == cset_slow.contains(k));
-      Assert.assertTrue("contains missmatch (fast)", contained == cset_fast.contains(k));
+      Assert.assertEquals("contains missmatch (slow)", contained, cset_slow.contains(k));
+      Assert.assertEquals("contains missmatch (fast)", contained, cset_fast.contains(k));
     }
   }
 }
