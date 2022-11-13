@@ -115,12 +115,12 @@ public class BRouterWorker {
             if (key.equals("straight")) {
               try {
                 String[] sa = value.split(",");
-                for ( int i = 0; i<sa.length;i++) {
+                for (int i = 0; i < sa.length; i++) {
                   int v = Integer.valueOf(sa[i]);
                   if (waypoints.size() > v) waypoints.get(v).direct = true;
                 }
               } catch (Exception e) {
-                System.err.println("error " + e.getStackTrace()[0].getLineNumber() + " " + e.getStackTrace()[0] + "\n" +e);
+                System.err.println("error " + e.getStackTrace()[0].getLineNumber() + " " + e.getStackTrace()[0] + "\n" + e);
               }
             } else {
               rc.keyValues.put(key, value);
@@ -240,9 +240,9 @@ public class BRouterWorker {
       wplist.add(readPosition(lonLat[0], lonLat[1], "via" + i));
       if (lonLat.length > 2) {
         if (lonLat[2].equals("d")) {
-          wplist.get(wplist.size()-1).direct = true;
+          wplist.get(wplist.size() - 1).direct = true;
         } else {
-          wplist.get(wplist.size()-1).name = lonLat[2];
+          wplist.get(wplist.size() - 1).name = lonLat[2];
         }
       }
     }
