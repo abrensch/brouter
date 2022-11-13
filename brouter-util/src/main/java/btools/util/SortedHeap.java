@@ -1,7 +1,5 @@
 package btools.util;
 
-import java.util.Random;
-
 /**
  * Memory efficient and lightning fast heap to get the lowest-key value of a set of key-object pairs
  *

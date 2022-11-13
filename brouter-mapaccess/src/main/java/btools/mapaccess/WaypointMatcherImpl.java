@@ -3,8 +3,6 @@ package btools.mapaccess;
 import java.util.List;
 
 import btools.codec.WaypointMatcher;
-import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmNodePairSet;
 import btools.util.CheapRuler;
 
 /**

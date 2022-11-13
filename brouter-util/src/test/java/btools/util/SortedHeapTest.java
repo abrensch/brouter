@@ -1,11 +1,9 @@
 package btools.util;
 
-import java.util.Random;
-import java.util.HashMap;
-import java.util.HashSet;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.Random;
 
 public class SortedHeapTest {
   @Test

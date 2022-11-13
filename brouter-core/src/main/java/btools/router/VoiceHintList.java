@@ -7,7 +7,6 @@
 package btools.router;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class VoiceHintList {
   private String transportMode;

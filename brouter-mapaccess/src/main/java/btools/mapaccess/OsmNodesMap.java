@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import btools.util.ByteArrayUnifier;
-import btools.util.SortedHeap;
 
 public final class OsmNodesMap {
   private HashMap<OsmNode, OsmNode> hmap = new HashMap<OsmNode, OsmNode>(4096);
@@ -130,7 +129,7 @@ public final class OsmNodesMap {
   }
 
   // is there an escape from this node
-  // to a hollow node (or destination node) ?  
+  // to a hollow node (or destination node) ?
   public boolean canEscape(OsmNode n0) {
     boolean sawLowIDs = false;
     lastVisitID++;

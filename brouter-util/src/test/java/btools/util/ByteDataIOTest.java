@@ -1,8 +1,5 @@
 package btools.util;
 
-import java.util.Random;
-import java.util.HashSet;
-
 import org.junit.Assert;
 import org.junit.Test;
 

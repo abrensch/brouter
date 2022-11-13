@@ -1,18 +1,17 @@
 package btools.server.request;
 
-import btools.mapaccess.OsmNode;
-import btools.router.OsmNodeNamed;
-import btools.router.OsmNogoPolygon;
-import btools.router.OsmTrack;
-import btools.router.RoutingContext;
-import btools.server.ServiceContext;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+import btools.router.OsmNodeNamed;
+import btools.router.OsmNogoPolygon;
+import btools.router.OsmTrack;
+import btools.router.RoutingContext;
+import btools.server.ServiceContext;
 
 /**
  * URL query parameter handler for web and standalone server. Supports all

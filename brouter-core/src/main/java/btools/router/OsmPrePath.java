@@ -7,7 +7,6 @@ package btools.router;
 
 import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmTransferNode;
 
 public abstract class OsmPrePath {
   protected OsmNode sourceNode;

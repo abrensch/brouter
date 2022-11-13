@@ -8,7 +8,6 @@ import btools.codec.TagValueValidator;
 import btools.codec.TagValueWrapper;
 import btools.codec.WaypointMatcher;
 import btools.util.ByteDataWriter;
-import btools.util.IByteArrayUnifier;
 
 /**
  * DirectWeaver does the same decoding as MicroCache2, but decodes directly

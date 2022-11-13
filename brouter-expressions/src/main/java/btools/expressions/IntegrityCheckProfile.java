@@ -1,7 +1,6 @@
 package btools.expressions;
 
 import java.io.File;
-import java.io.IOException;
 
 public class IntegrityCheckProfile {
 

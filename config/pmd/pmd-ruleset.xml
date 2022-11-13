@@ -40,7 +40,6 @@
         <exclude name="UncommentedEmptyConstructor" />
         <exclude name="UncommentedEmptyMethodBody" />
         <exclude name="UnnecessaryFullyQualifiedName" />
-        <exclude name="UnnecessaryImport" />
         <exclude name="UnnecessaryModifier" />
         <exclude name="UnnecessaryReturn" />
         <exclude name="UnusedFormalParameter" />
