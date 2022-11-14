@@ -22,7 +22,7 @@ public class IntegrityCheckProfileTest {
         BExpressionMetaData meta = new BExpressionMetaData();
         BExpressionContext expctxWay = new BExpressionContextWay(meta);
         BExpressionContext expctxNode = new BExpressionContextNode(meta);
-        meta.readMetaData(new File( profileDir, "lookups.dat"));
+        meta.readMetaData(new File(profileDir, "lookups.dat"));
         expctxNode.setForeignContext(expctxWay);
         expctxWay.parseFile(f, "global");
         expctxNode.parseFile(f, "global");

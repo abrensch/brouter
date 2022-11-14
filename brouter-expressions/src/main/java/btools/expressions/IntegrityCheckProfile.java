@@ -5,7 +5,7 @@ import java.io.IOException;
 
 public class IntegrityCheckProfile {
 
-  public static void main( final java.lang.String[] args ) {
+  public static void main(final java.lang.String[] args) {
     if (args.length != 2) {
       System.out.println("usage: java IntegrityCheckProfile <lookup-file> <profile-folder>");
       return;
@@ -21,10 +21,10 @@ public class IntegrityCheckProfile {
     }
   }
 
-  public void integrityTestProfiles(File lookupFile, File profileDir) throws IOException, Exception {
+  public void integrityTestProfiles(File lookupFile, File profileDir) {
     File[] files = profileDir.listFiles();
 
-    if (files==null) {
+    if (files == null) {
       System.err.println("no files " + profileDir);
       return;
     }
@@ -42,7 +42,7 @@ public class IntegrityCheckProfile {
         expctxNode.setForeignContext(expctxWay);
         expctxWay.parseFile(f, "global");
         expctxNode.parseFile(f, "global");
-        System.out.println("test " + meta.lookupVersion + "."+meta.lookupMinorVersion + " " + f);
+        System.out.println("test " + meta.lookupVersion + "." + meta.lookupMinorVersion + " " + f);
       }
     }
   }
