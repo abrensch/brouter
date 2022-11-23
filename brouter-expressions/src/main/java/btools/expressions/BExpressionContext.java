@@ -850,7 +850,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     Integer num = variableNumbers.get(name);
     if (num == null) {
       if (create) {
-        num = new Integer(variableNumbers.size());
+        num = Integer.valueOf(variableNumbers.size());
         variableNumbers.put(name, num);
       } else {
         return -1;
