@@ -53,7 +53,7 @@ public final class OsmTrack {
     public OsmPathElementHolder nextHolder;
   }
 
-  public ArrayList<OsmPathElement> nodes = new ArrayList<OsmPathElement>();
+  public List<OsmPathElement> nodes = new ArrayList<OsmPathElement>();
 
   private CompactLongMap<OsmPathElementHolder> nodesMap;
 
@@ -62,7 +62,7 @@ public final class OsmTrack {
   private VoiceHintList voiceHints;
 
   public String message = null;
-  public ArrayList<String> messageList = null;
+  public List<String> messageList = null;
 
   public String name = "unset";
 
@@ -113,7 +113,7 @@ public final class OsmTrack {
     nodesMap = new FrozenLongMap<OsmPathElementHolder>(nodesMap);
   }
 
-  private ArrayList<String> aggregateMessages() {
+  private List<String> aggregateMessages() {
     ArrayList<String> res = new ArrayList<String>();
     MessageData current = null;
     for (OsmPathElement n : nodes) {
@@ -135,7 +135,7 @@ public final class OsmTrack {
     return res;
   }
 
-  private ArrayList<String> aggregateSpeedProfile() {
+  private List<String> aggregateSpeedProfile() {
     ArrayList<String> res = new ArrayList<String>();
     int vmax = -1;
     int vmaxe = -1;
@@ -673,7 +673,7 @@ public final class OsmTrack {
     }
     if (showSpeedProfile) // set in profile
     {
-      ArrayList<String> sp = aggregateSpeedProfile();
+      List<String> sp = aggregateSpeedProfile();
       if (sp.size() > 0) {
         sb.append("        \"speedprofile\": [\n");
         for (int i = sp.size() - 1; i >= 0; i--) {

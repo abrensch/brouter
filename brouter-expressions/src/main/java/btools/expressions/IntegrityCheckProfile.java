@@ -1,11 +1,10 @@
 package btools.expressions;
 
 import java.io.File;
-import java.io.IOException;
 
 public class IntegrityCheckProfile {
 
-  public static void main(final java.lang.String[] args) {
+  public static void main(final String[] args) {
     if (args.length != 2) {
       System.out.println("usage: java IntegrityCheckProfile <lookup-file> <profile-folder>");
       return;

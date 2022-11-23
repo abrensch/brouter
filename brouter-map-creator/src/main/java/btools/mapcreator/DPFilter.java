@@ -5,7 +5,7 @@
  */
 package btools.mapcreator;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import btools.util.CheapRuler;
 
@@ -15,7 +15,7 @@ public class DPFilter {
   /*
    * for each node (except first+last), eventually set the DP_SURVIVOR_BIT
    */
-  public static void doDPFilter(ArrayList<OsmNodeP> nodes) {
+  public static void doDPFilter(List<OsmNodeP> nodes) {
     int first = 0;
     int last = nodes.size() - 1;
     while (first < last && (nodes.get(first + 1).bits & OsmNodeP.DP_SURVIVOR_BIT) != 0) {
@@ -30,7 +30,7 @@ public class DPFilter {
   }
 
 
-  public static void doDPFilter(ArrayList<OsmNodeP> nodes, int first, int last) {
+  public static void doDPFilter(List<OsmNodeP> nodes, int first, int last) {
     double maxSqDist = -1.;
     int index = -1;
     OsmNodeP p1 = nodes.get(first);

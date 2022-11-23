@@ -5,9 +5,6 @@ import java.io.EOFException;
 import java.io.File;
 import java.util.HashMap;
 
-import btools.util.DenseLongMap;
-import btools.util.TinyDenseLongMap;
-
 /**
  * WayCutter does 2 step in map-processing:
  * <p>

@@ -8,7 +8,6 @@ import btools.codec.TagValueValidator;
 import btools.codec.TagValueWrapper;
 import btools.codec.WaypointMatcher;
 import btools.util.ByteDataWriter;
-import btools.util.IByteArrayUnifier;
 
 /**
  * DirectWeaver does the same decoding as MicroCache2, but decodes directly
@@ -16,8 +15,6 @@ import btools.util.IByteArrayUnifier;
  */
 public final class DirectWeaver extends ByteDataWriter {
   private long id64Base;
-
-  private int size = 0;
 
   public DirectWeaver(StatCoderContext bc, DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) {
     super(null);
@@ -32,7 +29,7 @@ public final class DirectWeaver extends ByteDataWriter {
     NoisyDiffCoder extLatDiff = new NoisyDiffCoder(bc);
     NoisyDiffCoder transEleDiff = new NoisyDiffCoder(bc);
 
-    size = bc.decodeNoisyNumber(5);
+    int size = bc.decodeNoisyNumber(5);
 
     int[] faid = size > dataBuffers.ibuf2.length ? new int[size] : dataBuffers.ibuf2;
 

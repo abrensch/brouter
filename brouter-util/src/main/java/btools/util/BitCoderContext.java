@@ -309,12 +309,12 @@ public class BitCoderContext {
     for (int i = 0; i < 31; i++) {
       int value = ctx.decodeVarBits();
       int v0 = (1 << i) + 3;
-      if (!(v0 == value))
+      if (v0 != value)
         throw new RuntimeException("value mismatch value=" + value + "v0=" + v0);
     }
     for (int i = 0; i < 100000; i += 13) {
       int value = ctx.decodeVarBits();
-      if (!(value == i))
+      if (value != i)
         throw new RuntimeException("value mismatch i=" + i + "v=" + value);
     }
   }

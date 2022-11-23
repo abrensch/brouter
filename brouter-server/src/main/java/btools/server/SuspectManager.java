@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
@@ -542,7 +543,6 @@ public class SuspectManager extends Thread {
     }
     bw.write("</body></html>\n");
     bw.flush();
-    return;
   }
 
 
@@ -581,7 +581,7 @@ public class SuspectManager extends Thread {
     }
   }
 
-  private static HashMap<String, SuspectList> allSuspectsMap = new HashMap<String, SuspectList>();
+  private static Map<String, SuspectList> allSuspectsMap = new HashMap<String, SuspectList>();
 
   private static SuspectList getDailySuspectsIfLoaded() throws IOException {
     synchronized (allSuspectsMap) {

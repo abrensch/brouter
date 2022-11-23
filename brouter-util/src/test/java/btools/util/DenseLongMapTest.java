@@ -1,11 +1,11 @@
 package btools.util;
 
-import java.util.Random;
-import java.util.HashMap;
-import java.util.HashSet;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Random;
 
 public class DenseLongMapTest {
   @Test
@@ -94,7 +94,7 @@ public class DenseLongMapTest {
     }
 
     // need to use the map again for valid memory measure
-    Assert.assertTrue("out of range test", dmap.getInt(-1) == -1);
+    Assert.assertEquals("out of range test", -1, dmap.getInt(-1));
   }
 
 }

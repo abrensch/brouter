@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.Map;
 
 import btools.util.CompactLongSet;
 import btools.util.DiffCoderDataOutputStream;
@@ -26,7 +27,7 @@ public class PosUnifier extends MapCreatorBase {
   private File nodeTilesOut;
   private CompactLongSet[] positionSets;
 
-  private HashMap<String, SrtmRaster> srtmmap;
+  private Map<String, SrtmRaster> srtmmap;
   private int lastSrtmLonIdx;
   private int lastSrtmLatIdx;
   private SrtmRaster lastSrtmRaster;

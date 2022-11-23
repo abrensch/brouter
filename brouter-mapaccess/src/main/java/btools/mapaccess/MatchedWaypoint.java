@@ -9,8 +9,6 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import btools.mapaccess.OsmNode;
-
 public final class MatchedWaypoint {
   public OsmNode node1;
   public OsmNode node2;

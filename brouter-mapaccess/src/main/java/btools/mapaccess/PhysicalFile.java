@@ -19,7 +19,6 @@ final public class PhysicalFile {
   long[] fileIndex = new long[25];
   int[] fileHeaderCrcs;
 
-  private int fileIndexCrc;
   public long creationTime;
 
   String fileName;
@@ -75,7 +74,7 @@ final public class PhysicalFile {
     byte[] iobuffer = dataBuffers.iobuffer;
     ra = new RandomAccessFile(f, "r");
     ra.readFully(iobuffer, 0, 200);
-    fileIndexCrc = Crc32.crc(iobuffer, 0, 200);
+    int fileIndexCrc = Crc32.crc(iobuffer, 0, 200);
     ByteDataReader dis = new ByteDataReader(iobuffer);
     for (int i = 0; i < 25; i++) {
       long lv = dis.readLong();

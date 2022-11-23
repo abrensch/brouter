@@ -7,12 +7,13 @@ package btools.mapaccess;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import btools.util.ByteArrayUnifier;
-import btools.util.SortedHeap;
 
 public final class OsmNodesMap {
-  private HashMap<OsmNode, OsmNode> hmap = new HashMap<OsmNode, OsmNode>(4096);
+  private Map<OsmNode, OsmNode> hmap = new HashMap<OsmNode, OsmNode>(4096);
 
   private ByteArrayUnifier abUnifier = new ByteArrayUnifier(16384, false);
 
@@ -123,14 +124,10 @@ public final class OsmNodesMap {
     return total <= currentmaxmem;
   }
 
-  private void addActiveNode(ArrayList<OsmNode> nodes2check, OsmNode n) {
-    n.visitID = lastVisitID;
-    nodesCreated++;
-    nodes2check.add(n);
-  }
+  private List<OsmNode> nodes2check;
 
   // is there an escape from this node
-  // to a hollow node (or destination node) ?  
+  // to a hollow node (or destination node) ?
   public boolean canEscape(OsmNode n0) {
     boolean sawLowIDs = false;
     lastVisitID++;
@@ -170,7 +167,11 @@ public final class OsmNodesMap {
     return false;
   }
 
-  private ArrayList<OsmNode> nodes2check;
+  private void addActiveNode(List<OsmNode> nodes2check, OsmNode n) {
+    n.visitID = lastVisitID;
+    nodesCreated++;
+    nodes2check.add(n);
+  }
 
   public void clearTemp() {
     nodes2check = null;

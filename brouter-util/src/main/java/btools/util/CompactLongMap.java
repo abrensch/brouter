@@ -1,6 +1,6 @@
 package btools.util;
 
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Memory efficient Map to map a long-key to an object-value
@@ -243,7 +243,7 @@ public class CompactLongMap<V> {
     return false;
   }
 
-  protected void moveToFrozenArrays(long[] faid, ArrayList<V> flv) {
+  protected void moveToFrozenArrays(long[] faid, List<V> flv) {
     for (int i = 1; i < MAXLISTS; i++) {
       pa[i] = 0;
     }
