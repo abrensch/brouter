@@ -61,10 +61,7 @@ public class FrozenLongSet extends CompactLongSet {
       }
       offset >>= 1;
     }
-    if (a[n] == id) {
-      return true;
-    }
-    return false;
+    return a[n] == id;
   }
 
 }

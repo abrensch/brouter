@@ -1,19 +1,16 @@
 package btools.mapcreator;
 
-import java.util.Random;
-import java.util.HashMap;
-
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.net.URL;
 import java.io.File;
+import java.net.URL;
 
 public class MapcreatorTest {
   @Test
   public void mapcreatorTest() throws Exception {
     URL mapurl = this.getClass().getResource("/dreieich.osm.gz");
-    Assert.assertTrue("test-osm-map dreieich.osm not found", mapurl != null);
+    Assert.assertNotNull("test-osm-map dreieich.osm not found", mapurl);
     File mapFile = new File(mapurl.getFile());
     File workingDir = mapFile.getParentFile();
     File profileDir = new File(workingDir, "/../../../../misc/profiles2");

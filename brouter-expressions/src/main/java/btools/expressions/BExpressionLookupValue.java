@@ -10,10 +10,11 @@
 package btools.expressions;
 
 import java.util.ArrayList;
+import java.util.List;
 
 final class BExpressionLookupValue {
   String value;
-  ArrayList<String> aliases;
+  List<String> aliases;
 
   @Override
   public String toString() {

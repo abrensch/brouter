@@ -37,9 +37,9 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   public String _modelClass;
 
   private Map<String, Integer> lookupNumbers = new HashMap<String, Integer>();
-  private ArrayList<BExpressionLookupValue[]> lookupValues = new ArrayList<BExpressionLookupValue[]>();
-  private ArrayList<String> lookupNames = new ArrayList<String>();
-  private ArrayList<int[]> lookupHistograms = new ArrayList<int[]>();
+  private List<BExpressionLookupValue[]> lookupValues = new ArrayList<BExpressionLookupValue[]>();
+  private List<String> lookupNames = new ArrayList<String>();
+  private List<int[]> lookupHistograms = new ArrayList<int[]>();
   private boolean[] lookupIdxUsed;
 
   private boolean lookupDataFrozen = false;
@@ -805,10 +805,9 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       for (int i = 0; i < minWriteIdx; i++) {
         variableData[i] = readOnlyData[i];
       }
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("ParseException " + file + " at line " + linenr + ": " + e.getMessage());
     } catch (Exception e) {
-      if (e instanceof IllegalArgumentException) {
-        throw new IllegalArgumentException("ParseException " + file + " at line " + linenr + ": " + e.getMessage());
-      }
       throw new RuntimeException(e);
     }
     if (expressionList.size() == 0) {
@@ -883,7 +882,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   }
 
   public final boolean isLookupIdxUsed(int idx) {
-    return idx < lookupIdxUsed.length ? lookupIdxUsed[idx] : false;
+    return idx < lookupIdxUsed.length && lookupIdxUsed[idx];
   }
 
   public final void setAllTagsUsed() {

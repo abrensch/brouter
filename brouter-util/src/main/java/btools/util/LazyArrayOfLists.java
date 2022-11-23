@@ -1,7 +1,7 @@
 package btools.util;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Behaves like an Array of list
@@ -10,7 +10,7 @@ import java.util.ArrayList;
  * @author ab
  */
 public class LazyArrayOfLists<E> {
-  private ArrayList<ArrayList<E>> lists;
+  private List<ArrayList<E>> lists;
 
   public LazyArrayOfLists(int size) {
     lists = new ArrayList<ArrayList<E>>(size);

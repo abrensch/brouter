@@ -6,11 +6,11 @@ public interface TagValueValidator {
    * @param tagValueSet the way description to check
    * @return 0 = nothing, 1=no matching, 2=normal
    */
-  public int accessType(byte[] tagValueSet);
+  int accessType(byte[] tagValueSet);
 
-  public byte[] unify(byte[] tagValueSet, int offset, int len);
+  byte[] unify(byte[] tagValueSet, int offset, int len);
 
-  public boolean isLookupIdxUsed(int idx);
+  boolean isLookupIdxUsed(int idx);
 
-  public void setDecodeForbidden(boolean decodeForbidden);
+  void setDecodeForbidden(boolean decodeForbidden);
 }

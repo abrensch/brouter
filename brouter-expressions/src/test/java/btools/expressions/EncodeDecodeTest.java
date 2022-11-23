@@ -1,11 +1,10 @@
 package btools.expressions;
 
-import java.util.*;
-import java.io.*;
-import java.net.URL;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.io.File;
+import java.net.URL;
 
 public class EncodeDecodeTest {
   @Test

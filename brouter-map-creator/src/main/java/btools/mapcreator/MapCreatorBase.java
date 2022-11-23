@@ -14,6 +14,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
 import btools.util.DiffCoderDataOutputStream;
 
@@ -21,7 +22,7 @@ public abstract class MapCreatorBase implements WayListener, NodeListener, Relat
   private DiffCoderDataOutputStream[] tileOutStreams;
   protected File outTileDir;
 
-  protected HashMap<String, String> tags;
+  protected Map<String, String> tags;
 
   public void putTag(String key, String value) {
     if (tags == null) tags = new HashMap<String, String>();
@@ -32,11 +33,11 @@ public abstract class MapCreatorBase implements WayListener, NodeListener, Relat
     return tags == null ? null : tags.get(key);
   }
 
-  public HashMap<String, String> getTagsOrNull() {
+  public Map<String, String> getTagsOrNull() {
     return tags;
   }
 
-  public void setTags(HashMap<String, String> tags) {
+  public void setTags(Map<String, String> tags) {
     this.tags = tags;
   }
 

@@ -1,8 +1,5 @@
 package btools.util;
 
-import java.util.Random;
-import java.util.HashSet;
-
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -18,7 +15,7 @@ public class ByteDataIOTest {
 
     for (int i = 0; i < 1000; i++) {
       int value = r.readVarLengthUnsigned();
-      Assert.assertTrue("value mismatch", value == i);
+      Assert.assertEquals("value mismatch", value, i);
     }
   }
 }
