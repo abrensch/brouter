@@ -93,6 +93,21 @@ public class RouteServerTest {
   }
 
   @Test
+  public void voiceHints() throws IOException {
+    URL requestUrl = new URL(baseUrl + "brouter?lonlats=8.705796,50.003124|8.705859,50.0039599&nogos=&profile=trekking&alternativeidx=0&format=geojson&timode=2");
+    HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
+    httpConnection.connect();
+
+    Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
+
+    InputStream inputStream = httpConnection.getInputStream();
+    JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+    Assert.assertEquals(2, geoJson.query("/features/0/properties/voicehints/0/1")); // TL
+    Assert.assertEquals(1, geoJson.query("/features/0/properties/voicehints/1/1")); // C
+  }
+
+
+  @Test
   public void uploadValidProfile() throws IOException {
     URL requestUrl = new URL(baseUrl + "brouter/profile");
     HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
