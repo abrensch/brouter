@@ -106,6 +106,45 @@ public class RouteServerTest {
     Assert.assertEquals(1, geoJson.query("/features/0/properties/voicehints/1/1")); // C
   }
 
+  @Test
+  public void directRoutingFirst() throws IOException {
+    URL requestUrl = new URL(baseUrl + "brouter?lonlats=8.718354,50.001514|8.718917,50.001361|8.716986,50.000105|8.718306,50.00145&nogos=&profile=trekking&alternativeidx=0&format=geojson&straight=0&timode=3");
+    HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
+    httpConnection.connect();
+
+    Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
+
+    InputStream inputStream = httpConnection.getInputStream();
+    JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+    Assert.assertEquals("521", geoJson.query("/features/0/properties/track-length"));
+  }
+
+  @Test
+  public void directRoutingLast() throws IOException {
+    URL requestUrl = new URL(baseUrl + "brouter?lonlats=8.718306,50.00145|8.717464,50.000405|8.718917,50.001361|8.718354,50.001514&nogos=&profile=trekking&alternativeidx=0&format=geojson&straight=2&timode=3");
+    HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
+    httpConnection.connect();
+
+    Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
+
+    InputStream inputStream = httpConnection.getInputStream();
+    JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+    Assert.assertEquals("520", geoJson.query("/features/0/properties/track-length"));
+  }
+
+  @Test
+  public void directRoutingMiddle() throws IOException {
+    URL requestUrl = new URL(baseUrl + "brouter?lonlats=8.718539,50.006581|8.718198,50.006065,d|8.71785,50.006034|8.7169,50.004456&nogos=&profile=trekking&alternativeidx=0&format=geojson&timode=3");
+    HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
+    httpConnection.connect();
+
+    Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
+
+    InputStream inputStream = httpConnection.getInputStream();
+    JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+    Assert.assertEquals("350", geoJson.query("/features/0/properties/track-length"));
+  }
+
 
   @Test
   public void uploadValidProfile() throws IOException {
