@@ -290,9 +290,20 @@ public final class NodesCache {
     if (first_file_access_failed) {
       throw new IllegalArgumentException("datafile " + first_file_access_name + " not found");
     }
-    for (MatchedWaypoint mwp : unmatchedWaypoints) {
+    int len = unmatchedWaypoints.size();
+    for (int i = 0; i < len; i++) {
+      MatchedWaypoint mwp = unmatchedWaypoints.get(i);
       if (mwp.crosspoint == null) {
-        throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
+        if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size()-1 && unmatchedWaypoints.get(i-1).direct) {
+          mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
+          mwp.direct = true;
+        } else {
+          throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
+        }
+      }
+      if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size()-1 && unmatchedWaypoints.get(i-1).direct) {
+        mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
+        mwp.direct = true;
       }
     }
   }
