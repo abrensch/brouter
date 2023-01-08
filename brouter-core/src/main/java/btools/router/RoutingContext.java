@@ -84,8 +84,8 @@ public final class RoutingContext {
       pm = new StdModel();
     } else {
       try {
-        Class clazz = Class.forName(className);
-        pm = (OsmPathModel) clazz.newInstance();
+        Class<?> clazz = Class.forName(className);
+        pm = (OsmPathModel) clazz.getDeclaredConstructor().newInstance();
       } catch (Exception e) {
         throw new RuntimeException("Cannot create path-model: " + e);
       }

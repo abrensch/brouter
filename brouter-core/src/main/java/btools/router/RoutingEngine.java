@@ -292,16 +292,16 @@ public class RoutingEngine extends Thread {
   private OsmTrack tryFindTrack(OsmTrack[] refTracks, OsmTrack[] lastTracks) {
     OsmTrack totaltrack = new OsmTrack();
     int nUnmatched = waypoints.size();
+    boolean hasDirectRouting = false;
 
-    if (hasInfo()) {
-      for (OsmNodeNamed wp : waypoints) {
-        logInfo("wp=" + wp);
-      }
+    for (OsmNodeNamed wp : waypoints) {
+      if (hasInfo()) logInfo("wp=" + wp + (wp.direct ? " direct" : ""));
+      if (wp.direct) hasDirectRouting = true;
     }
 
     // check for a track for that target
     OsmTrack nearbyTrack = null;
-    if (lastTracks[waypoints.size() - 2] == null) {
+    if (!hasDirectRouting && lastTracks[waypoints.size() - 2] == null) {
       StringBuilder debugInfo = hasInfo() ? new StringBuilder() : null;
       nearbyTrack = OsmTrack.readBinary(routingContext.rawTrackPath, waypoints.get(waypoints.size() - 1), routingContext.getNogoChecksums(), routingContext.profileTimestamp, debugInfo);
       if (nearbyTrack != null) {
@@ -314,13 +314,13 @@ public class RoutingEngine extends Thread {
       }
     }
 
-    if (matchedWaypoints == null) // could exist from the previous alternative level
-    {
+    if (matchedWaypoints == null) { // could exist from the previous alternative level
       matchedWaypoints = new ArrayList<MatchedWaypoint>();
       for (int i = 0; i < nUnmatched; i++) {
         MatchedWaypoint mwp = new MatchedWaypoint();
         mwp.waypoint = waypoints.get(i);
         mwp.name = waypoints.get(i).name;
+        mwp.direct = waypoints.get(i).direct;
         matchedWaypoints.add(mwp);
       }
       matchWaypointsToNodes(matchedWaypoints);
@@ -330,6 +330,7 @@ public class RoutingEngine extends Thread {
       airDistanceCostFactor = 0.;
       for (int i = 0; i < matchedWaypoints.size() - 1; i++) {
         nodeLimit = MAXNODES_ISLAND_CHECK;
+        if (matchedWaypoints.get(i).direct) continue;
         if (routingContext.inverseRouting) {
           OsmTrack seg = findTrack("start-island-check", matchedWaypoints.get(i), matchedWaypoints.get(i + 1), null, null, false);
           if (seg == null && nodeLimit > 0) {
@@ -383,10 +384,7 @@ public class RoutingEngine extends Thread {
   private OsmTrack searchTrack(MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack) {
     // remove nogos with waypoints inside
     try {
-      List<OsmNode> wpts2 = new ArrayList<OsmNode>();
-      wpts2.add(startWp.waypoint);
-      wpts2.add(endWp.waypoint);
-      boolean calcBeeline = routingContext.allInOneNogo(wpts2);
+      boolean calcBeeline = startWp.direct;
 
       if (!calcBeeline) return searchRoutedTrack(startWp, endWp, nearbyTrack, refTrack);
 
