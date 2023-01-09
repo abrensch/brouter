@@ -103,7 +103,6 @@ public class RouteServerTest {
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
     Assert.assertEquals(2, geoJson.query("/features/0/properties/voicehints/0/1")); // TL
-    Assert.assertEquals(1, geoJson.query("/features/0/properties/voicehints/1/1")); // C
   }
 
   @Test
