@@ -144,6 +144,18 @@ public class RouteServerTest {
     Assert.assertEquals("350", geoJson.query("/features/0/properties/track-length"));
   }
 
+  @Test
+  public void misplacedPoints() throws IOException {
+    URL requestUrl = new URL(baseUrl + "brouter?lonlats=8.708678,49.999188|8.71145,49.999761|8.715801,50.00065&nogos=&profile=trekking&alternativeidx=0&format=geojson&correctMisplacedViaPoints=1&timode=3");
+    HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
+    httpConnection.connect();
+
+    Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
+
+    InputStream inputStream = httpConnection.getInputStream();
+    JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+    Assert.assertEquals("598", geoJson.query("/features/0/properties/track-length"));
+  }
 
   @Test
   public void uploadValidProfile() throws IOException {
