@@ -202,26 +202,20 @@ final class StdPath extends OsmPath {
     elevation_buffer += delta_h;
     double incline = calcIncline(dist);
 
-    double wayMaxspeed;
-
-    wayMaxspeed = rc.expctxWay.getMaxspeed() / 3.6f;
-    if (wayMaxspeed == 0) {
-      wayMaxspeed = rc.maxSpeed;
+    double maxSpeed = rc.maxSpeed;
+    double speedLimit = rc.expctxWay.getMaxspeed() / 3.6f;
+    if (speedLimit > 0) {
+      maxSpeed = Math.min(maxSpeed, speedLimit);
     }
-    wayMaxspeed = Math.min(wayMaxspeed, rc.maxSpeed);
 
-    double speed; // Travel speed
+    double speed = maxSpeed; // Travel speed
     double f_roll = rc.totalMass * GRAVITY * (rc.defaultC_r + incline);
     if (rc.footMode) {
       // Use Tobler's hiking function for walking sections
-      speed = rc.maxSpeed * 3.6;
-      speed = (speed * FastMath.exp(-3.5 * Math.abs(incline + 0.05))) / 3.6;
+      speed = rc.maxSpeed * FastMath.exp(-3.5 * Math.abs(incline + 0.05));
     } else if (rc.bikeMode) {
       speed = solveCubic(rc.S_C_x, f_roll, rc.bikerPower);
-      speed = Math.min(speed, wayMaxspeed);
-    } else // all other
-    {
-      speed = wayMaxspeed;
+      speed = Math.min(speed, maxSpeed);
     }
     float dt = (float) (dist / speed);
     totalTime += dt;
