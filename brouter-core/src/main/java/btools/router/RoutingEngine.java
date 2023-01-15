@@ -378,13 +378,17 @@ public class RoutingEngine extends Thread {
       if (routingContext.correctMisplacedViaPoints && !matchedWaypoints.get(i).direct) {
         changed = snappPathConnection(totaltrack, seg, routingContext.inverseRouting ? matchedWaypoints.get(i + 1) : matchedWaypoints.get(i));
       }
-//      if (wptIndex > 0)
-//        matchedWaypoints.get(wptIndex).indexInTrack = totaltrack.nodes.size() - 1;
 
       totaltrack.appendTrack(seg);
       lastTracks[i] = seg;
     }
-    if (routingContext.poipoints != null) totaltrack.pois = routingContext.poipoints;
+
+    totaltrack.matchedWaypoints = matchedWaypoints;
+    totaltrack.processVoiceHints(routingContext);
+    totaltrack.prepareSpeedProfile(routingContext);
+
+    if (routingContext.poipoints != null)
+      totaltrack.pois = routingContext.poipoints;
     totaltrack.matchedWaypoints = matchedWaypoints;
     return totaltrack;
   }
@@ -1214,8 +1218,6 @@ public class RoutingEngine extends Thread {
     // for final track..
     if (guideTrack != null) {
       track.copyDetours(guideTrack);
-      track.processVoiceHints(routingContext);
-      track.prepareSpeedProfile(routingContext);
     }
     return track;
   }
