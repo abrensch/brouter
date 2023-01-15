@@ -248,12 +248,12 @@ final class KinematicPath extends OsmPath {
 
 
   @Override
-  public int elevationCorrection(RoutingContext rc) {
+  public int elevationCorrection() {
     return 0;
   }
 
   @Override
-  public boolean definitlyWorseThan(OsmPath path, RoutingContext rc) {
+  public boolean definitlyWorseThan(OsmPath path) {
     KinematicPath p = (KinematicPath) path;
 
     int c = p.cost;

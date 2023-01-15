@@ -52,10 +52,6 @@ public final class RoutingContext {
 
   public int memoryclass = 64;
 
-  public int downhillcostdiv;
-  public int downhillcutoff;
-  public int uphillcostdiv;
-  public int uphillcutoff;
   public boolean carMode;
   public boolean bikeMode;
   public boolean footMode;
@@ -123,12 +119,6 @@ public final class RoutingContext {
 
     setModel(expctxGlobal._modelClass);
 
-    downhillcostdiv = (int) expctxGlobal.getVariableValue("downhillcost", 0.f);
-    downhillcutoff = (int) (expctxGlobal.getVariableValue("downhillcutoff", 0.f) * 10000);
-    uphillcostdiv = (int) expctxGlobal.getVariableValue("uphillcost", 0.f);
-    uphillcutoff = (int) (expctxGlobal.getVariableValue("uphillcutoff", 0.f) * 10000);
-    if (downhillcostdiv != 0) downhillcostdiv = 1000000 / downhillcostdiv;
-    if (uphillcostdiv != 0) uphillcostdiv = 1000000 / uphillcostdiv;
     carMode = 0.f != expctxGlobal.getVariableValue("validForCars", 0.f);
     bikeMode = 0.f != expctxGlobal.getVariableValue("validForBikes", 0.f);
     footMode = 0.f != expctxGlobal.getVariableValue("validForFoot", 0.f);

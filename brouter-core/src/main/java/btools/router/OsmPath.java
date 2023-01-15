@@ -409,9 +409,9 @@ abstract class OsmPath implements OsmLinkHolder {
   protected void computeKinematic(RoutingContext rc, double dist, double delta_h, boolean detailMode) {
   }
 
-  public abstract int elevationCorrection(RoutingContext rc);
+  public abstract int elevationCorrection();
 
-  public abstract boolean definitlyWorseThan(OsmPath p, RoutingContext rc);
+  public abstract boolean definitlyWorseThan(OsmPath p);
 
   public OsmNode getSourceNode() {
     return sourceNode;
