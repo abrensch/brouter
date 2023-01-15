@@ -977,7 +977,7 @@ public class RoutingEngine extends Thread {
               if (parentcost < firstMatchCost) firstMatchCost = parentcost;
 
               int costEstimate = path.cost
-                + path.elevationCorrection(routingContext)
+                + path.elevationCorrection()
                 + (costCuttingTrack.cost - pe.cost);
               if (costEstimate <= maxTotalCost) {
                 matchPath = OsmPathElement.create(path, routingContext.countTraffic);
@@ -1110,7 +1110,7 @@ public class RoutingEngine extends Thread {
               OsmLinkHolder dominator = link.getFirstLinkHolder(currentNode);
               while (!trafficSim && dominator != null) {
                 OsmPath dp = (OsmPath) dominator;
-                if (dp.airdistance != -1 && bestPath.definitlyWorseThan(dp, routingContext)) {
+                if (dp.airdistance != -1 && bestPath.definitlyWorseThan(dp)) {
                   break;
                 }
                 dominator = dominator.getNextForLink();

@@ -18,6 +18,9 @@ final class StdPath extends OsmPath {
   private float totalEnergy; // total route energy (Joule)
   private float elevation_buffer; // just another elevation buffer (for travel time)
 
+  private int uphillcostdiv;
+  private int downhillcostdiv;
+
   // Gravitational constant, g
   private static final double GRAVITY = 9.81;  // in meters per second^(-2)
 
@@ -37,6 +40,8 @@ final class StdPath extends OsmPath {
     ehbu = 0;
     totalTime = 0.f;
     totalEnergy = 0.f;
+    uphillcostdiv = 0;
+    downhillcostdiv = 0;
     elevation_buffer = 0.f;
   }
 
@@ -44,11 +49,23 @@ final class StdPath extends OsmPath {
   protected double processWaySection(RoutingContext rc, double distance, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier) {
     // calculate the costfactor inputs
     float turncostbase = rc.expctxWay.getTurncost();
+    float uphillcutoff = rc.expctxWay.getUphillcutoff() * 10000;
+    float downhillcutoff = rc.expctxWay.getDownhillcutoff() * 10000;
     float cfup = rc.expctxWay.getUphillCostfactor();
     float cfdown = rc.expctxWay.getDownhillCostfactor();
     float cf = rc.expctxWay.getCostfactor();
     cfup = cfup == 0.f ? cf : cfup;
     cfdown = cfdown == 0.f ? cf : cfdown;
+
+    downhillcostdiv = (int) rc.expctxWay.getDownhillcost();
+    if (downhillcostdiv > 0) {
+      downhillcostdiv = 1000000 / downhillcostdiv;
+    }
+
+    uphillcostdiv = (int) rc.expctxWay.getUphillcost();
+    if (uphillcostdiv > 0) {
+      uphillcostdiv = 1000000 / uphillcostdiv;
+    }
 
     int dist = (int) distance; // legacy arithmetics needs int
 
@@ -66,8 +83,8 @@ final class StdPath extends OsmPath {
     // leads to an immediate penalty
 
     int delta_h_micros = (int) (1000000. * delta_h);
-    ehbd += -delta_h_micros - dist * rc.downhillcutoff;
-    ehbu += delta_h_micros - dist * rc.uphillcutoff;
+    ehbd += -delta_h_micros - dist * downhillcutoff;
+    ehbu += delta_h_micros - dist * uphillcutoff;
 
     float downweight = 0.f;
     if (ehbd > rc.elevationpenaltybuffer) {
@@ -84,8 +101,8 @@ final class StdPath extends OsmPath {
         reduce = excess;
       }
       ehbd -= reduce;
-      if (rc.downhillcostdiv > 0) {
-        int elevationCost = reduce / rc.downhillcostdiv;
+      if (downhillcostdiv > 0) {
+        int elevationCost = reduce / downhillcostdiv;
         sectionCost += elevationCost;
         if (message != null) {
           message.linkelevationcost += elevationCost;
@@ -110,8 +127,8 @@ final class StdPath extends OsmPath {
         reduce = excess;
       }
       ehbu -= reduce;
-      if (rc.uphillcostdiv > 0) {
-        int elevationCost = reduce / rc.uphillcostdiv;
+      if (uphillcostdiv > 0) {
+        int elevationCost = reduce / uphillcostdiv;
         sectionCost += elevationCost;
         if (message != null) {
           message.linkelevationcost += elevationCost;
@@ -153,23 +170,23 @@ final class StdPath extends OsmPath {
   }
 
   @Override
-  public int elevationCorrection(RoutingContext rc) {
-    return (rc.downhillcostdiv > 0 ? ehbd / rc.downhillcostdiv : 0)
-      + (rc.uphillcostdiv > 0 ? ehbu / rc.uphillcostdiv : 0);
+  public int elevationCorrection() {
+    return (downhillcostdiv > 0 ? ehbd / downhillcostdiv : 0)
+      + (uphillcostdiv > 0 ? ehbu / uphillcostdiv : 0);
   }
 
   @Override
-  public boolean definitlyWorseThan(OsmPath path, RoutingContext rc) {
+  public boolean definitlyWorseThan(OsmPath path) {
     StdPath p = (StdPath) path;
 
     int c = p.cost;
-    if (rc.downhillcostdiv > 0) {
-      int delta = p.ehbd - ehbd;
-      if (delta > 0) c += delta / rc.downhillcostdiv;
+    if (p.downhillcostdiv > 0) {
+      int delta = p.ehbd / p.downhillcostdiv - (downhillcostdiv > 0 ? ehbd / downhillcostdiv : 0);
+      if (delta > 0) c += delta;
     }
-    if (rc.uphillcostdiv > 0) {
-      int delta = p.ehbu - ehbu;
-      if (delta > 0) c += delta / rc.uphillcostdiv;
+    if (p.uphillcostdiv > 0) {
+      int delta = p.ehbu / p.uphillcostdiv - (uphillcostdiv > 0 ? ehbu / uphillcostdiv : 0);
+      if (delta > 0) c += delta;
     }
 
     return cost > c;
