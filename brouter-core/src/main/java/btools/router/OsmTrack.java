@@ -48,7 +48,7 @@ public final class OsmTrack {
 
   public List<OsmNodeNamed> pois = new ArrayList<OsmNodeNamed>();
 
-  private static class OsmPathElementHolder {
+  public static class OsmPathElementHolder {
     public OsmPathElement node;
     public OsmPathElementHolder nextHolder;
   }
@@ -928,6 +928,12 @@ public final class OsmTrack {
     return true;
   }
 
+  public OsmPathElementHolder getFromDetourMap(long id) {
+    if (detourMap == null)
+      return null;
+    return detourMap.get(id);
+  }
+
   public void prepareSpeedProfile(RoutingContext rc) {
     // sendSpeedProfile = rc.keyValues != null && rc.keyValues.containsKey( "vmax" );
   }
@@ -987,6 +993,17 @@ public final class OsmTrack {
     return nodes.get(nodes.size() - 1).getTime();
   }
 
+  public void removeVoiceHint(int i) {
+    if (voiceHints != null) {
+      VoiceHint remove = null;
+      for (VoiceHint vh : voiceHints.list) {
+        if (vh.indexInTrack == i)
+          remove = vh;
+      }
+      if (remove != null)
+        voiceHints.list.remove(remove);
+    }
+  }
 
   private MessageData startSection(OsmPathElement element, OsmPathElement root) {
     OsmPathElement e = element;

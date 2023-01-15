@@ -834,6 +834,15 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     Integer num = variableNumbers.get(name);
     if (num != null) {
       variableData[num.intValue()] = value;
+    } else if (create) {
+      num = getVariableIdx(name, create);
+      float[] readOnlyData = variableData;
+      int minWriteIdx = readOnlyData.length;
+      variableData = new float[variableNumbers.size()];
+      for (int i = 0; i < minWriteIdx; i++) {
+        variableData[i] = readOnlyData[i];
+      }
+      variableData[num.intValue()] = value;
     }
   }
 
