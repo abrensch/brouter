@@ -78,6 +78,8 @@ public final class RoutingContext {
   public boolean transitonly;
 
   public double waypointCatchingRange;
+  public boolean correctMisplacedViaPoints;
+  public double correctMisplacedViaPointsDistance;
 
   private void setModel(String className) {
     if (className == null) {
@@ -114,8 +116,8 @@ public final class RoutingContext {
       // add parameter to context
       for (Map.Entry<String, String> e : keyValues.entrySet()) {
         float f = Float.parseFloat(e.getValue());
-        expctxWay.setVariableValue(e.getKey(), f, false);
-        expctxNode.setVariableValue(e.getKey(), f, false);
+        expctxWay.setVariableValue(e.getKey(), f, true);
+        expctxNode.setVariableValue(e.getKey(), f, true);
       }
     }
 
@@ -135,6 +137,9 @@ public final class RoutingContext {
 
     // turn-restrictions not used per default for foot profiles
     considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue("considerTurnRestrictions", footMode ? 0.f : 1.f);
+
+    correctMisplacedViaPoints = 0.f != expctxGlobal.getVariableValue("correctMisplacedViaPoints", 1.f);
+    correctMisplacedViaPointsDistance = expctxGlobal.getVariableValue("correctMisplacedViaPointsDistance", 40.f);
 
     // process tags not used in the profile (to have them in the data-tab)
     processUnusedTags = 0.f != expctxGlobal.getVariableValue("processUnusedTags", 0.f);
@@ -457,7 +462,7 @@ public final class RoutingContext {
         }
       }
     }
-    return (int) (d + 1.0);
+    return (int) (d + 0.5);
   }
 
   public OsmPathModel pm;
