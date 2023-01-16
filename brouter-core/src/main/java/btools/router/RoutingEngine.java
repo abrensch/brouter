@@ -382,6 +382,8 @@ public class RoutingEngine extends Thread {
       if (routingContext.correctMisplacedViaPoints && !matchedWaypoints.get(i).direct) {
         changed = snappPathConnection(totaltrack, seg, routingContext.inverseRouting ? matchedWaypoints.get(i + 1) : matchedWaypoints.get(i));
       }
+      if (wptIndex > 0)
+        matchedWaypoints.get(wptIndex).indexInTrack = totaltrack.nodes.size() - 1;
 
       totaltrack.appendTrack(seg);
       lastTracks[i] = seg;
@@ -389,6 +391,7 @@ public class RoutingEngine extends Thread {
 
     recalcTrack(totaltrack);
 
+    matchedWaypoints.get(matchedWaypoints.size() - 1).indexInTrack = totaltrack.nodes.size() - 1;
     totaltrack.matchedWaypoints = matchedWaypoints;
     totaltrack.processVoiceHints(routingContext);
     totaltrack.prepareSpeedProfile(routingContext);

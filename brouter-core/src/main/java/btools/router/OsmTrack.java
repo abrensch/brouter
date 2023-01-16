@@ -94,6 +94,64 @@ public final class OsmTrack {
     detourMap = source.detourMap == null ? null : new FrozenLongMap<OsmPathElementHolder>(source.detourMap);
   }
 
+  public void addDetours(OsmTrack source) {
+    if (detourMap != null) {
+      CompactLongMap<OsmPathElementHolder> tmpDetourMap = new CompactLongMap<OsmPathElementHolder>();
+
+      List oldlist = ((FrozenLongMap) detourMap).getValueList();
+      long[] oldidlist = ((FrozenLongMap) detourMap).getKeyArray();
+      for (int i = 0; i < oldidlist.length; i++) {
+        long id = oldidlist[i];
+        OsmPathElementHolder v = detourMap.get(id);
+
+        tmpDetourMap.put(id, v);
+      }
+
+      if (source.detourMap != null) {
+        long[] idlist = ((FrozenLongMap) source.detourMap).getKeyArray();
+        for (int i = 0; i < idlist.length; i++) {
+          long id = idlist[i];
+          OsmPathElementHolder v = source.detourMap.get(id);
+          if (!tmpDetourMap.contains(id) && source.nodesMap.contains(id)) {
+            tmpDetourMap.put(id, v);
+          }
+        }
+      }
+      detourMap = new FrozenLongMap<OsmPathElementHolder>(tmpDetourMap);
+    }
+  }
+
+  OsmPathElement lastorigin = null;
+
+  public void appendDetours(OsmTrack source) {
+    if (detourMap == null) {
+      detourMap = source.detourMap == null ? null : new CompactLongMap<OsmPathElementHolder>();
+    }
+    if (source.detourMap != null) {
+      int pos = nodes.size() - source.nodes.size() + 1;
+      OsmPathElement origin = null;
+      if (pos > 0)
+        origin = nodes.get(pos);
+      for (OsmPathElement node : source.nodes) {
+        long id = node.getIdFromPos();
+        OsmPathElementHolder nh = new OsmPathElementHolder();
+        if (node.origin == null && lastorigin != null)
+          node.origin = lastorigin;
+        nh.node = node;
+        lastorigin = node;
+        OsmPathElementHolder h = detourMap.get(id);
+        if (h != null) {
+          while (h.nextHolder != null) {
+            h = h.nextHolder;
+          }
+          h.nextHolder = nh;
+        } else {
+          detourMap.fastPut(id, nh);
+        }
+      }
+    }
+  }
+
   public void buildMap() {
     nodesMap = new CompactLongMap<OsmPathElementHolder>();
     for (OsmPathElement node : nodes) {
@@ -275,10 +333,16 @@ public final class OsmTrack {
   }
 
   public void appendTrack(OsmTrack t) {
+    int i = 0;
+
     int ourSize = nodes.size();
+    if (ourSize > 0 && t.nodes.size() > 1) {
+      OsmPathElement olde = nodes.get(ourSize - 1);
+      t.nodes.get(1).origin = olde;
+    }
     float t0 = ourSize > 0 ? nodes.get(ourSize - 1).getTime() : 0;
     float e0 = ourSize > 0 ? nodes.get(ourSize - 1).getEnergy() : 0;
-    for (int i = 0; i < t.nodes.size(); i++) {
+    for (i = 0; i < t.nodes.size(); i++) {
       if (i > 0 || ourSize == 0) {
         OsmPathElement e = t.nodes.get(i);
         e.setTime(e.getTime() + t0);
@@ -298,13 +362,20 @@ public final class OsmTrack {
       } else {
         voiceHints.list.addAll(t.voiceHints.list);
       }
+    } else {
+      if (detourMap == null) {
+        //copyDetours( t );
+        detourMap = t.detourMap;
+      } else {
+        addDetours(t);
+      }
     }
 
     distance += t.distance;
     ascend += t.ascend;
     plainAscend += t.plainAscend;
     cost += t.cost;
-    energy += t.energy;
+    energy = (int) nodes.get(nodes.size() - 1).getEnergy();
 
     showspeed |= t.showspeed;
     showSpeedProfile |= t.showSpeedProfile;
@@ -798,6 +869,26 @@ public final class OsmTrack {
     sb.append("    }");
   }
 
+  private VoiceHint getVoiceHint(int i) {
+    if (voiceHints == null) return null;
+    for (VoiceHint hint : voiceHints.list) {
+      if (hint.indexInTrack == i) {
+        return hint;
+      }
+    }
+    return null;
+  }
+
+  private MatchedWaypoint getMatchedWaypoint(int idx) {
+    if (matchedWaypoints == null) return null;
+    for (MatchedWaypoint wp : matchedWaypoints) {
+      if (idx == wp.indexInTrack) {
+        return wp;
+      }
+    }
+    return null;
+  }
+
   private int getVNode(int i) {
     MessageData m1 = i + 1 < nodes.size() ? nodes.get(i + 1).message : null;
     MessageData m0 = i < nodes.size() ? nodes.get(i).message : null;
@@ -947,7 +1038,17 @@ public final class OsmTrack {
       return;
     }
     int nodeNr = nodes.size() - 1;
+    int i = nodeNr;
     OsmPathElement node = nodes.get(nodeNr);
+    while (node != null) {
+      if (node.origin != null) {
+      }
+      node = node.origin;
+    }
+
+    i = 0;
+
+    node = nodes.get(nodeNr);
     List<VoiceHint> inputs = new ArrayList<VoiceHint>();
     while (node != null) {
       if (node.origin != null) {
@@ -959,15 +1060,18 @@ public final class OsmTrack {
         input.indexInTrack = --nodeNr;
         input.goodWay = node.message;
         input.oldWay = node.origin.message == null ? node.message : node.origin.message;
-
         OsmPathElementHolder detours = detourMap.get(node.origin.getIdFromPos());
-        if (detours != null) {
+        if (nodeNr >= 0 && detours != null) {
           OsmPathElementHolder h = detours;
           while (h != null) {
             OsmPathElement e = h.node;
             input.addBadWay(startSection(e, node.origin));
             h = h.nextHolder;
           }
+        } else if (nodeNr == 0 && detours != null) {
+          OsmPathElementHolder h = detours;
+          OsmPathElement e = h.node;
+          input.addBadWay(startSection(e, e));
         }
       }
       node = node.origin;
@@ -975,9 +1079,27 @@ public final class OsmTrack {
 
     VoiceHintProcessor vproc = new VoiceHintProcessor(rc.turnInstructionCatchingRange, rc.turnInstructionRoundabouts);
     List<VoiceHint> results = vproc.process(inputs);
+
     for (VoiceHint hint : results) {
       voiceHints.list.add(hint);
     }
+
+  }
+
+  int getMinDistance() {
+    if (voiceHints != null) {
+      switch (voiceHints.getTransportMode()) {
+        case "car":
+          return 20;
+        case "bike":
+          return 5;
+        case "foot":
+          return 3;
+        default:
+          return 5;
+      }
+    }
+    return 2;
   }
 
   private float getVoiceHintTime(int i) {
