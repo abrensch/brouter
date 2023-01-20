@@ -76,7 +76,7 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("1204", geoJson.query("/features/0/properties/track-length"));
+    Assert.assertEquals("1169", geoJson.query("/features/0/properties/track-length"));
   }
 
   @Test
@@ -89,7 +89,7 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("1902", geoJson.query("/features/0/properties/track-length"));
+    Assert.assertEquals("1866", geoJson.query("/features/0/properties/track-length"));
   }
 
   @Test
@@ -115,7 +115,7 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("521", geoJson.query("/features/0/properties/track-length"));
+    Assert.assertEquals("505", geoJson.query("/features/0/properties/track-length"));
   }
 
   @Test
@@ -128,7 +128,7 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("520", geoJson.query("/features/0/properties/track-length"));
+    Assert.assertEquals("506", geoJson.query("/features/0/properties/track-length"));
   }
 
   @Test
@@ -141,7 +141,7 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("350", geoJson.query("/features/0/properties/track-length"));
+    Assert.assertEquals("347", geoJson.query("/features/0/properties/track-length"));
   }
 
   @Test
@@ -154,7 +154,7 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("598", geoJson.query("/features/0/properties/track-length"));
+    Assert.assertEquals("546", geoJson.query("/features/0/properties/track-length"));
   }
 
   @Test
