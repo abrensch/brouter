@@ -112,6 +112,7 @@ abstract class OsmPath implements OsmLinkHolder {
     this.lastClassifier = origin.lastClassifier;
     this.lastInitialCost = origin.lastInitialCost;
     this.bitfield = origin.bitfield;
+    this.priorityclassifier = origin.priorityclassifier;
     init(origin);
     addAddionalPenalty(refTrack, detailMode, origin, link, rc);
   }
