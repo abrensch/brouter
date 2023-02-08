@@ -177,13 +177,11 @@ final class StdPath extends OsmPath {
 
   private double calcIncline(double dist) {
     double min_delta = 3.;
-    double shift;
+    double shift = 0.;
     if (elevation_buffer > min_delta) {
       shift = -min_delta;
-    } else if (elevation_buffer < min_delta) {
-      shift = -min_delta;
-    } else {
-      return 0.;
+    } else if (elevation_buffer < -min_delta) {
+      shift = min_delta;
     }
     double decayFactor = FastMath.exp(-dist / 100.);
     float new_elevation_buffer = (float) ((elevation_buffer + shift) * decayFactor - shift);
