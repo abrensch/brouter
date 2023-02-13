@@ -23,7 +23,6 @@ final class KinematicPath extends OsmPath {
     totalEnergy = origin.totalEnergy;
     floatingAngleLeft = origin.floatingAngleLeft;
     floatingAngleRight = origin.floatingAngleRight;
-    priorityclassifier = origin.priorityclassifier;
   }
 
   @Override
