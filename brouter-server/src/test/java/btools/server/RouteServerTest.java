@@ -6,6 +6,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
@@ -103,6 +104,20 @@ public class RouteServerTest {
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
     Assert.assertEquals(2, geoJson.query("/features/0/properties/voicehints/0/1")); // TL
+  }
+
+  @Test
+  @Ignore("There are no srtm files at the moment")
+  public void ascendTest() throws IOException {
+    URL requestUrl = new URL(baseUrl + "brouter?lonlats=8.70014,49.998637|8.715227,49.996196&nogos=&profile=trekking&alternativeidx=0&format=geojson&timode=2");
+    HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
+    httpConnection.connect();
+
+    Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
+
+    InputStream inputStream = httpConnection.getInputStream();
+    JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+    Assert.assertEquals(15, geoJson.query("/features/0/properties/filtered ascend"));
   }
 
   @Test
