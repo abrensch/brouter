@@ -75,7 +75,7 @@ public class OsmPathElement implements OsmPos {
   }
 
   public final int calcDistance(OsmPos p) {
-    return (int) (CheapRuler.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0);
+    return (int) Math.max(1.0, Math.round(CheapRuler.distance(ilon, ilat, p.getILon(), p.getILat())));
   }
 
   public OsmPathElement origin;
