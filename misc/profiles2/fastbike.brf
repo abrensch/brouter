@@ -212,7 +212,7 @@ assign costfactor
    switch tracktype=grade5 30.0
    switch or bicycle=designated bicycle_road=yes 2.0
    switch ispaved 2.0 100.0
-   10.0
+  10.0
 
 # way priorities used for voice hint generation
 
