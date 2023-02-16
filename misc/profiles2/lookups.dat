@@ -45,13 +45,13 @@ tracktype;0000568372 grade4 grade3-5
 tracktype;0000405959 grade5
 
 surface;0002497676 asphalt
-surface;0001568957 paved bricks brick
-surface;0001562253 unpaved
+surface;0001568957 paved bricks brick chipseal
+surface;0001562253 unpaved unpaved_minor
 surface;0000727427 gravel
 surface;0000560191 ground soil
-surface;0000350378 dirt
-surface;0000237226 grass
-surface;0000212587 concrete concrete:plates concrete:lanes
+surface;0000350378 dirt dirt/sand
+surface;0000237226 grass artificial_turf
+surface;0000212587 concrete concrete:plates concrete:lanes cement
 surface;0000188743 paving_stones paving_stones:30 paving_stones:20
 surface;0000113800 cobblestone cobblestone:flattened unhewn_cobblestone
 surface;0000093164 compacted
@@ -852,6 +852,11 @@ wheelchair;0000000005 private
 wheelchair;0000000139 bad
 wheelchair;0000000031 half
 wheelchair;0000000005 partial
+
+kerb;0000000001 lowered
+kerb;0000000001 flush no
+kerb;0000000001 raised
+kerb;0000000001 rolled
 
 hgv;0000001141 no
 hgv;0000000359 yes true permissive
