@@ -821,16 +821,15 @@ public class RoutingEngine extends Thread {
         if (ele_last != Short.MIN_VALUE) {
           ehb = ehb + (ele_last - ele) * eleFactor;
         }
-        if (ehb > 10.) {
-          ascend += ehb - 10.;
-          ehb = 10.;
-        } else if (ehb < 0.) {
-          ehb = 0.;
+        if (ehb > 0) {
+          ascend += ehb;
+          ehb = 0;
+        } else if (ehb < -10) {
+          ehb = -10;
         }
       }
 
     }
-    ascend += ehb;
 
     t.ascend = (int)ascend;
     t.plainAscend = (int)((ele_start - ele_end) * eleFactor + 0.5);

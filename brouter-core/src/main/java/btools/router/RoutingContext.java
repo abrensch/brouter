@@ -463,7 +463,7 @@ public final class RoutingContext {
         }
       }
     }
-    return (int) (d + 0.5);
+    return (int) Math.max(1.0, Math.round(d));
   }
 
   public OsmPathModel pm;
