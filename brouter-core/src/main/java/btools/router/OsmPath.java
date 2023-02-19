@@ -208,16 +208,18 @@ abstract class OsmPath implements OsmLinkHolder {
       int lon2;
       int lat2;
       short ele2;
+      short originEle2;
 
       if (transferNode == null) {
         lon2 = targetNode.ilon;
         lat2 = targetNode.ilat;
-        ele2 = targetNode.selev;
+        originEle2 = targetNode.selev;
       } else {
         lon2 = transferNode.ilon;
         lat2 = transferNode.ilat;
-        ele2 = transferNode.selev;
+        originEle2 = transferNode.selev;
       }
+      ele2 = originEle2;
 
       boolean isStartpoint = lon0 == -1 && lat0 == -1;
 
@@ -334,13 +336,13 @@ abstract class OsmPath implements OsmLinkHolder {
         message.classifiermask = classifiermask;
         message.lon = lon2;
         message.lat = lat2;
-        message.ele = ele2;
+        message.ele = originEle2;
         message.wayKeyValues = rc.expctxWay.getKeyValueDescription(isReverse, description);
       }
 
       if (stopAtEndpoint) {
         if (recordTransferNodes) {
-          originElement = OsmPathElement.create(rc.ilonshortest, rc.ilatshortest, ele2, originElement, rc.countTraffic);
+          originElement = OsmPathElement.create(rc.ilonshortest, rc.ilatshortest, originEle2, originElement, rc.countTraffic);
           originElement.cost = cost;
           if (message != null) {
             originElement.message = message;
@@ -366,7 +368,7 @@ abstract class OsmPath implements OsmLinkHolder {
       transferNode = transferNode.next;
 
       if (recordTransferNodes) {
-        originElement = OsmPathElement.create(lon2, lat2, ele2, originElement, rc.countTraffic);
+        originElement = OsmPathElement.create(lon2, lat2, originEle2, originElement, rc.countTraffic);
         originElement.cost = cost;
         originElement.addTraffic(traffic);
         traffic = 0;
