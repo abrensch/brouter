@@ -297,7 +297,7 @@ public class RoutingEngine extends Thread {
                     int ind = s.indexOf("%");
                     if (ind != -1)
                       s = s.substring(0, ind);
-                    ind = s.indexOf("�");
+                    ind = s.indexOf("°");
                     if (ind != -1)
                       s = s.substring(0, ind);
                     tmpincline = Double.parseDouble(s.trim());
@@ -313,7 +313,7 @@ public class RoutingEngine extends Thread {
               if (startincline == 0) {
                 startincline = tmpincline;
               } else if (startincline < 0 && tmpincline > 0) {
-                // for the way ?p find the exit point
+                // for the way up find the exit point
                 double diff = endElev - selev;
                 tmpincline = diff / (distRest / 100.);
               }
@@ -733,7 +733,7 @@ public class RoutingEngine extends Thread {
         lon2 = t.nodes.get(i).getILon();
         lat2 = t.nodes.get(i).getILat();
         nLast = t.nodes.get(0);
-        dist = routingContext.calcDistance(lon0, lat0, lon1, lat1);
+        dist = nLast.calcDistance(n);
       } else {
         lon0 = t.nodes.get(i - 2).getILon();
         lat0 = t.nodes.get(i - 2).getILat();
@@ -742,7 +742,7 @@ public class RoutingEngine extends Thread {
         lon2 = t.nodes.get(i).getILon();
         lat2 = t.nodes.get(i).getILat();
         nLast = t.nodes.get(i - 1);
-        dist = routingContext.calcDistance(lon1, lat1, lon2, lat2);
+        dist = nLast.calcDistance(n);
       }
       angle = routingContext.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
       n.message.linkdist = dist;
