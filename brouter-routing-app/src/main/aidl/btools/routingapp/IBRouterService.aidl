@@ -26,12 +26,12 @@ interface IBRouterService {
     //  "nogos"           = lon,lat,radius|... (optional, radius in meters)
     //  "polylines"       = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
     //  "polygons"        = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
-    //  "profile"         = profile file name without .brf 
+    //  "profile"         = profile file name without .brf
     //  "alternativeidx"  = [0|1|2|3] (optional, default 0)
     //  "exportWaypoints" = 1 to export them (optional, default is no export)
     //  "pois"            = lon,lat,name|... (optional)
     //  "extraParams"     = Bundle key=value list for a profile setup (like "profile:")
-    //  "timode"          = turnInstructionMode [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-new-style, 8=cruiser-stylem, 9=brouter-intern] default 0
+    //  "timode"          = turnInstructionMode [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style] default 0
     //  "heading"         = angle (optional to give a route a start direction)
     //  "direction"       = angle (optional, used like "heading" on a recalculation request by Locus as start direction)
 
