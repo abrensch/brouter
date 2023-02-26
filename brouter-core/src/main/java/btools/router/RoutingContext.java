@@ -171,6 +171,7 @@ public final class RoutingContext {
     showspeed = 0.f != expctxGlobal.getVariableValue("showspeed", 0.f);
     showSpeedProfile = 0.f != expctxGlobal.getVariableValue("showSpeedProfile", 0.f);
     inverseRouting = 0.f != expctxGlobal.getVariableValue("inverseRouting", 0.f);
+    showTime = 0.f != expctxGlobal.getVariableValue("showtime", 0.f);
 
     int tiMode = (int) expctxGlobal.getVariableValue("turnInstructionMode", 0.f);
     if (tiMode != 1) // automatic selection from coordinate source
@@ -233,6 +234,7 @@ public final class RoutingContext {
   public boolean showspeed;
   public boolean showSpeedProfile;
   public boolean inverseRouting;
+  public boolean showTime;
 
   public OsmPrePath firstPrePath;
 

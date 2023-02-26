@@ -511,6 +511,9 @@ public class RoutingEngine extends Thread {
     totaltrack.processVoiceHints(routingContext);
     totaltrack.prepareSpeedProfile(routingContext);
 
+    totaltrack.showTime = routingContext.showTime;
+    totaltrack.params = routingContext.keyValues;
+
     if (routingContext.poipoints != null)
       totaltrack.pois = routingContext.poipoints;
     totaltrack.matchedWaypoints = matchedWaypoints;
