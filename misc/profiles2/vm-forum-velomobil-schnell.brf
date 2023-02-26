@@ -23,9 +23,9 @@ assign bikerPower = 125    # %bikerPower% | Dauerleistung in Watt, für Fahrtzei
 assign ignore_bicycle_no = false # %ignore_bicycle_no% | für Regionen mit falschen bicyle=no tags können sie mit "true" ignoriert werden. Auch Shuttletransporte (bicycle=dismount + foot=no) werden geroutet | boolean
 
 
-assign turnInstructionMode          = 1     # %turnInstructionMode% | Modus für die Abbiegehinweise | [0=keine, 1=automatische Wahl, 2=locus-Style, 3=osmand-Style, 4=comment-Style, 5=gpsies-Style, 6=orux-Style]
+assign turnInstructionMode          = 1     # %turnInstructionMode% | Modus für die Abbiegehinweise | [0=keine, 1=automatische Wahl, 2=locus-Style, 3=osmand-Style, 4=comment-Style, 5=gpsies-Style, 6=orux-Style, 7=locus-old-Style]
 assign turnInstructionCatchingRange 20 # innerhalb dieser Strecke werden mehrere Abiegehinweise zu einem zusammengefasst und die Abiegewinkel werden besser an die generelle Richtung angenähert
-assign turnInstructionRoundabouts true # mit "false" werden keine speziellen Abiegehinweise für den Kreisverkehr generiert 
+assign turnInstructionRoundabouts true # mit "false" werden keine speziellen Abiegehinweise für den Kreisverkehr generiert
 
 assign avoidmr2 multiply 0.11111111 multiply avoid_main_roads avoid_main_roads
 assign avoidsr multiply 0.2 avoid_small_roads
@@ -69,7 +69,7 @@ assign cycleway
 assign footway
  or highway=footway|pedestrian and highway=path foot=designated|yes
 
-assign turncost 
+assign turncost
  switch junction=roundabout 0
  150 # Kosten die für eine 90 Grad Abbiegung berechnet werden. Für kleinere Winkel werden sie mit turncost*cos(Winkel) berechnet, bei Kreisverkehr keine weitere Kosten
 
@@ -172,7 +172,7 @@ assign maxspeed_backward
   switch maxspeed:backward=rural 100
   0
 
-assign maxspeed 
+assign maxspeed
   switch and reversedirection=yes maxspeed_backward maxspeed_backward
   switch and not reversedirection=yes maxspeed_forward maxspeed_forward
   switch maxspeed=50 50
@@ -320,7 +320,7 @@ assign uphillcostfactor
  switch footway 30
  switch highway=steps 40
  switch highway=path
-  switch surface= multiply avoidbw 40 
+  switch surface= multiply avoidbw 40
   add 4 multiply avoidsr 6
  switch highway=bridleway multiply avoidbw 80
  20
@@ -363,7 +363,7 @@ assign downhillcostfactor
  switch footway 30
  switch highway=steps 40
  switch highway=path
-  switch surface= multiply avoidbw 40 
+  switch surface= multiply avoidbw 40
   add 4 multiply avoidsr 6
  switch highway=bridleway multiply avoidbw 80
  20
@@ -454,7 +454,7 @@ assign initialcost
   switch highway=steps switch no_steps 1000000 dismount_cost #Kosten für Stufe
   0
  switch bikeaccess
-  0 
+  0
  switch footaccess
   dismount_cost # Kosten fürs Aussteigen
  1000000 #Kosten für verbotene oder private Wege
