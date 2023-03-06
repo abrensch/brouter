@@ -627,6 +627,8 @@ public final class OsmTrack {
       sb.append("  </extensions>\n");
     }
 
+
+    // all points
     sb.append("  <trkseg>\n");
     String lastway = "";
     boolean bNextDirect = false;
@@ -644,108 +646,57 @@ public final class OsmTrack {
       }
 
       boolean bNeedHeader = false;
-      if (turnInstructionMode == 9 || turnInstructionMode == 2) // trkpt/sym style // locus style new
-      {
-        if (hint != null) {
-          if (turnInstructionMode == 9) {
-            if (mwpt != null && !mwpt.name.startsWith("via")) {
-              sele += "<name>" + mwpt.name + "</name>";
-            }
-            sele += "<desc>" + hint.getMessageString() + "</desc>";
-            sele += "<sym>" + hint.getCommandString(hint.cmd) + "</sym>";
-            sele += "<extensions>";
-            if (showspeed) {
-              double speed = 0;
-              if (nn != null) {
-                int dist = n.calcDistance(nn);
-                float dt = n.getTime() - nn.getTime();
-                if (dt != 0.f) {
-                  speed = ((3.6f * dist) / dt + 0.5);
-                }
-              }
-              sele += "<brouter:speed>" + (((int) (speed * 10)) / 10.f) + "</brouter:speed>";
-            }
+      if (turnInstructionMode == 9) { // trkpt/sym style
 
-            sele += "<brouter:voicehint>" + hint.getCommandString() + ";" + (int) (hint.distanceToNext) + "," + hint.formatGeometry() + "</brouter:voicehint>";
-            if (n.message != null && n.message.wayKeyValues != null && !n.message.wayKeyValues.equals(lastway)) {
-              sele += "<brouter:way>" + n.message.wayKeyValues + "</brouter:way>";
-              lastway = n.message.wayKeyValues;
-            }
-            if (n.message != null && n.message.nodeKeyValues != null) {
-              sele += "<brouter:node>" + n.message.nodeKeyValues + "</brouter:node>";
-            }
-            sele += "</extensions>";
-          } else if (turnInstructionMode == 2) {
-            sele += "<sym>" + hint.getLocusSymbolString() + "</sym>";
+        if (hint != null) {
+
+          if (mwpt != null &&
+            !mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("end")) {
+            sele += "<name>" + mwpt.name + "</name>";
           }
-        }
-        if (idx == 0) {
-          if (turnInstructionMode == 2) {
-            int pos = sele.indexOf("<sym");
-            if (pos != -1) {
-              sele = sele.substring(0, pos);
-            }
-            if (mwpt != null && !mwpt.name.startsWith("from"))
-              sele += "<name>" + mwpt.name + "</name>";
-            if (mwpt != null && mwpt.direct) {
-              bNextDirect = true;
-            }
-            sele += "<sym>pass_place</sym>";
-            sele += "<type>Via</type>";
-          } else {
-            if (mwpt != null && mwpt.direct) {
-              sele += "<desc>beeline</desc>";
-            } else {
-              sele += "<desc>start</desc>";
-            }
-            sele += "<type>Via</type>";
-          }
-        } else if (idx == nodes.size() - 1) {
-          if (turnInstructionMode == 2) {
-            int pos = sele.indexOf("<sym");
-            if (pos != -1) {
-              sele = sele.substring(0, pos);
-            }
-            if (mwpt != null && mwpt.name != null && !mwpt.name.startsWith("to"))
-              sele += "<name>" + mwpt.name + "</name>";
-            if (bNextDirect) {
-              sele += "<src>beeline</src>";
-            }
-            sele += "<sym>pass_place</sym>";
-            sele += "<type>Via</type>";
-          } else {
-            sele += "<desc>end</desc>";
-            sele += "<type>Via</type>";
-          }
-        } else if (turnInstructionMode == 2) {
+          sele += "<desc>" + hint.getCruiserMessageString() + "</desc>";
+          sele += "<sym>" + hint.getCommandString(hint.cmd) + "</sym>";
           if (mwpt != null) {
-            if (sele.contains("sym") &&
-              !sele.contains("name") &&
-              !mwpt.name.startsWith("via")) {
-              int pos = sele.indexOf("<sym");
-              if (pos != -1)
-                sele = sele.substring(0, pos) + "<name>" + mwpt.name + "</name>" + sele.substring(pos) + "<type>Via</type>";
-            } else if (sele.contains("sym") && mwpt.name.startsWith("via")) {
-              sele += "<type>Via</type>";
-            } else if (mwpt.direct && bNextDirect) {
-              sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
-              bNextDirect = true;
-            } else if (mwpt.direct) {
-              sele += "<sym>pass_place</sym><type>Shaping</type>";
-              bNextDirect = true;
-            } else if (mwpt.name.startsWith("via")) {
-              if (bNextDirect) {
-                sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
-              } else {
-                sele += "<sym>pass_place</sym><type>Shaping</type>";
-              }
-              bNextDirect = false;
-            } else {
-              sele += "<name>" + mwpt.name + "</name>";
-              sele += "<sym>pass_place</sym><type>Via</type>";
-            }
+            sele += "<type>Via</type>";
           }
-        } else if (turnInstructionMode == 9) {
+          sele += "<extensions>";
+          if (showspeed) {
+            double speed = 0;
+            if (nn != null) {
+              int dist = n.calcDistance(nn);
+              float dt = n.getTime() - nn.getTime();
+              if (dt != 0.f) {
+                speed = ((3.6f * dist) / dt + 0.5);
+              }
+            }
+            sele += "<brouter:speed>" + (((int) (speed * 10)) / 10.f) + "</brouter:speed>";
+          }
+
+          sele += "<brouter:voicehint>" + hint.getCommandString() + ";" + (int) (hint.distanceToNext) + "," + hint.formatGeometry() + "</brouter:voicehint>";
+          if (n.message != null && n.message.wayKeyValues != null && !n.message.wayKeyValues.equals(lastway)) {
+            sele += "<brouter:way>" + n.message.wayKeyValues + "</brouter:way>";
+            lastway = n.message.wayKeyValues;
+          }
+          if (n.message != null && n.message.nodeKeyValues != null) {
+            sele += "<brouter:node>" + n.message.nodeKeyValues + "</brouter:node>";
+          }
+          sele += "</extensions>";
+
+        }
+        if (idx == 0 && hint == null) {
+          if (mwpt != null && mwpt.direct) {
+            sele += "<desc>beeline</desc>";
+          } else {
+            sele += "<desc>start</desc>";
+          }
+          sele += "<type>Via</type>";
+
+        } else if (idx == nodes.size() - 1 && hint == null) {
+
+          sele += "<desc>end</desc>";
+          sele += "<type>Via</type>";
+
+        } else {
           if (mwpt != null && hint == null) {
             if (mwpt.direct) {
               // bNextDirect = true;
@@ -759,7 +710,7 @@ public final class OsmTrack {
         }
 
 
-        if (turnInstructionMode == 9 && hint == null) {
+        if (hint == null) {
           bNeedHeader = (showspeed || (n.message != null && n.message.wayKeyValues != null && !n.message.wayKeyValues.equals(lastway))) ||
             (n.message != null && n.message.nodeKeyValues != null);
           if (bNeedHeader) {
@@ -783,6 +734,88 @@ public final class OsmTrack {
               sele += "<brouter:node>" + n.message.nodeKeyValues + "</brouter:node>";
             }
             sele += "</extensions>";
+          }
+        }
+      }
+
+      if (turnInstructionMode == 2) { // locus style new
+        if (hint != null) {
+          if (mwpt != null) {
+            if (mwpt.direct && bNextDirect) {
+              sele += "<src>" + hint.getLocusSymbolString() + "</src><sym>pass_place</sym><type>Shaping</type>";
+              // bNextDirect = false;
+            } else if (mwpt.direct) {
+              sele += "<sym>pass_place</sym><type>Shaping</type>";
+              bNextDirect = true;
+            } else if (bNextDirect) {
+              sele += "<src>beeline</src><sym>" + hint.getLocusSymbolString() + "</sym><type>Shaping</type>";
+              bNextDirect = false;
+            } else {
+              sele += "<sym>" + hint.getLocusSymbolString() + "</sym>";
+            }
+          } else {
+            sele += "<sym>" + hint.getLocusSymbolString() + "</sym>";
+          }
+        } else {
+          if (idx == 0 && hint == null) {
+
+            int pos = sele.indexOf("<sym");
+            if (pos != -1) {
+              sele = sele.substring(0, pos);
+            }
+            if (mwpt != null && !mwpt.name.startsWith("from"))
+              sele += "<name>" + mwpt.name + "</name>";
+            if (mwpt != null && mwpt.direct) {
+              bNextDirect = true;
+            }
+            sele += "<sym>pass_place</sym>";
+            sele += "<type>Via</type>";
+
+          } else if (idx == nodes.size() - 1 && hint == null) {
+
+            int pos = sele.indexOf("<sym");
+            if (pos != -1) {
+              sele = sele.substring(0, pos);
+            }
+            if (mwpt != null && mwpt.name != null && !mwpt.name.startsWith("to"))
+              sele += "<name>" + mwpt.name + "</name>";
+            if (bNextDirect) {
+              sele += "<src>beeline</src>";
+            }
+            sele += "<sym>pass_place</sym>";
+            sele += "<type>Via</type>";
+
+          } else {
+            if (mwpt != null) {
+              if (sele.contains("sym") &&
+                !sele.contains("name") &&
+                !mwpt.name.startsWith("via") &&
+                !mwpt.name.startsWith("from") &&
+                !mwpt.name.startsWith("to")) {
+                int pos = sele.indexOf("<sym");
+                if (pos != -1)
+                  sele = sele.substring(0, pos) + "<name>" + mwpt.name + "</name>" + sele.substring(pos) + "<type>Via</type>";
+              } else if (sele.contains("sym") && mwpt.name.startsWith("via")) {
+                sele += "<type>Via</type>";
+              } else if (mwpt.direct && bNextDirect) {
+                sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
+              } else if (mwpt.direct) {
+                sele += "<sym>pass_place</sym><type>Shaping</type>";
+                bNextDirect = true;
+              } else if (mwpt.name.startsWith("via") ||
+                mwpt.name.startsWith("from") ||
+                mwpt.name.startsWith("to")) {
+                if (bNextDirect) {
+                  sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
+                } else {
+                  sele += "<sym>pass_place</sym><type>Shaping</type>";
+                }
+                bNextDirect = false;
+              } else {
+                sele += "<name>" + mwpt.name + "</name>";
+                sele += "<sym>pass_place</sym><type>Via</type>";
+              }
+            }
           }
         }
       }
@@ -1263,11 +1296,14 @@ public final class OsmTrack {
         input.indexInTrack = --nodeNr;
         input.goodWay = node.message;
         input.oldWay = node.origin.message == null ? node.message : node.origin.message;
-        if (rc.turnInstructionMode == 8) {
+        if (rc.turnInstructionMode == 8 ||
+          rc.turnInstructionMode == 4 ||
+          rc.turnInstructionMode == 2 ||
+          rc.turnInstructionMode == 9) {
           MatchedWaypoint mwpt = getMatchedWaypoint(nodeNr);
           if (mwpt != null && mwpt.direct) {
             input.cmd = VoiceHint.BL;
-            input.angle = (float) node.message.turnangle;
+            input.angle = (float) (nodeNr == 0 ? node.origin.message.turnangle : node.message.turnangle);
             input.distanceToNext = node.calcDistance(node.origin);
           }
         }
