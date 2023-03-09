@@ -102,6 +102,10 @@ public class VoiceHint {
         return "RNDB" + roundaboutExit;
       case RNLB:
         return "RNLB" + (-roundaboutExit);
+      case BL:
+        return "BL";
+      case OFFR:
+        return "OFFR";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
     }
@@ -140,6 +144,10 @@ public class VoiceHint {
         return "RNDB" + roundaboutExit;
       case RNLB:
         return "RNLB" + (-roundaboutExit);
+      case BL:
+        return "BL";
+      case OFFR:
+        return "OFFR";
       default:
         return "unknown command: " + c;
     }
@@ -178,6 +186,10 @@ public class VoiceHint {
         return "RNDB" + roundaboutExit;
       case RNLB:
         return "RNLB" + (-roundaboutExit);
+      case BL:
+        return "BL";
+      case OFFR:
+        return "OFFR";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
     }
@@ -372,6 +384,8 @@ public class VoiceHint {
         return "RNLB" + (-roundaboutExit);
       case BL:
         return "BL";
+      case OFFR:
+        return "OFFR";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
     }
@@ -407,11 +421,13 @@ public class VoiceHint {
       case TRU:
         return "u-turn right";
       case RNDB:
-        return "Take exit " + roundaboutExit;
+        return "take exit " + roundaboutExit;
       case RNLB:
-        return "Take exit " + (-roundaboutExit);
+        return "take exit " + (-roundaboutExit);
       case BL:
-        return "Beeline";
+        return "beeline";
+      case OFFR:
+        return "offroad";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
     }
