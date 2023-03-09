@@ -97,7 +97,7 @@ Some variable names are pre-defined and accessed by the routing engine:
   - 3 variables to influence the generation of turn-instructions
 
     - `turnInstructionMode`          0=none, 1=auto-choose, 2=locus-style,
-      3=osmand-style
+      3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style
     - `turnInstructionCatchingRange` default=40m
     - `turnInstructionRoundabouts`   default=true generate explicit roundabout
       hints

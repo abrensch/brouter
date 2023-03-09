@@ -246,9 +246,10 @@ public class RoutingEngine extends Thread {
     int startIdx = 0;
     int endIdx = -1;
     int dist = 0;
-    for (int idx = 0; idx < track.nodes.size(); idx++) {
+    int ourSize = track.nodes.size();
+    for (int idx = 0; idx < ourSize; idx++) {
       OsmPathElement n = track.nodes.get(idx);
-      if (n.getSElev() == Short.MIN_VALUE && lastElev != Short.MIN_VALUE) {
+      if (n.getSElev() == Short.MIN_VALUE && lastElev != Short.MIN_VALUE && idx < ourSize-1) {
         // start one point before entry point to get better elevation results
         if (idx > 1)
           startElev = track.nodes.get(idx - 2).getSElev();
@@ -510,6 +511,9 @@ public class RoutingEngine extends Thread {
     totaltrack.matchedWaypoints = matchedWaypoints;
     totaltrack.processVoiceHints(routingContext);
     totaltrack.prepareSpeedProfile(routingContext);
+
+    totaltrack.showTime = routingContext.showTime;
+    totaltrack.params = routingContext.keyValues;
 
     if (routingContext.poipoints != null)
       totaltrack.pois = routingContext.poipoints;
