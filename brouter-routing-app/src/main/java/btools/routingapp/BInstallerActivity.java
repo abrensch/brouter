@@ -5,6 +5,7 @@ import static btools.routingapp.BInstallerView.MASK_DELETED_RD5;
 import static btools.routingapp.BInstallerView.MASK_INSTALLED_RD5;
 import static btools.routingapp.BInstallerView.MASK_SELECTED_RD5;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -63,6 +64,20 @@ public class BInstallerActivity extends AppCompatActivity {
     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
     setContentView(R.layout.activity_binstaller);
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.POST_NOTIFICATIONS)
+        == PackageManager.PERMISSION_GRANTED) {
+        // nothing to do
+      }
+      if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+        //
+      } else {
+        // You can directly ask for the permission.
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, MY_PERMISSIONS_REQUEST_NITIFICATION);
+      }
+    }
+
     mSummaryInfo = findViewById(R.id.textViewSegmentSummary);
     mBInstallerView = findViewById(R.id.BInstallerView);
     mBInstallerView.setOnSelectListener(
