@@ -175,7 +175,7 @@ public class DownloadWorker extends Worker {
         return Result.failure(output.build());
       }
 
-      if (downloadAll != VALUE_SEGMENT_ALL) {
+      if (!versionChanged && downloadAll != VALUE_SEGMENT_ALL) {
         List<String> tmpSegementNames = new ArrayList<>();
         File segmentFolder = new File(baseDir, SEGMENTS_DIR);
         File[] files = segmentFolder.listFiles(new FileFilter() {
@@ -196,7 +196,7 @@ public class DownloadWorker extends Worker {
           return Result.failure(output.build());
         }
         if (downloadAll == VALUE_SEGMENT_DIFFS) {
-          tmpSegementNames.toArray(segmentNames);
+          segmentNames = tmpSegementNames.toArray(new String[0]);
         } else if (downloadAll == VALUE_SEGMENT_DROPDIFFS) {
           for (String segmentName : tmpSegementNames) {
             File segmentFile = new File(baseDir, SEGMENTS_DIR + segmentName + SEGMENT_SUFFIX);
