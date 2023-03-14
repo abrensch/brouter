@@ -29,6 +29,7 @@
     <string name="action_delete">Delete %s</string>
     <string name="action_update">Update %s</string>
     <string name="action_select">Select segments</string>
+    <string name="action_cancel">Stop Download</string>
     <string name="summary_segments">Size=%s\nFree=%s</string>
     <string name="notification_channel_id">brouter_download</string>
     <string name="notification_title">Download Segments</string>
