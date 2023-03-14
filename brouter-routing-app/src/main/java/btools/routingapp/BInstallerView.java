@@ -75,18 +75,20 @@ public class BInstallerView extends View {
   }
 
   public void setTileStatus(int tileIndex, int tileMask) {
-    tileStatus[tileIndex] |= tileMask;
-    if (mOnSelectListener != null) {
-      mOnSelectListener.onSelect();
+    if (mOnSelectListener == null) {
+      return;
     }
+    tileStatus[tileIndex] |= tileMask;
+    mOnSelectListener.onSelect();
     invalidate();
   }
 
   public void toggleTileStatus(int tileIndex, int tileMask) {
-    tileStatus[tileIndex] ^= tileMask;
-    if (mOnSelectListener != null) {
-      mOnSelectListener.onSelect();
+    if (mOnSelectListener == null) {
+      return;
     }
+    tileStatus[tileIndex] ^= tileMask;
+    mOnSelectListener.onSelect();
     invalidate();
   }
 
