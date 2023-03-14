@@ -342,11 +342,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   }
 
   public void startDownloadManager() {
-    if (!mBRouterView.hasUpToDateLookups()) {
-      showDialog(DIALOG_OLDDATAHINT_ID);
-    } else {
-      showDialog(DIALOG_SHOW_DM_INFO_ID);
-    }
+    showDialog(DIALOG_SHOW_DM_INFO_ID);
   }
 
   public void selectBasedir(ArrayList<File> items, String message) {
