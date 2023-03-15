@@ -324,12 +324,14 @@ public class BInstallerActivity extends AppCompatActivity {
 
   }
 
-  @Override
-  protected Dialog onCreateDialog(int id) {
+
+  protected Dialog createADialog(int id) {
     AlertDialog.Builder builder;
+    builder = new AlertDialog.Builder(this);
+    builder.setCancelable(false);
+
     switch (id) {
       case DIALOG_CONFIRM_DELETE_ID:
-        builder = new AlertDialog.Builder(this);
         builder
           .setTitle("Confirm Delete")
           .setMessage("Really delete?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
@@ -343,7 +345,6 @@ public class BInstallerActivity extends AppCompatActivity {
         return builder.create();
 
       case DIALOG_CONFIRM_NEXTSTEPS_ID:
-        builder = new AlertDialog.Builder(this);
         builder
           .setTitle("Version Problem")
           .setMessage("The base version for tiles has changed. What to do?")
@@ -373,7 +374,6 @@ public class BInstallerActivity extends AppCompatActivity {
         return builder.create();
 
       case DIALOG_CONFIRM_GETDIFFS_ID:
-        builder = new AlertDialog.Builder(this);
         builder
           .setTitle("Version Differences")
           .setMessage("The base version for some tiles is different. What to do?")
@@ -397,16 +397,21 @@ public class BInstallerActivity extends AppCompatActivity {
     }
   }
 
+  void showADialog(int id) {
+    Dialog d = createADialog(id);
+    if (d != null) d.show();
+  }
+
   public void showConfirmDelete() {
-    showDialog(DIALOG_CONFIRM_DELETE_ID);
+    showADialog(DIALOG_CONFIRM_DELETE_ID);
   }
 
   public void showConfirmNextSteps() {
-    showDialog(DIALOG_CONFIRM_NEXTSTEPS_ID);
+    showADialog(DIALOG_CONFIRM_NEXTSTEPS_ID);
   }
 
   private void showConfirmGetDiffs() {
-    showDialog(DIALOG_CONFIRM_GETDIFFS_ID);
+    showADialog(DIALOG_CONFIRM_GETDIFFS_ID);
   }
 
 
@@ -453,7 +458,7 @@ public class BInstallerActivity extends AppCompatActivity {
   private void downloadInstalledTiles() {
     ArrayList<Integer> selectedTiles = mBInstallerView.getSelectedTiles(MASK_INSTALLED_RD5);
     ArrayList<Integer> tmpSelectedTiles = mBInstallerView.getSelectedTiles(MASK_SELECTED_RD5);
-    if (tmpSelectedTiles.size()>0) {
+    if (tmpSelectedTiles.size() > 0) {
       selectedTiles.addAll(tmpSelectedTiles);
     }
     downloadAll(selectedTiles, DownloadWorker.VALUE_SEGMENT_ALL);

@@ -78,8 +78,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     setContentView(mBRouterView);
   }
 
-  @Override
-  protected Dialog onCreateDialog(int id) {
+  protected Dialog createADialog(int id) {
     AlertDialog.Builder builder;
     builder = new AlertDialog.Builder(this);
     builder.setCancelable(false);
@@ -103,7 +102,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
                 if (item == 0)
                   startDownloadManager();
                 else
-                  showDialog(DIALOG_SELECTPROFILE_ID);
+                  showADialog(DIALOG_SELECTPROFILE_ID);
               }
             })
             .setNegativeButton("Close", new DialogInterface.OnClickListener() {
@@ -214,7 +213,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
             if (selectedBasedir < availableBasedirs.size()) {
               mBRouterView.startSetup(availableBasedirs.get(selectedBasedir), true);
             } else {
-              showDialog(DIALOG_TEXTENTRY_ID);
+              showADialog(DIALOG_TEXTENTRY_ID);
             }
           }
         });
@@ -338,11 +337,11 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     Arrays.sort(availableProfiles);
 
     // show main dialog
-    showDialog(DIALOG_MAINACTION_ID);
+    showADialog(DIALOG_MAINACTION_ID);
   }
 
   public void startDownloadManager() {
-    showDialog(DIALOG_SHOW_DM_INFO_ID);
+    showADialog(DIALOG_SHOW_DM_INFO_ID);
   }
 
   @SuppressWarnings("deprecation")
@@ -354,7 +353,11 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
       long size = 0L;
       try {
         StatFs stat = new StatFs(f.getAbsolutePath());
-        size = (long) stat.getAvailableBlocks() * stat.getBlockSize();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+          size = stat.getAvailableBlocksLong() * stat.getBlockSizeLong();
+        } else {
+          size = (long) stat.getAvailableBlocks() * stat.getBlockSize();
+        }
       } catch (Exception e) {
         /* ignore */ }
       dirFreeSizes.add(size);
@@ -376,26 +379,26 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
       basedirOptions[bdidx] = "Enter path manually";
     }
 
-    showDialog(DIALOG_SELECTBASEDIR_ID);
+    showADialog(DIALOG_SELECTBASEDIR_ID);
   }
 
   public void selectRoutingModes(String[] modes, boolean[] modesChecked, String message) {
     routingModes = modes;
     routingModesChecked = modesChecked;
     this.message = message;
-    showDialog(DIALOG_ROUTINGMODES_ID);
+    showADialog(DIALOG_ROUTINGMODES_ID);
   }
 
   public void showModeConfigOverview(String message) {
     this.message = message;
-    showDialog(DIALOG_MODECONFIGOVERVIEW_ID);
+    showADialog(DIALOG_MODECONFIGOVERVIEW_ID);
   }
 
   public void selectVias(String[] items) {
     availableVias = items;
     selectedVias = new HashSet<>(availableVias.length);
     Collections.addAll(selectedVias, items);
-    showDialog(DIALOG_VIASELECT_ID);
+    showADialog(DIALOG_VIASELECT_ID);
   }
 
   public void selectWaypoint(String[] items) {
@@ -409,15 +412,20 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
 
   public void selectNogos(List<OsmNodeNamed> nogoList) {
     this.nogoList = nogoList;
-    showDialog(DIALOG_NOGOSELECT_ID);
+    showADialog(DIALOG_NOGOSELECT_ID);
+  }
+
+  private void showADialog(int id) {
+    Dialog d = createADialog(id);
+    if (d!=null) d.show();
   }
 
   private void showNewDialog(int id) {
     if (dialogIds.contains(id)) {
-      removeDialog(id);
+      // removeDialog(id);
     }
     dialogIds.add(id);
-    showDialog(id);
+    showADialog(id);
   }
 
   public void showErrorMessage(String msg) {
