@@ -345,6 +345,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     showDialog(DIALOG_SHOW_DM_INFO_ID);
   }
 
+  @SuppressWarnings("deprecation")
   public void selectBasedir(ArrayList<File> items, String message) {
     this.message = message;
     availableBasedirs = items;

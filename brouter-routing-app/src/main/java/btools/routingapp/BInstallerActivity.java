@@ -65,6 +65,7 @@ public class BInstallerActivity extends AppCompatActivity {
 
   BInstallerView.OnSelectListener onSelectListener;
 
+  @SuppressWarnings("deprecation")
   public static long getAvailableSpace(String baseDir) {
     StatFs stat = new StatFs(baseDir);
 
