@@ -246,7 +246,7 @@ public class BRouterService extends Service {
     private void logBundle(Bundle params) {
       if (AppLogger.isLogging()) {
         for (String k : params.keySet()) {
-          Object val = "remoteProfile".equals(k) ? "<..cut..>" : params.get(k);
+          Object val = "remoteProfile".equals(k) ? "<..cut..>" : params.getString(k);
           String desc = "key=" + k + (val == null ? "" : " class=" + val.getClass() + " val=" + val.toString());
           AppLogger.log(desc);
         }
