@@ -102,6 +102,10 @@ dependencies {
     androidTestImplementation 'androidx.work:work-testing:2.8.0'
 }
 
+gradle.projectsEvaluated {
+    preBuild.dependsOn(generateProfilesZip, generateReadmesZip)
+}
+
 check.dependsOn 'checkstyle'
 
 task checkstyle(type: Checkstyle) {
