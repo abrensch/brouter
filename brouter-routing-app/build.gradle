@@ -8,6 +8,7 @@ android {
     compileSdkVersion 33
 
     defaultConfig {
+        namespace 'btools.routingapp'
         applicationId "btools.routingapp"
 
         versionCode 45
