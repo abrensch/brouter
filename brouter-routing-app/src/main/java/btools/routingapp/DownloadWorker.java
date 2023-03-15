@@ -189,6 +189,7 @@ public class DownloadWorker extends Worker {
           if (DEBUG) Log.d("worker", "check " + f.getName() + " " + thePFversion + "=" + version);
           if (thePFversion != -1 && thePFversion != version) {
             tmpSegementNames.add(f.getName().substring(0, f.getName().indexOf(".")));
+            versionChanged = true;
           }
         }
         if (tmpSegementNames.size() > 0 && (downloadAll != VALUE_SEGMENT_DIFFS && downloadAll != VALUE_SEGMENT_DROPDIFFS)) {
