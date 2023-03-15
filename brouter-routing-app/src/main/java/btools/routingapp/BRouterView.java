@@ -5,9 +5,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -740,7 +742,8 @@ public class BRouterView extends View {
         paintPosition(n.ilon, n.ilat, color, minradius);
       }
 
-      canvas.drawBitmap(imgPixels, 0, imgw, (float) 0., (float) 0., imgw, imgh, false, null);
+      Bitmap bmp = Bitmap.createBitmap(imgPixels, imgw, imgh, Bitmap.Config.RGB_565);
+      canvas.drawBitmap(bmp, 0, 0, null);
 
       // nogo circles if any
       for (int ngi = 0; ngi < nogoList.size(); ngi++) {
