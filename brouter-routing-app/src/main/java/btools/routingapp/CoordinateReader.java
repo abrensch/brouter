@@ -143,17 +143,22 @@ public class CoordinateReader {
     List<Point> tmpPts = new ArrayList<>();
     int eventType = xpp.getEventType();
     int numSeg = 0;
+    boolean bIsNogoPoint = false;
+    String sNogoName = null;
     while (eventType != XmlPullParser.END_DOCUMENT) {
       switch (eventType) {
         case XmlPullParser.START_TAG: {
-          if (xpp.getName().equals("trkpt") || xpp.getName().equals("rtept")) {
+          if (xpp.getName().equals("trkpt") || xpp.getName().equals("rtept") || xpp.getName().equals("wpt")) {
             final String lon = xpp.getAttributeValue(null, "lon");
             final String lat = xpp.getAttributeValue(null, "lat");
             if (lon != null && lat != null) {
               tmpPts.add(new Point(
                 (int) ((Double.parseDouble(lon) + 180.) * 1000000. + 0.5),
                 (int) ((Double.parseDouble(lat) + 90.) * 1000000. + 0.5)));
+              if (xpp.getName().equals("wpt")) bIsNogoPoint = true;
             }
+          } else if (bIsNogoPoint && xpp.getName().equals("name")) {
+            sNogoName = xpp.nextText();
           }
           break;
         }
@@ -180,6 +185,29 @@ public class CoordinateReader {
               checkAddPoint("(one-for-all)", nogo);
             }
             tmpPts.clear();
+          } else if (xpp.getName().equals("wpt")) {
+            Point p = tmpPts.get(tmpPts.size() - 1);
+            if (p != null) {
+              OsmNodeNamed nogo = new OsmNodeNamed();
+              nogo.ilon = p.x;
+              nogo.ilat = p.y;
+              nogo.name = (sNogoName != null ? sNogoName : "nogo1000 x");
+              nogo.isNogo = true;
+              nogo.radius = 20;
+              try {
+                nogo.radius = (sNogoName != null ? Integer.parseInt(sNogoName.substring(4, sNogoName.indexOf(" "))) : 20);
+              } catch (Exception e) {
+                try {
+                  nogo.radius = (sNogoName != null ? Integer.parseInt(sNogoName.substring(4)) : 20);
+                } catch (Exception e1) {
+                  nogo.radius = 20;
+                }
+              }
+              bIsNogoPoint = false;
+              sNogoName = null;
+              checkAddPoint("(one-for-all)", nogo);
+              tmpPts.clear();
+            }
           }
           break;
         }
