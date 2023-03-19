@@ -67,9 +67,7 @@ public class CoordinateReader {
    * (with hardcoded name for now)
    */
   public void readPointmap() throws IOException {
-    if (!_readPointmap(internalDir + "/favourites_bak.gpx")) {
-      _readPointmap(internalDir + "/favourites.gpx");
-    }
+    _readPointmap(internalDir + "/favourites.gpx");
 
     _readNogoLines(basedir + tracksdir);
   }
