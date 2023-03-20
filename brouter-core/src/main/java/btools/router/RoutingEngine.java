@@ -352,7 +352,7 @@ public class RoutingEngine extends Thread {
   }
 
   private void logException(Throwable t) {
-    errorMessage = t instanceof IllegalArgumentException ? t.getMessage() : t.toString();
+    errorMessage = t instanceof RuntimeException ? t.getMessage() : t.toString();
     logInfo("Error (linksProcessed=" + linksProcessed + " open paths: " + openSet.getSize() + "): " + errorMessage);
   }
 
