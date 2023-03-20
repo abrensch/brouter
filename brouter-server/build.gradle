@@ -13,7 +13,7 @@ application {
             attributes "Main-Class": getMainClass(), "Implementation-Version": project.version
         }
     }
-	
+
     task fatJar(type: Jar) {
         archiveFileName = 'brouter-' + project.version + '-all.jar'
 
@@ -34,7 +34,7 @@ application {
 }
 
 distZip {
-    dependsOn fatJar
+    dependsOn fatJar, ':brouter-routing-app:packageRelease'
     archiveFileName = 'brouter-' + project.version + '.zip'
 }
 
