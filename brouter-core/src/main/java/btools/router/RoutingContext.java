@@ -15,6 +15,7 @@ import btools.expressions.BExpressionContext;
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.mapaccess.GeometryDecoder;
+import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmNode;
 import btools.util.CheapAngleMeter;
@@ -299,6 +300,59 @@ public final class RoutingContext {
       if (goodGuy) nogos.add(nogo);
     }
     nogopoints = nogos.isEmpty() ? null : nogos;
+  }
+
+  public void checkMatchedWaypointAgainstNogos(List<MatchedWaypoint> matchedWaypoints) {
+    if (nogopoints == null) return;
+    List<MatchedWaypoint> newMatchedWaypoints = new ArrayList<>();
+    int theSize = matchedWaypoints.size();
+    int removed = 0;
+    MatchedWaypoint prevMwp = null;
+    boolean prevMwpIsInside = false;
+    for (int i = 0; i < theSize; i++) {
+      MatchedWaypoint mwp = matchedWaypoints.get(i);
+      boolean isInsideNogo = false;
+      OsmNode wp = mwp.crosspoint;
+      for (OsmNodeNamed nogo : nogopoints) {
+        if (wp.calcDistance(nogo) < nogo.radius
+          && (!(nogo instanceof OsmNogoPolygon)
+          || (((OsmNogoPolygon) nogo).isClosed
+          ? ((OsmNogoPolygon) nogo).isWithin(wp.ilon, wp.ilat)
+          : ((OsmNogoPolygon) nogo).isOnPolyline(wp.ilon, wp.ilat)))) {
+          isInsideNogo = true;
+          break;
+        }
+      }
+      if (isInsideNogo) {
+        boolean useAnyway = false;
+        if (prevMwp == null) useAnyway = true;
+        else if (mwp.direct) useAnyway = true;
+        else if (prevMwp.direct) useAnyway = true;
+        else if (prevMwpIsInside) useAnyway = true;
+        else if (i == theSize-1) {
+          throw new IllegalArgumentException("last wpt in restricted area ");
+        }
+        if (useAnyway) {
+          prevMwpIsInside = true;
+          newMatchedWaypoints.add(mwp);
+        } else {
+          removed++;
+          prevMwpIsInside = false;
+        }
+
+      } else {
+        prevMwpIsInside = false;
+        newMatchedWaypoints.add(mwp);
+      }
+      prevMwp = mwp;
+    }
+    if (newMatchedWaypoints.size() < 2) {
+      throw new IllegalArgumentException("a wpt in restricted area ");
+    }
+    if (removed > 0) {
+      matchedWaypoints.clear();
+      matchedWaypoints.addAll(newMatchedWaypoints);
+    }
   }
 
   public boolean allInOneNogo(List<OsmNode> waypoints) {

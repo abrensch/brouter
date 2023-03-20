@@ -20,6 +20,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 import btools.router.OsmNodeNamed;
@@ -71,12 +72,15 @@ public class BRouterService extends Service {
         worker.profileName = profile;
         worker.profilePath = baseDir + "/brouter/profiles2/" + profile + ".brf";
         worker.rawTrackPath = baseDir + "/brouter/modes/" + profile + "_rawtrack.dat";
-        if (!new File(worker.profilePath).exists())
+        if (!new File(worker.profilePath).exists()) {
           errMsg = "Profile " + profile + " does not exists";
-        try {
-          readNogos(worker, baseDir);
-        } catch (Exception e) {
-          errMsg = e.getLocalizedMessage();
+        } else {
+          try {
+            readNogos(worker, baseDir);
+            errMsg = getConfigFromModeForProfile(worker, baseDir, profile);
+          } catch (Exception e) {
+            errMsg = e.getLocalizedMessage();
+          }
         }
       } else {
         errMsg = getConfigFromMode(worker, baseDir, params.getString("v"), params.getString("fast"));
@@ -111,9 +115,20 @@ public class BRouterService extends Service {
       }
     }
 
+    private String getConfigFromModeForProfile(BRouterWorker worker, String baseDir, String profile) {
+      return getConfigFromMode(worker, baseDir, profile, null);
+    }
+
     private String getConfigFromMode(BRouterWorker worker, String baseDir, String mode, String fast) {
-      boolean isFast = "1".equals(fast) || "true".equals(fast) || "yes".equals(fast);
-      String mode_key = mode + "_" + (isFast ? "fast" : "short");
+      boolean isFast = false;
+      String profile = null;
+      String mode_key = null;
+      if (fast != null) {
+        isFast = "1".equals(fast) || "true".equals(fast) || "yes".equals(fast);
+        mode_key = mode + "_" + (isFast ? "fast" : "short");
+      } else {
+        profile = mode;
+      }
 
       BufferedReader br = null;
       try {
@@ -124,13 +139,31 @@ public class BRouterService extends Service {
           if (line == null)
             break;
           ServiceModeConfig smc = new ServiceModeConfig(line);
-          if (!smc.mode.equals(mode_key))
+          if (profile!=null && !smc.profile.equals(profile))
+            continue;
+          else if (profile==null && !smc.mode.equals(mode_key))
             continue;
           worker.profileName = smc.profile;
           worker.profilePath = baseDir + "/brouter/profiles2/" + smc.profile + ".brf";
           worker.rawTrackPath = baseDir + "/brouter/modes/" + mode_key + "_rawtrack.dat";
 
           readNogos(worker, baseDir);
+
+          // veto nogos by profiles veto list
+          List<OsmNodeNamed> nogoList = new ArrayList<>(worker.nogoList);
+          worker.nogoList.clear();
+          for (OsmNodeNamed nogo : nogoList) {
+            if (!smc.nogoVetos.contains(nogo.ilon + "," + nogo.ilat)) {
+              worker.nogoList.add(nogo);
+            }
+          }
+          List<OsmNodeNamed> nogoPolygonsList = new ArrayList<>(worker.nogoPolygonsList);
+          worker.nogoPolygonsList.clear();
+          for (OsmNodeNamed nogo : nogoPolygonsList) {
+            if (!smc.nogoVetos.contains(nogo.ilon + "," + nogo.ilat)) {
+              worker.nogoPolygonsList.add(nogo);
+            }
+          }
 
           return null;
         }
@@ -143,7 +176,7 @@ public class BRouterService extends Service {
           } catch (Exception ee) {
           }
       }
-      return "no brouter service config found for mode " + mode_key;
+      return "no brouter service config found for mode " + (mode_key!=null?mode_key:profile);
     }
 
     private String getConfigForRemoteProfile(BRouterWorker worker, String baseDir, String remoteProfile) {

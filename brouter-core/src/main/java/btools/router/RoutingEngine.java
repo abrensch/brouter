@@ -446,6 +446,8 @@ public class RoutingEngine extends Thread {
       }
       matchWaypointsToNodes(matchedWaypoints);
 
+      routingContext.checkMatchedWaypointAgainstNogos(matchedWaypoints);
+
       // detect target islands: restricted search in inverse direction
       routingContext.inverseDirection = !routingContext.inverseRouting;
       airDistanceCostFactor = 0.;
