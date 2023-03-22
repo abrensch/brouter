@@ -91,7 +91,7 @@ public class OsmParser extends MapCreatorBase {
 
   public void addNode(long nid, Map<String, String> tags, double lat, double lon) {
     NodeData n = new NodeData(nid, lon, lat);
-    n.setTags((HashMap<String, String>) tags);
+    n.setTags(tags);
     try {
       nListener.nextNode(n);
     } catch (Exception e) {
