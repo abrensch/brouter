@@ -287,10 +287,17 @@ public class DownloadWorker extends Worker {
           String profileLocation = mServerConfig.getProfilesUrl() + fileName;
           URL profileUrl = new URL(profileLocation);
           int size = (int) (profileFile.exists() ? profileFile.length() : 0);
-          downloadProgressListener.onDownloadStart(fileName, DownloadType.PROFILE);
-          downloadFile(profileUrl, profileFile, size, false, DownloadType.PROFILE);
-          downloadProgressListener.onDownloadFinished();
-          done.add(profileUrl);
+
+          try {
+            downloadProgressListener.onDownloadStart(fileName, DownloadType.PROFILE);
+            downloadFile(profileUrl, profileFile, size, false, DownloadType.PROFILE);
+            downloadProgressListener.onDownloadFinished();
+            done.add(profileUrl);
+          } catch (IOException e) {
+            // no need to block other updates
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e.getMessage());
+          }
         }
       }
     }
