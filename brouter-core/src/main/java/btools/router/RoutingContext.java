@@ -304,9 +304,10 @@ public final class RoutingContext {
 
   public void checkMatchedWaypointAgainstNogos(List<MatchedWaypoint> matchedWaypoints) {
     if (nogopoints == null) return;
-    List<MatchedWaypoint> newMatchedWaypoints = new ArrayList<>();
     int theSize = matchedWaypoints.size();
+    if (theSize<2) return;
     int removed = 0;
+    List<MatchedWaypoint> newMatchedWaypoints = new ArrayList<>();
     MatchedWaypoint prevMwp = null;
     boolean prevMwpIsInside = false;
     for (int i = 0; i < theSize; i++) {
@@ -314,7 +315,8 @@ public final class RoutingContext {
       boolean isInsideNogo = false;
       OsmNode wp = mwp.crosspoint;
       for (OsmNodeNamed nogo : nogopoints) {
-        if (wp.calcDistance(nogo) < nogo.radius
+        if (Double.isNaN(nogo.nogoWeight)
+          && wp.calcDistance(nogo) < nogo.radius
           && (!(nogo instanceof OsmNogoPolygon)
           || (((OsmNogoPolygon) nogo).isClosed
           ? ((OsmNogoPolygon) nogo).isWithin(wp.ilon, wp.ilat)
