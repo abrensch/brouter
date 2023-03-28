@@ -9,7 +9,6 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Rect;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -258,6 +257,8 @@ public class BRouterView extends View {
       ConfigMigration.tryMigrateStorageConfig(
         new File(basedir + "/brouter/segments3/storageconfig.txt"),
         new File(basedir + "/brouter/segments4/storageconfig.txt"));
+    } else {
+      ServerConfig.checkForUpdate(getContext(), segmentDir, "segments4.zip");
     }
     profileDir = new File(basedir, "brouter/profiles2");
     assertDirectoryExists("profile directory", profileDir, "profiles2.zip", version);
@@ -582,6 +583,7 @@ public class BRouterView extends View {
 
       }
     }
+
     if (!path.exists() || !path.isDirectory())
       throw new IllegalArgumentException(message + ": " + path + " cannot be created");
     return false;
