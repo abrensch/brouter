@@ -52,6 +52,10 @@ offline routing on an Android smartphone.
 See the [revision history](revisions.md) for older revisions of the app and the
 change-log.
 
+### Privacy Policy
+
+Please see [privacy policy](privacy_policy.md)
+
 ### Google group for support questions and feedback
 
 Please use the
