@@ -20,6 +20,8 @@ android {
         minSdkVersion 14
         targetSdkVersion 33
 
+        resConfigs "en"
+
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -143,6 +145,7 @@ task generateReadmesZip(type: Zip) {
         include("users/android_advanced.md")
         include("developers/profile_developers_guide.md")
         include("developers/build_segments.md")
+        include("privacy_policy.md")
     }
     destinationDirectory = layout.buildDirectory.dir("assets")
 }
