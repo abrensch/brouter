@@ -34,7 +34,7 @@ application {
 }
 
 distZip {
-    dependsOn fatJar, ':brouter-routing-app:packageRelease'
+    dependsOn fatJar
     archiveFileName = 'brouter-' + project.version + '.zip'
 }
 
