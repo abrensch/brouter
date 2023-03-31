@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: BRouter
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up JDK 11
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
         java-version: '11'
         distribution: 'zulu'
@@ -34,10 +34,10 @@ jobs:
         ORG_GRADLE_PROJECT_RELEASE_STORE_FILE: ${{ secrets.BROUTER_KEYSTORE_FILE }}
         ORG_GRADLE_PROJECT_RELEASE_KEY_ALIAS: ${{ secrets.BROUTER_KEY_ALIAS }}
         ORG_GRADLE_PROJECT_RELEASE_KEY_PASSWORD: ${{ secrets.BROUTER_KEY_PASSWORD }}
-        ORG_GRADLE_PROJECT_RELEASE_STORE_PASSWORD: ${{ secrets.BROUTER_STORE_PASSWORD }} 
+        ORG_GRADLE_PROJECT_RELEASE_STORE_PASSWORD: ${{ secrets.BROUTER_STORE_PASSWORD }}
       run: ./gradlew build
     - name: Upload ZIP
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ZIP
         path: brouter-server/build/distributions/brouter-*.zip

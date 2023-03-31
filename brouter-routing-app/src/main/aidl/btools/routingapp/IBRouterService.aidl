@@ -23,7 +23,7 @@ interface IBRouterService {
     //                      variantes: lon,lat,d|... (from this point to the next  do a direct line)
     //                                 lon,lat,name|... (route point has a name and should not be ignored)
     //  "straight"        = idx1,idx2,.. (optional, minimum one value, index of a direct routing point in the waypoint list)
-    //  "nogos"           = lon,lat,radius|... (optional, radius in meters)
+    //  "nogos"           = lon,lat,radius,weight|... (optional, list of lon, lat, radius in meters, weight (optional))
     //  "polylines"       = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
     //  "polygons"        = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
     //  "profile"         = profile file name without .brf
