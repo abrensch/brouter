@@ -87,14 +87,13 @@ assign defaultaccess
 # calculate logical bike access
 #
 assign bikeaccess =
-       or any_cycleroute
-          switch bicycle=
-                 switch bicycle_road=yes
-                    true
-                    switch vehicle=
-                           ( if highway=footway then false else defaultaccess )
-                           not vehicle=private|no
-                 not or bicycle=private or bicycle=no bicycle=dismount
+       switch bicycle=
+              switch bicycle_road=yes
+                 true
+                 switch vehicle=
+                        ( if highway=footway then false else defaultaccess )
+                        not vehicle=private|no
+              not or bicycle=private or bicycle=no bicycle=dismount
 
 #
 # calculate logical foot access
@@ -115,7 +114,9 @@ assign accesspenalty
               0
               switch footaccess
                      6
-                     10000
+                     switch any_cycleroute
+                            15
+                            10000
 
 #
 # handle one-ways. On primary roads, wrong-oneways should
