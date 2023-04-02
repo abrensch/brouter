@@ -155,7 +155,9 @@ assign badoneway =
 assign onewaypenalty =
        if ( badoneway ) then
        (
-         if ( cycleway=opposite|opposite_lane|opposite_track ) then 0
+         if      ( cycleway=opposite|opposite_lane|opposite_track       ) then 0
+         else if ( cycleway:left=opposite|opposite_lane|opposite_track  ) then 0
+         else if ( cycleway:right=opposite|opposite_lane|opposite_track ) then 0
          else if ( oneway:bicycle=no                         ) then 0
          else if ( highway=primary|primary_link              ) then 50
          else if ( highway=secondary|secondary_link          ) then 30
