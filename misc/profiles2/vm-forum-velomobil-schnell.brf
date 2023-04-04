@@ -98,6 +98,7 @@ assign onewaypenalty
  switch switch reversedirection=yes oneway oneway=-1
   switch or cycleway=opposite or cycleway=opposite_lane or cycleway=opposite_track oneway:bicycle=no 0 #zusätzliche Kosten für in Gegenrichtung für Radfahrer freigegebene Einbahnstraßen in Gegenrichtung
   switch no_wrong_oneway 10000
+  switch junction=roundabout|circular 60
   switch or highway=primary highway=primary_link 50 #zusätzliche Kosten für Bundesstraßen Einbahnstraßen in Gegenrichtung
   switch or highway=secondary highway=secondary_link 30 #zusätzliche Kosten für Landstraßen Einbahnstraßen in Gegenrichtung
   switch or highway=tertiary highway=tertiary_link 25 #zusätzliche Kosten für Kreisstraßen Einbahnstraßen in Gegenrichtung
