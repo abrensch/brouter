@@ -51,6 +51,7 @@ public class BInstallerActivity extends AppCompatActivity {
   private static final int DIALOG_CONFIRM_DELETE_ID = 1;
   private static final int DIALOG_CONFIRM_NEXTSTEPS_ID = 2;
   private static final int DIALOG_CONFIRM_GETDIFFS_ID = 3;
+  private static final int DIALOG_NEW_APP_NEEDED_ID = 4;
 
   public static final int MY_PERMISSIONS_REQUEST_NITIFICATION = 100;
 
@@ -309,7 +310,9 @@ public class BInstallerActivity extends AppCompatActivity {
           }
         }
 
-        if (error != null && error.startsWith("Version error")) {
+        if (error != null && error.startsWith("error new app")) {
+          showAppUpdate();
+        } else if (error != null && error.startsWith("Version error")) {
           showConfirmNextSteps();
         } else if (error != null && error.startsWith("Version diffs")) {
           showConfirmGetDiffs();
@@ -393,7 +396,16 @@ public class BInstallerActivity extends AppCompatActivity {
             }
           });
         return builder.create();
-
+      case DIALOG_NEW_APP_NEEDED_ID:
+        builder
+          .setTitle("App Version")
+          .setMessage("The new data version needs a new app. Please update BRouter first")
+          .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+              finish();
+            }
+          });
+        return builder.create();
       default:
         return null;
     }
@@ -414,6 +426,10 @@ public class BInstallerActivity extends AppCompatActivity {
 
   private void showConfirmGetDiffs() {
     showADialog(DIALOG_CONFIRM_GETDIFFS_ID);
+  }
+
+  private void showAppUpdate() {
+    showADialog(DIALOG_NEW_APP_NEEDED_ID);
   }
 
 
