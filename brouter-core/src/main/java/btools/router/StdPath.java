@@ -5,8 +5,6 @@
  */
 package btools.router;
 
-import btools.util.FastMath;
-
 final class StdPath extends OsmPath {
   /**
    * The elevation-hysteresis-buffer (0-10 m)
@@ -200,7 +198,7 @@ final class StdPath extends OsmPath {
     } else if (elevation_buffer < -min_delta) {
       shift = min_delta;
     }
-    double decayFactor = FastMath.exp(-dist / 100.);
+    double decayFactor = Math.exp(-dist / 100.);
     float new_elevation_buffer = (float) ((elevation_buffer + shift) * decayFactor - shift);
     double incline = (elevation_buffer - new_elevation_buffer) / dist;
     elevation_buffer = new_elevation_buffer;
@@ -227,7 +225,7 @@ final class StdPath extends OsmPath {
     double f_roll = rc.totalMass * GRAVITY * (rc.defaultC_r + incline);
     if (rc.footMode) {
       // Use Tobler's hiking function for walking sections
-      speed = rc.maxSpeed * FastMath.exp(-3.5 * Math.abs(incline + 0.05));
+      speed = rc.maxSpeed * Math.exp(-3.5 * Math.abs(incline + 0.05));
     } else if (rc.bikeMode) {
       speed = solveCubic(rc.S_C_x, f_roll, rc.bikerPower);
       speed = Math.min(speed, maxSpeed);
