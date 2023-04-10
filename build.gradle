@@ -17,10 +17,11 @@ buildscript {
 
 allprojects {
     // NOTE:
-    // there are three places to change the version number
+    // there are four places to change the version number
     // this file
     // app: build.gradle (versionCode only)
     // OsmTrack (version and versionDate)
+    // docs revisions.md (version and versionDate)
     project.version  "1.6.3"
     group 'org.btools'
 
