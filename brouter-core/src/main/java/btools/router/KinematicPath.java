@@ -5,9 +5,6 @@
  */
 package btools.router;
 
-import btools.util.FastMath;
-
-
 final class KinematicPath extends OsmPath {
   private double ekin; // kinetic energy (Joule)
   private double totalTime;  // travel time (seconds)
@@ -57,7 +54,7 @@ final class KinematicPath extends OsmPath {
 
         double curveSpeed = aa > 10. ? 200. / aa : 20.;
         double distanceTime = dist / curveSpeed;
-        double decayFactor = FastMath.exp(-distanceTime / km.turnAngleDecayTime);
+        double decayFactor = Math.exp(-distanceTime / km.turnAngleDecayTime);
         floatingAngleLeft = (float) (floatingAngleLeft * decayFactor);
         floatingAngleRight = (float) (floatingAngleRight * decayFactor);
 
