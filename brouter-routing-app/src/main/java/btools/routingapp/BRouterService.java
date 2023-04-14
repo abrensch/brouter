@@ -58,7 +58,7 @@ public class BRouterService extends Service {
       worker.baseDir = baseDir;
       worker.segmentDir = new File(baseDir, "brouter/segments4");
 
-      String remoteProfile = params.getString("remoteProfile");
+      String remoteProfile = params.getString("remoteProfile", null);
 
       if (remoteProfile == null) {
         remoteProfile = checkForTestDummy(baseDir);
@@ -77,7 +77,6 @@ public class BRouterService extends Service {
         } else {
           try {
             readNogos(worker, baseDir);
-            errMsg = getConfigFromModeForProfile(worker, baseDir, profile);
           } catch (Exception e) {
             errMsg = e.getLocalizedMessage();
           }
@@ -115,20 +114,9 @@ public class BRouterService extends Service {
       }
     }
 
-    private String getConfigFromModeForProfile(BRouterWorker worker, String baseDir, String profile) {
-      return getConfigFromMode(worker, baseDir, profile, null);
-    }
-
     private String getConfigFromMode(BRouterWorker worker, String baseDir, String mode, String fast) {
-      boolean isFast = false;
-      String profile = null;
-      String mode_key = null;
-      if (fast != null) {
-        isFast = "1".equals(fast) || "true".equals(fast) || "yes".equals(fast);
-        mode_key = mode + "_" + (isFast ? "fast" : "short");
-      } else {
-        profile = mode;
-      }
+      boolean isFast = "1".equals(fast) || "true".equals(fast) || "yes".equals(fast);
+      String mode_key = mode + "_" + (isFast ? "fast" : "short");
 
       BufferedReader br = null;
       try {
@@ -139,9 +127,7 @@ public class BRouterService extends Service {
           if (line == null)
             break;
           ServiceModeConfig smc = new ServiceModeConfig(line);
-          if (profile!=null && !smc.profile.equals(profile))
-            continue;
-          else if (profile==null && !smc.mode.equals(mode_key))
+          if (!smc.mode.equals(mode_key))
             continue;
           worker.profileName = smc.profile;
           worker.profilePath = baseDir + "/brouter/profiles2/" + smc.profile + ".brf";
@@ -176,7 +162,7 @@ public class BRouterService extends Service {
           } catch (Exception ee) {
           }
       }
-      return "no brouter service config found for mode " + (mode_key!=null?mode_key:profile);
+      return "no brouter service config found for mode " + mode_key;
     }
 
     private String getConfigForRemoteProfile(BRouterWorker worker, String baseDir, String remoteProfile) {

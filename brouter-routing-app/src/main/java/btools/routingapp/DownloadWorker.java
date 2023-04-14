@@ -70,6 +70,8 @@ public class DownloadWorker extends Worker {
   private List<URL> done = new ArrayList<>();
 
   int version = -1;
+  int appversion = -1;
+  String errorCode = null;
 
   public DownloadWorker(
     @NonNull Context context,
@@ -171,7 +173,7 @@ public class DownloadWorker extends Worker {
     try {
       if (DEBUG) Log.d(LOG_TAG, "Download lookup & profiles");
       if (!downloadLookup()) {
-        output.putString(KEY_OUTPUT_ERROR, "Version error");
+        output.putString(KEY_OUTPUT_ERROR, (errorCode != null ? errorCode : "Version error"));
         return Result.failure(output.build());
       }
 
@@ -229,11 +231,13 @@ public class DownloadWorker extends Worker {
   private boolean downloadLookup() throws IOException, InterruptedException {
     String[] lookups = mServerConfig.getLookups();
     for (String fileName : lookups) {
+      appversion = BuildConfig.VERSION_CODE;
       if (fileName.length() > 0) {
         File lookupFile = new File(baseDir, PROFILES_DIR + fileName);
         BExpressionMetaData meta = new BExpressionMetaData();
         meta.readMetaData(lookupFile);
         version = meta.lookupVersion;
+        int newappversion = meta.minAppVersion;
 
         int size = (int) (lookupFile.exists() ? lookupFile.length() : 0);
         File tmplookupFile = new File(baseDir, PROFILES_DIR + fileName + ".tmp");
@@ -244,6 +248,7 @@ public class DownloadWorker extends Worker {
           versionChanged = true;
           meta.readMetaData(lookupFile);
           version = meta.lookupVersion;
+          newappversion = meta.minAppVersion;
         } else {
           String lookupLocation = mServerConfig.getLookupUrl() + fileName;
           URL lookupUrl = new URL(lookupLocation);
@@ -252,12 +257,22 @@ public class DownloadWorker extends Worker {
           downloadProgressListener.onDownloadFinished();
           done.add(lookupUrl);
         }
-        if (changed && downloadAll == VALUE_SEGMENT_PARTS) {
+        int newversion = version;
+        if (changed) {
           meta = new BExpressionMetaData();
           meta.readMetaData(tmplookupFile);
-          int newversion = meta.lookupVersion;
+          newversion = meta.lookupVersion;
+          newappversion = meta.minAppVersion;
+        }
+        if (newappversion != -1 && newappversion > appversion) {
+          if (DEBUG) Log.d(LOG_TAG, "app version old " + appversion + " new " + newappversion);
+          errorCode = "error new app";
+          return false;
+        }
+        if (changed && downloadAll == VALUE_SEGMENT_PARTS) {
           if (DEBUG) Log.d(LOG_TAG, "version old " + version + " new " + newversion);
           if (version != newversion) {
+            errorCode = "Version error";
             return false;
           }
         } else if (changed) {
