@@ -29,7 +29,6 @@ public class BRouterService extends Service {
 
   @Override
   public IBinder onBind(Intent arg0) {
-    Log.d(getClass().getSimpleName(), "onBind()");
     return myBRouterServiceStub;
   }
 
@@ -277,13 +276,11 @@ public class BRouterService extends Service {
   @Override
   public void onCreate() {
     super.onCreate();
-    Log.d(getClass().getSimpleName(), "onCreate()");
   }
 
   @Override
   public void onDestroy() {
     super.onDestroy();
-    Log.d(getClass().getSimpleName(), "onDestroy()");
   }
 
   // This is the old onStart method that will be called on the pre-2.0
