@@ -10,14 +10,12 @@
 
 ---context:global
 
-assign   consider_elevation       1    # 0 as default, otherwise less interesting flat roads are chosen.
+assign   consider_elevation       true    # %consider_elevation% | Set to false, otherwise less interesting flat roads are chosen  | boolean
+
 assign   shortest_way             0    # 0 as default, duplicate shortest standard profile, SAC access limit ignored for now
 
-assign   turnInstructionMode  =   1       # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style]
-assign   turnInstructionCatchingRange  20 # V1.8.5 / default=40, but foot paths may be more distingushed, especially in cities.
-
-assign   iswet                     0       # 0 as default, 1 tries to prevent muddy boots and wet buttocks
-assign   hiking_routes_preference  0.20    # 0.10 as default, Increases cost of non hiking routes by multiplier 1 + hiking_routes_preference
+assign   iswet                     0       # %iswet% | tries to prevent muddy boots and wet buttocks | boolean
+assign   hiking_routes_preference  0.20    # %hiking_routes_preference% | Increases cost of non hiking routes by multiplier 1 + hiking_routes_preference (0.10 to 2.0) | number
 
 assign   Offroad_factor           0.0 # default 0.0, see ****), see also https://github.com/poutnikl/Brouter-profiles/wiki/Trekking-MTB-Profiles---legend
 
@@ -25,9 +23,9 @@ assign   path_preference          0.0 # 0.0 as default, try 20.0 to penalize non
 
 #SAC - mountain hiking - see http://wiki.openstreetmap.org/wiki/Key:sac_scale
 
-assign   SAC_scale_limit          3    # 0..6, 0 to avoid any SAC paths, 1 for T1 as maximum, 6 for T6 as maximum
-                                       # all paths with sac_scale higher than  SAC_scale_limit are forbidden.
-assign   SAC_scale_preferred      1    # The same, but the preferred SAC scale level. Level below are slightly, above strongly penalized
+assign   SAC_scale_limit          3    # %SAC_scale_limit% | all paths with sac_scale higher than  SAC_scale_limit are forbidden | [0=avoid any SAC paths, 1=SAC T1, 2=SAC T2, 3=SAC T3, 4=SAC T4, 5=SAC T5, 6=SAC T6]
+assign   SAC_scale_preferred      1    # %SAC_scale_preferred% | The same, but the preferred SAC scale level. Level below are slightly, above strongly penalized | [0=avoid any SAC paths, 1=SAC T1, 2=SAC T2, 3=SAC T3, 4=SAC T4, 5=SAC T5, 6=SAC T6]
+
 assign   SAC_access_penalty       9000 # costfactor 9999 means the most horrible but allowed road.,
                                        # 100000=forbidden. This makes difference if forbidden way is the only option.
 assign  SAC_K1 0.05                    # Penalizing of SAC levels below preferred
@@ -38,13 +36,19 @@ assign   turncost_value           0 # not used now
 assign   initialcost_value        0 # not used now
 
 #less frequently changed flags
-assign   allow_steps              1  # 1 as default
-assign   allow_ferries            1  # 1 as default
+assign   allow_steps              true   # %allow_steps% | Set to false to disallow steps | boolean
+assign   allow_ferries            true   # %allow_ferries% | set to false to disallow ferries | boolean
+
 assign   cost_of_unknown          2  # 2 as default
+
 #
 assign   elevationpenaltybuffer     5    # 5 as default
 assign   elevationmaxbuffer         10   # 10 as default
 assign   elevationbufferreduce      1.0  # 0.0 as default
+
+assign   turnInstructionMode  =   1       # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style]
+assign   turnInstructionCatchingRange  20 # V1.8.5 / default=40, but foot paths may be more distingushed, especially in cities.
+
 
 # as initial point, considered flat speed 4 km/h, climbing speed 600 m /h
 assign   uphillcostvalue      7
