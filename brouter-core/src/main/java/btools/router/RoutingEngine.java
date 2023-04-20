@@ -690,20 +690,10 @@ public class RoutingEngine extends Thread {
   }
 
   private void recalcTrack(OsmTrack t) {
-
-    int i = 0;
-
-    int lon0,
-      lat0,
-      lon1,
-      lat1,
-      lon2,
-      lat2;
     int totaldist = 0;
     int totaltime = 0;
     float lasttime = 0;
     float lastenergy = 0;
-    float speed_avg = 0;
     float speed_min = 9999;
     Map<Integer, Integer> directMap = new HashMap<>();
     float tmptime = 1;
@@ -719,38 +709,28 @@ public class RoutingEngine extends Thread {
     short ele_end = Short.MIN_VALUE;
     double eleFactor = routingContext.inverseRouting ? 0.25 : -0.25;
 
-    for (i = 0; i < ourSize; i++) {
+    for (int i = 0; i < ourSize; i++) {
       OsmPathElement n = t.nodes.get(i);
       if (n.message == null) n.message = new MessageData();
       OsmPathElement nLast = null;
       if (i == 0) {
-        lon0 = t.nodes.get(0).getILon();
-        lat0 = t.nodes.get(0).getILat();
-        lon1 = t.nodes.get(0).getILat();
-        lat1 = t.nodes.get(0).getILat();
-        lon2 = t.nodes.get(i).getILon();
-        lat2 = t.nodes.get(i).getILat();
+        angle = 0;
         dist = 0;
       } else if (i == 1) {
-        lon0 = t.nodes.get(0).getILon();
-        lat0 = t.nodes.get(0).getILat();
-        lon1 = t.nodes.get(1).getILon();
-        lat1 = t.nodes.get(1).getILat();
-        lon2 = t.nodes.get(i).getILon();
-        lat2 = t.nodes.get(i).getILat();
+        angle = 0;
         nLast = t.nodes.get(0);
         dist = nLast.calcDistance(n);
       } else {
-        lon0 = t.nodes.get(i - 2).getILon();
-        lat0 = t.nodes.get(i - 2).getILat();
-        lon1 = t.nodes.get(i - 1).getILon();
-        lat1 = t.nodes.get(i - 1).getILat();
-        lon2 = t.nodes.get(i).getILon();
-        lat2 = t.nodes.get(i).getILat();
+        int lon0 = t.nodes.get(i - 2).getILon();
+        int lat0 = t.nodes.get(i - 2).getILat();
+        int lon1 = t.nodes.get(i - 1).getILon();
+        int lat1 = t.nodes.get(i - 1).getILat();
+        int lon2 = t.nodes.get(i).getILon();
+        int lat2 = t.nodes.get(i).getILat();
+        angle = routingContext.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
         nLast = t.nodes.get(i - 1);
         dist = nLast.calcDistance(n);
       }
-      angle = routingContext.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
       n.message.linkdist = dist;
       n.message.turnangle = (float) angle;
       totaldist += dist;
