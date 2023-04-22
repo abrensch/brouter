@@ -249,7 +249,7 @@ public class RoutingEngine extends Thread {
     int ourSize = track.nodes.size();
     for (int idx = 0; idx < ourSize; idx++) {
       OsmPathElement n = track.nodes.get(idx);
-      if (n.getSElev() == Short.MIN_VALUE && lastElev != Short.MIN_VALUE && idx < ourSize-1) {
+      if (n.getSElev() == Short.MIN_VALUE && lastElev != Short.MIN_VALUE && idx < ourSize - 1) {
         // start one point before entry point to get better elevation results
         if (idx > 1)
           startElev = track.nodes.get(idx - 2).getSElev();
@@ -549,12 +549,6 @@ public class RoutingEngine extends Thread {
       ArrayList<OsmPathElement> removeBackList = new ArrayList<>();
       ArrayList<OsmPathElement> removeForeList = new ArrayList<>();
       ArrayList<Integer> removeVoiceHintList = new ArrayList<>();
-      int lon0,
-        lat0,
-        lon1,
-        lat1,
-        lon2,
-        lat2;
       OsmPathElement last = null;
       OsmPathElement lastJunction = null;
       CompactLongMap<OsmTrack.OsmPathElementHolder> lastJunctions = new CompactLongMap<>();
@@ -571,6 +565,18 @@ public class RoutingEngine extends Thread {
         int junctions = 0;
         tmpback = tt.nodes.get(indexback);
         tmpfore = t.nodes.get(indexfore);
+        if (tmpback.message != null && tmpback.message.isRoundabout()) {
+          removeBackList.clear();
+          removeForeList.clear();
+          removeVoiceHintList.clear();
+          return false;
+        }
+        if (tmpfore.message != null && tmpfore.message.isRoundabout()) {
+          removeBackList.clear();
+          removeForeList.clear();
+          removeVoiceHintList.clear();
+          return false;
+        }
         int dist = tmpback.calcDistance(tmpfore);
         if (1 == 1) {
           OsmTrack.OsmPathElementHolder detours = tt.getFromDetourMap(tmpback.getIdFromPos());
