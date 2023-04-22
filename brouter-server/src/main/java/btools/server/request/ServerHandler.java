@@ -109,8 +109,8 @@ public class ServerHandler extends RequestHandler {
       }
     }
 
-    wplist.get(0).name = "from";
-    wplist.get(wplist.size() - 1).name = "to";
+    if (wplist.get(0).name.startsWith("via")) wplist.get(0).name = "from";
+    if (wplist.get(wplist.size() - 1).name.startsWith("via")) wplist.get(wplist.size() - 1).name = "to";
 
     return wplist;
   }
