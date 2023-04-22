@@ -42,5 +42,5 @@ This parameters are needed to tell BRouter what to do.
 ### profile parameter
 
 Profile parameters affect the result of a profile.
-For the app it is a list of params concated by '&'. E.g. extraParams=avoidferry=1&avoidsteps=0
+For the app it is a list of params concatenated by '&'. E.g. extraParams=avoidferry=1&avoidsteps=0
 The server calls profile params by a prefix 'profile:'. E.g. ...&profile:avoidferry=1&profile:avoidsteps=0
