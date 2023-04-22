@@ -266,7 +266,7 @@ public class DownloadWorker extends Worker {
         }
         if (newappversion != -1 && newappversion > appversion) {
           if (DEBUG) Log.d(LOG_TAG, "app version old " + appversion + " new " + newappversion);
-          errorCode = "error new app";
+          errorCode = "Version new app";
           return false;
         }
         if (changed && downloadAll == VALUE_SEGMENT_PARTS) {
@@ -375,36 +375,42 @@ public class DownloadWorker extends Worker {
     connection.setConnectTimeout(5000);
     connection.setRequestMethod("HEAD");
     connection.setDoInput(false);
-    connection.connect();
+    try {
+      connection.connect();
+      return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
+    } finally {
+      connection.disconnect();
+    }
 
-    return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
   }
 
   private boolean downloadFile(URL downloadUrl, File outputFile, int fileSize, boolean limitDownloadSpeed, DownloadType type) throws IOException, InterruptedException {
     if (DEBUG) Log.d(LOG_TAG, "download " + outputFile.getAbsolutePath());
     HttpURLConnection connection = (HttpURLConnection) downloadUrl.openConnection();
     connection.setConnectTimeout(5000);
-    connection.connect();
+    connection.setDefaultUseCaches(false);
 
-    if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-      throw new IOException("HTTP Request failed: " + downloadUrl + " returned " + connection.getResponseCode());
-    }
-    int dataLength = connection.getContentLength();
-    // no need of download when size equal
-    // file size not the best coice but easy to handle, date is not available
-    switch (type) {
-      case LOOKUP:
-        if (fileSize == dataLength) return false;
-        break;
-      case PROFILE:
-        if (fileSize == dataLength) return false;
-        break;
-      default:
-        break;
-    }
     InputStream input = null;
     OutputStream output = null;
     try {
+      connection.connect();
+
+      if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+        throw new IOException("HTTP Request failed: " + downloadUrl + " returned " + connection.getResponseCode());
+      }
+      int dataLength = connection.getContentLength();
+      // no need of download when size equal
+      // file size not the best coice but easy to handle, date is not available
+      switch (type) {
+        case LOOKUP:
+          if (fileSize == dataLength) return false;
+          break;
+        case PROFILE:
+          if (fileSize == dataLength) return false;
+          break;
+        default:
+          break;
+      }
       input = connection.getInputStream();
       output = new FileOutputStream(outputFile);
 

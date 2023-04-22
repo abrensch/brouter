@@ -21,7 +21,7 @@ elevation-enabled routing tools. However, the routing algorithm is able to
 extract the information on real ascends and descends and ignores the noise.
 
 For latitudes above 60 degree in northern Europe, BRouter uses Lidar data, that
-were [compiled and resampled by Sonny](https://data.opendataportal.at/dataset/dtm-europe)
+were [compiled and resampled by Sonny](https://sonny.4lima.de/)
 
 On the reporting side, BRouter uses a similar concept to compute the *filtered
 ascend*, which is the ascend without the noise and the small hills and which
