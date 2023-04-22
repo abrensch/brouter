@@ -613,7 +613,10 @@ public final class OsmTrack {
       }
     }
     sb.append(" <trk>\n");
-    if (turnInstructionMode == 9) { // brouter style
+    if (turnInstructionMode == 9
+      || turnInstructionMode == 2
+      || turnInstructionMode == 8
+      || turnInstructionMode == 4) { // Locus, comment, cruise, brouter style
       sb.append("  <src>").append(name).append("</src>\n");
       sb.append("  <type>").append(voiceHints.getTransportMode()).append("</type>\n");
     } else {
@@ -644,14 +647,19 @@ public final class OsmTrack {
       if (showTime) {
         sele += "<time>" + getFormattedTime3(n.getTime()) + "</time>";
       }
-
+      if (turnInstructionMode == 8) {
+        if (mwpt != null &&
+          !mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
+          sele += "<name>" + mwpt.name + "</name>";
+        }
+      }
       boolean bNeedHeader = false;
       if (turnInstructionMode == 9) { // trkpt/sym style
 
         if (hint != null) {
 
           if (mwpt != null &&
-            !mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("end")) {
+            !mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
             sele += "<name>" + mwpt.name + "</name>";
           }
           sele += "<desc>" + hint.getCruiserMessageString() + "</desc>";
@@ -741,17 +749,23 @@ public final class OsmTrack {
       if (turnInstructionMode == 2) { // locus style new
         if (hint != null) {
           if (mwpt != null) {
+            if (!mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
+              sele += "<name>" + mwpt.name + "</name>";
+            }
             if (mwpt.direct && bNextDirect) {
               sele += "<src>" + hint.getLocusSymbolString() + "</src><sym>pass_place</sym><type>Shaping</type>";
               // bNextDirect = false;
             } else if (mwpt.direct) {
-              sele += "<sym>pass_place</sym><type>Shaping</type>";
+              if (idx == 0)
+                sele += "<sym>pass_place</sym><type>Via</type>";
+              else
+                sele += "<sym>pass_place</sym><type>Shaping</type>";
               bNextDirect = true;
             } else if (bNextDirect) {
               sele += "<src>beeline</src><sym>" + hint.getLocusSymbolString() + "</sym><type>Shaping</type>";
               bNextDirect = false;
             } else {
-              sele += "<sym>" + hint.getLocusSymbolString() + "</sym>";
+              sele += "<sym>" + hint.getLocusSymbolString() + "</sym><type>Via</type>";
             }
           } else {
             sele += "<sym>" + hint.getLocusSymbolString() + "</sym>";
@@ -787,28 +801,27 @@ public final class OsmTrack {
 
           } else {
             if (mwpt != null) {
-              if (sele.contains("sym") &&
-                !sele.contains("name") &&
-                !mwpt.name.startsWith("via") &&
-                !mwpt.name.startsWith("from") &&
-                !mwpt.name.startsWith("to")) {
-                int pos = sele.indexOf("<sym");
-                if (pos != -1)
-                  sele = sele.substring(0, pos) + "<name>" + mwpt.name + "</name>" + sele.substring(pos) + "<type>Via</type>";
-              } else if (sele.contains("sym") && mwpt.name.startsWith("via")) {
-                sele += "<type>Via</type>";
-              } else if (mwpt.direct && bNextDirect) {
+              if (!mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
+                sele += "<name>" + mwpt.name + "</name>";
+              }
+              if (mwpt.direct && bNextDirect) {
                 sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
               } else if (mwpt.direct) {
-                sele += "<sym>pass_place</sym><type>Shaping</type>";
+                if (idx == 0)
+                  sele += "<sym>pass_place</sym><type>Via</type>";
+                else
+                  sele += "<sym>pass_place</sym><type>Shaping</type>";
                 bNextDirect = true;
+              } else if (bNextDirect) {
+                sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
+                bNextDirect = false;
               } else if (mwpt.name.startsWith("via") ||
                 mwpt.name.startsWith("from") ||
                 mwpt.name.startsWith("to")) {
                 if (bNextDirect) {
                   sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
                 } else {
-                  sele += "<sym>pass_place</sym><type>Shaping</type>";
+                  sele += "<sym>pass_place</sym><type>Via</type>";
                 }
                 bNextDirect = false;
               } else {
