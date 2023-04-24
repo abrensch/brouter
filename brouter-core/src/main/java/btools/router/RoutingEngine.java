@@ -338,8 +338,9 @@ public class RoutingEngine extends Thread {
         }
       } else if (n.getSElev() == Short.MIN_VALUE && idx == track.nodes.size() - 1) {
         // fill at end
+        startIdx = idx;
         for (int i = startIdx; i < track.nodes.size(); i++) {
-          track.nodes.get(i).setSElev(startElev);
+          track.nodes.get(i).setSElev(lastElev);
         }
       } else if (n.getSElev() == Short.MIN_VALUE) {
         if (lastPt != null)
@@ -474,6 +475,7 @@ public class RoutingEngine extends Thread {
       }
     }
 
+    OsmPath.seg = 1; // set segment counter
     for (int i = 0; i < matchedWaypoints.size() - 1; i++) {
       if (lastTracks[i] != null) {
         if (refTracks[i] == null) refTracks[i] = new OsmTrack();
@@ -786,9 +788,9 @@ public class RoutingEngine extends Thread {
       float addTime = (value / (speed_min / 3.6f));
 
       double addEnergy = 0;
-      if (key < ourSize - 1) {
+      if (key > 0) {
         double GRAVITY = 9.81;  // in meters per second^(-2)
-        double incline = (t.nodes.get(key).getElev() - t.nodes.get(key + 1).getElev()) / value;
+        double incline = (t.nodes.get(key - 1).getSElev() == Short.MIN_VALUE || t.nodes.get(key).getSElev() == Short.MIN_VALUE ? 0 : (t.nodes.get(key - 1).getElev() - t.nodes.get(key).getElev()) / value);
         double f_roll = routingContext.totalMass * GRAVITY * (routingContext.defaultC_r + incline);
         double spd = speed_min / 3.6;
         addEnergy = value * (routingContext.S_C_x * spd * spd + f_roll);
@@ -799,6 +801,7 @@ public class RoutingEngine extends Thread {
         n.setEnergy(n.getEnergy() + (float) addEnergy);
       }
     }
+    t.energy = (int) t.nodes.get(t.nodes.size() - 1).getEnergy();
 
     logInfo("track-length total = " + t.distance);
     logInfo("filtered ascend = " + t.ascend);
