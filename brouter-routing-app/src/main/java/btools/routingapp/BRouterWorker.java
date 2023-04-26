@@ -101,6 +101,19 @@ public class BRouterWorker {
 
     if (waypoints == null) return "no pts ";
 
+    if (params.containsKey("straight")) {
+      try {
+        String straight = params.getString("straight");
+        String[] sa = straight.split(",");
+        for (int i = 0; i < sa.length; i++) {
+          int v = Integer.valueOf(sa[i]);
+          if (waypoints.size() > v) waypoints.get(v).direct = true;
+        }
+      } catch (NumberFormatException e) {
+      }
+    }
+
+
     if (params.containsKey("extraParams")) {  // add user params
       String extraParams = params.getString("extraParams");
       if (rc.keyValues == null) rc.keyValues = new HashMap<String, String>();
@@ -112,19 +125,7 @@ public class BRouterWorker {
           String key = tk2.nextToken();
           if (tk2.hasMoreTokens()) {
             String value = tk2.nextToken();
-            if (key.equals("straight")) {
-              try {
-                String[] sa = value.split(",");
-                for (int i = 0; i < sa.length; i++) {
-                  int v = Integer.valueOf(sa[i]);
-                  if (waypoints.size() > v) waypoints.get(v).direct = true;
-                }
-              } catch (Exception e) {
-                System.err.println("error " + e.getStackTrace()[0].getLineNumber() + " " + e.getStackTrace()[0] + "\n" + e);
-              }
-            } else {
-              rc.keyValues.put(key, value);
-            }
+            rc.keyValues.put(key, value);
           }
         }
       }
@@ -217,8 +218,8 @@ public class BRouterWorker {
       n.ilat = (int) ((lats[i] + 90.) * 1000000. + 0.5);
       wplist.add(n);
     }
-    wplist.get(0).name = "from";
-    wplist.get(wplist.size() - 1).name = "to";
+    if (wplist.get(0).name.startsWith("via")) wplist.get(0).name = "from";
+    if (wplist.get(wplist.size() - 1).name.startsWith("via")) wplist.get(wplist.size() - 1).name = "to";
 
     return wplist;
   }
@@ -247,8 +248,8 @@ public class BRouterWorker {
       }
     }
 
-    wplist.get(0).name = "from";
-    wplist.get(wplist.size() - 1).name = "to";
+    if (wplist.get(0).name.startsWith("via")) wplist.get(0).name = "from";
+    if (wplist.get(wplist.size() - 1).name.startsWith("via")) wplist.get(wplist.size() - 1).name = "to";
 
     return wplist;
   }

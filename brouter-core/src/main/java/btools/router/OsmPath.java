@@ -138,8 +138,8 @@ abstract class OsmPath implements OsmLinkHolder {
         message.ele = Short.MIN_VALUE;
         message.linkdist = sourceNode.calcDistance(targetNode);
         message.wayKeyValues = "direct_segment=" + seg;
+        seg++;
       }
-      seg++;
       return;
     }
 
