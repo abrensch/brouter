@@ -176,7 +176,7 @@ public final class VoiceHintProcessor {
         input.needsRealTurn = (!unconditionalTrigger) && isStraight;
 
         // check for KR/KL
-        if (Math.abs(turnAngle) > 5.) { // don't use to small angles
+        if (Math.abs(turnAngle) > 5.) { // don't use too small angles
           if (maxAngle < turnAngle && maxAngle > turnAngle - 45.f - (Math.max(turnAngle, 0.f))) {
             input.cmd = VoiceHint.KR;
           }
@@ -196,7 +196,7 @@ public final class VoiceHintProcessor {
     }
 
     // go through the hint list again in reverse order (=travel direction)
-    // and filter out non-signficant hints and hints too close to it's predecessor
+    // and filter out non-significant hints and hints too close to its predecessor
 
     List<VoiceHint> results2 = new ArrayList<VoiceHint>();
     int i = results.size();
