@@ -182,22 +182,17 @@ public class OsmNogoPolygon extends OsmNodeNamed {
     final double v12x = p1x - p0x;
     final double v12y = p1y - p0y;
 
-    if (v10x == 0) // P0->P1 vertical?
-    {
-      if (v10y == 0) // P0 == P1?
-      {
+    if (v10x == 0) { // P0->P1 vertical?
+      if (v10y == 0) { // P0 == P1?
         return true;
       }
-      if (v12x != 0) // P1->P2 not vertical?
-      {
+      if (v12x != 0) { // P1->P2 not vertical?
         return false;
       }
       return (v12y / v10y) >= 1; // P1->P2 at least as long as P1->P0?
     }
-    if (v10y == 0) // P0->P1 horizontal?
-    {
-      if (v12y != 0) // P1->P2 not horizontal?
-      {
+    if (v10y == 0) { // P0->P1 horizontal?
+      if (v12y != 0) { // P1->P2 not horizontal?
         return false;
       }
       // if ( P10x == 0 ) // P0 == P1? already tested
@@ -233,8 +228,7 @@ public class OsmNogoPolygon extends OsmNodeNamed {
     long p0x = p0.x; // need to use long to avoid overflow in products
     long p0y = p0.y;
 
-    for (int i = isClosed ? 0 : 1; i <= i_last; i++) // edge from v[i] to v[i+1]
-    {
+    for (int i = isClosed ? 0 : 1; i <= i_last; i++) { // edge from v[i] to v[i+1]
       final Point p1 = points.get(i);
 
       final long p1x = p1.x;
@@ -246,16 +240,13 @@ public class OsmNogoPolygon extends OsmNodeNamed {
 
       if (p0y <= py)  // start y <= p.y
       {
-        if (p1y > py) // an upward crossing
-        {             // p left of edge
+        if (p1y > py) { // an upward crossing, p left of edge
           if (((p1x - p0x) * (py - p0y) - (px - p0x) * (p1y - p0y)) > 0) {
             ++wn;     // have a valid up intersect
           }
         }
-      } else // start y > p.y (no test needed)
-      {
-        if (p1y <= py) // a downward crossing
-        {              // p right of edge
+      } else { // start y > p.y (no test needed)
+        if (p1y <= py) { // a downward crossing, p right of edge
           if (((p1x - p0x) * (py - p0y) - (px - p0x) * (p1y - p0y)) < 0) {
             --wn;      // have a valid down intersect
           }
@@ -380,8 +371,7 @@ public class OsmNogoPolygon extends OsmNodeNamed {
     final int sp0x = seg_p0.x;
     final int sp1x = seg_p1.x;
 
-    if (sp0x != sp1x) // S is not vertical
-    {
+    if (sp0x != sp1x) { // S is not vertical
       final int px = p.x;
       if (sp0x <= px && px <= sp1x) {
         return true;

@@ -221,8 +221,7 @@ public class OsmNodeP extends OsmLinkP {
       mc.writeVarLengthSigned(target.ilon - ilon);
       mc.writeVarLengthSigned(target.ilat - ilat);
       mc.writeModeAndDesc(isReverse, description);
-      if (!isReverse && linkNodes.size() > 2) // write geometry for forward links only
-      {
+      if (!isReverse && linkNodes.size() > 2) { // write geometry for forward links only
         DPFilter.doDPFilter(linkNodes);
         origin = this;
         for (int i = 1; i < linkNodes.size() - 1; i++) {

@@ -55,8 +55,7 @@ public final class DirectWeaver extends ByteDataWriter {
     aboffset = 0;
 
     int selev = 0;
-    for (int n = 0; n < size; n++) // loop over nodes
-    {
+    for (int n = 0; n < size; n++) { // loop over nodes
       OsmNode node = nodes[n];
       int ilon = node.ilon;
       int ilat = node.ilat;
@@ -68,11 +67,9 @@ public final class DirectWeaver extends ByteDataWriter {
         if (featureId == 0) break;
         int bitsize = bc.decodeNoisyNumber(5);
 
-        if (featureId == 2) // exceptions to turn-restriction
-        {
+        if (featureId == 2) { // exceptions to turn-restriction
           trExceptions = (short) bc.decodeBounded(1023);
-        } else if (featureId == 1) // turn-restriction
-        {
+        } else if (featureId == 1) { // turn-restriction
           TurnRestriction tr = new TurnRestriction();
           tr.exceptions = trExceptions;
           trExceptions = 0;
@@ -100,8 +97,7 @@ public final class DirectWeaver extends ByteDataWriter {
         int dlat_remaining;
 
         boolean isReverse = false;
-        if (nodeIdx != n) // internal (forward-) link
-        {
+        if (nodeIdx != n) { // internal (forward-) link
           dlon_remaining = nodes[nodeIdx].ilon - ilon;
           dlat_remaining = nodes[nodeIdx].ilat - ilat;
         } else {
@@ -115,8 +111,7 @@ public final class DirectWeaver extends ByteDataWriter {
         int linklon = ilon + dlon_remaining;
         int linklat = ilat + dlat_remaining;
         aboffset = 0;
-        if (!isReverse) // write geometry for forward links only
-        {
+        if (!isReverse) { // write geometry for forward links only
           WaypointMatcher matcher = wayTags == null || wayTags.accessType < 2 ? null : waypointMatcher;
           int ilontarget = ilon + dlon_remaining;
           int ilattarget = ilat + dlat_remaining;
@@ -154,8 +149,7 @@ public final class DirectWeaver extends ByteDataWriter {
             System.arraycopy(ab, 0, geometry, 0, aboffset);
           }
 
-          if (nodeIdx != n) // valid internal (forward-) link
-          {
+          if (nodeIdx != n) { // valid internal (forward-) link
             OsmNode node2 = nodes[nodeIdx];
             OsmLink link = node.isLinkUnused() ? node : (node2.isLinkUnused() ? node2 : null);
             if (link == null) {
@@ -164,8 +158,7 @@ public final class DirectWeaver extends ByteDataWriter {
             link.descriptionBitmap = wayTags.data;
             link.geometry = geometry;
             node.addLink(link, isReverse, node2);
-          } else // weave external link
-          {
+          } else { // weave external link
             node.addLink(linklon, linklat, wayTags.data, geometry, hollowNodes, isReverse);
             node.visitID = 1;
           }

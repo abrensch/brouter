@@ -69,10 +69,8 @@ final public class PhysicalFile {
       DataBuffers dataBuffers = new DataBuffers();
       pf = new PhysicalFile(f, dataBuffers, -1, -1);
       int div = pf.divisor;
-      for (int lonDegree = 0; lonDegree < 5; lonDegree++) // does'nt really matter..
-      {
-        for (int latDegree = 0; latDegree < 5; latDegree++) // ..where on earth we are
-        {
+      for (int lonDegree = 0; lonDegree < 5; lonDegree++) { // does'nt really matter..
+        for (int latDegree = 0; latDegree < 5; latDegree++) { // ..where on earth we are
           OsmFile osmf = new OsmFile(pf, lonDegree, latDegree, dataBuffers);
           if (osmf.hasData())
             for (int lonIdx = 0; lonIdx < div; lonIdx++)
@@ -115,8 +113,7 @@ final public class PhysicalFile {
 
     if (len == pos) return; // old format o.k.
 
-    if (len < pos + extraLen) // > is o.k. for future extensions!
-    {
+    if (len < pos + extraLen) { // > is o.k. for future extensions!
       throw new IOException("file of size " + len + " too short, should be " + (pos + extraLen));
     }
 

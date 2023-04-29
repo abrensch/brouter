@@ -46,8 +46,7 @@ final class KinematicPath extends OsmPath {
     } else {
       double turnspeed = 999.; // just high
 
-      if (km.turnAngleDecayTime != 0.) // process turn-angle slowdown
-      {
+      if (km.turnAngleDecayTime != 0.) { // process turn-angle slowdown
         if (angle < 0) floatingAngleLeft -= (float) angle;
         else floatingAngleRight += (float) angle;
         float aa = Math.max(floatingAngleLeft, floatingAngleRight);
@@ -63,8 +62,7 @@ final class KinematicPath extends OsmPath {
         }
       }
 
-      if (nsection == 0) // process slowdown by crossing geometry
-      {
+      if (nsection == 0) { // process slowdown by crossing geometry
         double junctionspeed = 999.; // just high
 
         int classifiermask = (int) rc.expctxWay.getClassifierMask();
@@ -76,13 +74,11 @@ final class KinematicPath extends OsmPath {
         for (OsmPrePath prePath = rc.firstPrePath; prePath != null; prePath = prePath.next) {
           KinematicPrePath pp = (KinematicPrePath) prePath;
 
-          if (((pp.classifiermask ^ classifiermask) & 8) != 0) // exactly one is linktype
-          {
+          if (((pp.classifiermask ^ classifiermask) & 8) != 0) { // exactly one is linktype
             continue;
           }
 
-          if ((pp.classifiermask & 32) != 0) // touching a residential?
-          {
+          if ((pp.classifiermask & 32) != 0) { // touching a residential?
             hasResidential = true;
           }
 

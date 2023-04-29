@@ -128,8 +128,7 @@ public class BitCoderContext {
       bits -= len;
       return vl_values[b12]; // full value lookup
     }
-    if (len <= 23) // // only length lookup
-    {
+    if (len <= 23) { // // only length lookup
       int len2 = len >> 1;
       b >>>= (len2 + 1);
       int mask = 0xffffffff >>> (32 - len2);

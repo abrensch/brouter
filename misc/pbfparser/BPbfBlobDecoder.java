@@ -216,14 +216,12 @@ public class BPbfBlobDecoder {
 
       String role = fieldDecoder.decodeString(memberRoleIterator.next());
 
-      if (memberType == Osmformat.Relation.MemberType.WAY) // currently just waymembers
-      {
+      if (memberType == Osmformat.Relation.MemberType.WAY) { // currently just waymembers
         wayIds.add(refId);
         if ("from".equals(role)) fromWid = addLong(fromWid, refId);
         if ("to".equals(role)) toWid = addLong(toWid, refId);
       }
-      if (memberType == Osmformat.Relation.MemberType.NODE) // currently just waymembers
-      {
+      if (memberType == Osmformat.Relation.MemberType.NODE) { // currently just waymembers
         if ("via".equals(role)) viaNid = addLong(viaNid, refId);
       }
     }
