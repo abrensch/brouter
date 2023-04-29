@@ -2,7 +2,7 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### [brouter-1.6.4.zip](../brouter_bin/brouter-1.6.4.zip) (current revision, xx.xx.2023)
+### [brouter-1.7.0.zip](../brouter_bin/brouter-1.7.0.zip) (current revision, 29.04.2023)
 
 Android
 
@@ -23,6 +23,8 @@ Library
 -   Correction of misplaced via points
 -   Remove double points
 -   New locus export with info on trkpt
+
+[Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.6.4%22+is%3Aclosed)
 
 ### [brouter-1.6.3.zip](../brouter_bin/brouter-1.6.3.zip) (21.12.2021)
 

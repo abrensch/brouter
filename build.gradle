@@ -22,7 +22,7 @@ allprojects {
     // app: build.gradle (versionCode only)
     // OsmTrack (version and versionDate)
     // docs revisions.md (version and versionDate)
-    project.version  "1.6.3"
+    project.version  "1.7.0"
     group 'org.btools'
 
     repositories {
