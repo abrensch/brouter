@@ -433,8 +433,7 @@ public final class OsmTrack {
       }
     }
 
-    if (turnInstructionMode == 4) // comment style
-    {
+    if (turnInstructionMode == 4) { // comment style
       sb.append("<!-- $transport-mode$").append(voiceHints.getTransportMode()).append("$ -->\n");
       sb.append("<!--          cmd    idx        lon        lat d2next  geometry -->\n");
       sb.append("<!-- $turn-instruction-start$\n");
@@ -477,8 +476,7 @@ public final class OsmTrack {
       sb.append("  </extensions>\n");
       sb.append(" </metadata>\n");
     }
-    if (turnInstructionMode == 3 || turnInstructionMode == 8) // osmand style, cruiser
-    {
+    if (turnInstructionMode == 3 || turnInstructionMode == 8) { // osmand style, cruiser
       float lastRteTime = 0;
 
       sb.append(" <rte>\n");
@@ -490,8 +488,7 @@ public final class OsmTrack {
         first.append("  <rtept lat=\"").append(formatILat(nodes.get(0).getILat())).append("\" lon=\"")
           .append(formatILon(nodes.get(0).getILon())).append("\">\n")
           .append("   <desc>start</desc>\n   <extensions>\n");
-        if (rteTime != lastRteTime) // add timing only if available
-        {
+        if (rteTime != lastRteTime) { // add timing only if available
           double t = rteTime - lastRteTime;
           first.append("    <time>").append("" + (int) (t + 0.5)).append("</time>\n");
           lastRteTime = rteTime;
@@ -518,8 +515,7 @@ public final class OsmTrack {
 
         rteTime = getVoiceHintTime(i + 1);
 
-        if (rteTime != lastRteTime) // add timing only if available
-        {
+        if (rteTime != lastRteTime) { // add timing only if available
           double t = rteTime - lastRteTime;
           sb.append("    <time>").append("" + (int) (t + 0.5)).append("</time>\n");
           lastRteTime = rteTime;
@@ -538,8 +534,7 @@ public final class OsmTrack {
       sb.append("</rte>\n");
     }
 
-    if (turnInstructionMode == 7) // old locus style
-    {
+    if (turnInstructionMode == 7) { // old locus style
       float lastRteTime = getVoiceHintTime(0);
 
       for (int i = 0; i < voiceHints.list.size(); i++) {
@@ -550,8 +545,7 @@ public final class OsmTrack {
           .append("<name>").append(hint.getMessageString()).append("</name>")
           .append("<extensions><locus:rteDistance>").append("" + hint.distanceToNext).append("</locus:rteDistance>");
         float rteTime = getVoiceHintTime(i + 1);
-        if (rteTime != lastRteTime) // add timing only if available
-        {
+        if (rteTime != lastRteTime) { // add timing only if available
           double t = rteTime - lastRteTime;
           double speed = hint.distanceToNext / t;
           sb.append("<locus:rteTime>").append("" + t).append("</locus:rteTime>")
@@ -562,8 +556,7 @@ public final class OsmTrack {
           .append("</wpt>\n");
       }
     }
-    if (turnInstructionMode == 5) // gpsies style
-    {
+    if (turnInstructionMode == 5) { // gpsies style
       for (VoiceHint hint : voiceHints.list) {
         sb.append(" <wpt lon=\"").append(formatILon(hint.ilon)).append("\" lat=\"")
           .append(formatILat(hint.ilat)).append("\">")
@@ -574,8 +567,7 @@ public final class OsmTrack {
       }
     }
 
-    if (turnInstructionMode == 6) // orux style
-    {
+    if (turnInstructionMode == 6) { // orux style
       for (VoiceHint hint : voiceHints.list) {
         sb.append(" <wpt lat=\"").append(formatILat(hint.ilat)).append("\" lon=\"")
           .append(formatILon(hint.ilon)).append("\">")
@@ -971,8 +963,7 @@ public final class OsmTrack {
         sb.append(',').append((int) hint.angle);
 
         // not always include geometry because longer and only needed for comment style
-        if (turnInstructionMode == 4) // comment style
-        {
+        if (turnInstructionMode == 4) { // comment style
           sb.append(",\"").append(hint.formatGeometry()).append("\"");
         }
 
@@ -981,8 +972,7 @@ public final class OsmTrack {
       sb.deleteCharAt(sb.lastIndexOf(","));
       sb.append("        ],\n");
     }
-    if (showSpeedProfile) // set in profile
-    {
+    if (showSpeedProfile) { // set in profile
       List<String> sp = aggregateSpeedProfile();
       if (sp.size() > 0) {
         sb.append("        \"speedprofile\": [\n");
@@ -1033,8 +1023,7 @@ public final class OsmTrack {
     OsmPathElement nn = null;
     for (OsmPathElement n : nodes) {
       String sele = n.getSElev() == Short.MIN_VALUE ? "" : ", " + n.getElev();
-      if (showspeed) // hack: show speed instead of elevation
-      {
+      if (showspeed) { // hack: show speed instead of elevation
         double speed = 0;
         if (nn != null) {
           int dist = n.calcDistance(nn);

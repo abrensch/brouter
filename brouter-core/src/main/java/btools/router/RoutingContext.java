@@ -165,8 +165,7 @@ public final class RoutingContext {
     showTime = 0.f != expctxGlobal.getVariableValue("showtime", 0.f);
 
     int tiMode = (int) expctxGlobal.getVariableValue("turnInstructionMode", 0.f);
-    if (tiMode != 1) // automatic selection from coordinate source
-    {
+    if (tiMode != 1) { // automatic selection from coordinate source
       turnInstructionMode = tiMode;
     }
     turnInstructionCatchingRange = expctxGlobal.getVariableValue("turnInstructionCatchingRange", 40.f);
@@ -431,8 +430,7 @@ public final class RoutingContext {
         double r22 = x2 * x2 + y2 * y2;
         double radius = Math.abs(r12 < r22 ? y1 * dx - x1 * dy : y2 * dx - x2 * dy) / d;
 
-        if (radius < nogo.radius) // 20m
-        {
+        if (radius < nogo.radius) { // 20m
           double s1 = x1 * dx + y1 * dy;
           double s2 = x2 * dx + y2 * dy;
 

@@ -13,7 +13,7 @@ public final class GeometryDecoder {
   private OsmTransferNode[] cachedNodes;
   private int nCachedNodes = 128;
 
-  // result-cache  
+  // result-cache
   private OsmTransferNode firstTransferNode;
   private boolean lastReverse;
   private byte[] lastGeometry;
@@ -47,8 +47,7 @@ public final class GeometryDecoder {
       olon = trans.ilon;
       olat = trans.ilat;
       oselev = trans.selev;
-      if (reverseLink) // reverse chaining
-      {
+      if (reverseLink) { // reverse chaining
         trans.next = firstTransferNode;
         firstTransferNode = trans;
       } else {
