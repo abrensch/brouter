@@ -134,8 +134,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     // (skip first bit ("reversedirection") )
 
     // all others are generic
-    for (int inum = 1; inum < lookupValues.size(); inum++) // loop over lookup names
-    {
+    for (int inum = 1; inum < lookupValues.size(); inum++) { // loop over lookup names
       int d = ld[inum];
       if (d == 0) {
         skippedTags++;
@@ -162,8 +161,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     // crosscheck: decode and compare
     int[] ld2 = new int[lookupValues.size()];
     decode(ld2, false, ab);
-    for (int inum = 1; inum < lookupValues.size(); inum++) // loop over lookup names (except reverse dir)
-    {
+    for (int inum = 1; inum < lookupValues.size(); inum++) { // loop over lookup names (except reverse dir)
       if (ld2[inum] != ld[inum])
         throw new RuntimeException("assertion failed encoding inum=" + inum + " val=" + ld[inum] + " " + getKeyValueDescription(false, ab));
     }
@@ -212,8 +210,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   public String getKeyValueDescription(boolean inverseDirection, byte[] ab) {
     StringBuilder sb = new StringBuilder(200);
     decode(lookupData, inverseDirection, ab);
-    for (int inum = 0; inum < lookupValues.size(); inum++) // loop over lookup names
-    {
+    for (int inum = 0; inum < lookupValues.size(); inum++) { // loop over lookup names
       BExpressionLookupValue[] va = lookupValues.get(inum);
       int val = lookupData[inum];
       String value = (val >= 1000) ? Float.toString((val - 1000) / 100f) : va[val].toString();
@@ -228,8 +225,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   public List<String> getKeyValueList(boolean inverseDirection, byte[] ab) {
     ArrayList<String> res = new ArrayList<String>();
     decode(lookupData, inverseDirection, ab);
-    for (int inum = 0; inum < lookupValues.size(); inum++) // loop over lookup names
-    {
+    for (int inum = 0; inum < lookupValues.size(); inum++) { // loop over lookup names
       BExpressionLookupValue[] va = lookupValues.get(inum);
       int val = lookupData[inum];
       // no negative values

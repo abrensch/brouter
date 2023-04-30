@@ -53,8 +53,7 @@ public final class OsmNodesMap {
 
   private void cleanupPeninsulas(OsmNode[] nodes) {
     baseID = lastVisitID++;
-    for (int i = 0; i < nodes.length; i++) // loop over nodes again just for housekeeping
-    {
+    for (int i = 0; i < nodes.length; i++) { // loop over nodes again just for housekeeping
       OsmNode n = nodes[i];
       if (n.firstlink != null) {
         if (n.visitID == 1) {
@@ -88,8 +87,7 @@ public final class OsmNodesMap {
       } else if (minIdSub == 0) {
         int nodesCreatedUntilHere = nodesCreated;
         minIdSub = minVisitIdInSubtree(n, t);
-        if (minIdSub > n.visitID) // peninsula ?
-        {
+        if (minIdSub > n.visitID) { // peninsula ?
           nodesCreated = nodesCreatedUntilHere;
           n.unlinkLink(l);
           t.unlinkLink(l);
@@ -227,9 +225,8 @@ public final class OsmNodesMap {
 
 
   public void remove(OsmNode node) {
-    if (node != endNode1 && node != endNode2) // keep endnodes in hollow-map even when loaded
-    {                                           // (needed for escape analysis)
-      hmap.remove(node);
+    if (node != endNode1 && node != endNode2) { // keep endnodes in hollow-map even when loaded
+      hmap.remove(node);                        // (needed for escape analysis)
     }
   }
 

@@ -171,11 +171,9 @@ public class OsmNode extends OsmLink implements OsmPos {
         }
       }
     }
-    if (tn == null) // .. not found, then check the hollow nodes
-    {
+    if (tn == null) { // .. not found, then check the hollow nodes
       tn = hollowNodes.get(linklon, linklat); // target node
-      if (tn == null) // node not yet known, create a new hollow proxy
-      {
+      if (tn == null) { // node not yet known, create a new hollow proxy
         tn = new OsmNode(linklon, linklat);
         tn.setHollow();
         hollowNodes.put(tn);
@@ -231,8 +229,7 @@ public class OsmNode extends OsmLink implements OsmPos {
     OsmLink l = firstlink;
     while (l != null) {
       // if ( l.isReverse( this ) )
-      if (l.n1 != this && l.n1 != null) // isReverse inline
-      {
+      if (l.n1 != this && l.n1 != null) { // isReverse inline
         OsmLink nl = l.previous;
         if (nl == link) {
           l.previous = n;

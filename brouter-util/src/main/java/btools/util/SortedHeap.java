@@ -209,8 +209,7 @@ public final class SortedHeap<V> {
   public void add(int key, V value) {
     size++;
 
-    if (first.lp == 0 && second.lp == 0) // both full ?
-    {
+    if (first.lp == 0 && second.lp == 0) { // both full ?
       sortUp();
     }
     if (first.lp > 0) {

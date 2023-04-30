@@ -240,8 +240,7 @@ public class SuspectManager extends Thread {
     bw.write("<html><body>\n");
     bw.write("BRouter suspect manager. <a href=\"http://brouter.de/brouter/suspect_manager_help.html\">Help</a><br><br>\n");
 
-    if (filter == null) // generate country list
-    {
+    if (filter == null) { // generate country list
       bw.write("<table>\n");
       File countryParent = new File("worldpolys" + country);
       File[] files = countryParent.listFiles();

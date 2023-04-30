@@ -16,8 +16,7 @@ import btools.router.SearchBoundary;
 
 public class BRouter {
   public static void main(String[] args) throws Exception {
-    if (args.length == 2) // cgi-input-mode
-    {
+    if (args.length == 2) { // cgi-input-mode
       try {
         String queryString = args[1];
         int sepIdx = queryString.indexOf('=');

@@ -248,8 +248,7 @@ public class CompactLongMap<V> {
       pa[i] = 0;
     }
 
-    for (int ti = 0; ti < size; ti++) // target-index
-    {
+    for (int ti = 0; ti < size; ti++) { // target-index
       int bp = size; // treat size as bitpattern
       int minIdx = -1;
       long minId = 0;
