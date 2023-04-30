@@ -57,8 +57,7 @@ public final class BExpressionMetaData {
           minAppVersion = Short.parseShort(line.substring(MIN_APP_VERSION_TAG.length()));
           continue;
         }
-        if (line.startsWith(VARLENGTH_TAG)) // tag removed...
-        {
+        if (line.startsWith(VARLENGTH_TAG)) { // tag removed...
           continue;
         }
         if (ctx != null) ctx.parseMetaLine(line);

@@ -224,8 +224,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         String headers = encodings == null || encodings.indexOf("gzip") < 0 ? null : "Content-Encoding: gzip\n";
         writeHttpHeader(bw, handler.getMimeType(), handler.getFileName(), headers, HTTP_STATUS_OK);
         if (track != null) {
-          if (headers != null) // compressed
-          {
+          if (headers != null) { // compressed
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             Writer w = new OutputStreamWriter(new GZIPOutputStream(baos), "UTF-8");
             w.write(handler.formatTrack(track));

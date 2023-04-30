@@ -214,8 +214,7 @@ public final class VoiceHintProcessor {
           hint.distanceToNext += dist;
           hint.angle += h2.angle;
           i--;
-          if (h2.isRoundabout()) // if we hit a roundabout, use that as the trigger
-          {
+          if (h2.isRoundabout()) { // if we hit a roundabout, use that as the trigger
             h2.angle = hint.angle;
             hint = h2;
             break;

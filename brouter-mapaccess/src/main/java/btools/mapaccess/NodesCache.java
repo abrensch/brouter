@@ -220,8 +220,7 @@ public final class NodesCache {
       node.parseNodeBody(segment, nodesMap, expCtxWay);
     }
 
-    if (garbageCollectionEnabled) // garbage collection
-    {
+    if (garbageCollectionEnabled) { // garbage collection
       cacheSum -= segment.collect(segment.getSize() >> 1); // threshold = 1/2 of size is deleted
     }
 

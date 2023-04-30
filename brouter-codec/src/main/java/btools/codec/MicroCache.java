@@ -318,8 +318,7 @@ public class MicroCache extends ByteDataWriter {
     while (idx1 < mc1.size || idx2 < mc2.size) {
       int id1 = idx1 < mc1.size ? mc1.faid[idx1] : Integer.MAX_VALUE;
       int id2 = idx2 < mc2.size ? mc2.faid[idx2] : Integer.MAX_VALUE;
-      if (id1 >= id2) // data from diff file wins
-      {
+      if (id1 >= id2) { // data from diff file wins
         int start2 = idx2 > 0 ? mc2.fapos[idx2 - 1] : 0;
         int len2 = mc2.fapos[idx2++] - start2;
         if (keepEmptyNodes || len2 > 0) {
@@ -327,8 +326,7 @@ public class MicroCache extends ByteDataWriter {
           fapos[size] = aboffset;
           faid[size++] = id2;
         }
-        if (id1 == id2) // // id exists in both caches
-        {
+        if (id1 == id2) { // // id exists in both caches
           idx1++;
         }
       } else // use data from base file

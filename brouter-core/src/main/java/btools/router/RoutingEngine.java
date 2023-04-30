@@ -872,8 +872,7 @@ public class RoutingEngine extends Thread {
         try {
           t = findTrack(cfi == 0 ? "pass0" : "pass1", startWp, endWp, track, refTrack, false);
         } catch (IllegalArgumentException iae) {
-          if (!terminated && matchPath != null) // timeout, but eventually prepare a dirty ref track
-          {
+          if (!terminated && matchPath != null) { // timeout, but eventually prepare a dirty ref track
             logInfo("supplying dirty reference track after timeout");
             foundRawTrack = mergeTrack(matchPath, track);
             foundRawTrack.endPoint = endWp;
@@ -901,8 +900,7 @@ public class RoutingEngine extends Thread {
     OsmPathElement lastElement = null;
 
     boolean wasClean = nearbyTrack != null && !nearbyTrack.isDirty;
-    if (refTrack == null && !(wasClean && isDirty)) // do not overwrite a clean with a dirty track
-    {
+    if (refTrack == null && !(wasClean && isDirty)) { // do not overwrite a clean with a dirty track
       logInfo("supplying new reference track, dirty=" + isDirty);
       track.endPoint = endWp;
       track.nogoChecksums = routingContext.getNogoChecksums();
@@ -1175,8 +1173,7 @@ public class RoutingEngine extends Thread {
           }
         }
 
-        if (nodeLimit > 0) // check node-limit for target island search
-        {
+        if (nodeLimit > 0) { // check node-limit for target island search
           if (--nodeLimit == 0) {
             return null;
           }
@@ -1202,8 +1199,7 @@ public class RoutingEngine extends Thread {
         }
 
         if (path.treedepth != 1) {
-          if (path.treedepth == 0) // hack: sameSegment Paths marked treedepth=0 to pass above check
-          {
+          if (path.treedepth == 0) { // hack: sameSegment Paths marked treedepth=0 to pass above check
             path.treedepth = 1;
           }
 
