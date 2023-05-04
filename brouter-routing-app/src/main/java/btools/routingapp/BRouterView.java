@@ -562,7 +562,10 @@ public class BRouterView extends View {
             }
             String name = ze.getName();
             File outfile = new File(path, name);
-            if (!outfile.exists() && outfile.getParentFile() != null) {
+            String canonicalPath = outfile.getCanonicalPath();
+            if (canonicalPath.startsWith(path.getCanonicalPath()) &&
+              !outfile.exists() &&
+              outfile.getParentFile() != null) {
               outfile.getParentFile().mkdirs();
               FileOutputStream fos = new FileOutputStream(outfile);
 
@@ -575,6 +578,7 @@ public class BRouterView extends View {
               fos.close();
             }
           }
+          zis.close();
           is.close();
           return true;
         } catch (IOException io) {

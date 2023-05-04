@@ -105,7 +105,10 @@ public class ServerConfig {
         String name = ze.getName();
         if (name.equals(mServerConfigName)) {
           File outfile = new File(path, name + ".tmp");
-          if (!outfile.exists() && outfile.getParentFile() != null) {
+          String canonicalPath = outfile.getCanonicalPath();
+          if (canonicalPath.startsWith(path.getCanonicalPath()) &&
+            !outfile.exists() &&
+            outfile.getParentFile() != null) {
             outfile.getParentFile().mkdirs();
             FileOutputStream fos = new FileOutputStream(outfile);
 
