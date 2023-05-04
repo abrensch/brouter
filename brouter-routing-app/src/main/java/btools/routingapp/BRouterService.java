@@ -129,6 +129,7 @@ public class BRouterService extends Service {
           if (!smc.mode.equals(mode_key))
             continue;
           worker.profileName = smc.profile;
+          worker.profileParams = (smc.params.equals("noparams") ? null : smc.params);
           worker.profilePath = baseDir + "/brouter/profiles2/" + smc.profile + ".brf";
           worker.rawTrackPath = baseDir + "/brouter/modes/" + mode_key + "_rawtrack.dat";
 
