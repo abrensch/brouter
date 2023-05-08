@@ -1,6 +1,8 @@
 package btools.routingapp;
 
 
+import android.os.Bundle;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -8,8 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.StringTokenizer;
-
-import android.os.Bundle;
 
 import btools.router.OsmNodeNamed;
 import btools.router.OsmNogoPolygon;
@@ -30,6 +30,7 @@ public class BRouterWorker {
   public List<OsmNodeNamed> waypoints;
   public List<OsmNodeNamed> nogoList;
   public List<OsmNodeNamed> nogoPolygonsList;
+  public String profileParams;
 
   public String getTrackFromParams(Bundle params) {
     String pathToFileResult = params.getString("pathToFileResult");
@@ -113,9 +114,18 @@ public class BRouterWorker {
       }
     }
 
+    String extraParams = null;
+    if (params.containsKey("extraParams")) {  // add user params
+      extraParams = params.getString("extraParams");
+    }
+    if (extraParams != null && this.profileParams != null) {
+      // don't overwrite incoming values
+      extraParams = this.profileParams + "&" + extraParams;
+    } else if (this.profileParams != null) {
+      extraParams = this.profileParams;
+    }
 
     if (params.containsKey("extraParams")) {  // add user params
-      String extraParams = params.getString("extraParams");
       if (rc.keyValues == null) rc.keyValues = new HashMap<String, String>();
       StringTokenizer tk = new StringTokenizer(extraParams, "?&");
       while (tk.hasMoreTokens()) {

@@ -562,7 +562,10 @@ public class BRouterView extends View {
             }
             String name = ze.getName();
             File outfile = new File(path, name);
-            if (!outfile.exists() && outfile.getParentFile() != null) {
+            String canonicalPath = outfile.getCanonicalPath();
+            if (canonicalPath.startsWith(path.getCanonicalPath()) &&
+              !outfile.exists() &&
+              outfile.getParentFile() != null) {
               outfile.getParentFile().mkdirs();
               FileOutputStream fos = new FileOutputStream(outfile);
 
@@ -575,6 +578,7 @@ public class BRouterView extends View {
               fos.close();
             }
           }
+          zis.close();
           is.close();
           return true;
         } catch (IOException io) {
@@ -825,7 +829,10 @@ public class BRouterView extends View {
     for (int i = 0; i < 6; i++) {
       if (checkedModes[i]) {
         writeRawTrackToMode(routingModes[i]);
-        ServiceModeConfig smc = new ServiceModeConfig(routingModes[i], profileName);
+        String s = map.get(routingModes[i]).params;
+        String p = map.get(routingModes[i]).profile;
+        if (s == null || !p.equals(profileName)) s = "noparams";
+        ServiceModeConfig smc = new ServiceModeConfig(routingModes[i], profileName, s);
         for (OsmNodeNamed nogo : nogoVetoList) {
           smc.nogoVetos.add(nogo.ilon + "," + nogo.ilat);
         }
@@ -854,6 +861,81 @@ public class BRouterView extends View {
         }
     }
     ((BRouterActivity) getContext()).showModeConfigOverview(msg.toString());
+  }
+
+  public void configureServiceParams(String profile, String sparams) {
+    List<ServiceModeConfig> map = new ArrayList<>();
+    BufferedReader br = null;
+    String modesFile = modesDir + "/serviceconfig.dat";
+    try {
+      br = new BufferedReader(new FileReader(modesFile));
+      for (; ; ) {
+        String line = br.readLine();
+        if (line == null)
+          break;
+        ServiceModeConfig smc = new ServiceModeConfig(line);
+        if (smc.profile.equals(profile)) smc.params = sparams;
+        map.add(smc);
+      }
+    } catch (Exception ignored) {
+    } finally {
+      if (br != null)
+        try {
+          br.close();
+        } catch (Exception ignored) {
+        }
+    }
+
+    // now write new config
+    BufferedWriter bw = null;
+    StringBuilder msg = new StringBuilder("Mode mapping is now:\n");
+    msg.append("( [");
+    msg.append(nogoVetoList.size() > 0 ? nogoVetoList.size() : "..").append("] counts nogo-vetos)\n");
+    try {
+      bw = new BufferedWriter(new FileWriter(modesFile));
+      for (ServiceModeConfig smc : map) {
+        bw.write(smc.toLine());
+        bw.write('\n');
+        msg.append(smc).append('\n');
+      }
+    } catch (Exception ignored) {
+    } finally {
+      if (bw != null)
+        try {
+          bw.close();
+        } catch (Exception ignored) {
+        }
+    }
+    ((BRouterActivity) getContext()).showModeConfigOverview(msg.toString());
+  }
+
+  public String getConfigureServiceParams(String profile) {
+    List<ServiceModeConfig> map = new ArrayList<>();
+    BufferedReader br = null;
+    String modesFile = modesDir + "/serviceconfig.dat";
+    try {
+      br = new BufferedReader(new FileReader(modesFile));
+      for (; ; ) {
+        String line = br.readLine();
+        if (line == null)
+          break;
+        ServiceModeConfig smc = new ServiceModeConfig(line);
+        if (smc.profile.equals(profile)) {
+          if (!smc.params.equals("noparams")) return smc.params;
+          else return "";
+        }
+        map.add(smc);
+      }
+    } catch (Exception ignored) {
+    } finally {
+      if (br != null)
+        try {
+          br.close();
+        } catch (Exception ignored) {
+        }
+    }
+    // no profile found
+    return null;
   }
 
   public void shareTrack() {
