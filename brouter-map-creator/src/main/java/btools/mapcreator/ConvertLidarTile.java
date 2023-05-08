@@ -14,9 +14,13 @@ import java.util.zip.ZipInputStream;
 public class ConvertLidarTile {
   public static int NROWS;
   public static int NCOLS;
+  public static int ROW_LENGTH;
 
   public static final short NODATA2 = -32767; // hgt-formats nodata
   public static final short NODATA = Short.MIN_VALUE;
+
+  public static final int SRTM3_ROW_LENGTH = 1200; // number of elevation values per line
+  public static final int SRTM1_ROW_LENGTH = 3600; //-- New file resolution is 3601x3601
 
   static short[] imagePixels;
 
@@ -26,7 +30,7 @@ public class ConvertLidarTile {
       for (; ; ) {
         ZipEntry ze = zis.getNextEntry();
         if (ze.getName().endsWith(".hgt")) {
-          readHgtFromStream(zis, rowOffset, colOffset);
+          readHgtFromStream(zis, rowOffset, colOffset, 1200);
           return;
         }
       }
@@ -35,13 +39,40 @@ public class ConvertLidarTile {
     }
   }
 
-  private static void readHgtFromStream(InputStream is, int rowOffset, int colOffset)
+  private static void readHgtFromStream(InputStream is, int rowOffset, int colOffset, int row_length)
     throws Exception {
     DataInputStream dis = new DataInputStream(new BufferedInputStream(is));
-    for (int ir = 0; ir < 1201; ir++) {
+    for (int ir = 0; ir < row_length + 1; ir++) {
       int row = rowOffset + ir;
 
-      for (int ic = 0; ic < 1201; ic++) {
+      for (int ic = 0; ic < row_length + 1; ic++) {
+        int col = colOffset + ic;
+
+        int i1 = dis.read(); // msb first!
+        int i0 = dis.read();
+
+        if (i0 == -1 || i1 == -1)
+          throw new RuntimeException("unexcepted end of file reading hgt entry!");
+
+        short val = (short) ((i1 << 8) | i0);
+
+        if (val == NODATA2) {
+          val = NODATA;
+        }
+
+        setPixel(row, col, val);
+      }
+    }
+  }
+
+  private static void readHgtFromFile(File f, int rowOffset, int colOffset)
+    throws Exception {
+    DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(f)));
+
+    for (int ir = 0; ir < ROW_LENGTH + 1; ir++) {
+      int row = rowOffset + ir;
+
+      for (int ic = 0; ic < ROW_LENGTH + 1; ic++) {
         int col = colOffset + ic;
 
         int i1 = dis.read(); // msb first!
@@ -186,4 +217,91 @@ public class ConvertLidarTile {
     doConvert(args[1], ilon_base, ilat_base, filename30);
   }
 
+  public SrtmRaster getRasterDirect(File f, double lon, double lat) throws Exception {
+    if (f.length() > ((SRTM3_ROW_LENGTH + 1) * (SRTM3_ROW_LENGTH + 1) * 2)) {
+      ROW_LENGTH = SRTM1_ROW_LENGTH;
+    } else {
+      ROW_LENGTH = SRTM3_ROW_LENGTH;
+    }
+    System.out.println("read file " + f + " rl " + ROW_LENGTH);
+
+    // stay a 1x1 raster
+    NROWS = ROW_LENGTH + 1;
+    NCOLS = ROW_LENGTH + 1;
+
+    imagePixels = new short[NROWS * NCOLS]; // 650 MB !
+
+    // prefill as NODATA
+    for (int row = 0; row < NROWS; row++) {
+      for (int col = 0; col < NCOLS; col++) {
+        imagePixels[row * NCOLS + col] = NODATA;
+      }
+    }
+
+    readHgtFromFile(f, 0, 0);
+
+    boolean halfCol5 = false; // no halfcol tiles in lidar data (?)
+
+    SrtmRaster raster = new SrtmRaster();
+    raster.nrows = NROWS;
+    raster.ncols = NCOLS;
+    raster.halfcol = halfCol5;
+    raster.noDataValue = NODATA;
+    raster.cellsize = 1. / (double) ROW_LENGTH;
+    raster.xllcorner = (int) (lon < 0 ? lon - 1 : lon); //onDegreeStart - raster.cellsize;
+    raster.yllcorner = (int) (lat < 0 ? lat - 1 : lat); //latDegreeStart - raster.cellsize;
+    raster.eval_array = imagePixels;
+
+    return raster;
+  }
+
+  public SrtmRaster getRasterZip(File f, double lon, double lat) throws Exception {
+
+    ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(f)));
+    try {
+      for (; ; ) {
+        ZipEntry ze = zis.getNextEntry();
+        if (ze.getName().toLowerCase().endsWith(".hgt")) {
+          if (ze.getSize() > ((SRTM3_ROW_LENGTH + 1) * (SRTM3_ROW_LENGTH + 1) * 2)) {
+            ROW_LENGTH = SRTM1_ROW_LENGTH;
+          } else {
+            ROW_LENGTH = SRTM3_ROW_LENGTH;
+          }
+          System.out.println("read file " + f + " rl " + ROW_LENGTH);
+          // stay a 1x1 raster
+          NROWS = ROW_LENGTH + 1;
+          NCOLS = ROW_LENGTH + 1;
+
+          imagePixels = new short[NROWS * NCOLS]; // 650 MB !
+
+          // prefill as NODATA
+          for (int row = 0; row < NROWS; row++) {
+            for (int col = 0; col < NCOLS; col++) {
+              imagePixels[row * NCOLS + col] = NODATA;
+            }
+          }
+          readHgtFromStream(zis, 0, 0, ROW_LENGTH);
+          break;
+        }
+      }
+    } finally {
+      zis.close();
+    }
+
+
+    boolean halfCol5 = false; // no halfcol tiles in lidar data (?)
+
+    SrtmRaster raster = new SrtmRaster();
+    raster.nrows = NROWS;
+    raster.ncols = NCOLS;
+    raster.halfcol = halfCol5;
+    raster.noDataValue = NODATA;
+    raster.cellsize = 1. / (double) ROW_LENGTH;
+    raster.xllcorner = (int) (lon < 0 ? lon - 1 : lon); //onDegreeStart - raster.cellsize;
+    raster.yllcorner = (int) (lat < 0 ? lat - 1 : lat); //latDegreeStart - raster.cellsize;
+    raster.eval_array = imagePixels;
+
+    return raster;
+
+  }
 }
