@@ -14,7 +14,7 @@ public class IpAccessMonitor {
     long t = System.currentTimeMillis();
     synchronized (sync) {
       Long lastTime = ipAccess.get(ip);
-      ipAccess.put(ip, Long.valueOf(t));
+      ipAccess.put(ip, t);
       return lastTime == null || t - lastTime.longValue() > MAX_IDLE;
     }
   }

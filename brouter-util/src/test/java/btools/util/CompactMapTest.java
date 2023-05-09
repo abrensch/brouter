@@ -29,7 +29,7 @@ public class CompactMapTest {
     for (int i = 0; i < mapsize; i++) {
       String s = "" + i;
       long k = mapsize < 10 ? i : rand.nextInt(20000);
-      Long KK = new Long(k);
+      Long KK = k;
 
       if (!hmap.containsKey(KK)) {
         hmap.put(KK, s);
@@ -44,7 +44,7 @@ public class CompactMapTest {
         cmap_fast = new FrozenLongMap<>(cmap_fast);
       }
       long k = mapsize < 10 ? i : rand.nextInt(20000);
-      Long KK = new Long(k);
+      Long KK = k;
       String s = hmap.get(KK);
 
       boolean contained = hmap.containsKey(KK);

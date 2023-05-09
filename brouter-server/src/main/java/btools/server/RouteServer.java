@@ -195,7 +195,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         if ("timode".equals(e.getKey())) {
           rc.turnInstructionMode = Integer.parseInt(e.getValue());
         } else if ("heading".equals(e.getKey())) {
-          rc.startDirection = Integer.valueOf(Integer.parseInt(e.getValue()));
+          rc.startDirection = Integer.parseInt(e.getValue());
           rc.forceUseStartDirection = true;
         } else if (e.getKey().startsWith("profile:")) {
           if (rc.keyValues == null) {
@@ -205,7 +205,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         } else if (e.getKey().equals("straight")) {
           String[] sa = e.getValue().split(",");
           for (int i = 0; i < sa.length; i++) {
-            int v = Integer.valueOf(sa[i]);
+            int v = Integer.parseInt(sa[i]);
             if (wplist.size() > v) wplist.get(v).direct = true;
           }
         }

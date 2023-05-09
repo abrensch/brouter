@@ -289,7 +289,7 @@ public final class MicroCache2 extends MicroCache {
   public int encodeMicroCache(byte[] buffer) {
     HashMap<Long, Integer> idMap = new HashMap<>();
     for (int n = 0; n < size; n++) { // loop over nodes
-      idMap.put(Long.valueOf(expandId(faid[n])), Integer.valueOf(n));
+      idMap.put(expandId(faid[n]), n);
     }
 
     IntegerFifo3Pass linkCounts = new IntegerFifo3Pass(256);
@@ -404,7 +404,7 @@ public final class MicroCache2 extends MicroCache {
           }
 
           long link64 = ((long) ilonlink) << 32 | ilatlink;
-          Integer idx = idMap.get(Long.valueOf(link64));
+          Integer idx = idMap.get(link64);
           boolean isInternal = idx != null;
 
           if (isReverse && isInternal) {
