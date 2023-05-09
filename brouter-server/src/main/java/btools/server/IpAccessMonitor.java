@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class IpAccessMonitor {
   private static Object sync = new Object();
-  private static Map<String, Long> ipAccess = new HashMap<String, Long>();
+  private static Map<String, Long> ipAccess = new HashMap<>();
   private static long MAX_IDLE = 900000; // 15 minutes
   private static long CLEANUP_INTERVAL = 10000; // 10 seconds
   private static long lastCleanup;
@@ -31,7 +31,7 @@ public class IpAccessMonitor {
   }
 
   private static void cleanup(long t) {
-    HashMap<String, Long> newMap = new HashMap<String, Long>(ipAccess.size());
+    HashMap<String, Long> newMap = new HashMap<>(ipAccess.size());
     for (Map.Entry<String, Long> e : ipAccess.entrySet()) {
       if (t - e.getValue().longValue() <= MAX_IDLE) {
         newMap.put(e.getKey(), e.getValue());

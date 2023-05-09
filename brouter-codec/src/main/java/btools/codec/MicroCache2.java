@@ -287,7 +287,7 @@ public final class MicroCache2 extends MicroCache {
 
   @Override
   public int encodeMicroCache(byte[] buffer) {
-    HashMap<Long, Integer> idMap = new HashMap<Long, Integer>();
+    HashMap<Long, Integer> idMap = new HashMap<>();
     for (int n = 0; n < size; n++) { // loop over nodes
       idMap.put(Long.valueOf(expandId(faid[n])), Integer.valueOf(n));
     }

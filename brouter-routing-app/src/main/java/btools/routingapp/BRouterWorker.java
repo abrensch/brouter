@@ -126,7 +126,7 @@ public class BRouterWorker {
     }
 
     if (params.containsKey("extraParams")) {  // add user params
-      if (rc.keyValues == null) rc.keyValues = new HashMap<String, String>();
+      if (rc.keyValues == null) rc.keyValues = new HashMap<>();
       StringTokenizer tk = new StringTokenizer(extraParams, "?&");
       while (tk.hasMoreTokens()) {
         String t = tk.nextToken();
@@ -212,7 +212,7 @@ public class BRouterWorker {
   }
 
   private List<OsmNodeNamed> readPositions(Bundle params) {
-    List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
+    List<OsmNodeNamed> wplist = new ArrayList<>();
 
     double[] lats = params.getDoubleArray("lats");
     double[] lons = params.getDoubleArray("lons");
@@ -235,7 +235,7 @@ public class BRouterWorker {
   }
 
   private List<OsmNodeNamed> readLonlats(Bundle params) {
-    List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
+    List<OsmNodeNamed> wplist = new ArrayList<>();
 
     String lonLats = params.getString("lonlats");
     if (lonLats == null) throw new IllegalArgumentException("lonlats parameter not set");
@@ -315,7 +315,7 @@ public class BRouterWorker {
 
     String[] lonLatRadList = nogos.split("\\|");
 
-    List<OsmNodeNamed> nogoList = new ArrayList<OsmNodeNamed>();
+    List<OsmNodeNamed> nogoList = new ArrayList<>();
     for (int i = 0; i < lonLatRadList.length; i++) {
       String[] lonLatRad = lonLatRadList[i].split(",");
       String nogoWeight = "NaN";
@@ -344,7 +344,7 @@ public class BRouterWorker {
   }
 
   private List<OsmNodeNamed> readNogoPolygons(Bundle params) {
-    List<OsmNodeNamed> result = new ArrayList<OsmNodeNamed>();
+    List<OsmNodeNamed> result = new ArrayList<>();
     parseNogoPolygons(params.getString("polylines"), result, false);
     parseNogoPolygons(params.getString("polygons"), result, true);
     return result.size() > 0 ? result : null;
@@ -389,7 +389,7 @@ public class BRouterWorker {
 
     String[] lonLatNameList = pois.split("\\|");
 
-    List<OsmNodeNamed> poisList = new ArrayList<OsmNodeNamed>();
+    List<OsmNodeNamed> poisList = new ArrayList<>();
     for (int i = 0; i < lonLatNameList.length; i++) {
       String[] lonLatName = lonLatNameList[i].split(",");
 

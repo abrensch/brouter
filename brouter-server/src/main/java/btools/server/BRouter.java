@@ -63,7 +63,7 @@ public class BRouter {
           maxRunningTime = Integer.parseInt(sMaxRunningTime) * 1000;
         }
 
-        List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
+        List<OsmNodeNamed> wplist = new ArrayList<>();
         wplist.add(from);
         wplist.add(to);
 
@@ -83,7 +83,7 @@ public class BRouter {
       System.out.println("usage: java -jar brouter.jar <segmentdir> <lon-from> <lat-from> <lon-to> <lat-to> <profile>");
       return;
     }
-    List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
+    List<OsmNodeNamed> wplist = new ArrayList<>();
     wplist.add(readPosition(args, 1, "from"));
     RoutingEngine re = null;
     if ("seed".equals(args[3])) {

@@ -15,7 +15,7 @@ public class Polygon {
   private int maxy = Integer.MIN_VALUE;
 
   public Polygon(BufferedReader br) throws IOException {
-    ArrayList<String> lines = new ArrayList<String>();
+    ArrayList<String> lines = new ArrayList<>();
 
     for (; ; ) {
       String line = br.readLine();

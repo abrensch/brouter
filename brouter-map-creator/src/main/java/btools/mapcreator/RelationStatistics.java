@@ -25,7 +25,7 @@ public class RelationStatistics extends MapCreatorBase {
   }
 
   public void process(File relationFileIn) throws Exception {
-    HashMap<String, long[]> relstats = new HashMap<String, long[]>();
+    HashMap<String, long[]> relstats = new HashMap<>();
 
     DataInputStream dis = createInStream(relationFileIn);
     try {

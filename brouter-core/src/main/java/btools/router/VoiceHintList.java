@@ -12,7 +12,7 @@ import java.util.List;
 public class VoiceHintList {
   private String transportMode;
   int turnInstructionMode;
-  List<VoiceHint> list = new ArrayList<VoiceHint>();
+  List<VoiceHint> list = new ArrayList<>();
 
   public void setTransportMode(boolean isCar, boolean isBike) {
     transportMode = isCar ? "car" : (isBike ? "bike" : "foot");

@@ -53,7 +53,7 @@ public class RelationMerger extends MapCreatorBase {
     // expctxStat = new BExpressionContext("way");
 
     // *** read the relation file into sets for each processed tag
-    routesets = new HashMap<String, CompactLongSet>();
+    routesets = new HashMap<>();
     routesetall = new CompactLongSet();
     DataInputStream dis = createInStream(relationFileIn);
     try {
