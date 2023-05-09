@@ -22,15 +22,15 @@ public class DenseLongMapTest {
     for (int i = 0; i < mapsize; i++) {
       int value = i % 255;
       long k = (long) (rand.nextDouble() * keyrange);
-      Long KK = new Long(k);
+      Long KK = k;
 
-      hmap.put(KK, new Integer(value));
+      hmap.put(KK, value);
       dmap.put(k, value); // duplicate puts allowed!
     }
 
     for (int i = 0; i < trycount; i++) {
       long k = (long) (rand.nextDouble() * keyrange);
-      Long KK = new Long(k);
+      Long KK = k;
       Integer VV = hmap.get(KK);
       int hvalue = VV == null ? -1 : VV.intValue();
       int dvalue = dmap.getInt(k);
@@ -53,12 +53,12 @@ public class DenseLongMapTest {
     DenseLongMap dmap = new DenseLongMap(512);
     for (int i = 0; i < mapputs; i++) {
       long k = (long) (rand.nextDouble() * keyrange);
-      hset.add(new Long(k));
+      hset.add(k);
       dmap.put(k, 0);
     }
     for (int i = 0; i < trycount; i++) {
       long k = (long) (rand.nextDouble() * keyrange);
-      boolean hcontains = hset.contains(new Long(k));
+      boolean hcontains = hset.contains(k);
       boolean dcontains = dmap.getInt(k) == 0;
 
       if (hcontains != dcontains) {

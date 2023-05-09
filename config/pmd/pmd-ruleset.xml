@@ -28,7 +28,6 @@
         <exclude name="OneDeclarationPerLine" />
         <exclude name="OverrideBothEqualsAndHashcode" />
         <exclude name="PreserveStackTrace" />
-        <exclude name="PrimitiveWrapperInstantiation" />
         <exclude name="ReturnEmptyCollectionRatherThanNull" />
         <exclude name="UncommentedEmptyConstructor" />
         <exclude name="UncommentedEmptyMethodBody" />

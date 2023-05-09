@@ -107,7 +107,7 @@ public class BRouterWorker {
         String straight = params.getString("straight");
         String[] sa = straight.split(",");
         for (int i = 0; i < sa.length; i++) {
-          int v = Integer.valueOf(sa[i]);
+          int v = Integer.parseInt(sa[i]);
           if (waypoints.size() > v) waypoints.get(v).direct = true;
         }
       } catch (NumberFormatException e) {

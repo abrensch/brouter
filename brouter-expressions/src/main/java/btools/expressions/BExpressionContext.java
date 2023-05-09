@@ -528,7 +528,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       }
 
       // unknown name, create
-      num = Integer.valueOf(lookupValues.size());
+      num = lookupValues.size();
       lookupNumbers.put(name, num);
       lookupNames.add(name);
       lookupValues.add(new BExpressionLookupValue[]{new BExpressionLookupValue("")
@@ -855,7 +855,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     Integer num = variableNumbers.get(name);
     if (num == null) {
       if (create) {
-        num = Integer.valueOf(variableNumbers.size());
+        num = variableNumbers.size();
         variableNumbers.put(name, num);
       } else {
         return -1;

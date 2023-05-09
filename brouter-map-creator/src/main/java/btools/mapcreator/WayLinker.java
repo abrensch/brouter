@@ -480,7 +480,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
                   if (mc.expandId(shrinkid) != longId) {
                     throw new IllegalArgumentException("inconstistent shrinking: " + longId);
                   }
-                  sortedList.put(Integer.valueOf(shrinkid), n);
+                  sortedList.put(shrinkid, n);
                 }
 
                 for (OsmNodeP n : sortedList.values()) {

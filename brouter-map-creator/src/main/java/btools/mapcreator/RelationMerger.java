@@ -130,7 +130,7 @@ public class RelationMerger extends MapCreatorBase {
           if (routeset.contains(data.wid)) {
             int sepIdx = key.lastIndexOf('_');
             String tagname = key.substring(0, sepIdx);
-            int val = Integer.valueOf(key.substring(sepIdx + 1));
+            int val = Integer.parseInt(key.substring(sepIdx + 1));
             expctxReport.addSmallestLookupValue(tagname, val);
           }
         }
