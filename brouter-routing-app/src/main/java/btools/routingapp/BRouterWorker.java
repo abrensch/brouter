@@ -141,13 +141,17 @@ public class BRouterWorker {
       }
     }
 
+    int engineMode = 0;
+    if (params.containsKey("engineMode")) {
+      engineMode = params.getInt("engineMode", 0);
+    }
 
     try {
       writeTimeoutData(rc);
     } catch (Exception e) {
     }
 
-    RoutingEngine cr = new RoutingEngine(null, null, segmentDir, waypoints, rc);
+    RoutingEngine cr = new RoutingEngine(engineMode, null, null, segmentDir, waypoints, rc);
     cr.quite = true;
     cr.doRun(maxRunningTime);
 

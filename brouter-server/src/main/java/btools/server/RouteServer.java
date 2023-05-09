@@ -191,8 +191,11 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       if (wplist.size() < 10) {
         SuspectManager.nearRecentWps.add(wplist);
       }
+      int engineMode = 0;
       for (Map.Entry<String, String> e : params.entrySet()) {
-        if ("timode".equals(e.getKey())) {
+        if ("engineMode".equals(e.getKey())) {
+          engineMode = Integer.parseInt(e.getValue());
+        } else if ("timode".equals(e.getKey())) {
           rc.turnInstructionMode = Integer.parseInt(e.getValue());
         } else if ("heading".equals(e.getKey())) {
           rc.startDirection = Integer.valueOf(Integer.parseInt(e.getValue()));
@@ -210,7 +213,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
           }
         }
       }
-      cr = new RoutingEngine(null, null, serviceContext.segmentDir, wplist, rc);
+      cr = new RoutingEngine(engineMode, null, null, serviceContext.segmentDir, wplist, rc);
       cr.quite = true;
       cr.doRun(maxRunningTime);
 

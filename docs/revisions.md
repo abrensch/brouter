@@ -2,6 +2,18 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
+### New last version
+
+Android
+
+- Add parameter dialog for profile
+
+Library
+
+- Add engineMode for future use
+- Minor bug fixes
+
+
 ### [brouter-1.7.0.zip](../brouter_bin/brouter-1.7.0.zip) (current revision, 29.04.2023)
 
 Android

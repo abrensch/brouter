@@ -25,6 +25,11 @@ import btools.util.SortedHeap;
 import btools.util.StackSampler;
 
 public class RoutingEngine extends Thread {
+
+  public final static int BROUTER_ENGINEMODE_ROUTING = 0;
+  public final static int BROUTER_ENGINEMODE_SEED = 1;
+  public final static int BROUTER_ENGINEMODE_OTHER = 2;
+
   private NodesCache nodesCache;
   private SortedHeap<OsmPath> openSet = new SortedHeap<OsmPath>();
   private boolean finished = false;
@@ -36,6 +41,8 @@ public class RoutingEngine extends Thread {
   private int nodeLimit; // used for target island search
   private int MAXNODES_ISLAND_CHECK = 500;
   private OsmNodePairSet islandNodePairs = new OsmNodePairSet(MAXNODES_ISLAND_CHECK);
+
+  private int engineMode = 0;
 
   private int MAX_STEPS_CHECK = 10;
 
@@ -73,12 +80,20 @@ public class RoutingEngine extends Thread {
 
   public RoutingEngine(String outfileBase, String logfileBase, File segmentDir,
                        List<OsmNodeNamed> waypoints, RoutingContext rc) {
+    this(0, outfileBase, logfileBase, segmentDir,
+                       waypoints, rc);
+  }
+
+  public RoutingEngine(int engineMode, String outfileBase, String logfileBase, File segmentDir,
+                       List<OsmNodeNamed> waypoints, RoutingContext rc) {
     this.segmentDir = segmentDir;
     this.outfileBase = outfileBase;
     this.logfileBase = logfileBase;
     this.waypoints = waypoints;
     this.infoLogEnabled = outfileBase != null;
     this.routingContext = rc;
+    this.engineMode = engineMode;
+
 
     File baseFolder = new File(routingContext.localFunction).getParentFile();
     baseFolder = baseFolder == null ? null : baseFolder.getParentFile();
@@ -138,6 +153,16 @@ public class RoutingEngine extends Thread {
   }
 
   public void doRun(long maxRunningTime) {
+    switch (engineMode) {
+      case BROUTER_ENGINEMODE_ROUTING: doRouting(maxRunningTime); break;
+      case BROUTER_ENGINEMODE_SEED: /* do nothing, handled the old way */ break;
+      case BROUTER_ENGINEMODE_OTHER: /* call others */ break;
+      default: doRouting(maxRunningTime); break;
+    }
+  }
+
+
+  public void doRouting(long maxRunningTime) {
     try {
       startTime = System.currentTimeMillis();
       long startTime0 = startTime;
