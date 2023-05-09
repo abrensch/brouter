@@ -186,7 +186,7 @@ public class PosUnifier extends MapCreatorBase {
   }
 
   private void resetSrtm() {
-    srtmmap = new HashMap<String, SrtmRaster>();
+    srtmmap = new HashMap<>();
     lastSrtmLonIdx = -1;
     lastSrtmLatIdx = -1;
     lastSrtmRaster = null;

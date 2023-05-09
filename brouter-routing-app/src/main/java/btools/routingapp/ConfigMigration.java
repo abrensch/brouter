@@ -33,7 +33,7 @@ public class ConfigMigration {
       }
       br.close();
 
-      List<String> lines = new ArrayList<String>();
+      List<String> lines = new ArrayList<>();
       br = new BufferedReader(new FileReader(dstFile));
       for (; ; ) {
         String line = br.readLine();
@@ -76,7 +76,7 @@ public class ConfigMigration {
     BufferedReader br = null;
     BufferedWriter bw = null;
     File configFile = new File(segmentDir, "storageconfig.txt");
-    List<String> lines = new ArrayList<String>();
+    List<String> lines = new ArrayList<>();
     try {
       br = new BufferedReader(new FileReader(configFile));
       for (; ; ) {

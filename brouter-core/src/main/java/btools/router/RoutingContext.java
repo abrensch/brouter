@@ -274,7 +274,7 @@ public final class RoutingContext {
   public void cleanNogoList(List<OsmNode> waypoints) {
     nogopoints_all = nogopoints;
     if (nogopoints == null) return;
-    List<OsmNodeNamed> nogos = new ArrayList<OsmNodeNamed>();
+    List<OsmNodeNamed> nogos = new ArrayList<>();
     for (OsmNodeNamed nogo : nogopoints) {
       boolean goodGuy = true;
       for (OsmNode wp : waypoints) {
@@ -386,7 +386,7 @@ public final class RoutingContext {
 
   public void setWaypoint(OsmNodeNamed wp, OsmNodeNamed pendingEndpoint, boolean endpoint) {
     keepnogopoints = nogopoints;
-    nogopoints = new ArrayList<OsmNodeNamed>();
+    nogopoints = new ArrayList<>();
     nogopoints.add(wp);
     if (keepnogopoints != null) nogopoints.addAll(keepnogopoints);
     isEndpoint = endpoint;

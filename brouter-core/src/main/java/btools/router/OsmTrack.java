@@ -53,14 +53,14 @@ public final class OsmTrack {
 
   public Map<String, String> params;
 
-  public List<OsmNodeNamed> pois = new ArrayList<OsmNodeNamed>();
+  public List<OsmNodeNamed> pois = new ArrayList<>();
 
   public static class OsmPathElementHolder {
     public OsmPathElement node;
     public OsmPathElementHolder nextHolder;
   }
 
-  public List<OsmPathElement> nodes = new ArrayList<OsmPathElement>();
+  public List<OsmPathElement> nodes = new ArrayList<>();
 
   private CompactLongMap<OsmPathElementHolder> nodesMap;
 
@@ -82,7 +82,7 @@ public final class OsmTrack {
 
   public void registerDetourForId(long id, OsmPathElement detour) {
     if (detourMap == null) {
-      detourMap = new CompactLongMap<OsmPathElementHolder>();
+      detourMap = new CompactLongMap<>();
     }
     OsmPathElementHolder nh = new OsmPathElementHolder();
     nh.node = detour;
@@ -98,12 +98,12 @@ public final class OsmTrack {
   }
 
   public void copyDetours(OsmTrack source) {
-    detourMap = source.detourMap == null ? null : new FrozenLongMap<OsmPathElementHolder>(source.detourMap);
+    detourMap = source.detourMap == null ? null : new FrozenLongMap<>(source.detourMap);
   }
 
   public void addDetours(OsmTrack source) {
     if (detourMap != null) {
-      CompactLongMap<OsmPathElementHolder> tmpDetourMap = new CompactLongMap<OsmPathElementHolder>();
+      CompactLongMap<OsmPathElementHolder> tmpDetourMap = new CompactLongMap<>();
 
       List oldlist = ((FrozenLongMap) detourMap).getValueList();
       long[] oldidlist = ((FrozenLongMap) detourMap).getKeyArray();
@@ -124,7 +124,7 @@ public final class OsmTrack {
           }
         }
       }
-      detourMap = new FrozenLongMap<OsmPathElementHolder>(tmpDetourMap);
+      detourMap = new FrozenLongMap<>(tmpDetourMap);
     }
   }
 
@@ -132,7 +132,7 @@ public final class OsmTrack {
 
   public void appendDetours(OsmTrack source) {
     if (detourMap == null) {
-      detourMap = source.detourMap == null ? null : new CompactLongMap<OsmPathElementHolder>();
+      detourMap = source.detourMap == null ? null : new CompactLongMap<>();
     }
     if (source.detourMap != null) {
       int pos = nodes.size() - source.nodes.size() + 1;
@@ -160,7 +160,7 @@ public final class OsmTrack {
   }
 
   public void buildMap() {
-    nodesMap = new CompactLongMap<OsmPathElementHolder>();
+    nodesMap = new CompactLongMap<>();
     for (OsmPathElement node : nodes) {
       long id = node.getIdFromPos();
       OsmPathElementHolder nh = new OsmPathElementHolder();
@@ -175,11 +175,11 @@ public final class OsmTrack {
         nodesMap.fastPut(id, nh);
       }
     }
-    nodesMap = new FrozenLongMap<OsmPathElementHolder>(nodesMap);
+    nodesMap = new FrozenLongMap<>(nodesMap);
   }
 
   private List<String> aggregateMessages() {
-    ArrayList<String> res = new ArrayList<String>();
+    ArrayList<String> res = new ArrayList<>();
     MessageData current = null;
     for (OsmPathElement n : nodes) {
       if (n.message != null && n.message.wayKeyValues != null) {
@@ -201,7 +201,7 @@ public final class OsmTrack {
   }
 
   private List<String> aggregateSpeedProfile() {
-    ArrayList<String> res = new ArrayList<String>();
+    ArrayList<String> res = new ArrayList<>();
     int vmax = -1;
     int vmaxe = -1;
     int vmin = -1;
@@ -1289,7 +1289,7 @@ public final class OsmTrack {
     i = 0;
 
     node = nodes.get(nodeNr);
-    List<VoiceHint> inputs = new ArrayList<VoiceHint>();
+    List<VoiceHint> inputs = new ArrayList<>();
     while (node != null) {
       if (node.origin != null) {
         VoiceHint input = new VoiceHint();

@@ -22,7 +22,7 @@ public class CompactSetTest {
 
   private void hashSetComparison(int setsize, int trycount) {
     Random rand = new Random(12345);
-    HashSet<Long> hset = new HashSet<Long>();
+    HashSet<Long> hset = new HashSet<>();
     CompactLongSet cset_slow = new CompactLongSet();
     CompactLongSet cset_fast = new CompactLongSet();
 

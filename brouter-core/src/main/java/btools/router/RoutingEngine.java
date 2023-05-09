@@ -26,7 +26,7 @@ import btools.util.StackSampler;
 
 public class RoutingEngine extends Thread {
   private NodesCache nodesCache;
-  private SortedHeap<OsmPath> openSet = new SortedHeap<OsmPath>();
+  private SortedHeap<OsmPath> openSet = new SortedHeap<>();
   private boolean finished = false;
 
   protected List<OsmNodeNamed> waypoints = null;
@@ -146,7 +146,7 @@ public class RoutingEngine extends Thread {
       OsmTrack[] refTracks = new OsmTrack[nsections]; // used ways for alternatives
       OsmTrack[] lastTracks = new OsmTrack[nsections];
       OsmTrack track = null;
-      ArrayList<String> messageList = new ArrayList<String>();
+      ArrayList<String> messageList = new ArrayList<>();
       for (int i = 0; ; i++) {
         track = findTrack(refTracks, lastTracks);
         track.message = "track-length = " + track.distance + " filtered ascend = " + track.ascend
@@ -362,7 +362,7 @@ public class RoutingEngine extends Thread {
     try {
       MatchedWaypoint seedPoint = new MatchedWaypoint();
       seedPoint.waypoint = waypoints.get(0);
-      List<MatchedWaypoint> listOne = new ArrayList<MatchedWaypoint>();
+      List<MatchedWaypoint> listOne = new ArrayList<>();
       listOne.add(seedPoint);
       matchWaypointsToNodes(listOne);
 
@@ -437,7 +437,7 @@ public class RoutingEngine extends Thread {
     }
 
     if (matchedWaypoints == null) { // could exist from the previous alternative level
-      matchedWaypoints = new ArrayList<MatchedWaypoint>();
+      matchedWaypoints = new ArrayList<>();
       for (int i = 0; i < nUnmatched; i++) {
         MatchedWaypoint mwp = new MatchedWaypoint();
         mwp.waypoint = waypoints.get(i);
@@ -993,7 +993,7 @@ public class RoutingEngine extends Thread {
 
   private OsmTrack findTrack(String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack, boolean fastPartialRecalc) {
     try {
-      List<OsmNode> wpts2 = new ArrayList<OsmNode>();
+      List<OsmNode> wpts2 = new ArrayList<>();
       if (startWp != null) wpts2.add(startWp.waypoint);
       if (endWp != null) wpts2.add(endWp.waypoint);
       routingContext.cleanNogoList(wpts2);
@@ -1086,7 +1086,7 @@ public class RoutingEngine extends Thread {
       addToOpenset(startPath1);
       addToOpenset(startPath2);
     }
-    ArrayList<OsmPath> openBorderList = new ArrayList<OsmPath>(4096);
+    ArrayList<OsmPath> openBorderList = new ArrayList<>(4096);
     boolean memoryPanicMode = false;
     boolean needNonPanicProcessing = false;
 
