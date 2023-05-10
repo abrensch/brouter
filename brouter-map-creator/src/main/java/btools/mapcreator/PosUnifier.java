@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import btools.util.CompactLongSet;
@@ -217,13 +218,13 @@ public class PosUnifier extends MapCreatorBase {
     if (lastSrtmRaster == null) {
       File f = new File(new File(srtmdir), filename + ".hgt");
       if (f.exists()) {
-        lastSrtmRaster = new ConvertLidarTile().getRasterDirect(f, lon, lat);
+        lastSrtmRaster = new ConvertLidarTile().getRaster(f, lon, lat);
         srtmmap.put(filename, lastSrtmRaster);
         return lastSrtmRaster;
       }
       f = new File(new File(srtmdir), filename + ".zip");
       if (f.exists()) {
-        lastSrtmRaster = new ConvertLidarTile().getRasterZip(f, lon, lat);
+        lastSrtmRaster = new ConvertLidarTile().getRaster(f, lon, lat);
         srtmmap.put(filename, lastSrtmRaster);
         return lastSrtmRaster;
       }
@@ -246,11 +247,11 @@ public class PosUnifier extends MapCreatorBase {
       lon = -lon + 1;
     }
 
-    return String.format("%s%02d%s%03d", latPref, lat, lonPref, lon);
+    return String.format(Locale.US, "%s%02d%s%03d", latPref, lat, lonPref, lon);
   }
 
   private void resetSrtm() {
-    srtmmap = new HashMap<String, SrtmRaster>();
+    srtmmap = new HashMap<>();
     lastSrtmLonIdx = -1;
     lastSrtmLatIdx = -1;
     lastSrtmRaster = null;
