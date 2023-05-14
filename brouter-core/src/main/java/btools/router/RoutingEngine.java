@@ -28,7 +28,7 @@ public class RoutingEngine extends Thread {
 
   public final static int BROUTER_ENGINEMODE_ROUTING = 0;
   public final static int BROUTER_ENGINEMODE_SEED = 1;
-  public final static int BROUTER_ENGINEMODE_OTHER = 2;
+  public final static int BROUTER_ENGINEMODE_GETELEV = 2;
 
   private NodesCache nodesCache;
   private SortedHeap<OsmPath> openSet = new SortedHeap<OsmPath>();
@@ -50,6 +50,7 @@ public class RoutingEngine extends Thread {
   private OsmTrack foundRawTrack = null;
   private int alternativeIndex = 0;
 
+  protected String outputMessage = null;
   protected String errorMessage = null;
 
   private volatile boolean terminated;
@@ -81,7 +82,7 @@ public class RoutingEngine extends Thread {
   public RoutingEngine(String outfileBase, String logfileBase, File segmentDir,
                        List<OsmNodeNamed> waypoints, RoutingContext rc) {
     this(0, outfileBase, logfileBase, segmentDir,
-                       waypoints, rc);
+      waypoints, rc);
   }
 
   public RoutingEngine(int engineMode, String outfileBase, String logfileBase, File segmentDir,
@@ -93,7 +94,6 @@ public class RoutingEngine extends Thread {
     this.infoLogEnabled = outfileBase != null;
     this.routingContext = rc;
     this.engineMode = engineMode;
-
 
     File baseFolder = new File(routingContext.localFunction).getParentFile();
     baseFolder = baseFolder == null ? null : baseFolder.getParentFile();
@@ -120,6 +120,7 @@ public class RoutingEngine extends Thread {
     if (hasInfo()) {
       logInfo("parsed profile " + rc.localFunction + " cached=" + cachedProfile);
     }
+
   }
 
   private boolean hasInfo() {
@@ -153,11 +154,19 @@ public class RoutingEngine extends Thread {
   }
 
   public void doRun(long maxRunningTime) {
+
     switch (engineMode) {
-      case BROUTER_ENGINEMODE_ROUTING: doRouting(maxRunningTime); break;
-      case BROUTER_ENGINEMODE_SEED: /* do nothing, handled the old way */ break;
-      case BROUTER_ENGINEMODE_OTHER: /* call others */ break;
-      default: doRouting(maxRunningTime); break;
+      case BROUTER_ENGINEMODE_ROUTING:
+        doRouting(maxRunningTime);
+        break;
+      case BROUTER_ENGINEMODE_SEED: /* do nothing, handled the old way */
+        break;
+      case BROUTER_ENGINEMODE_GETELEV:
+        doGetElev();
+        break;
+      default:
+        doRouting(maxRunningTime);
+        break;
     }
   }
 
@@ -259,6 +268,44 @@ public class RoutingEngine extends Thread {
         stackSampler = null;
       }
 
+    }
+  }
+
+  public void doGetElev() {
+    try {
+      startTime = System.currentTimeMillis();
+
+      routingContext.turnInstructionMode = 9;
+      MatchedWaypoint wpt1 = new MatchedWaypoint();
+      wpt1.waypoint = waypoints.get(0);
+      wpt1.name = "wpt_info";
+      List<MatchedWaypoint> listOne = new ArrayList<MatchedWaypoint>();
+      listOne.add(wpt1);
+      matchWaypointsToNodes(listOne);
+
+      resetCache(true);
+      nodesCache.nodesMap.cleanupMode = 0;
+
+      int dist_cn1 = listOne.get(0).crosspoint.calcDistance(listOne.get(0).node1);
+      int dist_cn2 = listOne.get(0).crosspoint.calcDistance(listOne.get(0).node2);
+
+      OsmNode startNode;
+      if (dist_cn1 < dist_cn2) {
+        startNode = nodesCache.getStartNode(listOne.get(0).node1.getIdFromPos());
+      } else {
+        startNode = nodesCache.getStartNode(listOne.get(0).node2.getIdFromPos());
+      }
+
+      OsmNodeNamed n = new OsmNodeNamed(listOne.get(0).crosspoint);
+      n.selev = startNode != null ? startNode.getSElev() : Short.MIN_VALUE;
+
+      outputMessage = OsmTrack.formatAsGpxWaypoint(n);
+
+      long endTime = System.currentTimeMillis();
+      logInfo("execution time = " + (endTime - startTime) / 1000. + " seconds");
+    } catch (Exception e) {
+      e.getStackTrace();
+      logException(e);
     }
   }
 
@@ -1566,6 +1613,10 @@ public class RoutingEngine extends Thread {
 
   public OsmTrack getFoundTrack() {
     return foundTrack;
+  }
+
+  public String getFoundInfo() {
+    return outputMessage;
   }
 
   public int getAlternativeIndex() {
