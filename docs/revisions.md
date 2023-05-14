@@ -10,7 +10,7 @@ Android
 
 Library
 
-- Add engineMode for future use
+- Add new function 'get elevation'
 - Minor bug fixes
 
 
