@@ -121,7 +121,7 @@ public class BRouterService extends Service {
         }
         return gpxMessage;
       } catch (IllegalArgumentException iae) {
-         return iae.getMessage();
+        return iae.getMessage();
       }
     }
 
