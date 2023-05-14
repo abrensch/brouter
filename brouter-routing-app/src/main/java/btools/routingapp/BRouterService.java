@@ -6,7 +6,6 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Base64;
-import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -24,6 +23,7 @@ import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 import btools.router.OsmNodeNamed;
+import btools.router.RoutingEngine;
 
 public class BRouterService extends Service {
 
@@ -38,6 +38,15 @@ public class BRouterService extends Service {
       logBundle(params);
 
       BRouterWorker worker = new BRouterWorker();
+
+      for (String key : params.keySet()) {
+        // Log.d("BS", "income " + key + " = " + params.get(key));
+      }
+
+      int engineMode = 0;
+      if (params.containsKey("engineMode")) {
+        engineMode = params.getInt("engineMode", 0);
+      }
 
       // get base dir from private file
       String baseDir = null;
@@ -56,34 +65,37 @@ public class BRouterService extends Service {
       }
       worker.baseDir = baseDir;
       worker.segmentDir = new File(baseDir, "brouter/segments4");
-
-      String remoteProfile = params.getString("remoteProfile", null);
-
-      if (remoteProfile == null) {
-        remoteProfile = checkForTestDummy(baseDir);
-      }
-
       String errMsg = null;
-      if (remoteProfile != null) {
-        errMsg = getConfigForRemoteProfile(worker, baseDir, remoteProfile);
-      } else if (params.containsKey("profile")) {
-        String profile = params.getString("profile");
-        worker.profileName = profile;
-        worker.profilePath = baseDir + "/brouter/profiles2/" + profile + ".brf";
-        worker.rawTrackPath = baseDir + "/brouter/modes/" + profile + "_rawtrack.dat";
-        if (!new File(worker.profilePath).exists()) {
-          errMsg = "Profile " + profile + " does not exists";
-        } else {
-          try {
-            readNogos(worker, baseDir);
-          } catch (Exception e) {
-            errMsg = e.getLocalizedMessage();
+
+      if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING) {
+        String remoteProfile = params.getString("remoteProfile", null);
+
+        if (remoteProfile == null) {
+          remoteProfile = checkForTestDummy(baseDir);
+        }
+
+        if (remoteProfile != null) {
+          errMsg = getConfigForRemoteProfile(worker, baseDir, remoteProfile);
+        } else if (params.containsKey("profile")) {
+          String profile = params.getString("profile");
+          worker.profileName = profile;
+          worker.profilePath = baseDir + "/brouter/profiles2/" + profile + ".brf";
+          worker.rawTrackPath = baseDir + "/brouter/modes/" + profile + "_rawtrack.dat";
+          if (!new File(worker.profilePath).exists()) {
+            errMsg = "Profile " + profile + " does not exists";
+          } else {
+            try {
+              readNogos(worker, baseDir);
+            } catch (Exception e) {
+              errMsg = e.getLocalizedMessage();
+            }
           }
+        } else {
+          errMsg = getConfigFromMode(worker, baseDir, params.getString("v"), params.getString("fast"));
         }
       } else {
-        errMsg = getConfigFromMode(worker, baseDir, params.getString("v"), params.getString("fast"));
+        worker.profilePath = baseDir + "/brouter/profiles2/dummy.brf";
       }
-
       if (errMsg != null) {
         return errMsg;
       }
@@ -109,7 +121,7 @@ public class BRouterService extends Service {
         }
         return gpxMessage;
       } catch (IllegalArgumentException iae) {
-        return iae.getMessage();
+         return iae.getMessage();
       }
     }
 
@@ -121,7 +133,7 @@ public class BRouterService extends Service {
       try {
         String modesFile = baseDir + "/brouter/modes/serviceconfig.dat";
         br = new BufferedReader(new FileReader(modesFile));
-        for (;;) {
+        for (; ; ) {
           String line = br.readLine();
           if (line == null)
             break;
@@ -244,7 +256,7 @@ public class BRouterService extends Service {
       StringBuilder sb = new StringBuilder();
       try {
         br = new BufferedReader(new FileReader(testdummy));
-        for (;;) {
+        for (; ; ) {
           String line = br.readLine();
           if (line == null)
             break;
@@ -290,7 +302,6 @@ public class BRouterService extends Service {
   @Override
   @SuppressWarnings("deprecation")
   public void onStart(Intent intent, int startId) {
-    Log.d(getClass().getSimpleName(), "onStart()");
     handleStart(intent, startId);
   }
 
