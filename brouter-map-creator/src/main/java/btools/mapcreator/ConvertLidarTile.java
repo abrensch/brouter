@@ -20,10 +20,11 @@ public class ConvertLidarTile {
   public static final short NODATA2 = -32767; // hgt-formats nodata
   public static final short NODATA = Short.MIN_VALUE;
 
-  private static final int SRTM_BORDER_OVERLAP = 1;
-  private static final int SRTM3_ROW_LENGTH = 1201; // 3 arc second resolution (90m)
-  private static final int SRTM3_FILE_SIZE = SRTM3_ROW_LENGTH * SRTM3_ROW_LENGTH * Short.BYTES;
-  private static final int SRTM1_ROW_LENGTH = 3601; // 1 arc second resolution (30m)
+  private static final String HGT_FILE_EXT = ".hgt";
+  private static final int HGT_BORDER_OVERLAP = 1;
+  private static final int HGT_3ASEC_ROWS = 1201; // 3 arc second resolution (90m)
+  private static final int HGT_3ASEC_FILE_SIZE = HGT_3ASEC_ROWS * HGT_3ASEC_ROWS * Short.BYTES;
+  private static final int HGT_1ASEC_ROWS = 3601; // 1 arc second resolution (30m)
 
   static short[] imagePixels;
 
@@ -33,8 +34,8 @@ public class ConvertLidarTile {
       for (; ; ) {
         ZipEntry ze = zis.getNextEntry();
         if (ze == null) break;
-        if (ze.getName().endsWith(".hgt")) {
-          readHgtFromStream(zis, rowOffset, colOffset, SRTM3_ROW_LENGTH);
+        if (ze.getName().toLowerCase().endsWith(HGT_FILE_EXT)) {
+          readHgtFromStream(zis, rowOffset, colOffset, HGT_3ASEC_ROWS);
           return;
         }
       }
@@ -56,7 +57,7 @@ public class ConvertLidarTile {
         int i0 = dis.read();
 
         if (i0 == -1 || i1 == -1)
-          throw new RuntimeException("unexcepted end of file reading hgt entry!");
+          throw new RuntimeException("unexpected end of file reading hgt entry!");
 
         short val = (short) ((i1 << 8) | i0);
 
@@ -198,7 +199,6 @@ public class ConvertLidarTile {
     InputStream inputStream;
 
     if (f.getName().toLowerCase().endsWith(".zip")) {
-      String HGT_FILE_EXT = ".hgt";
       ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(f)));
       for (; ; ) {
         ZipEntry ze = zis.getNextEntry();
@@ -217,10 +217,10 @@ public class ConvertLidarTile {
     }
 
     int rowLength;
-    if (fileSize > SRTM3_FILE_SIZE) {
-      rowLength = SRTM1_ROW_LENGTH;
+    if (fileSize > HGT_3ASEC_FILE_SIZE) {
+      rowLength = HGT_1ASEC_ROWS;
     } else {
-      rowLength = SRTM3_ROW_LENGTH;
+      rowLength = HGT_3ASEC_ROWS;
     }
 
     // stay at 1 deg * 1 deg raster
@@ -239,7 +239,7 @@ public class ConvertLidarTile {
     raster.ncols = NCOLS;
     raster.halfcol = false; // assume full resolution
     raster.noDataValue = NODATA;
-    raster.cellsize = 1. / (double) (rowLength - SRTM_BORDER_OVERLAP);
+    raster.cellsize = 1. / (double) (rowLength - HGT_BORDER_OVERLAP);
     raster.xllcorner = (int) (lon < 0 ? lon - 1 : lon); //onDegreeStart - raster.cellsize;
     raster.yllcorner = (int) (lat < 0 ? lat - 1 : lat); //latDegreeStart - raster.cellsize;
     raster.eval_array = imagePixels;
