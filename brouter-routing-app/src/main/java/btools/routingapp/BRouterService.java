@@ -199,8 +199,8 @@ public class BRouterService extends Service {
     private void readNogos(BRouterWorker worker, String baseDir) throws Exception {
       // add nogos from waypoint database
       CoordinateReader cor = CoordinateReader.obtainValidReader(baseDir, true);
-      worker.nogoList = new ArrayList<OsmNodeNamed>(cor.nogopoints);
-      worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
+      worker.nogoList = new ArrayList<>(cor.nogopoints);
+      worker.nogoPolygonsList = new ArrayList<>();
     }
 
     private boolean fileEqual(byte[] fileBytes, File file) throws Exception {

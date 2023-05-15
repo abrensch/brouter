@@ -52,7 +52,7 @@ public class OsmTrafficMap {
     public OsmTrafficElement next;
   }
 
-  private CompactLongMap<OsmTrafficElement> map = new CompactLongMap<OsmTrafficElement>();
+  private CompactLongMap<OsmTrafficElement> map = new CompactLongMap<>();
 
   public void loadAll(File file, int minLon, int minLat, int maxLon, int maxLat, boolean includeMotorways) throws Exception {
     load(file, minLon, minLat, maxLon, maxLat, includeMotorways);
@@ -107,7 +107,7 @@ public class OsmTrafficMap {
       is.close();
     }
 
-    map = new FrozenLongMap<OsmTrafficElement>(map);
+    map = new FrozenLongMap<>(map);
     System.out.println("read traffic-elements: " + trafficElements);
   }
 

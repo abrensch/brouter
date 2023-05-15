@@ -8,7 +8,7 @@ import java.util.Random;
 public class SortedHeapTest {
   @Test
   public void sortedHeapTest1() {
-    SortedHeap<String> sh = new SortedHeap<String>();
+    SortedHeap<String> sh = new SortedHeap<>();
     Random rnd = new Random();
     for (int i = 0; i < 100000; i++) {
       int val = rnd.nextInt(1000000);
@@ -34,7 +34,7 @@ public class SortedHeapTest {
 
   @Test
   public void sortedHeapTest2() {
-    SortedHeap<String> sh = new SortedHeap<String>();
+    SortedHeap<String> sh = new SortedHeap<>();
     Random rnd = new Random();
     for (int i = 0; i < 100000; i++) {
       sh.add(i, "" + i);

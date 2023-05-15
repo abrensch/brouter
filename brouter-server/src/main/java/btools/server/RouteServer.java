@@ -195,17 +195,17 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         if ("timode".equals(e.getKey())) {
           rc.turnInstructionMode = Integer.parseInt(e.getValue());
         } else if ("heading".equals(e.getKey())) {
-          rc.startDirection = Integer.valueOf(Integer.parseInt(e.getValue()));
+          rc.startDirection = Integer.parseInt(e.getValue());
           rc.forceUseStartDirection = true;
         } else if (e.getKey().startsWith("profile:")) {
           if (rc.keyValues == null) {
-            rc.keyValues = new HashMap<String, String>();
+            rc.keyValues = new HashMap<>();
           }
           rc.keyValues.put(e.getKey().substring(8), e.getValue());
         } else if (e.getKey().equals("straight")) {
           String[] sa = e.getValue().split(",");
           for (int i = 0; i < sa.length; i++) {
-            int v = Integer.valueOf(sa[i]);
+            int v = Integer.parseInt(sa[i]);
             if (wplist.size() > v) wplist.get(v).direct = true;
           }
         }
@@ -294,7 +294,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
     ProfileCache.setSize(2 * maxthreads);
 
-    PriorityQueue<RouteServer> threadQueue = new PriorityQueue<RouteServer>();
+    PriorityQueue<RouteServer> threadQueue = new PriorityQueue<>();
 
     ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]), 100, InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
 
@@ -359,7 +359,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
 
   private static Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
-    HashMap<String, String> params = new HashMap<String, String>();
+    HashMap<String, String> params = new HashMap<>();
     String decoded = URLDecoder.decode(url, "UTF-8");
     StringTokenizer tk = new StringTokenizer(decoded, "?&");
     while (tk.hasMoreTokens()) {

@@ -58,7 +58,7 @@ public final class TagValueCoder {
         TagValueSet dummy = new TagValueSet(nextTagValueSetId++);
         identityMap.put(dummy, dummy);
       }
-      PriorityQueue<TagValueSet> queue = new PriorityQueue<TagValueSet>(2 * identityMap.size(), new TagValueSet.FrequencyComparator());
+      PriorityQueue<TagValueSet> queue = new PriorityQueue<>(2 * identityMap.size(), new TagValueSet.FrequencyComparator());
       queue.addAll(identityMap.values());
       while (queue.size() > 1) {
         TagValueSet node = new TagValueSet(nextTagValueSetId++);
@@ -79,7 +79,7 @@ public final class TagValueCoder {
   }
 
   public TagValueCoder() {
-    identityMap = new HashMap<TagValueSet, TagValueSet>();
+    identityMap = new HashMap<>();
   }
 
   private Object decodeTree(BitCoderContext bc, DataBuffers buffers, TagValueValidator validator) {
