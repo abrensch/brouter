@@ -13,7 +13,7 @@ import java.util.Map;
 import btools.util.ByteArrayUnifier;
 
 public final class OsmNodesMap {
-  private Map<OsmNode, OsmNode> hmap = new HashMap<OsmNode, OsmNode>(4096);
+  private Map<OsmNode, OsmNode> hmap = new HashMap<>(4096);
 
   private ByteArrayUnifier abUnifier = new ByteArrayUnifier(16384, false);
 
@@ -176,7 +176,7 @@ public final class OsmNodesMap {
   }
 
   public void collectOutreachers() {
-    nodes2check = new ArrayList<OsmNode>(nodesCreated);
+    nodes2check = new ArrayList<>(nodesCreated);
     nodesCreated = 0;
     for (OsmNode n : hmap.values()) {
       addActiveNode(nodes2check, n);

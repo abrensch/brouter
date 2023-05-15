@@ -8,8 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Area {
-  private List<Polygon> poslist = new ArrayList<Polygon>();
-  private List<Polygon> neglist = new ArrayList<Polygon>();
+  private List<Polygon> poslist = new ArrayList<>();
+  private List<Polygon> neglist = new ArrayList<>();
 
   public static void main(String[] args) throws IOException {
     Area a = new Area(new File(args[0]));

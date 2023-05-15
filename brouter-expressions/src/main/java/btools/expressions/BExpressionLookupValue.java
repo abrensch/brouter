@@ -26,7 +26,7 @@ final class BExpressionLookupValue {
   }
 
   public void addAlias(String alias) {
-    if (aliases == null) aliases = new ArrayList<String>();
+    if (aliases == null) aliases = new ArrayList<>();
     aliases.add(alias);
   }
 

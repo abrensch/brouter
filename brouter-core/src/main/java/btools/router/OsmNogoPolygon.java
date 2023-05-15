@@ -24,7 +24,7 @@ public class OsmNogoPolygon extends OsmNodeNamed {
     }
   }
 
-  public final List<Point> points = new ArrayList<Point>();
+  public final List<Point> points = new ArrayList<>();
 
   public final boolean isClosed;
 
