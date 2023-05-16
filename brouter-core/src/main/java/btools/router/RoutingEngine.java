@@ -81,12 +81,11 @@ public class RoutingEngine extends Thread {
 
   public RoutingEngine(String outfileBase, String logfileBase, File segmentDir,
                        List<OsmNodeNamed> waypoints, RoutingContext rc) {
-    this(0, outfileBase, logfileBase, segmentDir,
-      waypoints, rc);
+    this(outfileBase, logfileBase, segmentDir, waypoints, rc, 0);
   }
 
-  public RoutingEngine(int engineMode, String outfileBase, String logfileBase, File segmentDir,
-                       List<OsmNodeNamed> waypoints, RoutingContext rc) {
+  public RoutingEngine(String outfileBase, String logfileBase, File segmentDir,
+                       List<OsmNodeNamed> waypoints, RoutingContext rc, int engineMode) {
     this.segmentDir = segmentDir;
     this.outfileBase = outfileBase;
     this.logfileBase = logfileBase;
