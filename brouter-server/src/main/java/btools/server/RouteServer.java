@@ -213,7 +213,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
           }
         }
       }
-      cr = new RoutingEngine(engineMode, null, null, serviceContext.segmentDir, wplist, rc);
+      cr = new RoutingEngine(null, null, serviceContext.segmentDir, wplist, rc, engineMode);
       cr.quite = true;
       cr.doRun(maxRunningTime);
 

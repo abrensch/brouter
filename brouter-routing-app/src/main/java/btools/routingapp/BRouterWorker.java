@@ -152,7 +152,7 @@ public class BRouterWorker {
     } catch (Exception e) {
     }
 
-    RoutingEngine cr = new RoutingEngine(engineMode, null, null, segmentDir, waypoints, rc);
+    RoutingEngine cr = new RoutingEngine(null, null, segmentDir, waypoints, rc, engineMode);
     cr.quite = true;
     cr.doRun(maxRunningTime);
 
@@ -248,7 +248,7 @@ public class BRouterWorker {
   }
 
   private List<OsmNodeNamed> readLonlats(Bundle params, int mode) {
-    List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
+    List<OsmNodeNamed> wplist = new ArrayList<>();
 
     String lonLats = params.getString("lonlats");
     if (lonLats == null) throw new IllegalArgumentException("lonlats parameter not set");
