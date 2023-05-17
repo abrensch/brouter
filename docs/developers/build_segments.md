@@ -13,43 +13,6 @@ also build them yourself from an OSM dump (e.g. planet or [GeoFabrik
 extract](https://download.geofabrik.de/))
 
 
-## Build the pbfparser
-
-First, there are two file formats available to download OSM data: `bzip`-ed
-XML files (very large) and `.pbf`
-([Protobuf](https://github.com/protocolbuffers/protobuf) format) which is much
-more efficient. If you want to use the latter one, you will have to build the
-`pbfparser` (located in `misc/pbfparser` first):
-
-* Download [the latest
-    version](https://github.com/openstreetmap/osmosis/releases)
-    of [Osmosis](https://wiki.openstreetmap.org/wiki/Osmosis) and unzip it
-    somewhere.
-* Copy the `lib/default/protobuf-java-*.jar` and
-    `lib/default/osmosis-osm-binary-*.jar` files from the unzipped Osmosis
-    archive to `misc/pbfparser/protobuf.jar` and `misc/pbfparser/osmosis.jar`.
-* Build BRouter and copy
-    `brouter-server/build/libs/brouter-*-all.jar` to
-    `misc/pbfparser/brouter.jar`.
-* You can build the `pbfparser` using, in the `misc/pbfparser/`
-    folder,
-
-```
-javac -d . -cp "brouter.jar:protobuf.jar:osmosis.jar" *.java
-```
-
-* Finally, you can build a `jar` file from these files using
-
-```
-jar cf pbfparser.jar btools/**/*.class
-```
-
-_Note:_ If the `jar` file is not properly created, everything else will seem
-to work normally but there will not be any data extracted from the OSM data
-dump. You can check what is actually inside the built `jar` file using
-`jar tf pbfparser.jar`.
-
-
 ## Run the map creation script
 
 If you want to have elevation information in the generated segments files, you
