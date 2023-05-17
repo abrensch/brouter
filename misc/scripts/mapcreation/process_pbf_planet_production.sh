@@ -15,7 +15,7 @@ mkdir waytiles
 mkdir waytiles55
 mkdir nodes55
 
-../../jdk8/bin/java -Xmx6144M -Xms6144M -Xmn256M -cp ../pbfparser.jar:../brouter_fc.jar -Ddeletetmpfiles=true -DuseDenseMaps=true  btools.util.StackSampler btools.mapcreator.OsmFastCutter ../lookups.dat nodetiles waytiles nodes55 waytiles55  bordernids.dat  relations.dat  restrictions.dat  ../all.brf ../trekking.brf ../softaccess.brf ../planet-new.osm.pbf
+../../jdk8/bin/java -Xmx6144M -Xms6144M -Xmn256M -cp ../brouter_fc.jar -Ddeletetmpfiles=true -DuseDenseMaps=true  btools.util.StackSampler btools.mapcreator.OsmFastCutter ../lookups.dat nodetiles waytiles nodes55 waytiles55  bordernids.dat  relations.dat  restrictions.dat  ../all.brf ../trekking.brf ../softaccess.brf ../planet-new.osm.pbf
 
 mv ../planet-latest.osm.pbf ../planet-old.osm.pbf
 mv ../planet-new.osm.pbf ../planet-latest.osm.pbf
