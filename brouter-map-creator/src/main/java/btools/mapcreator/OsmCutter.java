@@ -12,6 +12,11 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Map;
 
 import btools.expressions.BExpressionContextNode;
@@ -32,6 +37,22 @@ public class OsmCutter extends MapCreatorBase {
   public WayCutter wayCutter;
   public RestrictionCutter restrictionCutter;
   public NodeFilter nodeFilter;
+
+
+  Connection conn = null;
+  PreparedStatement psAllTags = null;
+
+  ResultSet rsBrouter = null;
+
+  int cntHighways = 0;
+  int cntWayModified = 0;
+  int cntNewNoise = 0;
+  int cntNewRiver = 0;
+  int cntNewForest = 0;
+  int cntNewTown = 0;
+  int cntNewTraffic = 0;
+
+  String jdbcurl;
 
   public static void main(String[] args) throws Exception {
     System.out.println("*** OsmCutter: cut an osm map in node-tiles + a way file");
@@ -117,6 +138,9 @@ public class OsmCutter extends MapCreatorBase {
     return "records read: " + recordCnt + " nodes=" + nodesParsed + " ways=" + waysParsed + " rels=" + relsParsed + " changesets=" + changesetsParsed;
   }
 
+  public void setJdbcUrl(String url) {
+    this.jdbcurl = url;
+  }
 
   @Override
   public void nextNode(NodeData n) throws Exception {
@@ -165,6 +189,91 @@ public class OsmCutter extends MapCreatorBase {
   }
 
 
+// Ess Bee : NEW function to add the new tags (estimated_noise_class , river, forest...)
+
+  private void generateSpecialTags(long osm_id, Map<String, String> map) {
+
+    if (jdbcurl == null) return;
+
+    // is the database allready connected?
+    if (conn == null) {
+
+      String sql_all_tags = "SELECT *  from all_tags where losmid = ?";
+
+      System.err.println("OsmCutter start connection to the database........" + jdbcurl);
+
+      try {
+        conn = DriverManager.getConnection(jdbcurl);
+        psAllTags = conn.prepareStatement(sql_all_tags);
+
+        System.err.println("OsmCutter connect to the database ok........");
+
+      } catch (SQLException g) {
+        System.err.format("Osm Cutter SQL State: %s\n%s", g.getSQLState(), g.getMessage());
+        System.exit(0);
+      } catch (Exception f) {
+        f.printStackTrace();
+        System.exit(0);
+      }
+    }
+
+    for (Map.Entry<String, String> e : map.entrySet()) {
+      if (e.getKey().equals("highway")) {
+        cntHighways = cntHighways + 1;
+
+        try {
+
+          psAllTags.setLong(1, osm_id);
+
+          // process the results
+          rsBrouter = psAllTags.executeQuery();
+
+          if (rsBrouter.next()) {
+
+            cntWayModified = cntWayModified + 1;
+            if (rsBrouter.getString("noise_class") != null) {
+              map.put("estimated_noise_class", rsBrouter.getString("noise_class"));
+              cntNewNoise = cntNewNoise + 1;
+            }
+            if (rsBrouter.getString("river_class") != null) {
+              map.put("estimated_river_class", rsBrouter.getString("river_class"));
+              cntNewRiver = cntNewRiver + 1;
+            }
+            if (rsBrouter.getString("forest_class") != null) {
+              map.put("estimated_forest_class", rsBrouter.getString("forest_class"));
+              cntNewForest = cntNewForest + 1;
+            }
+
+            if (rsBrouter.getString("town_class") != null) {
+              map.put("estimated_town_class", rsBrouter.getString("town_class"));
+              cntNewTown = cntNewTown + 1;
+            }
+
+            if (rsBrouter.getString("traffic_class") != null) {
+              map.put("estimated_traffic_class", rsBrouter.getString("traffic_class"));
+              cntNewTraffic = cntNewTraffic + 1;
+            }
+
+          }
+          if ((cntHighways % 100000) == 0) {
+            System.out.print("HW processed=" + cntHighways + " HW modifs=" + cntWayModified + " NoiseTags=" + cntNewNoise);
+            System.out.println(" RiverTags=" + cntNewRiver + " ForestTags=" + cntNewForest + " TownTags=" + cntNewTown + " TrafficTags=" + cntNewTraffic);
+          }
+
+        } catch (SQLException g) {
+          System.err.format(" OsmCutter execute sql .. SQL State: %s\n%s", g.getSQLState(), g.getMessage());
+          System.exit(0);
+        } catch (Exception f) {
+          f.printStackTrace();
+          System.exit(0);
+        }
+
+        return;
+      }
+    }
+  }
+
+
   @Override
   public void nextWay(WayData w) throws Exception {
     waysParsed++;
@@ -173,13 +282,14 @@ public class OsmCutter extends MapCreatorBase {
     // encode tags
     if (w.getTagsOrNull() == null) return;
 
+    generateSpecialTags(w.wid, w.getTagsOrNull());
+
     generatePseudoTags(w.getTagsOrNull());
 
     int[] lookupData = _expctxWay.createNewLookupData();
     for (String key : w.getTagsOrNull().keySet()) {
       String value = w.getTag(key);
       _expctxWay.addLookupValue(key, value.replace(' ', '_'), lookupData);
-      // _expctxWayStat.addLookupValue( key, value, null );
     }
     w.description = _expctxWay.encode(lookupData);
 
