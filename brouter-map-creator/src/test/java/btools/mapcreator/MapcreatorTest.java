@@ -9,8 +9,10 @@ import java.net.URL;
 public class MapcreatorTest {
   @Test
   public void mapcreatorTest() throws Exception {
-    URL mapurl = this.getClass().getResource("/dreieich.osm.gz");
-    Assert.assertNotNull("test-osm-map dreieich.osm not found", mapurl);
+    System.setProperty("avoidMapPolling", "true");
+
+    URL mapurl = this.getClass().getResource("/dreieich.pbf");
+    Assert.assertNotNull("test-osm-map dreieich.pbf not found", mapurl);
     File mapFile = new File(mapurl.getFile());
     File workingDir = mapFile.getParentFile();
     File profileDir = new File(workingDir, "/../../../../misc/profiles2");

@@ -24,14 +24,11 @@ touch lastmaprun.date
 
 rm -rf /var/www/brouter/segments4_lastrun
 
-JAVA='/java/bin/java -Xmx2600m -Xms2600m -Xmn32m'
+JAVA='java -Xmx2600m -Xms2600m -Xmn32m'
 
 BROUTER_PROFILES=$(realpath "../../profiles2")
 
 BROUTER_JAR=$(realpath $(ls ../../../brouter-server/build/libs/brouter-*-all.jar))
-OSMOSIS_JAR=$(realpath "../../pbfparser/osmosis.jar")
-PROTOBUF_JAR=$(realpath "../../pbfparser/protobuf.jar")
-PBFPARSER_JAR=$(realpath "../../pbfparser/pbfparser.jar")
 
 PLANET_FILE=${PLANET_FILE:-$(realpath "./planet-latest.osm.pbf")}
 # Download SRTM zip files from
@@ -43,7 +40,7 @@ SRTM_PATH="/private-backup/srtm"
 mkdir tmp
 cd tmp
 mkdir nodetiles
-${JAVA} -cp "${OSMOSIS_JAR}:${PROTOBUF_JAR}:${PBFPARSER_JAR}:${BROUTER_JAR}" btools.mapcreator.OsmCutter ${BROUTER_PROFILES}/lookups.dat nodetiles ways.dat relations.dat restrictions.dat ${BROUTER_PROFILES}/all.brf ${PLANET_FILE}
+${JAVA} -cp ${BROUTER_JAR} -DavoidMapPolling=true btools.mapcreator.OsmCutter ${BROUTER_PROFILES}/lookups.dat nodetiles ways.dat relations.dat restrictions.dat ${BROUTER_PROFILES}/all.brf ${PLANET_FILE}
 
 mkdir ftiles
 ${JAVA} -cp ${BROUTER_JAR} -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.NodeFilter nodetiles ways.dat ftiles
