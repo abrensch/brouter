@@ -165,7 +165,7 @@ public class ConvertLidarTile {
     String s = "E";
     if (lon < 0) {
       lon = -lon;
-      s = "E";
+      s = "W";
     }
     String n = "000" + lon;
     return s + n.substring(n.length() - 3);
