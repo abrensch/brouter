@@ -44,3 +44,10 @@ This parameters are needed to tell BRouter what to do.
 Profile parameters affect the result of a profile.
 For the app it is a list of params concatenated by '&'. E.g. extraParams=avoidferry=1&avoidsteps=0
 The server calls profile params by a prefix 'profile:'. E.g. ...&profile:avoidferry=1&profile:avoidsteps=0
+
+
+## other routing engine modes in app
+
+### get elevation
+
+"engineMode=2" allows a client to only request an elevation for a point. This can be restricted with "waypointCatchingRange".
