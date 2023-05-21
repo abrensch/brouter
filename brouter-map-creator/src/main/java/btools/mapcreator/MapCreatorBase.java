@@ -25,7 +25,7 @@ public abstract class MapCreatorBase implements WayListener, NodeListener, Relat
   protected Map<String, String> tags;
 
   public void putTag(String key, String value) {
-    if (tags == null) tags = new HashMap<String, String>();
+    if (tags == null) tags = new HashMap<>();
     tags.put(key, value);
   }
 

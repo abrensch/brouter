@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import btools.util.CompactLongSet;
@@ -37,7 +38,24 @@ public class PosUnifier extends MapCreatorBase {
 
   public static void main(String[] args) throws Exception {
     System.out.println("*** PosUnifier: Unify position values and enhance elevation");
-    if (args.length != 5) {
+    if (args.length == 3) {
+      PosUnifier posu = new PosUnifier();
+      posu.srtmdir = (args[0]);
+      posu.srtmmap = new HashMap<>();
+      double lon = Double.parseDouble(args[1]);
+      double lat = Double.parseDouble(args[2]);
+
+      NodeData n = new NodeData(1, lon, lat);
+      SrtmRaster srtm = posu.hgtForNode(n.ilon, n.ilat);
+      short selev = Short.MIN_VALUE;
+      if (srtm == null) {
+        srtm = posu.srtmForNode(n.ilon, n.ilat);
+      }
+      if (srtm != null) selev = srtm.getElevation(n.ilon, n.ilat);
+      posu.resetSrtm();
+      System.out.println("-----> selv for " + lat + ", " + lon + " = " + selev + " = " + (selev / 4.));
+      return;
+    } else if (args.length != 5) {
       System.out.println("usage: java PosUnifier <node-tiles-in> <node-tiles-out> <bordernids-in> <bordernodes-out> <srtm-data-dir>");
       return;
     }
@@ -79,9 +97,13 @@ public class PosUnifier extends MapCreatorBase {
 
   @Override
   public void nextNode(NodeData n) throws Exception {
-    SrtmRaster srtm = srtmForNode(n.ilon, n.ilat);
-    n.selev = srtm == null ? Short.MIN_VALUE : srtm.getElevation(n.ilon, n.ilat);
+    n.selev = Short.MIN_VALUE;
+    SrtmRaster srtm = hgtForNode(n.ilon, n.ilat);
+    if (srtm == null) {
+      srtm = srtmForNode(n.ilon, n.ilat);
+    }
 
+    if (srtm != null) n.selev = srtm.getElevation(n.ilon, n.ilat);
     findUniquePos(n);
 
     n.writeTo(nodesOutStream);
@@ -93,6 +115,7 @@ public class PosUnifier extends MapCreatorBase {
   @Override
   public void nodeFileEnd(File nodeFile) throws Exception {
     nodesOutStream.close();
+    resetSrtm();
   }
 
   private boolean checkAdd(int lon, int lat) {
@@ -157,7 +180,6 @@ public class PosUnifier extends MapCreatorBase {
     lastSrtmRaster = srtmmap.get(filename);
     if (lastSrtmRaster == null && !srtmmap.containsKey(filename)) {
       File f = new File(new File(srtmdir), filename + ".bef");
-      System.out.println("checking: " + f + " ilon=" + ilon + " ilat=" + ilat);
       if (f.exists()) {
         System.out.println("*** reading: " + f);
         try {
@@ -172,10 +194,12 @@ public class PosUnifier extends MapCreatorBase {
       }
 
       f = new File(new File(srtmdir), filename + ".zip");
-      System.out.println("reading: " + f + " ilon=" + ilon + " ilat=" + ilat);
+      // System.out.println("reading: " + f + " ilon=" + ilon + " ilat=" + ilat);
       if (f.exists()) {
         try {
           lastSrtmRaster = new SrtmData(f).getRaster();
+          srtmmap.put(filename, lastSrtmRaster);
+          return lastSrtmRaster;
         } catch (Exception e) {
           System.out.println("**** ERROR reading " + f + " ****");
         }
@@ -185,8 +209,49 @@ public class PosUnifier extends MapCreatorBase {
     return lastSrtmRaster;
   }
 
+  private SrtmRaster hgtForNode(int ilon, int ilat) throws Exception {
+    double lon = (ilon - 180000000) / 1000000.;
+    double lat = (ilat - 90000000) / 1000000.;
+
+    String filename = buildHgtFilename(lat, lon);
+    lastSrtmRaster = srtmmap.get(filename);
+    if (lastSrtmRaster == null) {
+      File f = new File(new File(srtmdir), filename + ".hgt");
+      if (f.exists()) {
+        lastSrtmRaster = new ConvertLidarTile().getRaster(f, lon, lat);
+        srtmmap.put(filename, lastSrtmRaster);
+        return lastSrtmRaster;
+      }
+      f = new File(new File(srtmdir), filename + ".zip");
+      if (f.exists()) {
+        lastSrtmRaster = new ConvertLidarTile().getRaster(f, lon, lat);
+        srtmmap.put(filename, lastSrtmRaster);
+        return lastSrtmRaster;
+      }
+    }
+    return lastSrtmRaster;
+  }
+
+  private String buildHgtFilename(double llat, double llon) {
+    int lat = (int) llat;
+    int lon = (int) llon;
+
+    String latPref = "N";
+    if (lat < 0) {
+      latPref = "S";
+      lat = -lat + 1;
+    }
+    String lonPref = "E";
+    if (lon < 0) {
+      lonPref = "W";
+      lon = -lon + 1;
+    }
+
+    return String.format(Locale.US, "%s%02d%s%03d", latPref, lat, lonPref, lon);
+  }
+
   private void resetSrtm() {
-    srtmmap = new HashMap<String, SrtmRaster>();
+    srtmmap = new HashMap<>();
     lastSrtmLonIdx = -1;
     lastSrtmLatIdx = -1;
     lastSrtmRaster = null;

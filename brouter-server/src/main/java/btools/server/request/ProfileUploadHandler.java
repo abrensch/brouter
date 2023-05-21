@@ -51,7 +51,7 @@ public class ProfileUploadHandler {
       fileWriter.flush();
       //System.out.println("data: |" + sw.toString() + "|");
 
-      Map<String, String> responseData = new HashMap<String, String>();
+      Map<String, String> responseData = new HashMap<>();
       responseData.put("profileid", CUSTOM_PREFIX + id);
 
       validateProfile(id, responseData);
