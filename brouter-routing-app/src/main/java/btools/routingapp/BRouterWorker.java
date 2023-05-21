@@ -33,6 +33,12 @@ public class BRouterWorker {
   public String profileParams;
 
   public String getTrackFromParams(Bundle params) {
+
+    int engineMode = 0;
+    if (params.containsKey("engineMode")) {
+      engineMode = params.getInt("engineMode", 0);
+    }
+
     String pathToFileResult = params.getString("pathToFileResult");
 
     if (pathToFileResult != null) {
@@ -97,7 +103,7 @@ public class BRouterWorker {
       waypoints = readPositions(params);
     }
     if (params.containsKey("lonlats")) {
-      waypoints = readLonlats(params);
+      waypoints = readLonlats(params, engineMode);
     }
 
     if (waypoints == null) return "no pts ";
@@ -141,72 +147,78 @@ public class BRouterWorker {
       }
     }
 
-
     try {
       writeTimeoutData(rc);
     } catch (Exception e) {
     }
 
-    RoutingEngine cr = new RoutingEngine(null, null, segmentDir, waypoints, rc);
+    RoutingEngine cr = new RoutingEngine(null, null, segmentDir, waypoints, rc, engineMode);
     cr.quite = true;
     cr.doRun(maxRunningTime);
 
-    // store new reference track if any
-    // (can exist for timed-out search)
-    if (cr.getFoundRawTrack() != null) {
-      try {
-        cr.getFoundRawTrack().writeBinary(rawTrackPath);
-      } catch (Exception e) {
-      }
-    }
-
-    if (cr.getErrorMessage() != null) {
-      return cr.getErrorMessage();
-    }
-
-    String format = params.getString("trackFormat");
-    int writeFromat = OUTPUT_FORMAT_GPX;
-    if (format != null) {
-      if ("kml".equals(format)) writeFromat = OUTPUT_FORMAT_KML;
-      if ("json".equals(format)) writeFromat = OUTPUT_FORMAT_JSON;
-    }
-
-    OsmTrack track = cr.getFoundTrack();
-    if (track != null) {
-      if (params.containsKey("exportWaypoints")) {
-        track.exportWaypoints = (params.getInt("exportWaypoints", 0) == 1);
-      }
-      if (pathToFileResult == null) {
-        switch (writeFromat) {
-          case OUTPUT_FORMAT_GPX:
-            return track.formatAsGpx();
-          case OUTPUT_FORMAT_KML:
-            return track.formatAsKml();
-          case OUTPUT_FORMAT_JSON:
-            return track.formatAsGeoJson();
-          default:
-            return track.formatAsGpx();
+    if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING) {
+      // store new reference track if any
+      // (can exist for timed-out search)
+      if (cr.getFoundRawTrack() != null) {
+        try {
+          cr.getFoundRawTrack().writeBinary(rawTrackPath);
+        } catch (Exception e) {
         }
+      }
 
+      if (cr.getErrorMessage() != null) {
+        return cr.getErrorMessage();
       }
-      try {
-        switch (writeFromat) {
-          case OUTPUT_FORMAT_GPX:
-            track.writeGpx(pathToFileResult);
-            break;
-          case OUTPUT_FORMAT_KML:
-            track.writeKml(pathToFileResult);
-            break;
-          case OUTPUT_FORMAT_JSON:
-            track.writeJson(pathToFileResult);
-            break;
-          default:
-            track.writeGpx(pathToFileResult);
-            break;
+
+      String format = params.getString("trackFormat");
+      int writeFromat = OUTPUT_FORMAT_GPX;
+      if (format != null) {
+        if ("kml".equals(format)) writeFromat = OUTPUT_FORMAT_KML;
+        if ("json".equals(format)) writeFromat = OUTPUT_FORMAT_JSON;
+      }
+
+      OsmTrack track = cr.getFoundTrack();
+      if (track != null) {
+        if (params.containsKey("exportWaypoints")) {
+          track.exportWaypoints = (params.getInt("exportWaypoints", 0) == 1);
         }
-      } catch (Exception e) {
-        return "error writing file: " + e;
+        if (pathToFileResult == null) {
+          switch (writeFromat) {
+            case OUTPUT_FORMAT_GPX:
+              return track.formatAsGpx();
+            case OUTPUT_FORMAT_KML:
+              return track.formatAsKml();
+            case OUTPUT_FORMAT_JSON:
+              return track.formatAsGeoJson();
+            default:
+              return track.formatAsGpx();
+          }
+
+        }
+        try {
+          switch (writeFromat) {
+            case OUTPUT_FORMAT_GPX:
+              track.writeGpx(pathToFileResult);
+              break;
+            case OUTPUT_FORMAT_KML:
+              track.writeKml(pathToFileResult);
+              break;
+            case OUTPUT_FORMAT_JSON:
+              track.writeJson(pathToFileResult);
+              break;
+            default:
+              track.writeGpx(pathToFileResult);
+              break;
+          }
+        } catch (Exception e) {
+          return "error writing file: " + e;
+        }
       }
+    } else {    // get other infos
+      if (cr.getErrorMessage() != null) {
+        return cr.getErrorMessage();
+      }
+      return cr.getFoundInfo();
     }
     return null;
   }
@@ -229,25 +241,31 @@ public class BRouterWorker {
       wplist.add(n);
     }
     if (wplist.get(0).name.startsWith("via")) wplist.get(0).name = "from";
-    if (wplist.get(wplist.size() - 1).name.startsWith("via")) wplist.get(wplist.size() - 1).name = "to";
+    if (wplist.get(wplist.size() - 1).name.startsWith("via"))
+      wplist.get(wplist.size() - 1).name = "to";
 
     return wplist;
   }
 
-  private List<OsmNodeNamed> readLonlats(Bundle params) {
+  private List<OsmNodeNamed> readLonlats(Bundle params, int mode) {
     List<OsmNodeNamed> wplist = new ArrayList<>();
 
     String lonLats = params.getString("lonlats");
     if (lonLats == null) throw new IllegalArgumentException("lonlats parameter not set");
 
-    String[] coords = lonLats.split("\\|");
-    if (coords.length < 2)
-      throw new IllegalArgumentException("we need two lat/lon points at least!");
-
+    String[] coords;
+    if (mode == 0) {
+      coords = lonLats.split("\\|");
+      if (coords.length < 2)
+        throw new IllegalArgumentException("we need two lat/lon points at least!");
+    } else {
+      coords = new String[1];
+      coords[0] = lonLats;
+    }
     for (int i = 0; i < coords.length; i++) {
       String[] lonLat = coords[i].split(",");
       if (lonLat.length < 2)
-        throw new IllegalArgumentException("we need two lat/lon points at least!");
+        throw new IllegalArgumentException("we need a lat and lon point at least!");
       wplist.add(readPosition(lonLat[0], lonLat[1], "via" + i));
       if (lonLat.length > 2) {
         if (lonLat[2].equals("d")) {
@@ -259,7 +277,8 @@ public class BRouterWorker {
     }
 
     if (wplist.get(0).name.startsWith("via")) wplist.get(0).name = "from";
-    if (wplist.get(wplist.size() - 1).name.startsWith("via")) wplist.get(wplist.size() - 1).name = "to";
+    if (wplist.get(wplist.size() - 1).name.startsWith("via"))
+      wplist.get(wplist.size() - 1).name = "to";
 
     return wplist;
   }

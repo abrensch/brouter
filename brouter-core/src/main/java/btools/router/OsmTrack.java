@@ -839,6 +839,49 @@ public final class OsmTrack {
     return sb.toString();
   }
 
+  static public String formatAsGpxWaypoint(OsmNodeNamed n) {
+    try {
+      StringWriter sw = new StringWriter(8192);
+      BufferedWriter bw = new BufferedWriter(sw);
+      formatGpxHeader(bw);
+      formatWaypointGpx(bw, n);
+      formatGpxFooter(bw);
+      bw.close();
+      sw.close();
+      return sw.toString();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  static public void formatGpxHeader(BufferedWriter sb) throws IOException {
+    sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    sb.append("<gpx \n");
+    sb.append(" xmlns=\"http://www.topografix.com/GPX/1/1\" \n");
+    sb.append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \n");
+    sb.append(" xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\" \n");
+    sb.append(" creator=\"BRouter-" + version + "\" version=\"1.1\">\n");
+  }
+
+  static public void formatGpxFooter(BufferedWriter sb) throws IOException {
+    sb.append("</gpx>\n");
+  }
+
+  static public void formatWaypointGpx(BufferedWriter sb, OsmNodeNamed n) throws IOException {
+    sb.append(" <wpt lon=\"").append(formatILon(n.ilon)).append("\" lat=\"")
+      .append(formatILat(n.ilat)).append("\">");
+    if (n.getSElev() != Short.MIN_VALUE) {
+      sb.append("<ele>").append("" + n.getElev()).append("</ele>");
+    }
+    if (n.name != null) {
+      sb.append("<name>").append(StringUtils.escapeXml10(n.name)).append("</name>");
+    }
+    if (n.nodeDescription != null) {
+      sb.append("<desc>").append("hat desc").append("</desc>");
+    }
+    sb.append("</wpt>\n");
+  }
+
   public void writeKml(String filename) throws Exception {
     BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
 
