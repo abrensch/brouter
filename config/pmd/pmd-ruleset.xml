@@ -28,7 +28,6 @@
         <exclude name="OneDeclarationPerLine" />
         <exclude name="OverrideBothEqualsAndHashcode" />
         <exclude name="PreserveStackTrace" />
-        <exclude name="PrimitiveWrapperInstantiation" />
         <exclude name="ReturnEmptyCollectionRatherThanNull" />
         <exclude name="UncommentedEmptyConstructor" />
         <exclude name="UncommentedEmptyMethodBody" />
@@ -47,5 +46,12 @@
         <exclude name="LocalVariableNamingConventions" />
         <exclude name="MethodNamingConventions" />
     </rule>
+
+    <!-- Rules similar to Android Studio code inspection default settings -->
+    <!-- <rule ref="category/java/bestpractices.xml/UnusedAssignment" /> -->
+    <rule ref="category/java/codestyle.xml/UseDiamondOperator" />
+    <!-- <rule ref="category/java/design.xml/ImmutableField" /> -->
+    <!-- Will be added in PMD 7 -->
+    <!-- <rule ref="category/java/codestyle.xml/UnnecessaryBoxing" /> -->
 
 </ruleset>

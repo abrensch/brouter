@@ -22,13 +22,13 @@ public class CompactSetTest {
 
   private void hashSetComparison(int setsize, int trycount) {
     Random rand = new Random(12345);
-    HashSet<Long> hset = new HashSet<Long>();
+    HashSet<Long> hset = new HashSet<>();
     CompactLongSet cset_slow = new CompactLongSet();
     CompactLongSet cset_fast = new CompactLongSet();
 
     for (int i = 0; i < setsize; i++) {
       long k = setsize < 10 ? i : rand.nextInt(20000);
-      Long KK = new Long(k);
+      Long KK = k;
 
       if (!hset.contains(KK)) {
         hset.add(KK);
@@ -43,7 +43,7 @@ public class CompactSetTest {
         cset_fast = new FrozenLongSet(cset_fast);
       }
       long k = setsize < 10 ? i : rand.nextInt(20000);
-      Long KK = new Long(k);
+      Long KK = k;
 
       boolean contained = hset.contains(KK);
       Assert.assertEquals("contains missmatch (slow)", contained, cset_slow.contains(k));

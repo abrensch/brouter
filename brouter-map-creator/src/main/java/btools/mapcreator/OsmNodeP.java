@@ -105,7 +105,7 @@ public class OsmNodeP extends OsmLinkP {
   }
 
   public void checkDuplicateTargets() {
-    HashMap<OsmNodeP, OsmLinkP> targets = new HashMap<OsmNodeP, OsmLinkP>();
+    HashMap<OsmNodeP, OsmLinkP> targets = new HashMap<>();
 
     for (OsmLinkP link0 = getFirstLink(); link0 != null; link0 = link0.getNext(this)) {
       OsmLinkP link = link0;
@@ -165,14 +165,14 @@ public class OsmNodeP extends OsmLinkP {
     mc.writeVarBytes(getNodeDecsription());
 
     // buffer internal reverse links
-    ArrayList<OsmNodeP> internalReverse = new ArrayList<OsmNodeP>();
+    ArrayList<OsmNodeP> internalReverse = new ArrayList<>();
 
     for (OsmLinkP link0 = getFirstLink(); link0 != null; link0 = link0.getNext(this)) {
       OsmLinkP link = link0;
       OsmNodeP origin = this;
       OsmNodeP target = null;
 
-      ArrayList<OsmNodeP> linkNodes = new ArrayList<OsmNodeP>();
+      ArrayList<OsmNodeP> linkNodes = new ArrayList<>();
       linkNodes.add(this);
 
       // first pass just to see if that link is consistent

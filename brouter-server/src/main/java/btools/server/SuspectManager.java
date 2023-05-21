@@ -244,7 +244,7 @@ public class SuspectManager extends Thread {
       bw.write("<table>\n");
       File countryParent = new File("worldpolys" + country);
       File[] files = countryParent.listFiles();
-      TreeSet<String> names = new TreeSet<String>();
+      TreeSet<String> names = new TreeSet<>();
       for (File f : files) {
         String name = f.getName();
         if (name.endsWith(".poly")) {
@@ -580,7 +580,7 @@ public class SuspectManager extends Thread {
     }
   }
 
-  private static Map<String, SuspectList> allSuspectsMap = new HashMap<String, SuspectList>();
+  private static Map<String, SuspectList> allSuspectsMap = new HashMap<>();
 
   private static SuspectList getDailySuspectsIfLoaded() throws IOException {
     synchronized (allSuspectsMap) {

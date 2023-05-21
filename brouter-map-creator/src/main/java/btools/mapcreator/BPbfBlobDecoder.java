@@ -5,13 +5,17 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.openstreetmap.osmosis.osmbinary.Fileformat;
 import org.openstreetmap.osmosis.osmbinary.Osmformat;
 
-import btools.util.LongList;
-
 import java.io.IOException;
-import java.util.*;
-import java.util.logging.Level;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
+
+import btools.util.LongList;
 
 /**
  * Converts PBF block data into decoded entities ready to be passed into an Osmosis pipeline. This
@@ -82,8 +86,8 @@ public class BPbfBlobDecoder {
 
     // Build the list of active and unsupported features in the file.
     List<String> supportedFeatures = Arrays.asList("OsmSchema-V0.6", "DenseNodes");
-    List<String> activeFeatures = new ArrayList<String>();
-    List<String> unsupportedFeatures = new ArrayList<String>();
+    List<String> activeFeatures = new ArrayList<>();
+    List<String> unsupportedFeatures = new ArrayList<>();
     for (String feature : header.getRequiredFeaturesList()) {
       if (supportedFeatures.contains(feature)) {
         activeFeatures.add(feature);
@@ -106,7 +110,7 @@ public class BPbfBlobDecoder {
     Iterator<Integer> keyIterator = keys.iterator();
     Iterator<Integer> valueIterator = values.iterator();
     if (keyIterator.hasNext()) {
-      Map<String, String> tags = new HashMap<String, String>();
+      Map<String, String> tags = new HashMap<>();
       while (keyIterator.hasNext()) {
         String key = fieldDecoder.decodeString(keyIterator.next());
         String value = fieldDecoder.decodeString(valueIterator.next());
@@ -155,7 +159,7 @@ public class BPbfBlobDecoder {
         int valueIndex = keysValuesIterator.next();
 
         if (tags == null) {
-          tags = new HashMap<String, String>();
+          tags = new HashMap<>();
         }
 
         tags.put(fieldDecoder.decodeString(keyIndex), fieldDecoder.decodeString(valueIndex));

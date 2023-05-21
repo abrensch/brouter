@@ -19,7 +19,7 @@ public class ServiceModeConfig {
     profile = tk.nextToken();
     if (tk.hasMoreTokens()) params = tk.nextToken();
     else params = "noparams";
-    nogoVetos = new TreeSet<String>();
+    nogoVetos = new TreeSet<>();
     while (tk.hasMoreTokens()) {
       nogoVetos.add(tk.nextToken());
     }
@@ -29,7 +29,7 @@ public class ServiceModeConfig {
     this.mode = mode;
     this.profile = profile;
     this.params = params;
-    nogoVetos = new TreeSet<String>();
+    nogoVetos = new TreeSet<>();
   }
 
   public String toLine() {

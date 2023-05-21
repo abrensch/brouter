@@ -94,7 +94,7 @@ public class ServerHandler extends RequestHandler {
     if (coords.length < 2)
       throw new IllegalArgumentException("we need two lat/lon points at least!");
 
-    List<OsmNodeNamed> wplist = new ArrayList<OsmNodeNamed>();
+    List<OsmNodeNamed> wplist = new ArrayList<>();
     for (int i = 0; i < coords.length; i++) {
       String[] lonLat = coords[i].split(",");
       if (lonLat.length < 2)
@@ -213,7 +213,7 @@ public class ServerHandler extends RequestHandler {
 
     String[] lonLatNameList = pois.split("\\|");
 
-    List<OsmNodeNamed> poisList = new ArrayList<OsmNodeNamed>();
+    List<OsmNodeNamed> poisList = new ArrayList<>();
     for (int i = 0; i < lonLatNameList.length; i++) {
       String[] lonLatName = lonLatNameList[i].split(",");
 
@@ -237,7 +237,7 @@ public class ServerHandler extends RequestHandler {
 
     String[] lonLatRadList = nogos.split("\\|");
 
-    List<OsmNodeNamed> nogoList = new ArrayList<OsmNodeNamed>();
+    List<OsmNodeNamed> nogoList = new ArrayList<>();
     for (int i = 0; i < lonLatRadList.length; i++) {
       String[] lonLatRad = lonLatRadList[i].split(",");
       String nogoWeight = "NaN";
@@ -266,7 +266,7 @@ public class ServerHandler extends RequestHandler {
   }
 
   private List<OsmNodeNamed> readNogoPolygons() {
-    List<OsmNodeNamed> result = new ArrayList<OsmNodeNamed>();
+    List<OsmNodeNamed> result = new ArrayList<>();
     parseNogoPolygons(params.get("polylines"), result, false);
     parseNogoPolygons(params.get("polygons"), result, true);
     return result.size() > 0 ? result : null;

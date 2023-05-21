@@ -1,10 +1,17 @@
 package btools.mapcreator;
 
+import org.openstreetmap.osmosis.osmbinary.Fileformat;
+
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStreamReader;
-import java.util.zip.GZIPInputStream;
+import java.util.HashMap;
+import java.util.Map;
+
+import btools.util.LongList;
 
 /**
  * Parser for OSM data
@@ -22,179 +29,118 @@ public class OsmParser extends MapCreatorBase {
                       NodeListener nListener,
                       WayListener wListener,
                       RelationListener rListener) throws Exception {
-
     this.nListener = nListener;
     this.wListener = wListener;
     this.rListener = rListener;
 
-    if (mapFile == null) {
-      _br = new BufferedReader(new InputStreamReader(System.in));
-    } else {
-      if (mapFile.getName().endsWith(".gz")) {
-        _br = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(mapFile))));
-      } else {
-        _br = new BufferedReader(new InputStreamReader(new FileInputStream(mapFile)));
+    System.out.println("*** PBF Parsing: " + mapFile);
+
+    // once more for testing
+    int rawBlobCount = 0;
+
+    long bytesRead = 0L;
+    Boolean avoidMapPolling = Boolean.getBoolean("avoidMapPolling");
+
+    if (!avoidMapPolling) {
+      // wait for file to become available
+      while (!mapFile.exists()) {
+        System.out.println("--- waiting for " + mapFile + " to become available");
+        Thread.sleep(10000);
       }
     }
 
+    long currentSize = mapFile.length();
+    long currentSizeTime = System.currentTimeMillis();
+
+    DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(mapFile)));
+
+
     for (; ; ) {
-      String line = _br.readLine();
-      if (line == null) break;
-
-      if (checkNode(line)) continue;
-      if (checkWay(line)) continue;
-      if (checkRelation(line)) continue;
-      if (checkChangeset(line)) continue;
-    }
-
-    if (mapFile != null) {
-      _br.close();
-    }
-  }
-
-
-  private boolean checkNode(String line) throws Exception {
-    int idx0 = line.indexOf("<node id=\"");
-    if (idx0 < 0) return false;
-    idx0 += 10;
-    int idx1 = line.indexOf('"', idx0);
-
-    long nodeId = Long.parseLong(line.substring(idx0, idx1));
-
-    int idx2 = line.indexOf(" lat=\"");
-    if (idx2 < 0) return false;
-    idx2 += 6;
-    int idx3 = line.indexOf('"', idx2);
-    double lat = Double.parseDouble(line.substring(idx2, idx3));
-    int idx4 = line.indexOf(" lon=\"");
-    if (idx4 < 0) return false;
-    idx4 += 6;
-    int idx5 = line.indexOf('"', idx4);
-    double lon = Double.parseDouble(line.substring(idx4, idx5));
-
-    NodeData n = new NodeData(nodeId, lon, lat);
-
-    if (!line.endsWith("/>")) {
-      // read additional tags
-      for (; ; ) {
-        String l2 = _br.readLine();
-        if (l2 == null) return false;
-
-        int i2;
-        if ((i2 = l2.indexOf("<tag k=\"")) >= 0) { // property-tag
-          i2 += 8;
-          int ri2 = l2.indexOf('"', i2);
-          String key = l2.substring(i2, ri2);
-          i2 = l2.indexOf(" v=\"", ri2);
-          if (i2 >= 0) {
-            i2 += 4;
-            int ri3 = l2.indexOf('"', i2);
-            String value = l2.substring(i2, ri3);
-
-            n.putTag(key, value);
+      if (!avoidMapPolling) {
+        // continue reading if either more then a 100 MB unread, or the current-size is known for more than 2 Minutes
+        while (currentSize - bytesRead < 100000000L) {
+          long newSize = mapFile.length();
+          if (newSize != currentSize) {
+            currentSize = newSize;
+            currentSizeTime = System.currentTimeMillis();
+          } else if (System.currentTimeMillis() - currentSizeTime > 120000) {
+            break;
           }
-        } else if (l2.indexOf("</node>") >= 0) { // end-tag
-          break;
+          if (currentSize - bytesRead < 100000000L) {
+            System.out.println("--- waiting for more data, currentSize=" + currentSize + " bytesRead=" + bytesRead);
+            Thread.sleep(10000);
+          }
         }
       }
-    }
-    nListener.nextNode(n);
-    return true;
-  }
 
-
-  private boolean checkWay(String line) throws Exception {
-    int idx0 = line.indexOf("<way id=\"");
-    if (idx0 < 0) return false;
-
-    idx0 += 9;
-    int idx1 = line.indexOf('"', idx0);
-    long id = Long.parseLong(line.substring(idx0, idx1));
-
-    WayData w = new WayData(id);
-
-    // read the nodes
-    for (; ; ) {
-      String l2 = _br.readLine();
-      if (l2 == null) return false;
-
-      int i2;
-      if ((i2 = l2.indexOf("<nd ref=\"")) >= 0) { // node reference
-        i2 += 9;
-        int ri2 = l2.indexOf('"', i2);
-        long nid = Long.parseLong(l2.substring(i2, ri2));
-        w.nodes.add(nid);
-      } else if ((i2 = l2.indexOf("<tag k=\"")) >= 0) { // property-tag
-        i2 += 8;
-        int ri2 = l2.indexOf('"', i2);
-        String key = l2.substring(i2, ri2);
-        i2 = l2.indexOf(" v=\"", ri2);
-        if (i2 >= 0) {
-          i2 += 4;
-          int ri3 = l2.indexOf('"', i2);
-          String value = l2.substring(i2, ri3);
-          w.putTag(key, value);
-        }
-      } else if (l2.indexOf("</way>") >= 0) { // end-tag
+      int headerLength;
+      try {
+        headerLength = dis.readInt();
+        bytesRead += 4;
+      } catch (EOFException e) {
         break;
       }
+
+      byte[] headerBuffer = new byte[headerLength];
+      dis.readFully(headerBuffer);
+      bytesRead += headerLength;
+      Fileformat.BlobHeader blobHeader = Fileformat.BlobHeader.parseFrom(headerBuffer);
+
+      byte[] blobData = new byte[blobHeader.getDatasize()];
+      dis.readFully(blobData);
+      bytesRead += blobData.length;
+
+      new BPbfBlobDecoder(blobHeader.getType(), blobData, this).process();
+
+      rawBlobCount++;
     }
-    wListener.nextWay(w);
-    return true;
+    dis.close();
+    System.out.println("read raw blobs: " + rawBlobCount);
   }
 
-  private boolean checkChangeset(String line) throws Exception {
-    int idx0 = line.indexOf("<changeset id=\"");
-    if (idx0 < 0) return false;
 
-    if (!line.endsWith("/>")) {
-      int loopcheck = 0;
-      for (; ; ) {
-        String l2 = _br.readLine();
-        if (l2.indexOf("</changeset>") >= 0 || ++loopcheck > 10000) break;
-      }
+  public void addNode(long nid, Map<String, String> tags, double lat, double lon) {
+    NodeData n = new NodeData(nid, lon, lat);
+    n.setTags((HashMap<String, String>) tags);
+    try {
+      nListener.nextNode(n);
+    } catch (Exception e) {
+      throw new RuntimeException("error writing node: " + e);
     }
-    return true;
   }
 
-  private boolean checkRelation(String line) throws Exception {
-    int idx0 = line.indexOf("<relation id=\"");
-    if (idx0 < 0) return false;
+  public void addWay(long wid, Map<String, String> tags, LongList nodes) {
+    WayData w = new WayData(wid, nodes);
+    w.setTags((HashMap<String, String>) tags);
 
-    idx0 += 14;
-    int idx1 = line.indexOf('"', idx0);
-    long rid = Long.parseLong(line.substring(idx0, idx1));
+    try {
+      wListener.nextWay(w);
+    } catch (Exception e) {
+      throw new RuntimeException("error writing way: " + e);
+    }
+  }
 
-    RelationData r = new RelationData(rid);
+  public void addRelation(long rid, Map<String, String> tags, LongList wayIds, LongList fromWid, LongList toWid, LongList viaNid) {
+    RelationData r = new RelationData(rid, wayIds);
+    r.setTags((HashMap<String, String>) tags);
 
-    // read the nodes
-    for (; ; ) {
-      String l2 = _br.readLine();
-      if (l2 == null) return false;
-
-      int i2;
-      if ((i2 = l2.indexOf("<member type=\"way\" ref=\"")) >= 0) { // node reference
-        i2 += 24;
-        int ri2 = l2.indexOf('"', i2);
-        long wid = Long.parseLong(l2.substring(i2, ri2));
-        r.ways.add(wid);
-      } else if ((i2 = l2.indexOf("<tag k=\"")) >= 0) { // property-tag
-        i2 += 8;
-        int ri2 = l2.indexOf('"', i2);
-        String key = l2.substring(i2, ri2);
-        i2 = l2.indexOf(" v=\"", ri2);
-        if (i2 >= 0) {
-          i2 += 4;
-          int ri3 = l2.indexOf('"', i2);
-          String value = l2.substring(i2, ri3);
-          r.putTag(key, value);
+    try {
+      rListener.nextRelation(r);
+      if (fromWid == null || toWid == null || viaNid == null || viaNid.size() != 1) {
+        // dummy-TR for each viaNid
+        for (int vi = 0; vi < (viaNid == null ? 0 : viaNid.size()); vi++) {
+          rListener.nextRestriction(r, 0L, 0L, viaNid.get(vi));
         }
-      } else if (l2.indexOf("</relation>") >= 0) { // end-tag
-        break;
+        return;
       }
+      for (int fi = 0; fi < fromWid.size(); fi++) {
+        for (int ti = 0; ti < toWid.size(); ti++) {
+          rListener.nextRestriction(r, fromWid.get(fi), toWid.get(ti), viaNid.get(0));
+        }
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("error writing relation", e);
     }
-    rListener.nextRelation(r);
-    return true;
   }
 
 }

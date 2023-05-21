@@ -53,7 +53,7 @@ public class RelationMerger extends MapCreatorBase {
     // expctxStat = new BExpressionContext("way");
 
     // *** read the relation file into sets for each processed tag
-    routesets = new HashMap<String, CompactLongSet>();
+    routesets = new HashMap<>();
     routesetall = new CompactLongSet();
     DataInputStream dis = createInStream(relationFileIn);
     try {
@@ -130,7 +130,7 @@ public class RelationMerger extends MapCreatorBase {
           if (routeset.contains(data.wid)) {
             int sepIdx = key.lastIndexOf('_');
             String tagname = key.substring(0, sepIdx);
-            int val = Integer.valueOf(key.substring(sepIdx + 1));
+            int val = Integer.parseInt(key.substring(sepIdx + 1));
             expctxReport.addSmallestLookupValue(tagname, val);
           }
         }

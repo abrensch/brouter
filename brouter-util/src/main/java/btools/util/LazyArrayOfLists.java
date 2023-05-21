@@ -13,7 +13,7 @@ public class LazyArrayOfLists<E> {
   private List<ArrayList<E>> lists;
 
   public LazyArrayOfLists(int size) {
-    lists = new ArrayList<ArrayList<E>>(size);
+    lists = new ArrayList<>(size);
     for (int i = 0; i < size; i++) {
       lists.add(null);
     }
@@ -22,7 +22,7 @@ public class LazyArrayOfLists<E> {
   public List<E> getList(int idx) {
     ArrayList<E> list = lists.get(idx);
     if (list == null) {
-      list = new ArrayList<E>();
+      list = new ArrayList<>();
       lists.set(idx, list);
     }
     return list;

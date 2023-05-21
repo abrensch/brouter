@@ -488,11 +488,11 @@ public class BInstallerActivity extends AppCompatActivity {
   }
 
   private void downloadDiffVersionTiles() {
-    downloadAll(new ArrayList<Integer>(), DownloadWorker.VALUE_SEGMENT_DIFFS);
+    downloadAll(new ArrayList<>(), DownloadWorker.VALUE_SEGMENT_DIFFS);
   }
 
   private void dropDiffVersionTiles() {
-    downloadAll(new ArrayList<Integer>(), DownloadWorker.VALUE_SEGMENT_DROPDIFFS);
+    downloadAll(new ArrayList<>(), DownloadWorker.VALUE_SEGMENT_DROPDIFFS);
   }
 
   private boolean isDownloadRunning(Class<?> serviceClass) {
