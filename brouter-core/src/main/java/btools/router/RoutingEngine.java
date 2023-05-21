@@ -278,7 +278,7 @@ public class RoutingEngine extends Thread {
       MatchedWaypoint wpt1 = new MatchedWaypoint();
       wpt1.waypoint = waypoints.get(0);
       wpt1.name = "wpt_info";
-      List<MatchedWaypoint> listOne = new ArrayList<MatchedWaypoint>();
+      List<MatchedWaypoint> listOne = new ArrayList<>();
       listOne.add(wpt1);
       matchWaypointsToNodes(listOne);
 
