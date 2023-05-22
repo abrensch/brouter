@@ -214,22 +214,23 @@ public class PosUnifier extends MapCreatorBase {
     double lat = (ilat - 90000000) / 1000000.;
 
     String filename = buildHgtFilename(lat, lon);
-    lastSrtmRaster = srtmmap.get(filename);
-    if (lastSrtmRaster == null) {
+    // don't block lastSrtmRaster
+    SrtmRaster srtm = srtmmap.get(filename);
+    if (srtm == null) {
       File f = new File(new File(srtmdir), filename + ".hgt");
       if (f.exists()) {
-        lastSrtmRaster = new ConvertLidarTile().getRaster(f, lon, lat);
-        srtmmap.put(filename, lastSrtmRaster);
-        return lastSrtmRaster;
+        srtm = new ConvertLidarTile().getRaster(f, lon, lat);
+        srtmmap.put(filename, srtm);
+        return srtm;
       }
       f = new File(new File(srtmdir), filename + ".zip");
       if (f.exists()) {
-        lastSrtmRaster = new ConvertLidarTile().getRaster(f, lon, lat);
-        srtmmap.put(filename, lastSrtmRaster);
-        return lastSrtmRaster;
+        srtm = new ConvertLidarTile().getRaster(f, lon, lat);
+        srtmmap.put(filename, srtm);
+        return srtm;
       }
     }
-    return lastSrtmRaster;
+    return srtm;
   }
 
   private String buildHgtFilename(double llat, double llon) {
