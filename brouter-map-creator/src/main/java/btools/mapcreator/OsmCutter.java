@@ -40,6 +40,9 @@ public class OsmCutter extends MapCreatorBase {
 
 
   Connection conn = null;
+  // PreparedStatement psNoise = null;
+  // PreparedStatement psRiver = null;
+  // PreparedStatement psForest = null;
   PreparedStatement psAllTags = null;
 
   ResultSet rsBrouter = null;
@@ -209,11 +212,13 @@ public class OsmCutter extends MapCreatorBase {
         System.err.println("OsmCutter connect to the database ok........");
 
       } catch (SQLException g) {
-        System.err.format("Osm Cutter SQL State: %s\n%s", g.getSQLState(), g.getMessage());
-        System.exit(0);
+        System.err.format("Osm Cutter SQL State: %s\n%s\n", g.getSQLState(), g.getMessage());
+        System.exit(1);
+        return;
       } catch (Exception f) {
         f.printStackTrace();
-        System.exit(0);
+        System.exit(1);
+        return;
       }
     }
 
@@ -261,11 +266,11 @@ public class OsmCutter extends MapCreatorBase {
           }
 
         } catch (SQLException g) {
-          System.err.format(" OsmCutter execute sql .. SQL State: %s\n%s", g.getSQLState(), g.getMessage());
-          System.exit(0);
+          System.err.format(" OsmCutter execute sql .. SQL State: %s\n%s\n", g.getSQLState(), g.getMessage());
+          System.exit(1);
         } catch (Exception f) {
           f.printStackTrace();
-          System.exit(0);
+          System.exit(1);
         }
 
         return;
