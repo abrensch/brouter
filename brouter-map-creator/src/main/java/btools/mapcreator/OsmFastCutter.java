@@ -13,7 +13,7 @@ public class OsmFastCutter extends MapCreatorBase {
   public static void main(String[] args) throws Exception {
     System.out.println("*** OsmFastCutter: cut an osm map in node-tiles + way-tiles");
     if (args.length != 11 && args.length != 12 && args.length != 13) {
-      String common = "java OsmFastCutter <lookup-file> <node-dir> <way-dir> <node55-dir> <way55-dir> <border-file> <out-rel-file> <out-res-file> <filter-profile> <report-profile> <check-profile> <map-file> <jdbc-url>";
+      String common = "java OsmFastCutter <lookup-file> <node-dir> <way-dir> <node55-dir> <way55-dir> <border-file> <out-rel-file> <out-res-file> <filter-profile> <report-profile> <check-profile> <map-file> [jdbc-url]";
 
       System.out.println("usage: bzip2 -dc <map> | " + common);
       System.out.println("or   : " + common + " <inputfile> ");
