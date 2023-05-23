@@ -191,9 +191,6 @@ public class OsmCutter extends MapCreatorBase {
     }
   }
 
-
-// Ess Bee : NEW function to add the new tags (estimated_noise_class , river, forest...)
-
   private void generateSpecialTags(long osm_id, Map<String, String> map) {
 
     if (jdbcurl == null) return;
@@ -203,16 +200,16 @@ public class OsmCutter extends MapCreatorBase {
 
       String sql_all_tags = "SELECT *  from all_tags where losmid = ?";
 
-      System.err.println("OsmCutter start connection to the database........" + jdbcurl);
+      System.out.println("OsmCutter start connection to the database........" + jdbcurl);
 
       try {
         conn = DriverManager.getConnection(jdbcurl);
         psAllTags = conn.prepareStatement(sql_all_tags);
 
-        System.err.println("OsmCutter connect to the database ok........");
+        System.out.println("OsmCutter connect to the database ok........");
 
       } catch (SQLException g) {
-        System.err.format("Osm Cutter SQL State: %s\n%s\n", g.getSQLState(), g.getMessage());
+        System.out.format("Osm Cutter SQL State: %s\n%s\n", g.getSQLState(), g.getMessage());
         System.exit(1);
         return;
       } catch (Exception f) {
