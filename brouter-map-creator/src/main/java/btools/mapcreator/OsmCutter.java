@@ -191,7 +191,7 @@ public class OsmCutter extends MapCreatorBase {
     }
   }
 
-  private void generateSpecialTags(long osm_id, Map<String, String> map) {
+  private void generateTagsFromDatabase(long osm_id, Map<String, String> map) {
 
     if (jdbcurl == null) return;
 
@@ -284,7 +284,7 @@ public class OsmCutter extends MapCreatorBase {
     // encode tags
     if (w.getTagsOrNull() == null) return;
 
-    generateSpecialTags(w.wid, w.getTagsOrNull());
+    generateTagsFromDatabase(w.wid, w.getTagsOrNull());
 
     generatePseudoTags(w.getTagsOrNull());
 
