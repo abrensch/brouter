@@ -17,6 +17,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.Map;
 
 import btools.expressions.BExpressionContextNode;
@@ -40,22 +41,16 @@ public class OsmCutter extends MapCreatorBase {
 
 
   Connection conn = null;
-  // PreparedStatement psNoise = null;
-  // PreparedStatement psRiver = null;
-  // PreparedStatement psForest = null;
   PreparedStatement psAllTags = null;
 
   ResultSet rsBrouter = null;
 
   int cntHighways = 0;
   int cntWayModified = 0;
-  int cntNewNoise = 0;
-  int cntNewRiver = 0;
-  int cntNewForest = 0;
-  int cntNewTown = 0;
-  int cntNewTraffic = 0;
 
   String jdbcurl;
+  Map<String, String> databaseField2Tag;
+  Map<String, Integer> databaseFieldsFound;
 
   public static void main(String[] args) throws Exception {
     System.out.println("*** OsmCutter: cut an osm map in node-tiles + a way file");
@@ -79,9 +74,6 @@ public class OsmCutter extends MapCreatorBase {
   private BExpressionContextWay _expctxWay;
   private BExpressionContextNode _expctxNode;
 
-  // private BExpressionContextWay _expctxWayStat;
-  // private BExpressionContextNode _expctxNodeStat;
-
   public void process(File lookupFile, File outTileDir, File wayFile, File relFile, File resFile, File profileFile, File mapFile) throws Exception {
     if (!lookupFile.exists()) {
       throw new IllegalArgumentException("lookup-file: " + lookupFile + " does not exist");
@@ -93,10 +85,6 @@ public class OsmCutter extends MapCreatorBase {
     _expctxNode = new BExpressionContextNode(meta);
     meta.readMetaData(lookupFile);
     _expctxWay.parseFile(profileFile, "global");
-
-
-    // _expctxWayStat = new BExpressionContextWay( null );
-    // _expctxNodeStat = new BExpressionContextNode( null );
 
     this.outTileDir = outTileDir;
     if (!outTileDir.isDirectory())
@@ -195,35 +183,37 @@ public class OsmCutter extends MapCreatorBase {
 
     if (jdbcurl == null) return;
 
-    // is the database allready connected?
-    if (conn == null) {
+    try {
+      // is the database allready connected?
+      if (conn == null) {
 
-      String sql_all_tags = "SELECT *  from all_tags where losmid = ?";
+        String sql_all_tags = "SELECT *  from all_tags where losmid = ?";
 
-      System.out.println("OsmCutter start connection to the database........" + jdbcurl);
+        System.out.println("OsmCutter start connection to the database........" + jdbcurl);
 
-      try {
         conn = DriverManager.getConnection(jdbcurl);
         psAllTags = conn.prepareStatement(sql_all_tags);
 
+        databaseField2Tag = new HashMap<>();
+        databaseField2Tag.put("noise_class", "estimated_noise_class");
+        databaseField2Tag.put("river_class", "estimated_river_class");
+        databaseField2Tag.put("forest_class", "estimated_forest_class");
+        databaseField2Tag.put("town_class", "estimated_town_class");
+        databaseField2Tag.put("traffic_class", "estimated_traffic_class");
+
+        databaseFieldsFound = new HashMap<>();
+        for (String key : databaseField2Tag.keySet()) {
+          databaseFieldsFound.put(key, 0);
+        }
+
+
         System.out.println("OsmCutter connect to the database ok........");
 
-      } catch (SQLException g) {
-        System.out.format("Osm Cutter SQL State: %s\n%s\n", g.getSQLState(), g.getMessage());
-        System.exit(1);
-        return;
-      } catch (Exception f) {
-        f.printStackTrace();
-        System.exit(1);
-        return;
       }
-    }
 
-    for (Map.Entry<String, String> e : map.entrySet()) {
-      if (e.getKey().equals("highway")) {
-        cntHighways = cntHighways + 1;
-
-        try {
+      for (Map.Entry<String, String> e : map.entrySet()) {
+        if (e.getKey().equals("highway")) {
+          cntHighways = cntHighways + 1;
 
           psAllTags.setLong(1, osm_id);
 
@@ -233,45 +223,31 @@ public class OsmCutter extends MapCreatorBase {
           if (rsBrouter.next()) {
 
             cntWayModified = cntWayModified + 1;
-            if (rsBrouter.getString("noise_class") != null) {
-              map.put("estimated_noise_class", rsBrouter.getString("noise_class"));
-              cntNewNoise = cntNewNoise + 1;
+            for (String key : databaseField2Tag.keySet()) {
+              if (rsBrouter.getString(key) != null) {
+                map.put(databaseField2Tag.get(key), rsBrouter.getString(key));
+                databaseFieldsFound.put(key, databaseFieldsFound.get(key) + 1);
+              }
             }
-            if (rsBrouter.getString("river_class") != null) {
-              map.put("estimated_river_class", rsBrouter.getString("river_class"));
-              cntNewRiver = cntNewRiver + 1;
-            }
-            if (rsBrouter.getString("forest_class") != null) {
-              map.put("estimated_forest_class", rsBrouter.getString("forest_class"));
-              cntNewForest = cntNewForest + 1;
-            }
-
-            if (rsBrouter.getString("town_class") != null) {
-              map.put("estimated_town_class", rsBrouter.getString("town_class"));
-              cntNewTown = cntNewTown + 1;
-            }
-
-            if (rsBrouter.getString("traffic_class") != null) {
-              map.put("estimated_traffic_class", rsBrouter.getString("traffic_class"));
-              cntNewTraffic = cntNewTraffic + 1;
-            }
-
           }
           if ((cntHighways % 100000) == 0) {
-            System.out.print("HW processed=" + cntHighways + " HW modifs=" + cntWayModified + " NoiseTags=" + cntNewNoise);
-            System.out.println(" RiverTags=" + cntNewRiver + " ForestTags=" + cntNewForest + " TownTags=" + cntNewTown + " TrafficTags=" + cntNewTraffic);
+            String out = "HW processed=" + cntHighways + " HW modifs=" + cntWayModified;
+            for (String key : databaseFieldsFound.keySet()) {
+              out += " " + key + "=" + databaseFieldsFound.get(key);
+            }
+            System.out.println(out);
           }
 
-        } catch (SQLException g) {
-          System.err.format(" OsmCutter execute sql .. SQL State: %s\n%s\n", g.getSQLState(), g.getMessage());
-          System.exit(1);
-        } catch (Exception f) {
-          f.printStackTrace();
-          System.exit(1);
+          return;
         }
-
-        return;
       }
+
+    } catch (SQLException g) {
+      System.err.format(" OsmCutter execute sql .. SQL State: %s\n%s\n", g.getSQLState(), g.getMessage());
+      System.exit(1);
+    } catch (Exception f) {
+      f.printStackTrace();
+      System.exit(1);
     }
   }
 
