@@ -1,649 +1,954 @@
 --  calculation of new tags (estimated_noise_class, estimated_river_class,estimated_forest_class, estimated_town_class, estimated_traffic_class)
---  Ess Bee version 08/05/2023
+--  formatted by https://sqlformat.darold.net/
 
-set client_encoding to UTF8;
-select now();
+SET client_encoding TO UTF8;
+
+SELECT
+    NOW();
 
 -- create new tables for tuning
-SELECT  osm_id :: bigint , highway, waterway, width, maxspeed,
-case 
-when maxspeed is null              then 0  
-when not (maxspeed ~ '^[0-9\.]+$') then 0  
-when maxspeed :: numeric > '105'   then 1
-when maxspeed :: numeric > '75'    then 2
-else                                    3
-end as maxspeed_class
-, ST_Buffer(way,50) as way
-into table osm_line_buf_50
-from lines where highway is not null or waterway in ('river','canal');
+SELECT
+    OSM_ID::bigint,
+    HIGHWAY,
+    WATERWAY,
+    WIDTH,
+    MAXSPEED,
+    CASE WHEN MAXSPEED IS NULL THEN
+        0
+    WHEN NOT (MAXSPEED ~ '^[0-9\.]+$') THEN
+        0
+    WHEN MAXSPEED::numeric > '105' THEN
+        1
+    WHEN MAXSPEED::numeric > '75' THEN
+        2
+    ELSE
+        3
+    END AS MAXSPEED_CLASS,
+    ST_BUFFER (WAY, 50) AS WAY INTO TABLE OSM_LINE_BUF_50
+FROM
+    LINES
+WHERE
+    HIGHWAY IS NOT NULL
+    OR WATERWAY IN ('river', 'canal');
 
-select now();
+SELECT
+    NOW();
 
 -- modify "way" by large waterways !!" (example Rhein ==> width = 400 ....) enlarge a bit the "50 meter" buffer
 UPDATE
     osm_line_buf_50
 SET
-    way = st_buffer(way, (width :: numeric / 10))
+    way = st_buffer (way, (width::numeric / 10))
 WHERE
-    waterway = 'river' and width is not null and (width ~ '^[0-9\.]+$') and width :: numeric > 15;
+    waterway = 'river'
+    AND width IS NOT NULL
+    AND (width ~ '^[0-9\.]+$')
+    AND width::numeric > 15;
 
+SELECT
+    osm_id::bigint,
+    leisure,
+    landuse,
+    p.natural,
+    p.water,
+    ST_Buffer (way, 50) AS way INTO TABLE osm_poly_buf_50
+FROM
+    polygons p
+WHERE
+    -- do not consider small surfaces
+    st_area (p.way) > 1000
+    AND p.natural IN ('water')
+    OR (p.landuse IN ('forest', 'allotments', 'flowerbed', 'orchard', 'vineyard', 'recreation_ground', 'village_green')
+        OR p.leisure IN ('park', 'nature_reserve'));
 
+SELECT
+    osm_id::bigint,
+    leisure,
+    landuse,
+    p.natural,
+    p.water,
+    ST_Buffer (way, 70) AS way INTO TABLE osm_poly_buf_120
+FROM
+    osm_poly_buf_50 p;
 
-SELECT  osm_id :: bigint,   leisure, landuse, p.natural, p.water, ST_Buffer(way,50) as way
-into table osm_poly_buf_50
-from polygons p where 
--- do not consider small surfaces
-st_area(p.way) > 1000
-and p.natural in ('water') or (p.landuse in ('forest','allotments','flowerbed','orchard','vineyard','recreation_ground','village_green')  
-     or p.leisure in ( 'park','nature_reserve'));
-
-SELECT  osm_id :: bigint,   leisure, landuse, p.natural, p.water, ST_Buffer(way,70) as way
-into table osm_poly_buf_120
-from osm_poly_buf_50 p ;
-
-select now();
+SELECT
+    NOW();
 
 -- create indexes
-CREATE INDEX osm_line_buf_50_idx ON public.osm_line_buf_50 USING gist (way) WITH (fillfactor='100');
+CREATE INDEX osm_line_buf_50_idx ON public.osm_line_buf_50 USING gist (way) WITH (fillfactor = '100');
+
 ANALYZE;
 
+SELECT
+    osm_id,
+    highway,
+    way,
+    ST_Expand (way, 15000) way2,
+    ST_Centroid (way) way0 INTO TABLE primsecter15k
+FROM
+    lines
+WHERE
+    highway IN ('primary', 'primary_link', 'secondary', 'secondary_link', 'tertiary');
 
-select
- osm_id, highway, way, 
-ST_Expand(way, 15000) way2,
-ST_Centroid(way) way0
-into table primsecter15k
-from lines
-where  highway in ('primary','primary_link', 'secondary','secondary_link', 'tertiary');
+CREATE INDEX primsecter15k_idx2 ON public.primsecter15k USING gist (way2) WITH (fillfactor = '100');
 
+CREATE INDEX primsecter15k_idx1 ON public.primsecter15k USING gist (way) WITH (fillfactor = '100');
 
-CREATE INDEX primsecter15k_idx2 ON public.primsecter15k USING gist (way2) WITH (fillfactor='100');
+CREATE INDEX primsecter15k_idx0 ON public.primsecter15k USING gist (way0) WITH (fillfactor = '100');
 
-CREATE INDEX primsecter15k_idx1 ON public.primsecter15k USING gist (way) WITH (fillfactor='100');
-CREATE INDEX primsecter15k_idx0 ON public.primsecter15k USING gist (way0) WITH (fillfactor='100');
+SELECT
+    NOW();
 
-select now();
-
-
-
--- create a new "town" table based on cities_rel (with a valid/numeric population) AND fetch by need the population from the cities table)  
-
+-- create a new "town" table based on cities_rel (with a valid/numeric population) AND fetch by need the population from the cities table)
 -- clean the cities table (when population is null or population is not numeric or unusable)
-select 
-a.name,  
-REPLACE(a.population, '.', '') :: bigint population,
-a.way  
-into cities_ok 
-from cities a where a.population is not null and (a.population ~ '^[0-9\.]+$')
-and a.place in ('town', 'city', 'municipality'); 
+SELECT
+    a.name,
+    REPLACE(a.population, '.', '')::bigint population,
+    a.way INTO cities_ok
+FROM
+    cities a
+WHERE
+    a.population IS NOT NULL
+    AND (a.population ~ '^[0-9\.]+$')
+    AND a.place IN ('town', 'city', 'municipality');
 
 -- clean the cities_rel table (when population is not numeric or unusable)
-select 
-a.name as name,
-a.admin_level, 
-case
-when a.population is not null and (a.population ~ '^[0-9\.]+$') then REPLACE(a.population, '.', '') :: bigint
-else null
-end as population,
-a.way
-into cities_rel_ok
-from cities_rel a;
+SELECT
+    a.name AS name,
+    a.admin_level,
+    CASE WHEN a.population IS NOT NULL
+        AND (a.population ~ '^[0-9\.]+$') THEN
+        REPLACE(a.population, '.', '')::bigint
+    ELSE
+        NULL
+    END AS population,
+    a.way INTO cities_rel_ok
+FROM
+    cities_rel a;
 
--- select town + population + way starting with cities_rel_ok .... 
-select 
-a.name as name, 
-case
-when a.population is not null then a.population
-when b.population is not null then b.population
-else null
-end as population,
-a.way
-into cities_intermed1
-from cities_rel_ok a
-left outer join cities_ok b on a.name = b.name  
-where  a.admin_level = '8'
-order by a.name;
+-- select town + population + way starting with cities_rel_ok ....
+SELECT
+    a.name AS name,
+    CASE WHEN a.population IS NOT NULL THEN
+        a.population
+    WHEN b.population IS NOT NULL THEN
+        b.population
+    ELSE
+        NULL
+    END AS population,
+    a.way INTO cities_intermed1
+FROM
+    cities_rel_ok a
+    LEFT OUTER JOIN cities_ok b ON a.name = b.name
+WHERE
+    a.admin_level = '8'
+ORDER BY
+    a.name;
 
 -- select town + population + way starting with cities_ok .... (to catch specials cases as ex. "Berlin" which is tagged with "admin_level=4")
+SELECT
+    a.name AS name,
+    a.population,
+    CASE WHEN b.way IS NOT NULL THEN
+        b.way
+        -- stupid case (ex. "Ebingen": no relation available, so no administrattive surface ... create a dummy area with 2000 m radius !
+    ELSE
+        st_buffer (a.way, 2000)
+    END AS way INTO cities_intermed2
+FROM
+    cities_ok a
+    LEFT OUTER JOIN cities_rel_ok b ON a.name = b.name
+    AND b.way IS NOT NULL
+    AND b.admin_level = '8'
+ORDER BY
+    name;
 
-select 
-a.name as name, 
-a.population,
-case
-when b.way is not null then b.way
--- stupid case (ex. "Ebingen": no relation available, so no administrattive surface ... create a dummy area with 2000 m radius !
-else st_buffer(a.way, 2000)
-end as way
-into cities_intermed2
-from cities_ok a
-left outer join cities_rel_ok b on a.name = b.name
-and b.way is not null
-and b.admin_level = '8'
-order by name;
+SELECT
+    name,
+    MAX(population) AS population,
+    way,
+    st_centroid (way) AS way0 INTO cities_all
+FROM ((
+        SELECT
+            *
+        FROM
+            cities_intermed1
+        WHERE
+            population IS NOT NULL)
+    UNION (
+        SELECT
+            *
+        FROM
+            cities_intermed2)) a
+WHERE
+    population IS NOT NULL
+    -- and population > 20000
+GROUP BY
+    name,
+    way
+ORDER BY
+    population;
 
-select name,
-max (population) as population,
-way,
-st_centroid(way) as way0
-into cities_all
-from ((select * from cities_intermed1 where population is not null) union (select * from cities_intermed2)) a 
-where population is not null
--- and population > 20000
-group by name, way
-order by population;
-select now();
+SELECT
+    NOW();
 
-
--- create tags for noise 
-
+-- create tags for noise
 -- create raw data
 --     when several highways-segments are producing noise, aggregate the noises using the "ST_Union" of the segments!
---     (better as using "sum" or "max" that do not deliver good factors) 
+--     (better as using "sum" or "max" that do not deliver good factors)
+SELECT
+    m.osm_id losmid,
+    m.highway lhighway,
+    q.highway AS qhighway,
+    q.maxspeed_class,
+    CASE WHEN q.highway IN ('motorway', 'motorway_link', 'trunk', 'trunk_link')
+        AND q.maxspeed_class < 1.1 THEN
+        st_area (st_intersection (m.way, ST_Union (q.way))) / st_area (m.way)
+    WHEN q.highway IN ('motorway', 'motorway_link', 'trunk', 'trunk_link') THEN
+        st_area (st_intersection (m.way, ST_Union (q.way))) / (1.5 * st_area (m.way))
+    WHEN q.highway IN ('primary', 'primary_link')
+        AND q.maxspeed_class < 2.1 THEN
+        st_area (st_intersection (m.way, ST_Union (q.way))) / (2 * st_area (m.way))
+    WHEN q.highway IN ('primary', 'primary_link') THEN
+        st_area (st_intersection (m.way, ST_Union (q.way))) / (3 * st_area (m.way))
+    WHEN q.highway IN ('secondary')
+        AND q.maxspeed_class < 2.1 THEN
+        st_area (st_intersection (m.way, ST_Union (q.way))) / (3 * st_area (m.way))
+    WHEN q.highway IN ('secondary') THEN
+        st_area (st_intersection (m.way, ST_Union (q.way))) / (5 * st_area (m.way))
+    END AS noise_factor INTO TABLE noise_tmp
+FROM
+    osm_line_buf_50 AS m
+    INNER JOIN osm_line_buf_50 AS q ON ST_Intersects (m.way, q.way)
+WHERE
+    m.highway IS NOT NULL
+    AND q.highway IN ('motorway', 'motorway_link', 'trunk', 'trunk_link', 'primary', 'primary_link', 'secondary')
+GROUP BY
+    losmid,
+    lhighway,
+    m.way,
+    q.highway,
+    q.maxspeed_class
+ORDER BY
+    noise_factor DESC;
 
 SELECT
-    m.osm_id losmid, m.highway lhighway, q.highway as qhighway, q.maxspeed_class,
-    case 
-    when q.highway in ('motorway', 'motorway_link','trunk','trunk_link') and q.maxspeed_class < 1.1 then
-     	st_area(st_intersection(m.way, ST_Union( q.way)))      / st_area(m.way)
-    when q.highway in ('motorway', 'motorway_link','trunk','trunk_link')  then
-     	st_area(st_intersection(m.way, ST_Union( q.way)))   	 / (1.5 * st_area(m.way))
+    NOW();
 
-    when q.highway in ('primary','primary_link')                        and q.maxspeed_class < 2.1  then
-	st_area(st_intersection(m.way, ST_Union( q.way)))    	/ (2 * st_area(m.way))
-    when q.highway in ('primary','primary_link')      then
-	st_area(st_intersection(m.way, ST_Union( q.way)))     / (3 * st_area(m.way))
-
-    when q.highway in ('secondary')                                    and q.maxspeed_class < 2.1 then
-	st_area(st_intersection(m.way, ST_Union( q.way)))    	/ (3 * st_area(m.way))
-    when q.highway in ('secondary') then 
-	st_area(st_intersection(m.way, ST_Union( q.way)))    	/ (5 * st_area(m.way))
-    end
-as noise_factor
-into table noise_tmp
-FROM osm_line_buf_50 AS m
-INNER JOIN osm_line_buf_50 AS q ON ST_Intersects(m.way, q.way) 
-WHERE m.highway is not null
-and q.highway in ('motorway', 'motorway_link','trunk','trunk_link','primary','primary_link','secondary')
-GROUP BY losmid, lhighway, m.way, q.highway, q.maxspeed_class
-order by noise_factor desc;
-
-select now();
-
-
--- aggregate data: 
--- on "maxspeed_class take the sum of several highways (having different maxspeed-class) union is then not done, but not very frequent 
+-- aggregate data:
+-- on "maxspeed_class take the sum of several highways (having different maxspeed-class) union is then not done, but not very frequent
 -- on "phighway"      take the sum of several highways (as probably several highways are producing noise at the point!
-
-select losmid, lhighway, sum(noise_factor) as sum_noise_factor
-into table noise_tmp2 
-from noise_tmp 
-group by losmid, lhighway
-order by sum_noise_factor desc;
-
+SELECT
+    losmid,
+    lhighway,
+    SUM(noise_factor) AS sum_noise_factor INTO TABLE noise_tmp2
+FROM
+    noise_tmp
+GROUP BY
+    losmid,
+    lhighway
+ORDER BY
+    sum_noise_factor DESC;
 
 -- create the noise classes
-SELECT    losmid, 
-case
-  when y.sum_noise_factor < 0.1  then '1'
-  when y.sum_noise_factor < 0.25 then '2'
-  when y.sum_noise_factor < 0.4  then '3'
-  when y.sum_noise_factor < 0.55 then '4'
-  when y.sum_noise_factor < 0.8  then '5'
-  else '6' 
-end as noise_class
-into table noise_tags
-from noise_tmp2 y 
-where y.sum_noise_factor > 0.01;
+SELECT
+    losmid,
+    CASE WHEN y.sum_noise_factor < 0.1 THEN
+        '1'
+    WHEN y.sum_noise_factor < 0.25 THEN
+        '2'
+    WHEN y.sum_noise_factor < 0.4 THEN
+        '3'
+    WHEN y.sum_noise_factor < 0.55 THEN
+        '4'
+    WHEN y.sum_noise_factor < 0.8 THEN
+        '5'
+    ELSE
+        '6'
+    END AS noise_class INTO TABLE noise_tags
+FROM
+    noise_tmp2 y
+WHERE
+    y.sum_noise_factor > 0.01;
 
-select count(*) from noise_tags;
-select noise_class, count(*) from noise_tags group by noise_class order by noise_class;
+SELECT
+    COUNT(*)
+FROM
+    noise_tags;
 
-drop table noise_tmp2;
-select now();
+SELECT
+    noise_class,
+    COUNT(*)
+FROM
+    noise_tags
+GROUP BY
+    noise_class
+ORDER BY
+    noise_class;
 
+DROP TABLE noise_tmp2;
 
+SELECT
+    NOW();
 
 -- create tags for river
+SELECT
+    xid,
+    SUM(water_river_see) AS river_see INTO TABLE river_tmp
+FROM (
+    SELECT
+        m.osm_id AS xid,
+        st_area (st_intersection (m.way, ST_Union (q.way))) / st_area (m.way) AS water_river_see
+    FROM
+        osm_line_buf_50 AS m
+        INNER JOIN osm_poly_buf_120 AS q ON ST_Intersects (m.way, q.way)
+    WHERE
+        m.highway IS NOT NULL
+        -- and st_area(q.way) > 90746  !!! filter on very small surfaces was set above !!!!!!!!!
+        AND q.natural IN ('water')
+        AND (q.water IS NULL
+            OR q.water NOT IN ('wastewater'))
+    GROUP BY
+        m.osm_id,
+        m.way
+    UNION
+    SELECT
+        m.osm_id AS xid,
+        st_area (st_intersection (m.way, ST_Union (q.way))) / st_area (m.way) AS water_river_see
+    FROM
+        osm_line_buf_50 AS m
+        INNER JOIN osm_line_buf_50 AS q ON ST_Intersects (m.way, q.way)
+    WHERE
+        m.highway IS NOT NULL
+        AND q.waterway IN ('river', 'canal')
+    GROUP BY
+        m.osm_id,
+        m.way) AS abcd
+GROUP BY
+    xid
+ORDER BY
+    river_see DESC;
 
+SELECT
+    y.xid losmid,
+    CASE WHEN y.river_see < 0.17 THEN
+        '1'
+    WHEN y.river_see < 0.35 THEN
+        '2'
+    WHEN y.river_see < 0.57 THEN
+        '3'
+    WHEN y.river_see < 0.85 THEN
+        '4'
+    WHEN y.river_see < 1 THEN
+        '5'
+    ELSE
+        '6'
+    END AS river_class INTO TABLE river_tags
+FROM
+    river_tmp y
+WHERE
+    y.river_see > 0.05;
 
+SELECT
+    COUNT(*)
+FROM
+    river_tags;
 
-select xid , sum(water_river_see) as river_see 
-into table river_tmp
-from (
-SELECT     m.osm_id  as xid,
-  st_area(st_intersection(m.way, ST_Union( q.way))) / st_area(m.way)
-  as water_river_see
-FROM osm_line_buf_50 AS m
-INNER JOIN osm_poly_buf_120 AS q ON ST_Intersects(m.way, q.way) 
-WHERE  m.highway is not null
--- and st_area(q.way) > 90746  !!! filter on very small surfaces was set above !!!!!!!!!
-and q.natural in ('water') and (q.water is null or q.water not in ('wastewater'))
-GROUP BY m.osm_id, m.way
-union
-SELECT    m.osm_id as xid, 
-    st_area(st_intersection(m.way, ST_Union( q.way))) / st_area(m.way)
-     as water_river_see
-FROM osm_line_buf_50 AS m
-INNER JOIN osm_line_buf_50 AS q ON ST_Intersects(m.way, q.way) 
-WHERE m.highway is not null
-and
-q.waterway in ('river','canal') 
-GROUP BY m.osm_id, m.way
-) as abcd
-GROUP BY xid
-order by river_see desc;
+SELECT
+    river_class,
+    COUNT(*)
+FROM
+    river_tags
+GROUP BY
+    river_class
+ORDER BY
+    river_class;
 
-
-SELECT     y.xid losmid, 
-case
-  when y.river_see < 0.17  then '1'
-  when y.river_see < 0.35  then '2'
-  when y.river_see < 0.57  then '3'
-  when y.river_see < 0.85  then '4'
-  when y.river_see < 1   then '5'
-  else '6' 
-end as river_class
-into table river_tags
-from river_tmp y where y.river_see > 0.05;
-
-select count(*) from river_tags;
-select river_class, count(*) from river_tags group by river_class order by river_class;
-
-select now();
-
-
+SELECT
+    NOW();
 
 -- create tags for forest
-
-
-
 SELECT
-    m.osm_id, m.highway,
-    st_area(st_intersection(m.way, ST_Union( q.way))) / st_area(m.way)    
- as green_factor
-into table forest_tmp
-FROM osm_line_buf_50 AS m
-INNER JOIN osm_poly_buf_50 AS q ON ST_Intersects(m.way, q.way) 
-WHERE m.highway is not null
- and 
-((q.landuse in ('forest','allotments','flowerbed','orchard','vineyard','recreation_ground','village_green') ) 
-     or q.leisure in ( 'garden','park','nature_reserve'))
-GROUP BY m.osm_id, m.highway, m.way
-order by green_factor desc;
+    m.osm_id,
+    m.highway,
+    st_area (st_intersection (m.way, ST_Union (q.way))) / st_area (m.way) AS green_factor INTO TABLE forest_tmp
+FROM
+    osm_line_buf_50 AS m
+    INNER JOIN osm_poly_buf_50 AS q ON ST_Intersects (m.way, q.way)
+WHERE
+    m.highway IS NOT NULL
+    AND ((q.landuse IN ('forest', 'allotments', 'flowerbed', 'orchard', 'vineyard', 'recreation_ground', 'village_green'))
+        OR q.leisure IN ('garden', 'park', 'nature_reserve'))
+GROUP BY
+    m.osm_id,
+    m.highway,
+    m.way
+ORDER BY
+    green_factor DESC;
 
 --
-SELECT  y.osm_id losmid, 
-case
-  when y.green_factor < 0.1  then null
-  when y.green_factor < 0.3  then '1'
-  when y.green_factor < 0.6  then '2'
-  when y.green_factor < 0.9    then '3'
-  when y.green_factor < 1  then '4'
-  when y.green_factor < 1.3   then '5'
-  else '6' 
-end as forest_class
-into table forest_tags
-from forest_tmp y where y.green_factor  > 0.1;
+SELECT
+    y.osm_id losmid,
+    CASE WHEN y.green_factor < 0.1 THEN
+        NULL
+    WHEN y.green_factor < 0.3 THEN
+        '1'
+    WHEN y.green_factor < 0.6 THEN
+        '2'
+    WHEN y.green_factor < 0.9 THEN
+        '3'
+    WHEN y.green_factor < 1 THEN
+        '4'
+    WHEN y.green_factor < 1.3 THEN
+        '5'
+    ELSE
+        '6'
+    END AS forest_class INTO TABLE forest_tags
+FROM
+    forest_tmp y
+WHERE
+    y.green_factor > 0.1;
 
-select count(*) from forest_tags;
-select forest_class, count(*) from forest_tags group by forest_class order by forest_class;
+SELECT
+    COUNT(*)
+FROM
+    forest_tags;
 
-select now();
+SELECT
+    forest_class,
+    COUNT(*)
+FROM
+    forest_tags
+GROUP BY
+    forest_class
+ORDER BY
+    forest_class;
+
+SELECT
+    NOW();
 
 --  create "town" tags
- 
 -- get the highways which intersect the town
-
 SELECT
-    m.osm_id losmid, m.highway lhighway,
-    case 
-    when q.population :: decimal > '2000000'    then  1
-    when q.population :: decimal > '1000000'    then  0.8
-    when q.population :: decimal > '400000'    then  0.6
-    when q.population :: decimal > '150000'    then  0.4
-    when q.population :: decimal > '80000'    then  0.2
-    else 0.1  
-    end  as town_factor
-into table town_tmp
-FROM osm_line_buf_50 AS m
-INNER JOIN cities_all AS q ON ST_Intersects(m.way, q.way) 
-WHERE m.highway is not null 
-and q.population  > '50000' 
-order by town_factor desc;
+    m.osm_id losmid,
+    m.highway lhighway,
+    CASE WHEN q.population::decimal > '2000000' THEN
+        1
+    WHEN q.population::decimal > '1000000' THEN
+        0.8
+    WHEN q.population::decimal > '400000' THEN
+        0.6
+    WHEN q.population::decimal > '150000' THEN
+        0.4
+    WHEN q.population::decimal > '80000' THEN
+        0.2
+    ELSE
+        0.1
+    END AS town_factor INTO TABLE town_tmp
+FROM
+    osm_line_buf_50 AS m
+    INNER JOIN cities_all AS q ON ST_Intersects (m.way, q.way)
+WHERE
+    m.highway IS NOT NULL
+    AND q.population > '50000'
+ORDER BY
+    town_factor DESC;
 
 --
+SELECT
+    losmid,
+    CASE WHEN y.town_factor = 0.1 THEN
+        '1'
+    WHEN y.town_factor = 0.2 THEN
+        '2'
+    WHEN y.town_factor = 0.4 THEN
+        '3'
+    WHEN y.town_factor = 0.6 THEN
+        '4'
+    WHEN y.town_factor = 0.8 THEN
+        '5'
+    ELSE
+        '6'
+    END AS town_class INTO TABLE town_tags
+FROM (
+    SELECT
+        losmid,
+        MAX(town_factor) AS town_factor
+    FROM
+        town_tmp y
+    GROUP BY
+        losmid) y;
 
-SELECT    losmid, 
-case
-  when y.town_factor =  0.1  then '1'
-  when y.town_factor =  0.2  then '2'
-  when y.town_factor =  0.4  then '3'
-  when y.town_factor =  0.6  then '4'
-  when y.town_factor =  0.8  then '5'
-  else '6' 
-end as town_class
-into table town_tags
-from 
-(SELECT    losmid, max (town_factor) as town_factor
-from town_tmp y
-group by losmid) y;
+SELECT
+    COUNT(*)
+FROM
+    town_tags;
 
-select count(*) from town_tags;
-select town_class, count(*) from town_tags group by town_class order by town_class;
-
+SELECT
+    town_class,
+    COUNT(*)
+FROM
+    town_tags
+GROUP BY
+    town_class
+ORDER BY
+    town_class;
 
 --
 --  substract the ways from town with a green tag (because administrative surface are some times too large)
 --
-delete from town_tags
-where losmid in 
-(SELECT losmid     FROM forest_tags);
+DELETE FROM town_tags
+WHERE losmid IN (
+        SELECT
+            losmid
+        FROM
+            forest_tags);
 
-delete from town_tags
-where losmid in 
-(SELECT losmid     FROM river_tags);
+DELETE FROM town_tags
+WHERE losmid IN (
+        SELECT
+            losmid
+        FROM
+            river_tags);
 
+SELECT
+    COUNT(*)
+FROM
+    town_tags;
 
-select count(*) from town_tags;
-select town_class, count(*) from town_tags group by town_class order by town_class;
+SELECT
+    town_class,
+    COUNT(*)
+FROM
+    town_tags
+GROUP BY
+    town_class
+ORDER BY
+    town_class;
 
-select now();
-
-
+SELECT
+    NOW();
 
 -------------------------------------------
 -- create tags for  TRAFFIC
 -----------------------------------------
--- OSM data used to calculate/estimate the traffic: 
+-- OSM data used to calculate/estimate the traffic:
 --    population of towns (+ distance from position to the towns)
---    industrial areas (landuse=industrial)  (+ surface of the areas and distance from position) 
+--    industrial areas (landuse=industrial)  (+ surface of the areas and distance from position)
 --    motorway density (traffic on motorways decreases traffic on primary/secondary/tertiary)         calculated on grid
 --    highway density  (traffic decreases when more primary/secondary/tertiary highways are available) calculated on grid
 --    exceptions: near junctions between motorways and primary/secondary/tertiary the traffic increases on the primary/secondary/tertiary..
 --    mountain-ranges  (high peaks)  traffic is generally on highways in such regions higher as only generated by local population or industrial areas
-
-
 -- calculate traffic from the population (for each segment of type primary secondary tertiary)
-
 -- SUM of (population of each town < 100 km) / ( town-radius + 2500 + dist(segment-position to the town) ** 2 )
 --  town-radius is calculated as sqrt(population)
-
-select now();
 SELECT
-    m.osm_id losmid, m.highway lhighway,
-case
-  when m.highway = 'tertiary' then
-sum ( 10000 * q.population :: numeric /
-    power( ((8 * sqrt(q.population :: numeric))  + 500 + ST_Distance(m.way0, q.way0) ) , 2)  * 0.4 )
-  when m.highway in ('secondary', 'secondary_link') then
-sum ( 10000 * q.population :: numeric /
-    power( ((8 * sqrt(q.population :: numeric))  + 500 + ST_Distance(m.way0, q.way0) ) , 2)  * 0.6 )
-  else
-sum ( 10000 * q.population :: numeric /
-    power( ((8 * sqrt(q.population :: numeric))  + 500 + ST_Distance(m.way0, q.way0) ) , 2)  )
-  end
-as populate_factor
-into table traffic_tmp
-FROM primsecter15k AS m
-INNER JOIN cities_all AS q ON ST_DWithin(m.way0, q.way0, (5000 + (100000 * q.population / (q.population +  10000) )))
-WHERE m.highway is not null
---and m.highway in ('primary','primary_link','secondary', 'secondary_link', 'tertiary')
-and q.population > 200
-GROUP BY m.osm_id, m.highway, m.way
-order by populate_factor;
-select now();
+    NOW();
 
--- prepare some special tables 
+SELECT
+    m.osm_id losmid,
+    m.highway lhighway,
+    CASE WHEN m.highway = 'tertiary' THEN
+        SUM(10000 * q.population::numeric / POWER(((8 * SQRT(q.population::numeric)) + 500 + ST_Distance (m.way0, q.way0)), 2) * 0.4)
+    WHEN m.highway IN ('secondary', 'secondary_link') THEN
+        SUM(10000 * q.population::numeric / POWER(((8 * SQRT(q.population::numeric)) + 500 + ST_Distance (m.way0, q.way0)), 2) * 0.6)
+    ELSE
+        SUM(10000 * q.population::numeric / POWER(((8 * SQRT(q.population::numeric)) + 500 + ST_Distance (m.way0, q.way0)), 2))
+    END AS populate_factor INTO TABLE traffic_tmp
+FROM
+    primsecter15k AS m
+    INNER JOIN cities_all AS q ON ST_DWithin (m.way0, q.way0, (5000 + (100000 * q.population / (q.population + 10000))))
+WHERE
+    m.highway IS NOT NULL
+    --and m.highway in ('primary','primary_link','secondary', 'secondary_link', 'tertiary')
+    AND q.population > 200
+GROUP BY
+    m.osm_id,
+    m.highway,
+    m.way
+ORDER BY
+    populate_factor;
+
+SELECT
+    NOW();
+
+-- prepare some special tables
 --  the intersections motorway_link with primary/secondary/tertiary deliver the motorway acccesses....
+SELECT
+    m.osm_id losmid,
+    m.highway,
+    m.way,
+    ST_Expand (m.way, 1000) way2,
+    ST_Expand (m.way, 2000) way3 INTO TABLE motorway_access
+FROM
+    lines AS m
+    INNER JOIN lines AS q ON ST_Intersects (m.way, q.way)
+WHERE
+    q.highway IN ('motorway_link', 'trunk_link')
+    AND m.highway IN ('primary', 'secondary', 'tertiary')
+GROUP BY
+    m.osm_id,
+    m.highway,
+    m.way;
+
+CREATE INDEX motorway_access_idx ON public.motorway_access USING gist (way2) WITH (fillfactor = '100');
 
 SELECT
-    m.osm_id losmid, 
- m.highway,
-m.way,
-ST_Expand(m.way, 1000) way2,
-ST_Expand(m.way, 2000) way3
-into table motorway_access
-FROM lines AS m
-INNER JOIN lines AS q ON ST_Intersects(m.way, q.way) 
-WHERE q.highway  in ('motorway_link','trunk_link')
-and m.highway in ('primary', 'secondary', 'tertiary')
-group by m.osm_id, m.highway, m.way;
-
-CREATE INDEX motorway_access_idx ON public.motorway_access USING gist (way2) WITH (fillfactor='100');
-select now();
-
-
+    NOW();
 
 -- find out all the primary/secondary/tertiary within 1000 m and 2000 m from a motorway access
-select now();
+SELECT
+    NOW();
 
 SELECT
-    m.osm_id losmid, 
-sum ( st_length(q.way) / (10000 )  )  motorway_factor
-into table motorway_access_1000
-FROM lines AS m
-inner JOIN motorway_access AS q ON ST_Intersects(m.way, q.way2) 
-WHERE m.highway in ('primary', 'primary_link', 'secondary','secondary_link', 'tertiary')
-GROUP BY m.osm_id, m.way 
-order by motorway_factor;
-select now();
+    m.osm_id losmid,
+    SUM(st_length (q.way) / (10000)) motorway_factor INTO TABLE motorway_access_1000
+FROM
+    lines AS m
+    INNER JOIN motorway_access AS q ON ST_Intersects (m.way, q.way2)
+WHERE
+    m.highway IN ('primary', 'primary_link', 'secondary', 'secondary_link', 'tertiary')
+GROUP BY
+    m.osm_id,
+    m.way
+ORDER BY
+    motorway_factor;
 
 SELECT
-    m.osm_id losmid, 
-sum ( st_length(q.way) / (10000 )  )  motorway_factor
-into table motorway_access_2000
-FROM lines AS m
-inner JOIN motorway_access AS q ON ST_Intersects(m.way, q.way3) 
-WHERE m.highway in ('primary', 'primary_link', 'secondary','secondary_link', 'tertiary')
-GROUP BY m.osm_id, m.way 
-order by motorway_factor;
-select now();
+    NOW();
 
+SELECT
+    m.osm_id losmid,
+    SUM(st_length (q.way) / (10000)) motorway_factor INTO TABLE motorway_access_2000
+FROM
+    lines AS m
+    INNER JOIN motorway_access AS q ON ST_Intersects (m.way, q.way3)
+WHERE
+    m.highway IN ('primary', 'primary_link', 'secondary', 'secondary_link', 'tertiary')
+GROUP BY
+    m.osm_id,
+    m.way
+ORDER BY
+    motorway_factor;
 
+SELECT
+    NOW();
 
 --
---  special regions: mountain_range with "peaks" ==> few highways ==> higher traffic !!! 
+--  special regions: mountain_range with "peaks" ==> few highways ==> higher traffic !!!
 --  calculate the "peak_density"
-
-select now();
 SELECT
-    m.osm_id losmid, 
-count(  q.*) as peak_cnt,
-sum (q.ele :: decimal) peak_sum_ele
-into table peak_density
-FROM primsecter15k AS m
-INNER JOIN peak AS q ON ST_Intersects(m.way2, q.way) 
-where (q.ele ~ '^[0-9\.]+$') and q.ele :: decimal > 400
-GROUP BY m.osm_id, m.way 
-order by peak_cnt desc;
-select now();
+    NOW();
+
+SELECT
+    m.osm_id losmid,
+    COUNT(q.*) AS peak_cnt,
+    SUM(q.ele::decimal) peak_sum_ele INTO TABLE peak_density
+FROM
+    primsecter15k AS m
+    INNER JOIN peak AS q ON ST_Intersects (m.way2, q.way)
+WHERE (q.ele ~ '^[0-9\.]+$')
+    AND q.ele::decimal > 400
+GROUP BY
+    m.osm_id,
+    m.way
+ORDER BY
+    peak_cnt DESC;
+
+SELECT
+    NOW();
 
 --
 -- traffic due to industrial parcs ...
 --
-select now();
-
-select 
-name, 
-way, 
-ST_Centroid(way) way0,
-st_area(way) area,  
-sqrt(st_area(way)) sqrt_area 
-into industri
-from polygons 
-WHERE landuse = 'industrial'
-and st_area(way) > 20000;
-
-select now();
 SELECT
-    m.osm_id losmid, m.highway lhighway,
-case
-  when m.highway = 'tertiary' then 
-sum ( area  / 
-    power( ( sqrt_area  + 500 + ST_Distance(m.way0, q.way0) ) , 2)  * 0.6 )
-  when m.highway in ('secondary', 'secondary_link') then 
-sum ( area  / 
-    power( ( sqrt_area  + 500 + ST_Distance(m.way0, q.way0) ) , 2)  * 0.8 )
-  else 
-sum ( area  / 
-    power( ( sqrt_area  + 500 + ST_Distance(m.way0, q.way0) ) , 2)   )
-  end 
-as industrial_factor
-into industri_tmp
-FROM primsecter15k AS m
-INNER JOIN industri AS q ON ST_dwithin(m.way0, q.way0, 20000) 
-GROUP BY m.osm_id, m.highway, m.way 
-order by industrial_factor;
+    NOW();
 
-select now();
+SELECT
+    name,
+    way,
+    ST_Centroid (way) way0,
+    st_area (way)
+    area,
+    SQRT(st_area (way)) sqrt_area INTO industri
+FROM
+    polygons
+WHERE
+    landuse = 'industrial'
+    AND st_area (way) > 20000;
+
+SELECT
+    NOW();
+
+SELECT
+    m.osm_id losmid,
+    m.highway lhighway,
+    CASE WHEN m.highway = 'tertiary' THEN
+        SUM(area / POWER((sqrt_area + 500 + ST_Distance (m.way0, q.way0)), 2) * 0.6)
+    WHEN m.highway IN ('secondary', 'secondary_link') THEN
+        SUM(area / POWER((sqrt_area + 500 + ST_Distance (m.way0, q.way0)), 2) * 0.8)
+    ELSE
+        SUM(area / POWER((sqrt_area + 500 + ST_Distance (m.way0, q.way0)), 2))
+    END AS industrial_factor INTO industri_tmp
+FROM
+    primsecter15k AS m
+    INNER JOIN industri AS q ON ST_dwithin (m.way0, q.way0, 20000)
+GROUP BY
+    m.osm_id,
+    m.highway,
+    m.way
+ORDER BY
+    industrial_factor;
+
+SELECT
+    NOW();
 
 -- create a grid to allow a fast calculation for highway_density and motorway_density
-
-CREATE OR replace FUNCTION generate_grid(bound_polygon geometry, grid_step integer, srid integer default 2180)
-RETURNS table(id bigint, geom geometry)
-LANGUAGE plpgsql
-AS $function$
+CREATE OR REPLACE FUNCTION generate_grid (bound_polygon geometry, grid_step integer, srid integer DEFAULT 2180)
+    RETURNS TABLE (
+        id bigint,
+        geom geometry)
+    LANGUAGE plpgsql
+    AS $function$
 DECLARE
-Xmin int;
-Xmax int;
-Ymax int;
-Ymin int;
-query_text text;
+    Xmin int;
+    Xmax int;
+    Ymax int;
+    Ymin int;
+    query_text text;
 BEGIN
-Xmin := floor(ST_XMin(bound_polygon));
-Xmax := ceil(ST_XMax(bound_polygon));
-Ymin := floor(ST_YMin(bound_polygon));
-Ymax := ceil(ST_YMax(bound_polygon));
-   
-  query_text := 'select row_number() over() id, st_makeenvelope(s1, s2, s1+$5, s2+$5, $6) geom
+    Xmin := FLOOR(ST_XMin (bound_polygon));
+    Xmax := CEIL(ST_XMax (bound_polygon));
+    Ymin := FLOOR(ST_YMin (bound_polygon));
+    Ymax := CEIL(ST_YMax (bound_polygon));
+    query_text := 'select row_number() over() id, st_makeenvelope(s1, s2, s1+$5, s2+$5, $6) geom
    from generate_series($1, $2+$5, $5) s1, generate_series ($3, $4+$5, $5) s2';
-
-RETURN QUERY EXECUTE query_text using Xmin, Xmax, Ymin, Ymax, grid_step, srid;
+    RETURN QUERY EXECUTE query_text
+    USING Xmin, Xmax, Ymin, Ymax, grid_step, srid;
 END;
-$function$
-;
+$function$;
 
-create table grid1 as select id, geom from generate_grid((ST_GeomFromText('POLYGON((0 9000000, 18000000 9000000, 18000000 -9000000, 0 -9000000, 0  9000000))')),10000,3857);
-create table grid2 as select id, geom from generate_grid((ST_GeomFromText('POLYGON((0 9000000, -18000000 9000000, -18000000 -9000000, 0 -9000000, 0  9000000))')),10000,3857);
+CREATE TABLE grid1 AS
+SELECT
+    id,
+    geom
+FROM
+    generate_grid((ST_GeomFromText('POLYGON((0 9000000, 18000000 9000000, 18000000 -9000000, 0 -9000000, 0  9000000))')),10000,3857);
 
-select geom into table grid from ((select  geom from grid1) union (select  geom from grid2)) a;
+CREATE TABLE grid2 AS
+SELECT
+    id,
+    geom
+FROM
+    generate_grid((ST_GeomFromText('POLYGON((0 9000000, -18000000 9000000, -18000000 -9000000, 0 -9000000, 0  9000000))')),10000,3857);
+
+SELECT
+    geom INTO TABLE grid
+FROM ((
+        SELECT
+            geom
+        FROM
+            grid1)
+    UNION (
+        SELECT
+            geom
+        FROM
+            grid2)) a;
 
 -- GRID  HIGHWAY_DENSITY
-select now();
 SELECT
-sum ( st_length(q.way) / (10000 )  )  highway_factor,
-m.geom way
-into table grid_highway_density
-FROM lines AS q
-INNER JOIN grid AS m ON ST_Intersects(q.way, m.geom) 
-where q.highway in ('primary','primary_link','secondary', 'secondary_link', 'tertiary')
-GROUP BY  m.geom
-order by highway_factor;
-select now();
+    NOW();
+
+SELECT
+    SUM(st_length (q.way) / (10000)) highway_factor,
+    m.geom way INTO TABLE grid_highway_density
+FROM
+    lines AS q
+    INNER JOIN grid AS m ON ST_Intersects (q.way, m.geom)
+WHERE
+    q.highway IN ('primary', 'primary_link', 'secondary', 'secondary_link', 'tertiary')
+GROUP BY
+    m.geom
+ORDER BY
+    highway_factor;
+
+SELECT
+    NOW();
 
 -- GRID MOTORWAY_DENSITY
-
-select now();
 SELECT
-sum ( st_length(q.way) / (10000 )  )  motorway_factor,
-m.geom way
-into table grid_motorway_density
-FROM lines AS q
-INNER JOIN grid AS m ON ST_Intersects(q.way, m.geom) 
-where q.highway in ('motorway', 'motorway_link','trunk','trunk_link')
-GROUP BY  m.geom
-order by motorway_factor;
-select now();
+    NOW();
+
+SELECT
+    SUM(st_length (q.way) / (10000)) motorway_factor,
+    m.geom way INTO TABLE grid_motorway_density
+FROM
+    lines AS q
+    INNER JOIN grid AS m ON ST_Intersects (q.way, m.geom)
+WHERE
+    q.highway IN ('motorway', 'motorway_link', 'trunk', 'trunk_link')
+GROUP BY
+    m.geom
+ORDER BY
+    motorway_factor;
+
+SELECT
+    NOW();
 
 -- CREATE INDEX grid_idx ON public.grid USING gist (geom) WITH (fillfactor='100');
-CREATE INDEX grid_hwd_idx ON public.grid_highway_density USING gist (way) WITH (fillfactor='100');
-CREATE INDEX grid_mwd_idx ON public.grid_motorway_density USING gist (way) WITH (fillfactor='100');
+CREATE INDEX grid_hwd_idx ON public.grid_highway_density USING gist (way) WITH (fillfactor = '100');
 
+CREATE INDEX grid_mwd_idx ON public.grid_motorway_density USING gist (way) WITH (fillfactor = '100');
 
 -- collect all exceptions on 1 table
-select now();
-SELECT    y.osm_id losmid,
-  case when q.motorway_factor is null then 0
-   else q.motorway_factor
-   end as motorway_factor,
-  case when x.peak_sum_ele is null then 0
-       when x.peak_sum_ele > 500000 then 4
-   else x.peak_sum_ele / 125000
-    end as peak_sum_ele,
-  case when z.highway_factor is null then 0
-     else z.highway_factor
-    end as highway_factor,
-  case when w.industrial_factor is null then 0
-       when w.industrial_factor > 1 then (1500 * 50)
-       else (w.industrial_factor * 1500 * 50) 
-    end as industrial_factor
- into table except_all_tmp
- from lines y
- left outer JOIN grid_motorway_density AS q ON st_dwithin(q.way, y.way, 5500)
- left outer JOIN peak_density AS x ON y.osm_id = x.losmid
- left outer JOIN industri_tmp AS w ON y.osm_id = w.losmid
- left outer JOIN grid_highway_density AS z ON st_dwithin(z.way, y.way, 5500)
- where y.highway in ('primary','primary_link','secondary','secondary_link', 'tertiary');
- select now();
+SELECT
+    NOW();
 
-select losmid, peak_sum_ele, avg(highway_factor) highway_factor, avg(motorway_factor) motorway_factor, industrial_factor 
-into table except_all
-from except_all_tmp
-group by  losmid, peak_sum_ele, industrial_factor;
+SELECT
+    y.osm_id losmid,
+    CASE WHEN q.motorway_factor IS NULL THEN
+        0
+    ELSE
+        q.motorway_factor
+    END AS motorway_factor,
+    CASE WHEN x.peak_sum_ele IS NULL THEN
+        0
+    WHEN x.peak_sum_ele > 500000 THEN
+        4
+    ELSE
+        x.peak_sum_ele / 125000
+    END AS peak_sum_ele,
+    CASE WHEN z.highway_factor IS NULL THEN
+        0
+    ELSE
+        z.highway_factor
+    END AS highway_factor,
+    CASE WHEN w.industrial_factor IS NULL THEN
+        0
+    WHEN w.industrial_factor > 1 THEN
+        (1500 * 50)
+    ELSE
+        (w.industrial_factor * 1500 * 50)
+    END AS industrial_factor INTO TABLE except_all_tmp
+FROM
+    lines y
+    LEFT OUTER JOIN grid_motorway_density AS q ON st_dwithin (q.way, y.way, 5500)
+    LEFT OUTER JOIN peak_density AS x ON y.osm_id = x.losmid
+    LEFT OUTER JOIN industri_tmp AS w ON y.osm_id = w.losmid
+    LEFT OUTER JOIN grid_highway_density AS z ON st_dwithin (z.way, y.way, 5500)
+WHERE
+    y.highway IN ('primary', 'primary_link', 'secondary', 'secondary_link', 'tertiary');
 
-select now();
+SELECT
+    NOW();
 
---  Do not apply the positiv effect of "motorway density" in proximity of motorway accesses!!!! 
-UPDATE except_all
-SET motorway_factor = 0
-where losmid in (select losmid from motorway_access_2000);
+SELECT
+    losmid,
+    peak_sum_ele,
+    AVG(highway_factor) highway_factor,
+    AVG(motorway_factor) motorway_factor,
+    industrial_factor INTO TABLE except_all
+FROM
+    except_all_tmp
+GROUP BY
+    losmid,
+    peak_sum_ele,
+    industrial_factor;
 
--- quite direct at motorway accesses set a negativ effect !!!! 
-UPDATE except_all
-SET motorway_factor = -15
-where losmid in (select losmid from motorway_access_1000);
+SELECT
+    NOW();
 
+--  Do not apply the positiv effect of "motorway density" in proximity of motorway accesses!!!!
+UPDATE
+    except_all
+SET
+    motorway_factor = 0
+WHERE
+    losmid IN (
+        SELECT
+            losmid
+        FROM
+            motorway_access_2000);
 
-select now();
+-- quite direct at motorway accesses set a negativ effect !!!!
+UPDATE
+    except_all
+SET
+    motorway_factor = - 15
+WHERE
+    losmid IN (
+        SELECT
+            losmid
+        FROM
+            motorway_access_1000);
 
--- class calculation with modifications using peaks, motorway_density and highway_density... 
--- 
+SELECT
+    NOW();
 
-SELECT    y.losmid :: bigint, 
-case
-  when ((y.populate_factor * 1200 * (1 + q.peak_sum_ele)) + q.industrial_factor) / ((30 + q.motorway_factor ) * (50 + q.highway_factor))  < 6  then '1'
-  when ((y.populate_factor * 1200 * (1 + q.peak_sum_ele)) + q.industrial_factor) / ((30 + q.motorway_factor ) * (50 + q.highway_factor))  < 10 then '2'
-  when ((y.populate_factor * 1200 * (1 + q.peak_sum_ele)) + q.industrial_factor) / ((30 + q.motorway_factor ) * (50 + q.highway_factor))  < 19  then '3'
-  when ((y.populate_factor * 1200 * (1 + q.peak_sum_ele)) + q.industrial_factor) / ((30 + q.motorway_factor ) * (50 + q.highway_factor))  < 35 then '4'
-  when ((y.populate_factor * 1200 * (1 + q.peak_sum_ele)) + q.industrial_factor) / ((30 + q.motorway_factor ) * (50 + q.highway_factor))  < 70 then '5'
-  else '6' 
-end as traffic_class
-into table traffic_tags
-from traffic_tmp y 
-left outer JOIN except_all AS q ON y.losmid = q.losmid
-order by traffic_class desc;
+-- class calculation with modifications using peaks, motorway_density and highway_density...
+--
+SELECT
+    y.losmid::bigint,
+    CASE WHEN ((y.populate_factor * 1200 * (1 + q.peak_sum_ele)) + q.industrial_factor) / ((30 + q.motorway_factor) * (50 + q.highway_factor)) < 6 THEN
+        '1'
+    WHEN ((y.populate_factor * 1200 * (1 + q.peak_sum_ele)) + q.industrial_factor) / ((30 + q.motorway_factor) * (50 + q.highway_factor)) < 10 THEN
+        '2'
+    WHEN ((y.populate_factor * 1200 * (1 + q.peak_sum_ele)) + q.industrial_factor) / ((30 + q.motorway_factor) * (50 + q.highway_factor)) < 19 THEN
+        '3'
+    WHEN ((y.populate_factor * 1200 * (1 + q.peak_sum_ele)) + q.industrial_factor) / ((30 + q.motorway_factor) * (50 + q.highway_factor)) < 35 THEN
+        '4'
+    WHEN ((y.populate_factor * 1200 * (1 + q.peak_sum_ele)) + q.industrial_factor) / ((30 + q.motorway_factor) * (50 + q.highway_factor)) < 70 THEN
+        '5'
+    ELSE
+        '6'
+    END AS traffic_class INTO TABLE traffic_tags
+FROM
+    traffic_tmp y
+    LEFT OUTER JOIN except_all AS q ON y.losmid = q.losmid
+ORDER BY
+    traffic_class DESC;
 
-select now();
+SELECT
+    NOW();
 
---statistics 
-select traffic_class , count(losmid) cnt from traffic_tags group by traffic_class order by traffic_class;
-
+--statistics
+SELECT
+    traffic_class,
+    COUNT(losmid) cnt
+FROM
+    traffic_tags
+GROUP BY
+    traffic_class
+ORDER BY
+    traffic_class;
 
 --
 --  put all tags together in 1 table (1 "direct" access per way in mapcreator)
 --
+SELECT
+    losmid::bigint AS losmid,
+    noise_class,
+    river_class,
+    forest_class,
+    town_class,
+    traffic_class INTO TABLE all_tags
+FROM
+    river_tags
+    NATURAL
+    FULL OUTER JOIN noise_tags
+    NATURAL
+    FULL OUTER JOIN forest_tags
+    NATURAL
+    FULL OUTER JOIN town_tags
+    NATURAL
+    FULL OUTER JOIN traffic_tags
+ORDER BY
+    losmid;
 
+CREATE INDEX all_tags_ind ON all_tags (losmid, noise_class, river_class, forest_class, town_class, traffic_class) WITH (fillfactor = '100');
 
-select losmid :: bigint as losmid, noise_class, river_class, forest_class, town_class, traffic_class  
-into table all_tags 
-from river_tags 
-natural full outer join noise_tags 
-natural full outer join forest_tags 
-natural full outer join town_tags 
-natural full outer join traffic_tags 
-order by losmid;
+ANALYSE;
 
-create index all_tags_ind on all_tags(losmid, noise_class, river_class, forest_class, town_class, traffic_class) WITH (fillfactor='100');
-analyse;
+SELECT
+    NOW();
 
-select now();
