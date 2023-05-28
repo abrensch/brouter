@@ -98,10 +98,15 @@ public class PosUnifier extends MapCreatorBase {
   @Override
   public void nextNode(NodeData n) throws Exception {
     n.selev = Short.MIN_VALUE;
-    SrtmRaster srtm = hgtForNode(n.ilon, n.ilat);
+
+    // TODO: performance bottleneck from hgtForNode
+
+/*    SrtmRaster srtm = hgtForNode(n.ilon, n.ilat);
     if (srtm == null) {
       srtm = srtmForNode(n.ilon, n.ilat);
-    }
+    } */
+
+    SrtmRaster srtm = srtmForNode(n.ilon, n.ilat);
 
     if (srtm != null) n.selev = srtm.getElevation(n.ilon, n.ilat);
     findUniquePos(n);
