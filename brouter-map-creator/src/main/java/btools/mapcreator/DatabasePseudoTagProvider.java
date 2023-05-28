@@ -98,6 +98,10 @@ public class DatabasePseudoTagProvider {
 
   public void addTags(long osm_id, Map<String, String> map) {
 
+    if (map == null || !map.containsKey("highway")) {
+      return;
+    }
+
     cntOsmWays++;
     if ((cntOsmWays % 1000000L) == 0) {
       String out = "Osm Ways processed=" + cntOsmWays + " way modifs=" + cntWayModified;

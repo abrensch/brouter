@@ -171,6 +171,12 @@ public class OsmCutter extends MapCreatorBase {
     // encode tags
     if (w.getTagsOrNull() == null) return;
 
+    if (dbPseudoTagProvider != null) {
+      dbPseudoTagProvider.addTags(w.wid, w.getTagsOrNull());
+    }
+
+    generatePseudoTags(w.getTagsOrNull());
+
     int[] lookupData = _expctxWay.createNewLookupData();
     for (String key : w.getTagsOrNull().keySet()) {
       String value = w.getTag(key);
@@ -186,12 +192,6 @@ public class OsmCutter extends MapCreatorBase {
     _expctxWay.evaluate(true, w.description);
     ok |= _expctxWay.getCostfactor() < 10000.;
     if (!ok) return;
-
-    if (dbPseudoTagProvider != null) {
-      dbPseudoTagProvider.addTags(w.wid, w.getTagsOrNull());
-    }
-
-    generatePseudoTags(w.getTagsOrNull());
 
     if (wayDos != null) {
       w.writeTo(wayDos);
