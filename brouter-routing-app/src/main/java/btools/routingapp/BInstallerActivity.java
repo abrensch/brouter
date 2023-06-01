@@ -457,10 +457,12 @@ public class BInstallerActivity extends AppCompatActivity {
       if (fileName.endsWith(suffix)) {
         String basename = fileName.substring(0, fileName.length() - suffix.length());
         int tileIndex = tileForBaseName(basename);
-        mBInstallerView.setTileStatus(tileIndex, MASK_INSTALLED_RD5);
+        if (tileIndex != -1) {
+          mBInstallerView.setTileStatus(tileIndex, MASK_INSTALLED_RD5);
 
-        long age = System.currentTimeMillis() - new File(dir, fileName).lastModified();
-        if (age < 10800000) mBInstallerView.setTileStatus(tileIndex, MASK_CURRENT_RD5); // 3 hours
+          long age = System.currentTimeMillis() - new File(dir, fileName).lastModified();
+          if (age < 10800000) mBInstallerView.setTileStatus(tileIndex, MASK_CURRENT_RD5); // 3 hours
+        }
       }
     }
   }
@@ -527,10 +529,16 @@ public class BInstallerActivity extends AppCompatActivity {
     if (idx < 0) return -1;
     String slon = uname.substring(0, idx);
     String slat = uname.substring(idx + 1);
-    int ilon = slon.charAt(0) == 'W' ? -Integer.parseInt(slon.substring(1)) :
-      (slon.charAt(0) == 'E' ? Integer.parseInt(slon.substring(1)) : -1);
-    int ilat = slat.charAt(0) == 'S' ? -Integer.parseInt(slat.substring(1)) :
-      (slat.charAt(0) == 'N' ? Integer.parseInt(slat.substring(1)) : -1);
+    int ilon = 0;
+    int ilat = 0;
+    try {
+      ilon = slon.charAt(0) == 'W' ? -Integer.parseInt(slon.substring(1)) :
+        (slon.charAt(0) == 'E' ? Integer.parseInt(slon.substring(1)) : -1);
+      ilat = slat.charAt(0) == 'S' ? -Integer.parseInt(slat.substring(1)) :
+        (slat.charAt(0) == 'N' ? Integer.parseInt(slat.substring(1)) : -1);
+    } catch (NumberFormatException e) {
+      return -1;
+    }
     if (ilon < -180 || ilon >= 180 || ilon % 5 != 0) return -1;
     if (ilat < -90 || ilat >= 90 || ilat % 5 != 0) return -1;
     return (ilon + 180) / 5 + 72 * ((ilat + 90) / 5);
