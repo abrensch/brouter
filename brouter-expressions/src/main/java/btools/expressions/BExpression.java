@@ -32,7 +32,7 @@ final class BExpression {
   private BExpression op3;
   private float numberValue;
   private int variableIdx;
-  private int lookupNameIdx;
+  private int lookupNameIdx = -1;
   private int[] lookupValueIdxArray;
 
   // Parse the expression and all subexpression
@@ -41,6 +41,50 @@ final class BExpression {
   }
 
   private static BExpression parse(BExpressionContext ctx, int level, String optionalToken) throws Exception {
+    BExpression e = parseRaw(ctx, level, optionalToken);
+    if (e == null) {
+      return null;
+    }
+
+    // try to simplify the expression
+    if (ASSIGN_EXP == e.typ) {
+      ctx.lastAssignedExpression.set(e.variableIdx, e.op1);
+    } else if (VARIABLE_EXP == e.typ) {
+      BExpression ae = ctx.lastAssignedExpression.get(e.variableIdx);
+      if (ae != null && ae.typ == NUMBER_EXP) {
+        e = ae;
+      }
+    } else {
+      e = e.tryCollapse();
+      e = e.tryEvaluateConstant();
+    }
+    if (level == 0) {
+      // mark the used lookups after the
+      // expression is collapsed to not mark
+      // lookups as used that appear in the profile
+      // but are de-activated by constant expressions
+      e.markLookupIdxUsed(ctx);
+    }
+    return e;
+  }
+
+  private void markLookupIdxUsed(BExpressionContext ctx) {
+    if (lookupNameIdx >= 0) {
+      ctx.markLookupIdxUsed(lookupNameIdx);
+    }
+    if (op1 != null) {
+      op1.markLookupIdxUsed(ctx);
+    }
+    if (op2 != null) {
+      op2.markLookupIdxUsed(ctx);
+    }
+    if (op3 != null) {
+      op3.markLookupIdxUsed(ctx);
+    }
+  }
+
+  private static BExpression parseRaw(BExpressionContext ctx, int level, String optionalToken) throws Exception {
+
     boolean brackets = false;
     String operator = ctx.parseToken();
     if (optionalToken != null && optionalToken.equals(operator)) {
@@ -64,6 +108,8 @@ final class BExpression {
 
     BExpression exp = new BExpression();
     int nops = 3;
+    BExpression op1Replacement = null;
+
     boolean ifThenElse = false;
 
     if ("switch".equals(operator)) {
@@ -110,6 +156,16 @@ final class BExpression {
           exp.variableIdx = ctx.getVariableIdx(variable, true);
           if (exp.variableIdx < ctx.getMinWriteIdx())
             throw new IllegalArgumentException("cannot assign to readonly variable " + variable);
+
+          // possibly replace the value to assign by an injected value
+          if (ctx.keyValues != null) {
+            String v = ctx.keyValues.get(variable);
+            if (v != null) {
+              op1Replacement = new BExpression();
+              op1Replacement.typ = NUMBER_EXP;
+              op1Replacement.numberValue = Float.parseFloat(v);
+            }
+          }
         } else if ("not".equals(operator)) {
           exp.typ = NOT_EXP;
         } else {
@@ -124,7 +180,6 @@ final class BExpression {
             if (exp.lookupNameIdx < 0) {
               throw new IllegalArgumentException("unknown lookup name: " + name);
             }
-            ctx.markLookupIdxUsed(exp.lookupNameIdx);
             StringTokenizer tk = new StringTokenizer(values, "|");
             int nt = tk.countTokens();
             int nt2 = nt == 0 ? 1 : nt;
@@ -177,6 +232,9 @@ final class BExpression {
     // parse operands
     if (nops > 0) {
       exp.op1 = BExpression.parse(ctx, level + 1, exp.typ == ASSIGN_EXP ? "=" : null);
+      if (op1Replacement != null) {
+        exp.op1 = op1Replacement;
+      }
     }
     if (nops > 1) {
       if (ifThenElse) checkExpectedToken(ctx, "then");
@@ -243,6 +301,50 @@ final class BExpression {
       default:
         throw new IllegalArgumentException("unknown op-code: " + typ);
     }
+  }
+
+  // Try to collapse the expression
+  // if logically possible
+  public BExpression tryCollapse() {
+    switch (typ) {
+      case OR_EXP:
+        return NUMBER_EXP == op1.typ ?
+          (op1.numberValue != 0.f ? op1 : op2)
+          : (NUMBER_EXP == op2.typ ?
+            (op2.numberValue != 0.f ? op2 : op1)
+            : this);
+      case AND_EXP:
+        return NUMBER_EXP == op1.typ ?
+          (op1.numberValue == 0.f ? op1 : op2)
+          : (NUMBER_EXP == op2.typ ?
+            (op2.numberValue == 0.f ? op2 : op1)
+            : this);
+      case ADD_EXP:
+        return NUMBER_EXP == op1.typ ?
+          (op1.numberValue == 0.f ? op2 : this)
+          : (NUMBER_EXP == op2.typ ?
+            (op2.numberValue == 0.f ? op1 : this)
+            : this);
+      case SWITCH_EXP:
+        return NUMBER_EXP == op1.typ ?
+          (op1.numberValue == 0.f ? op3 : op2) : this;
+      default:
+        return this;
+    }
+  }
+
+  // Try to evaluate the expression
+  // if all operands are constant
+  public BExpression tryEvaluateConstant() {
+    if (op1 != null && NUMBER_EXP == op1.typ
+      && (op2 == null || NUMBER_EXP == op2.typ)
+      && (op3 == null || NUMBER_EXP == op3.typ)) {
+      BExpression exp = new BExpression();
+      exp.typ = NUMBER_EXP;
+      exp.numberValue = evaluate(null);
+      return exp;
+    }
+    return this;
   }
 
   private float max(float v1, float v2) {

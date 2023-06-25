@@ -52,6 +52,9 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
 
   private Map<String, Integer> variableNumbers = new HashMap<>();
 
+  List<BExpression> lastAssignedExpression = new ArrayList<>();
+  Map<String, String> keyValues;
+
   private float[] variableData;
 
 
@@ -768,6 +771,12 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     }
     return foreignContext.getOutputVariableIndex(name, true);
   }
+  
+  public void parseFile(File file, String readOnlyContext, Map<String, String> keyValues) {
+    this.keyValues = keyValues;
+    parseFile(file, readOnlyContext);
+    this.keyValues = null;
+  }
 
   public void parseFile(File file, String readOnlyContext) {
     if (!file.exists()) {
@@ -785,8 +794,8 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       }
       linenr = 1;
       minWriteIdx = variableData == null ? 0 : variableData.length;
-
       expressionList = _parseFile(file);
+      lastAssignedExpression = null;
 
       // determine the build-in variable indices
       String[] varNames = getBuildInVariableNames();
@@ -857,6 +866,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       if (create) {
         num = variableNumbers.size();
         variableNumbers.put(name, num);
+        lastAssignedExpression.add(null);
       } else {
         return -1;
       }
