@@ -49,6 +49,7 @@ public class RestrictionData extends MapCreatorBase {
 
   public boolean isValid() {
     boolean valid = fromLon != 0 && toLon != 0 && (restriction.startsWith("only_") || restriction.startsWith("no_"));
+    valid = valid && restriction.indexOf("on_red") < 0; // filter out on-red restrictions
     if ((!valid) || badWayMatch || !(checkGeometry())) {
       synchronized (badTRs) {
         badTRs.add(((long) viaLon) << 32 | viaLat);
