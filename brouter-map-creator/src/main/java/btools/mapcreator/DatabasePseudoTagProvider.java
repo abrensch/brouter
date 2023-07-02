@@ -54,18 +54,18 @@ public class DatabasePseudoTagProvider {
         psAllTags.setFetchSize(100);
 
         // process the results
-        ResultSet rsBrouter = psAllTags.executeQuery();
+        ResultSet rs = psAllTags.executeQuery();
 
         long dbRows = 0L;
-        while (rsBrouter.next()) {
+        while (rs.next()) {
           StringBuilder line = new StringBuilder();
-          line.append(rsBrouter.getLong("losmid"))
-            .append(';').append(rsBrouter.getString("noise_class"))
-            .append(';').append(rsBrouter.getString("river_class"))
-            .append(';').append(rsBrouter.getString("forest_class"))
-            .append(';').append(rsBrouter.getString("town_class"))
-            .append(';').append(rsBrouter.getString("traffic_class"))
-            .append('\n');
+          line.append(rs.getLong("losmid"));
+          appendDBTag(line, rs, "noise_class");
+          appendDBTag(line, rs, "river_class");
+          appendDBTag(line, rs, "forest_class");
+          appendDBTag(line, rs, "town_class");
+          appendDBTag(line, rs, "traffic_class");
+          line.append('\n');
           bw.write(line.toString());
           dbRows++;
           if (dbRows % 1000000L == 0L) {
@@ -79,6 +79,14 @@ public class DatabasePseudoTagProvider {
     } catch (Exception f) {
       f.printStackTrace();
       System.exit(1);
+    }
+  }
+
+  private static void appendDBTag(StringBuilder sb, ResultSet rs, String name) throws SQLException {
+    sb.append(';');
+    String v = rs.getString(name);
+    if (v != null) {
+      sb.append(v);
     }
   }
 
@@ -103,11 +111,11 @@ public class DatabasePseudoTagProvider {
         StringTokenizer tk = new StringTokenizer(line, ";");
         long osm_id = Long.parseLong(tk.nextToken());
         Map<String, String> row = new HashMap<>(5);
-        row.put("estimated_noise_class", tk.nextToken());
-        row.put("estimated_river_class", tk.nextToken());
-        row.put("estimated_forest_class", tk.nextToken());
-        row.put("estimated_town_class", tk.nextToken());
-        row.put("estimated_traffic_class", tk.nextToken());
+        addTag(row, tk, "estimated_noise_class");
+        addTag(row, tk, "estimated_river_class");
+        addTag(row, tk, "estimated_forest_class");
+        addTag(row, tk, "estimated_town_class");
+        addTag(row, tk, "estimated_traffic_class");
 
         // apply the instance-unifier for the row-map
         Map<String, String> knownRow = mapUnifier.get(row);
@@ -132,6 +140,14 @@ public class DatabasePseudoTagProvider {
     }
   }
 
+  private static void addTag(Map<String, String> row, StringTokenizer tk, String name) {
+    if (tk.hasMoreTokens()) {
+      String v = tk.nextToken();
+      if (v != null && !v.isEmpty()) {
+        row.put(name, v);
+      }
+    }
+  }
 
   public void addTags(long osm_id, Map<String, String> map) {
 
@@ -153,7 +169,7 @@ public class DatabasePseudoTagProvider {
       return;
     }
 
-    cntWayModified = cntWayModified + 1;
+    cntWayModified++;
     for (String key : dbTags.keySet()) {
       map.put(key, dbTags.get(key));
       Long cnt = pseudoTagsFound.get(key);
