@@ -112,8 +112,8 @@ public class OsmCutter extends MapCreatorBase {
     return "records read: " + recordCnt + " nodes=" + nodesParsed + " ways=" + waysParsed + " rels=" + relsParsed + " changesets=" + changesetsParsed;
   }
 
-  public void setJdbcUrl(String url) {
-    dbPseudoTagProvider = new DatabasePseudoTagProvider(url);
+  public void setDbTagFilename(String filename) {
+    dbPseudoTagProvider = new DatabasePseudoTagProvider(filename);
   }
 
   @Override
