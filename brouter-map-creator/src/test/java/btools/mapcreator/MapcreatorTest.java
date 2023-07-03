@@ -35,7 +35,7 @@ public class MapcreatorTest {
     File profileCheck = new File(profileDir, "softaccess.brf");
     File borderFile = new File(tmpdir, "bordernids.dat");
 
-    new OsmFastCutter().doCut(lookupFile, nodes, ways, nodes55, ways55, borderFile, relFile, resFile, profileAll, profileReport, profileCheck, mapFile, null);
+    OsmFastCutter.doCut(lookupFile, nodes, ways, nodes55, ways55, borderFile, relFile, resFile, profileAll, profileReport, profileCheck, mapFile, null);
 
 
     // run PosUnifier
