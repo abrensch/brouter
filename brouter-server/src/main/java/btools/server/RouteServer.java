@@ -30,12 +30,13 @@ import btools.router.ProfileCache;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
 import btools.server.request.ProfileUploadHandler;
+import btools.server.request.ProfileDownloadHandler;
 import btools.server.request.RequestHandler;
 import btools.server.request.ServerHandler;
 import btools.util.StackSampler;
 
 public class RouteServer extends Thread implements Comparable<RouteServer> {
-  public static final String PROFILE_UPLOAD_URL = "/brouter/profile";
+  public static final String PROFILE_URL = "/brouter/profile";
   static final String HTTP_STATUS_OK = "200 OK";
   static final String HTTP_STATUS_BAD_REQUEST = "400 Bad Request";
   static final String HTTP_STATUS_FORBIDDEN = "403 Forbidden";
@@ -153,7 +154,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       RequestHandler handler;
       if (params.containsKey("lonlats") && params.containsKey("profile")) {
         handler = new ServerHandler(serviceContext, params);
-      } else if (url.startsWith(PROFILE_UPLOAD_URL)) {
+      } else if (url.startsWith(PROFILE_URL)) {
         if (getline.startsWith("OPTIONS")) {
           // handle CORS preflight request (Safari)
           String corsHeaders = "Access-Control-Allow-Methods: GET, POST\n"
@@ -161,19 +162,42 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
           writeHttpHeader(bw, "text/plain", null, corsHeaders, HTTP_STATUS_OK);
           bw.flush();
           return;
-        } else {
+        } else if (getline.startsWith("POST")) {
           writeHttpHeader(bw, "application/json", HTTP_STATUS_OK);
 
           String profileId = null;
-          if (url.length() > PROFILE_UPLOAD_URL.length() + 1) {
+          if (url.length() > PROFILE_URL.length() + 1) {
             // e.g. /brouter/profile/custom_1400767688382
-            profileId = url.substring(PROFILE_UPLOAD_URL.length() + 1);
+            profileId = url.substring(PROFILE_URL.length() + 1);
           }
 
           ProfileUploadHandler uploadHandler = new ProfileUploadHandler(serviceContext);
           uploadHandler.handlePostRequest(profileId, br, bw);
 
           bw.flush();
+          return;
+        } else if (getline.startsWith("GET")) {
+          String profileId = null;
+          if (url.length() > PROFILE_URL.length() + 1) {
+            // e.g. /brouter/profile/custom_1400767688382
+            profileId = url.substring(PROFILE_URL.length() + 1);
+          }
+          ProfileDownloadHandler downloadHandler = new ProfileDownloadHandler(serviceContext, profileId);
+
+          if (!downloadHandler.exists()) {
+            writeHttpHeader(bw, HTTP_STATUS_NOT_FOUND);
+            bw.flush();
+            return;
+          }
+
+          writeHttpHeader(bw, "text/plain", HTTP_STATUS_OK);
+
+          downloadHandler.handleGetRequest(br, bw);
+
+          bw.flush();
+          return;
+        } else {
+          writeHttpHeader(bw, HTTP_STATUS_BAD_REQUEST);
           return;
         }
       } else if (url.startsWith("/brouter/suspects")) {

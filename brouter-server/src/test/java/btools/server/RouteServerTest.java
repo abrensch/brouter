@@ -23,6 +23,7 @@ public class RouteServerTest {
   private static final String host = "localhost";
   private static final String port = "17777";
   private static final String baseUrl = "http://" + host + ":" + port + "/";
+  private static final String customProfileDir = "custom";
 
   @ClassRule
   public static TemporaryFolder profileDir = new TemporaryFolder();
@@ -35,7 +36,6 @@ public class RouteServerTest {
     // Copy required files to temporary dir because profile upload will create files
     Files.copy(Paths.get(profileSourceDir.getAbsolutePath(), "lookups.dat"), Paths.get(profileDir.getRoot().getAbsolutePath(), "lookups.dat"));
     Files.copy(Paths.get(profileSourceDir.getAbsolutePath(), "trekking.brf"), Paths.get(profileDir.getRoot().getAbsolutePath(), "trekking.brf"));
-    String customProfileDir = "custom";
 
     Runnable runnable = () -> {
       try {
@@ -189,6 +189,64 @@ public class RouteServerTest {
     JSONObject jsonResponse = new JSONObject(response);
     Assert.assertTrue(jsonResponse.query("/profileid").toString().startsWith("custom_"));
     Assert.assertFalse(jsonResponse.has("error"));
+  }
+
+  @Test
+  public void downloadProfileNonexistant() throws IOException {
+    URL requestUrl = new URL(baseUrl + "brouter/profile/nonexistant");
+
+    HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
+
+    // First, upload a profile
+    httpConnection.setRequestMethod("GET");
+    httpConnection.setDoOutput(true);
+
+    Assert.assertEquals(HttpURLConnection.HTTP_NOT_FOUND, httpConnection.getResponseCode());
+  }
+
+  @Test
+  public void downloadProfile() throws IOException {
+    URL requestUrl = new URL(baseUrl + "brouter/profile");
+
+    HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
+
+    // First, upload a profile
+    httpConnection.setRequestMethod("POST");
+    httpConnection.setDoOutput(true);
+    String dummyProfile = "---context:global   # following code refers to global config\n" +
+      "\n" +
+      "# this prevents suppression of unused tags, so they are visibly in the data tab\n" +
+      "assign processUnusedTags = true\n" +
+      "assign validForFoot = true\n" +
+      "\n" +
+      "---context:way   # following code refers to way-tags\n" +
+      "\n" +
+      "assign costfactor\n" +
+      "  switch and highway= not route=ferry  100000 1\n" +
+      "\n" +
+      "---context:node  # following code refers to node tags\n" +
+      "assign initialcost = 0\n";
+    try (OutputStream outputStream = httpConnection.getOutputStream()) {
+      outputStream.write(dummyProfile.getBytes(StandardCharsets.UTF_8));
+    }
+
+    Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
+    InputStream inputStream = httpConnection.getInputStream();
+    String response = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+    JSONObject jsonResponse = new JSONObject(response);
+    String name = jsonResponse.query("/profileid").toString();
+
+    // Then see if we can download it
+    requestUrl = new URL(baseUrl + "brouter/profile/" + customProfileDir + "/" + name.substring("custom_".length()));
+    httpConnection = (HttpURLConnection) requestUrl.openConnection();
+
+    httpConnection.setRequestMethod("GET");
+    httpConnection.setDoOutput(true);
+
+    Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
+    inputStream = httpConnection.getInputStream();
+    response = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+    Assert.assertEquals(dummyProfile, response);
   }
 
   @Test
