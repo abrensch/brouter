@@ -34,6 +34,7 @@ final class BExpression {
   private int variableIdx;
   private int lookupNameIdx = -1;
   private int[] lookupValueIdxArray;
+  private boolean doNotChange;
 
   // Parse the expression and all subexpression
   public static BExpression parse(BExpressionContext ctx, int level) throws Exception {
@@ -46,41 +47,59 @@ final class BExpression {
       return null;
     }
 
-    // try to simplify the expression
     if (ASSIGN_EXP == e.typ) {
-      ctx.lastAssignedExpression.set(e.variableIdx, e.op1);
-    } else if (VARIABLE_EXP == e.typ) {
-      BExpression ae = ctx.lastAssignedExpression.get(e.variableIdx);
-      if (ae != null && ae.typ == NUMBER_EXP) {
-        e = ae;
+      // manage assined an injected values
+      BExpression assignedBefore = ctx.lastAssignedExpression.get(e.variableIdx);
+      if (assignedBefore != null && assignedBefore.doNotChange) {
+        e.op1 = assignedBefore; // was injected as key-value
+        e.op1.doNotChange = false; // protect just once, can be changed in second assignement
       }
-    } else {
-      e = e.tryCollapse();
-      e = e.tryEvaluateConstant();
+      ctx.lastAssignedExpression.set(e.variableIdx, e.op1);
+    }
+    else if (!ctx.skipConstantExpressionOptimizations) {
+      // try to simplify the expression
+      if (VARIABLE_EXP == e.typ) {
+        BExpression ae = ctx.lastAssignedExpression.get(e.variableIdx);
+        if (ae != null && ae.typ == NUMBER_EXP) {
+          e = ae;
+        }
+      } else {
+        BExpression eCollapsed = e.tryCollapse();
+        if (e != eCollapsed) {
+          e = eCollapsed; // allow breakspoint..
+        }
+        BExpression eEvaluated = e.tryEvaluateConstant();
+        if (e != eEvaluated) {
+          e = eEvaluated; // allow breakspoint..
+        }
+      }
     }
     if (level == 0) {
       // mark the used lookups after the
       // expression is collapsed to not mark
       // lookups as used that appear in the profile
       // but are de-activated by constant expressions
-      e.markLookupIdxUsed(ctx);
+      int nodeCount = e.markLookupIdxUsed(ctx);
+      ctx.expressionNodeCount += nodeCount;
     }
     return e;
   }
 
-  private void markLookupIdxUsed(BExpressionContext ctx) {
+  private int markLookupIdxUsed(BExpressionContext ctx) {
+    int nodeCount = 1;
     if (lookupNameIdx >= 0) {
       ctx.markLookupIdxUsed(lookupNameIdx);
     }
     if (op1 != null) {
-      op1.markLookupIdxUsed(ctx);
+      nodeCount += op1.markLookupIdxUsed(ctx);
     }
     if (op2 != null) {
-      op2.markLookupIdxUsed(ctx);
+      nodeCount += op2.markLookupIdxUsed(ctx);
     }
     if (op3 != null) {
-      op3.markLookupIdxUsed(ctx);
+      nodeCount += op3.markLookupIdxUsed(ctx);
     }
+    return nodeCount;
   }
 
   private static BExpression parseRaw(BExpressionContext ctx, int level, String optionalToken) throws Exception {
@@ -108,7 +127,6 @@ final class BExpression {
 
     BExpression exp = new BExpression();
     int nops = 3;
-    BExpression op1Replacement = null;
 
     boolean ifThenElse = false;
 
@@ -156,16 +174,6 @@ final class BExpression {
           exp.variableIdx = ctx.getVariableIdx(variable, true);
           if (exp.variableIdx < ctx.getMinWriteIdx())
             throw new IllegalArgumentException("cannot assign to readonly variable " + variable);
-
-          // possibly replace the value to assign by an injected value
-          if (ctx.keyValues != null) {
-            String v = ctx.keyValues.get(variable);
-            if (v != null) {
-              op1Replacement = new BExpression();
-              op1Replacement.typ = NUMBER_EXP;
-              op1Replacement.numberValue = Float.parseFloat(v);
-            }
-          }
         } else if ("not".equals(operator)) {
           exp.typ = NOT_EXP;
         } else {
@@ -232,9 +240,6 @@ final class BExpression {
     // parse operands
     if (nops > 0) {
       exp.op1 = BExpression.parse(ctx, level + 1, exp.typ == ASSIGN_EXP ? "=" : null);
-      if (op1Replacement != null) {
-        exp.op1 = op1Replacement;
-      }
     }
     if (nops > 1) {
       if (ifThenElse) checkExpectedToken(ctx, "then");
@@ -305,7 +310,7 @@ final class BExpression {
 
   // Try to collapse the expression
   // if logically possible
-  public BExpression tryCollapse() {
+  private BExpression tryCollapse() {
     switch (typ) {
       case OR_EXP:
         return NUMBER_EXP == op1.typ ?
@@ -335,7 +340,7 @@ final class BExpression {
 
   // Try to evaluate the expression
   // if all operands are constant
-  public BExpression tryEvaluateConstant() {
+  private BExpression tryEvaluateConstant() {
     if (op1 != null && NUMBER_EXP == op1.typ
       && (op2 == null || NUMBER_EXP == op2.typ)
       && (op3 == null || NUMBER_EXP == op3.typ)) {
@@ -353,5 +358,39 @@ final class BExpression {
 
   private float min(float v1, float v2) {
     return v1 < v2 ? v1 : v2;
+  }
+
+  @Override
+  public String toString() {
+    if (typ == NUMBER_EXP) {
+      return "" + numberValue;
+    }
+    if (typ == VARIABLE_EXP) {
+      return "vidx=" + variableIdx;
+    }
+    StringBuilder sb = new StringBuilder("typ=" + typ + " ops=(");
+    addOp(sb, op1);
+    addOp(sb, op2);
+    addOp(sb, op3);
+    sb.append(')');
+    return sb.toString();
+  }
+
+  private void addOp(StringBuilder sb, BExpression e) {
+    if (e != null) {
+      sb.append('[').append(e.toString()).append(']');
+    }
+  }
+
+  static BExpression createAssignExpressionFromKeyValue(BExpressionContext ctx, String key, String value) {
+    BExpression e = new BExpression();
+    e.typ = ASSIGN_EXP;
+    e.variableIdx = ctx.getVariableIdx(key, true);
+    e.op1 = new BExpression();
+    e.op1.typ = NUMBER_EXP;
+    e.op1.numberValue = Float.parseFloat(value);
+    e.op1.doNotChange = true;
+    ctx.lastAssignedExpression.set(e.variableIdx, e.op1);
+    return e;
   }
 }

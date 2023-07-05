@@ -53,7 +53,8 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   private Map<String, Integer> variableNumbers = new HashMap<>();
 
   List<BExpression> lastAssignedExpression = new ArrayList<>();
-  Map<String, String> keyValues;
+  boolean skipConstantExpressionOptimizations = false;
+  int expressionNodeCount;
 
   private float[] variableData;
 
@@ -771,14 +772,12 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     }
     return foreignContext.getOutputVariableIndex(name, true);
   }
-  
-  public void parseFile(File file, String readOnlyContext, Map<String, String> keyValues) {
-    this.keyValues = keyValues;
-    parseFile(file, readOnlyContext);
-    this.keyValues = null;
-  }
 
   public void parseFile(File file, String readOnlyContext) {
+    parseFile(file, readOnlyContext, null);
+  }
+
+  public void parseFile(File file, String readOnlyContext, Map<String, String> keyValues) {
     if (!file.exists()) {
       throw new IllegalArgumentException("profile " + file + " does not exist");
     }
@@ -787,14 +786,14 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
         linenr = 1;
         String realContext = context;
         context = readOnlyContext;
-        expressionList = _parseFile(file);
+        expressionList = _parseFile(file, keyValues);
         variableData = new float[variableNumbers.size()];
         evaluate(lookupData); // lookupData is dummy here - evaluate just to create the variables
         context = realContext;
       }
       linenr = 1;
       minWriteIdx = variableData == null ? 0 : variableData.length;
-      expressionList = _parseFile(file);
+      expressionList = _parseFile(file, null);
       lastAssignedExpression = null;
 
       // determine the build-in variable indices
@@ -821,10 +820,19 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     }
   }
 
-  private List<BExpression> _parseFile(File file) throws Exception {
+  private List<BExpression> _parseFile(File file, Map<String, String> keyValues) throws Exception {
     _br = new BufferedReader(new FileReader(file));
     _readerDone = false;
     List<BExpression> result = new ArrayList<>();
+
+    // if injected keyValues are present, create assign expressions for them
+    if (keyValues != null) {
+      for (String key : keyValues.keySet()) {
+        String value = keyValues.get(key);
+        result.add(BExpression.createAssignExpressionFromKeyValue(this, key, value));
+      }
+    }
+
     for (; ; ) {
       BExpression exp = BExpression.parse(this, 0);
       if (exp == null) break;
@@ -904,6 +912,19 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     for (int i = 0; i < lookupIdxUsed.length; i++) {
       lookupIdxUsed[i] = true;
     }
+  }
+
+  public String usedTagList() {
+    StringBuilder sb = new StringBuilder();
+    for (int inum = 0; inum < lookupValues.size(); inum++) {
+      if (lookupIdxUsed[inum]) {
+        if (sb.length() > 0) {
+          sb.append(',');
+        }
+        sb.append(lookupNames.get(inum));
+      }
+    }
+    return sb.toString();
   }
 
   int getLookupValueIdx(int nameIdx, String value) {
