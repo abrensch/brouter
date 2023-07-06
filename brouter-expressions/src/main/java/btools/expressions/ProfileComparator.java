@@ -25,10 +25,20 @@ public final class ProfileComparator {
     BExpressionMetaData meta2 = new BExpressionMetaData();
     BExpressionContext expctx1 = nodeContext ? new BExpressionContextNode(meta1) : new BExpressionContextWay(meta1);
     BExpressionContext expctx2 = nodeContext ? new BExpressionContextNode(meta2) : new BExpressionContextWay(meta2);
+
+    // if same profiles, compare different optimization levels
+    if (profile1File.getName().equals(profile2File.getName())) {
+      expctx2.skipConstantExpressionOptimizations = true;
+    }
+
     meta1.readMetaData(lookupFile);
     meta2.readMetaData(lookupFile);
     expctx1.parseFile(profile1File, "global");
+    System.out.println("usedTags1=" +  expctx1.usedTagList());
     expctx2.parseFile(profile2File, "global");
+    System.out.println("usedTags2=" +  expctx2.usedTagList());
+
+    System.out.println("nodeContext=" + nodeContext + " nodeCount1=" + expctx1.expressionNodeCount + " nodeCount2=" + expctx2.expressionNodeCount);
 
     Random rnd = new Random();
     for (int i = 0; i < nsamples; i++) {
