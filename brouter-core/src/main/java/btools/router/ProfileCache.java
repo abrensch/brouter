@@ -91,8 +91,8 @@ public final class ProfileCache {
 
     meta.readMetaData(new File(profileDir, "lookups.dat"));
 
-    rc.expctxWay.parseFile(profileFile, "global");
-    rc.expctxNode.parseFile(profileFile, "global");
+    rc.expctxWay.parseFile(profileFile, "global", rc.keyValues);
+    rc.expctxNode.parseFile(profileFile, "global", rc.keyValues);
 
     rc.readGlobalConfig();
 
