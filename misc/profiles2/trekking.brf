@@ -14,8 +14,6 @@ assign allow_ferries            = true   # %allow_ferries% | set to false to dis
 assign ignore_cycleroutes       = false  # %ignore_cycleroutes% | Set to true for better elevation results | boolean
 assign stick_to_cycleroutes     = false  # %stick_to_cycleroutes% | Set to true to just follow cycleroutes | boolean
 assign avoid_unsafe             = false  # %avoid_unsafe% | Set to true to avoid standard highways | boolean
-assign considerTurnRestrictions = true   # %considerTurnRestrictions% | Set to true to take turn restrictions into account | boolean
-assign processUnusedTags        = false  # %processUnusedTags% | Set to true to output unused tags in data tab | boolean
 
 # Change elevation parameters
 assign consider_elevation = true  # %consider_elevation% | Set to false to ignore elevation in routing | boolean
@@ -38,7 +36,9 @@ assign bikerPower = 100    # %bikerPower% | Average power (in W) provided by the
 assign turnInstructionMode          = 1     # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style]
 assign turnInstructionCatchingRange = 40    # %turnInstructionCatchingRange% | Within this distance (in m) several turning instructions are combined into one and the turning angles are better approximated to the general direction | number
 assign turnInstructionRoundabouts   = true  # %turnInstructionRoundabouts% | Set to "false" to avoid generating special turning instructions for roundabouts | boolean
+assign considerTurnRestrictions     = true  # %considerTurnRestrictions% | Set to true to take turn restrictions into account | boolean
 
+assign processUnusedTags        = false  # %processUnusedTags% | Set to true to output unused tags in data tab | boolean
 
 ---context:way   # following code refers to way-tags
 
