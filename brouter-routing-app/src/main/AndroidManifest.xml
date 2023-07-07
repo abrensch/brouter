@@ -35,7 +35,7 @@
             android:name=".BInstallerActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="landscape" />
+            android:screenOrientation="locked" />
         <activity
             android:name=".BImportActivity"
             android:exported="true"
