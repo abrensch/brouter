@@ -16,11 +16,11 @@ assign   stick_to_cycleroutes     = false  # %stick_to_cycleroutes% | Set true t
 assign   avoid_unsafe             = false  # %avoid_unsafe% | Set true to avoid standard highways | boolean
 assign   avoid_path               = false  # %avoid_path% | Set true to avoid pathes | boolean
 
-assign   consider_noise           = false  # %consider_noise% | Enable to favor a low-noise route | boolean
-assign   consider_river           = false  # %consider_river% | Enable to favor a route along rivers or sees | boolean
-assign   consider_forest          = false  # %consider_forest% | Enable to favor a route in forest or parks | boolean
-assign   consider_town            = false  # %consider_town% | Enable to bypass cities / big towns as far as possible | boolean
-assign   consider_traffic         = false  # %consider_traffic% | Enable to consider traffic estimates | boolean
+assign   consider_noise           = false  # %consider_noise% | Activate to prefer a low-noise route | boolean
+assign   consider_river           = false  # %consider_river% | Activate to prefer a route along rivers or sees | boolean
+assign   consider_forest          = false  # %consider_forest% | Activate to prefer a route in forest or parks | boolean
+assign   consider_town            = false  # %consider_town% | Activate to bypass cities / big towns as far as possible | boolean
+assign   consider_traffic         = false  # %consider_traffic% | Activate to consider traffic estimates | boolean
 
 
 
@@ -220,7 +220,7 @@ assign no_forest_penalty
      switch estimated_forest_class=5  0.1
      switch estimated_forest_class=6  0 99 0
 
-assign town_penalty 
+assign town_penalty
    switch consider_town
      switch estimated_town_class=  0
      switch estimated_town_class=1  0.5
