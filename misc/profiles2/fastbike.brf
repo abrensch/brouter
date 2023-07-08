@@ -236,17 +236,17 @@ assign town_penalty
      switch estimated_town_class=6  1 99 0
 
 assign costfactor
-  add town_penalty
-  add no_forest_penalty
-  add no_river_penalty
-  add noise_penalty
-
   switch and highway= not route=ferry  10000
   switch or highway=proposed highway=abandoned 10000
 
   min 9999
   add max onewaypenalty accesspenalty
   add trafficpenalty
+  add town_penalty
+  add no_forest_penalty
+  add no_river_penalty
+  add noise_penalty
+
 
   switch or highway=motorway highway=motorway_link    switch allow_motorways 1.5 10000
   switch or highway=trunk highway=trunk_link          switch allow_motorways 1.5 10
