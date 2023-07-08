@@ -1328,7 +1328,8 @@ public class RoutingEngine extends Thread {
         }
 
         // recheck cutoff before doing expensive stuff
-        if (path.cost + path.airdistance > maxTotalCost + 100) {
+        int addDiff = 300;
+        if (path.cost + path.airdistance > maxTotalCost + addDiff) {
           path.unregisterUpTree(routingContext);
           continue;
         }
@@ -1426,7 +1427,7 @@ public class RoutingEngine extends Thread {
 
             boolean inRadius = boundary == null || boundary.isInBoundary(nextNode, bestPath.cost);
 
-            if (inRadius && (isFinalLink || bestPath.cost + bestPath.airdistance <= maxTotalCost + 100)) {
+            if (inRadius && (isFinalLink || bestPath.cost + bestPath.airdistance <= maxTotalCost + addDiff)) {
               // add only if this may beat an existing path for that link
               OsmLinkHolder dominator = link.getFirstLinkHolder(currentNode);
               while (!trafficSim && dominator != null) {
