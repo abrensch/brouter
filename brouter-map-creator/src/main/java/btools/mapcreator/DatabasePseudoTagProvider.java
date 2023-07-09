@@ -27,10 +27,10 @@ import btools.util.FrozenLongMap;
 
 public class DatabasePseudoTagProvider {
 
-  long cntOsmWays = 0L;
-  long cntWayModified = 0L;
+  private long cntOsmWays = 0L;
+  private long cntWayModified = 0L;
 
-  Map<String, Long> pseudoTagsFound;
+  private Map<String, Long> pseudoTagsFound = new HashMap<>();
 
   FrozenLongMap<Map<String, String>> dbData;
 

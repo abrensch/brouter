@@ -105,7 +105,7 @@ public class OsmParser extends MapCreatorBase {
     try {
       nListener.nextNode(n);
     } catch (Exception e) {
-      throw new RuntimeException("error writing node: " + e);
+      throw new RuntimeException("error writing node: " + e, e);
     }
   }
 
@@ -116,7 +116,7 @@ public class OsmParser extends MapCreatorBase {
     try {
       wListener.nextWay(w);
     } catch (Exception e) {
-      throw new RuntimeException("error writing way: " + e);
+      throw new RuntimeException("error writing way: " + e, e);
     }
   }
 
