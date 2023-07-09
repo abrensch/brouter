@@ -6,6 +6,7 @@ import static btools.routingapp.BInstallerView.MASK_INSTALLED_RD5;
 import static btools.routingapp.BInstallerView.MASK_SELECTED_RD5;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -14,7 +15,6 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.StatFs;
 import android.text.format.Formatter;
 import android.util.Log;
 import android.view.View;
@@ -65,16 +65,11 @@ public class BInstallerActivity extends AppCompatActivity {
 
   BInstallerView.OnSelectListener onSelectListener;
 
-  @SuppressWarnings("deprecation")
+  @SuppressLint("UsableSpace")
   public static long getAvailableSpace(String baseDir) {
-    StatFs stat = new StatFs(baseDir);
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-      return stat.getAvailableBlocksLong() * stat.getBlockSizeLong();
-    } else {
-      //noinspection deprecation
-      return (long) stat.getAvailableBlocks() * stat.getBlockSize();
-    }
+    File f = new File(baseDir);
+    if (!f.exists()) return 0L;
+    return f.getUsableSpace();
   }
 
   @Override
