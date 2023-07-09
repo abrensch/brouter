@@ -197,18 +197,30 @@ public class BInstallerActivity extends AppCompatActivity {
 
   public void downloadAll(ArrayList<Integer> downloadList, int all) {
     ArrayList<String> urlparts = new ArrayList<>();
+    int len = 0;
     for (Integer i : downloadList) {
       urlparts.add(baseNameForTile(i));
+      len++;
+      if (len > 500) break;  // don't do too much work, data size 10240 Bytes only
     }
 
     downloadCanceled = false;
     mProgressIndicator.show();
     mButtonDownload.setEnabled(false);
 
-    Data inputData = new Data.Builder()
-      .putStringArray(DownloadWorker.KEY_INPUT_SEGMENT_NAMES, urlparts.toArray(new String[0]))
-      .putInt(DownloadWorker.KEY_INPUT_SEGMENT_ALL, all)
-      .build();
+    Data inputData = null;
+    try {
+      inputData = new Data.Builder()
+        .putStringArray(DownloadWorker.KEY_INPUT_SEGMENT_NAMES, urlparts.toArray(new String[0]))
+        .putInt(DownloadWorker.KEY_INPUT_SEGMENT_ALL, all)
+        .build();
+
+    } catch (IllegalStateException e) {
+      Toast.makeText(this, "Too much data for download. Please reduce.", Toast.LENGTH_LONG).show();
+
+      e.printStackTrace();
+      return;
+    }
 
     Constraints constraints = new Constraints.Builder()
       .setRequiresBatteryNotLow(true)
