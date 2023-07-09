@@ -15,9 +15,10 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -34,7 +35,6 @@ public class DatabasePseudoTagProvider {
   FrozenLongMap<Map<String, String>> dbData;
 
   public static void main(String[] args) {
-
     String jdbcurl = args[0];
     String filename = args[1];
 
@@ -108,14 +108,14 @@ public class DatabasePseudoTagProvider {
         if (line == null) {
           break;
         }
-        StringTokenizer tk = new StringTokenizer(line, ";");
-        long osm_id = Long.parseLong(tk.nextToken());
+        List<String> tokens = tokenize(line);
+        long osm_id = Long.parseLong(tokens.get(0));
         Map<String, String> row = new HashMap<>(5);
-        addTag(row, tk, "estimated_noise_class");
-        addTag(row, tk, "estimated_river_class");
-        addTag(row, tk, "estimated_forest_class");
-        addTag(row, tk, "estimated_town_class");
-        addTag(row, tk, "estimated_traffic_class");
+        addTag(row, tokens.get(1), "estimated_noise_class");
+        addTag(row, tokens.get(2), "estimated_river_class");
+        addTag(row, tokens.get(3), "estimated_forest_class");
+        addTag(row, tokens.get(4), "estimated_town_class");
+        addTag(row, tokens.get(5), "estimated_traffic_class");
 
         // apply the instance-unifier for the row-map
         Map<String, String> knownRow = mapUnifier.get(row);
@@ -140,12 +140,27 @@ public class DatabasePseudoTagProvider {
     }
   }
 
-  private static void addTag(Map<String, String> row, StringTokenizer tk, String name) {
-    if (tk.hasMoreTokens()) {
-      String v = tk.nextToken();
-      if (v != null && !v.isEmpty()) {
-        row.put(name, v);
+  // use own tokenizer as String.split, StringTokenizer
+  // etc. have issues with empty elements
+  private List<String> tokenize(String s) {
+    List<String> l = new ArrayList<>();
+    StringBuilder sb = new StringBuilder();
+    for(int i=0; i<s.length(); i++) {
+      char c = s.charAt(i);
+      if (c == ';') {
+        l.add(sb.toString());
+        sb.setLength(0);
+      } else {
+        sb.append(c);
       }
+    }
+    l.add(sb.toString());
+    return l;
+  }
+
+  private static void addTag(Map<String, String> row, String s, String name) {    
+    if (!s.isEmpty()) {
+      row.put(name, s);
     }
   }
 
@@ -179,4 +194,6 @@ public class DatabasePseudoTagProvider {
       pseudoTagsFound.put(key, cnt + 1L);
     }
   }
+  
+  
 }
