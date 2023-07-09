@@ -145,7 +145,7 @@ public class DatabasePseudoTagProvider {
   private List<String> tokenize(String s) {
     List<String> l = new ArrayList<>();
     StringBuilder sb = new StringBuilder();
-    for(int i=0; i<s.length(); i++) {
+    for (int i=0; i<s.length(); i++) {
       char c = s.charAt(i);
       if (c == ';') {
         l.add(sb.toString());
