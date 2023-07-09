@@ -155,6 +155,7 @@ public class BInstallerActivity extends AppCompatActivity {
   }
 
   private void updateDownloadButton() {
+    if (mBaseDir == null) return;
     final ArrayList<Integer> selectedTilesDownload = mBInstallerView.getSelectedTiles(MASK_SELECTED_RD5);
     final ArrayList<Integer> selectedTilesLastUpdate = mBInstallerView.getSelectedTiles(MASK_CURRENT_RD5);
     final ArrayList<Integer> selectedTilesUpdate = mBInstallerView.getSelectedTiles(MASK_INSTALLED_RD5);
