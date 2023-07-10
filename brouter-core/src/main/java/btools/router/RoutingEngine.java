@@ -64,6 +64,8 @@ public class RoutingEngine extends Thread {
   protected RoutingContext routingContext;
 
   public double airDistanceCostFactor;
+  public double lastAirDistanceCostFactor;
+
   private OsmTrack guideTrack;
 
   private OsmPathElement matchPath;
@@ -933,6 +935,7 @@ public class RoutingEngine extends Thread {
 
     if (track == null) {
       for (int cfi = 0; cfi < airDistanceCostFactors.length; cfi++) {
+        if (cfi > 0) lastAirDistanceCostFactor = airDistanceCostFactors[cfi-1];
         airDistanceCostFactor = airDistanceCostFactors[cfi];
 
         if (airDistanceCostFactor < 0.) {
@@ -986,6 +989,7 @@ public class RoutingEngine extends Thread {
 
     // final run for verbose log info and detail nodes
     airDistanceCostFactor = 0.;
+    lastAirDistanceCostFactor = 0.;
     guideTrack = track;
     startTime = System.currentTimeMillis(); // reset timeout...
     try {
@@ -1328,7 +1332,8 @@ public class RoutingEngine extends Thread {
         }
 
         // recheck cutoff before doing expensive stuff
-        if (path.cost + path.airdistance > maxTotalCost + 100) {
+        int addDiff = 100;
+        if (path.cost + path.airdistance > maxTotalCost + addDiff) {
           path.unregisterUpTree(routingContext);
           continue;
         }
@@ -1426,7 +1431,7 @@ public class RoutingEngine extends Thread {
 
             boolean inRadius = boundary == null || boundary.isInBoundary(nextNode, bestPath.cost);
 
-            if (inRadius && (isFinalLink || bestPath.cost + bestPath.airdistance <= maxTotalCost + 100)) {
+            if (inRadius && (isFinalLink || bestPath.cost + bestPath.airdistance <= (lastAirDistanceCostFactor != 0. ? maxTotalCost*lastAirDistanceCostFactor : maxTotalCost) + addDiff)) {
               // add only if this may beat an existing path for that link
               OsmLinkHolder dominator = link.getFirstLinkHolder(currentNode);
               while (!trafficSim && dominator != null) {
