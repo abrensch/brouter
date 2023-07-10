@@ -90,7 +90,7 @@ public class BRouterView extends View {
     if (cr != null) cr.terminate();
   }
 
-  public void init() {
+  public void init(boolean silent) {
     try {
       // get base dir from private file
       File baseDir = ConfigHelper.getBaseDir(getContext());
@@ -107,7 +107,7 @@ public class BRouterView extends View {
             String version = "v" + getContext().getString(R.string.app_version);
             File vFile = new File(brd, "profiles2/" + version);
             if (vFile.exists()) {
-              startSetup(baseDir, false);
+              startSetup(baseDir, false, silent);
               return;
             }
             String message = "(previous basedir " + baseDir + " has to migrate )";
@@ -117,7 +117,7 @@ public class BRouterView extends View {
             waitingForMigration = true;
             oldMigrationPath = brd.getAbsolutePath();
           } else {
-            startSetup(baseDir, false);
+            startSetup(baseDir, false, silent);
           }
           return;
         }
@@ -137,7 +137,7 @@ public class BRouterView extends View {
     }
   }
 
-  public void startSetup(File baseDir, boolean storeBasedir) {
+  public void startSetup(File baseDir, boolean storeBasedir, boolean silent) {
     if (baseDir == null) {
       baseDir = retryBaseDir;
       retryBaseDir = null;
@@ -239,6 +239,12 @@ public class BRouterView extends View {
         throw new IllegalArgumentException("The profile-directory " + profileDir + " contains no routing profiles (*.brf)."
           + " see brouter.de/brouter for setup instructions.");
       }
+      if (silent) {
+        Intent intent = new Intent(getContext(), BInstallerActivity.class);
+        getContext().startActivity(intent);
+        return;
+      };
+
       if (!RoutingHelper.hasDirectoryAnyDatafiles(segmentDir)) {
         ((BRouterActivity) getContext()).startDownloadManager();
         waitingForSelection = true;
