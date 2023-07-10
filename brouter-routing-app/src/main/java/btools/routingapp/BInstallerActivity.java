@@ -83,8 +83,6 @@ public class BInstallerActivity extends AppCompatActivity {
 
     boolean running = isDownloadRunning(DownloadWorker.class);
 
-    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-
     setContentView(R.layout.activity_binstaller);
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
