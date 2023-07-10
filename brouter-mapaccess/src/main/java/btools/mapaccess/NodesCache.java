@@ -285,7 +285,13 @@ public final class NodesCache {
   public void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints, double maxDistance, OsmNodePairSet islandNodePairs) {
     waypointMatcher = new WaypointMatcherImpl(unmatchedWaypoints, maxDistance, islandNodePairs);
     for (MatchedWaypoint mwp : unmatchedWaypoints) {
-      preloadPosition(mwp.waypoint);
+      int cellsize = 12500;
+      preloadPosition(mwp.waypoint, cellsize);
+      // get a second chance
+      if (mwp.crosspoint == null) {
+        cellsize = 1000000 / 32;
+        preloadPosition(mwp.waypoint, cellsize);
+      }
     }
 
     if (first_file_access_failed) {
@@ -309,8 +315,7 @@ public final class NodesCache {
     }
   }
 
-  private void preloadPosition(OsmNode n) {
-    int d = 12500;
+  private void preloadPosition(OsmNode n, int d) {
     first_file_access_failed = false;
     first_file_access_name = null;
     loadSegmentFor(n.ilon, n.ilat);
