@@ -1,5 +1,5 @@
 ---lookupversion:10
----minorversion:13
+---minorversion:14
 
 ---context:way
 
@@ -682,6 +682,35 @@ construction;0000000108 byway
 construction;0000000037 driveway
 construction;0000000021 mini_roundabout
 construction;0000000020 turning_loop
+
+estimated_forest_class;0000000001 1
+estimated_forest_class;0000000001 2
+estimated_forest_class;0000000001 3
+estimated_forest_class;0000000001 4
+estimated_forest_class;0000000001 5
+estimated_forest_class;0000000001 6
+
+estimated_noise_class;0000000001 1
+estimated_noise_class;0000000001 2
+estimated_noise_class;0000000001 3
+estimated_noise_class;0000000001 4
+estimated_noise_class;0000000001 5
+estimated_noise_class;0000000001 6
+
+estimated_river_class;0000000001 1
+estimated_river_class;0000000001 2
+estimated_river_class;0000000001 3
+estimated_river_class;0000000001 4
+estimated_river_class;0000000001 5
+estimated_river_class;0000000001 6
+
+estimated_town_class;0000000001 1
+estimated_town_class;0000000001 2
+estimated_town_class;0000000001 3
+estimated_town_class;0000000001 4
+estimated_town_class;0000000001 5
+estimated_town_class;0000000001 6
+
 
  ---context:node
 
