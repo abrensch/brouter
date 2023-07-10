@@ -45,6 +45,41 @@ Profile parameters affect the result of a profile.
 For the app it is a list of params concatenated by '&'. E.g. extraParams=avoidferry=1&avoidsteps=0
 The server calls profile params by a prefix 'profile:'. E.g. ...&profile:avoidferry=1&profile:avoidsteps=0
 
+### using profile parameter inside an app
+
+To be flexible it is possible to send a profile to BRouter - server or app.
+
+Another variant is to send parameters for an existing profile that are different from the original profile.
+
+With the version  1.7.1 it is possible to collect parameters from the profile. 
+The variable parameters are defined like this
+```
+assign avoid_path            = false  # %avoid_path% | Set to true to avoid pathes | boolean
+```
+You probably know that from the web client, it builds an option dialog for this.
+Now you could do that with an calling app.
+
+What to do to get it work?
+
+- First copy the [RoutingParam](brouter-routing-app/src/main/java/btools/routingapp/RoutingParam.java) class to your source - use the same name and package name. 
+- Second analyze the profile for which you need the parameter.
+  This [BRouter routine](https://github.com/abrensch/brouter/blob/086503e529da7c044cc0f88f86c394fdb574d6cf/brouter-routing-app/src/main/java/btools/routingapp/RoutingParameterDialog.java#L103) can do that, just copy it to your source to use it in your app. 
+  It builds a List<RoutingParam> you could send to BRouter app.
+- You find the call of BRouter app in comment at [RoutingParameterDialog](https://github.com/abrensch/brouter/blob/086503e529da7c044cc0f88f86c394fdb574d6cf/brouter-routing-app/src/main/java/btools/routingapp/RoutingParameterDialog.java#L33)
+
+
+### silent app call
+
+The app can be started from other apps by using a call like this
+
+```
+Intent intent = new Intent();
+intent.setClassName("btools.routingapp", "btools.routingapp.BRouterActivity");
+intent.putExtra("runsilent", true);
+startActivity(intent);
+```
+
+This suppress the first question after installation for the BRouter path, generates the BRouter folders in main space  and starts the download dialog. 
 
 ## other routing engine modes in app
 
