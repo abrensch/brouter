@@ -46,6 +46,19 @@ For the app it is a list of params concatenated by '&'. E.g. extraParams=avoidfe
 The server calls profile params by a prefix 'profile:'. E.g. ...&profile:avoidferry=1&profile:avoidsteps=0
 
 
+### silent app call
+
+The app can be started from other apps by using a call like this
+
+```
+Intent intent = new Intent();
+intent.setClassName("btools.routingapp", "btools.routingapp.BRouterActivity");
+intent.putExtra("runsilent", true);
+startActivity(intent);
+```
+
+This suppress the first question after installation for the BRouter path, generates the BRouter folders in main space  and starts the download dialog. 
+
 ## other routing engine modes in app
 
 ### get elevation
