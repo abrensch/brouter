@@ -6,6 +6,7 @@ import static btools.routingapp.BInstallerView.MASK_INSTALLED_RD5;
 import static btools.routingapp.BInstallerView.MASK_SELECTED_RD5;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -14,7 +15,6 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.StatFs;
 import android.text.format.Formatter;
 import android.util.Log;
 import android.view.View;
@@ -65,16 +65,11 @@ public class BInstallerActivity extends AppCompatActivity {
 
   BInstallerView.OnSelectListener onSelectListener;
 
-  @SuppressWarnings("deprecation")
+  @SuppressLint("UsableSpace")
   public static long getAvailableSpace(String baseDir) {
-    StatFs stat = new StatFs(baseDir);
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-      return stat.getAvailableBlocksLong() * stat.getBlockSizeLong();
-    } else {
-      //noinspection deprecation
-      return (long) stat.getAvailableBlocks() * stat.getBlockSize();
-    }
+    File f = new File(baseDir);
+    if (!f.exists()) return 0L;
+    return f.getUsableSpace();
   }
 
   @Override
@@ -158,6 +153,7 @@ public class BInstallerActivity extends AppCompatActivity {
   }
 
   private void updateDownloadButton() {
+    if (mBaseDir == null) return;
     final ArrayList<Integer> selectedTilesDownload = mBInstallerView.getSelectedTiles(MASK_SELECTED_RD5);
     final ArrayList<Integer> selectedTilesLastUpdate = mBInstallerView.getSelectedTiles(MASK_CURRENT_RD5);
     final ArrayList<Integer> selectedTilesUpdate = mBInstallerView.getSelectedTiles(MASK_INSTALLED_RD5);
@@ -199,18 +195,30 @@ public class BInstallerActivity extends AppCompatActivity {
 
   public void downloadAll(ArrayList<Integer> downloadList, int all) {
     ArrayList<String> urlparts = new ArrayList<>();
+    int len = 0;
     for (Integer i : downloadList) {
       urlparts.add(baseNameForTile(i));
+      len++;
+      if (len > 500) break;  // don't do too much work, data size 10240 Bytes only
     }
 
     downloadCanceled = false;
     mProgressIndicator.show();
     mButtonDownload.setEnabled(false);
 
-    Data inputData = new Data.Builder()
-      .putStringArray(DownloadWorker.KEY_INPUT_SEGMENT_NAMES, urlparts.toArray(new String[0]))
-      .putInt(DownloadWorker.KEY_INPUT_SEGMENT_ALL, all)
-      .build();
+    Data inputData = null;
+    try {
+      inputData = new Data.Builder()
+        .putStringArray(DownloadWorker.KEY_INPUT_SEGMENT_NAMES, urlparts.toArray(new String[0]))
+        .putInt(DownloadWorker.KEY_INPUT_SEGMENT_ALL, all)
+        .build();
+
+    } catch (IllegalStateException e) {
+      Toast.makeText(this, "Too much data for download. Please reduce.", Toast.LENGTH_LONG).show();
+
+      e.printStackTrace();
+      return;
+    }
 
     Constraints constraints = new Constraints.Builder()
       .setRequiresBatteryNotLow(true)
