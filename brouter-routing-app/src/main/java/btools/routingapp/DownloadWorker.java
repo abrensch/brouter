@@ -275,7 +275,8 @@ public class DownloadWorker extends Worker {
             errorCode = "Version error";
             return false;
           }
-        } else if (changed) {
+        }
+        if (changed) {
           lookupFile.delete();
           tmplookupFile.renameTo(lookupFile);
           versionChanged = changed;
