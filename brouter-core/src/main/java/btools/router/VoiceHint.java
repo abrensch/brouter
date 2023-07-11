@@ -20,11 +20,11 @@ public class VoiceHint {
   static final int KL = 8; // keep left
   static final int KR = 9; // keep right
   static final int TLU = 10; // U-turn
-  static final int TU = 11; // 180 degree u-turn
-  static final int TRU = 12; // Right U-turn
-  static final int OFFR = 13; // Off route
-  static final int RNDB = 14; // Roundabout
-  static final int RNLB = 15; // Roundabout left
+  static final int TRU = 11; // Right U-turn
+  static final int OFFR = 12; // Off route
+  static final int RNDB = 13; // Roundabout
+  static final int RNLB = 14; // Roundabout left
+  static final int TU = 15; // 180 degree u-turn
   static final int BL = 16; // Beeline routing
 
   int ilon;
