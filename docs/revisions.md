@@ -2,19 +2,26 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### New since last version
+### [brouter-1.7.1.zip](../brouter_bin/brouter-1.7.1.zip) (current revision, 12.07.2023)
 
 Android
 
 - Add parameter dialog for profile
+- Add portrait mode for download view
+- Add silent mode for calling apps
+- Fixed download lookups.dat when download only single rd5 tile.
+
 
 Library
 
+- Update matching points rules on areas with longer distances between way points
+- Optimize constant expressions in profile parsing
+- Rework on roundabouts (left-hand driving)
 - Add new function 'get elevation'
 - Minor bug fixes
 
 
-### [brouter-1.7.0.zip](../brouter_bin/brouter-1.7.0.zip) (current revision, 29.04.2023)
+### [brouter-1.7.0.zip](../brouter_bin/brouter-1.7.0.zip) (29.04.2023)
 
 Android
 
