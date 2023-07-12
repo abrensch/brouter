@@ -77,6 +77,8 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private String errorMessage;
   private String title;
   private int wpCount;
+  private boolean startSilent;
+
   ActivityResultLauncher<Intent> someActivityResultLauncher;
 
   /**
@@ -115,9 +117,12 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
     int memoryClass = am.getMemoryClass();
 
+    Intent i = getIntent();
+    if (i.hasExtra("runsilent")) startSilent = true;
+    // startQuiete = true;
     // instantiate our simulation view and set it as the activity's content
     mBRouterView = new BRouterView(this, memoryClass);
-    mBRouterView.init();
+    mBRouterView.init(startSilent);
     setContentView(mBRouterView);
   }
 
@@ -139,7 +144,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
       case DIALOG_MAINACTION_ID:
         builder.setTitle("Select Main Action");
         builder.setItems(
-            new String[] { "Download Manager", "BRouter App" },
+            new String[]{"Download Manager", "BRouter App"},
             new DialogInterface.OnClickListener() {
               public void onClick(DialogInterface dialog, int item) {
                 if (item == 0)
@@ -238,7 +243,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
             String basedir = input.getText().toString();
-            mBRouterView.startSetup(new File(basedir), true);
+            mBRouterView.startSetup(new File(basedir), true, false);
           }
         });
         return builder.create();
@@ -254,7 +259,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
             if (selectedBasedir < availableBasedirs.size()) {
-              mBRouterView.startSetup(availableBasedirs.get(selectedBasedir), true);
+              mBRouterView.startSetup(availableBasedirs.get(selectedBasedir), true, false);
             } else {
               showADialog(DIALOG_TEXTENTRY_ID);
             }
@@ -530,7 +535,14 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
       basedirOptions[bdidx] = "Enter path manually";
     }
 
-    showADialog(DIALOG_SELECTBASEDIR_ID);
+    if (startSilent) {
+      mBRouterView.startSetup(availableBasedirs.get(0), true, startSilent);
+      Intent intent = new Intent(BRouterActivity.this, BInstallerActivity.class);
+      startActivity(intent);
+      finish();
+    } else {
+      showADialog(DIALOG_SELECTBASEDIR_ID);
+    }
   }
 
   public void selectRoutingModes(String[] modes, boolean[] modesChecked, String message) {
@@ -650,9 +662,9 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     if (requestCode == 0) {
       if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-        mBRouterView.startSetup(null, true);
+        mBRouterView.startSetup(null, true, false);
       } else {
-        mBRouterView.init();
+        mBRouterView.init(false);
       }
     }
   }
