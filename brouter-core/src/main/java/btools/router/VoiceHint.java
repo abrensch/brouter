@@ -61,8 +61,43 @@ public class VoiceHint {
     badWays.add(badWay);
   }
 
-  public int getCommand() {
-    return cmd;
+  public int getJsonCommandIndex() {
+    switch (cmd) {
+      case TLU:
+        return 10;
+      case TU:
+        return 15;
+      case TSHL:
+        return 4;
+      case TL:
+        return 2;
+      case TSLL:
+        return 3;
+      case KL:
+        return 8;
+      case C:
+        return 1;
+      case KR:
+        return 9;
+      case TSLR:
+        return 6;
+      case TR:
+        return 5;
+      case TSHR:
+        return 7;
+      case TRU:
+        return 11;
+      case RNDB:
+        return 13;
+      case RNLB:
+        return 14;
+      case BL:
+        return 16;
+      case OFFR:
+        return 12;
+      default:
+        throw new IllegalArgumentException("unknown command: " + cmd);
+    }
   }
 
   public int getExitNumber() {
