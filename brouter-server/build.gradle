@@ -20,7 +20,7 @@ application {
         manifest {
             attributes "Main-Class": getMainClass(), "Implementation-Version": project.version
         }
-        classifier = 'all'
+        archiveClassifier = 'all'
         dependsOn configurations.runtimeClasspath
         from {
             configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
