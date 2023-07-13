@@ -256,6 +256,8 @@ footway;0000003966 no
 footway;0000001093 yes
 footway;0000000558 separate
 
+path;0000000001 crossing
+
 segregated;0000224960 no
 segregated;0000051124 yes
 
