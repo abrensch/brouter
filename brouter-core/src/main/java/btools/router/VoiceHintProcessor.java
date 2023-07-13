@@ -65,7 +65,7 @@ public final class VoiceHintProcessor {
     for (int hintIdx = 0; hintIdx < inputs.size(); hintIdx++) {
       VoiceHint input = inputs.get(hintIdx);
 
-      if (input.cmd == VoiceHint.BL) {
+      if (input.cmd == VoiceHint.Command.BL) {
         results.add(input);
         continue;
       }
@@ -176,16 +176,16 @@ public final class VoiceHintProcessor {
       if (unconditionalTrigger || conditionalTrigger) {
         input.angle = turnAngle;
         input.calcCommand();
-        boolean isStraight = input.cmd == VoiceHint.C;
+        boolean isStraight = input.cmd == VoiceHint.Command.C;
         input.needsRealTurn = (!unconditionalTrigger) && isStraight;
 
         // check for KR/KL
         if (Math.abs(turnAngle) > 5.) { // don't use too small angles
           if (maxAngle < turnAngle && maxAngle > turnAngle - 45.f - (Math.max(turnAngle, 0.f))) {
-            input.cmd = VoiceHint.KR;
+            input.cmd = VoiceHint.Command.KR;
           }
           if (minAngle > turnAngle && minAngle < turnAngle + 45.f - (Math.min(turnAngle, 0.f))) {
-            input.cmd = VoiceHint.KL;
+            input.cmd = VoiceHint.Command.KL;
           }
         }
 
@@ -206,10 +206,10 @@ public final class VoiceHintProcessor {
     int i = results.size();
     while (i > 0) {
       VoiceHint hint = results.get(--i);
-      if (hint.cmd == 0) {
+      if (hint.cmd == null) {
         hint.calcCommand();
       }
-      if (!(hint.needsRealTurn && (hint.cmd == VoiceHint.C || hint.cmd == VoiceHint.BL))) {
+      if (!(hint.needsRealTurn && (hint.cmd == VoiceHint.Command.C || hint.cmd == VoiceHint.Command.BL))) {
         double dist = hint.distanceToNext;
         // sum up other hints within the catching range (e.g. 40m)
         while (dist < INTERNAL_CATCHING_RANGE && i > 0) {
@@ -230,7 +230,7 @@ public final class VoiceHintProcessor {
         }
         hint.calcCommand();
         results2.add(hint);
-      } else if (hint.cmd == VoiceHint.BL) {
+      } else if (hint.cmd == VoiceHint.Command.BL) {
         results2.add(hint);
       } else {
         if (results2.size() > 0)
@@ -248,7 +248,7 @@ public final class VoiceHintProcessor {
     for (int hintIdx = 0; hintIdx < inputs.size(); hintIdx++) {
       VoiceHint input = inputs.get(hintIdx);
 
-      if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
+      if (input.cmd == VoiceHint.Command.C && !input.goodWay.isLinktType()) {
         int badWayPrio = 0;
         for (MessageData md : input.badWays) {
           badWayPrio = Math.max(badWayPrio, md.getPrio());

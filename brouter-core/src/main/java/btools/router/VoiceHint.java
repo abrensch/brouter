@@ -10,27 +10,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VoiceHint {
-  static final int C = 1; // continue (go straight)
-  static final int TL = 2; // turn left
-  static final int TSLL = 3; // turn slightly left
-  static final int TSHL = 4; // turn sharply left
-  static final int TR = 5; // turn right
-  static final int TSLR = 6; // turn slightly right
-  static final int TSHR = 7; // turn sharply right
-  static final int KL = 8; // keep left
-  static final int KR = 9; // keep right
-  static final int TLU = 10; // U-turn
-  static final int TRU = 11; // Right U-turn
-  static final int OFFR = 12; // Off route
-  static final int RNDB = 13; // Roundabout
-  static final int RNLB = 14; // Roundabout left
-  static final int TU = 15; // 180 degree u-turn
-  static final int BL = 16; // Beeline routing
+  enum Command {
+    C, // continue (go straight)
+    TL, // turn left
+    TSLL, // turn slightly left
+    TSHL, // turn sharply left
+    TR, // turn right
+    TSLR, // turn slightly right
+    TSHR, // turn sharply right
+    KL, // keep left
+    KR, // keep right
+    TLU, // U-turn
+    TU, // 180 degree u-turn
+    TRU, // Right U-turn
+    OFFR, // Off route
+    RNDB, // Roundabout
+    RNLB, // Roundabout left
+    BL, // Beeline routing
+  }
 
   int ilon;
   int ilat;
   short selev;
-  int cmd;
+  Command cmd;
   MessageData oldWay;
   MessageData goodWay;
   List<MessageData> badWays;
@@ -149,7 +151,7 @@ public class VoiceHint {
   /*
    * used by trkpt/sym style
    */
-  public String getCommandString(int c) {
+  public String getCommandString(Command c) {
     switch (c) {
       case TLU:
         return "TLU";
@@ -495,84 +497,84 @@ public class VoiceHint {
     if (angle == Float.MAX_VALUE) {
       cmdAngle = goodWay.turnangle;
     }
-    if (cmd == BL) return;
+    if (cmd == Command.BL) return;
 
     if (roundaboutExit > 0) {
-      cmd = RNDB;
+      cmd = Command.RNDB;
     } else if (roundaboutExit < 0) {
-      cmd = RNLB;
+      cmd = Command.RNLB;
     } else if (is180DegAngle(cmdAngle) && cmdAngle <= -179.f && higherBadWayAngle == 181.f && lowerBadWayAngle == -181.f) {
-      cmd = TU;
+      cmd = Command.TU;
     } else if (cmdAngle < -159.f) {
-      cmd = TLU;
+      cmd = Command.TLU;
     } else if (cmdAngle < -135.f) {
-      cmd = TSHL;
+      cmd = Command.TSHL;
     } else if (cmdAngle < -45.f) {
       // a TL can be pushed in either direction by a close-by alternative
       if (cmdAngle < -95.f && higherBadWayAngle < -30.f && lowerBadWayAngle < -180.f) {
-        cmd = TSHL;
+        cmd = Command.TSHL;
       } else if (cmdAngle > -85.f && lowerBadWayAngle > -180.f && higherBadWayAngle > -10.f) {
-        cmd = TSLL;
+        cmd = Command.TSLL;
       } else {
         if (cmdAngle < -110.f) {
-          cmd = TSHL;
+          cmd = Command.TSHL;
         } else if (cmdAngle > -60.f) {
-          cmd = TSLL;
+          cmd = Command.TSLL;
         } else {
-          cmd = TL;
+          cmd = Command.TL;
         }
       }
     } else if (cmdAngle < -21.f) {
-      if (cmd != KR) { // don't overwrite KR with TSLL
-        cmd = TSLL;
+      if (cmd != Command.KR) { // don't overwrite KR with TSLL
+        cmd = Command.TSLL;
       }
     } else if (cmdAngle < -5.f) {
       if (lowerBadWayAngle < -100.f && higherBadWayAngle < 45.f) {
-        cmd = TSLL;
+        cmd = Command.TSLL;
       } else if (lowerBadWayAngle >= -100.f && higherBadWayAngle < 45.f) {
-        cmd = KL;
+        cmd = Command.KL;
       } else {
-        cmd = C;
+        cmd = Command.C;
       }
     } else if (cmdAngle < 5.f) {
       if (lowerBadWayAngle > -30.f) {
-        cmd = KR;
+        cmd = Command.KR;
       } else if (higherBadWayAngle < 30.f) {
-        cmd = KL;
+        cmd = Command.KL;
       } else {
-        cmd = C;
+        cmd = Command.C;
       }
     } else if (cmdAngle < 21.f) {
       // a TR can be pushed in either direction by a close-by alternative
       if (lowerBadWayAngle > -45.f && higherBadWayAngle > 100.f) {
-        cmd = TSLR;
+        cmd = Command.TSLR;
       } else if (lowerBadWayAngle > -45.f && higherBadWayAngle <= 100.f) {
-        cmd = KR;
+        cmd = Command.KR;
       } else {
-        cmd = C;
+        cmd = Command.C;
       }
     } else if (cmdAngle < 45.f) {
-      cmd = TSLR;
+      cmd = Command.TSLR;
     } else if (cmdAngle < 135.f) {
       if (cmdAngle < 85.f && higherBadWayAngle < 180.f && lowerBadWayAngle < 10.f) {
-        cmd = TSLR;
+        cmd = Command.TSLR;
       } else if (cmdAngle > 95.f && lowerBadWayAngle > 30.f && higherBadWayAngle > 180.f) {
-        cmd = TSHR;
+        cmd = Command.TSHR;
       } else {
         if (cmdAngle > 110.) {
-          cmd = TSHR;
+          cmd = Command.TSHR;
         } else if (cmdAngle < 60.) {
-          cmd = TSLR;
+          cmd = Command.TSLR;
         } else {
-          cmd = TR;
+          cmd = Command.TR;
         }
       }
     } else if (cmdAngle < 159.f) {
-      cmd = TSHR;
+      cmd = Command.TSHR;
     } else if (is180DegAngle(cmdAngle) && cmdAngle >= 179.f && higherBadWayAngle == 181.f && lowerBadWayAngle == -181.f) {
-      cmd = TU;
+      cmd = Command.TU;
     } else {
-      cmd = TRU;
+      cmd = Command.TRU;
     }
   }
 

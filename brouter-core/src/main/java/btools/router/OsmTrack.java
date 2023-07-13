@@ -1349,7 +1349,7 @@ public final class OsmTrack {
           rc.turnInstructionMode == 9) {
           MatchedWaypoint mwpt = getMatchedWaypoint(nodeNr);
           if (mwpt != null && mwpt.direct) {
-            input.cmd = VoiceHint.BL;
+            input.cmd = VoiceHint.Command.BL;
             input.angle = (float) (nodeNr == 0 ? node.origin.message.turnangle : node.message.turnangle);
             input.distanceToNext = node.calcDistance(node.origin);
           }
