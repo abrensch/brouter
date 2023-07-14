@@ -11,22 +11,22 @@ import java.util.List;
 
 public class VoiceHint {
   enum Command {
-    C, // continue (go straight)
-    TL, // turn left
-    TSLL, // turn slightly left
-    TSHL, // turn sharply left
-    TR, // turn right
-    TSLR, // turn slightly right
-    TSHR, // turn sharply right
-    KL, // keep left
-    KR, // keep right
-    TLU, // U-turn
-    TU, // 180 degree u-turn
-    TRU, // Right U-turn
-    OFFR, // Off route
-    RNDB, // Roundabout
-    RNLB, // Roundabout left
-    BL, // Beeline routing
+    CONTINUE,
+    TURN_LEFT,
+    TURN_SLIGHTLY_LEFT,
+    TURN_SHARPLY_LEFT,
+    TURN_RIGHT,
+    TURN_SLIGHTLY_RIGHT,
+    TURN_SHARPLY_RIGHT,
+    KEEP_LEFT,
+    KEEP_RIGHT,
+    U_TURN_LEFT,
+    U_TURN_180,
+    U_TURN_RIGHT,
+    OFF_ROUTE,
+    ROUNDABOUT_RIGHT,
+    ROUNDABOUT_LEFT,
+    BEELINE,
   }
 
   int ilon;
@@ -65,37 +65,37 @@ public class VoiceHint {
 
   public int getJsonCommandIndex() {
     switch (cmd) {
-      case TLU:
+      case U_TURN_LEFT:
         return 10;
-      case TU:
+      case U_TURN_180:
         return 15;
-      case TSHL:
+      case TURN_SHARPLY_LEFT:
         return 4;
-      case TL:
+      case TURN_LEFT:
         return 2;
-      case TSLL:
+      case TURN_SLIGHTLY_LEFT:
         return 3;
-      case KL:
+      case KEEP_LEFT:
         return 8;
-      case C:
+      case CONTINUE:
         return 1;
-      case KR:
+      case KEEP_RIGHT:
         return 9;
-      case TSLR:
+      case TURN_SLIGHTLY_RIGHT:
         return 6;
-      case TR:
+      case TURN_RIGHT:
         return 5;
-      case TSHR:
+      case TURN_SHARPLY_RIGHT:
         return 7;
-      case TRU:
+      case U_TURN_RIGHT:
         return 11;
-      case RNDB:
+      case ROUNDABOUT_RIGHT:
         return 13;
-      case RNLB:
+      case ROUNDABOUT_LEFT:
         return 14;
-      case BL:
+      case BEELINE:
         return 16;
-      case OFFR:
+      case OFF_ROUTE:
         return 12;
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
@@ -111,37 +111,37 @@ public class VoiceHint {
    */
   public String getCommandString() {
     switch (cmd) {
-      case TLU:
+      case U_TURN_LEFT:
         return "TU";  // should be changed to TLU when osmand uses new voice hint constants
-      case TU:
+      case U_TURN_180:
         return "TU";
-      case TSHL:
+      case TURN_SHARPLY_LEFT:
         return "TSHL";
-      case TL:
+      case TURN_LEFT:
         return "TL";
-      case TSLL:
+      case TURN_SLIGHTLY_LEFT:
         return "TSLL";
-      case KL:
+      case KEEP_LEFT:
         return "KL";
-      case C:
+      case CONTINUE:
         return "C";
-      case KR:
+      case KEEP_RIGHT:
         return "KR";
-      case TSLR:
+      case TURN_SLIGHTLY_RIGHT:
         return "TSLR";
-      case TR:
+      case TURN_RIGHT:
         return "TR";
-      case TSHR:
+      case TURN_SHARPLY_RIGHT:
         return "TSHR";
-      case TRU:
+      case U_TURN_RIGHT:
         return "TRU";
-      case RNDB:
+      case ROUNDABOUT_RIGHT:
         return "RNDB" + roundaboutExit;
-      case RNLB:
+      case ROUNDABOUT_LEFT:
         return "RNLB" + (-roundaboutExit);
-      case BL:
+      case BEELINE:
         return "BL";
-      case OFFR:
+      case OFF_ROUTE:
         return "OFFR";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
@@ -153,37 +153,37 @@ public class VoiceHint {
    */
   public String getCommandString(Command c) {
     switch (c) {
-      case TLU:
+      case U_TURN_LEFT:
         return "TLU";
-      case TU:
+      case U_TURN_180:
         return "TU";
-      case TSHL:
+      case TURN_SHARPLY_LEFT:
         return "TSHL";
-      case TL:
+      case TURN_LEFT:
         return "TL";
-      case TSLL:
+      case TURN_SLIGHTLY_LEFT:
         return "TSLL";
-      case KL:
+      case KEEP_LEFT:
         return "KL";
-      case C:
+      case CONTINUE:
         return "C";
-      case KR:
+      case KEEP_RIGHT:
         return "KR";
-      case TSLR:
+      case TURN_SLIGHTLY_RIGHT:
         return "TSLR";
-      case TR:
+      case TURN_RIGHT:
         return "TR";
-      case TSHR:
+      case TURN_SHARPLY_RIGHT:
         return "TSHR";
-      case TRU:
+      case U_TURN_RIGHT:
         return "TRU";
-      case RNDB:
+      case ROUNDABOUT_RIGHT:
         return "RNDB" + roundaboutExit;
-      case RNLB:
+      case ROUNDABOUT_LEFT:
         return "RNLB" + (-roundaboutExit);
-      case BL:
+      case BEELINE:
         return "BL";
-      case OFFR:
+      case OFF_ROUTE:
         return "OFFR";
       default:
         return "unknown command: " + c;
@@ -195,37 +195,37 @@ public class VoiceHint {
    */
   public String getSymbolString() {
     switch (cmd) {
-      case TLU:
+      case U_TURN_LEFT:
         return "TU";
-      case TU:
+      case U_TURN_180:
         return "TU";
-      case TSHL:
+      case TURN_SHARPLY_LEFT:
         return "TSHL";
-      case TL:
+      case TURN_LEFT:
         return "Left";
-      case TSLL:
+      case TURN_SLIGHTLY_LEFT:
         return "TSLL";
-      case KL:
+      case KEEP_LEFT:
         return "TSLL"; // ?
-      case C:
+      case CONTINUE:
         return "Straight";
-      case KR:
+      case KEEP_RIGHT:
         return "TSLR"; // ?
-      case TSLR:
+      case TURN_SLIGHTLY_RIGHT:
         return "TSLR";
-      case TR:
+      case TURN_RIGHT:
         return "Right";
-      case TSHR:
+      case TURN_SHARPLY_RIGHT:
         return "TSHR";
-      case TRU:
+      case U_TURN_RIGHT:
         return "TU";
-      case RNDB:
+      case ROUNDABOUT_RIGHT:
         return "RNDB" + roundaboutExit;
-      case RNLB:
+      case ROUNDABOUT_LEFT:
         return "RNLB" + (-roundaboutExit);
-      case BL:
+      case BEELINE:
         return "BL";
-      case OFFR:
+      case OFF_ROUTE:
         return "OFFR";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
@@ -237,35 +237,35 @@ public class VoiceHint {
    */
   public String getLocusSymbolString() {
     switch (cmd) {
-      case TLU:
+      case U_TURN_LEFT:
         return "u-turn_left";
-      case TU:
+      case U_TURN_180:
         return "u-turn";
-      case TSHL:
+      case TURN_SHARPLY_LEFT:
         return "left_sharp";
-      case TL:
+      case TURN_LEFT:
         return "left";
-      case TSLL:
+      case TURN_SLIGHTLY_LEFT:
         return "left_slight";
-      case KL:
+      case KEEP_LEFT:
         return "stay_left"; // ?
-      case C:
+      case CONTINUE:
         return "straight";
-      case KR:
+      case KEEP_RIGHT:
         return "stay_right"; // ?
-      case TSLR:
+      case TURN_SLIGHTLY_RIGHT:
         return "right_slight";
-      case TR:
+      case TURN_RIGHT:
         return "right";
-      case TSHR:
+      case TURN_SHARPLY_RIGHT:
         return "right_sharp";
-      case TRU:
+      case U_TURN_RIGHT:
         return "u-turn_right";
-      case RNDB:
+      case ROUNDABOUT_RIGHT:
         return "roundabout_e" + roundaboutExit;
-      case RNLB:
+      case ROUNDABOUT_LEFT:
         return "roundabout_e" + (-roundaboutExit);
-      case BL:
+      case BEELINE:
         return "beeline";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
@@ -277,33 +277,33 @@ public class VoiceHint {
    */
   public String getMessageString() {
     switch (cmd) {
-      case TLU:
+      case U_TURN_LEFT:
         return "u-turn"; // should be changed to u-turn-left when osmand uses new voice hint constants
-      case TU:
+      case U_TURN_180:
         return "u-turn";
-      case TSHL:
+      case TURN_SHARPLY_LEFT:
         return "sharp left";
-      case TL:
+      case TURN_LEFT:
         return "left";
-      case TSLL:
+      case TURN_SLIGHTLY_LEFT:
         return "slight left";
-      case KL:
+      case KEEP_LEFT:
         return "keep left";
-      case C:
+      case CONTINUE:
         return "straight";
-      case KR:
+      case KEEP_RIGHT:
         return "keep right";
-      case TSLR:
+      case TURN_SLIGHTLY_RIGHT:
         return "slight right";
-      case TR:
+      case TURN_RIGHT:
         return "right";
-      case TSHR:
+      case TURN_SHARPLY_RIGHT:
         return "sharp right";
-      case TRU:
+      case U_TURN_RIGHT:
         return "u-turn";  // should be changed to u-turn-right when osmand uses new voice hint constants
-      case RNDB:
+      case ROUNDABOUT_RIGHT:
         return "Take exit " + roundaboutExit;
-      case RNLB:
+      case ROUNDABOUT_LEFT:
         return "Take exit " + (-roundaboutExit);
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
@@ -315,33 +315,33 @@ public class VoiceHint {
    */
   public int getLocusAction() {
     switch (cmd) {
-      case TLU:
+      case U_TURN_LEFT:
         return 13;
-      case TU:
+      case U_TURN_180:
         return 12;
-      case TSHL:
+      case TURN_SHARPLY_LEFT:
         return 5;
-      case TL:
+      case TURN_LEFT:
         return 4;
-      case TSLL:
+      case TURN_SLIGHTLY_LEFT:
         return 3;
-      case KL:
+      case KEEP_LEFT:
         return 9; // ?
-      case C:
+      case CONTINUE:
         return 1;
-      case KR:
+      case KEEP_RIGHT:
         return 10; // ?
-      case TSLR:
+      case TURN_SLIGHTLY_RIGHT:
         return 6;
-      case TR:
+      case TURN_RIGHT:
         return 7;
-      case TSHR:
+      case TURN_SHARPLY_RIGHT:
         return 8;
-      case TRU:
+      case U_TURN_RIGHT:
         return 14;
-      case RNDB:
+      case ROUNDABOUT_RIGHT:
         return 26 + roundaboutExit;
-      case RNLB:
+      case ROUNDABOUT_LEFT:
         return 26 - roundaboutExit;
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
@@ -353,33 +353,33 @@ public class VoiceHint {
    */
   public int getOruxAction() {
     switch (cmd) {
-      case TLU:
+      case U_TURN_LEFT:
         return 1003;
-      case TU:
+      case U_TURN_180:
         return 1003;
-      case TSHL:
+      case TURN_SHARPLY_LEFT:
         return 1019;
-      case TL:
+      case TURN_LEFT:
         return 1000;
-      case TSLL:
+      case TURN_SLIGHTLY_LEFT:
         return 1017;
-      case KL:
+      case KEEP_LEFT:
         return 1015; // ?
-      case C:
+      case CONTINUE:
         return 1002;
-      case KR:
+      case KEEP_RIGHT:
         return 1014; // ?
-      case TSLR:
+      case TURN_SLIGHTLY_RIGHT:
         return 1016;
-      case TR:
+      case TURN_RIGHT:
         return 1001;
-      case TSHR:
+      case TURN_SHARPLY_RIGHT:
         return 1018;
-      case TRU:
+      case U_TURN_RIGHT:
         return 1003;
-      case RNDB:
+      case ROUNDABOUT_RIGHT:
         return 1008 + roundaboutExit;
-      case RNLB:
+      case ROUNDABOUT_LEFT:
         return 1008 + roundaboutExit;
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
@@ -391,37 +391,37 @@ public class VoiceHint {
    */
   public String getCruiserCommandString() {
     switch (cmd) {
-      case TLU:
+      case U_TURN_LEFT:
         return "TLU";
-      case TU:
+      case U_TURN_180:
         return "TU";
-      case TSHL:
+      case TURN_SHARPLY_LEFT:
         return "TSHL";
-      case TL:
+      case TURN_LEFT:
         return "TL";
-      case TSLL:
+      case TURN_SLIGHTLY_LEFT:
         return "TSLL";
-      case KL:
+      case KEEP_LEFT:
         return "KL";
-      case C:
+      case CONTINUE:
         return "C";
-      case KR:
+      case KEEP_RIGHT:
         return "KR";
-      case TSLR:
+      case TURN_SLIGHTLY_RIGHT:
         return "TSLR";
-      case TR:
+      case TURN_RIGHT:
         return "TR";
-      case TSHR:
+      case TURN_SHARPLY_RIGHT:
         return "TSHR";
-      case TRU:
+      case U_TURN_RIGHT:
         return "TRU";
-      case RNDB:
+      case ROUNDABOUT_RIGHT:
         return "RNDB" + roundaboutExit;
-      case RNLB:
+      case ROUNDABOUT_LEFT:
         return "RNLB" + (-roundaboutExit);
-      case BL:
+      case BEELINE:
         return "BL";
-      case OFFR:
+      case OFF_ROUTE:
         return "OFFR";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
@@ -433,37 +433,37 @@ public class VoiceHint {
    */
   public String getCruiserMessageString() {
     switch (cmd) {
-      case TLU:
+      case U_TURN_LEFT:
         return "u-turn left";
-      case TU:
+      case U_TURN_180:
         return "u-turn";
-      case TSHL:
+      case TURN_SHARPLY_LEFT:
         return "sharp left";
-      case TL:
+      case TURN_LEFT:
         return "left";
-      case TSLL:
+      case TURN_SLIGHTLY_LEFT:
         return "slight left";
-      case KL:
+      case KEEP_LEFT:
         return "keep left";
-      case C:
+      case CONTINUE:
         return "straight";
-      case KR:
+      case KEEP_RIGHT:
         return "keep right";
-      case TSLR:
+      case TURN_SLIGHTLY_RIGHT:
         return "slight right";
-      case TR:
+      case TURN_RIGHT:
         return "right";
-      case TSHR:
+      case TURN_SHARPLY_RIGHT:
         return "sharp right";
-      case TRU:
+      case U_TURN_RIGHT:
         return "u-turn right";
-      case RNDB:
+      case ROUNDABOUT_RIGHT:
         return "take exit " + roundaboutExit;
-      case RNLB:
+      case ROUNDABOUT_LEFT:
         return "take exit " + (-roundaboutExit);
-      case BL:
+      case BEELINE:
         return "beeline";
-      case OFFR:
+      case OFF_ROUTE:
         return "offroad";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
@@ -497,84 +497,84 @@ public class VoiceHint {
     if (angle == Float.MAX_VALUE) {
       cmdAngle = goodWay.turnangle;
     }
-    if (cmd == Command.BL) return;
+    if (cmd == Command.BEELINE) return;
 
     if (roundaboutExit > 0) {
-      cmd = Command.RNDB;
+      cmd = Command.ROUNDABOUT_RIGHT;
     } else if (roundaboutExit < 0) {
-      cmd = Command.RNLB;
+      cmd = Command.ROUNDABOUT_LEFT;
     } else if (is180DegAngle(cmdAngle) && cmdAngle <= -179.f && higherBadWayAngle == 181.f && lowerBadWayAngle == -181.f) {
-      cmd = Command.TU;
+      cmd = Command.U_TURN_180;
     } else if (cmdAngle < -159.f) {
-      cmd = Command.TLU;
+      cmd = Command.U_TURN_LEFT;
     } else if (cmdAngle < -135.f) {
-      cmd = Command.TSHL;
+      cmd = Command.TURN_SHARPLY_LEFT;
     } else if (cmdAngle < -45.f) {
-      // a TL can be pushed in either direction by a close-by alternative
+      // a TURN_LEFT can be pushed in either direction by a close-by alternative
       if (cmdAngle < -95.f && higherBadWayAngle < -30.f && lowerBadWayAngle < -180.f) {
-        cmd = Command.TSHL;
+        cmd = Command.TURN_SHARPLY_LEFT;
       } else if (cmdAngle > -85.f && lowerBadWayAngle > -180.f && higherBadWayAngle > -10.f) {
-        cmd = Command.TSLL;
+        cmd = Command.TURN_SLIGHTLY_LEFT;
       } else {
         if (cmdAngle < -110.f) {
-          cmd = Command.TSHL;
+          cmd = Command.TURN_SHARPLY_LEFT;
         } else if (cmdAngle > -60.f) {
-          cmd = Command.TSLL;
+          cmd = Command.TURN_SLIGHTLY_LEFT;
         } else {
-          cmd = Command.TL;
+          cmd = Command.TURN_LEFT;
         }
       }
     } else if (cmdAngle < -21.f) {
-      if (cmd != Command.KR) { // don't overwrite KR with TSLL
-        cmd = Command.TSLL;
+      if (cmd != Command.KEEP_RIGHT) { // don't overwrite KEEP_RIGHT with TURN_SLIGHTLY_LEFT
+        cmd = Command.TURN_SLIGHTLY_LEFT;
       }
     } else if (cmdAngle < -5.f) {
       if (lowerBadWayAngle < -100.f && higherBadWayAngle < 45.f) {
-        cmd = Command.TSLL;
+        cmd = Command.TURN_SLIGHTLY_LEFT;
       } else if (lowerBadWayAngle >= -100.f && higherBadWayAngle < 45.f) {
-        cmd = Command.KL;
+        cmd = Command.KEEP_LEFT;
       } else {
-        cmd = Command.C;
+        cmd = Command.CONTINUE;
       }
     } else if (cmdAngle < 5.f) {
       if (lowerBadWayAngle > -30.f) {
-        cmd = Command.KR;
+        cmd = Command.KEEP_RIGHT;
       } else if (higherBadWayAngle < 30.f) {
-        cmd = Command.KL;
+        cmd = Command.KEEP_LEFT;
       } else {
-        cmd = Command.C;
+        cmd = Command.CONTINUE;
       }
     } else if (cmdAngle < 21.f) {
-      // a TR can be pushed in either direction by a close-by alternative
+      // a TURN_RIGHT can be pushed in either direction by a close-by alternative
       if (lowerBadWayAngle > -45.f && higherBadWayAngle > 100.f) {
-        cmd = Command.TSLR;
+        cmd = Command.TURN_SLIGHTLY_RIGHT;
       } else if (lowerBadWayAngle > -45.f && higherBadWayAngle <= 100.f) {
-        cmd = Command.KR;
+        cmd = Command.KEEP_RIGHT;
       } else {
-        cmd = Command.C;
+        cmd = Command.CONTINUE;
       }
     } else if (cmdAngle < 45.f) {
-      cmd = Command.TSLR;
+      cmd = Command.TURN_SLIGHTLY_RIGHT;
     } else if (cmdAngle < 135.f) {
       if (cmdAngle < 85.f && higherBadWayAngle < 180.f && lowerBadWayAngle < 10.f) {
-        cmd = Command.TSLR;
+        cmd = Command.TURN_SLIGHTLY_RIGHT;
       } else if (cmdAngle > 95.f && lowerBadWayAngle > 30.f && higherBadWayAngle > 180.f) {
-        cmd = Command.TSHR;
+        cmd = Command.TURN_SHARPLY_RIGHT;
       } else {
         if (cmdAngle > 110.) {
-          cmd = Command.TSHR;
+          cmd = Command.TURN_SHARPLY_RIGHT;
         } else if (cmdAngle < 60.) {
-          cmd = Command.TSLR;
+          cmd = Command.TURN_SLIGHTLY_RIGHT;
         } else {
-          cmd = Command.TR;
+          cmd = Command.TURN_RIGHT;
         }
       }
     } else if (cmdAngle < 159.f) {
-      cmd = Command.TSHR;
+      cmd = Command.TURN_SHARPLY_RIGHT;
     } else if (is180DegAngle(cmdAngle) && cmdAngle >= 179.f && higherBadWayAngle == 181.f && lowerBadWayAngle == -181.f) {
-      cmd = Command.TU;
+      cmd = Command.U_TURN_180;
     } else {
-      cmd = Command.TRU;
+      cmd = Command.U_TURN_RIGHT;
     }
   }
 
