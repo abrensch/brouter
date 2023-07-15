@@ -66,11 +66,11 @@ final class BExpression {
       } else {
         BExpression eCollapsed = e.tryCollapse();
         if (e != eCollapsed) {
-          e = eCollapsed; // allow breakspoint..
+          e = eCollapsed; // allow breakpoint..
         }
         BExpression eEvaluated = e.tryEvaluateConstant();
         if (e != eEvaluated) {
-          e = eEvaluated; // allow breakspoint..
+          e = eEvaluated; // allow breakpoint..
         }
       }
     }
