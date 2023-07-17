@@ -36,8 +36,8 @@ import btools.util.FrozenLongMap;
 import btools.util.StringUtils;
 
 public final class OsmTrack {
-  final public static String version = "1.7.1";
-  final public static String versionDate = "12072023";
+  final public static String version = "1.7.2-beta-1";
+  final public static String versionDate = "12072023+";
 
   // csv-header-line
   private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy";
