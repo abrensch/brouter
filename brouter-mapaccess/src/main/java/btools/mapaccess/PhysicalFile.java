@@ -69,7 +69,7 @@ final public class PhysicalFile {
       DataBuffers dataBuffers = new DataBuffers();
       pf = new PhysicalFile(f, dataBuffers, -1, -1);
       int div = pf.divisor;
-      for (int lonDegree = 0; lonDegree < 5; lonDegree++) { // does'nt really matter..
+      for (int lonDegree = 0; lonDegree < 5; lonDegree++) { // doesn't really matter..
         for (int latDegree = 0; latDegree < 5; latDegree++) { // ..where on earth we are
           OsmFile osmf = new OsmFile(pf, lonDegree, latDegree, dataBuffers);
           if (osmf.hasData())
