@@ -14,7 +14,6 @@ assign   allow_ferries            = true   # %allow_ferries% | Set false to disa
 assign   ignore_cycleroutes       = false  # %ignore_cycleroutes% | Set true for better elevation results | boolean
 assign   stick_to_cycleroutes     = false  # %stick_to_cycleroutes% | Set true to just follow cycleroutes | boolean
 assign   avoid_unsafe             = false  # %avoid_unsafe% | Set true to avoid standard highways | boolean
-assign   avoid_path               = false  # %avoid_path% | Set true to avoid pathes | boolean
 
 assign   consider_noise           = false  # %consider_noise% | Activate to prefer a low-noise route | boolean
 assign   consider_river           = false  # %consider_river% | Activate to prefer a route along rivers or sees | boolean
