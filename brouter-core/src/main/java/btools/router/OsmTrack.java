@@ -1000,7 +1000,7 @@ public final class OsmTrack {
       for (VoiceHint hint : voiceHints.list) {
         sb.append("          [");
         sb.append(hint.indexInTrack);
-        sb.append(',').append(hint.getCommand());
+        sb.append(',').append(hint.getJsonCommandIndex());
         sb.append(',').append(hint.getExitNumber());
         sb.append(',').append(hint.distanceToNext);
         sb.append(',').append((int) hint.angle);
