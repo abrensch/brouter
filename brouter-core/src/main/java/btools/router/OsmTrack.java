@@ -839,7 +839,7 @@ public final class OsmTrack {
     return sb.toString();
   }
 
-  static public String formatAsGpxWaypoint(OsmNodeNamed n) {
+  public String formatAsGpxWaypoint(OsmNodeNamed n) {
     try {
       StringWriter sw = new StringWriter(8192);
       BufferedWriter bw = new BufferedWriter(sw);
@@ -854,7 +854,7 @@ public final class OsmTrack {
     }
   }
 
-  static public void formatGpxHeader(BufferedWriter sb) throws IOException {
+  public void formatGpxHeader(BufferedWriter sb) throws IOException {
     sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     sb.append("<gpx \n");
     sb.append(" xmlns=\"http://www.topografix.com/GPX/1/1\" \n");
@@ -863,11 +863,11 @@ public final class OsmTrack {
     sb.append(" creator=\"BRouter-" + version + "\" version=\"1.1\">\n");
   }
 
-  static public void formatGpxFooter(BufferedWriter sb) throws IOException {
+  public void formatGpxFooter(BufferedWriter sb) throws IOException {
     sb.append("</gpx>\n");
   }
 
-  static public void formatWaypointGpx(BufferedWriter sb, OsmNodeNamed n) throws IOException {
+  public void formatWaypointGpx(BufferedWriter sb, OsmNodeNamed n) throws IOException {
     sb.append(" <wpt lon=\"").append(formatILon(n.ilon)).append("\" lat=\"")
       .append(formatILat(n.ilat)).append("\">");
     if (n.getSElev() != Short.MIN_VALUE) {

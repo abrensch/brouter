@@ -300,7 +300,7 @@ public class RoutingEngine extends Thread {
       OsmNodeNamed n = new OsmNodeNamed(listOne.get(0).crosspoint);
       n.selev = startNode != null ? startNode.getSElev() : Short.MIN_VALUE;
 
-      outputMessage = OsmTrack.formatAsGpxWaypoint(n);
+      outputMessage = new OsmTrack().formatAsGpxWaypoint(n);
 
       long endTime = System.currentTimeMillis();
       logInfo("execution time = " + (endTime - startTime) / 1000. + " seconds");
