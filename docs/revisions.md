@@ -2,7 +2,13 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### [brouter-1.7.1.zip](../brouter_bin/brouter-1.7.1.zip) (current revision, 12.07.2023)
+### [brouter-1.7.2.zip](../brouter_bin/brouter-1.7.2.zip) (current revision, 19.07.2023)
+
+- Re-index Json output
+  Note: This is different to releases 1.7.0 and 1.7.1. It is recommended to use the current version to avoid breaks in voice hint output for GeoJson.
+
+
+### [brouter-1.7.1.zip](../brouter_bin/brouter-1.7.1.zip) (12.07.2023)
 
 Android
 
