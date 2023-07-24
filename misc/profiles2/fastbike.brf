@@ -155,6 +155,8 @@ assign hascycleway = not
   and ( or cycleway= cycleway=no|none ) and ( or cycleway:left= cycleway:left=no ) ( or cycleway:right= cycleway:right=no )
 
 assign trafficpenalty0 =
+  if consider_traffic then
+  (
     if highway=primary|primary_link then
     (
       if      estimated_traffic_class=4 then 0.2
@@ -179,6 +181,8 @@ assign trafficpenalty0 =
       else 0
     )
     else 0
+  )
+  else 0
 
 assign trafficpenalty =
   if consider_traffic then
