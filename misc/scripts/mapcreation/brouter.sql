@@ -675,15 +675,6 @@ WHERE losmid IN (
         WHERE
             forest_class NOT IN ('1'));
 
-DELETE FROM town_tags
-WHERE losmid IN (
-        SELECT
-            losmid
-        FROM
-            river_tags
-        WHERE
-            river_class NOT IN ('1'));
-
 SELECT
     count(*)
 FROM
