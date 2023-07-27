@@ -12,29 +12,29 @@ Import new tags for noise, green and water feature
 - prepare database
 
 ```
-# postgres createdb --encoding=UTF8  -U postgres osm
+# postgres createdb --encoding=UTF8 -U postgres osm
 
-# postgres psql  -U postgres osm --command='CREATE EXTENSION postgis;'
+# postgres psql -U postgres osm --command='CREATE EXTENSION postgis;'
 ```
 
 - import to database and create
 
 ```
-# osm2pgsql  -c -s -d osm -U postgres -W -H localhost -P 5432 -O flex  -S brouter_cfg.lua /path/to/file.pbf
+# osm2pgsql -c -s -d osm -U postgres -W -H localhost -P 5432 -O flex -S brouter_cfg.lua /path/to/file.pbf
 ```
 
 
-- generate new tags inside the database
+- generate new tags inside the database (use `<` if `-f` does not work)
 
 ```
-# psql -d osm -U postgres  -H localhost -P 5432  -f brouter.sql
+# postgres psql -d osm -U postgres -f brouter.sql
 ```
 
 - prepare generation of pbf
 
   - when using database and new tagging an other lookups.dat is needed, use lookups_db.dat and rename
 
-  - script needs a jdbc in the classpath
+  - script needs a jdbc in the classpath (on UNIX and Linux use a colon `:` as delimiter) 
 
     `... -cp ../postgresql-42.6.0.jar;../brouter_fc.jar ...`
 
