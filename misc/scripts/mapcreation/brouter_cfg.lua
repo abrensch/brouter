@@ -2,8 +2,9 @@
 
 local srid = 3857
 
--- 3857 SHOULD BE USED here for distance calculation ... (not srid = 4326 !)
---  https://gis.stackexchange.com/questions/48949/epsg-3857-or-4326-for-web-mapping
+
+-- 3857 (projection) SHOULD BE USED here for distance calculation ... (not srid = 4326 !)
+-- https://gis.stackexchange.com/questions/48949/epsg-3857-or-4326-for-web-mapping
 
 local tables = {}
 
@@ -28,6 +29,11 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
    { column = 'leisure', type = 'text' },
    { column = 'natural', type = 'text' },
    { column = 'water', type = 'text' },
+   { column = 'power', type = 'text' },
+   { column = 'plant_method', type = 'text' },
+   { column = 'plant_source', type = 'text' },
+   { column = 'aeroway', type = 'text' },
+   { column = 'aerodrome', type = 'text' },
    { column = 'way', type = 'geometry', projection = srid, not_null = true },
 })
 
@@ -73,7 +79,34 @@ function has_area_tags(tags)
    end
 
    return tags.place
-   or tags.population
+          or tags.population
+end
+
+function get_plant_source(tags)
+   local source = nil
+
+   for _, key in ipairs({'source'}) do
+      local a = tags['plant:' .. key]
+      if a then
+         source = a
+      end
+   end
+
+   return source
+end
+
+
+function get_plant_method(tags)
+   local method = nil
+
+   for _, key in ipairs({'method'}) do
+      local a = tags['plant:' .. key]
+      if a then
+         method = a
+      end
+   end
+
+   return method
 end
 
 function osm2pgsql.process_node(object)
@@ -87,7 +120,6 @@ function osm2pgsql.process_node(object)
          population = object.tags.population,
          way   = object:as_point()
       })
-
    end
 
    if (object.tags.natural == 'peak')   then
@@ -115,8 +147,13 @@ function osm2pgsql.process_way(object)
          leisure     = object.tags.leisure,
          natural    = object.tags.natural,
          water = object.tags.water,
+         power = object.tags.power,
+         plant_source = get_plant_source(object.tags),
+         plant_method = get_plant_method(object.tags),
+         aeroway = object.tags.aeroway,
+         aerodrome = object.tags.aerodrome,
          way = object:as_polygon()
-      })
+     })
    end
 
    if ( object.tags.highway ~= nil) or  ( object.tags.waterway ~= nil) then
@@ -130,7 +167,6 @@ function osm2pgsql.process_way(object)
          way = object:as_linestring()
       })
    end
-
 
 end
 
@@ -149,6 +185,11 @@ function osm2pgsql.process_relation(object)
       leisure     = object.tags.leisure,
       natural    = object.tags.natural,
       water = object.tags.water,
+      power = object.tags.power,
+      plant_source = get_plant_source(object.tags),
+      plant_method = get_plant_method(object.tags),
+      aeroway = object.tags.aeroway,
+      aerodrome = object.tags.aerodrome,
       way = object:as_multipolygon()
    })
 
