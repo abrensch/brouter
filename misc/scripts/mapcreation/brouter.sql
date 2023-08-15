@@ -44,7 +44,6 @@ SELECT
     --  "buffer radius" was initially created with 50 meters at a lat 50 degrees....  ==> ST_Buffer(way,50)
     -- but, using geometry "projection", to get same results by a calculation of the planet (latitude between -80, +85) this value should be adapted to the latitude of the highways...
 ,
-    --
     ST_Buffer (way, 32.15 * st_length (ST_Transform (way, 3857)) / st_length (ST_Transform (way, 4326)::geography)) AS way INTO TABLE osm_line_buf_50
 FROM
     lines
@@ -361,7 +360,7 @@ SELECT
     now();
 
 -- create tags for noise
--- create raw data
+-- create raw data for noise coming from cars
 --     when several highways-segments are producing noise, aggregate the noises using the "ST_Union" of the segments!
 --     (better as using "sum" or "max" that do not deliver good factors)
 SELECT
@@ -418,6 +417,47 @@ GROUP BY
 ORDER BY
     sum_noise_factor DESC;
 
+-- noise coming from airports
+SELECT
+    name,
+    st_buffer (way, (643 * st_length (ST_Transform (st_makeline (st_startpoint (way), st_centroid (way)), 3857)) / st_length (ST_Transform (st_makeline (st_startpoint (way), st_centroid (way)), 4326)::geography))) AS way INTO TABLE poly_airport
+FROM
+    polygons
+WHERE
+    aeroway = 'aerodrome'
+    AND aerodrome = 'international';
+
+SELECT
+    m.osm_id losmid,
+    st_area (st_intersection (m.way, q.way)) / (st_area (m.way) * 1.5) AS dist_factor INTO TABLE noise_airport
+FROM
+    osm_line_buf_50 AS m
+    INNER JOIN poly_airport AS q ON ST_intersects (m.way, q.way)
+WHERE
+    m.highway IS NOT NULL
+    --GROUP BY losmid, m.way
+ORDER BY
+    dist_factor DESC;
+
+-- add car & airport noises
+SELECT
+    losmid,
+    sum(noise_factor) AS sum_noise_factor INTO TABLE noise_tmp3
+FROM ((
+        SELECT
+            losmid,
+            sum_noise_factor AS noise_factor
+        FROM
+            noise_tmp2 AS nois1)
+    UNION (
+        SELECT
+            losmid,
+            dist_factor AS noise_factor
+        FROM
+            noise_airport AS nois2)) AS nois_sum
+GROUP BY
+    losmid;
+
 -- create the noise classes
 SELECT
     losmid,
@@ -435,7 +475,7 @@ SELECT
         '6'
     END AS noise_class INTO TABLE noise_tags
 FROM
-    noise_tmp2 y
+    noise_tmp3 y
 WHERE
     y.sum_noise_factor > 0.01;
 
@@ -707,7 +747,8 @@ SELECT
 -----------------------------------------
 -- OSM data used to calculate/estimate the traffic:
 --    population of towns (+ distance from position to the towns)
---    industrial areas (landuse=industrial)  (+ surface of the areas and distance from position)
+--    industrial& retail areas (landuse=industrial/retail)  (consider surface of the areas and distance from position)
+--    airports international
 --    motorway density (traffic on motorways decreases traffic on primary/secondary/tertiary)         calculated on grid
 --    highway density  (traffic decreases when more primary/secondary/tertiary highways are available) calculated on grid
 --    exceptions: near junctions between motorways and primary/secondary/tertiary the traffic increases on the primary/secondary/tertiary..
@@ -841,7 +882,8 @@ SELECT
     now();
 
 --
--- traffic due to industrial parcs ...
+-- traffic due to industrial or retail areas ... (exceptions/not considered: solar & wind parks!)
+-- traffic due to aerodromes
 --
 SELECT
     now();
@@ -852,8 +894,15 @@ SELECT
     st_length (ST_Transform (st_makeline (st_startpoint (way), st_centroid (way)), 3857)) / st_length (ST_Transform (st_makeline (st_startpoint (way), st_centroid (way)), 4326)::geography) AS merca_coef INTO TABLE poly_industri
 FROM
     polygons
-WHERE
-    landuse = 'industrial';
+WHERE (landuse IN ('industrial', 'retail'))
+    OR (aeroway = 'aerodrome'
+        AND aerodrome = 'international')
+    --where landuse in   ('industrial', 'retail')
+    --where landuse in   ('industrial')
+    AND (plant_method IS NULL
+        OR plant_method NOT IN ('photovoltaic'))
+    AND (plant_source IS NULL
+        OR plant_source NOT IN ('solar', 'wind'));
 
 SELECT
     name,
