@@ -64,7 +64,7 @@ public class BRouterWorker {
       if ("osmand".equalsIgnoreCase(tiFormat)) {
         rc.turnInstructionMode = 3;
       } else if ("locus".equalsIgnoreCase(tiFormat)) {
-        rc.turnInstructionMode = 7;
+        rc.turnInstructionMode = 2;
       }
     }
     if (params.containsKey("timode")) {
