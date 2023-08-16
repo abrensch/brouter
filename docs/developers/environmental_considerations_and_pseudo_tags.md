@@ -1,7 +1,7 @@
 Environmental considerations (penalties for traffic, noise, town, no river, no forest) are possible due to the creation of pseudo tags during processing OSM data by spatial SQL queries [https://github.com/abrensch/brouter/blob/master/misc/scripts/mapcreation/brouter.sql](url). During this processing, roads are extended by a 50 m buffer creating 100 m wide lines. Then it is calculated what percentage of such line is at a specific distance to a noise source or within a forest, for example. The percentage is converted to a factor and the factor is assigned to a class. For traffic, calculations are on another level of complexity. A way can be long and go through different environments, so a class is average for the whole way length. To improve calculations one can divide such ways at junctions by editing in OSM.
 
 ### consider_noise, noise_penalty
-For proximity of noisy roads (secondary and higher). The noise factor represents the proportion of a road's buffer area that intersects with noisy road buffers. This proportion is reduced: 
+For proximity of noisy roads (secondary and higher). The noise factor represents the proportion of a road's buffer area that is inside noisy road buffers. This proportion is reduced: 
 - for motorways and trunk roads with max speed < 105 by 1.5
 - for primary roads 2 times 
 - 3 times if maxspeed is 75 - 105  for primary and secondary
