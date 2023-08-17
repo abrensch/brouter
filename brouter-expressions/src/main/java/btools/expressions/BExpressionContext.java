@@ -588,7 +588,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
               }
               value = String.format(Locale.US, "%3.1f", foot * 0.3048f);
             }
-            if (value.toLowerCase().contains("'")) {
+            if (value.contains("'")) {
               float foot = 0f;
               int inch = 0;
               String[] sa = value.toLowerCase().trim().split("'");
@@ -601,9 +601,9 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
                 foot += inch / 12f;
               }
               value = String.format(Locale.US, "%3.1f", foot * 0.3048f);
-            } else if (value.contains("in") || value.contains("\"")) {
+            } else if (value.toLowerCase().contains("in") || value.contains("\"")) {
               float inch = 0f;
-              if (value.indexOf("in") > 0) value = value.substring(0, value.indexOf("in"));
+              if (value.toLowerCase().indexOf("in") > 0) value = value.substring(0, value.toLowerCase().indexOf("in"));
               if (value.indexOf("\"") > 0) value = value.substring(0, value.indexOf("\""));
               inch = Float.parseFloat(value.trim());
               value = String.format(Locale.US, "%3.1f", inch * 0.0254f);
@@ -613,20 +613,18 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
               feet = Float.parseFloat(s.trim());
               value = String.format(Locale.US, "%3.1f", feet * 0.3048f);
             } else if (value.toLowerCase().contains("fathom") || value.toLowerCase().contains("fm")) {
-              float fathom = 0f;
               String s = value.substring(0, value.toLowerCase().indexOf("f"));
-              fathom = Float.parseFloat(s.trim());
+              float fathom = Float.parseFloat(s.trim());
               value = String.format(Locale.US, "%3.1f", fathom * 1.8288f);
-            } else if (value.contains("cm")) {
-              String[] sa = value.trim().split("cm");
-              if (sa.length == 1) value = sa[0].trim();
+            } else if (value.toLowerCase().contains("cm")) {
+              String[] sa = value.toLowerCase().trim().split("cm");
+              if (sa.length >= 1) value = sa[0].trim();
               float cm = Float.parseFloat(value.trim());
-              value = String.format(Locale.US, "%3.1f", cm * 100f);
+              value = String.format(Locale.US, "%3.1f", cm / 100f);
             } else if (value.toLowerCase().contains("meter")) {
               String s = value.substring(0, value.toLowerCase().indexOf("m"));
               value = s.trim();
             } else if (value.toLowerCase().contains("mph")) {
-              value = value.replace("_", "");
               String[] sa = value.trim().toLowerCase().split("mph");
               if (sa.length >= 1) value = sa[0].trim();
               float mph = Float.parseFloat(value.trim());
@@ -636,10 +634,10 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
               if (sa.length >= 1) value = sa[0].trim();
               float nm = Float.parseFloat(value.trim());
               value = String.format(Locale.US, "%3.1f", nm * 1.852f);
-            } else if (value.contains("kmh") || value.contains("km/h") || value.contains("kph")) {
-              String[] sa = value.trim().split("k");
-              if (sa.length == 1) value = sa[0].trim();
-            } else if (value.contains("m")) {
+            } else if (value.toLowerCase().contains("kmh") || value.toLowerCase().contains("km/h") || value.toLowerCase().contains("kph")) {
+              String[] sa = value.toLowerCase().trim().split("k");
+              if (sa.length > 1) value = sa[0].trim();
+            } else if (value.toLowerCase().contains("m")) {
               String s = value.substring(0, value.toLowerCase().indexOf("m"));
               value = s.trim();
             } else if (value.contains("(")) {

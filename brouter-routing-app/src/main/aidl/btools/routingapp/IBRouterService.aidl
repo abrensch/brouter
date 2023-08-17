@@ -10,6 +10,7 @@ interface IBRouterService {
     //  "maxRunningTime"-->String with a number of seconds for the routing timeout, default = 60
     //  "turnInstructionFormat"-->String selecting the format for turn-instructions values: osmand, locus
     //  "trackFormat"-->[kml|gpx|json] default = gpx
+    //  "acceptCompressedResult"-->[true] sends a compressed result when output format is gpx
     //  "lats"-->double[] array of latitudes; 2 values at least.
     //  "lons"-->double[] array of longitudes; 2 values at least.
     //  "nogoLats"-->double[] array of nogo latitudes; may be null.
