@@ -92,6 +92,7 @@
             android:name=".RoutingParameterDialog"
             android:exported="true"
             android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             />
 
         <service
