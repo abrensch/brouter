@@ -845,8 +845,13 @@ public class BRouterView extends View {
     for (int i = 0; i < 6; i++) {
       if (checkedModes[i]) {
         writeRawTrackToMode(routingModes[i]);
-        String s = map.get(routingModes[i]).params;
-        String p = map.get(routingModes[i]).profile;
+        ServiceModeConfig sm = map.get(routingModes[i]);
+        String s = null;
+        String p = null;
+        if (sm != null) {
+          s = sm.params;
+          p = sm.profile;
+        }
         if (s == null || !p.equals(profileName)) s = "noparams";
         ServiceModeConfig smc = new ServiceModeConfig(routingModes[i], profileName, s);
         for (OsmNodeNamed nogo : nogoVetoList) {
