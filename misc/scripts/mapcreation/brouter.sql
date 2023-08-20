@@ -76,10 +76,8 @@ FROM
     polygons p
 WHERE
     -- do not consider small surfaces
-    st_area (p.way) > 1000
-    AND p.natural IN ('water')
-    OR (p.landuse IN ('forest', 'allotments', 'flowerbed', 'orchard', 'vineyard', 'recreation_ground', 'village_green')
-        OR p.leisure IN ('garden', 'park', 'nature_reserve'));
+    st_area (st_transform (p.way, 4326)::geography) > 10000
+    AND p.natural IN ('water');
 
 SELECT
     osm_id::bigint,
@@ -92,10 +90,9 @@ FROM
     polygons p
 WHERE
     -- do not consider small surfaces
-    st_area (p.way) > 1000
-    AND p.natural IN ('water')
-    OR (p.landuse IN ('forest', 'allotments', 'flowerbed', 'orchard', 'vineyard', 'recreation_ground', 'village_green')
-        OR p.leisure IN ('garden', 'park', 'nature_reserve'));
+    st_area (st_transform (p.way, 4326)::geography) > 1000
+    AND (p.leisure IN ('garden', 'park', 'nature_reserve')
+        OR p.landuse IN ('forest', 'allotments', 'orchard', 'vineyard', 'village_green', 'farmland', 'meadow', 'grass'));
 
 SELECT
     osm_id::bigint,
@@ -575,17 +572,17 @@ ORDER BY
 SELECT
     now();
 
--- create tags for forest
+-- create tags for green
 SELECT
     m.osm_id,
     m.highway,
-    st_area (st_intersection (m.way, ST_Union (q.way))) / st_area (m.way) AS green_factor INTO TABLE forest_tmp
+    st_area (st_intersection (m.way, ST_Union (q.way))) / st_area (m.way) AS green_factor INTO TABLE green_tmp
 FROM
     osm_line_buf_50 AS m
     INNER JOIN osm_poly_no_buf AS q ON ST_Intersects (m.way, q.way)
 WHERE
     m.highway IS NOT NULL
-    AND ((q.landuse IN ('forest', 'allotments', 'flowerbed', 'orchard', 'vineyard', 'recreation_ground', 'village_green'))
+    AND ((q.landuse IN ('forest', 'allotments', 'orchard', 'vineyard', 'village_green', 'farmland', 'meadow', 'grass'))
         OR q.leisure IN ('garden', 'park', 'nature_reserve'))
     AND (st_area (ST_Transform (q.way, 4326)::geography) / 1000000) < 5000
 GROUP BY
@@ -598,17 +595,76 @@ ORDER BY
 --
 SELECT
     y.osm_id losmid,
-    CASE WHEN y.green_factor < 0.1 THEN
+    CASE WHEN y.green_factor < 0.5 THEN
         NULL
-    WHEN y.green_factor < 0.2 THEN
-        '1'
-    WHEN y.green_factor < 0.4 THEN
-        '2'
     WHEN y.green_factor < 0.6 THEN
-        '3'
+        '1'
+    WHEN y.green_factor < 0.7 THEN
+        '2'
     WHEN y.green_factor < 0.8 THEN
+        '3'
+    WHEN y.green_factor < 0.9 THEN
         '4'
     WHEN y.green_factor < 0.98 THEN
+        '5'
+    ELSE
+        '6'
+    END AS green_class INTO TABLE green_tags
+FROM
+    green_tmp y
+WHERE
+    y.green_factor > 0.5;
+
+SELECT
+    count(*)
+FROM
+    green_tags;
+
+SELECT
+    green_class,
+    count(*)
+FROM
+    green_tags
+GROUP BY
+    green_class
+ORDER BY
+    green_class;
+
+SELECT
+    now();
+
+-- create tags for forest
+SELECT
+    m.osm_id,
+    m.highway,
+    st_area (st_intersection (m.way, ST_Union (q.way))) / st_area (m.way) AS forest_factor INTO TABLE forest_tmp
+FROM
+    osm_line_buf_50 AS m
+    INNER JOIN osm_poly_no_buf AS q ON ST_Intersects (m.way, q.way)
+WHERE
+    m.highway IS NOT NULL
+    AND q.landuse IN ('forest')
+GROUP BY
+    m.osm_id,
+    m.highway,
+    m.way
+ORDER BY
+    forest_factor DESC;
+
+--
+SELECT
+    y.osm_id losmid,
+    CASE WHEN y.forest_factor < 0.5 THEN
+        NULL
+    WHEN y.forest_factor < 0.6 THEN
+        '1'
+    WHEN y.forest_factor < 0.7 THEN
+        '2'
+    WHEN y.forest_factor < 0.8 THEN
+        '3'
+    WHEN y.forest_factor < 0.9 THEN
+        '4'
+    WHEN y.forest_factor < 0.98 THEN
         '5'
     ELSE
         '6'
@@ -616,7 +672,7 @@ SELECT
 FROM
     forest_tmp y
 WHERE
-    y.green_factor > 0.1;
+    y.forest_factor > 0.5;
 
 SELECT
     count(*)
@@ -659,7 +715,7 @@ FROM
     INNER JOIN cities_all AS q ON ST_Intersects (m.way, q.way)
 WHERE
     m.highway IS NOT NULL
-    AND q.population > '50000'
+    AND q.population > '1000'
 ORDER BY
     town_factor DESC;
 
@@ -711,18 +767,7 @@ WHERE losmid IN (
         SELECT
             losmid
         FROM
-            forest_tags
-        WHERE
-            forest_class NOT IN ('1'));
-
-DELETE FROM town_tags
-WHERE losmid IN (
-        SELECT
-            losmid
-        FROM
-            river_tags
-        WHERE
-            river_class NOT IN ('1'));
+            green_tags);
 
 SELECT
     count(*)
@@ -1189,4 +1234,3 @@ ANALYSE;
 
 SELECT
     now();
-
