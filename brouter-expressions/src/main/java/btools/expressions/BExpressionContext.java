@@ -578,7 +578,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
             if (value.toLowerCase().contains("ft")) {
               float foot = 0f;
               int inch = 0;
-              String[] sa = value.toLowerCase().trim().split("ft");
+              String[] sa = value.trim().toLowerCase().split("ft");
               if (sa.length >= 1) foot = Float.parseFloat(sa[0].trim());
               if (sa.length == 2) {
                 value = sa[1];
@@ -588,10 +588,11 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
               }
               value = String.format(Locale.US, "%3.1f", foot * 0.3048f);
             }
+            String valueLowerCase = value.toLowerCase(Locale.US);
             if (value.contains("'")) {
               float foot = 0f;
               int inch = 0;
-              String[] sa = value.toLowerCase().trim().split("'");
+              String[] sa = valueLowerCase.trim().split("'");
               if (sa.length >= 1) foot = Float.parseFloat(sa[0].trim());
               if (sa.length == 2) {
                 value = sa[1];
@@ -601,47 +602,47 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
                 foot += inch / 12f;
               }
               value = String.format(Locale.US, "%3.1f", foot * 0.3048f);
-            } else if (value.toLowerCase().contains("in") || value.contains("\"")) {
+            } else if (valueLowerCase.contains("in") || value.contains("\"")) {
               float inch = 0f;
-              if (value.toLowerCase().indexOf("in") > 0) value = value.substring(0, value.toLowerCase().indexOf("in"));
+              if (valueLowerCase.indexOf("in") > 0) value = value.substring(0, valueLowerCase.indexOf("in"));
               if (value.indexOf("\"") > 0) value = value.substring(0, value.indexOf("\""));
               inch = Float.parseFloat(value.trim());
               value = String.format(Locale.US, "%3.1f", inch * 0.0254f);
-            } else if (value.toLowerCase().contains("feet") || value.toLowerCase().contains("foot")) {
+            } else if (valueLowerCase.contains("feet") || valueLowerCase.contains("foot")) {
               float feet = 0f;
-              String s = value.substring(0, value.toLowerCase().indexOf("f"));
+              String s = value.substring(0, valueLowerCase.indexOf("f"));
               feet = Float.parseFloat(s.trim());
               value = String.format(Locale.US, "%3.1f", feet * 0.3048f);
-            } else if (value.toLowerCase().contains("fathom") || value.toLowerCase().contains("fm")) {
-              String s = value.substring(0, value.toLowerCase().indexOf("f"));
+            } else if (valueLowerCase.contains("fathom") || valueLowerCase.contains("fm")) {
+              String s = value.substring(0, valueLowerCase.indexOf("f"));
               float fathom = Float.parseFloat(s.trim());
               value = String.format(Locale.US, "%3.1f", fathom * 1.8288f);
-            } else if (value.toLowerCase().contains("cm")) {
-              String[] sa = value.toLowerCase().trim().split("cm");
+            } else if (valueLowerCase.contains("cm")) {
+              String[] sa = valueLowerCase.trim().split("cm");
               if (sa.length >= 1) value = sa[0].trim();
               float cm = Float.parseFloat(value.trim());
               value = String.format(Locale.US, "%3.1f", cm / 100f);
-            } else if (value.toLowerCase().contains("meter")) {
-              String s = value.substring(0, value.toLowerCase().indexOf("m"));
+            } else if (valueLowerCase.contains("meter")) {
+              String s = value.substring(0, valueLowerCase.indexOf("m"));
               value = s.trim();
-            } else if (value.toLowerCase().contains("mph")) {
-              String[] sa = value.trim().toLowerCase().split("mph");
+            } else if (valueLowerCase.contains("mph")) {
+              String[] sa = valueLowerCase.trim().split("mph");
               if (sa.length >= 1) value = sa[0].trim();
               float mph = Float.parseFloat(value.trim());
               value = String.format(Locale.US, "%3.1f", mph * 1.609344f);
-            } else if (value.toLowerCase().contains("knot")) {
-              String[] sa = value.trim().toLowerCase().split("knot");
+            } else if (valueLowerCase.contains("knot")) {
+              String[] sa = valueLowerCase.trim().split("knot");
               if (sa.length >= 1) value = sa[0].trim();
               float nm = Float.parseFloat(value.trim());
               value = String.format(Locale.US, "%3.1f", nm * 1.852f);
-            } else if (value.toLowerCase().contains("kmh") || value.toLowerCase().contains("km/h") || value.toLowerCase().contains("kph")) {
-              String[] sa = value.toLowerCase().trim().split("k");
+            } else if (valueLowerCase.contains("kmh") || valueLowerCase.contains("km/h") || valueLowerCase.contains("kph")) {
+              String[] sa = valueLowerCase.trim().split("k");
               if (sa.length > 1) value = sa[0].trim();
-            } else if (value.toLowerCase().contains("m")) {
-              String s = value.substring(0, value.toLowerCase().indexOf("m"));
+            } else if (valueLowerCase.contains("m")) {
+              String s = value.substring(0, valueLowerCase.indexOf("m"));
               value = s.trim();
             } else if (value.contains("(")) {
-              String s = value.substring(0, value.toLowerCase().indexOf("("));
+              String s = value.substring(0, valueLowerCase.indexOf("("));
               value = s.trim();
             }
             // found negative maxdraft values
