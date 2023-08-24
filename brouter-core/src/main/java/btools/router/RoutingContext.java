@@ -216,6 +216,9 @@ public final class RoutingContext {
   public boolean inverseRouting;
   public boolean showTime;
 
+  public String outputFormat = "gpx";
+  public boolean exportWaypoints = false;
+
   public OsmPrePath firstPrePath;
 
   public int turnInstructionMode; // 0=none, 1=auto, 2=locus, 3=osmand, 4=comment-style, 5=gpsies-style
