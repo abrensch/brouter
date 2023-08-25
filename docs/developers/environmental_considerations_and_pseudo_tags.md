@@ -28,9 +28,13 @@ To be classified as noise class 6, a way must be less than 20 m on average from 
 
 
 ### consider_river, no_river_penalty
-Waters, including lakes, have a 120 m buffer.
+OSM data recognized as river:
+- waterway: river, canal
+- natural: water (except wastewater)
 
-River_see overlap = river class 
+Waterways have a 50 m wide buffer. Water areas have a 120 m wide buffer.
+
+river_see = river class 
 - < 0.17                  =                  '1'
 - < 0.35                     =                '2'
 - < 0.57                      =              '3'
