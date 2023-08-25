@@ -45,7 +45,7 @@ OSM data recognized as forest:
   
 No forest buffers are used.
 
-Imagine you trace the way with a pencil drawing lines 100 meters wide. Then estimated_forest_class=6 corresponds to the case that 98% of the line is in the woodland. This number is called a green factor.
+Imagine you trace the way with a pencil drawing lines 100 meters wide. Then estimated_forest_class=6 corresponds to the case that at least 98% of the line is in the woodland. This number is called a green factor.
 
 green_factor = forest class
 - < 0.1             =                         NULL
