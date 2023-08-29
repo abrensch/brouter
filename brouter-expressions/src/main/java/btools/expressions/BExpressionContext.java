@@ -573,8 +573,13 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
             value = value.replaceAll("’", "'");
             value = value.replaceAll("”", "\"");
             if (value.indexOf("-") == 0) value = value.substring(1);
-            if (value.contains("-")) {    // replace eg. 1.4-1.6 m but also 1'-6"
-              value = value.substring(0, value.indexOf("-")); // + tmp;
+            if (value.contains("-")) {
+              // replace eg. 1.4-1.6 m to 1.4m
+              // but also 1'-6" to 1'
+              // keep the unit of measure
+              String tmp = value.substring(value.indexOf("-") + 1).replaceAll("[0-9.,-]", "");
+              value = value.substring(0, value.indexOf("-"));
+              if (value.matches("\\d+(\\.\\d+)?")) value += tmp;
             }
             value = value.toLowerCase(Locale.US);
 
