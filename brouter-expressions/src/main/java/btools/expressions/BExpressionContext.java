@@ -569,9 +569,8 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
             value = value.replaceAll(">", "");
             value = value.replaceAll("_", "");
             value = value.replaceAll(" ", "");
-            //value = value.replaceAll(" ", ""); // nbsp
-            value = value.replaceAll("’", "'");
-            value = value.replaceAll("”", "\"");
+            value = value.replace((char) 8217, '\'');
+            value = value.replace((char) 8221, '"');
             if (value.indexOf("-") == 0) value = value.substring(1);
             if (value.contains("-")) {
               // replace eg. 1.4-1.6 m to 1.4m
