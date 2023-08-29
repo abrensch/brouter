@@ -1,4 +1,4 @@
-Environmental considerations (penalties for traffic, noise, town, no river, no forest) are possible due to the creation of pseudo tags during processing OSM data by spatial SQL queries in https://github.com/abrensch/brouter/blob/master/misc/scripts/mapcreation/brouter.sql. During this processing, roads are extended by a 50 m buffer creating 100 m wide lines. Then it is calculated what percentage of such line is at a specific distance to a noise source or within a forest, for example. The percentage is converted to a factor and the factor is assigned to a class. Ways that pass through different environments and are represented by a single OSM way can be problematic because the class is always based on the average environment along an entire OSM way. For traffic, calculations are on another level of complexity.
+Environmental considerations (penalties for traffic, noise, town, no river, no forest) are possible due to the creation of pseudo tags during processing OSM data by spatial SQL queries in https://github.com/abrensch/brouter/blob/master/misc/scripts/mapcreation/brouter.sql. During this processing, roads are extended by a 32 m buffer creating 64 m wide lines. Then it is calculated what percentage of such line is at a specific distance to a noise source or within a forest, for example. The percentage is converted to a factor and the factor is assigned to a class. Ways that pass through different environments and are represented by a single OSM way can be problematic because the class is always based on the average environment along an entire OSM way. For traffic, calculations are on another level of complexity.
 
 ### consider_noise, noise_penalty
 For proximity of noisy roads (secondary and higher). The noise factor represents the proportion of a road's buffer area that lies within the 100-metre buffer of noisy roads. This proportion is reduced: 
@@ -32,7 +32,7 @@ OSM data recognized as river:
 - waterway: river, canal
 - natural: water (except wastewater)
 
-Waterways have a 50 m wide buffer. Water areas have a 120 m wide buffer.
+Waterways have 32 m wide buffers. Water areas have 77 m wide buffers.
 
 river_see = river class 
 - < 0.17                  =                  '1'
@@ -47,9 +47,9 @@ OSM data recognized as forest:
 - landuse: forest, allotments, flowerbed, orchard, vineyard, recreation_ground, village_green
 - leisure: garden, park, nature_reserve
   
-No forest buffers are used.
+Forest has 77 m buffers.
 
-Imagine you trace the way with a pencil drawing lines 100 meters wide. Then estimated_forest_class=6 corresponds to the case that at least 98% of the line is in the woodland. This number is called a green factor.
+Imagine you trace the way with a pencil drawing lines 62 meters wide. Then estimated_forest_class=6 corresponds to the case that at least 98% of the line is in the woodland + 77 m buffer. This number is called a green factor.
 
 green_factor = forest class
 - < 0.1             =                         NULL
