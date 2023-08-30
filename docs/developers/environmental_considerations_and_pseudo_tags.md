@@ -47,7 +47,7 @@ OSM data recognized as forest:
 - landuse: forest, allotments, flowerbed, orchard, vineyard, recreation_ground, village_green
 - leisure: garden, park, nature_reserve
   
-Forest has 77 m buffers.
+No forest buffers are used.
 
 Imagine you trace the way with a pencil drawing lines 62 meters wide. Then estimated_forest_class=6 corresponds to the case that at least 98% of the line is in the woodland + 77 m buffer. This number is called a green factor.
 
