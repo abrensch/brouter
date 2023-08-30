@@ -1,7 +1,7 @@
 Environmental considerations (penalties for traffic, noise, town, no river, no forest) are possible due to the creation of pseudo tags during processing OSM data by spatial SQL queries in https://github.com/abrensch/brouter/blob/master/misc/scripts/mapcreation/brouter.sql. During this processing, roads are extended by a 32 m buffer creating 64 m wide lines. Then it is calculated what percentage of such line is at a specific distance to a noise source or within a forest, for example. The percentage is converted to a factor and the factor is assigned to a class. Ways that pass through different environments and are represented by a single OSM way can be problematic because the class is always based on the average environment along an entire OSM way. For traffic, calculations are on another level of complexity.
 
 ### consider_noise, noise_penalty
-For proximity of noisy roads (secondary and higher). The noise factor represents the proportion of a road's buffer area that lies within the 100-metre buffer of noisy roads. This proportion is reduced: 
+For proximity of noisy roads (secondary and higher). The noise factor represents the proportion of a road's buffer area that lies within the 64-meter buffer of noisy roads. This proportion is reduced: 
 - for motorways and trunk roads with max speed < 105 by 1.5
 - for primary roads 2 times 
 - 3 times if maxspeed is 75 - 105  for primary and secondary
@@ -17,7 +17,7 @@ noise_factor = noise class
 - < 0.8                   =                      '5'
 - ELSE                     =                    '6'
 
-To be classified as noise class 6, a way must be less than 20 m on average from the middle of the carriageway of a motorway with a maximum speed exceeding 105. For a class 5, the distance must be up to 55 meters.  (1 - noise factor) * 100 m for a given class determines the distance
+To be classified as noise class 6, a way must be less than 13 m on average from the middle of the carriageway of a motorway with a maximum speed exceeding 105. For a class 5, the distance must be up to 35 meters.  (1 - noise factor) * 64 m for a given class determines the distance
 
 **Max noise class:**
 | Max speed | Motorway, trunk |Primary|Secondary   	|
