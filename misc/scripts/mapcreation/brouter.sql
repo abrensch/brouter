@@ -76,7 +76,7 @@ FROM
     polygons p
 WHERE
     -- do not consider small surfaces
-    st_area (p.way) > 1000
+    st_area (st_transform (p.way, 4326)::geography) > 1000
     AND p.natural IN ('water')
     OR (p.landuse IN ('forest', 'allotments', 'flowerbed', 'orchard', 'vineyard', 'recreation_ground', 'village_green')
         OR p.leisure IN ('garden', 'park', 'nature_reserve'));
@@ -92,7 +92,7 @@ FROM
     polygons p
 WHERE
     -- do not consider small surfaces
-    st_area (p.way) > 1000
+    st_area (st_transform (p.way, 4326)::geography) > 1000
     AND p.natural IN ('water')
     OR (p.landuse IN ('forest', 'allotments', 'flowerbed', 'orchard', 'vineyard', 'recreation_ground', 'village_green')
         OR p.leisure IN ('garden', 'park', 'nature_reserve'));
