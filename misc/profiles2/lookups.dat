@@ -636,6 +636,18 @@ cycleway:surface;0000000013 compacted
 cycleway:surface;0000000006 fine_gravel
 cycleway:surface;0000000011 sett
 
+footway:surface;0000000001 asphalt
+footway:surface;0000000001 paved
+footway:surface;0000000001 unpaved
+footway:surface;0000000001 gravel
+footway:surface;0000000001 concrete concrete:plates concrete:lanes
+footway:surface;0000000001 paving_stones paving_stones:30
+footway:surface;0000000001 cobblestone unhewn_cobblestone
+footway:surface;0000000001 compacted
+footway:surface;0000000001 fine_gravel
+footway:surface;0000000001 sett
+footway:surface;0000000001 wood
+
 maxspeed:backward;0001058313 50 55 56 30_mph 30mph
 maxspeed:backward;0000860780 30 35 20_mph 20mph
 maxspeed:backward;0000025232 10 15 5 6 8 5_mph 6_mph
