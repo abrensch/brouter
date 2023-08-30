@@ -596,8 +596,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
                 foot += inch / 12f;
               }
               value = String.format(Locale.US, "%3.1f", foot * 0.3048f);
-            }
-            if (value.contains("'")) {
+            } else if (value.contains("'")) {
               float foot = 0f;
               int inch = 0;
               String[] sa = value.split("'");
