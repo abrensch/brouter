@@ -585,30 +585,30 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
 
             // do some value conversion
             if (value.contains("ft")) {
-              float foot = 0f;
+              float feet = 0f;
               int inch = 0;
               String[] sa = value.split("ft");
-              if (sa.length >= 1) foot = Float.parseFloat(sa[0]);
+              if (sa.length >= 1) feet = Float.parseFloat(sa[0]);
               if (sa.length == 2) {
                 value = sa[1];
                 if (value.indexOf("in") > 0) value = value.substring(0, value.indexOf("in"));
                 inch = Integer.parseInt(value);
-                foot += inch / 12f;
+                feet += inch / 12f;
               }
-              value = String.format(Locale.US, "%3.1f", foot * 0.3048f);
+              value = String.format(Locale.US, "%3.1f", feet * 0.3048f);
             } else if (value.contains("'")) {
-              float foot = 0f;
+              float feet = 0f;
               int inch = 0;
               String[] sa = value.split("'");
-              if (sa.length >= 1) foot = Float.parseFloat(sa[0]);
+              if (sa.length >= 1) feet = Float.parseFloat(sa[0]);
               if (sa.length == 2) {
                 value = sa[1];
                 if (value.indexOf("''") > 0) value = value.substring(0, value.indexOf("''"));
                 if (value.indexOf("\"") > 0) value = value.substring(0, value.indexOf("\""));
                 inch = Integer.parseInt(value);
-                foot += inch / 12f;
+                feet += inch / 12f;
               }
-              value = String.format(Locale.US, "%3.1f", foot * 0.3048f);
+              value = String.format(Locale.US, "%3.1f", feet * 0.3048f);
             } else if (value.contains("in") || value.contains("\"")) {
               float inch = 0f;
               if (value.indexOf("in") > 0) value = value.substring(0, value.indexOf("in"));
