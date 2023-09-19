@@ -158,16 +158,21 @@ public class RoutingEngine extends Thread {
 
     switch (engineMode) {
       case BROUTER_ENGINEMODE_ROUTING:
+        if (waypoints.size() < 2) {
+          throw new IllegalArgumentException("we need two lat/lon points at least!");
+        }
         doRouting(maxRunningTime);
         break;
       case BROUTER_ENGINEMODE_SEED: /* do nothing, handled the old way */
-        break;
+        throw new IllegalArgumentException("not a valid engine mode");
       case BROUTER_ENGINEMODE_GETELEV:
+        if (waypoints.size() < 1) {
+          throw new IllegalArgumentException("we need one lat/lon point at least!");
+        }
         doGetElev();
         break;
       default:
-        doRouting(maxRunningTime);
-        break;
+        throw new IllegalArgumentException("not a valid engine mode");
     }
   }
 
@@ -201,6 +206,9 @@ public class RoutingEngine extends Thread {
             continue;
           }
           oldTrack = null;
+          track.exportWaypoints = routingContext.exportWaypoints;
+          // doesn't work at the moment
+          // use routingContext.outputFormat
           track.writeGpx(filename);
           foundTrack = track;
           alternativeIndex = i;
@@ -300,8 +308,16 @@ public class RoutingEngine extends Thread {
       OsmNodeNamed n = new OsmNodeNamed(listOne.get(0).crosspoint);
       n.selev = startNode != null ? startNode.getSElev() : Short.MIN_VALUE;
 
+      // doesn't work at the moment
+      // use routingContext.outputFormat
       outputMessage = OsmTrack.formatAsGpxWaypoint(n);
-
+      if (outfileBase != null) {
+        String filename = outfileBase + ".gpx";
+        File out = new File(filename);
+        FileWriter fw = new FileWriter(filename);
+        fw.write(outputMessage);
+        fw.close();
+      }
       long endTime = System.currentTimeMillis();
       logInfo("execution time = " + (endTime - startTime) / 1000. + " seconds");
     } catch (Exception e) {
