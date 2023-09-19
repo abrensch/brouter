@@ -29,7 +29,7 @@ public class EncodeDecodeTest {
       "depth=1'6\"",
 //    "depth=6 feet",
       "maxheight=5.1m",
-      "maxdraft=~3 mt",
+      "maxdraft=~3 m - 4 m",
       "reversedirection=yes"
     };
 
