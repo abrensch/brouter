@@ -25,7 +25,7 @@ gitVersioning.apply {
             version = '${ref.version}'
         }
         branch('.+') {
-            version = '${describe.tag.version}-${describe.distance}-${ref}-g${commit.short}'
+            version = '${describe.tag.version}+${describe.distance}-${ref}-g${commit.short}'
         }
     }
 

@@ -36,7 +36,7 @@ import btools.util.FrozenLongMap;
 import btools.util.StringUtils;
 
 public final class OsmTrack {
-  final private String version = getClass().getPackage().getImplementationVersion();
+  final private static String version = OsmTrack.class.getPackage().getImplementationVersion();
 
   // csv-header-line
   private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy";
