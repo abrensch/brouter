@@ -12,10 +12,10 @@ import java.util.List;
 import java.util.StringTokenizer;
 
 import btools.router.OsmNodeNamed;
-import btools.router.OsmNogoPolygon;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
+import btools.router.RoutingParamCollector;
 
 public class BRouterWorker {
   private static final int OUTPUT_FORMAT_GPX = 0;
@@ -58,6 +58,42 @@ public class BRouterWorker {
     RoutingContext rc = new RoutingContext();
     rc.rawTrackPath = rawTrackPath;
     rc.localFunction = profilePath;
+
+    RoutingParamCollector routingParamCollector = new RoutingParamCollector();
+
+    // parameter pre control
+    if (params.containsKey("lonlats")) {
+      waypoints = routingParamCollector.getWayPointList(params.getString("lonlats"));
+      params.remove("lonlats");
+    }
+    if (params.containsKey("lats")) {
+      double[] lats = params.getDoubleArray("lats");
+      double[] lons = params.getDoubleArray("lons");
+      waypoints = routingParamCollector.readPositions(lons, lats);
+      params.remove("lons");
+      params.remove("lats");
+    }
+
+    if (waypoints == null) {
+      throw new IllegalArgumentException("no points!");
+    }
+    if (engineMode == 0) {
+      if (waypoints.size() < 2) {
+        throw new IllegalArgumentException("we need two lat/lon points at least!");
+      }
+    } else {
+      if (waypoints.size() < 1) {
+        throw new IllegalArgumentException("we need two lat/lon points at least!");
+      }
+    }
+
+    if (nogoList != null && nogoList.size() > 0) {
+      // forward already read nogos from filesystem
+      if (rc.nogopoints == null) {
+        rc.nogopoints = nogoList;
+      } else {
+        rc.nogopoints.addAll(nogoList);
+      }
 
     String tiFormat = params.getString("turnInstructionFormat");
     if (tiFormat != null) {
@@ -147,6 +183,45 @@ public class BRouterWorker {
       }
     }
 
+    Map<String, String> theParams = new HashMap<>();
+    for (String key : params.keySet()) {
+      Object value = params.get(key);
+      if (value instanceof double[]) {
+        theParams.put(key, Arrays.toString(params.getDoubleArray(key)));
+      } else {
+        theParams.put(key, value.toString());
+      }
+    }
+    routingParamCollector.setParams(rc, waypoints, theParams);
+
+    if (params.containsKey("extraParams")) {
+      Map<String, String> profileparams = null;
+      try {
+        profileparams = routingParamCollector.getUrlParams(params.getString("extraParams"));
+        routingParamCollector.setProfileParams(rc, profileparams);
+      } catch (UnsupportedEncodingException e) {
+        // ignore
+      }
+    }
+
+
+    String pathToFileResult = params.getString("pathToFileResult");
+
+    if (pathToFileResult != null) {
+      File f = new File(pathToFileResult);
+      File dir = f.getParentFile();
+      if (!dir.exists() || !dir.canWrite()) {
+        return "file folder does not exists or can not be written!";
+      }
+    }
+
+    long maxRunningTime = 60000;
+    String sMaxRunningTime = params.getString("maxRunningTime");
+    if (sMaxRunningTime != null) {
+      maxRunningTime = Integer.parseInt(sMaxRunningTime) * 1000L;
+    }
+
+
     try {
       writeTimeoutData(rc);
     } catch (Exception e) {
@@ -170,18 +245,15 @@ public class BRouterWorker {
         return cr.getErrorMessage();
       }
 
-      String format = params.getString("trackFormat");
       int writeFromat = OUTPUT_FORMAT_GPX;
-      if (format != null) {
-        if ("kml".equals(format)) writeFromat = OUTPUT_FORMAT_KML;
-        if ("json".equals(format)) writeFromat = OUTPUT_FORMAT_JSON;
+      if (rc.outputFormat != null) {
+        if ("kml".equals(rc.outputFormat)) writeFromat = OUTPUT_FORMAT_KML;
+        if ("json".equals(rc.outputFormat)) writeFromat = OUTPUT_FORMAT_JSON;
       }
 
       OsmTrack track = cr.getFoundTrack();
       if (track != null) {
-        if (params.containsKey("exportWaypoints")) {
-          track.exportWaypoints = (params.getInt("exportWaypoints", 0) == 1);
-        }
+        track.exportWaypoints = rc.exportWaypoints;
         if (pathToFileResult == null) {
           switch (writeFromat) {
             case OUTPUT_FORMAT_GPX:
@@ -431,7 +503,7 @@ public class BRouterWorker {
     bw.write(rc.rawTrackPath);
     bw.write("\n");
     writeWPList(bw, waypoints);
-    writeWPList(bw, nogoList);
+    writeWPList(bw, rc.nogopoints);
     bw.close();
   }
 
