@@ -19,6 +19,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
@@ -38,10 +39,6 @@ public class BRouterService extends Service {
       logBundle(params);
 
       BRouterWorker worker = new BRouterWorker();
-
-      for (String key : params.keySet()) {
-        // Log.d("BS", "income " + key + " = " + params.get(key));
-      }
 
       int engineMode = 0;
       if (params.containsKey("engineMode")) {
@@ -277,8 +274,13 @@ public class BRouterService extends Service {
     private void logBundle(Bundle params) {
       if (AppLogger.isLogging()) {
         for (String k : params.keySet()) {
-          Object val = "remoteProfile".equals(k) ? "<..cut..>" : params.getString(k);
-          String desc = "key=" + k + (val == null ? "" : " class=" + val.getClass() + " val=" + val.toString());
+          Object val = "remoteProfile".equals(k) ? "<..cut..>" : params.get(k);
+          String desc = "key=" + k + (val == null ? "" : " class=" + val.getClass() + " val=");
+          if (val instanceof double[]) {
+            desc += Arrays.toString(params.getDoubleArray(k));
+          } else {
+            desc += val.toString();
+          }
           AppLogger.log(desc);
         }
       }
