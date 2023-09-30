@@ -196,6 +196,12 @@ public class RoutingParamCollector {
           rctx.turnInstructionMode = Integer.parseInt(value);
         } else if (key.equals("timode")) {
           rctx.turnInstructionMode = Integer.parseInt(value);
+        } else if (key.equals("turnInstructionFormat")) {
+          if ("osmand".equalsIgnoreCase(value)) {
+            rctx.turnInstructionMode = 3;
+          } else if ("locus".equalsIgnoreCase(value)) {
+            rctx.turnInstructionMode = 2;
+          }
         } else if (key.equals("exportWaypoints")) {
           rctx.exportWaypoints = (Integer.parseInt(value) == 1);
         } else if (key.equals("format")) {
@@ -305,6 +311,9 @@ public class RoutingParamCollector {
   public List<OsmNodeNamed> readNogos(String nogoLons, String nogoLats, String nogoRadi) {
     if (nogoLons == null || nogoLats == null || nogoRadi == null) return null;
     List<OsmNodeNamed> nogoList = new ArrayList<>();
+    nogoLons = nogoLons.replace("[", "").replace("]", "");
+    nogoLats = nogoLats.replace("[", "").replace("]", "");
+    nogoRadi = nogoRadi.replace("[", "").replace("]", "");
 
     String[] lons = nogoLons.split(",");
     String[] lats = nogoLats.split(",");
