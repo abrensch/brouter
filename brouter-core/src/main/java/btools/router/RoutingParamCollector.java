@@ -133,7 +133,11 @@ public class RoutingParamCollector {
         List<OsmNodeNamed> nogoList = readNogos(params.get("nogoLons"), params.get("nogoLats"), params.get("nogoRadi"));
         if (nogoList != null) {
           RoutingContext.prepareNogoPoints(nogoList);
-          rctx.nogopoints = nogoList;
+          if (rctx.nogopoints == null) {
+            rctx.nogopoints = nogoList;
+          } else {
+            rctx.nogopoints.addAll(nogoList);
+          }
         }
         params.remove("nogoLats");
         params.remove("nogoLons");
@@ -143,7 +147,11 @@ public class RoutingParamCollector {
         List<OsmNodeNamed> nogoList = readNogoList(params.get("nogos"));
         if (nogoList != null) {
           RoutingContext.prepareNogoPoints(nogoList);
-          rctx.nogopoints = nogoList;
+          if (rctx.nogopoints == null) {
+            rctx.nogopoints = nogoList;
+          } else {
+            rctx.nogopoints.addAll(nogoList);
+          }
         }
         params.remove("nogos");
       }
