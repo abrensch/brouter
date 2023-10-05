@@ -86,7 +86,9 @@ public class BRouterWorker {
     for (String key : params.keySet()) {
       Object value = params.get(key);
       if (value instanceof double[]) {
-        theParams.put(key, Arrays.toString(params.getDoubleArray(key)));
+        String s = Arrays.toString(params.getDoubleArray(key));
+        s = s.replace("[", "").replace("]", "");
+        theParams.put(key, s);
       } else {
         theParams.put(key, value.toString());
       }
