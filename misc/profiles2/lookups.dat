@@ -256,6 +256,10 @@ footway;0000003966 no
 footway;0000001093 yes
 footway;0000000558 separate
 
+conveying;0000000001 yes reversible
+conveying;0000000001 backward
+conveying;0000000001 forward 
+
 path;0000000001 crossing
 
 segregated;0000224960 no
