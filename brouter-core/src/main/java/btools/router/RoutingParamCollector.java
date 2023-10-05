@@ -133,7 +133,7 @@ public class RoutingParamCollector {
       if (params.containsKey("profile")) {
         rctx.localFunction = params.get("profile");
       }
-      if (params.containsKey("nogoLats")) {
+      if (params.containsKey("nogoLats") && params.get("nogoLats").length() > 0) {
         List<OsmNodeNamed> nogoList = readNogos(params.get("nogoLons"), params.get("nogoLats"), params.get("nogoRadi"));
         if (nogoList != null) {
           RoutingContext.prepareNogoPoints(nogoList);
@@ -324,9 +324,6 @@ public class RoutingParamCollector {
   public List<OsmNodeNamed> readNogos(String nogoLons, String nogoLats, String nogoRadi) {
     if (nogoLons == null || nogoLats == null || nogoRadi == null) return null;
     List<OsmNodeNamed> nogoList = new ArrayList<>();
-    nogoLons = nogoLons.replace("[", "").replace("]", "");
-    nogoLats = nogoLats.replace("[", "").replace("]", "");
-    nogoRadi = nogoRadi.replace("[", "").replace("]", "");
 
     String[] lons = nogoLons.split(",");
     String[] lats = nogoLats.split(",");
