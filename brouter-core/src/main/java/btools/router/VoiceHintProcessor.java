@@ -147,6 +147,7 @@ public final class VoiceHintProcessor {
 
           if (badPrio > maxPrioCandidates) {
             maxPrioCandidates = badPrio;
+            input.maxBadPrio = Math.max(input.maxBadPrio, badPrio);
           }
           if (badTurn > maxAngle) {
             maxAngle = badTurn;
@@ -158,6 +159,7 @@ public final class VoiceHintProcessor {
       }
 
       boolean hasSomethingMoreStraight = (Math.abs(turnAngle) - minAbsAngeRaw) > 20.;
+      //boolean hasSomethingMoreStraight = (Math.abs(turnAngle - minAbsAngeRaw)) > 20.;
 
       // unconditional triggers are all junctions with
       // - higher detour prios than the minimum route prio (except link->highway junctions)
@@ -244,80 +246,88 @@ public final class VoiceHintProcessor {
     List<VoiceHint> results = new ArrayList<>();
     double distance = 0;
     VoiceHint inputLast = null;
-    ArrayList<VoiceHint> tmpList = new ArrayList<>();
     for (int hintIdx = 0; hintIdx < inputs.size(); hintIdx++) {
       VoiceHint input = inputs.get(hintIdx);
+      VoiceHint nextInput = null;
+      if (hintIdx + 1 < inputs.size()) {
+        nextInput = inputs.get(hintIdx + 1);
+      }
 
-      if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
-        int badWayPrio = 0;
-        if (input.badWays != null) {
-          for (MessageData md : input.badWays) {
-            badWayPrio = Math.max(badWayPrio, md.getPrio());
+      if (nextInput == null) {
+        if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
+          if (input.goodWay.getPrio() < input.maxBadPrio) {
+            results.add(input);
+          } else {
+            if (inputLast != null) { // when drop add distance to last
+              inputLast.distanceToNext += input.distanceToNext;
+            }
+            continue;
           }
-        }
-        if (input.goodWay.getPrio() < badWayPrio) {
-          results.add(input);
         } else {
-          if (inputLast != null) { // when drop add distance to last
-            inputLast.distanceToNext += input.distanceToNext;
-          }
-          continue;
+          results.add(input);
         }
       } else {
-        if (input.distanceToNext < catchingRange) {
+        if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
+          if (input.goodWay.getPrio() < input.maxBadPrio) {
+            results.add(input);
+          } else {
+            if (inputLast != null) { // when drop add distance to last
+              inputLast.distanceToNext += input.distanceToNext;
+            }
+          }
+        } else if (input.distanceToNext < catchingRange) {
+          int badWayPrio = 0;
           double dist = input.distanceToNext;
           float angles = input.angle;
           int i = 1;
-          boolean save = true;
-          tmpList.clear();
-          while (dist < catchingRange && hintIdx + i < inputs.size()) {
-            VoiceHint h2 = inputs.get(hintIdx + i);
-            dist += h2.distanceToNext;
-            angles += h2.angle;
-            if (VoiceHint.is180DegAngle(input.angle) || VoiceHint.is180DegAngle(h2.angle)) {  // u-turn, 180 degree
+          boolean save = false;
+
+          dist += nextInput.distanceToNext;
+          angles += nextInput.angle;
+
+          if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
+            if (input.goodWay.getPrio() < input.maxBadPrio) {
               save = true;
-              break;
-            } else if (Math.abs(angles) > 180 - SIGNIFICANT_ANGLE) { // u-turn, collects e.g. two left turns in range
-              input.angle = angles;
-              input.calcCommand();
-              input.distanceToNext += h2.distanceToNext;
-              save = true;
-              hintIdx++;
-              break;
-            } else if (Math.abs(angles) < SIGNIFICANT_ANGLE && input.distanceToNext < minRange) {
-              input.angle = angles;
-              input.calcCommand();
-              input.distanceToNext += h2.distanceToNext;
-              save = true;
-              hintIdx++;
-              break;
-            } else if (Math.abs(input.angle) > SIGNIFICANT_ANGLE) {
-              tmpList.add(h2);
-              hintIdx++;
-            } else if (dist > catchingRange) { // distance reached
-              break;
-            } else {
-              if (inputLast != null) { // when drop add distance to last
-                inputLast.distanceToNext += input.distanceToNext;
-              }
-              save = false;
             }
-            i++;
+          } else if (VoiceHint.is180DegAngle(input.angle)) { //|| VoiceHint.is180DegAngle(nextInput.angle)) {  // u-turn, 180 degree
+            //System.out.println("uturn < dist next!=null " + input.indexInTrack);
+            save = true;
+          } else if (Math.abs(angles) > 180 - SIGNIFICANT_ANGLE) { // u-turn, collects e.g. two left turns in range
+            input.angle = angles;
+            input.calcCommand();
+            input.distanceToNext += nextInput.distanceToNext;
+            save = true;
+            hintIdx++;
+          } else if (Math.abs(angles) < SIGNIFICANT_ANGLE && input.distanceToNext < minRange) {
+            input.angle = angles;
+            input.calcCommand();
+            input.distanceToNext += nextInput.distanceToNext;
+            save = true;
+          } else if (Math.abs(input.angle) > SIGNIFICANT_ANGLE) {
+            results.add(input); // add when last
+            save = false;
+          } else if (Math.abs(input.angle) < SIGNIFICANT_ANGLE) {
+            results.add(input); // add when last
+            save = false;
+          } else {
+            if (inputLast != null) { // when drop add distance to last
+              inputLast.distanceToNext += input.distanceToNext;
+            }
+            save = false;
           }
+
           if (save) {
             results.add(input); // add when last
-            if (tmpList.size() > 0) { // add when something in stock
-              results.addAll(tmpList);
-              hintIdx += tmpList.size() - 1;
-            }
           }
         } else {
           results.add(input);
         }
-        inputLast = input;
       }
+      inputLast = input;
     }
+
     return results;
   }
+
 
 }
