@@ -1,6 +1,12 @@
-Environmental considerations (penalties for traffic, noise, town, no river, no forest) are possible due to the creation of pseudo tags during processing OSM data by spatial SQL queries in https://github.com/abrensch/brouter/blob/master/misc/scripts/mapcreation/brouter.sql. During this processing, roads are extended by a 32 m buffer creating 64 m wide lines. Then it is calculated what percentage of such line is at a specific distance to a noise source or within a forest, for example. The percentage is converted to a factor and the factor is assigned to a class. Ways that pass through different environments and are represented by a single OSM way can be problematic because the class is always based on the average environment along an entire OSM way. For traffic, calculations are on another level of complexity.
+---
+parent: Developers
+---
 
-### consider_noise, noise_penalty
+# Environmental considerations
+
+Environmental considerations (penalties for traffic, noise, town, no river, no forest) are possible due to the creation of pseudo tags during processing OSM data by spatial SQL queries in [brouter.sql](https://github.com/abrensch/brouter/blob/master/misc/scripts/mapcreation/brouter.sql). During this processing, roads are extended by a 32 m buffer creating 64 m wide lines. Then it is calculated what percentage of such line is at a specific distance to a noise source or within a forest, for example. The percentage is converted to a factor and the factor is assigned to a class. Ways that pass through different environments and are represented by a single OSM way can be problematic because the class is always based on the average environment along an entire OSM way. For traffic, calculations are on another level of complexity.
+
+### noise_class
 
 For proximity of noisy roads (secondary and higher). The noise factor represents the proportion of a road's buffer area that lies within the 64-meter buffer of noisy roads. This proportion is reduced:
 
@@ -9,27 +15,32 @@ For proximity of noisy roads (secondary and higher). The noise factor represents
 - 3 times if maxspeed is 75 - 105 for primary and secondary
 - other secondary roads 5 times
 
-Noise class is roughly proportional to the noise factor:
+`noise_class` is roughly proportional to the noise factor:
 
-noise_factor = noise class
+| `noise_factor` | `noise_class` |
+| -------------- | ------------- |
+| < 0.1          | 1             |
+| < 0.25         | 2             |
+| < 0.4          | 3             |
+| < 0.55         | 4             |
+| < 0.8          | 5             |
+| ELSE           | 6             |
 
-- < 0.1 = '1'
-- < 0.25 = '2'
-- < 0.4 = '3'
-- < 0.55 = '4'
-- < 0.8 = '5'
-- ELSE = '6'
+To be classified as noise class 6, a way must be less than 13 m on average from the middle of the carriageway of a motorway with a maximum speed exceeding 105. For a class 5, the distance must be up to 35 meters. (1 - noise_factor) \* 64 m for a given class determines the distance
 
-To be classified as noise class 6, a way must be less than 13 m on average from the middle of the carriageway of a motorway with a maximum speed exceeding 105. For a class 5, the distance must be up to 35 meters. (1 - noise factor) \* 64 m for a given class determines the distance
+| highway        | maxspeed | max `noise_class` |
+| -------------- | -------- | ----------------- |
+| motorway,trunk | > 105    | 6                 |
+| motorway,trunk | 105      | 5                 |
+| motorway,trunk | 75       | 5                 |
+| primary        | > 105    | 4                 |
+| primary        | 105      | 4                 |
+| primary        | 75       | 3                 |
+| secondary      | > 105    | 3                 |
+| secondary      | 105      | 3                 |
+| secondary      | 75       | 2                 |
 
-**Max noise class:**
-| Max speed | Motorway, trunk |Primary|Secondary |
-|--- |:---: |:---: |:---: |
-| >105 |6 |4 | 3 |
-| 105 |5 |4 |3 |
-| 75 |5 |3 |2 |
-
-### consider_river, no_river_penalty
+### river_class
 
 OSM data recognized as river:
 
@@ -38,16 +49,16 @@ OSM data recognized as river:
 
 Waterways have 32 m wide buffers. Water areas have 77 m wide buffers.
 
-river_see = river class
+| `river_see` | `river_class` |
+| ----------- | ------------- |
+| < 0.1       | 1             |
+| < 0.3       | 2             |
+| < 0.5       | 3             |
+| < 0.8       | 4             |
+| < 0.9       | 5             |
+| ELSE        | 6             |
 
-- < 0.17 = '1'
-- < 0.35 = '2'
-- < 0.57 = '3'
-- < 0.80 = '4'
-- < 0.95 = '5'
-- ELSE = '6'
-
-### consider_forest, no_forest_penalty
+### forest_class
 
 OSM data recognized as forest:
 
@@ -58,30 +69,30 @@ No forest buffers are used.
 
 Imagine you trace the way with a pencil drawing lines 62 meters wide. Then estimated_forest_class=6 corresponds to the case that at least 98% of the line is in the woodland. This number is called a green factor.
 
-green_factor = forest class
+| `green_factor` | `forest_class` |
+| -------------- | -------------- |
+| < 0.1          | NULL           |
+| < 0.2          | 1              |
+| < 0.4          | 2              |
+| < 0.6          | 3              |
+| < 0.8          | 4              |
+| < 0.98         | 5              |
+| ELSE           | 6              |
 
-- < 0.1 = NULL
-- < 0.2 = '1'
-- < 0.4 = '2'
-- < 0.6 = '3'
-- < 0.8 = '4'
-- < 0.98 = '5'
-- ELSE = '6'
-
-### consider_town, town_penalty
+### town_class
 
 Town_class is determined by population data from OSM.
 
-Class
+| population         | `town_class` |
+| ------------------ | ------------ |
+| < 80 k people      | 1            |
+| < 150 k people     | 2            |
+| < 400 k people     | 3            |
+| < 1 million people | 4            |
+| < 2 million people | 5            |
+| > 2 million people | 6            |
 
-- 1 = 50-80 k people
-- 2 = 80-150 k people
-- 3 = 150 - 400 k people
-- 4 = 400 - 1,000 k people
-- 5 = 1 - 2 million people
-- 6 = > 2 million people
-
-### consider_traffic, traffic_penalty
+### traffic_class
 
 (modified copy from the sql file).
 OSM data used to estimate the traffic:
