@@ -29,6 +29,7 @@ import btools.router.OsmTrack;
 import btools.router.ProfileCache;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
+import btools.router.RoutingParamCollector;
 import btools.server.request.ProfileUploadHandler;
 import btools.server.request.RequestHandler;
 import btools.server.request.ServerHandler;
@@ -146,7 +147,9 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       }
 
       String url = getline.split(" ")[1];
-      Map<String, String> params = getUrlParams(url);
+
+      RoutingParamCollector routingParamCollector = new RoutingParamCollector();
+      Map<String, String> params = routingParamCollector.getUrlParams(url);
 
       long maxRunningTime = getMaxRunningTime();
 
@@ -186,12 +189,17 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         return;
       }
       RoutingContext rc = handler.readRoutingContext();
-      List<OsmNodeNamed> wplist = handler.readWayPointList();
+      List<OsmNodeNamed> wplist = routingParamCollector.getWayPointList(params.get("lonlats"));
 
       if (wplist.size() < 10) {
         SuspectManager.nearRecentWps.add(wplist);
       }
       int engineMode = 0;
+      if (params.containsKey("engineMode")) {
+        engineMode = Integer.parseInt(params.get("engineMode"));
+      }
+      routingParamCollector.setParams(rc, wplist, params);
+
       for (Map.Entry<String, String> e : params.entrySet()) {
         if ("engineMode".equals(e.getKey())) {
           engineMode = Integer.parseInt(e.getValue());
