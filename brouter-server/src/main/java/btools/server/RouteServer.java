@@ -200,27 +200,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       }
       routingParamCollector.setParams(rc, wplist, params);
 
-      for (Map.Entry<String, String> e : params.entrySet()) {
-        if ("engineMode".equals(e.getKey())) {
-          engineMode = Integer.parseInt(e.getValue());
-        } else if ("timode".equals(e.getKey())) {
-          rc.turnInstructionMode = Integer.parseInt(e.getValue());
-        } else if ("heading".equals(e.getKey())) {
-          rc.startDirection = Integer.parseInt(e.getValue());
-          rc.forceUseStartDirection = true;
-        } else if (e.getKey().startsWith("profile:")) {
-          if (rc.keyValues == null) {
-            rc.keyValues = new HashMap<>();
-          }
-          rc.keyValues.put(e.getKey().substring(8), e.getValue());
-        } else if (e.getKey().equals("straight")) {
-          String[] sa = e.getValue().split(",");
-          for (int i = 0; i < sa.length; i++) {
-            int v = Integer.parseInt(sa[i]);
-            if (wplist.size() > v) wplist.get(v).direct = true;
-          }
-        }
-      }
       cr = new RoutingEngine(null, null, serviceContext.segmentDir, wplist, rc, engineMode);
       cr.quite = true;
       cr.doRun(maxRunningTime);
