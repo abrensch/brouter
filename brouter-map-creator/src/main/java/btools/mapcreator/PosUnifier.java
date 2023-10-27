@@ -23,6 +23,9 @@ import btools.util.FrozenLongSet;
  * @author ab
  */
 public class PosUnifier extends MapCreatorBase {
+
+  public static final boolean UseLidarRd5FileName = false;
+
   private DiffCoderDataOutputStream nodesOutStream;
   private DiffCoderDataOutputStream borderNodesOut;
   private File nodeTilesOut;
@@ -33,6 +36,7 @@ public class PosUnifier extends MapCreatorBase {
   private int lastSrtmLatIdx;
   private SrtmRaster lastSrtmRaster;
   private String srtmdir;
+  private String srtmfallbackdir;
 
   private CompactLongSet borderNids;
 
@@ -46,25 +50,40 @@ public class PosUnifier extends MapCreatorBase {
       double lat = Double.parseDouble(args[2]);
 
       NodeData n = new NodeData(1, lon, lat);
-      SrtmRaster srtm = posu.hgtForNode(n.ilon, n.ilat);
       short selev = Short.MIN_VALUE;
+      SrtmRaster srtm = null;
+      /*
+      // check hgt direct
+      srtm = posu.hgtForNode(n.ilon, n.ilat);
+      if (srtm != null) {
+        selev = srtm.getElevation(n.ilon, n.ilat);
+      } else {
+        System.out.println("hgtForNode no data");
+      }
+      posu.resetSrtm();
+      System.out.println("-----> selv for hgt " + lat + ", " + lon + " = " + selev + " = " + (selev / 4.));
+      srtm = null;
+      selev = Short.MIN_VALUE;
+      */
       if (srtm == null) {
         srtm = posu.srtmForNode(n.ilon, n.ilat);
       }
       if (srtm != null) selev = srtm.getElevation(n.ilon, n.ilat);
       posu.resetSrtm();
-      System.out.println("-----> selv for " + lat + ", " + lon + " = " + selev + " = " + (selev / 4.));
+      System.out.println("-----> selv for bef " + lat + ", " + lon + " = " + selev + " = " + (selev / 4.));
       return;
-    } else if (args.length != 5) {
-      System.out.println("usage: java PosUnifier <node-tiles-in> <node-tiles-out> <bordernids-in> <bordernodes-out> <srtm-data-dir>");
+    } else if (args.length != 5 && args.length != 6) {
+      System.out.println("usage: java PosUnifier <node-tiles-in> <node-tiles-out> <bordernids-in> <bordernodes-out> <srtm-data-dir> [srtm-fallback-data-dir]");
+      System.out.println("or     java PosUnifier <srtm-data-dir> <lon> <lat>");
       return;
     }
-    new PosUnifier().process(new File(args[0]), new File(args[1]), new File(args[2]), new File(args[3]), args[4]);
+    new PosUnifier().process(new File(args[0]), new File(args[1]), new File(args[2]), new File(args[3]), args[4], (args.length == 6 ? args[5] : null));
   }
 
-  public void process(File nodeTilesIn, File nodeTilesOut, File bordernidsinfile, File bordernodesoutfile, String srtmdir) throws Exception {
+  public void process(File nodeTilesIn, File nodeTilesOut, File bordernidsinfile, File bordernodesoutfile, String srtmdir, String srtmfallbackdir) throws Exception {
     this.nodeTilesOut = nodeTilesOut;
     this.srtmdir = srtmdir;
+    this.srtmfallbackdir = srtmfallbackdir;
 
     // read border nids set
     DataInputStream dis = createInStream(bordernidsinfile);
@@ -178,15 +197,17 @@ public class PosUnifier extends MapCreatorBase {
     lastSrtmLonIdx = srtmLonIdx;
     lastSrtmLatIdx = srtmLatIdx;
 
-    String slonidx = "0" + srtmLonIdx;
-    String slatidx = "0" + srtmLatIdx;
-    String filename = "srtm_" + slonidx.substring(slonidx.length() - 2) + "_" + slatidx.substring(slatidx.length() - 2);
+    String filename;
+    if (UseLidarRd5FileName) {
+      filename = genFilenameRd5(ilon, ilat);
+    } else {
+      filename = genFilenameXY(srtmLonIdx, srtmLatIdx);
+    }
 
     lastSrtmRaster = srtmmap.get(filename);
     if (lastSrtmRaster == null && !srtmmap.containsKey(filename)) {
       File f = new File(new File(srtmdir), filename + ".bef");
       if (f.exists()) {
-        System.out.println("*** reading: " + f);
         try {
           InputStream isc = new BufferedInputStream(new FileInputStream(f));
           lastSrtmRaster = new RasterCoder().decodeRaster(isc);
@@ -194,25 +215,48 @@ public class PosUnifier extends MapCreatorBase {
         } catch (Exception e) {
           System.out.println("**** ERROR reading " + f + " ****");
         }
+        System.out.println("*** reading: " + f + "  " + lastSrtmRaster.ncols);
         srtmmap.put(filename, lastSrtmRaster);
         return lastSrtmRaster;
       }
-
-      f = new File(new File(srtmdir), filename + ".zip");
-      // System.out.println("reading: " + f + " ilon=" + ilon + " ilat=" + ilat);
-      if (f.exists()) {
-        try {
-          lastSrtmRaster = new SrtmData(f).getRaster();
+      if (srtmfallbackdir != null) {
+        f = new File(new File(srtmfallbackdir), filename + ".bef");
+        if (f.exists()) {
+          try {
+            InputStream isc = new BufferedInputStream(new FileInputStream(f));
+            //lastSrtmRaster = new StatRasterCoder().decodeRaster(isc);
+            lastSrtmRaster = new RasterCoder().decodeRaster(isc);
+            isc.close();
+          } catch (Exception e) {
+            System.out.println("**** ERROR reading " + f + " ****");
+          }
+          System.out.println("*** reading: " + f + "  " + lastSrtmRaster.cellsize);
           srtmmap.put(filename, lastSrtmRaster);
           return lastSrtmRaster;
-        } catch (Exception e) {
-          System.out.println("**** ERROR reading " + f + " ****");
         }
       }
       srtmmap.put(filename, lastSrtmRaster);
     }
     return lastSrtmRaster;
   }
+
+  static String genFilenameXY(int srtmLonIdx, int srtmLatIdx) {
+    String slonidx = "0" + srtmLonIdx;
+    String slatidx = "0" + srtmLatIdx;
+    return "srtm_" + slonidx.substring(slonidx.length() - 2) + "_" + slatidx.substring(slatidx.length() - 2);
+  }
+
+  static String genFilenameRd5(int ilon, int ilat) {
+    int lonDegree = ilon / 1000000;
+    int latDegree = ilat / 1000000;
+    int lonMod5 = lonDegree % 5;
+    int latMod5 = latDegree % 5;
+    lonDegree = lonDegree - 180 - lonMod5;
+    latDegree = latDegree - 90 - latMod5;
+    return String.format("srtm_%s_%s", lonDegree < 0 ? "W" + (-lonDegree) : "E" + lonDegree,
+      latDegree < 0 ? "S" + (-latDegree) : "N" + latDegree);
+  }
+
 
   private SrtmRaster hgtForNode(int ilon, int ilat) throws Exception {
     double lon = (ilon - 180000000) / 1000000.;
@@ -222,13 +266,13 @@ public class PosUnifier extends MapCreatorBase {
     // don't block lastSrtmRaster
     SrtmRaster srtm = srtmmap.get(filename);
     if (srtm == null) {
-      File f = new File(new File(srtmdir), filename + ".hgt");
+      File f = new File(new File(srtmdir), filename + ".zip");
       if (f.exists()) {
         srtm = new ConvertLidarTile().getRaster(f, lon, lat);
         srtmmap.put(filename, srtm);
         return srtm;
       }
-      f = new File(new File(srtmdir), filename + ".zip");
+      f = new File(new File(srtmdir), filename + ".hgt");
       if (f.exists()) {
         srtm = new ConvertLidarTile().getRaster(f, lon, lat);
         srtmmap.put(filename, srtm);
