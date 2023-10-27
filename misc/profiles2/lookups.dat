@@ -404,6 +404,7 @@ incline;0000000409 -25% -21 -22 -23 -24 -25 -21% -22% -23% -24%
 incline;0000000172 -30% -30 -40 -50 -40% -50%
 
 toll;0000090536 yes true
+toll:motorcycle;0000000001 no
 
 railway;0000157547 rail
 railway;0000019316 abandoned disused razed
