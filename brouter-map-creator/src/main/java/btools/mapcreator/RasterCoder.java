@@ -45,7 +45,7 @@ public class RasterCoder {
 
     _decodeRaster(raster, is);
 
-    raster.usingWeights = raster.ncols > 6001;
+    raster.usingWeights = false; // raster.ncols > 6001;
 
     long t1 = System.currentTimeMillis();
     System.out.println("finished decoding in " + (t1 - t0) + " ms ncols=" + raster.ncols + " nrows=" + raster.nrows);
