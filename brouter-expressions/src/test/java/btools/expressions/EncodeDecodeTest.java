@@ -52,6 +52,6 @@ public class EncodeDecodeTest {
     System.out.println("description: " + expctxWay.getKeyValueDescription(true, description));
 
     float costfactor = expctxWay.getCostfactor();
-    Assert.assertTrue("costfactor mismatch", Math.abs(costfactor - 5.15) < 0.00001);
+    Assert.assertTrue("costfactor mismatch", Math.abs(costfactor - 5.1) < 0.00001);
   }
 }

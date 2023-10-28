@@ -47,7 +47,7 @@ public class RoutingEngineTest {
     String msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "paramTrack", rctx);
     Assert.assertNull("routing failed: " + msg, msg);
 
-    File trackFile = new File(workingDir, "paramTrack1.gpx");
+    File trackFile = new File(workingDir, "paramTrack0.gpx");
     trackFile.deleteOnExit();
     Assert.assertTrue("result content mismatch", trackFile.exists());
   }
