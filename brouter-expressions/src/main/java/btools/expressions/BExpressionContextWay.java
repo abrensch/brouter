@@ -12,7 +12,7 @@ public final class BExpressionContextWay extends BExpressionContext implements T
   private boolean decodeForbidden = true;
 
   private static String[] buildInVariables =
-    {"costfactor", "turncost", "uphillcostfactor", "downhillcostfactor", "initialcost", "nodeaccessgranted", "initialclassifier", "trafficsourcedensity", "istrafficbackbone", "priorityclassifier", "classifiermask", "maxspeed", "uphillcost", "downhillcost", "uphillcutoff", "downhillcutoff"};
+    {"costfactor", "turncost", "uphillcostfactor", "downhillcostfactor", "initialcost", "nodeaccessgranted", "initialclassifier", "trafficsourcedensity", "istrafficbackbone", "priorityclassifier", "classifiermask", "maxspeed", "uphillcost", "downhillcost", "uphillcutoff", "downhillcutoff", "uphillmaxbuffercost", "downhillmaxbuffercost"};
 
   protected String[] getBuildInVariableNames() {
     return buildInVariables;
@@ -80,6 +80,14 @@ public final class BExpressionContextWay extends BExpressionContext implements T
 
   public float getDownhillcutoff() {
     return getBuildInVariable(15);
+  }
+
+  public float getUphillmaxbuffercost() {
+    return getBuildInVariable(16);
+  }
+
+  public float getDownhillmaxbuffercost() {
+    return getBuildInVariable(17);
   }
 
   public BExpressionContextWay(BExpressionMetaData meta) {

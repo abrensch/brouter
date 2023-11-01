@@ -17,7 +17,9 @@ final class StdPath extends OsmPath {
   private float elevation_buffer; // just another elevation buffer (for travel time)
 
   private int uphillcostdiv;
+  private int uphillmaxbuffercostdiv;     // cost for steep uphill passage (which exceeds the elevation buffer)
   private int downhillcostdiv;
+  private int downhillmaxbuffercostdiv;   // cost for steep downhill passage (which exceeds the elevation buffer)
 
   // Gravitational constant, g
   private static final double GRAVITY = 9.81;  // in meters per second^(-2)
@@ -39,7 +41,9 @@ final class StdPath extends OsmPath {
     totalTime = 0.f;
     totalEnergy = 0.f;
     uphillcostdiv = 0;
+    uphillmaxbuffercostdiv = 0;
     downhillcostdiv = 0;
+    downhillmaxbuffercostdiv = 0;
     elevation_buffer = 0.f;
   }
 
@@ -60,9 +64,25 @@ final class StdPath extends OsmPath {
       downhillcostdiv = 1000000 / downhillcostdiv;
     }
 
+    downhillmaxbuffercostdiv = (int) rc.expctxWay.getDownhillmaxbuffercost();
+    if (downhillmaxbuffercostdiv > 0) {
+      downhillmaxbuffercostdiv = 1000000 / downhillmaxbuffercostdiv;
+    } else {
+      // if not given, use legacy behavior
+      downhillmaxbuffercostdiv = downhillcostdiv;
+    }
+
     uphillcostdiv = (int) rc.expctxWay.getUphillcost();
     if (uphillcostdiv > 0) {
       uphillcostdiv = 1000000 / uphillcostdiv;
+    }
+
+    uphillmaxbuffercostdiv = (int) rc.expctxWay.getUphillmaxbuffercost();
+    if (uphillmaxbuffercostdiv > 0) {
+      uphillmaxbuffercostdiv = 1000000 / uphillmaxbuffercostdiv;
+    } else {
+      // if not given, use legacy behavior
+      uphillmaxbuffercostdiv = uphillcostdiv;
     }
 
     int dist = (int) distance; // legacy arithmetics needs int
@@ -77,30 +97,41 @@ final class StdPath extends OsmPath {
     double sectionCost = turncost;
 
     // *** penalty for elevation
-    // only the part of the descend that does not fit into the elevation-hysteresis-buffers
+    // only the part of the descend that does not fit into the elevation-hysteresis-buffers (ehb)
     // leads to an immediate penalty
 
     int delta_h_micros = (int) (1000000. * delta_h);
     ehbd += -delta_h_micros - dist * downhillcutoff;
     ehbu += delta_h_micros - dist * uphillcutoff;
 
-    float downweight = 0.f;
+    float downweight = 0.f;   // weight for downhillcostfactor
+    int elevationCost = 0;
     if (ehbd > rc.elevationpenaltybuffer) {
       downweight = 1.f;
 
-      int excess = ehbd - rc.elevationpenaltybuffer;
-      int reduce = dist * rc.elevationbufferreduce;
+      int excess = ehbd - rc.elevationpenaltybuffer;  // elevation which excesses the penaltybuffer threshold
+      int reduce = dist * rc.elevationbufferreduce;   // elevation which is penalized      
       if (reduce > excess) {
         downweight = ((float) excess) / reduce;
         reduce = excess;
       }
-      excess = ehbd - rc.elevationmaxbuffer;
-      if (reduce < excess) {
+      if (downhillcostdiv > 0) {
+        elevationCost += reduce / downhillcostdiv;    // compute cost for evelation within maxbuffer threshold
+      }
+      ehbd -= reduce;                                 // reduce elevation-hysteresis-buffer
+      
+      excess = ehbd - rc.elevationmaxbuffer;          // elevation which excesses the maxbuffer threshold
+      if (excess > 0) {
         reduce = excess;
+      } else {
+        reduce = 0;
+      }      
+      if (downhillmaxbuffercostdiv > 0) {
+        elevationCost += reduce / downhillmaxbuffercostdiv;   // compute cost for evelation larger maxbuffer threshold
       }
       ehbd -= reduce;
-      if (downhillcostdiv > 0) {
-        int elevationCost = reduce / downhillcostdiv;
+        
+      if (elevationCost > 0) {
         sectionCost += elevationCost;
         if (message != null) {
           message.linkelevationcost += elevationCost;
@@ -110,23 +141,34 @@ final class StdPath extends OsmPath {
       ehbd = 0;
     }
 
-    float upweight = 0.f;
+    float upweight = 0.f;   // weight for uphillcostfactor
+    elevationCost = 0;
     if (ehbu > rc.elevationpenaltybuffer) {
       upweight = 1.f;
 
-      int excess = ehbu - rc.elevationpenaltybuffer;
-      int reduce = dist * rc.elevationbufferreduce;
+      int excess = ehbu - rc.elevationpenaltybuffer;  // elevation which excesses the penaltybuffer threshold
+      int reduce = dist * rc.elevationbufferreduce;   // elevation which is penalized
       if (reduce > excess) {
         upweight = ((float) excess) / reduce;
         reduce = excess;
       }
-      excess = ehbu - rc.elevationmaxbuffer;
-      if (reduce < excess) {
-        reduce = excess;
-      }
-      ehbu -= reduce;
       if (uphillcostdiv > 0) {
-        int elevationCost = reduce / uphillcostdiv;
+        elevationCost += reduce / uphillcostdiv;      // compute cost for evelation within maxbuffer threshold
+      }
+      ehbu -= reduce;                                 // reduce elevation-hysteresis-buffer
+      
+      excess = ehbu - rc.elevationmaxbuffer;          // elevation which excesses the maxbuffer threshold
+      if (excess > 0) {
+        reduce = excess;
+      } else {
+        reduce = 0;
+      }      
+      if (uphillmaxbuffercostdiv > 0) {
+        elevationCost += reduce / uphillmaxbuffercostdiv;   // compute cost for evelation larger maxbuffer threshold
+      }
+      ehbu -= reduce;                                 // reduce elevation-hysteresis-buffer
+      
+      if (elevationCost > 0) {
         sectionCost += elevationCost;
         if (message != null) {
           message.linkelevationcost += elevationCost;
