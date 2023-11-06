@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 import btools.util.CompactLongSet;
@@ -24,17 +23,17 @@ import btools.util.FrozenLongSet;
  */
 public class PosUnifier extends MapCreatorBase {
 
-  public static final boolean UseLidarRd5FileName = false;
+  public static final boolean UseRasterRd5FileName = false;
 
   private DiffCoderDataOutputStream nodesOutStream;
   private DiffCoderDataOutputStream borderNodesOut;
   private File nodeTilesOut;
   private CompactLongSet[] positionSets;
 
-  private Map<String, SrtmRaster> srtmmap;
+  private Map<String, ElevationRaster> srtmmap;
   private int lastSrtmLonIdx;
   private int lastSrtmLatIdx;
-  private SrtmRaster lastSrtmRaster;
+  private ElevationRaster lastSrtmRaster;
   private String srtmdir;
   private String srtmfallbackdir;
 
@@ -51,7 +50,7 @@ public class PosUnifier extends MapCreatorBase {
 
       NodeData n = new NodeData(1, lon, lat);
       short selev = Short.MIN_VALUE;
-      SrtmRaster srtm = null;
+      ElevationRaster srtm = null;
       /*
       // check hgt direct
       srtm = posu.hgtForNode(n.ilon, n.ilat);
@@ -60,7 +59,7 @@ public class PosUnifier extends MapCreatorBase {
       } else {
         System.out.println("hgtForNode no data");
       }
-      posu.resetSrtm();
+      posu.resetElevationRaster();
       System.out.println("-----> selv for hgt " + lat + ", " + lon + " = " + selev + " = " + (selev / 4.));
       srtm = null;
       selev = Short.MIN_VALUE;
@@ -69,7 +68,7 @@ public class PosUnifier extends MapCreatorBase {
         srtm = posu.srtmForNode(n.ilon, n.ilat);
       }
       if (srtm != null) selev = srtm.getElevation(n.ilon, n.ilat);
-      posu.resetSrtm();
+      posu.resetElevationRaster();
       System.out.println("-----> selv for bef " + lat + ", " + lon + " = " + selev + " = " + (selev / 4.));
       return;
     } else if (args.length != 5 && args.length != 6) {
@@ -107,7 +106,7 @@ public class PosUnifier extends MapCreatorBase {
 
   @Override
   public void nodeFileStart(File nodefile) throws Exception {
-    resetSrtm();
+    resetElevationRaster();
 
     nodesOutStream = createOutStream(fileFromTemplate(nodefile, nodeTilesOut, "u5d"));
 
@@ -125,7 +124,7 @@ public class PosUnifier extends MapCreatorBase {
       srtm = srtmForNode(n.ilon, n.ilat);
     } */
 
-    SrtmRaster srtm = srtmForNode(n.ilon, n.ilat);
+    ElevationRaster srtm = srtmForNode(n.ilon, n.ilat);
 
     if (srtm != null) n.selev = srtm.getElevation(n.ilon, n.ilat);
     findUniquePos(n);
@@ -139,7 +138,7 @@ public class PosUnifier extends MapCreatorBase {
   @Override
   public void nodeFileEnd(File nodeFile) throws Exception {
     nodesOutStream.close();
-    resetSrtm();
+    resetElevationRaster();
   }
 
   private boolean checkAdd(int lon, int lat) {
@@ -187,7 +186,7 @@ public class PosUnifier extends MapCreatorBase {
    * get the srtm data set for a position srtm coords are
    * srtm_<srtmLon>_<srtmLat> where srtmLon = 180 + lon, srtmLat = 60 - lat
    */
-  private SrtmRaster srtmForNode(int ilon, int ilat) throws Exception {
+  private ElevationRaster srtmForNode(int ilon, int ilat) throws Exception {
     int srtmLonIdx = (ilon + 5000000) / 5000000;
     int srtmLatIdx = (654999999 - ilat) / 5000000 - 100; // ugly negative rounding...
 
@@ -198,7 +197,7 @@ public class PosUnifier extends MapCreatorBase {
     lastSrtmLatIdx = srtmLatIdx;
 
     String filename;
-    if (UseLidarRd5FileName) {
+    if (UseRasterRd5FileName) {
       filename = genFilenameRd5(ilon, ilat);
     } else {
       filename = genFilenameXY(srtmLonIdx, srtmLatIdx);
@@ -210,7 +209,7 @@ public class PosUnifier extends MapCreatorBase {
       if (f.exists()) {
         try {
           InputStream isc = new BufferedInputStream(new FileInputStream(f));
-          lastSrtmRaster = new RasterCoder().decodeRaster(isc);
+          lastSrtmRaster = new ElevationRasterCoder().decodeRaster(isc);
           isc.close();
         } catch (Exception e) {
           System.out.println("**** ERROR reading " + f + " ****");
@@ -225,7 +224,7 @@ public class PosUnifier extends MapCreatorBase {
           try {
             InputStream isc = new BufferedInputStream(new FileInputStream(f));
             //lastSrtmRaster = new StatRasterCoder().decodeRaster(isc);
-            lastSrtmRaster = new RasterCoder().decodeRaster(isc);
+            lastSrtmRaster = new ElevationRasterCoder().decodeRaster(isc);
             isc.close();
           } catch (Exception e) {
             System.out.println("**** ERROR reading " + f + " ****");
@@ -258,29 +257,30 @@ public class PosUnifier extends MapCreatorBase {
   }
 
 
-  private SrtmRaster hgtForNode(int ilon, int ilat) throws Exception {
+  private ElevationRaster hgtForNode(int ilon, int ilat) throws Exception {
     double lon = (ilon - 180000000) / 1000000.;
     double lat = (ilat - 90000000) / 1000000.;
 
     String filename = buildHgtFilename(lat, lon);
     // don't block lastSrtmRaster
-    SrtmRaster srtm = srtmmap.get(filename);
+    ElevationRaster srtm = srtmmap.get(filename);
     if (srtm == null) {
       File f = new File(new File(srtmdir), filename + ".zip");
       if (f.exists()) {
-        srtm = new ConvertLidarTile().getRaster(f, lon, lat);
+        srtm = new ElevationRasterTileConverter().getRaster(f, lon, lat);
         srtmmap.put(filename, srtm);
         return srtm;
       }
       f = new File(new File(srtmdir), filename + ".hgt");
       if (f.exists()) {
-        srtm = new ConvertLidarTile().getRaster(f, lon, lat);
+        srtm = new ElevationRasterTileConverter().getRaster(f, lon, lat);
         srtmmap.put(filename, srtm);
         return srtm;
       }
     }
     return srtm;
   }
+
 
   private String buildHgtFilename(double llat, double llon) {
     int lat = (int) llat;
@@ -297,10 +297,10 @@ public class PosUnifier extends MapCreatorBase {
       lon = -lon + 1;
     }
 
-    return String.format(Locale.US, "%s%02d%s%03d", latPref, lat, lonPref, lon);
+    return String.format("%s%02d%s%03d", latPref, lat, lonPref, lon);
   }
 
-  private void resetSrtm() {
+  private void resetElevationRaster() {
     srtmmap = new HashMap<>();
     lastSrtmLonIdx = -1;
     lastSrtmLatIdx = -1;
