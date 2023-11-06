@@ -277,7 +277,7 @@ assign town_penalty
 #
 assign isresidentialorliving = or highway=residential|living_street living_street=yes
 
-assign sum_costs
+assign sum_costs_positiv
   #
   # exclude rivers, rails etc.
   #
@@ -298,8 +298,8 @@ assign sum_costs
 
   add town_penalty
   add noise_penalty
-  add forest_advantage
-  add river_advantage
+  # add forest_advantage
+  # add river_advantage
   add traffic_penalty
   add smoothnesspenalty
   #
@@ -367,8 +367,8 @@ assign sum_costs
 
 assign costfactor
   max 0.8
-  multiply sum_costs adj_param
-
+  add multiply sum_costs_positiv adj_param
+  add forest_advantage river_advantage
 
 
 # way priorities used for voice hint generation
