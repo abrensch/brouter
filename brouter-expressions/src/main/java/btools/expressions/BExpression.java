@@ -281,7 +281,7 @@ final class BExpression {
       case MULTIPLY_EXP:
         return op1.evaluate(ctx) * op2.evaluate(ctx);
       case DIV_EXP:
-        return op1.evaluate(ctx) / op2.evaluate(ctx);
+        return div(op1.evaluate(ctx), op2.evaluate(ctx));
       case MAX_EXP:
         return max(op1.evaluate(ctx), op2.evaluate(ctx));
       case MIN_EXP:
@@ -363,6 +363,11 @@ final class BExpression {
 
   private float min(float v1, float v2) {
     return v1 < v2 ? v1 : v2;
+  }
+
+  private float div(float v1, float v2) {
+    if (v2 == 0f) throw new IllegalArgumentException("div by zero");
+    return v1 / v2;
   }
 
   @Override
