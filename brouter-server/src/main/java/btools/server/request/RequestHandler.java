@@ -1,9 +1,7 @@
 package btools.server.request;
 
-import java.util.List;
 import java.util.Map;
 
-import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.server.ServiceContext;
@@ -18,8 +16,6 @@ public abstract class RequestHandler {
   }
 
   public abstract RoutingContext readRoutingContext();
-
-  public abstract List<OsmNodeNamed> readWayPointList();
 
   public abstract String formatTrack(OsmTrack track);
 
