@@ -171,7 +171,7 @@ public class BInstallerActivity extends AppCompatActivity {
       }
       mButtonDownload.setText(getString(R.string.action_download, getSegmentsPlural(selectedTilesDownload.size())));
       mButtonDownload.setEnabled(true);
-      mSummaryInfo.setText(getString(R.string.summary_segments, Formatter.formatFileSize(this, tileSize), Formatter.formatFileSize(this, getAvailableSpace(mBaseDir.getAbsolutePath()))));
+      mSummaryInfo.setText(String.format(getString(R.string.summary_segments), Formatter.formatFileSize(this, tileSize), Formatter.formatFileSize(this, getAvailableSpace(mBaseDir.getAbsolutePath()))));
     } else if (selectedTilesUpdate.size() > 0) {
       mButtonDownload.setText(getString(R.string.action_update, getSegmentsPlural(selectedTilesUpdate.size())));
       mButtonDownload.setEnabled(true);
