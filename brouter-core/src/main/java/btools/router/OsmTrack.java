@@ -66,7 +66,7 @@ public final class OsmTrack {
 
   private CompactLongMap<OsmPathElementHolder> detourMap;
 
-  private VoiceHintList voiceHints;
+  public VoiceHintList voiceHints;
 
   public String message = null;
   public List<String> messageList = null;
@@ -178,7 +178,7 @@ public final class OsmTrack {
     nodesMap = new FrozenLongMap<>(nodesMap);
   }
 
-  private List<String> aggregateMessages() {
+  public List<String> aggregateMessages() {
     ArrayList<String> res = new ArrayList<>();
     MessageData current = null;
     for (OsmPathElement n : nodes) {
@@ -200,7 +200,7 @@ public final class OsmTrack {
     return res;
   }
 
-  private List<String> aggregateSpeedProfile() {
+  public List<String> aggregateSpeedProfile() {
     ArrayList<String> res = new ArrayList<>();
     int vmax = -1;
     int vmaxe = -1;
@@ -1140,7 +1140,7 @@ public final class OsmTrack {
     sb.append("    }");
   }
 
-  private VoiceHint getVoiceHint(int i) {
+  public VoiceHint getVoiceHint(int i) {
     if (voiceHints == null) return null;
     for (VoiceHint hint : voiceHints.list) {
       if (hint.indexInTrack == i) {
@@ -1150,7 +1150,7 @@ public final class OsmTrack {
     return null;
   }
 
-  private MatchedWaypoint getMatchedWaypoint(int idx) {
+  public MatchedWaypoint getMatchedWaypoint(int idx) {
     if (matchedWaypoints == null) return null;
     for (MatchedWaypoint wp : matchedWaypoints) {
       if (idx == wp.indexInTrack) {
@@ -1168,7 +1168,7 @@ public final class OsmTrack {
     return vnode0 < vnode1 ? vnode0 : vnode1;
   }
 
-  private int getTotalSeconds() {
+  public int getTotalSeconds() {
     float s = nodes.size() < 2 ? 0 : nodes.get(nodes.size() - 1).getTime() - nodes.get(0).getTime();
     return (int) (s + 0.5);
   }
@@ -1398,7 +1398,7 @@ public final class OsmTrack {
     return 2;
   }
 
-  private float getVoiceHintTime(int i) {
+  public float getVoiceHintTime(int i) {
     if (voiceHints.list.isEmpty()) {
       return 0f;
     }
