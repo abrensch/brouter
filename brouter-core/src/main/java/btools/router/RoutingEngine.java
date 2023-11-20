@@ -199,27 +199,63 @@ public class RoutingEngine extends Thread {
         messageList.add(track.message);
         track.messageList = messageList;
         if (outfileBase != null) {
-          String filename = outfileBase + i + ".gpx";
-          OsmTrack oldTrack = new OsmTrack();
-          oldTrack.readGpx(filename);
-          if (track.equalsTrack(oldTrack)) {
+          String filename = outfileBase + i + "." + routingContext.outputFormat;
+          OsmTrack oldTrack = null;
+          switch (routingContext.outputFormat) {
+            case "gpx":
+              oldTrack = new FormatGpx(routingContext).read(filename);
+              break;
+            case "geojson": // read only gpx at the moment
+            case "json":
+              // oldTrack = new FormatJson(routingContext).read(filename);
+              break;
+            case "kml":
+              // oldTrack = new FormatJson(routingContext).read(filename);
+              break;
+            default:
+              break;
+          }
+          if (oldTrack != null && track.equalsTrack(oldTrack)) {
             continue;
           }
           oldTrack = null;
           track.exportWaypoints = routingContext.exportWaypoints;
-          // doesn't work at the moment
-          // use routingContext.outputFormat
-          track.writeGpx(filename);
+          filename = outfileBase + i + "." + routingContext.outputFormat;
+          switch (routingContext.outputFormat) {
+            case "gpx":
+              outputMessage = new FormatGpx(routingContext).format(track);
+              break;
+            case "geojson":
+            case "json":
+              outputMessage = new FormatJson(routingContext).format(track);
+              break;
+            case "kml":
+              outputMessage = new FormatKml(routingContext).format(track);
+              break;
+            case "csv":
+            default:
+              outputMessage = null;
+              break;
+          }
+          if (outputMessage != null) {
+            File out = new File(filename);
+            FileWriter fw = new FileWriter(filename);
+            fw.write(outputMessage);
+            fw.close();
+            outputMessage = null;
+          }
+
           foundTrack = track;
           alternativeIndex = i;
           outfile = filename;
         } else {
           if (i == routingContext.getAlternativeIdx(0, 3)) {
             if ("CSV".equals(System.getProperty("reportFormat"))) {
-              track.dumpMessages(null, routingContext);
+              String filename = outfileBase + i + ".csv";
+              new FormatCsv(routingContext).write(filename, track);
             } else {
               if (!quite) {
-                System.out.println(track.formatAsGpx());
+                System.out.println(new FormatGpx(routingContext).format(track));
               }
             }
             foundTrack = track;
@@ -229,7 +265,7 @@ public class RoutingEngine extends Thread {
         }
         if (logfileBase != null) {
           String logfilename = logfileBase + i + ".csv";
-          track.dumpMessages(logfilename, routingContext);
+          new FormatCsv(routingContext).write(logfilename, track);
         }
         break;
       }
@@ -308,15 +344,27 @@ public class RoutingEngine extends Thread {
       OsmNodeNamed n = new OsmNodeNamed(listOne.get(0).crosspoint);
       n.selev = startNode != null ? startNode.getSElev() : Short.MIN_VALUE;
 
-      // doesn't work at the moment
-      // use routingContext.outputFormat
-      outputMessage = OsmTrack.formatAsGpxWaypoint(n);
+      switch (routingContext.outputFormat) {
+        case "gpx":
+          outputMessage = new FormatGpx(routingContext).formatAsWaypoint(n);
+          break;
+        case "geojson":
+        case "json":
+          outputMessage = new FormatJson(routingContext).formatAsWaypoint(n);
+          break;
+        case "kml":
+        case "csv":
+        default:
+          outputMessage = null;
+          break;
+      }
       if (outfileBase != null) {
-        String filename = outfileBase + ".gpx";
+        String filename = outfileBase + "." + routingContext.outputFormat;
         File out = new File(filename);
         FileWriter fw = new FileWriter(filename);
         fw.write(outputMessage);
         fw.close();
+        outputMessage = null;
       }
       long endTime = System.currentTimeMillis();
       logInfo("execution time = " + (endTime - startTime) / 1000. + " seconds");
@@ -951,7 +999,7 @@ public class RoutingEngine extends Thread {
 
     if (track == null) {
       for (int cfi = 0; cfi < airDistanceCostFactors.length; cfi++) {
-        if (cfi > 0) lastAirDistanceCostFactor = airDistanceCostFactors[cfi-1];
+        if (cfi > 0) lastAirDistanceCostFactor = airDistanceCostFactors[cfi - 1];
         airDistanceCostFactor = airDistanceCostFactors[cfi];
 
         if (airDistanceCostFactor < 0.) {
@@ -1447,7 +1495,7 @@ public class RoutingEngine extends Thread {
 
             boolean inRadius = boundary == null || boundary.isInBoundary(nextNode, bestPath.cost);
 
-            if (inRadius && (isFinalLink || bestPath.cost + bestPath.airdistance <= (lastAirDistanceCostFactor != 0. ? maxTotalCost*lastAirDistanceCostFactor : maxTotalCost) + addDiff)) {
+            if (inRadius && (isFinalLink || bestPath.cost + bestPath.airdistance <= (lastAirDistanceCostFactor != 0. ? maxTotalCost * lastAirDistanceCostFactor : maxTotalCost) + addDiff)) {
               // add only if this may beat an existing path for that link
               OsmLinkHolder dominator = link.getFirstLinkHolder(currentNode);
               while (!trafficSim && dominator != null) {
