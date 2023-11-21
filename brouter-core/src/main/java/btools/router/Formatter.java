@@ -8,10 +8,6 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 public abstract class Formatter {
-  private static final int OUTPUT_FORMAT_GPX = 0;
-  private static final int OUTPUT_FORMAT_KML = 1;
-  private static final int OUTPUT_FORMAT_JSON = 2;
-  private static final int OUTPUT_FORMAT_CSV = 3;
 
   static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy";
 
