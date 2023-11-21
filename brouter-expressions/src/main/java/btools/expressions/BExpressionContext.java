@@ -13,11 +13,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
-import java.util.Locale;
 
 import btools.util.BitCoderContext;
 import btools.util.Crc32;
@@ -883,6 +883,20 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       }
     }
     return num.intValue();
+  }
+
+  public String getVariableKeyValue() {
+    StringBuilder sb = new StringBuilder(200);
+
+    int n = expressionList.size();
+    for (int expidx = 0; expidx < n; expidx++) {
+      float bx = expressionList.get(expidx).evaluate(this);
+      int varidx = expressionList.get(expidx).getExpressionIndex();
+      if (sb.length() > 0) sb.append(' ');
+      sb.append(variableName(varidx)).append("=").append(bx);
+    }
+
+    return sb.toString();
   }
 
   int getMinWriteIdx() {

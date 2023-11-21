@@ -352,6 +352,10 @@ final class BExpression {
     return this;
   }
 
+  public int getExpressionIndex() {
+    return variableIdx;
+  }
+
   private float max(float v1, float v2) {
     return v1 > v2 ? v1 : v2;
   }
