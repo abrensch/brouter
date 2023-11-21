@@ -30,6 +30,10 @@ public class BRouter {
         List<OsmNodeNamed> wplist = routingParamCollector.getWayPointList(lonlats);
 
         Map<String, String> params = routingParamCollector.getUrlParams(queryString);
+        int engineMode = 0;
+        if (params.containsKey("engineMode")) {
+          engineMode = Integer.parseInt(params.get("engineMode"));
+        }
         routingParamCollector.setParams(rc, wplist, params);
 
         String exportName = null;
@@ -47,7 +51,7 @@ public class BRouter {
           maxRunningTime = Integer.parseInt(sMaxRunningTime) * 1000;
         }
 
-        RoutingEngine re = new RoutingEngine(exportName, null, new File(args[0]), wplist, rc);
+        RoutingEngine re = new RoutingEngine(exportName, null, new File(args[0]), wplist, rc, engineMode);
         re.doRun(maxRunningTime);
         if (re.getErrorMessage() != null) {
           System.out.println(re.getErrorMessage());
