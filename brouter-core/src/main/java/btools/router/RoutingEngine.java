@@ -192,7 +192,7 @@ public class RoutingEngine extends Thread {
         track.message = "track-length = " + track.distance + " filtered ascend = " + track.ascend
           + " plain-ascend = " + track.plainAscend + " cost=" + track.cost;
         if (track.energy != 0) {
-          track.message += " energy=" + track.getFormattedEnergy() + " time=" + track.getFormattedTime2();
+          track.message += " energy=" + Formatter.getFormattedEnergy(track.energy) + " time=" + Formatter.getFormattedTime2(track.getTotalSeconds());
         }
         track.name = "brouter_" + routingContext.getProfileName() + "_" + i;
 
@@ -1676,7 +1676,7 @@ public class RoutingEngine extends Thread {
   }
 
   public String getTime() {
-    return foundTrack.getFormattedTime2();
+    return Formatter.getFormattedTime2(foundTrack.getTotalSeconds());
   }
 
   public OsmTrack getFoundTrack() {
