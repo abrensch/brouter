@@ -250,7 +250,7 @@ public class FormatGpx extends Formatter {
       MatchedWaypoint mwpt = t.getMatchedWaypoint(idx);
 
       if (t.showTime) {
-        sele += "<time>" + t.getFormattedTime3(n.getTime()) + "</time>";
+        sele += "<time>" + getFormattedTime3(n.getTime()) + "</time>";
       }
       if (turnInstructionMode == 8) {
         if (mwpt != null &&
