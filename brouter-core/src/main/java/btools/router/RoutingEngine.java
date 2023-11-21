@@ -365,6 +365,10 @@ public class RoutingEngine extends Thread {
         fw.write(outputMessage);
         fw.close();
         outputMessage = null;
+      } else {
+        if (!quite && outputMessage != null) {
+          System.out.println(outputMessage);
+        }
       }
       long endTime = System.currentTimeMillis();
       logInfo("execution time = " + (endTime - startTime) / 1000. + " seconds");
