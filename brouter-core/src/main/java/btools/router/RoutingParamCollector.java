@@ -14,8 +14,9 @@ public class RoutingParamCollector {
 
   /**
    * get a list of points and optional extra info for the points
-   * @param lonLats - linked list separated by ';' or '|'
-   * @return - a list
+   *
+   * @param lonLats  linked list separated by ';' or '|'
+   * @return         a list
    */
   public List<OsmNodeNamed> getWayPointList(String lonLats) {
     if (lonLats == null) throw new IllegalArgumentException("lonlats parameter not set");
@@ -49,9 +50,10 @@ public class RoutingParamCollector {
 
   /**
    * get a list of points (old style, positions only)
-   * @param lons - array with longitudes
-   * @param lats - array with latitudes
-   * @return - a list
+   *
+   * @param lons  array with longitudes
+   * @param lats  array with latitudes
+   * @return      a list
    */
   public List<OsmNodeNamed> readPositions(double[] lons, double[] lats) {
     List<OsmNodeNamed> wplist = new ArrayList<>();
@@ -93,9 +95,10 @@ public class RoutingParamCollector {
 
   /**
    * read a url like parameter list linked with '&'
-   * @param url - parameter list
-   * @return - a hashmap of the parameter
-   * @throws UnsupportedEncodingException
+   *
+   * @param url  parameter list
+   * @return     a hashmap of the parameter
+   * @throws     UnsupportedEncodingException
    */
   public Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
     HashMap<String, String> params = new HashMap<>();
@@ -117,9 +120,10 @@ public class RoutingParamCollector {
 
   /**
    * fill a parameter map into the routing context
-   * @param rctx - the context
-   * @param wplist - the list of way points needed for 'straight' parameter
-   * @param params - the list of parameters
+   *
+   * @param rctx    the context
+   * @param wplist  the list of way points needed for 'straight' parameter
+   * @param params  the list of parameters
    */
   public void setParams(RoutingContext rctx, List<OsmNodeNamed> wplist, Map<String, String> params) {
     if (params != null) {
@@ -129,11 +133,15 @@ public class RoutingParamCollector {
       if (params.containsKey("profile")) {
         rctx.localFunction = params.get("profile");
       }
-      if (params.containsKey("nogoLats")) {
+      if (params.containsKey("nogoLats") && params.get("nogoLats").length() > 0) {
         List<OsmNodeNamed> nogoList = readNogos(params.get("nogoLons"), params.get("nogoLats"), params.get("nogoRadi"));
         if (nogoList != null) {
           RoutingContext.prepareNogoPoints(nogoList);
-          rctx.nogopoints = nogoList;
+          if (rctx.nogopoints == null) {
+            rctx.nogopoints = nogoList;
+          } else {
+            rctx.nogopoints.addAll(nogoList);
+          }
         }
         params.remove("nogoLats");
         params.remove("nogoLons");
@@ -143,7 +151,11 @@ public class RoutingParamCollector {
         List<OsmNodeNamed> nogoList = readNogoList(params.get("nogos"));
         if (nogoList != null) {
           RoutingContext.prepareNogoPoints(nogoList);
-          rctx.nogopoints = nogoList;
+          if (rctx.nogopoints == null) {
+            rctx.nogopoints = nogoList;
+          } else {
+            rctx.nogopoints.addAll(nogoList);
+          }
         }
         params.remove("nogos");
       }
@@ -196,6 +208,12 @@ public class RoutingParamCollector {
           rctx.turnInstructionMode = Integer.parseInt(value);
         } else if (key.equals("timode")) {
           rctx.turnInstructionMode = Integer.parseInt(value);
+        } else if (key.equals("turnInstructionFormat")) {
+          if ("osmand".equalsIgnoreCase(value)) {
+            rctx.turnInstructionMode = 3;
+          } else if ("locus".equalsIgnoreCase(value)) {
+            rctx.turnInstructionMode = 2;
+          }
         } else if (key.equals("exportWaypoints")) {
           rctx.exportWaypoints = (Integer.parseInt(value) == 1);
         } else if (key.equals("format")) {
@@ -213,8 +231,9 @@ public class RoutingParamCollector {
 
   /**
    * fill profile parameter list
-   * @param rctx - the routing context
-   * @param params - the list of parameters
+   *
+   * @param rctx    the routing context
+   * @param params  the list of parameters
    */
   public void setProfileParams(RoutingContext rctx, Map<String, String> params) {
     if (params != null) {
