@@ -28,6 +28,7 @@ public class PosUnifier extends MapCreatorBase {
   private DiffCoderDataOutputStream nodesOutStream;
   private DiffCoderDataOutputStream borderNodesOut;
   private File nodeTilesOut;
+  private File outNodeFile;
   private CompactLongSet[] positionSets;
 
   private Map<String, ElevationRaster> srtmmap;
@@ -107,8 +108,8 @@ public class PosUnifier extends MapCreatorBase {
   @Override
   public void nodeFileStart(File nodefile) throws Exception {
     resetElevationRaster();
-
-    nodesOutStream = createOutStream(fileFromTemplate(nodefile, nodeTilesOut, "u5d"));
+    outNodeFile = fileFromTemplate(nodefile, nodeTilesOut, "u5d");
+    nodesOutStream = createOutStream(outNodeFile);
 
     positionSets = new CompactLongSet[2500];
   }
@@ -138,6 +139,12 @@ public class PosUnifier extends MapCreatorBase {
   @Override
   public void nodeFileEnd(File nodeFile) throws Exception {
     nodesOutStream.close();
+    if (outNodeFile != null) {
+      if (lastSrtmRaster != null) {
+        String newName = outNodeFile.getAbsolutePath() + (lastSrtmRaster.nrows > 6001 ? "_1": "_3");
+        outNodeFile.renameTo(new File(newName));
+      }
+    }
     resetElevationRaster();
   }
 
