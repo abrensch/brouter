@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d τμήμα</item>
+        <item quantity="other">%d τμήματα</item>
+    </plurals>
+    <string name="cancel_download">Ακύρωση λήψης</string>
+    <string name="import_profile">Εισαγωγή προφίλ</string>
+    <string name="action_download">Λήψη %s</string>
+    <string name="action_delete">Διαγραφή %s</string>
+    <string name="action_update">Ενημέρωση %s</string>
+    <string name="action_select">Επιλογή τμημάτων</string>
+    <string name="action_cancel">Διακοπή λήψης</string>
+    <string name="summary_segments">Μέγεθος=%1$s\nΕλεύθερο=%2$s</string>
+    <string name="notification_title">Λήψη τμημάτων</string>
+</resources>
