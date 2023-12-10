@@ -211,18 +211,29 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       } else {
         OsmTrack track = cr.getFoundTrack();
 
+        if (engineMode == 2) {
+          // no zip for this engineMode
+          encodings = null;
+        }
         String headers = encodings == null || encodings.indexOf("gzip") < 0 ? null : "Content-Encoding: gzip\n";
         writeHttpHeader(bw, handler.getMimeType(), handler.getFileName(), headers, HTTP_STATUS_OK);
-        if (track != null) {
-          if (headers != null) { // compressed
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            Writer w = new OutputStreamWriter(new GZIPOutputStream(baos), "UTF-8");
-            w.write(handler.formatTrack(track));
-            w.close();
-            bw.flush();
-            clientSocket.getOutputStream().write(baos.toByteArray());
-          } else {
-            bw.write(handler.formatTrack(track));
+        if (engineMode == 0) {
+          if (track != null) {
+            if (headers != null) { // compressed
+              ByteArrayOutputStream baos = new ByteArrayOutputStream();
+              Writer w = new OutputStreamWriter(new GZIPOutputStream(baos), "UTF-8");
+              w.write(handler.formatTrack(track));
+              w.close();
+              bw.flush();
+              clientSocket.getOutputStream().write(baos.toByteArray());
+            } else {
+              bw.write(handler.formatTrack(track));
+            }
+          }
+        } else if (engineMode == 2) {
+          String s = cr.getFoundInfo();
+          if (s != null) {
+            bw.write(s);
           }
         }
       }
