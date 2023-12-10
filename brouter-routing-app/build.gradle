@@ -20,8 +20,6 @@ android {
         minSdkVersion 14
         targetSdkVersion 33
 
-        resConfigs "en"
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

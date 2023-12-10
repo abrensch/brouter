@@ -1,37 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2010 The Android Open Source Project
-
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-
-          http://www.apache.org/licenses/LICENSE-2.0
-
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
--->
-
-<resources>
-    <plurals name="numberOfSegments">
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
         <item quantity="one">%d segment</item>
         <item quantity="other">%d segments</item>
     </plurals>
-    <string name="app_name">BRouter</string>
-    <string name="cancel_download">Cancel Download</string>
-    <string name="import_profile">Import Profile</string>
-    <string name="profile_filename_example">filename.brf</string>
-    <string name="download_info_start">Starting download…</string>
-    <string name="download_info_cancel">Cancelling…</string>
+    <string name="cancel_download">Cancel download</string>
+    <string name="import_profile">Import profile</string>
     <string name="action_download">Download %s</string>
     <string name="action_delete">Delete %s</string>
     <string name="action_update">Update %s</string>
     <string name="action_select">Select segments</string>
-    <string name="action_cancel">Stop Download</string>
-    <string name="summary_segments">Size=%s\nFree=%s</string>
-    <string name="notification_channel_id">brouter_download</string>
-    <string name="notification_title">Download Segments</string>
-    <string name="channel_name">Downloads</string>
+    <string name="action_cancel">Stop download</string>
+    <string name="summary_segments">Size=%1$s\nFree=%2$s</string>
+    <string name="notification_title">Download segments</string>
 </resources>
