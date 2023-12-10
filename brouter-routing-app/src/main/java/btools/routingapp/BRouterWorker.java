@@ -12,6 +12,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import btools.router.FormatGpx;
+import btools.router.FormatJson;
+import btools.router.FormatKml;
 import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
@@ -151,42 +154,41 @@ public class BRouterWorker {
         if ("kml".equals(rc.outputFormat)) writeFromat = OUTPUT_FORMAT_KML;
         if ("json".equals(rc.outputFormat)) writeFromat = OUTPUT_FORMAT_JSON;
       }
-
-      OsmTrack track = cr.getFoundTrack();
+      OsmTrack track = null;
+      track = cr.getFoundTrack();
       if (track != null) {
         track.exportWaypoints = rc.exportWaypoints;
         if (pathToFileResult == null) {
           switch (writeFromat) {
-            case OUTPUT_FORMAT_GPX:
-              return track.formatAsGpx();
             case OUTPUT_FORMAT_KML:
-              return track.formatAsKml();
+              return new FormatKml(rc).format(track);
             case OUTPUT_FORMAT_JSON:
-              return track.formatAsGeoJson();
+              return new FormatJson(rc).format(track);
+            case OUTPUT_FORMAT_GPX:
             default:
-              return track.formatAsGpx();
+              return new FormatGpx(rc).format(track);
           }
 
         }
-        try {
-          switch (writeFromat) {
-            case OUTPUT_FORMAT_GPX:
-              track.writeGpx(pathToFileResult);
-              break;
-            case OUTPUT_FORMAT_KML:
-              track.writeKml(pathToFileResult);
-              break;
-            case OUTPUT_FORMAT_JSON:
-              track.writeJson(pathToFileResult);
-              break;
-            default:
-              track.writeGpx(pathToFileResult);
-              break;
-          }
-        } catch (Exception e) {
-          return "error writing file: " + e;
-        }
+
       }
+      try {
+        switch (writeFromat) {
+          case OUTPUT_FORMAT_KML:
+            new FormatKml(rc).write(pathToFileResult, track);
+            break;
+          case OUTPUT_FORMAT_JSON:
+            new FormatJson(rc).write(pathToFileResult, track);
+            break;
+          case OUTPUT_FORMAT_GPX:
+          default:
+            new FormatGpx(rc).write(pathToFileResult, track);
+            break;
+        }
+      } catch (Exception e) {
+        return "error writing file: " + e;
+      }
+
     } else {    // get other infos
       if (cr.getErrorMessage() != null) {
         return cr.getErrorMessage();

@@ -1,10 +1,12 @@
 package btools.server.request;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.StringWriter;
 import java.util.Map;
 
+import btools.router.FormatCsv;
+import btools.router.FormatGpx;
+import btools.router.FormatJson;
+import btools.router.FormatKml;
 import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.server.ServiceContext;
@@ -76,23 +78,17 @@ public class ServerHandler extends RequestHandler {
     }
 
     if (format == null || "gpx".equals(format)) {
-      result = track.formatAsGpx();
+      result = new FormatGpx(rc).format(track);
     } else if ("kml".equals(format)) {
-      result = track.formatAsKml();
+      result = new FormatKml(rc).format(track);
     } else if ("geojson".equals(format)) {
-      result = track.formatAsGeoJson();
+      result = new FormatJson(rc).format(track);
     } else if ("csv".equals(format)) {
-      try {
-        StringWriter sw = new StringWriter();
-        BufferedWriter bw = new BufferedWriter(sw);
-        track.writeMessages(bw, rc);
-        return sw.toString();
-      } catch (Exception ex) {
-        return "Error: " + ex.getMessage();
-      }
+      result = new FormatCsv(rc).format(track);
     } else {
       System.out.println("unknown track format '" + format + "', using default");
-      result = track.formatAsGpx();
+      //result = track.formatAsGpx();
+      result = new FormatGpx(rc).format(track);
     }
 
     return result;

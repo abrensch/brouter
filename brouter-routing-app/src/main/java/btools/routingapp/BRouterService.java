@@ -100,7 +100,7 @@ public class BRouterService extends Service {
       boolean canCompress = "true".equals(params.getString("acceptCompressedResult"));
       try {
         String gpxMessage = worker.getTrackFromParams(params);
-        if (canCompress && gpxMessage.startsWith("<")) {
+        if (canCompress) {
           try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             baos.write("z64".getBytes(Charset.forName("UTF-8"))); // marker prefix
