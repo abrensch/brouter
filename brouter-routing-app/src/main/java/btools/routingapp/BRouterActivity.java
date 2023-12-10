@@ -58,7 +58,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private static final int DIALOG_PICKWAYPOINT_ID = 10;
   private static final int DIALOG_SELECTBASEDIR_ID = 11;
   private static final int DIALOG_MAINACTION_ID = 12;
-  private static final int DIALOG_OLDDATAHINT_ID = 13;
+  //private static final int DIALOG_OLDDATAHINT_ID = 13;
   private static final int DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID = 16;
   private final Set<Integer> dialogIds = new HashSet<>();
   private BRouterView mBRouterView;
@@ -133,7 +133,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
 
     switch (id) {
       case DIALOG_SELECTPROFILE_ID:
-        builder.setTitle("Select a routing profile");
+        builder.setTitle(R.string.action_select_profile);
         builder.setItems(availableProfiles, new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int item) {
             selectedProfile = availableProfiles[item];
@@ -142,9 +142,9 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         });
         return builder.create();
       case DIALOG_MAINACTION_ID:
-        builder.setTitle("Select Main Action");
+        builder.setTitle(R.string.main_action);
         builder.setItems(
-            new String[]{"Download Manager", "BRouter App"},
+            new String[]{getString(R.string.main_action_1), getString(R.string.main_action_2)},
             new DialogInterface.OnClickListener() {
               public void onClick(DialogInterface dialog, int item) {
                 if (item == 0)
@@ -153,7 +153,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
                   showADialog(DIALOG_SELECTPROFILE_ID);
               }
             })
-          .setNegativeButton("Close", new DialogInterface.OnClickListener() {
+          .setNegativeButton(getString(R.string.close), new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               finish();
             }
@@ -161,19 +161,15 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         return builder.create();
       case DIALOG_SHOW_DM_INFO_ID:
         builder
-          .setTitle("BRouter Download Manager")
-          .setMessage(
-            "*** Attention: ***\n\n" + "The Download Manager is used to download routing-data "
-              + "files which can be up to 170MB each. Do not start the Download Manager "
-              + "on a cellular data connection without a data plan! "
-              + "Download speed is restricted to 16 MBit/s.")
-          .setPositiveButton("I know", new DialogInterface.OnClickListener() {
+          .setTitle(R.string.title_download)
+          .setMessage(R.string.summary_download)
+          .setPositiveButton(R.string.i_know, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               Intent intent = new Intent(BRouterActivity.this, BInstallerActivity.class);
               startActivity(intent);
               showNewDialog(DIALOG_MAINACTION_ID);
             }
-          }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+          }).setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               finish();
             }
@@ -181,18 +177,15 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         return builder.create();
       case DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID:
         builder
-          .setTitle("Successfully prepared a timeout-free calculation")
-          .setMessage(
-            "You successfully repeated a calculation that previously run into a timeout "
-              + "when started from your map-tool. If you repeat the same request from your "
-              + "maptool, with the exact same destination point and a close-by starting point, "
-              + "this request is guaranteed not to time out.")
-          .setNegativeButton("Exit", new DialogInterface.OnClickListener() {
+          .setTitle(R.string.title_timeoutfree)
+          .setMessage(R.string.summary_timeoutfree)
+          .setNegativeButton(R.string.exit, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               finish();
             }
           });
         return builder.create();
+        /*
       case DIALOG_OLDDATAHINT_ID:
         builder
           .setTitle("Local setup needs reset")
@@ -202,12 +195,13 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
               + "Before downloading new datafiles made for the new table, "
               + "you have to reset your local setup by 'moving away' (or deleting) "
               + "your <basedir>/brouter directory and start a new setup by calling the " + "BRouter App again.")
-          .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+          .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               finish();
             }
           });
         return builder.create();
+         */
       case DIALOG_ROUTINGMODES_ID:
         builder.setTitle(message);
         builder.setMultiChoiceItems(routingModes, routingModesChecked,
@@ -217,7 +211,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
               routingModesChecked[which] = isChecked;
             }
           });
-        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
             mBRouterView.configureService(routingModes, routingModesChecked);
           }
@@ -225,9 +219,9 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         return builder.create();
       case DIALOG_EXCEPTION_ID:
         builder
-          .setTitle("An Error occured")
+          .setTitle(R.string.error)
           .setMessage(errorMessage)
-          .setPositiveButton("OK",
+          .setPositiveButton(R.string.ok,
             new DialogInterface.OnClickListener() {
               public void onClick(DialogInterface dialog, int id) {
                 mBRouterView.continueProcessing();
@@ -235,12 +229,12 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
             });
         return builder.create();
       case DIALOG_TEXTENTRY_ID:
-        builder.setTitle("Enter SDCARD base dir:");
+        builder.setTitle(R.string.title_sdcard);
         builder.setMessage(message);
         final EditText input = new EditText(this);
         // input.setText(defaultbasedir);
         builder.setView(input);
-        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
             String basedir = input.getText().toString();
             mBRouterView.startSetup(new File(basedir), true, false);
@@ -248,7 +242,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         });
         return builder.create();
       case DIALOG_SELECTBASEDIR_ID:
-        builder.setTitle("Choose brouter data base dir:");
+        builder.setTitle(getString(R.string.action_choose_folder));
         // builder.setMessage( message );
         builder.setSingleChoiceItems(basedirOptions, 0, new DialogInterface.OnClickListener() {
           @Override
@@ -256,7 +250,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
             selectedBasedir = item;
           }
         });
-        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
             if (selectedBasedir < availableBasedirs.size()) {
               mBRouterView.startSetup(availableBasedirs.get(selectedBasedir), true, false);
@@ -267,7 +261,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         });
         return builder.create();
       case DIALOG_VIASELECT_ID:
-        builder.setTitle("Check VIA Selection:");
+        builder.setTitle(R.string.action_via_select);
         builder.setMultiChoiceItems(availableVias, getCheckedBooleanArray(availableVias.length),
           new DialogInterface.OnMultiChoiceClickListener() {
             @Override
@@ -279,7 +273,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
               }
             }
           });
-        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
             mBRouterView.updateViaList(selectedVias);
             mBRouterView.startProcessing(selectedProfile);
@@ -287,7 +281,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         });
         return builder.create();
       case DIALOG_NOGOSELECT_ID:
-        builder.setTitle("Check NoGo Selection:");
+        builder.setTitle(R.string.action_nogo_select);
         String[] nogoNames = new String[nogoList.size()];
         for (int i = 0; i < nogoList.size(); i++)
           nogoNames[i] = nogoList.get(i).name;
@@ -299,7 +293,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
               nogoEnabled[which] = isChecked;
             }
           });
-        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
             mBRouterView.updateNogoList(nogoEnabled);
             mBRouterView.startProcessing(selectedProfile);
@@ -325,21 +319,21 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         List<String> slist = new ArrayList<>();
         // Neutral button
         if (wpCount == 0) {
-          slist.add("Server-Mode");
+          slist.add(getString(R.string.action_servermode));
         } else if (wpCount == -3) {
-          slist.add("Info");
+          slist.add(getString(R.string.action_info));
         } else if (wpCount >= 2) {
-          slist.add("Calc Route");
+          slist.add(getString(R.string.action_calc_route));
         }
 
         if (wpCount == 0) {
-          slist.add("Profile Settings");
+          slist.add(getString(R.string.action_profile_settings));
         }
         // Positive button
         if (wpCount == -3 || wpCount == -1) {
-          slist.add("Share GPX");
+          slist.add(getString(R.string.action_share));
         } else if (wpCount >= 0) {
-          String selectLabel = wpCount == 0 ? "Select from" : "Select to/via";
+          String selectLabel = wpCount == 0 ? getString(R.string.action_select_from) : getString(R.string.action_select_to);
           slist.add(selectLabel);
         }
 
@@ -407,16 +401,16 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         */
 
         // Negative button
-        builder.setNegativeButton("Exit", (dialog, which) -> {
+        builder.setNegativeButton(R.string.exit, (dialog, which) -> {
           finish();
         });
 
         return builder.create();
       case DIALOG_MODECONFIGOVERVIEW_ID:
         builder
-          .setTitle("Success")
+          .setTitle(R.string.success)
           .setMessage(message)
-          .setPositiveButton("Exit",
+          .setPositiveButton(R.string.exit,
             new DialogInterface.OnClickListener() {
               public void onClick(DialogInterface dialog, int id) {
                 finish();
@@ -424,7 +418,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
             });
         return builder.create();
       case DIALOG_PICKWAYPOINT_ID:
-        builder.setTitle(wpCount > 0 ? "Select to/via" : "Select from");
+        builder.setTitle(wpCount == 0 ? getString(R.string.action_select_from) : getString(R.string.action_select_to));
         builder.setItems(availableWaypoints, new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int item) {
             mBRouterView.updateWaypointList(availableWaypoints[item]);
@@ -472,11 +466,11 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         //startActivityForResult(i, 100);
         someActivityResultLauncher.launch(i);
       } else {
-        Toast.makeText(this, "no profile data", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, R.string.msg_no_profile, Toast.LENGTH_LONG).show();
         finish();
       }
     } else {
-      Toast.makeText(this, selectedProfile + ", no used profile", Toast.LENGTH_LONG).show();
+      Toast.makeText(this, selectedProfile + getString(R.string.msg_no_used_profile), Toast.LENGTH_LONG).show();
       finish();
     }
   }
