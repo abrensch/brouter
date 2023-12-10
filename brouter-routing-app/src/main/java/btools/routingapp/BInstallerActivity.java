@@ -214,7 +214,8 @@ public class BInstallerActivity extends AppCompatActivity {
         .build();
 
     } catch (IllegalStateException e) {
-      Toast.makeText(this, "Too much data for download. Please reduce.", Toast.LENGTH_LONG).show();
+      Object data;
+      Toast.makeText(this, R.string.msg_too_much_data, Toast.LENGTH_LONG).show();
 
       e.printStackTrace();
       return;
@@ -264,7 +265,7 @@ public class BInstallerActivity extends AppCompatActivity {
       }
 
       if (workInfo.getState() == WorkInfo.State.ENQUEUED) {
-        Toast.makeText(this, "Download scheduled. Check internet connection if it doesn't start.", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, R.string.msg_download_start, Toast.LENGTH_LONG).show();
         mProgressIndicator.hide();
         mProgressIndicator.setIndeterminate(true);
         mProgressIndicator.show();
