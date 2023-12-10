@@ -40,6 +40,7 @@
         maptool, with the exact same destination point and a close-by starting point,
         this request is guaranteed not to time out.</string>
     <string name="title_sdcard">Enter SDCARD base dir:</string>
+    <string name="title_action">Select Action</string>
 
     <string name="action_via_select">Check VIA Selection:</string>
     <string name="action_nogo_select">Check NoGo Selection:</string>
@@ -55,5 +56,17 @@
     <string name="msg_no_used_profile">, no used profile</string>
     <string name="msg_too_much_data">Too much data for download. Please reduce.</string>
     <string name="msg_download_start">Download scheduled. Check internet connection if it doesn\'t start.</string>
+    <string name="msg_wpt_selection">current waypoint selection:\n</string>
+    <string name="msg_no_wpt_selection">Expecting waypoint selection\n</string>
+    <string name="msg_alternative">Alternative</string>
+    <string name="msg_status_result">version = BRouter-%1$s \n
+        mem = %2$s \n
+        distance = %3$s km\n
+        filtered ascend = %4$s m\n
+        plain ascend = %5$s m\n
+        estimated time = %6$s</string>
+    <string name="msg_read_wpt_error">Error reading waypoints</string>
+    <string name="msg_no_wpt">coordinate source does not contain any waypoints!</string>
+    <string name="msg_to_much_wpts">"coordinate source contains too much waypoints: %1$d (please use from/to/via names)</string>
 
 </resources>
