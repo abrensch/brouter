@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d قطعة</item>
+        <item quantity="other">%d قطع</item>
+    </plurals>
+    <string name="cancel_download">إلغاء التنزيل</string>
+    <string name="import_profile">استيراد ملف تعريف</string>
+    <string name="action_download">تنزيل %s</string>
+    <string name="action_delete">حذف %s</string>
+    <string name="action_update">تحديث %s</string>
+    <string name="action_select">حدد القطع</string>
+    <string name="action_cancel">إيقاف التنزيل</string>
+    <string name="summary_segments">الحجم=%1$s\nالحجم المتوفر=%2$s</string>
+    <string name="notification_title">تحميل القطع</string>
+</resources>

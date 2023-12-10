@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BRouter</string>
+    <string name="profile_filename_example">filename.brf</string>
+    <string name="notification_channel_id">brouter_download</string>
+    <string name="channel_name">Downloads</string>
+</resources>

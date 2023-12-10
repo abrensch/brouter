@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d segment</item>
+        <item quantity="other">%d segments</item>
+    </plurals>
+    <string name="cancel_download">Annuler le téléchargement</string>
+    <string name="import_profile">Importer le profil</string>
+    <string name="action_download">Télécharger %s</string>
+    <string name="action_delete">Supprimer %s</string>
+    <string name="action_update">Mettre à jour %s</string>
+    <string name="action_select">Sélectionner les segments</string>
+    <string name="action_cancel">Arrêter le téléchargement</string>
+    <string name="summary_segments">Taille=%1$s\nGratuit=%2$s</string>
+    <string name="notification_title">Télécharger les segments</string>
+</resources>
