@@ -387,7 +387,7 @@ public class BRouterView extends View {
       if (size < 1)
         msg = getContext().getString(R.string.msg_no_wpt);
       if (size > 1000)
-        msg = getContext().getString(R.string.msg_to_much_wpts, size);
+        msg = String.format(getContext().getString(R.string.msg_to_much_wpts), size);
     }
 
     if (msg != null) {
@@ -718,7 +718,7 @@ public class BRouterView extends View {
           ((BRouterActivity) getContext()).showErrorMessage(cr.getErrorMessage());
         } else {
           String memstat = memoryClass + "mb pathPeak " + ((cr.getPathPeak() + 500) / 1000) + "k";
-          String result = getContext().getString(R.string.msg_status_result,
+          String result = String.format(getContext().getString(R.string.msg_status_result),
             getContext().getString(R.string.app_version),
             memstat,
             Double.toString(cr.getDistance() / 1000.),
