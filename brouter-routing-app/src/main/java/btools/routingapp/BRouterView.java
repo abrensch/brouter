@@ -387,7 +387,7 @@ public class BRouterView extends View {
       if (size < 1)
         msg = getContext().getString(R.string.msg_no_wpt);
       if (size > 1000)
-        msg = String.format(getContext().getString(R.string.msg_to_much_wpts), size);
+        msg = String.format(getContext().getString(R.string.msg_too_much_wpts), size);
     }
 
     if (msg != null) {
