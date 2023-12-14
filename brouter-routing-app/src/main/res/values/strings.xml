@@ -69,4 +69,26 @@
     <string name="msg_no_wpt">coordinate source does not contain any waypoints!</string>
     <string name="msg_too_much_wpts">coordinate source contains too much waypoints: %1$d (please use from/to/via names)</string>
 
+    <string name="no">No</string>
+    <string name="yes">Yes</string>
+
+    <string name="title_delete">Confirm Delete</string>
+    <string name="summary_delete">Really delete?</string>
+    <string name="title_version">Version Problem</string>
+    <string name="summary_version">The base version for tiles has changed. What to do?</string>
+    <string name="action_version1">Continue with current download, delete other old data</string>
+    <string name="action_version2">Select all for download and start</string>
+    <string name="action_version3">Cancel now, complete on an other day</string>
+    <string name="title_version_diff">Version Differences</string>
+    <string name="summary_version_diff">The base version for some tiles is different. What to do?</string>
+    <string name="action_version_diff1">Download all different tiles</string>
+    <string name="action_version_diff2">Drop all different tiles</string>
+    <string name="action_version_diff3">Cancel now, complete on an other day</string>
+    <string name="summary_new_version">The new data version needs a new app. Please update BRouter first</string>
+
+    <string name="msg_download_faild">Download failed</string>
+    <string name="msg_download_cancel">Download cancelled</string>
+    <string name="msg_download_succeed">Download succeeded</string>
+
+
 </resources>

@@ -14,59 +14,80 @@
     <string name="summary_segments">Rozmiar=%1$s\nDostępne=%2$s</string>
     <string name="notification_title">Pobieranie segmentów</string>
 
-    <string name="action_choose_folder">Choose brouter data base dir:</string>
-    <string name="action_select_profile">Select a routing profile</string>
-    <string name="main_action">Select Main Action</string>
-    <string name="main_action_1">Download Manager</string>
-    <string name="main_action_2">BRouter App</string>
+    <string name="action_choose_folder">Wybierz katalog bazy danych BRoutera:</string>
+    <string name="action_select_profile">Wybierz profil routingu</string>
+    <string name="main_action">Wybierz akcję główną</string>
+    <string name="main_action_1">Menedżer pobierania</string>
+    <string name="main_action_2">Aplikacja BRouter</string>
 
-    <string name="cancel">Cancel</string>
-    <string name="i_know">I know</string>
-    <string name="close">Close</string>
-    <string name="exit">Exit</string>
+    <string name="cancel">Anuluj</string>
+    <string name="i_know">Rozumiem</string>
+    <string name="close">Zamknij</string>
+    <string name="exit">Wyjdź</string>
     <string name="ok">OK</string>
-    <string name="success">Success</string>
-    <string name="error">An Error occurred</string>
+    <string name="success">Sukces</string>
+    <string name="error">Wystąpił błąd</string>
 
-    <string name="title_download">BRouter Download Manager</string>
-    <string name="summary_download">*** Attention:***
-        \n\nThe Download Manager is used to download routing-data
-        files which can be up to 170MB each. Do not start the Download Manager
-        on a cellular data connection without a data plan!
-        Download speed is restricted to 16 MBit/s.</string>
-    <string name="title_timeoutfree">Successfully prepared a timeout-free calculation</string>
-    <string name="summary_timeoutfree">You successfully repeated a calculation that previously run into a timeout
-        when started from your map-tool. If you repeat the same request from your
-        maptool, with the exact same destination point and a close-by starting point,
-        this request is guaranteed not to time out.</string>
-    <string name="title_sdcard">Enter SDCARD base dir:</string>
-    <string name="title_action">Select Action</string>
+    <string name="title_download">Menedżer pobierania BRoutera</string>
+    <string name="summary_download">*** Uwaga: ***
+        \n\nMenedżer pobierania służy do pobierania plików danych routingu,
+        które mogą mieć do 170 MB każdy. Nie uruchamiaj Menedżera pobierania,
+        jeżeli korzystasz z komórkowej transmisji danych bez planu taryfowego!
+        Prędkość pobierania jest ograniczona do 16 MBit/s.</string>
+    <string name="title_timeoutfree">Pomyślnie przygotowano obliczenia nie przekraczając limitu czasu</string>
+    <string name="summary_timeoutfree">Pomyślnie powtórzono obliczenia, które wcześniej przekroczyły limit czasu
+        po uruchomieniu z narzędzia mapowego. Jeśli powtórzysz to samo żądanie ze swojego
+        narzędzia mapowego, z dokładnie tym samym punktem docelowym i pobliskim punktem początkowym,
+        gwarantuję, że to żądanie nie przekroczy limitu czasu.</string>
+    <string name="title_sdcard">Wybierz katalog SDCARD dla bazy:</string>
+    <string name="title_action">Wybierz akcję</string>
 
-    <string name="action_via_select">Check VIA Selection:</string>
-    <string name="action_nogo_select">Check NoGo Selection:</string>
-    <string name="action_servermode">Server-Mode</string>
-    <string name="action_info">Info</string>
-    <string name="action_calc_route">Calc Route</string>
-    <string name="action_profile_settings">Profile Settings</string>
-    <string name="action_share">Share GPX</string>
-    <string name="action_select_from">Select from</string>
-    <string name="action_select_to">Select to/via</string>
+    <string name="action_via_select">Sprawdź wybór VIA:</string>
+    <string name="action_nogo_select">Sprawdź wybór NoGo:</string>
+    <string name="action_servermode">Tryb serwera</string>
+    <string name="action_info">Informacje</string>
+    <string name="action_calc_route">Oblicz trasę</string>
+    <string name="action_profile_settings">Ustawienia profilu</string>
+    <string name="action_share">Udostępnij GPX</string>
+    <string name="action_select_from">Wybierz z</string>
+    <string name="action_select_to">Wybierz do/przez</string>
 
-    <string name="msg_no_profile">no profile data</string>
-    <string name="msg_no_used_profile">, no used profile</string>
-    <string name="msg_too_much_data">Too much data for download. Please reduce.</string>
-    <string name="msg_download_start">Download scheduled. Check internet connection if it doesn\'t start.</string>
-    <string name="msg_wpt_selection">current waypoint selection:\n</string>
-    <string name="msg_no_wpt_selection">Expecting waypoint selection\n</string>
-    <string name="msg_alternative">Alternative</string>
-    <string name="msg_status_result">version = BRouter-%1$s \n
-        mem = %2$s \n
-        distance = %3$s km\n
-        filtered ascend = %4$s m\n
-        plain ascend = %5$s m\n
-        estimated time = %6$s</string>
-    <string name="msg_read_wpt_error">Error reading waypoints</string>
-    <string name="msg_no_wpt">coordinate source does not contain any waypoints!</string>
-    <string name="msg_too_much_wpts">coordinate source contains too much waypoints: %1$d (please use from/to/via names)</string>
+    <string name="msg_no_profile">brak danych profilu</string>
+    <string name="msg_no_used_profile">, brak używanego profilu</string>
+    <string name="msg_too_much_data">Za dużo danych do pobrania. Proszę ogranicz.</string>
+    <string name="msg_download_start">Pobieranie zaplanowane. Jeśli się nie rozpocznie, sprawdź połączenie internetowe.</string>
+    <string name="msg_wpt_selection">bieżący wybór punktu trasy:\n</string>
+    <string name="msg_no_wpt_selection">Oczekuję na wybór punktu trasy\n</string>
+    <string name="msg_alternative">Alternatywa</string>
+    <string name="msg_status_result">wersja = BRouter-%1$s \n
+        pamięć = %2$s \n
+        odległość = %3$s km\n
+        filtrowane wznoszenie = %4$sm\n
+        zwykłe wznoszenie = %5$sm\n
+        szacowany czas = %6$s</string>
+    <string name="msg_read_wpt_error">Błąd podczas odczytu punktów trasy</string>
+    <string name="msg_no_wpt">Źródło współrzędnych nie zawiera żadnych punktów trasy!</string>
+    <string name="msg_too_much_wpts">Źródło współrzędnych zawiera zbyt dużo punktów trasy: %1$d (proszę używać nazw z/do/przez)</string>
+
+    <string name="no">No</string>
+    <string name="yes">Yes</string>
+
+    <string name="title_delete">Confirm Delete</string>
+    <string name="summary_delete">Really delete?</string>
+    <string name="title_version">Version Problem</string>
+    <string name="summary_version">The base version for tiles has changed. What to do?</string>
+    <string name="action_version1">Continue with current download, delete other old data</string>
+    <string name="action_version2">Select all for download and start</string>
+    <string name="action_version3">Cancel now, complete on an other day</string>
+    <string name="title_version_diff">Version Differences</string>
+    <string name="summary_version_diff">The base version for some tiles is different. What to do?</string>
+    <string name="action_version_diff1">Download all different tiles</string>
+    <string name="action_version_diff2">Drop all different tiles</string>
+    <string name="action_version_diff3">Cancel now, complete on an other day</string>
+    <string name="summary_new_version">The new data version needs a new app. Please update BRouter first</string>
+
+    <string name="msg_download_faild">Download failed</string>
+    <string name="msg_download_cancel">Download cancelled</string>
+    <string name="msg_download_succeed">Download succeeded</string>
 
 </resources>
