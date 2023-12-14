@@ -36,6 +36,7 @@ public class BRouterWorker {
   public List<OsmNodeNamed> nogoPolygonsList;
   public String profileParams;
 
+  @SuppressWarnings("deprecation")
   public String getTrackFromParams(Bundle params) {
 
     int engineMode = 0;
