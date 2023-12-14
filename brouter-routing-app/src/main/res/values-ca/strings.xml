@@ -85,8 +85,9 @@
     <string name="action_version_diff3">Cancel now, complete on an other day</string>
     <string name="summary_new_version">The new data version needs a new app. Please update BRouter first</string>
 
-    <string name="msg_download_faild">Download failed</string>
+    <string name="msg_download_failed">Download failed</string>
     <string name="msg_download_cancel">Download cancelled</string>
     <string name="msg_download_succeed">Download succeeded</string>
+    <string name="msg_download_started">"Downloading .. "</string>
 
 </resources>
