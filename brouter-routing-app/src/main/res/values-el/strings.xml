@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
-        <item quantity="one">%d τμήμα</item>compare cl
+        <item quantity="one">%d τμήμα</item>
         <item quantity="other">%d τμήματα</item>
     </plurals>
     <string name="cancel_download">Ακύρωση λήψης</string>
