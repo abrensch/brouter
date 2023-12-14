@@ -69,25 +69,25 @@
     <string name="msg_too_much_wpts">la fuente de coordenadas contiene demasiados waypoints: %1$d (por favor, usa nombres desde/a/vía)</string>
 
     <string name="no">No</string>
-    <string name="yes">Yes</string>
+    <string name="yes">Si</string>
 
-    <string name="title_delete">Confirm Delete</string>
-    <string name="summary_delete">Really delete?</string>
-    <string name="title_version">Version Problem</string>
-    <string name="summary_version">The base version for tiles has changed. What to do?</string>
-    <string name="action_version1">Continue with current download, delete other old data</string>
-    <string name="action_version2">Select all for download and start</string>
-    <string name="action_version3">Cancel now, complete on an other day</string>
-    <string name="title_version_diff">Version Differences</string>
-    <string name="summary_version_diff">The base version for some tiles is different. What to do?</string>
-    <string name="action_version_diff1">Download all different tiles</string>
-    <string name="action_version_diff2">Drop all different tiles</string>
-    <string name="action_version_diff3">Cancel now, complete on an other day</string>
-    <string name="summary_new_version">The new data version needs a new app. Please update BRouter first</string>
+    <string name="title_delete">Confirmar Eliminar</string>
+    <string name="summary_delete">¿Quieres realmente eliminar?</string>
+    <string name="title_version">Problema de versión</string>
+    <string name="summary_version">La versión base para as teselas ha cambiado. ¿Qué quieres hacer?</string>
+    <string name="action_version1">Continuar con la descarga, eliminar otros datos antiguos</string>
+    <string name="action_version2">Seleccionar todo para descargar e iniciar</string>
+    <string name="action_version3">Cancelar ahora, completar otro día</string>
+    <string name="title_version_diff">Diferencias de versión</string>
+    <string name="summary_version_diff">La versión base de varias teselas es distinta. ¿Qué quieres hacer?</string>
+    <string name="action_version_diff1">Descargar todas las teselas distintas</string>
+    <string name="action_version_diff2">Descartar las teselas distintas</string>
+    <string name="action_version_diff3">Cancelar ahora, completar otro día</string>
+    <string name="summary_new_version">La nueva versión de datos necesita un aplicación nueva. Por favor, actualiza BRouter primero</string>
 
-    <string name="msg_download_failed">Download failed</string>
-    <string name="msg_download_cancel">Download cancelled</string>
-    <string name="msg_download_succeed">Download succeeded</string>
-    <string name="msg_download_started">"Downloading .. "</string>
+    <string name="msg_download_failed">Descarga fallida</string>
+    <string name="msg_download_cancel">Descarga cancelada</string>
+    <string name="msg_download_succeed">Descarga exitosa</string>
+    <string name="msg_download_started">Descargando…</string>
 
 </resources>

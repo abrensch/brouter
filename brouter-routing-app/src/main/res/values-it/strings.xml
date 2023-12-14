@@ -70,25 +70,25 @@
     <string name="msg_too_much_wpts">la fonte delle coordinate contiene troppi waypoint: %1$d (usa i nomi da/a/via)</string>
 
     <string name="no">No</string>
-    <string name="yes">Yes</string>
+    <string name="yes">Sì</string>
 
-    <string name="title_delete">Confirm Delete</string>
-    <string name="summary_delete">Really delete?</string>
-    <string name="title_version">Version Problem</string>
-    <string name="summary_version">The base version for tiles has changed. What to do?</string>
-    <string name="action_version1">Continue with current download, delete other old data</string>
-    <string name="action_version2">Select all for download and start</string>
-    <string name="action_version3">Cancel now, complete on an other day</string>
-    <string name="title_version_diff">Version Differences</string>
-    <string name="summary_version_diff">The base version for some tiles is different. What to do?</string>
-    <string name="action_version_diff1">Download all different tiles</string>
-    <string name="action_version_diff2">Drop all different tiles</string>
-    <string name="action_version_diff3">Cancel now, complete on an other day</string>
-    <string name="summary_new_version">The new data version needs a new app. Please update BRouter first</string>
+    <string name="title_delete">Conferma eliminazione</string>
+    <string name="summary_delete">Eliminare davvero?</string>
+    <string name="title_version">Problema di versione</string>
+    <string name="summary_version">La versione base per i riquadri è cambiata. Cosa fare?</string>
+    <string name="action_version1">Continua con il download corrente, elimina altri vecchi dati</string>
+    <string name="action_version2">Seleziona tutto per il download e avvia</string>
+    <string name="action_version3">Annulla ora, completa un altro giorno</string>
+    <string name="title_version_diff">Differenze di versione</string>
+    <string name="summary_version_diff">La versione base di alcuni riquadri è diversa. Cosa fare?</string>
+    <string name="action_version_diff1">Scarica tutti i diversi riquadri</string>
+    <string name="action_version_diff2">Rilascia tutti i diversi riquadri</string>
+    <string name="action_version_diff3">Annulla ora, completa un altro giorno</string>
+    <string name="summary_new_version">La nuova versione dei dati necessita di una nuova app. Per favore aggiorna prima BRouter</string>
 
-    <string name="msg_download_failed">Download failed</string>
-    <string name="msg_download_cancel">Download cancelled</string>
-    <string name="msg_download_succeed">Download succeeded</string>
-    <string name="msg_download_started">"Downloading .. "</string>
+    <string name="msg_download_failed">Download fallito</string>
+    <string name="msg_download_cancel">Download annullato</string>
+    <string name="msg_download_succeed">Download riuscito</string>
+    <string name="msg_download_started">Download in corso…</string>
 
 </resources>

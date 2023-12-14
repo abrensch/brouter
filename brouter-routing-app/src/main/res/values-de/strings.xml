@@ -63,32 +63,32 @@
         Speicher = %2$s \n
         Abstand = %3$s km\n
         gefilterter Aufstieg = %4$s m\n
-        schlichter Aufstieg = %5$s m\n
+        flacher Aufstieg = %5$s m\n
         geschätzte Zeit = %6$s</string>
     <string name="msg_read_wpt_error">Fehler beim Lesen von Wegpunkten</string>
     <string name="msg_no_wpt">Die Koordinatenquelle enthält keine Wegpunkte!</string>
     <string name="msg_too_much_wpts">Die Koordinatenquelle enthält zu viele Wegpunkte: %1$d (bitte von/nach/via-Namen verwenden)</string>
 
-    <string name="no">No</string>
-    <string name="yes">Yes</string>
+    <string name="no">Nein</string>
+    <string name="yes">Ja</string>
 
-    <string name="title_delete">Confirm Delete</string>
-    <string name="summary_delete">Really delete?</string>
-    <string name="title_version">Version Problem</string>
-    <string name="summary_version">The base version for tiles has changed. What to do?</string>
-    <string name="action_version1">Continue with current download, delete other old data</string>
-    <string name="action_version2">Select all for download and start</string>
-    <string name="action_version3">Cancel now, complete on an other day</string>
-    <string name="title_version_diff">Version Differences</string>
-    <string name="summary_version_diff">The base version for some tiles is different. What to do?</string>
-    <string name="action_version_diff1">Download all different tiles</string>
-    <string name="action_version_diff2">Drop all different tiles</string>
-    <string name="action_version_diff3">Cancel now, complete on an other day</string>
-    <string name="summary_new_version">The new data version needs a new app. Please update BRouter first</string>
+    <string name="title_delete">Löschen bestätigen</string>
+    <string name="summary_delete">Wirklich löschen?</string>
+    <string name="title_version">Versionsproblem</string>
+    <string name="summary_version">Die Datenversion der Kacheln hat sich geändert. Bitte auswählen:</string>
+    <string name="action_version1">Download fortsetzen und alte Daten löschen?</string>
+    <string name="action_version2">Alle auswählen und Download starten</string>
+    <string name="action_version3">Abbrechen und später fortsetzen</string>
+    <string name="title_version_diff">Versionskonflikt</string>
+    <string name="summary_version_diff">Die Datenversion für einige Kacheln ist unterschiedlich. Bitte auswählen:</string>
+    <string name="action_version_diff1">Download alle unterschiedlichen Kacheln</string>
+    <string name="action_version_diff2">Überspringe alle unterschiedlichen Kacheln</string>
+    <string name="action_version_diff3">Abbrechen und später fortsetzen</string>
+    <string name="summary_new_version">Die neue Datenversion verlangt ein BRouter-Update. Bitte aktualisieren</string>
 
-    <string name="msg_download_failed">Download failed</string>
-    <string name="msg_download_cancel">Download cancelled</string>
-    <string name="msg_download_succeed">Download succeeded</string>
-    <string name="msg_download_started">"Downloading .. "</string>
+    <string name="msg_download_failed">Download fehlgeschlagen</string>
+    <string name="msg_download_cancel">Download abgebrochen</string>
+    <string name="msg_download_succeed">Download erfolgreich</string>
+    <string name="msg_download_started">Download läuft…</string>
 
 </resources>
