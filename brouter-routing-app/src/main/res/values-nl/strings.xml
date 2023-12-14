@@ -63,26 +63,26 @@
     <string name="msg_no_wpt">coördinaten bron bevat geen waypoints!</string>
     <string name="msg_too_much_wpts">De coördinatenbron bevat te veel waypoints: %1$d (gebruik van/naar/via namen)</string>
 
-    <string name="no">No</string>
-    <string name="yes">Yes</string>
+    <string name="no">Nee</string>
+    <string name="yes">Ja</string>
 
-    <string name="title_delete">Confirm Delete</string>
-    <string name="summary_delete">Really delete?</string>
-    <string name="title_version">Version Problem</string>
-    <string name="summary_version">The base version for tiles has changed. What to do?</string>
-    <string name="action_version1">Continue with current download, delete other old data</string>
-    <string name="action_version2">Select all for download and start</string>
-    <string name="action_version3">Cancel now, complete on an other day</string>
-    <string name="title_version_diff">Version Differences</string>
-    <string name="summary_version_diff">The base version for some tiles is different. What to do?</string>
-    <string name="action_version_diff1">Download all different tiles</string>
-    <string name="action_version_diff2">Drop all different tiles</string>
-    <string name="action_version_diff3">Cancel now, complete on an other day</string>
-    <string name="summary_new_version">The new data version needs a new app. Please update BRouter first</string>
+    <string name="title_delete">Verwijderen bevestigen</string>
+    <string name="summary_delete">Echt verwijderen?</string>
+    <string name="title_version">Versie probleem</string>
+    <string name="summary_version">De basisversie voor de tegels is gewijzigd. Wat moet er gebeuren?</string>
+    <string name="action_version1">Doorgaan met de huidige download, verwijder de oude gegevens.</string>
+    <string name="action_version2">Selecteer alles om te downloaden en start</string>
+    <string name="action_version3">Annuleer nu, voltooi op een andere dag</string>
+    <string name="title_version_diff">Versieverschillen</string>
+    <string name="summary_version_diff">De basisversie voor sommige tiles is anders. Wat moet er gebeuren?</string>
+    <string name="action_version_diff1">Download alle verschillende tegels</string>
+    <string name="action_version_diff2">Laat alle verschillende tegels vallen</string>
+    <string name="action_version_diff3">Annuleer nu, en voltooi op een andere dag</string>
+    <string name="summary_new_version">Voor de nieuwe gegevensversie is een nieuwe app nodig. Update eerst de BRouter</string>
 
-    <string name="msg_download_failed">Download failed</string>
-    <string name="msg_download_cancel">Download cancelled</string>
-    <string name="msg_download_succeed">Download succeeded</string>
-    <string name="msg_download_started">"Downloading .. "</string>
+    <string name="msg_download_failed">Download is mislukt</string>
+    <string name="msg_download_cancel">Download is geannuleerd</string>
+    <string name="msg_download_succeed">Download is geslaagd</string>
+    <string name="msg_download_started">Downloaden…</string>
 
 </resources>
