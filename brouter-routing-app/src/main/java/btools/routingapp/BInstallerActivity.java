@@ -279,7 +279,7 @@ public class BInstallerActivity extends AppCompatActivity {
         String segmentName = progress.getString(DownloadWorker.PROGRESS_SEGMENT_NAME);
         int percent = progress.getInt(DownloadWorker.PROGRESS_SEGMENT_PERCENT, 0);
         if (percent > 0) {
-          mDownloadSummaryInfo.setText("Downloading .. " + segmentName);
+          mDownloadSummaryInfo.setText(getString(R.string.msg_download_started) + segmentName);
         }
         if (percent > 0) {
           mProgressIndicator.setIndeterminate(false);
@@ -295,7 +295,7 @@ public class BInstallerActivity extends AppCompatActivity {
         String result;
         switch (workInfo.getState()) {
           case FAILED:
-            result = getString(R.string.msg_download_faild);
+            result = getString(R.string.msg_download_failed);
             break;
           case CANCELLED:
             result = getString(R.string.msg_download_cancel);
