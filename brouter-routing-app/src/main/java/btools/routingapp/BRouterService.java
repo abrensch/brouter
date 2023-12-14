@@ -271,6 +271,7 @@ public class BRouterService extends Service {
       }
     }
 
+    @SuppressWarnings("deprecation")
     private void logBundle(Bundle params) {
       if (AppLogger.isLogging()) {
         for (String k : params.keySet()) {
