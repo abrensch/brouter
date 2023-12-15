@@ -96,6 +96,8 @@ public class BRouterService extends Service {
       if (errMsg != null) {
         return errMsg;
       }
+      // profile is already done
+      params.remove("profile");
 
       boolean canCompress = "true".equals(params.getString("acceptCompressedResult"));
       try {
