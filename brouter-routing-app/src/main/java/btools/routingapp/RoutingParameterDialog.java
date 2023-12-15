@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -168,39 +169,50 @@ public class RoutingParameterDialog extends AppCompatActivity {
         new OnBackInvokedCallback() {
           @Override
           public void onBackInvoked() {
-            StringBuilder sb = null;
-            if (sharedValues != null) {
-              // fill preference with used params
-              // for direct use in the BRouter interface "extraParams"
-              sb = new StringBuilder();
-              for (Map.Entry<String, ?> entry : sharedValues.getAll().entrySet()) {
-                if (!entry.getKey().equals("params")) {
-                  sb.append(sb.length() > 0 ? "&" : "")
-                    .append(entry.getKey())
-                    .append("=");
-                  String s = entry.getValue().toString();
-                  if (s.equals("true")) s = "1";
-                  else if (s.equals("false")) s = "0";
-                  sb.append(s);
-                }
-              }
-            }
-            // and return the array
-            // one should be enough
-            Intent i = new Intent();
-            // i.putExtra("PARAMS", listParams);
-            i.putExtra("PROFILE", profile);
-            i.putExtra("PROFILE_HASH", profile_hash);
-            if (sb != null) i.putExtra("PARAMS_VALUES", sb.toString());
-
-            setResult(Activity.RESULT_OK, i);
-            finish();
+            handleBackPressed();
           }
         }
       );
-
-
+    } else {
+      OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+        @Override
+        public void handleOnBackPressed() {
+          handleBackPressed();
+        }
+      };
+      getOnBackPressedDispatcher().addCallback(this, callback);
     }
+  }
+
+  private void handleBackPressed() {
+    StringBuilder sb = null;
+    if (sharedValues != null) {
+      // fill preference with used params
+      // for direct use in the BRouter interface "extraParams"
+      sb = new StringBuilder();
+      for (Map.Entry<String, ?> entry : sharedValues.getAll().entrySet()) {
+        if (!entry.getKey().equals("params")) {
+          sb.append(sb.length() > 0 ? "&" : "")
+            .append(entry.getKey())
+            .append("=");
+          String s = entry.getValue().toString();
+          if (s.equals("true")) s = "1";
+          else if (s.equals("false")) s = "0";
+          sb.append(s);
+        }
+      }
+    }
+    // and return the array
+    // one should be enough
+    Intent i = new Intent();
+    // i.putExtra("PARAMS", listParams);
+    i.putExtra("PROFILE", profile);
+    i.putExtra("PROFILE_HASH", profile_hash);
+    if (sb != null) i.putExtra("PARAMS_VALUES", sb.toString());
+
+    setResult(Activity.RESULT_OK, i);
+    finish();
+
   }
 
   @Override
