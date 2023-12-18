@@ -121,10 +121,10 @@ final class StdPath extends OsmPath {
       ehbd -= reduce;
       int elevationCost = 0;
       if (downhillcostdiv > 0) {
-        elevationCost = Math.min(reduce, dist * rc.elevationbufferreduce) / downhillcostdiv;
+        elevationCost += Math.min(reduce, dist * rc.elevationbufferreduce) / downhillcostdiv;
       }
       if (downhillmaxbuffercostdiv > 0) {
-        elevationCost = Math.max(0, reduce - dist * rc.elevationbufferreduce) / downhillmaxbuffercostdiv;
+        elevationCost += Math.max(0, reduce - dist * rc.elevationbufferreduce) / downhillmaxbuffercostdiv;
       }
       if (elevationCost > 0) {
         sectionCost += elevationCost;
@@ -153,10 +153,10 @@ final class StdPath extends OsmPath {
       ehbu -= reduce;
       int elevationCost = 0;
       if (uphillcostdiv > 0) {
-        elevationCost = Math.min(reduce, dist * rc.elevationbufferreduce) / uphillcostdiv;
+        elevationCost += Math.min(reduce, dist * rc.elevationbufferreduce) / uphillcostdiv;
       }
       if (uphillmaxbuffercostdiv > 0) {
-        elevationCost = Math.max(0, reduce - dist * rc.elevationbufferreduce) / uphillmaxbuffercostdiv;
+        elevationCost += Math.max(0, reduce - dist * rc.elevationbufferreduce) / uphillmaxbuffercostdiv;
       }
       if (elevationCost > 0) {
         sectionCost += elevationCost;
