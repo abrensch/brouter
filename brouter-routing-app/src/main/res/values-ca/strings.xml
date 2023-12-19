@@ -35,8 +35,9 @@
         des d\'un mòbil sense un pla de dades!
         La velocitat de baixada està limitada a 16 Mbit/s.</string>
     <string name="title_timeoutfree">S\'ha preparat correctament un càlcul sense límit de temps</string>
-    <string name="summary_timeoutfree">S\'ha repetit amb èxit un càlcul a través de l\'aplicació de cartografia que prèviament havia
-        superat el temps d\'espera. Si repeteixes la mateixa petició amb exactament el mateix destí i un punt de partida proper,
+    <string name="summary_timeoutfree">S\'ha repetit amb èxit un càlcul a través
+        de l\'aplicació de cartografia que prèviament havia superat el temps d\'espera.
+        Si repeteixes la mateixa petició amb exactament el mateix destí i un punt de partida proper,
         es garanteix que la petició no esgotarà el límit de temps.</string>
     <string name="title_sdcard">Introdueix el directori base de la tarja SD:</string>
     <string name="title_action">Seleccionar Acció</string>

@@ -35,8 +35,9 @@
         desde un terminal sin plan de datos!
         La velocidad de descarga está limitada a 16 Mbit/s.</string>
     <string name="title_timeoutfree">Se ha preparado correctamente un cálculo sin límite de tiempo</string>
-    <string name="summary_timeoutfree">Se ha repetido un cálculo a través de la aplicación de mapas que previamente
-        había superado el tiempo de espera. Si repites la misma petición con exactamente el mismo destino y un punto de partida cercano,
+    <string name="summary_timeoutfree">Se ha repetido un cálculo a través
+        de la aplicación de mapas que previamente había superado el tiempo de espera.
+        Si repites la misma petición con exactamente el mismo destino y un punto de partida cercano,
         se garantiza que la petición no agotará el límite de tiempo.</string>
     <string name="title_sdcard">Introduce el directorio base de la tarjeta SD:</string>
     <string name="title_action">Seleccionar Acción</string>

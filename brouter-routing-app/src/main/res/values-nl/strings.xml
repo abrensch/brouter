@@ -30,9 +30,15 @@
 
     <string name="title_download">BRouter Download Manager</string>
     <string name="summary_download">*** OPgelet:***
-        \n\nDe Download Manager wordt gebruikt voor het downloaden van routing-gegevens bestanden die elk maximaal 170 MB groot kunnen zijn. Start de Download Manager niet op een mobiele dataverbinding zonder data-abonnement! De downloadsnelheid is beperkt tot 16 MBit/s.</string>
+        \n\nDe Download Manager wordt gebruikt voor het downloaden van routing-gegevens
+        bestanden die elk maximaal 170 MB groot kunnen zijn. Start de Download Manager
+        niet op een mobiele dataverbinding zonder data-abonnement!
+        De downloadsnelheid is beperkt tot 16 MBit/s.</string>
     <string name="title_timeoutfree">Een time-outvrije berekening is succesvol voorbereid</string>
-    <string name="summary_timeoutfree">Je hebt met succes een berekening herhaald die eerder op een time-out stuitte toen deze vanuit je map-tool werd gestart. Als u hetzelfde verzoek herhaalt vanuit uw maptool, met exact hetzelfde bestemmingspunt en een dichtbijgelegen beginpunt zal deze aanvraag gegarandeerd geen time-out krijgen.</string>
+    <string name="summary_timeoutfree">Je hebt met succes een berekening herhaald die eerder op een time-out
+        stuitte toen deze vanuit je map tool werd gestart. Als u hetzelfde verzoek herhaalt
+        vanuit uw map tool, met exact hetzelfde bestemmingspunt en een dichtbijgelegen beginpunt,
+        zal deze aanvraag gegarandeerd geen time-out krijgen.</string>
     <string name="title_sdcard">De SDCARD basis directory invoeren:</string>
     <string name="title_action">Actie selecteren</string>
 
