@@ -129,10 +129,7 @@ public final class VoiceHintProcessor {
 
           if (badPrio > maxPrioAll && !isBadHighway2Link) {
             maxPrioAll = badPrio;
-          }
-
-          if (badWay.costfactor < 20.f && Math.abs(badTurn) < minAbsAngeRaw) {
-            minAbsAngeRaw = Math.abs(badTurn);
+            input.maxBadPrio = Math.max(input.maxBadPrio, badPrio);
           }
 
           if (badPrio < minPrio) {
@@ -145,6 +142,10 @@ public final class VoiceHintProcessor {
 
           if (Math.abs(badTurn) - Math.abs(turnAngle) > 80.f) {
             continue; // ways from the back should not trigger a slight turn
+          }
+
+          if (badWay.costfactor < 20.f && Math.abs(badTurn) < minAbsAngeRaw) {
+            minAbsAngeRaw = Math.abs(badTurn);
           }
 
           if (badPrio > maxPrioCandidates) {
