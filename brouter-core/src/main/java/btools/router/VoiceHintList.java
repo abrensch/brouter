@@ -30,11 +30,17 @@ public class VoiceHintList {
 
   public String getTransportMode() {
     String ret;
-    switch(transportMode) {
-      case TRANS_MODE_FOOT: ret = "foot"; break;
-      case TRANS_MODE_CAR : ret = "car"; break;
+    switch (transportMode) {
+      case TRANS_MODE_FOOT:
+        ret = "foot";
+        break;
+      case TRANS_MODE_CAR:
+        ret = "car";
+        break;
       case TRANS_MODE_BIKE:
-      default: ret = "bike";
+      default:
+        ret = "bike";
+        break;
     }
     return ret;
   }
