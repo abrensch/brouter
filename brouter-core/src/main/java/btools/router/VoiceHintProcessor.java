@@ -249,6 +249,7 @@ public final class VoiceHintProcessor {
     List<VoiceHint> results = new ArrayList<>();
     double distance = 0;
     VoiceHint inputLast = null;
+    VoiceHint inputLastSaved = null;
     for (int hintIdx = 0; hintIdx < inputs.size(); hintIdx++) {
       VoiceHint input = inputs.get(hintIdx);
       VoiceHint nextInput = null;
@@ -258,7 +259,7 @@ public final class VoiceHintProcessor {
 
       if (nextInput == null) {
         if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
-          if (input.goodWay.getPrio() < input.maxBadPrio) {
+          if (input.goodWay.getPrio() < input.maxBadPrio && (inputLastSaved != null && inputLastSaved.distanceToNext > catchingRange)) {
             results.add(input);
           } else {
             if (inputLast != null) { // when drop add distance to last
@@ -270,16 +271,37 @@ public final class VoiceHintProcessor {
           results.add(input);
         }
       } else {
-        if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
-          if (input.goodWay.getPrio() < input.maxBadPrio) {
-            results.add(input);
-          } else {
-            if (inputLast != null) { // when drop add distance to last
-              inputLast.distanceToNext += input.distanceToNext;
+        if ((inputLastSaved != null && inputLastSaved.distanceToNext > catchingRange) || input.distanceToNext > catchingRange) {
+          if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
+            if (input.goodWay.getPrio() < input.maxBadPrio
+                && (inputLastSaved != null && inputLastSaved.distanceToNext > minRange)
+                && (input.distanceToNext > minRange)) {
+              // add only on prio
+              results.add(input);
+              inputLastSaved = input;
+            } else {
+              if (inputLastSaved != null) { // when drop add distance to last
+                inputLastSaved.distanceToNext += input.distanceToNext;
+              }
+            }
+          }
+          else {
+            // add all others
+            // ignore motorway / primary continue
+            if (
+                ((input.goodWay.getPrio() != 28) &&
+                 (input.goodWay.getPrio() != 30) &&
+                 (input.goodWay.getPrio() != 26))
+                || Math.abs(input.angle) > 5.f) { // motorway / primary exit
+              results.add(input);
+              inputLastSaved = input;
+            } else {
+              if (inputLastSaved != null) { // when drop add distance to last
+                inputLastSaved.distanceToNext += input.distanceToNext;
+              }
             }
           }
         } else if (input.distanceToNext < catchingRange) {
-          int badWayPrio = 0;
           double dist = input.distanceToNext;
           float angles = input.angle;
           int i = 1;
@@ -290,12 +312,32 @@ public final class VoiceHintProcessor {
 
           if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
             if (input.goodWay.getPrio() < input.maxBadPrio) {
-              save = true;
+              if (inputLastSaved != null && inputLastSaved.cmd != VoiceHint.C
+                  && (inputLastSaved != null && inputLastSaved.distanceToNext > minRange)
+                  && transportMode != VoiceHintList.TRANS_MODE_CAR)
+              {
+                // add when straight and not linktype
+                // and last vh not straight
+                save = true;
+                // remove when next straight and not linktype
+                if (nextInput != null &&
+                    nextInput.cmd == VoiceHint.C &&
+                    !nextInput.goodWay.isLinktType()) {
+                  input.distanceToNext += nextInput.distanceToNext;
+                  hintIdx++;
+                }
+              }
+
+            } else {
+              if (inputLastSaved != null) { // when drop add distance to last
+                inputLastSaved.distanceToNext += input.distanceToNext;
+              }
             }
-          } else if (VoiceHint.is180DegAngle(input.angle)) { //|| VoiceHint.is180DegAngle(nextInput.angle)) {  // u-turn, 180 degree
-            //System.out.println("uturn < dist next!=null " + input.indexInTrack);
+          } else if (VoiceHint.is180DegAngle(input.angle)) {
+            // add u-turn, 180 degree
             save = true;
-          } else if (Math.abs(angles) > 180 - SIGNIFICANT_ANGLE) { // u-turn, collects e.g. two left turns in range
+          } else if (transportMode == VoiceHintList.TRANS_MODE_CAR && Math.abs(angles) > 180 - SIGNIFICANT_ANGLE) {
+            // add when inc car mode and u-turn, collects e.g. two left turns in range
             input.angle = angles;
             input.calcCommand();
             input.distanceToNext += nextInput.distanceToNext;
@@ -306,24 +348,28 @@ public final class VoiceHintProcessor {
             input.calcCommand();
             input.distanceToNext += nextInput.distanceToNext;
             save = true;
+            hintIdx++;
           } else if (Math.abs(input.angle) > SIGNIFICANT_ANGLE) {
-            results.add(input); // add when last
-            save = false;
+            // add when angle above 22.5 deg
+            save = true;
           } else if (Math.abs(input.angle) < SIGNIFICANT_ANGLE) {
-            results.add(input); // add when last
-            save = false;
+            // add when angle below 22.5 deg
+            save = true;
           } else {
-            if (inputLast != null) { // when drop add distance to last
-              inputLast.distanceToNext += input.distanceToNext;
+            // otherwise ignore but add distance to next
+            if (nextInput != null) { // when drop add distance to last
+              nextInput.distanceToNext += input.distanceToNext;
             }
             save = false;
           }
 
           if (save) {
             results.add(input); // add when last
+            inputLastSaved = input;
           }
         } else {
           results.add(input);
+          inputLastSaved = input;
         }
       }
       inputLast = input;
