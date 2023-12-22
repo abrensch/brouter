@@ -153,7 +153,10 @@ public class FormatGpx extends Formatter {
         sb.append(" <wpt lon=\"").append(formatILon(hint.ilon)).append("\" lat=\"")
           .append(formatILat(hint.ilat)).append("\">")
           .append(hint.selev == Short.MIN_VALUE ? "" : "<ele>" + (hint.selev / 4.) + "</ele>")
-          .append("<name>").append(hint.getMessageString()).append("</name>")
+          .append("<name>P")
+          .append(""+hint.indexInTrack+"_")
+          .append(hint.getMessageString())
+          .append("</name>")
           .append("<extensions><locus:rteDistance>").append("" + hint.distanceToNext).append("</locus:rteDistance>");
         float rteTime = t.getVoiceHintTime(i + 1);
         if (rteTime != lastRteTime) { // add timing only if available
