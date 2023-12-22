@@ -15,10 +15,12 @@ public final class VoiceHintProcessor {
 
   // private double catchingRange; // range to catch angles and merge turns
   private boolean explicitRoundabouts;
+  private int transportMode;
 
-  public VoiceHintProcessor(double catchingRange, boolean explicitRoundabouts) {
+  public VoiceHintProcessor(double catchingRange, boolean explicitRoundabouts, int transportMode) {
     // this.catchingRange = catchingRange;
     this.explicitRoundabouts = explicitRoundabouts;
+    this.transportMode = transportMode;
   }
 
   private float sumNonConsumedWithinCatchingRange(List<VoiceHint> inputs, int offset) {
@@ -158,8 +160,8 @@ public final class VoiceHintProcessor {
         }
       }
 
-      boolean hasSomethingMoreStraight = (Math.abs(turnAngle) - minAbsAngeRaw) > 20.;
-      //boolean hasSomethingMoreStraight = (Math.abs(turnAngle - minAbsAngeRaw)) > 20.;
+      // boolean hasSomethingMoreStraight = (Math.abs(turnAngle) - minAbsAngeRaw) > 20.;
+      boolean hasSomethingMoreStraight = (Math.abs(turnAngle - minAbsAngeRaw)) > 20. && input.badWays != null; // && !ignoreBadway;
 
       // unconditional triggers are all junctions with
       // - higher detour prios than the minimum route prio (except link->highway junctions)
