@@ -175,7 +175,7 @@ public class BInstallerView extends View {
           int tidx = gridPos2Tileindex(ix, iy);
           int tilesize = BInstallerSizes.getRd5Size(tidx);
           if (tilesize > 0) {
-            canvas.drawRect(fw * ix, fh * (iy + 1), fw * (ix + 1), fh * iy, paintGrid);
+            canvas.drawRect(fw * ix, fh * iy, fw * (ix + 1), fh * (iy + 1), paintGrid);
           }
         }
       }
@@ -214,7 +214,7 @@ public class BInstallerView extends View {
             canvas.drawLine(fw * ix, fh * (iy + 1), fw * (ix + 1), fh * iy, pnt);
 
             // draw frame
-            canvas.drawRect(fw * ix, fh * (iy + 1), fw * (ix + 1), fh * iy, pnt);
+            canvas.drawRect(fw * ix, fh * iy, fw * (ix + 1), fh * (iy + 1), pnt);
           }
         }
       }
