@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d 구간</item>
+        <item quantity="other">%d 구간</item>
+    </plurals>
+    <string name="cancel_download">다운로드 취소</string>
+    <string name="import_profile">프로필 가져오기</string>
+    <string name="action_download">다운로드 %s</string>
+    <string name="action_delete">삭제 %s</string>
+    <string name="action_update">업데이트 %s</string>
+    <string name="action_select">구간 선택</string>
+    <string name="action_cancel">다운로드 중지</string>
+    <string name="summary_segments">크기=%1$s\n여유=%2$s</string>
+    <string name="notification_title">구간 다운로드</string>
+
+    <string name="action_choose_folder">brouter 데이터 베이스 선택 dir:</string>
+    <string name="action_select_profile">루트 프로필 선택</string>
+    <string name="main_action">주 활동 선택</string>
+    <string name="main_action_1">다운로드 관리자</string>
+    <string name="main_action_2">BRouter 앱</string>
+
+    <string name="cancel">취소</string>
+    <string name="i_know">알고 있습니다</string>
+    <string name="close">가까운</string>
+    <string name="exit">나가기</string>
+    <string name="ok">OK</string>
+    <string name="success">성공</string>
+    <string name="error">에러가 발생됐습니다</string>
+
+    <string name="title_download">BRouter 다운로드 관리자</string>
+    <string name="summary_download">*** 주의:***
+         \n\n다운로드 관리자는 라우팅 데이터를 다운로드하는 데 사용됩니다.
+         파일당 최대 170MB까지 가능합니다. 다운로드 관리자를 시작하지 마십시오
+         데이터 요금제 없이 셀룰러 데이터 연결로!
+         다운로드 속도는 16 MBit/s로 제한됩니다.</string>
+    <string name="title_timeoutfree">시간 초과 없는 계산을 성공적으로 준비했습니다</string>
+    <string name="summary_timeoutfree">이전에 시간 초과가 발생한 계산을 성공적으로 반복하셨습니다.
+         지도 도구에서 시작할 때. 귀하가 귀하로부터 동일한 요청을 반복하는 경우
+         정확히 동일한 목적지와 가까운 시작점이 있는 지도 도구,
+         이 요청은 시간 초과되지 않음이 보장됩니다.</string>
+    <string name="title_sdcard">SDCARD 기본 디렉토리 입력:</string>
+    <string name="title_action">작업 선택</string>
+
+    <string name="action_via_select">경유 선택 체크:</string>
+    <string name="action_nogo_select">NoGo 선택 체크:</string>
+    <string name="action_servermode">서버-모드</string>
+    <string name="action_info">정보</string>
+    <string name="action_calc_route">루트 계산</string>
+    <string name="action_profile_settings">프로필 설정</string>
+    <string name="action_share">GPX 공유</string>
+    <string name="action_select_from">~로부터 선택</string>
+    <string name="action_select_to">선택 ~로/경유하여</string>
+
+    <string name="msg_no_profile">프로필 데이터 없음</string>
+    <string name="msg_no_used_profile">, 사용된 프로필 없음</string>
+    <string name="msg_too_much_data">다운로드 하기에 너무 많은 데이터. 줄이도록 하세요.</string>
+    <string name="msg_download_start">다운로드 계획되어 있음. 인터넷 연결 체크 그렇지 않다면 시작.</string>
+    <string name="msg_wpt_selection">현재 장소 선택:\n</string>
+    <string name="msg_no_wpt_selection">장소 선택 기대\n</string>
+    <string name="msg_alternative">대체 가능한</string>
+    <string name="msg_status_result">버전 = BRouter-%1$s \n
+        메모리 = %2$s \n
+        거리 = %3$s km\n
+        필터링된 오름차순 = %4$s m\n
+        일반 오름차순 = %5$s m\n
+        예상 시간 = %6$s</string>
+    <string name="msg_read_wpt_error">장소 읽는데 에러</string>
+    <string name="msg_no_wpt">좌표정보는 어떤 장소도 포함하고 있지 않습니다!</string>
+    <string name="msg_too_much_wpts">좌표정보는 너무 많은 장소를 포함하고 있습니다: %1$d (~로 부터/~로/경유 이름 사용하세요)</string>
+
+    <string name="no">아니요</string>
+    <string name="yes">예</string>
+
+    <string name="title_delete">삭제 확인</string>
+    <string name="summary_delete">정말 삭제하시겠습니까?</string>
+    <string name="title_version">버전 문제</string>
+    <string name="summary_version">타일을 위한 기본 버전이 바뀌었습니다. 무엇을 해야죠?</string>
+    <string name="action_version1">현재 다운로드 계속, 다른 오래된 데이터 삭제</string>
+    <string name="action_version2">다운로드 위해 모두 선택하고 시작</string>
+    <string name="action_version3">지금 취소, 다른 날 완료</string>
+    <string name="title_version_diff">버전 차이</string>
+    <string name="summary_version_diff">어떤 타일을 위한 기본 버전은 다릅니다, 무엇을 해야죠?</string>
+    <string name="action_version_diff1">모든 다른 타일 다운로드</string>
+    <string name="action_version_diff2">모든 다른 타일 백지화</string>
+    <string name="action_version_diff3">지금 취소, 다른 날 완료</string>
+    <string name="summary_new_version">새로운 데이터 버전은 새로운 앱을 필요로 합니다. 우선 BRouter를 업데이트 하세요</string>
+
+    <string name="msg_download_failed">다운로드 실패</string>
+    <string name="msg_download_cancel">다운로드 취소됨</string>
+    <string name="msg_download_succeed">다운로드 성공</string>
+    <string name="msg_download_started">다운로딩…</string>
+
+</resources>

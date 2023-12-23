@@ -36,8 +36,8 @@
         Download speed is restricted to 16 MBit/s.</string>
     <string name="title_timeoutfree">Successfully prepared a timeout-free calculation</string>
     <string name="summary_timeoutfree">You successfully repeated a calculation that previously run into a timeout
-        when started from your map-tool. If you repeat the same request from your
-        maptool, with the exact same destination point and a close-by starting point,
+        when started from your map tool. If you repeat the same request from your
+        map tool, with the exact same destination point and a close-by starting point,
         this request is guaranteed not to time out.</string>
     <string name="title_sdcard">Enter SDCARD base dir:</string>
     <string name="title_action">Select Action</string>
