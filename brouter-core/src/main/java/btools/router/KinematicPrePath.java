@@ -28,7 +28,7 @@ final class KinematicPrePath extends OsmPrePath {
     boolean isReverse = link.isReverse(sourceNode);
 
     // evaluate the way tags
-    rc.expctxWay.evaluate(rc.inverseDirection ^ isReverse, description);
+    rc.expCtxWay.evaluate(rc.inverseDirection ^ isReverse, description);
 
     OsmTransferNode transferNode = link.geometry == null ? null
       : rc.geometryDecoder.decodeGeometry(link.geometry, p1, targetNode, isReverse);
@@ -47,7 +47,7 @@ final class KinematicPrePath extends OsmPrePath {
     int dist = rc.calcDistance(lon1, lat1, lon2, lat2);
 
     angle = rc.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
-    priorityclassifier = (int) rc.expctxWay.getPriorityClassifier();
-    classifiermask = (int) rc.expctxWay.getClassifierMask();
+    priorityclassifier = (int) rc.expCtxWay.getPriorityClassifier();
+    classifiermask = (int) rc.expCtxWay.getClassifierMask();
   }
 }

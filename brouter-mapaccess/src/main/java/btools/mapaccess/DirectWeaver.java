@@ -16,10 +16,9 @@ import btools.util.ByteDataWriter;
 public final class DirectWeaver extends ByteDataWriter {
   private long id64Base;
 
-  public DirectWeaver(StatCoderContext bc, DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) {
+  public DirectWeaver(StatCoderContext bc, DataBuffers dataBuffers, long id64Base, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) {
     super(null);
-    int cellsize = 1000000 / divisor;
-    id64Base = ((long) (lonIdx * cellsize)) << 32 | (latIdx * cellsize);
+    this.id64Base = id64Base;
 
     TagValueCoder wayTagCoder = new TagValueCoder(bc, dataBuffers, wayValidator);
     TagValueCoder nodeTagCoder = new TagValueCoder(bc, dataBuffers, null);

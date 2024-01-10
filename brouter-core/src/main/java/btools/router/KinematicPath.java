@@ -65,7 +65,7 @@ final class KinematicPath extends OsmPath {
       if (nsection == 0) { // process slowdown by crossing geometry
         double junctionspeed = 999.; // just high
 
-        int classifiermask = (int) rc.expctxWay.getClassifierMask();
+        int classifiermask = (int) rc.expCtxWay.getClassifierMask();
 
         // penalty for equal priority crossing
         boolean hasLeftWay = false;
@@ -215,8 +215,8 @@ final class KinematicPath extends OsmPath {
 
     // finally add node-costs for target node
     if (targetNode.nodeDescription != null) {
-      rc.expctxNode.evaluate(false, targetNode.nodeDescription);
-      float initialcost = rc.expctxNode.getInitialcost();
+      rc.expCtxNode.evaluate(false, targetNode.nodeDescription);
+      float initialcost = rc.expCtxNode.getInitialcost();
       if (initialcost >= 1000000.) {
         return -1.;
       }
@@ -224,7 +224,7 @@ final class KinematicPath extends OsmPath {
 
       if (message != null) {
         message.linknodecost += (int) initialcost;
-        message.nodeKeyValues = rc.expctxNode.getKeyValueDescription(false, targetNode.nodeDescription);
+        message.nodeKeyValues = rc.expCtxNode.getKeyValueDescription(false, targetNode.nodeDescription);
 
         message.vnode1 = (int) (km.getNodeMaxspeed() * 3.6 + 0.5);
       }

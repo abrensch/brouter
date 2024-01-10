@@ -31,13 +31,12 @@ public class OsmFastCutter extends MapCreatorBase {
       , new File(args[7])
       , new File(args[8])
       , new File(args[9])
-      , new File(args[10])
-      , args.length > 11 ? new File(args[11]) : null
-      , args.length > 12 ? args[12] : null
+      , args.length > 10 ? new File(args[10]) : null
+      , args.length > 11 ? args[11] : null
     );
   }
 
-  public static void doCut(File lookupFile, File nodeDir, File wayDir, File node55Dir, File way55Dir, File borderFile, File relFile, File resFile, File profileAll, File profileReport, File profileCheck, File mapFile, String dbTagFilename) throws Exception {
+  public static void doCut(File lookupFile, File nodeDir, File wayDir, File node55Dir, File way55Dir, File borderFile, File relFile, File profileAll, File profileReport, File profileCheck, File mapFile, String dbTagFilename) throws Exception {
     // **** run OsmCutter ****
     OsmCutter cutter = new OsmCutter();
     if (dbTagFilename != null) cutter.setDbTagFilename(dbTagFilename);

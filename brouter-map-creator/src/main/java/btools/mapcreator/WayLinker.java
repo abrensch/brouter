@@ -35,7 +35,6 @@ import btools.util.LazyArrayOfLists;
 public class WayLinker extends MapCreatorBase implements Runnable {
   private File nodeTilesIn;
   private File wayTilesIn;
-  private File trafficTilesIn;
   private File dataTilesOut;
   private File borderFileIn;
 
@@ -44,7 +43,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
   private boolean readingBorder;
 
   private CompactLongMap<OsmNodeP> nodesMap;
-  private OsmTrafficMap trafficMap;
   private List<OsmNodeP> nodesList;
   private CompactLongSet borderSet;
   private short lookupVersion;
@@ -52,16 +50,14 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
   private long creationTimeStamp;
 
-  private BExpressionContextWay expctxWay;
+  private BExpressionContextWay expCtxWay;
 
   private ByteArrayUnifier abUnifier;
 
   private int minLon;
   private int minLat;
-
-  private int microCacheEncoding = 2;
-  private int divisor = 32;
-  private int cellsize = 1000000 / divisor;
+  private final int divisor = 32;
+  private final int cellSize = 1000000 / divisor;
 
   private boolean skipEncodingCheck;
 
@@ -116,18 +112,17 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     System.out.println("*** WayLinker: Format a region of an OSM map for routing");
     if (args.length != 8) {
       System.out
-        .println("usage: java WayLinker <node-tiles-in> <way-tiles-in> <bordernodes> <restrictions> <lookup-file> <profile-file> <data-tiles-out> <data-tiles-suffix> ");
+        .println("usage: java WayLinker <node-tiles-in> <way-tiles-in> <border-nodes> <lookup-file> <profile-file> <data-tiles-out> <data-tiles-suffix> ");
       return;
     }
 
-    new WayLinker().process(new File(args[0]), new File(args[1]), new File(args[2]), new File(args[3]), new File(args[4]), new File(args[5]), new File(
-      args[6]), args[7]);
+    new WayLinker().process(new File(args[0]), new File(args[1]), new File(args[2]), new File(args[3]), new File(args[4]), new File(args[5]), args[6]);
 
     System.out.println("dumping bad TRs");
     RestrictionData.dumpBadTRs();
   }
 
-  public void process(File nodeTilesIn, File wayTilesIn, File borderFileIn, File restrictionsFileIn, File lookupFile, File profileFile, File dataTilesOut,
+  public void process(File nodeTilesIn, File wayTilesIn, File borderFileIn, File lookupFile, File profileFile, File dataTilesOut,
                       String dataTilesSuffix) throws Exception {
     WayLinker master = new WayLinker();
     WayLinker slave = new WayLinker();
@@ -138,8 +133,8 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     slave.tc = tc;
     master.tc = tc;
 
-    master._process(nodeTilesIn, wayTilesIn, borderFileIn, restrictionsFileIn, lookupFile, profileFile, dataTilesOut, dataTilesSuffix);
-    slave._process(nodeTilesIn, wayTilesIn, borderFileIn, restrictionsFileIn, lookupFile, profileFile, dataTilesOut, dataTilesSuffix);
+    master._process(nodeTilesIn, wayTilesIn, borderFileIn, lookupFile, profileFile, dataTilesOut, dataTilesSuffix);
+    slave._process(nodeTilesIn, wayTilesIn, borderFileIn, lookupFile, profileFile, dataTilesOut, dataTilesSuffix);
 
     Thread m = new Thread(master);
     Thread s = new Thread(slave);
@@ -149,11 +144,10 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     s.join();
   }
 
-  private void _process(File nodeTilesIn, File wayTilesIn, File borderFileIn, File restrictionsFileIn, File lookupFile, File profileFile, File dataTilesOut,
+  private void _process(File nodeTilesIn, File wayTilesIn, File borderFileIn, File lookupFile, File profileFile, File dataTilesOut,
                         String dataTilesSuffix) throws Exception {
     this.nodeTilesIn = nodeTilesIn;
     this.wayTilesIn = wayTilesIn;
-    this.trafficTilesIn = new File("../traffic");
     this.dataTilesOut = dataTilesOut;
     this.borderFileIn = borderFileIn;
     this.dataTilesSuffix = dataTilesSuffix;
@@ -161,13 +155,13 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     BExpressionMetaData meta = new BExpressionMetaData();
 
     // read lookup + profile for lookup-version + access-filter
-    expctxWay = new BExpressionContextWay(meta);
+    expCtxWay = new BExpressionContextWay(meta);
     meta.readMetaData(lookupFile);
 
     lookupVersion = meta.lookupVersion;
     lookupMinorVersion = meta.lookupMinorVersion;
 
-    expctxWay.parseFile(profileFile, "global");
+    expCtxWay.parseFile(profileFile, "global");
 
     creationTimeStamp = System.currentTimeMillis();
 
@@ -199,22 +193,19 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     // total memory size should stay below a maximum
     // and no file should be processed twice
 
-    long filesize = wayfile.length();
+    long fileSize = wayfile.length();
 
-    System.out.println("**** wayFileStart() for isSlave=" + isSlave + " size=" + filesize);
+    System.out.println("**** wayFileStart() for isSlave=" + isSlave + " size=" + fileSize);
 
     if (isSlave) {
-      if (!tc.setCurrentSlaveSize(filesize)) {
+      if (!tc.setCurrentSlaveSize(fileSize)) {
         return false;
       }
     } else {
-      if (!tc.setCurrentMasterSize(filesize)) {
+      if (!tc.setCurrentMasterSize(fileSize)) {
         return false;
       }
     }
-
-
-    File trafficFile = fileFromTemplate(wayfile, trafficTilesIn, "trf");
 
     // process corresponding node-file, if any
     File nodeFile = fileFromTemplate(wayfile, nodeTilesIn, "u5d");
@@ -263,12 +254,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
       }
 
       nodesList = nodesMapFrozen.getValueList();
-    }
-
-    // read a traffic-file, if any
-    if (trafficFile.exists()) {
-      trafficMap = new OsmTrafficMap(expctxWay);
-      trafficMap.loadAll(trafficFile, minLon, minLat, minLon + 5000000, minLat + 5000000, false);
     }
     return true;
   }
@@ -320,7 +305,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
           r.fromLon = n1.ilon;
           r.fromLat = n1.ilat;
           n1.bits |= OsmNodeP.DP_SURVIVOR_BIT;
-          if (!isEndNode(n2, w)) {
+          if (isInnerNode(n2, w)) {
             r.badWayMatch = true;
           }
         }
@@ -330,7 +315,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
           r.toLon = n1.ilon;
           r.toLat = n1.ilat;
           n1.bits |= OsmNodeP.DP_SURVIVOR_BIT;
-          if (!isEndNode(n2, w)) {
+          if (isInnerNode(n2, w)) {
             r.badWayMatch = true;
           }
         }
@@ -339,8 +324,8 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     }
   }
 
-  private boolean isEndNode(OsmNodeP n, WayData w) {
-    return n == nodesMap.get(w.nodes.get(0)) || n == nodesMap.get(w.nodes.get(w.nodes.size() - 1));
+  private boolean isInnerNode(OsmNodeP n, WayData w) {
+    return n != nodesMap.get(w.nodes.get(0)) && n != nodesMap.get(w.nodes.get(w.nodes.size() - 1));
   }
 
   @Override
@@ -348,18 +333,18 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     byte[] description = abUnifier.unify(way.description);
 
     // filter according to profile
-    expctxWay.evaluate(false, description);
-    boolean ok = expctxWay.getCostfactor() < 10000.;
-    expctxWay.evaluate(true, description);
-    ok |= expctxWay.getCostfactor() < 10000.;
+    expCtxWay.evaluate(false, description);
+    boolean ok = expCtxWay.getCostfactor() < 10000.;
+    expCtxWay.evaluate(true, description);
+    ok |= expCtxWay.getCostfactor() < 10000.;
     if (!ok)
       return;
 
     byte wayBits = 0;
-    expctxWay.decode(description);
-    if (!expctxWay.getBooleanLookupValue("bridge"))
+    expCtxWay.decode(description);
+    if (!expCtxWay.getBooleanLookupValue("bridge"))
       wayBits |= OsmNodeP.NO_BRIDGE_BIT;
-    if (!expctxWay.getBooleanLookupValue("tunnel"))
+    if (!expCtxWay.getBooleanLookupValue("tunnel"))
       wayBits |= OsmNodeP.NO_TUNNEL_BIT;
 
     OsmNodeP n1 = null;
@@ -376,7 +361,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
         link.descriptionBitmap = description;
 
-        if (n1.ilon / cellsize != n2.ilon / cellsize || n1.ilat / cellsize != n2.ilat / cellsize) {
+        if (n1.ilon / cellSize != n2.ilon / cellSize || n1.ilat / cellSize != n2.ilat / cellSize) {
           n2.incWayCount(); // force first node after cell-change to be a
           // network node
         }
@@ -452,10 +437,9 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
             LazyArrayOfLists<OsmNodeP> subs = new LazyArrayOfLists<>(ncaches);
             byte[][] subByteArrays = new byte[ncaches][];
-            for (int ni = 0; ni < nlist.size(); ni++) {
-              OsmNodeP n = nlist.get(ni);
-              int subLonIdx = (n.ilon - minLon) / cellsize - divisor * lonIdx;
-              int subLatIdx = (n.ilat - minLat) / cellsize - divisor * latIdx;
+            for (OsmNodeP n : nlist) {
+              int subLonIdx = (n.ilon - minLon) / cellSize - divisor * lonIdx;
+              int subLatIdx = (n.ilat - minLat) / cellSize - divisor * latIdx;
               int si = subLatIdx * divisor + subLonIdx;
               subs.getList(si).add(n);
             }
@@ -468,46 +452,28 @@ public class WayLinker extends MapCreatorBase implements Runnable {
               int size = subList.size();
               if (size > 0) {
                 OsmNodeP n0 = subList.get(0);
-                int lonIdxDiv = n0.ilon / cellsize;
-                int latIdxDiv = n0.ilat / cellsize;
+                int lonIdxDiv = n0.ilon / cellSize;
+                int latIdxDiv = n0.ilat / cellSize;
                 MicroCache mc = new MicroCache2(size, abBuf2, lonIdxDiv, latIdxDiv, divisor);
 
                 // sort via treemap
                 TreeMap<Integer, OsmNodeP> sortedList = new TreeMap<>();
                 for (OsmNodeP n : subList) {
                   long longId = n.getIdFromPos();
-                  int shrinkid = mc.shrinkId(longId);
-                  if (mc.expandId(shrinkid) != longId) {
+                  int shrinkId = mc.shrinkId(longId);
+                  if (mc.expandId(shrinkId) != longId) {
                     throw new IllegalArgumentException("inconstistent shrinking: " + longId);
                   }
-                  sortedList.put(shrinkid, n);
+                  sortedList.put(shrinkId, n);
                 }
 
                 for (OsmNodeP n : sortedList.values()) {
-                  n.writeNodeData(mc, trafficMap);
+                  n.writeNodeData(mc);
                 }
                 if (mc.getSize() > 0) {
-                  byte[] subBytes;
-                  for (; ; ) {
-                    int len = mc.encodeMicroCache(abBuf1);
-                    subBytes = new byte[len];
-                    System.arraycopy(abBuf1, 0, subBytes, 0, len);
-
-                    if (skipEncodingCheck) {
-                      break;
-                    }
-                    // cross-check the encoding: re-instantiate the cache
-                    MicroCache mc2 = new MicroCache2(new StatCoderContext(subBytes), new DataBuffers(null), lonIdxDiv, latIdxDiv, divisor, null, null);
-                    // ..and check if still the same
-                    String diffMessage = mc.compareWith(mc2);
-                    if (diffMessage != null) {
-                      if (MicroCache.debug)
-                        throw new RuntimeException("encoding crosscheck failed: " + diffMessage);
-                      else
-                        MicroCache.debug = true;
-                    } else
-                      break;
-                  }
+                  int len = mc.encodeMicroCache(abBuf1);
+                  byte[] subBytes = new byte[len];
+                  System.arraycopy(abBuf1, 0, subBytes, 0, len);
                   pos += subBytes.length + 4; // reserve 4 bytes for crc
                   subByteArrays[si] = subBytes;
                 }
@@ -522,7 +488,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
               byte[] ab = subByteArrays[si];
               if (ab != null) {
                 os.write(ab);
-                os.writeInt(Crc32.crc(ab, 0, ab.length) ^ microCacheEncoding);
+                os.writeInt(Crc32.crc(ab, 0, ab.length));
               }
             }
             filepos += pos;
@@ -535,7 +501,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
       // write extra data: timestamp + index-checksums
       os.writeLong(creationTimeStamp);
-      os.writeInt(Crc32.crc(abFileIndex, 0, abFileIndex.length) ^ microCacheEncoding);
+      os.writeInt(Crc32.crc(abFileIndex, 0, abFileIndex.length));
       for (int i55 = 0; i55 < 25; i55++) {
         os.writeInt(fileHeaderCrcs[i55]);
       }
@@ -546,10 +512,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
       RandomAccessFile ra = new RandomAccessFile(outfile, "rw");
       ra.write(abFileIndex, 0, abFileIndex.length);
       ra.close();
-    }
-    if (trafficMap != null) {
-      trafficMap.finish();
-      trafficMap = null;
     }
     System.out.println("**** codec stats: *******\n" + StatCoderContext.getBitReport());
   }
@@ -569,8 +531,8 @@ public class WayLinker extends MapCreatorBase implements Runnable {
   private byte[] compileSubFileIndex(int[] posIdx) throws Exception {
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(bos);
-    for (int si = 0; si < posIdx.length; si++) {
-      dos.writeInt(posIdx[si]);
+    for (int pos : posIdx) {
+      dos.writeInt(pos);
     }
     dos.close();
     return bos.toByteArray();

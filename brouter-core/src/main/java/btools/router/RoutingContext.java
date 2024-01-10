@@ -5,7 +5,6 @@
  */
 package btools.router;
 
-import java.io.DataOutput;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,8 +45,8 @@ public final class RoutingContext {
     return name;
   }
 
-  public BExpressionContextWay expctxWay;
-  public BExpressionContextNode expctxNode;
+  public BExpressionContextWay expCtxWay;
+  public BExpressionContextNode expCtxNode;
 
   public GeometryDecoder geometryDecoder = new GeometryDecoder();
 
@@ -93,7 +92,7 @@ public final class RoutingContext {
   }
 
   public void initModel() {
-    pm.init(expctxWay, expctxNode, keyValues);
+    pm.init(expCtxWay, expCtxNode, keyValues);
   }
 
   public long getKeyValueChecksum() {
@@ -107,7 +106,7 @@ public final class RoutingContext {
   }
 
   public void readGlobalConfig() {
-    BExpressionContext expctxGlobal = expctxWay; // just one of them...
+    BExpressionContext expctxGlobal = expCtxWay; // just one of them...
     setModel(expctxGlobal._modelClass);
 
     carMode = 0.f != expctxGlobal.getVariableValue("validForCars", 0.f);
@@ -140,14 +139,6 @@ public final class RoutingContext {
     inittimeadjustment = expctxGlobal.getVariableValue("inittimeadjustment", 0.2f);
     starttimeoffset = expctxGlobal.getVariableValue("starttimeoffset", 0.f);
     transitonly = expctxGlobal.getVariableValue("transitonly", 0.f) != 0.f;
-
-    farTrafficWeight = expctxGlobal.getVariableValue("farTrafficWeight", 2.f);
-    nearTrafficWeight = expctxGlobal.getVariableValue("nearTrafficWeight", 2.f);
-    farTrafficDecayLength = expctxGlobal.getVariableValue("farTrafficDecayLength", 30000.f);
-    nearTrafficDecayLength = expctxGlobal.getVariableValue("nearTrafficDecayLength", 3000.f);
-    trafficDirectionFactor = expctxGlobal.getVariableValue("trafficDirectionFactor", 0.9f);
-    trafficSourceExponent = expctxGlobal.getVariableValue("trafficSourceExponent", -0.7f);
-    trafficSourceMinDist = expctxGlobal.getVariableValue("trafficSourceMinDist", 3000.f);
 
     showspeed = 0.f != expctxGlobal.getVariableValue("showspeed", 0.f);
     showSpeedProfile = 0.f != expctxGlobal.getVariableValue("showSpeedProfile", 0.f);
@@ -199,17 +190,7 @@ public final class RoutingContext {
   public int ilatshortest;
   public int ilonshortest;
 
-  public boolean countTraffic;
   public boolean inverseDirection;
-  public DataOutput trafficOutputStream;
-
-  public double farTrafficWeight;
-  public double nearTrafficWeight;
-  public double farTrafficDecayLength;
-  public double nearTrafficDecayLength;
-  public double trafficDirectionFactor;
-  public double trafficSourceExponent;
-  public double trafficSourceMinDist;
 
   public boolean showspeed;
   public boolean showSpeedProfile;

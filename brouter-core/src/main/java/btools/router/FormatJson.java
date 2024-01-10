@@ -186,7 +186,7 @@ public class FormatJson extends Formatter {
       StringWriter sw = new StringWriter(8192);
       BufferedWriter bw = new BufferedWriter(sw);
       addJsonHeader(bw);
-      addJsonFeature(bw, "info", "wpinfo", n.ilon, n.ilat, n.getElev(), (n.nodeDescription != null ? rc.expctxWay.getKeyValueDescription(false, n.nodeDescription) : null));
+      addJsonFeature(bw, "info", "wpinfo", n.ilon, n.ilat, n.getElev(), (n.nodeDescription != null ? rc.expCtxWay.getKeyValueDescription(false, n.nodeDescription) : null));
       addJsonFooter(bw);
       bw.close();
       sw.close();

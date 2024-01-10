@@ -46,21 +46,21 @@ final class StdPath extends OsmPath {
   @Override
   protected double processWaySection(RoutingContext rc, double distance, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier) {
     // calculate the costfactor inputs
-    float turncostbase = rc.expctxWay.getTurncost();
-    float uphillcutoff = rc.expctxWay.getUphillcutoff() * 10000;
-    float downhillcutoff = rc.expctxWay.getDownhillcutoff() * 10000;
-    float cfup = rc.expctxWay.getUphillCostfactor();
-    float cfdown = rc.expctxWay.getDownhillCostfactor();
-    float cf = rc.expctxWay.getCostfactor();
+    float turncostbase = rc.expCtxWay.getTurncost();
+    float uphillcutoff = rc.expCtxWay.getUphillcutoff() * 10000;
+    float downhillcutoff = rc.expCtxWay.getDownhillcutoff() * 10000;
+    float cfup = rc.expCtxWay.getUphillCostfactor();
+    float cfdown = rc.expCtxWay.getDownhillCostfactor();
+    float cf = rc.expCtxWay.getCostfactor();
     cfup = cfup == 0.f ? cf : cfup;
     cfdown = cfdown == 0.f ? cf : cfdown;
 
-    downhillcostdiv = (int) rc.expctxWay.getDownhillcost();
+    downhillcostdiv = (int) rc.expCtxWay.getDownhillcost();
     if (downhillcostdiv > 0) {
       downhillcostdiv = 1000000 / downhillcostdiv;
     }
 
-    uphillcostdiv = (int) rc.expctxWay.getUphillcost();
+    uphillcostdiv = (int) rc.expCtxWay.getUphillcost();
     if (uphillcostdiv > 0) {
       uphillcostdiv = 1000000 / uphillcostdiv;
     }
@@ -152,15 +152,15 @@ final class StdPath extends OsmPath {
   protected double processTargetNode(RoutingContext rc) {
     // finally add node-costs for target node
     if (targetNode.nodeDescription != null) {
-      boolean nodeAccessGranted = rc.expctxWay.getNodeAccessGranted() != 0.;
-      rc.expctxNode.evaluate(nodeAccessGranted, targetNode.nodeDescription);
-      float initialcost = rc.expctxNode.getInitialcost();
+      boolean nodeAccessGranted = rc.expCtxWay.getNodeAccessGranted() != 0.;
+      rc.expCtxNode.evaluate(nodeAccessGranted, targetNode.nodeDescription);
+      float initialcost = rc.expCtxNode.getInitialcost();
       if (initialcost >= 1000000.) {
         return -1.;
       }
       if (message != null) {
         message.linknodecost += (int) initialcost;
-        message.nodeKeyValues = rc.expctxNode.getKeyValueDescription(nodeAccessGranted, targetNode.nodeDescription);
+        message.nodeKeyValues = rc.expCtxNode.getKeyValueDescription(nodeAccessGranted, targetNode.nodeDescription);
       }
       return initialcost;
     }
@@ -216,7 +216,7 @@ final class StdPath extends OsmPath {
     double incline = calcIncline(dist);
 
     double maxSpeed = rc.maxSpeed;
-    double speedLimit = rc.expctxWay.getMaxspeed() / 3.6f;
+    double speedLimit = rc.expCtxWay.getMaxspeed() / 3.6f;
     if (speedLimit > 0) {
       maxSpeed = Math.min(maxSpeed, speedLimit);
     }

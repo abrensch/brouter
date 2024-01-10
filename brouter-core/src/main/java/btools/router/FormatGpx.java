@@ -488,7 +488,7 @@ public class FormatGpx extends Formatter {
       sb.append("<name>").append(StringUtils.escapeXml10(n.name)).append("</name>");
     }
     if (n.nodeDescription != null && rc != null) {
-      sb.append("<desc>").append(rc.expctxWay.getKeyValueDescription(false, n.nodeDescription)).append("</desc>");
+      sb.append("<desc>").append(rc.expCtxWay.getKeyValueDescription(false, n.nodeDescription)).append("</desc>");
     }
     sb.append("</wpt>\n");
   }
@@ -522,7 +522,7 @@ public class FormatGpx extends Formatter {
         idx2 += 6;
         int idx3 = line.indexOf('"', idx2);
         int ilat = (int) ((Double.parseDouble(line.substring(idx2, idx3)) + 90.) * 1000000. + 0.5);
-        track.nodes.add(OsmPathElement.create(ilon, ilat, (short) 0, null, false));
+        track.nodes.add(OsmPathElement.create(ilon, ilat, (short) 0, null));
       }
     }
     br.close();

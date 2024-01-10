@@ -5,11 +5,7 @@
  */
 package btools.mapaccess;
 
-import btools.codec.MicroCache;
-import btools.codec.MicroCache2;
-import btools.util.ByteArrayUnifier;
 import btools.util.CheapRuler;
-import btools.util.IByteArrayUnifier;
 
 public class OsmNode extends OsmLink implements OsmPos {
   /**
@@ -105,51 +101,6 @@ public class OsmNode extends OsmLink implements OsmPos {
 
   public String toString() {
     return "n_" + (ilon - 180000000) + "_" + (ilat - 90000000);
-  }
-
-  public final void parseNodeBody(MicroCache mc, OsmNodesMap hollowNodes, IByteArrayUnifier expCtxWay) {
-    if (mc instanceof MicroCache2) {
-      parseNodeBody2((MicroCache2) mc, hollowNodes, expCtxWay);
-    } else
-      throw new IllegalArgumentException("unknown cache version: " + mc.getClass());
-  }
-
-  public final void parseNodeBody2(MicroCache2 mc, OsmNodesMap hollowNodes, IByteArrayUnifier expCtxWay) {
-    ByteArrayUnifier abUnifier = hollowNodes.getByteArrayUnifier();
-
-    // read turn restrictions
-    while (mc.readBoolean()) {
-      TurnRestriction tr = new TurnRestriction();
-      tr.exceptions = mc.readShort();
-      tr.isPositive = mc.readBoolean();
-      tr.fromLon = mc.readInt();
-      tr.fromLat = mc.readInt();
-      tr.toLon = mc.readInt();
-      tr.toLat = mc.readInt();
-      addTurnRestriction(tr);
-    }
-
-    selev = mc.readShort();
-    int nodeDescSize = mc.readVarLengthUnsigned();
-    nodeDescription = nodeDescSize == 0 ? null : mc.readUnified(nodeDescSize, abUnifier);
-
-    while (mc.hasMoreData()) {
-      // read link data
-      int endPointer = mc.getEndPointer();
-      int linklon = ilon + mc.readVarLengthSigned();
-      int linklat = ilat + mc.readVarLengthSigned();
-      int sizecode = mc.readVarLengthUnsigned();
-      boolean isReverse = (sizecode & 1) != 0;
-      byte[] description = null;
-      int descSize = sizecode >> 1;
-      if (descSize > 0) {
-        description = mc.readUnified(descSize, expCtxWay);
-      }
-      byte[] geometry = mc.readDataUntil(endPointer);
-
-      addLink(linklon, linklat, description, geometry, hollowNodes, isReverse);
-    }
-    hollowNodes.remove(this);
   }
 
   public void addLink(int linklon, int linklat, byte[] description, byte[] geometry, OsmNodesMap hollowNodes, boolean isReverse) {

@@ -29,13 +29,12 @@ public class MapcreatorTest {
     ways55.mkdir();
     File lookupFile = new File(profileDir, "lookups.dat");
     File relFile = new File(tmpdir, "cycleways.dat");
-    File resFile = new File(tmpdir, "restrictions.dat");
     File profileAll = new File(profileDir, "all.brf");
     File profileReport = new File(profileDir, "trekking.brf");
     File profileCheck = new File(profileDir, "softaccess.brf");
     File borderFile = new File(tmpdir, "bordernids.dat");
 
-    OsmFastCutter.doCut(lookupFile, nodes, ways, nodes55, ways55, borderFile, relFile, resFile, profileAll, profileReport, profileCheck, mapFile, null);
+    OsmFastCutter.doCut(lookupFile, nodes, ways, nodes55, ways55, borderFile, relFile, profileAll, profileReport, profileCheck, mapFile, null);
 
 
     // run PosUnifier
@@ -47,6 +46,6 @@ public class MapcreatorTest {
     // run WayLinker
     File segments = new File(tmpdir, "segments");
     segments.mkdir();
-    new WayLinker().process(unodes55, ways55, bordernodes, resFile, lookupFile, profileAll, segments, "rd5");
+    new WayLinker().process(unodes55, ways55, bordernodes, lookupFile, profileAll, segments, "rd5");
   }
 }

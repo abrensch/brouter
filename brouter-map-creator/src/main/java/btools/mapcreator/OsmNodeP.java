@@ -31,7 +31,6 @@ public class OsmNodeP extends OsmLinkP {
   public final static int NO_BRIDGE_BIT = 1;
   public final static int NO_TUNNEL_BIT = 2;
   public final static int BORDER_BIT = 4;
-  public final static int TRAFFIC_BIT = 8;
   public final static int ANY_WAY_BIT = 16;
   public final static int MULTI_WAY_BIT = 32;
   public final static int DP_SURVIVOR_BIT = 64;
@@ -91,10 +90,10 @@ public class OsmNodeP extends OsmLinkP {
     return null;
   }
 
-  public void writeNodeData(MicroCache mc, OsmTrafficMap trafficMap) throws IOException {
+  public void writeNodeData(MicroCache mc) throws IOException {
     boolean valid = true;
     if (mc instanceof MicroCache2) {
-      valid = writeNodeData2((MicroCache2) mc, trafficMap);
+      valid = writeNodeData2((MicroCache2) mc);
     } else
       throw new IllegalArgumentException("unknown cache version: " + mc.getClass());
     if (valid) {
@@ -142,7 +141,7 @@ public class OsmNodeP extends OsmLinkP {
     }
   }
 
-  public boolean writeNodeData2(MicroCache2 mc, OsmTrafficMap trafficMap) throws IOException {
+  public boolean writeNodeData2(MicroCache2 mc) throws IOException {
     boolean hasLinks = false;
 
     // write turn restrictions
@@ -210,11 +209,7 @@ public class OsmNodeP extends OsmLinkP {
         }
       }
 
-      // add traffic simulation, if present
       byte[] description = link0.descriptionBitmap;
-      if (trafficMap != null) {
-        description = trafficMap.addTrafficClass(linkNodes, description);
-      }
 
       // write link data
       int sizeoffset = mc.writeSizePlaceHolder();
@@ -269,10 +264,6 @@ public class OsmNodeP extends OsmLinkP {
 
   public boolean isBorderNode() {
     return (bits & BORDER_BIT) != 0;
-  }
-
-  public boolean hasTraffic() {
-    return (bits & TRAFFIC_BIT) != 0;
   }
 
   /**

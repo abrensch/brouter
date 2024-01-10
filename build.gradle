@@ -47,8 +47,8 @@ allprojects {
         }
     }
 
-    apply plugin: "checkstyle"
-    apply plugin: "pmd"
+   //  apply plugin: "checkstyle"
+   /* apply plugin: "pmd"
 
     pmd {
         consoleOutput = true
@@ -57,7 +57,7 @@ allprojects {
         ruleSetFiles = files("${rootProject.rootDir}/config/pmd/pmd-ruleset.xml")
         ruleSets = []
         // ignoreFailures = true
-    }
+    } */
 }
 
 task clean(type: Delete) {

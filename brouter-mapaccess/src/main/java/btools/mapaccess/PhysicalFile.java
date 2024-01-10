@@ -15,7 +15,7 @@ import btools.util.ByteDataReader;
 import btools.util.Crc32;
 
 final public class PhysicalFile {
-  RandomAccessFile ra = null;
+  RandomAccessFile ra;
   long[] fileIndex = new long[25];
   int[] fileHeaderCrcs;
 
@@ -37,27 +37,6 @@ final public class PhysicalFile {
     }
   }
 
-  public static int checkVersionIntegrity(File f) {
-    int version = -1;
-    RandomAccessFile raf = null;
-    try {
-      byte[] iobuffer = new byte[200];
-      raf = new RandomAccessFile(f, "r");
-      raf.readFully(iobuffer, 0, 200);
-      ByteDataReader dis = new ByteDataReader(iobuffer);
-      long lv = dis.readLong();
-      version = (int) (lv >> 48);
-    } catch (IOException e) {
-    } finally {
-      try {
-        if (raf != null) raf.close();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    return version;
-  }
-
   /**
    * Checks the integrity of the file using the build-in checksums
    *
@@ -68,14 +47,13 @@ final public class PhysicalFile {
     try {
       DataBuffers dataBuffers = new DataBuffers();
       pf = new PhysicalFile(f, dataBuffers, -1, -1);
-      int div = pf.divisor;
+      int nTiles = pf.divisor * pf.divisor;
       for (int lonDegree = 0; lonDegree < 5; lonDegree++) { // doesn't really matter..
         for (int latDegree = 0; latDegree < 5; latDegree++) { // ..where on earth we are
           OsmFile osmf = new OsmFile(pf, lonDegree, latDegree, dataBuffers);
           if (osmf.hasData())
-            for (int lonIdx = 0; lonIdx < div; lonIdx++)
-              for (int latIdx = 0; latIdx < div; latIdx++)
-                osmf.createMicroCache(lonDegree * div + lonIdx, latDegree * div + latIdx, dataBuffers, null, null, MicroCache.debug, null);
+            for (int tileIdx = 0; tileIdx < nTiles; tileIdx++)
+                osmf.decodeMicroTileForIndex(tileIdx, 0L, dataBuffers, null, null, false, null);
         }
       }
     } finally {
@@ -124,9 +102,7 @@ final public class PhysicalFile {
 
     int crcData = dis.readInt();
     if (crcData == fileIndexCrc) {
-      divisor = 80; // old format
-    } else if ((crcData ^ 2) == fileIndexCrc) {
-      divisor = 32; // new format
+      divisor = 32;
     } else {
       throw new IOException("top index checksum error");
     }

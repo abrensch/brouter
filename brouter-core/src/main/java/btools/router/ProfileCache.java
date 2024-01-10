@@ -65,8 +65,8 @@ public final class ProfileCache {
       if (pc != null) {
         if ((!pc.profilesBusy) && profileFile.equals(pc.lastProfileFile)) {
           if (rc.profileTimestamp == pc.lastProfileTimestamp) {
-            rc.expctxWay = pc.expctxWay;
-            rc.expctxNode = pc.expctxNode;
+            rc.expCtxWay = pc.expctxWay;
+            rc.expCtxNode = pc.expctxNode;
             rc.readGlobalConfig();
             pc.profilesBusy = true;
             return true;
@@ -85,19 +85,19 @@ public final class ProfileCache {
 
     BExpressionMetaData meta = new BExpressionMetaData();
 
-    rc.expctxWay = new BExpressionContextWay(rc.memoryclass * 512, meta);
-    rc.expctxNode = new BExpressionContextNode(0, meta);
-    rc.expctxNode.setForeignContext(rc.expctxWay);
+    rc.expCtxWay = new BExpressionContextWay(rc.memoryclass * 512, meta);
+    rc.expCtxNode = new BExpressionContextNode(0, meta);
+    rc.expCtxNode.setForeignContext(rc.expCtxWay);
 
     meta.readMetaData(new File(profileDir, "lookups.dat"));
 
-    rc.expctxWay.parseFile(profileFile, "global", rc.keyValues);
-    rc.expctxNode.parseFile(profileFile, "global", rc.keyValues);
+    rc.expCtxWay.parseFile(profileFile, "global", rc.keyValues);
+    rc.expCtxNode.parseFile(profileFile, "global", rc.keyValues);
 
     rc.readGlobalConfig();
 
     if (rc.processUnusedTags) {
-      rc.expctxWay.setAllTagsUsed();
+      rc.expCtxWay.setAllTagsUsed();
     }
 
     if (lru == null || unusedSlot >= 0) {
@@ -116,8 +116,8 @@ public final class ProfileCache {
 
     lru.lastProfileTimestamp = rc.profileTimestamp;
     lru.lastProfileFile = profileFile;
-    lru.expctxWay = rc.expctxWay;
-    lru.expctxNode = rc.expctxNode;
+    lru.expctxWay = rc.expCtxWay;
+    lru.expctxNode = rc.expCtxNode;
     lru.profilesBusy = true;
     lru.lastUseTime = System.currentTimeMillis();
     return false;
@@ -129,14 +129,14 @@ public final class ProfileCache {
 
       if (pc != null) {
         // only the thread that holds the cached instance can release it
-        if (rc.expctxWay == pc.expctxWay && rc.expctxNode == pc.expctxNode) {
+        if (rc.expCtxWay == pc.expctxWay && rc.expCtxNode == pc.expctxNode) {
           pc.profilesBusy = false;
           break;
         }
       }
     }
-    rc.expctxWay = null;
-    rc.expctxNode = null;
+    rc.expCtxWay = null;
+    rc.expCtxNode = null;
   }
 
 }
