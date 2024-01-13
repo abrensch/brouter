@@ -7,11 +7,9 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.RandomAccessFile;
 import java.util.List;
 import java.util.TreeMap;
 
-import btools.codec.DataBuffers;
 import btools.codec.MicroCache;
 import btools.codec.MicroCache2;
 import btools.codec.StatCoderContext;
@@ -56,10 +54,8 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
   private int minLon;
   private int minLat;
-  private final int divisor = 32;
-  private final int cellSize = 1000000 / divisor;
-
-  private boolean skipEncodingCheck;
+  private final int divisor = 160;
+  private final int cellSize = 5000000 / divisor;
 
   private boolean isSlave;
   private ThreadController tc;
@@ -166,9 +162,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     creationTimeStamp = System.currentTimeMillis();
 
     abUnifier = new ByteArrayUnifier(16384, false);
-
-    skipEncodingCheck = Boolean.getBoolean("skipEncodingCheck");
-
   }
 
   @Override
@@ -375,8 +368,8 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
   @Override
   public void wayFileEnd(File wayfile) throws Exception {
-    int ncaches = divisor * divisor;
-    int indexsize = ncaches * 4;
+    int nCaches = divisor * divisor;
+    int indexSize = nCaches * 4;
 
     nodesMap = null;
     borderSet = null;
@@ -394,141 +387,76 @@ public class WayLinker extends MapCreatorBase implements Runnable {
       n.checkDuplicateTargets();
     }
 
-    // write segment data to individual files
     {
-      int nLonSegs = (maxLon - minLon) / 1000000;
-      int nLatSegs = (maxLat - minLat) / 1000000;
+      // open the output file
+      File outfile = fileFromTemplate(wayfile, dataTilesOut, dataTilesSuffix);
+      DataOutputStream os = createOutStream(outfile);
 
-      // sort the nodes into segments
-      LazyArrayOfLists<OsmNodeP> seglists = new LazyArrayOfLists<>(nLonSegs * nLatSegs);
+      LazyArrayOfLists<OsmNodeP> subs = new LazyArrayOfLists<>(nCaches);
+      byte[][] subByteArrays = new byte[nCaches][];
       for (OsmNodeP n : nodesList) {
         if (n == null || n.getFirstLink() == null || n.isTransferNode())
           continue;
         if (n.ilon < minLon || n.ilon >= maxLon || n.ilat < minLat || n.ilat >= maxLat)
           continue;
-        int lonIdx = (n.ilon - minLon) / 1000000;
-        int latIdx = (n.ilat - minLat) / 1000000;
-
-        int tileIndex = lonIdx * nLatSegs + latIdx;
-        seglists.getList(tileIndex).add(n);
+        int subLonIdx = (n.ilon - minLon) / cellSize;
+        int subLatIdx = (n.ilat - minLat) / cellSize;
+        int si = subLatIdx * divisor + subLonIdx;
+        subs.getList(si).add(n);
       }
       nodesList = null;
-      seglists.trimAll();
+      subs.trimAll();
+      int[] posIdx = new int[nCaches];
+      int pos = 0;
 
-      // open the output file
-      File outfile = fileFromTemplate(wayfile, dataTilesOut, dataTilesSuffix);
-      DataOutputStream os = createOutStream(outfile);
+      for (int si = 0; si < nCaches; si++) {
+        List<OsmNodeP> subList = subs.getList(si);
+        int size = subList.size();
+        if (size > 0) {
+          OsmNodeP n0 = subList.get(0);
+          int lonIdxDiv = n0.ilon / cellSize;
+          int latIdxDiv = n0.ilat / cellSize;
+          MicroCache mc = new MicroCache2(size, abBuf2, lonIdxDiv, latIdxDiv, cellSize);
 
-      long[] fileIndex = new long[25];
-      int[] fileHeaderCrcs = new int[25];
-
-      // write 5*5 index dummy
-      for (int i55 = 0; i55 < 25; i55++) {
-        os.writeLong(0);
-      }
-      long filepos = 200L;
-
-      // sort further in 1/divisor-degree squares
-      for (int lonIdx = 0; lonIdx < nLonSegs; lonIdx++) {
-        for (int latIdx = 0; latIdx < nLatSegs; latIdx++) {
-          int tileIndex = lonIdx * nLatSegs + latIdx;
-          if (seglists.getSize(tileIndex) > 0) {
-            List<OsmNodeP> nlist = seglists.getList(tileIndex);
-
-            LazyArrayOfLists<OsmNodeP> subs = new LazyArrayOfLists<>(ncaches);
-            byte[][] subByteArrays = new byte[ncaches][];
-            for (OsmNodeP n : nlist) {
-              int subLonIdx = (n.ilon - minLon) / cellSize - divisor * lonIdx;
-              int subLatIdx = (n.ilat - minLat) / cellSize - divisor * latIdx;
-              int si = subLatIdx * divisor + subLonIdx;
-              subs.getList(si).add(n);
+          // sort via treemap
+          TreeMap<Integer, OsmNodeP> sortedList = new TreeMap<>();
+          for (OsmNodeP n : subList) {
+            long longId = n.getIdFromPos();
+            int shrinkId = mc.shrinkId(longId);
+            if (mc.expandId(shrinkId) != longId) {
+              throw new IllegalArgumentException("inconstistent shrinking: " + longId + "<->" + mc.expandId(shrinkId) );
             }
-            subs.trimAll();
-            int[] posIdx = new int[ncaches];
-            int pos = indexsize;
-
-            for (int si = 0; si < ncaches; si++) {
-              List<OsmNodeP> subList = subs.getList(si);
-              int size = subList.size();
-              if (size > 0) {
-                OsmNodeP n0 = subList.get(0);
-                int lonIdxDiv = n0.ilon / cellSize;
-                int latIdxDiv = n0.ilat / cellSize;
-                MicroCache mc = new MicroCache2(size, abBuf2, lonIdxDiv, latIdxDiv, divisor);
-
-                // sort via treemap
-                TreeMap<Integer, OsmNodeP> sortedList = new TreeMap<>();
-                for (OsmNodeP n : subList) {
-                  long longId = n.getIdFromPos();
-                  int shrinkId = mc.shrinkId(longId);
-                  if (mc.expandId(shrinkId) != longId) {
-                    throw new IllegalArgumentException("inconstistent shrinking: " + longId);
-                  }
-                  sortedList.put(shrinkId, n);
-                }
-
-                for (OsmNodeP n : sortedList.values()) {
-                  n.writeNodeData(mc);
-                }
-                if (mc.getSize() > 0) {
-                  int len = mc.encodeMicroCache(abBuf1);
-                  byte[] subBytes = new byte[len];
-                  System.arraycopy(abBuf1, 0, subBytes, 0, len);
-                  pos += subBytes.length + 4; // reserve 4 bytes for crc
-                  subByteArrays[si] = subBytes;
-                }
-              }
-              posIdx[si] = pos;
-            }
-
-            byte[] abSubIndex = compileSubFileIndex(posIdx);
-            fileHeaderCrcs[tileIndex] = Crc32.crc(abSubIndex, 0, abSubIndex.length);
-            os.write(abSubIndex, 0, abSubIndex.length);
-            for (int si = 0; si < ncaches; si++) {
-              byte[] ab = subByteArrays[si];
-              if (ab != null) {
-                os.write(ab);
-                os.writeInt(Crc32.crc(ab, 0, ab.length));
-              }
-            }
-            filepos += pos;
+            sortedList.put(shrinkId, n);
           }
-          fileIndex[tileIndex] = filepos;
+
+          for (OsmNodeP n : sortedList.values()) {
+            n.writeNodeData(mc);
+          }
+          if (mc.getSize() > 0) {
+            int len = mc.encodeMicroCache(abBuf1);
+            byte[] subBytes = new byte[len];
+            System.arraycopy(abBuf1, 0, subBytes, 0, len);
+            pos += subBytes.length + 4; // reserve 4 bytes for crc
+            subByteArrays[si] = subBytes;
+          }
+        }
+        posIdx[si] = pos;
+      }
+      byte[] abSubIndex = compileIndex(posIdx);
+      os.write(abSubIndex, 0, abSubIndex.length);
+      for (int si = 0; si < nCaches; si++) {
+        byte[] ab = subByteArrays[si];
+        if (ab != null) {
+          os.write(ab);
+          os.writeInt(Crc32.crc(ab, 0, ab.length));
         }
       }
-
-      byte[] abFileIndex = compileFileIndex(fileIndex, lookupVersion, lookupMinorVersion);
-
-      // write extra data: timestamp + index-checksums
-      os.writeLong(creationTimeStamp);
-      os.writeInt(Crc32.crc(abFileIndex, 0, abFileIndex.length));
-      for (int i55 = 0; i55 < 25; i55++) {
-        os.writeInt(fileHeaderCrcs[i55]);
-      }
-
       os.close();
-
-      // re-open random-access to write file-index
-      RandomAccessFile ra = new RandomAccessFile(outfile, "rw");
-      ra.write(abFileIndex, 0, abFileIndex.length);
-      ra.close();
     }
     System.out.println("**** codec stats: *******\n" + StatCoderContext.getBitReport());
   }
 
-  private byte[] compileFileIndex(long[] fileIndex, short lookupVersion, short lookupMinorVersion) throws Exception {
-    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    DataOutputStream dos = new DataOutputStream(bos);
-    for (int i55 = 0; i55 < 25; i55++) {
-      long versionPrefix = i55 == 1 ? lookupMinorVersion : lookupVersion;
-      versionPrefix <<= 48;
-      dos.writeLong(fileIndex[i55] | versionPrefix);
-    }
-    dos.close();
-    return bos.toByteArray();
-  }
-
-  private byte[] compileSubFileIndex(int[] posIdx) throws Exception {
+  private byte[] compileIndex(int[] posIdx) throws Exception {
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(bos);
     for (int pos : posIdx) {

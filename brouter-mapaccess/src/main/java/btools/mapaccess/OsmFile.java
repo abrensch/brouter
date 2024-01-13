@@ -5,6 +5,7 @@
  */
 package btools.mapaccess;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
@@ -17,70 +18,45 @@ import btools.util.Crc32;
 
 final class OsmFile {
   private RandomAccessFile is;
+
   private long fileOffset;
 
   private int[] posIdx;
   private boolean[] microTileDecoded;
 
-  public int lonDegree;
-  public int latDegree;
+  public int iLonBase;
+  public int iLatBase;
 
-  public String filename;
-
-  private int divisor;
+  private int divisor = 160;
   private int cellSize;
   private int indexSize;
 
-  public OsmFile(PhysicalFile rafile, int lonDegree, int latDegree, DataBuffers dataBuffers) throws IOException {
-    this.lonDegree = lonDegree;
-    this.latDegree = latDegree;
-    int lonMod5 = lonDegree % 5;
-    int latMod5 = latDegree % 5;
-    int tileIndex = lonMod5 * 5 + latMod5;
+  public OsmFile(File f, int iLonBase, int iLatBase, DataBuffers dataBuffers) throws IOException {
+    this.iLonBase = iLonBase;
+    this.iLatBase = iLatBase;
 
-    if (rafile != null) {
-      divisor = rafile.divisor;
+    cellSize = 5000000 / divisor;
 
-      cellSize = 1000000 / divisor;
-      int nCaches = divisor * divisor;
-      indexSize = nCaches * 4;
+    is = new RandomAccessFile(f, "r");
 
-      byte[] ioBuffer = dataBuffers.iobuffer;
-      filename = rafile.fileName;
+    int nCaches = divisor * divisor;
+    indexSize = nCaches * 4;
+    fileOffset = indexSize;
 
-      long[] index = rafile.fileIndex;
-      fileOffset = tileIndex > 0 ? index[tileIndex - 1] : 200L;
-      if (fileOffset == index[tileIndex])
-        return; // empty
+    byte[] ioBuffer = dataBuffers.iobuffer;
+    posIdx = new int[nCaches];
+    microTileDecoded = new boolean[nCaches];
+    is.seek(0L);
+    is.readFully(ioBuffer, 0, indexSize);
 
-      is = rafile.ra;
-      posIdx = new int[nCaches];
-      microTileDecoded = new boolean[nCaches];
-      is.seek(fileOffset);
-      is.readFully(ioBuffer, 0, indexSize);
-
-      if (rafile.fileHeaderCrcs != null) {
-        int headerCrc = Crc32.crc(ioBuffer, 0, indexSize);
-        if (rafile.fileHeaderCrcs[tileIndex] != headerCrc) {
-          throw new IOException("sub index checksum error");
-        }
-      }
-
-      ByteDataReader dis = new ByteDataReader(ioBuffer);
-      for (int i = 0; i < nCaches; i++) {
-        posIdx[i] = dis.readInt();
-      }
+    ByteDataReader dis = new ByteDataReader(ioBuffer);
+    for (int i = 0; i < nCaches; i++) {
+      posIdx[i] = dis.readInt();
     }
   }
 
-  public boolean hasData() {
-    return microTileDecoded != null;
-  }
-
-
-
   private int getPosIdx(int idx) {
-    return idx == -1 ? indexSize : posIdx[idx];
+    return idx == -1 ? 0 : posIdx[idx];
   }
 
   public int getDataInputForSubIdx(int subIdx, byte[] iobuffer) throws IOException {
@@ -98,11 +74,11 @@ final class OsmFile {
 
   public void checkDecodeMicroTile(int iLon, int iLat, DataBuffers dataBuffers, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes)
     throws Exception {
-    int lonIdx = iLon / cellSize;
-    int latIdx = iLat / cellSize;
-    int subIdx = (latIdx - divisor * latDegree) * divisor + (lonIdx - divisor * lonDegree);
+    int lonIdx = (iLon-iLonBase) / cellSize;
+    int latIdx = (iLat-iLatBase) / cellSize;
+    int subIdx = latIdx * divisor + lonIdx;
     if ( !microTileDecoded[subIdx] ) {
-      long id64Base = ((long) (lonIdx * cellSize)) << 32 | (latIdx * cellSize);
+      long id64Base = ((long) (lonIdx * cellSize + iLonBase)) << 32 | (latIdx * cellSize + iLatBase);
 
       decodeMicroTileForIndex(subIdx, id64Base, dataBuffers, wayValidator, waypointMatcher, true, hollowNodes);
       microTileDecoded[subIdx] = true;
@@ -149,5 +125,9 @@ final class OsmFile {
     for (int i = 0; i < nc; i++) {
       microTileDecoded[i] = false;
     }
+  }
+
+  public void close() throws IOException {
+    is.close();
   }
 }

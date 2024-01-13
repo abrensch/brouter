@@ -17,7 +17,7 @@ public final class DataBuffers {
   public int[] alat = new int[2048];
 
   public DataBuffers() {
-    this(new byte[65636]);
+    this(new byte[102400]);
   }
 
   /**

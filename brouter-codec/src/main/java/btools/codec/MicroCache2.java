@@ -3,7 +3,6 @@ package btools.codec;
 import java.util.HashMap;
 
 import btools.util.ByteDataReader;
-import btools.util.IByteArrayUnifier;
 
 /**
  * MicroCache2 is the new format that uses statistical encoding and
@@ -12,17 +11,17 @@ import btools.util.IByteArrayUnifier;
 public final class MicroCache2 extends MicroCache {
   private final int lonBase;
   private final int latBase;
-  private final int cellsize;
+  private final int cellSize;
 
-  public MicroCache2(int size, byte[] databuffer, int lonIdx, int latIdx, int divisor) {
+  public MicroCache2(int size, byte[] databuffer, int lonIdx, int latIdx, int cellSize ) {
     super(databuffer); // sets ab=databuffer, aboffset=0
 
     faid = new int[size];
     fapos = new int[size];
     this.size = 0;
-    cellsize = 1000000 / divisor;
-    lonBase = lonIdx * cellsize;
-    latBase = latIdx * cellsize;
+    this.cellSize = cellSize;
+    lonBase = lonIdx * cellSize;
+    latBase = latIdx * cellSize;
   }
 
 
@@ -49,6 +48,9 @@ public final class MicroCache2 extends MicroCache {
     int lat32 = (int) (id64 & 0xffffffff);
     int dlon = lon32 - lonBase;
     int dlat = lat32 - latBase;
+
+
+    if ( dlon >= cellSize || dlat >= cellSize || dlon < 0 || dlat < 0 ) throw new RuntimeException( "*** out of ranage: dlon=" + dlon + " dlat=" + dlat );
     int id32 = 0;
 
     for (int bm = 0x4000; bm > 0; bm >>= 1) {
@@ -61,8 +63,8 @@ public final class MicroCache2 extends MicroCache {
 
   @Override
   public boolean isInternal(int ilon, int ilat) {
-    return ilon >= lonBase && ilon < lonBase + cellsize
-      && ilat >= latBase && ilat < latBase + cellsize;
+    return ilon >= lonBase && ilon < lonBase + cellSize
+      && ilat >= latBase && ilat < latBase + cellSize;
   }
 
   @Override

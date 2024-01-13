@@ -23,25 +23,10 @@ public class MicroCache extends ByteDataWriter {
   protected int[] fapos;
   protected int size = 0;
 
-  private int p2size; // next power of 2 of size
-
   public static boolean debug = false;
 
   protected MicroCache(byte[] ab) {
     super(ab);
-  }
-
-  public final static MicroCache emptyNonVirgin = new MicroCache(null);
-
-  public static MicroCache emptyCache() {
-    return new MicroCache(null); // TODO: singleton?
-  }
-
-  protected void init(int size) {
-    this.size = size;
-    p2size = 0x40000000;
-    while (p2size > size)
-      p2size >>= 1;
   }
 
   public final void finishNode(long id) {
@@ -57,11 +42,6 @@ public class MicroCache extends ByteDataWriter {
   public final int getSize() {
     return size;
   }
-
-  public final int getDataSize() {
-    return ab == null ? 0 : ab.length;
-  }
-
 
   protected final int startPos(int n) {
     return n > 0 ? fapos[n - 1] & 0x7fffffff : 0;
