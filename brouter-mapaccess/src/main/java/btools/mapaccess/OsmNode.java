@@ -11,17 +11,17 @@ public class OsmNode extends OsmLink implements OsmPos {
   /**
    * The latitude
    */
-  public int ilat;
+  public int iLat;
 
   /**
    * The longitude
    */
-  public int ilon;
+  public int iLon;
 
   /**
    * The elevation
    */
-  public short selev = Short.MIN_VALUE;
+  public short sElev = Short.MIN_VALUE;
 
   /**
    * The node-tags, if any
@@ -32,6 +32,14 @@ public class OsmNode extends OsmLink implements OsmPos {
 
   public int visitID;
 
+  public boolean hasBits( int mask ) {
+    return (visitID & mask ) != 0;
+  }
+
+  public void setBits( int mask ) {
+    visitID |= mask;
+  }
+
   public void addTurnRestriction(TurnRestriction tr) {
     tr.next = firstRestriction;
     firstRestriction = tr;
@@ -40,71 +48,71 @@ public class OsmNode extends OsmLink implements OsmPos {
   /**
    * The links to other nodes
    */
-  public OsmLink firstlink;
+  public OsmLink firstLink;
 
   public OsmNode() {
   }
 
-  public OsmNode(int ilon, int ilat) {
-    this.ilon = ilon;
-    this.ilat = ilat;
+  public OsmNode(int iLon, int iLat) {
+    this.iLon = iLon;
+    this.iLat = iLat;
   }
 
   public OsmNode(long id) {
-    ilon = (int) (id >> 32);
-    ilat = (int) (id & 0xffffffff);
+    iLon = (int) (id >> 32);
+    iLat = (int) (id & 0xffffffff);
   }
 
 
   // interface OsmPos
   public final int getILat() {
-    return ilat;
+    return iLat;
   }
 
   public final int getILon() {
-    return ilon;
+    return iLon;
   }
 
   public final short getSElev() {
-    return selev;
+    return sElev;
   }
 
   public final double getElev() {
-    return selev / 4.;
+    return sElev / 4.;
   }
 
   public final void addLink(OsmLink link, boolean isReverse, OsmNode tn) {
-    if (link == firstlink) {
+    if (link == firstLink) {
       throw new IllegalArgumentException("UUUUPS");
     }
 
     if (isReverse) {
       link.n1 = tn;
       link.n2 = this;
-      link.next = tn.firstlink;
-      link.previous = firstlink;
-      tn.firstlink = link;
-      firstlink = link;
+      link.next = tn.firstLink;
+      link.previous = firstLink;
+      tn.firstLink = link;
+      firstLink = link;
     } else {
       link.n1 = this;
       link.n2 = tn;
-      link.next = firstlink;
-      link.previous = tn.firstlink;
-      tn.firstlink = link;
-      firstlink = link;
+      link.next = firstLink;
+      link.previous = tn.firstLink;
+      tn.firstLink = link;
+      firstLink = link;
     }
   }
 
   public final int calcDistance(OsmPos p) {
-    return (int) Math.max(1.0, Math.round(CheapRuler.distance(ilon, ilat, p.getILon(), p.getILat())));
+    return (int) Math.max(1.0, Math.round(CheapRuler.distance(iLon, iLat, p.getILon(), p.getILat())));
   }
 
   public String toString() {
-    return "n_" + (ilon - 180000000) + "_" + (ilat - 90000000);
+    return "n_" + (iLon - 180000000) + "_" + (iLat - 90000000);
   }
 
-  public void addLink(int linklon, int linklat, byte[] description, byte[] geometry, OsmNodesMap hollowNodes, boolean isReverse) {
-    if (linklon == ilon && linklat == ilat) {
+  public void addLink(int linklon, int linklat, byte[] description, OsmNodesMap hollowNodes, boolean isReverse) {
+    if (linklon == iLon && linklat == iLat) {
       return; // skip self-ref
     }
 
@@ -112,9 +120,9 @@ public class OsmNode extends OsmLink implements OsmPos {
     OsmLink link = null;
 
     // ...in our known links
-    for (OsmLink l = firstlink; l != null; l = l.getNext(this)) {
+    for (OsmLink l = firstLink; l != null; l = l.getNext(this)) {
       OsmNode t = l.getTarget(this);
-      if (t.ilon == linklon && t.ilat == linklat) {
+      if (t.iLon == linklon && t.iLat == linklat) {
         tn = t;
         if (isReverse || (l.descriptionBitmap == null && !l.isReverse(this))) {
           link = l; // the correct one that needs our data
@@ -136,26 +144,25 @@ public class OsmNode extends OsmLink implements OsmPos {
     }
     if (!isReverse) {
       link.descriptionBitmap = description;
-      link.geometry = geometry;
     }
   }
 
 
   public final boolean isHollow() {
-    return selev == -12345;
+    return sElev == -12345;
   }
 
   public final void setHollow() {
-    selev = -12345;
+    sElev = -12345;
   }
 
   public final long getIdFromPos() {
-    return ((long) ilon) << 32 | ilat;
+    return ((long) iLon) << 32 | iLat;
   }
 
   public void vanish() {
     if (!isHollow()) {
-      OsmLink l = firstlink;
+      OsmLink l = firstLink;
       while (l != null) {
         OsmNode target = l.getTarget(this);
         OsmLink nextLink = l.getNext(this);
@@ -173,11 +180,11 @@ public class OsmNode extends OsmLink implements OsmPos {
   public final void unlinkLink(OsmLink link) {
     OsmLink n = link.clear(this);
 
-    if (link == firstlink) {
-      firstlink = n;
+    if (link == firstLink) {
+      firstLink = n;
       return;
     }
-    OsmLink l = firstlink;
+    OsmLink l = firstLink;
     while (l != null) {
       // if ( l.isReverse( this ) )
       if (l.n1 != this && l.n1 != null) { // isReverse inline
@@ -203,11 +210,11 @@ public class OsmNode extends OsmLink implements OsmPos {
 
   @Override
   public final boolean equals(Object o) {
-    return ((OsmNode) o).ilon == ilon && ((OsmNode) o).ilat == ilat;
+    return ((OsmNode) o).iLon == iLon && ((OsmNode) o).iLat == iLat;
   }
 
   @Override
   public final int hashCode() {
-    return ilon + ilat;
+    return iLon + iLat;
   }
 }

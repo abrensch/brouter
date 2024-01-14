@@ -22,8 +22,8 @@ public class OsmNodeNamedTest {
     // Circle definition
     OsmNodeNamed node = new OsmNodeNamed();
     // Center
-    node.ilon = toOsmLon(2.334243);
-    node.ilat = toOsmLat(48.824017);
+    node.iLon = toOsmLon(2.334243);
+    node.iLat = toOsmLat(48.824017);
     // Radius
     node.radius = 30;
 
@@ -41,8 +41,8 @@ public class OsmNodeNamedTest {
     );
 
     // Check distance within radius is correctly computed for a given circle
-    node.ilon = toOsmLon(2.33438);
-    node.ilat = toOsmLat(48.824275);
+    node.iLon = toOsmLon(2.33438);
+    node.iLat = toOsmLat(48.824275);
     assertEquals(
       "Works for a segment with no particular properties",
       27.5,

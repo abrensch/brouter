@@ -6,7 +6,6 @@
 package btools.router;
 
 import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmTransferNode;
 
 final class KinematicPrePath extends OsmPrePath {
   public double angle;
@@ -30,19 +29,8 @@ final class KinematicPrePath extends OsmPrePath {
     // evaluate the way tags
     rc.expCtxWay.evaluate(rc.inverseDirection ^ isReverse, description);
 
-    OsmTransferNode transferNode = link.geometry == null ? null
-      : rc.geometryDecoder.decodeGeometry(link.geometry, p1, targetNode, isReverse);
-
-    int lon2;
-    int lat2;
-
-    if (transferNode == null) {
-      lon2 = targetNode.ilon;
-      lat2 = targetNode.ilat;
-    } else {
-      lon2 = transferNode.ilon;
-      lat2 = transferNode.ilat;
-    }
+    int lon2 = targetNode.iLon;
+    int lat2 = targetNode.iLat;
 
     int dist = rc.calcDistance(lon1, lat1, lon2, lat2);
 

@@ -59,14 +59,14 @@ public class RoutingEngineTest {
     OsmNodeNamed n;
     n = new OsmNodeNamed();
     n.name = "from";
-    n.ilon = 180000000 + (int) (flon * 1000000 + 0.5);
-    n.ilat = 90000000 + (int) (flat * 1000000 + 0.5);
+    n.iLon = 180000000 + (int) (flon * 1000000 + 0.5);
+    n.iLat = 90000000 + (int) (flat * 1000000 + 0.5);
     wplist.add(n);
 
     n = new OsmNodeNamed();
     n.name = "to";
-    n.ilon = 180000000 + (int) (tlon * 1000000 + 0.5);
-    n.ilat = 90000000 + (int) (tlat * 1000000 + 0.5);
+    n.iLon = 180000000 + (int) (tlon * 1000000 + 0.5);
+    n.iLat = 90000000 + (int) (tlat * 1000000 + 0.5);
     wplist.add(n);
 
     rctx.localFunction = wd + "/../../../../misc/profiles2/trekking.brf";

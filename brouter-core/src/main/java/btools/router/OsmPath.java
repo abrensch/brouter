@@ -8,7 +8,6 @@ package btools.router;
 import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmTransferNode;
 import btools.mapaccess.TurnRestriction;
 import btools.util.CheapRuler;
 
@@ -187,35 +186,19 @@ abstract class OsmPath implements OsmLinkHolder {
     }
     setBit(IS_ON_DESTINATION_BIT, newDestination);
 
-
-    OsmTransferNode transferNode = link.geometry == null ? null
-      : rc.geometryDecoder.decodeGeometry(link.geometry, sourceNode, targetNode, isReverse);
-
-    for (int nsection = 0; ; nsection++) {
-
+    {
       originLon = lon1;
       originLat = lat1;
 
-      int lon2;
-      int lat2;
-      short ele2;
-      short originEle2;
-
-      if (transferNode == null) {
-        lon2 = targetNode.ilon;
-        lat2 = targetNode.ilat;
-        originEle2 = targetNode.selev;
-      } else {
-        lon2 = transferNode.ilon;
-        lat2 = transferNode.ilat;
-        originEle2 = transferNode.selev;
-      }
-      ele2 = originEle2;
+      int lon2 = targetNode.iLon;
+      int lat2 = targetNode.iLat;
+      short originEle2 = targetNode.sElev;
+      short ele2 = originEle2;
 
       boolean isStartpoint = lon0 == -1 && lat0 == -1;
 
       // check turn restrictions (n detail mode (=final pass) no TR to not mess up voice hints)
-      if (nsection == 0 && rc.considerTurnRestrictions && !detailMode && !isStartpoint) {
+      if (rc.considerTurnRestrictions && !detailMode && !isStartpoint) {
         if (rc.inverseDirection
           ? TurnRestriction.isTurnForbidden(sourceNode.firstRestriction, lon2, lat2, lon0, lat0, rc.bikeMode || rc.footMode, rc.carMode)
           : TurnRestriction.isTurnForbidden(sourceNode.firstRestriction, lon0, lat0, lon2, lat2, rc.bikeMode || rc.footMode, rc.carMode)) {
@@ -297,7 +280,7 @@ abstract class OsmPath implements OsmLinkHolder {
 
       double elevation = ele2 == Short.MIN_VALUE ? 100. : ele2 / 4.;
 
-      double sectionCost = processWaySection(rc, dist, delta_h, elevation, angle, cosangle, isStartpoint, nsection, lastpriorityclassifier);
+      double sectionCost = processWaySection(rc, dist, delta_h, elevation, angle, cosangle, isStartpoint, lastpriorityclassifier);
       if ((sectionCost < 0. || costfactor > 9998. && !detailMode) || sectionCost + cost >= 2000000000.) {
         cost = -1;
         return;
@@ -336,26 +319,12 @@ abstract class OsmPath implements OsmLinkHolder {
         return;
       }
 
-      if (transferNode == null) {
         // *** penalty for being part of the reference track
         if (refTrack != null && refTrack.containsNode(targetNode) && refTrack.containsNode(sourceNode)) {
           int reftrackcost = linkdisttotal;
           cost += reftrackcost;
         }
         selev = ele2;
-        break;
-      }
-      transferNode = transferNode.next;
-
-      if (recordTransferNodes) {
-        originElement = OsmPathElement.create(lon2, lat2, originEle2, originElement);
-        originElement.cost = cost;
-      }
-      lon0 = lon1;
-      lat0 = lat1;
-      lon1 = lon2;
-      lat1 = lat2;
-      ele1 = ele2;
     }
 
     // check for nogo-matches (after the *actual* start of segment)
@@ -383,7 +352,7 @@ abstract class OsmPath implements OsmLinkHolder {
     return (short) (e1 * (1. - fraction) + e2 * fraction);
   }
 
-  protected abstract double processWaySection(RoutingContext rc, double dist, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier);
+  protected abstract double processWaySection(RoutingContext rc, double dist, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int lastpriorityclassifier);
 
   protected abstract double processTargetNode(RoutingContext rc);
 

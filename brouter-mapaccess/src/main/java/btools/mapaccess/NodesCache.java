@@ -82,7 +82,7 @@ public final class NodesCache {
    */
   public boolean obtainNonHollowNode(OsmNode node) {
     if (node.isHollow()) {
-      if ( !decodeSegmentFor(node.ilon, node.ilat) ) {
+      if ( !decodeSegmentFor(node.iLon, node.iLat) ) {
         return false;
       }
       if (node.isHollow()) {
@@ -97,7 +97,7 @@ public final class NodesCache {
    * make sure all link targets of the given node are non-hollow
    */
   public void expandHollowLinkTargets(OsmNode n) {
-    for (OsmLink link = n.firstlink; link != null; link = link.getNext(n)) {
+    for (OsmLink link = n.firstLink; link != null; link = link.getNext(n)) {
       obtainNonHollowNode(link.getTarget(n));
     }
   }
@@ -106,7 +106,7 @@ public final class NodesCache {
    * make sure all link targets of the given node are non-hollow
    */
   public boolean hasHollowLinkTargets(OsmNode n) {
-    for (OsmLink link = n.firstlink; link != null; link = link.getNext(n)) {
+    for (OsmLink link = n.firstLink; link != null; link = link.getNext(n)) {
       if (link.getTarget(n).isHollow()) {
         return true;
       }
@@ -137,7 +137,7 @@ public final class NodesCache {
   }
 
   public OsmNode getGraphNode(OsmNode template) {
-    OsmNode graphNode = new OsmNode(template.ilon, template.ilat);
+    OsmNode graphNode = new OsmNode(template.iLon, template.iLat);
     graphNode.setHollow();
     OsmNode existing = nodesMap.put(graphNode);
     if (existing == null) {
@@ -167,14 +167,14 @@ public final class NodesCache {
       MatchedWaypoint mwp = unmatchedWaypoints.get(i);
       if (mwp.crosspoint == null) {
         if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
-          mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
+          mwp.crosspoint = new OsmNode(mwp.waypoint.iLon, mwp.waypoint.iLat);
           mwp.direct = true;
         } else {
           throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
         }
       }
       if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
-        mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
+        mwp.crosspoint = new OsmNode(mwp.waypoint.iLon, mwp.waypoint.iLat);
         mwp.direct = true;
       }
     }
@@ -183,14 +183,14 @@ public final class NodesCache {
   private void preloadPosition(OsmNode n, int d) {
     first_file_access_failed = false;
     first_file_access_name = null;
-    decodeSegmentFor(n.ilon, n.ilat);
+    decodeSegmentFor(n.iLon, n.iLat);
     if (first_file_access_failed) {
       throw new IllegalArgumentException("datafile " + first_file_access_name + " not found");
     }
     for (int idxLat = -1; idxLat <= 1; idxLat++)
       for (int idxLon = -1; idxLon <= 1; idxLon++) {
         if (idxLon != 0 || idxLat != 0) {
-          decodeSegmentFor(n.ilon + d * idxLon, n.ilat + d * idxLat);
+          decodeSegmentFor(n.iLon + d * idxLon, n.iLat + d * idxLat);
         }
       }
   }

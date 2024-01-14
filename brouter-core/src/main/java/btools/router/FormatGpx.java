@@ -195,8 +195,8 @@ public class FormatGpx extends Formatter {
 
     for (int i = 0; i <= t.pois.size() - 1; i++) {
       OsmNodeNamed poi = t.pois.get(i);
-      sb.append(" <wpt lon=\"").append(formatILon(poi.ilon)).append("\" lat=\"")
-        .append(formatILat(poi.ilat)).append("\">\n")
+      sb.append(" <wpt lon=\"").append(formatILon(poi.iLon)).append("\" lat=\"")
+        .append(formatILat(poi.iLat)).append("\">\n")
         .append("  <name>").append(StringUtils.escapeXml10(poi.name)).append("</name>\n")
         .append(" </wpt>\n");
     }
@@ -204,8 +204,8 @@ public class FormatGpx extends Formatter {
     if (t.exportWaypoints) {
       for (int i = 0; i <= t.matchedWaypoints.size() - 1; i++) {
         MatchedWaypoint wt = t.matchedWaypoints.get(i);
-        sb.append(" <wpt lon=\"").append(formatILon(wt.waypoint.ilon)).append("\" lat=\"")
-          .append(formatILat(wt.waypoint.ilat)).append("\">\n")
+        sb.append(" <wpt lon=\"").append(formatILon(wt.waypoint.iLon)).append("\" lat=\"")
+          .append(formatILat(wt.waypoint.iLat)).append("\">\n")
           .append("  <name>").append(StringUtils.escapeXml10(wt.name)).append("</name>\n");
         if (i == 0) {
           sb.append("  <type>from</type>\n");
@@ -479,8 +479,8 @@ public class FormatGpx extends Formatter {
   }
 
   public void formatWaypointGpx(BufferedWriter sb, OsmNodeNamed n) throws IOException {
-    sb.append(" <wpt lon=\"").append(formatILon(n.ilon)).append("\" lat=\"")
-      .append(formatILat(n.ilat)).append("\">");
+    sb.append(" <wpt lon=\"").append(formatILon(n.iLon)).append("\" lat=\"")
+      .append(formatILat(n.iLat)).append("\">");
     if (n.getSElev() != Short.MIN_VALUE) {
       sb.append("<ele>").append("" + n.getElev()).append("</ele>");
     }

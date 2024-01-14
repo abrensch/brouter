@@ -12,11 +12,6 @@ public class OsmLink {
    */
   public byte[] descriptionBitmap;
 
-  /**
-   * The geometry contains intermediate nodes, null for none (valid for both directions)
-   */
-  public byte[] geometry;
-
   // a link logically knows only its target, but for the reverse link, source and target are swapped
   protected OsmNode n1;
   protected OsmNode n2;
@@ -50,7 +45,7 @@ public class OsmLink {
       return n1;
     }
     else
-    {    
+    {
       new Throwable( "ups" ).printStackTrace();
       throw new IllegalArgumentException( "internal error: getTarget: unknown source; " + source + " n1=" + n1 + " n2=" + n2 );
     } */
@@ -95,7 +90,6 @@ public class OsmLink {
     }
     if (n1 == null && n2 == null) {
       descriptionBitmap = null;
-      geometry = null;
     }
     return n;
   }

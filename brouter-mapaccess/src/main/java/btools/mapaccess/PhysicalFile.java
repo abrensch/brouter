@@ -7,23 +7,12 @@ package btools.mapaccess;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 
 import btools.codec.DataBuffers;
-import btools.codec.MicroCache;
-import btools.util.ByteDataReader;
-import btools.util.Crc32;
 
 final public class PhysicalFile {
-  RandomAccessFile ra;
-
-  String fileName;
-
-  public int divisor = 160;
 
   public static void main(String[] args) {
-    MicroCache.debug = true;
-
     try {
       checkFileIntegrity(new File(args[0]));
     } catch (IOException e) {

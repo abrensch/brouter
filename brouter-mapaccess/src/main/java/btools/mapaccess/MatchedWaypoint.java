@@ -27,14 +27,14 @@ public final class MatchedWaypoint {
   public boolean hasUpdate;
 
   public void writeToStream(DataOutput dos) throws IOException {
-    dos.writeInt(node1.ilat);
-    dos.writeInt(node1.ilon);
-    dos.writeInt(node2.ilat);
-    dos.writeInt(node2.ilon);
-    dos.writeInt(crosspoint.ilat);
-    dos.writeInt(crosspoint.ilon);
-    dos.writeInt(waypoint.ilat);
-    dos.writeInt(waypoint.ilon);
+    dos.writeInt(node1.iLat);
+    dos.writeInt(node1.iLon);
+    dos.writeInt(node2.iLat);
+    dos.writeInt(node2.iLon);
+    dos.writeInt(crosspoint.iLat);
+    dos.writeInt(crosspoint.iLon);
+    dos.writeInt(waypoint.iLat);
+    dos.writeInt(waypoint.iLon);
     dos.writeDouble(radius);
   }
 
@@ -45,14 +45,14 @@ public final class MatchedWaypoint {
     mwp.crosspoint = new OsmNode();
     mwp.waypoint = new OsmNode();
 
-    mwp.node1.ilat = dis.readInt();
-    mwp.node1.ilon = dis.readInt();
-    mwp.node2.ilat = dis.readInt();
-    mwp.node2.ilon = dis.readInt();
-    mwp.crosspoint.ilat = dis.readInt();
-    mwp.crosspoint.ilon = dis.readInt();
-    mwp.waypoint.ilat = dis.readInt();
-    mwp.waypoint.ilon = dis.readInt();
+    mwp.node1.iLat = dis.readInt();
+    mwp.node1.iLon = dis.readInt();
+    mwp.node2.iLat = dis.readInt();
+    mwp.node2.iLon = dis.readInt();
+    mwp.crosspoint.iLat = dis.readInt();
+    mwp.crosspoint.iLon = dis.readInt();
+    mwp.waypoint.iLat = dis.readInt();
+    mwp.waypoint.iLon = dis.readInt();
     mwp.radius = dis.readDouble();
     return mwp;
   }

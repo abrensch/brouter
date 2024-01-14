@@ -1,19 +1,32 @@
-package btools.codec;
+package btools.mapcreator;
 
+import btools.codec.IntegerFifo3Pass;
+import btools.codec.NoisyDiffCoder;
+import btools.codec.StatCoderContext;
+import btools.codec.TagValueCoder;
+import btools.mapaccess.TurnRestriction;
+import btools.util.ByteDataWriter;
+
+import java.util.ArrayList;
 import java.util.HashMap;
-
-import btools.util.ByteDataReader;
 
 /**
  * MicroCache2 is the new format that uses statistical encoding and
  * is able to do access filtering and waypoint matching during encoding
  */
-public final class MicroCache2 extends MicroCache {
+public final class MicroCache extends ByteDataWriter {
+  private final int[] faid;
+  private final int[] fapos;
+
+  private int size;
+
   private final int lonBase;
   private final int latBase;
   private final int cellSize;
 
-  public MicroCache2(int size, byte[] databuffer, int lonIdx, int latIdx, int cellSize ) {
+  public static boolean debug = false;
+
+  public MicroCache(int size, byte[] databuffer, int lonIdx, int latIdx, int cellSize ) {
     super(databuffer); // sets ab=databuffer, aboffset=0
 
     faid = new int[size];
@@ -24,8 +37,29 @@ public final class MicroCache2 extends MicroCache {
     latBase = latIdx * cellSize;
   }
 
+  public void finishNode(long id) {
+    fapos[size] = aboffset;
+    faid[size] = shrinkId(id);
+    size++;
+  }
 
-  @Override
+  public void discardNode() {
+    aboffset = startPos(size);
+  }
+
+  public int getSize() {
+    return size;
+  }
+
+  private int startPos(int n) {
+    return n > 0 ? fapos[n - 1] & 0x7fffffff : 0;
+  }
+
+  /**
+   * expand a 32-bit micro-cache-internal id into a 64-bit (lon|lat) global-id
+   *
+   * @see #shrinkId
+   */
   public long expandId(int id32) {
     int dlon = 0;
     int dlat = 0;
@@ -42,7 +76,11 @@ public final class MicroCache2 extends MicroCache {
     return ((long) lon32) << 32 | lat32;
   }
 
-  @Override
+  /**
+   * shrink a 64-bit (lon|lat) global-id into a a 32-bit micro-cache-internal id
+   *
+   * @see #expandId
+   */
   public int shrinkId(long id64) {
     int lon32 = (int) (id64 >> 32);
     int lat32 = (int) (id64 & 0xffffffff);
@@ -61,13 +99,20 @@ public final class MicroCache2 extends MicroCache {
     return id32;
   }
 
-  @Override
+  /**
+   * @return true if the given lon/lat position is internal for that micro-cache
+   */
   public boolean isInternal(int ilon, int ilat) {
     return ilon >= lonBase && ilon < lonBase + cellSize
       && ilat >= latBase && ilat < latBase + cellSize;
   }
 
-  @Override
+  /**
+   * (stasticially) encode the micro-cache into the format used in the datafiles
+   *
+   * @param buffer byte array to encode into (considered big enough)
+   * @return the size of the encoded data
+   */
   public int encodeMicroCache(byte[] buffer) {
     HashMap<Long, Integer> idMap = new HashMap<>();
     for (int n = 0; n < size; n++) { // loop over nodes
@@ -75,7 +120,6 @@ public final class MicroCache2 extends MicroCache {
     }
 
     IntegerFifo3Pass linkCounts = new IntegerFifo3Pass(256);
-    IntegerFifo3Pass transCounts = new IntegerFifo3Pass(256);
     IntegerFifo3Pass restrictionBits = new IntegerFifo3Pass(16);
 
     TagValueCoder wayTagCoder = new TagValueCoder();
@@ -86,18 +130,13 @@ public final class MicroCache2 extends MicroCache {
     NoisyDiffCoder extLatDiff = new NoisyDiffCoder();
     NoisyDiffCoder transEleDiff = new NoisyDiffCoder();
 
-    int netdatasize = 0;
-
     for (int pass = 1; ; pass++) { // 3 passes: counters, stat-collection, encoding
       boolean dostats = pass == 3;
       boolean dodebug = debug && pass == 3;
 
-      if (pass < 3) netdatasize = fapos[size - 1];
-
       StatCoderContext bc = new StatCoderContext(buffer);
 
       linkCounts.init();
-      transCounts.init();
       restrictionBits.init();
 
       wayTagCoder.encodeDictionary(bc);
@@ -114,8 +153,6 @@ public final class MicroCache2 extends MicroCache {
       if (dostats) bc.assignBits("nodecount");
       bc.encodeSortedArray(faid, 0, size, 0x20000000, 0);
       if (dostats) bc.assignBits("node-positions");
-      bc.encodeNoisyNumber(netdatasize, 10); // net-size
-      if (dostats) bc.assignBits("netdatasize");
       if (dodebug) System.out.println("*** encoding cache of size=" + size);
       int lastSelev = 0;
 
@@ -192,7 +229,6 @@ public final class MicroCache2 extends MicroCache {
           if (isReverse && isInternal) {
             if (dodebug)
               System.out.println("*** NOT encoding link reverse=" + isReverse + " internal=" + isInternal);
-            netdatasize -= aboffset - startPointer;
             continue; // do not encode internal reverse links
           }
           if (dodebug)
@@ -214,37 +250,6 @@ public final class MicroCache2 extends MicroCache {
           }
           wayTagCoder.encodeTagValueSet(description);
           if (dostats) bc.assignBits("wayDescIdx");
-
-          if (!isReverse) {
-            byte[] geometry = readDataUntil(endPointer);
-            // write transition nodes
-            int count = transCounts.getNext();
-            if (dodebug) System.out.println("*** encoding geometry with count=" + count);
-            bc.encodeVarBits(count++);
-            if (dostats) bc.assignBits("transcount");
-            int transcount = 0;
-            if (geometry != null) {
-              int dlon_remaining = ilonlink - ilon;
-              int dlat_remaining = ilatlink - ilat;
-
-              ByteDataReader r = new ByteDataReader(geometry);
-              while (r.hasMoreData()) {
-                transcount++;
-
-                int dlon = r.readVarLengthSigned();
-                int dlat = r.readVarLengthSigned();
-                bc.encodePredictedValue(dlon, dlon_remaining / count);
-                bc.encodePredictedValue(dlat, dlat_remaining / count);
-                dlon_remaining -= dlon;
-                dlat_remaining -= dlat;
-                if (count > 1) count--;
-                if (dostats) bc.assignBits("transpos");
-                transEleDiff.encodeSignedValue(r.readVarLengthSigned());
-                if (dostats) bc.assignBits("transele");
-              }
-            }
-            transCounts.add(transcount);
-          }
         }
         linkCounts.add(nlinks);
       }
@@ -252,5 +257,85 @@ public final class MicroCache2 extends MicroCache {
         return bc.closeAndGetEncodedLength();
       }
     }
+  }
+
+
+  public void writeNodeData(OsmNodeP node) {
+    boolean valid = writeNodeData2(node);;
+    if (valid) {
+      finishNode(node.getIdFromPos());
+    } else {
+      discardNode();
+    }
+  }
+
+  public boolean writeNodeData2(OsmNodeP node) {
+    boolean hasLinks = false;
+
+    // write turn restrictions
+    TurnRestriction r = node.firstRestriction;
+    while (r != null) {
+      if (r.validate() && r.fromLon != 0 && r.toLon != 0) {
+        writeBoolean(true); // restriction follows
+        writeShort(r.exceptions);
+        writeBoolean(r.isPositive);
+        writeInt(r.fromLon);
+        writeInt(r.fromLat);
+        writeInt(r.toLon);
+        writeInt(r.toLat);
+      }
+      r = r.next;
+    }
+    writeBoolean(false); // end restritions
+
+    writeShort(node.getSElev());
+    writeVarBytes(node.nodeDescription);
+
+    // buffer internal reverse links
+    ArrayList<OsmNodeP> internalReverse = new ArrayList<>();
+
+    for (OsmLinkP link = node.getFirstLink(); link != null; link = link.getNext(node)) {
+      OsmNodeP target = link.getTarget(node);;
+      hasLinks = true;
+
+      // internal reverse links later
+      boolean isReverse = link.isReverse(node);
+      if (isReverse) {
+        if (isInternal(target.iLon, target.iLat)) {
+          internalReverse.add(target);
+          continue;
+        }
+      }
+
+      byte[] description = link.descriptionBitmap;
+
+      // write link data
+      int sizeoffset = writeSizePlaceHolder();
+      writeVarLengthSigned(target.iLon - node.iLon);
+      writeVarLengthSigned(target.iLat - node.iLat);
+      writeModeAndDesc(isReverse, description);
+      injectSize(sizeoffset);
+    }
+
+    while (internalReverse.size() > 0) {
+      int nextIdx = 0;
+      if (internalReverse.size() > 1) {
+        int max32 = Integer.MIN_VALUE;
+        for (int i = 0; i < internalReverse.size(); i++) {
+          int id32 = shrinkId(internalReverse.get(i).getIdFromPos());
+          if (id32 > max32) {
+            max32 = id32;
+            nextIdx = i;
+          }
+        }
+      }
+      OsmNodeP target = internalReverse.remove(nextIdx);
+      int sizeoffset = writeSizePlaceHolder();
+      writeVarLengthSigned(target.iLon - node.iLon);
+      writeVarLengthSigned(target.iLat - node.iLat);
+      writeModeAndDesc(true, null);
+      injectSize(sizeoffset);
+    }
+    return hasLinks;
   }
 }

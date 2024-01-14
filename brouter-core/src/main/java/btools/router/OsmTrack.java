@@ -238,8 +238,8 @@ public final class OsmTrack {
         try {
           DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(f)));
           MatchedWaypoint ep = MatchedWaypoint.readFromStream(dis);
-          int dlon = ep.waypoint.ilon - newEp.ilon;
-          int dlat = ep.waypoint.ilat - newEp.ilat;
+          int dlon = ep.waypoint.iLon - newEp.iLon;
+          int dlat = ep.waypoint.iLat - newEp.iLat;
           boolean targetMatch = dlon < 20 && dlon > -20 && dlat < 20 && dlat > -20;
           if (debugInfo != null) {
             debugInfo.append("target-delta = " + dlon + "/" + dlat + " targetMatch=" + targetMatch);

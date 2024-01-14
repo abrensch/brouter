@@ -45,7 +45,7 @@ public final class OsmNodesMap {
   private void justCount(OsmNode[] nodes) {
     for (int i = 0; i < nodes.length; i++) {
       OsmNode n = nodes[i];
-      if (n.firstlink != null) {
+      if (n.firstLink != null) {
         nodesCreated++;
       }
     }
@@ -55,7 +55,7 @@ public final class OsmNodesMap {
     baseID = lastVisitID++;
     for (int i = 0; i < nodes.length; i++) { // loop over nodes again just for housekeeping
       OsmNode n = nodes[i];
-      if (n.firstlink != null) {
+      if (n.firstLink != null) {
         if (n.visitID == 1) {
           try {
             minVisitIdInSubtree(null, n);
@@ -74,7 +74,7 @@ public final class OsmNodesMap {
     nodesCreated++;
 
     OsmLink nextLink = null;
-    for (OsmLink l = n.firstlink; l != null; l = nextLink) {
+    for (OsmLink l = n.firstLink; l != null; l = nextLink) {
       nextLink = l.getNext(n);
 
       OsmNode t = l.getTarget(n);
@@ -136,7 +136,7 @@ public final class OsmNodesMap {
       if (n.visitID < baseID) {
         n.visitID = lastVisitID;
         nodesCreated++;
-        for (OsmLink l = n.firstlink; l != null; l = l.getNext(n)) {
+        for (OsmLink l = n.firstLink; l != null; l = l.getNext(n)) {
           OsmNode t = l.getTarget(n);
           nodes2check.add(t);
         }
@@ -154,7 +154,7 @@ public final class OsmNodesMap {
       if (n.visitID == lastVisitID) {
         n.visitID = lastVisitID;
         nodesCreated--;
-        for (OsmLink l = n.firstlink; l != null; l = l.getNext(n)) {
+        for (OsmLink l = n.firstLink; l != null; l = l.getNext(n)) {
           OsmNode t = l.getTarget(n);
           nodes2check.add(t);
         }
@@ -189,7 +189,7 @@ public final class OsmNodesMap {
       OsmNode n = nodes2check.remove(nodes2check.size() - 1);
       n.visitID = lastVisitID;
 
-      for (OsmLink l = n.firstlink; l != null; l = l.getNext(n)) {
+      for (OsmLink l = n.firstLink; l != null; l = l.getNext(n)) {
         OsmNode t = l.getTarget(n);
         if (t.visitID != lastVisitID) {
           addActiveNode(nodes2check, t);
@@ -201,7 +201,7 @@ public final class OsmNodesMap {
           n.vanish();
         }
       }
-      if (n.firstlink == null) {
+      if (n.firstLink == null) {
         nodesCreated--;
       }
     }
@@ -218,8 +218,8 @@ public final class OsmNodesMap {
    * @return the node for the given id if exist, else null
    */
   public OsmNode get(int ilon, int ilat) {
-    testKey.ilon = ilon;
-    testKey.ilat = ilat;
+    testKey.iLon = ilon;
+    testKey.iLat = ilat;
     return hmap.get(testKey);
   }
 
@@ -244,7 +244,7 @@ public final class OsmNodesMap {
   private static void addLinks(OsmNode[] nodes, int idx, boolean isBorder, int[] links) {
     OsmNode n = nodes[idx];
     n.visitID = isBorder ? 1 : 0;
-    n.selev = (short) idx;
+    n.sElev = (short) idx;
     for (int i : links) {
       OsmNode t = nodes[i];
       OsmLink link = n.isLinkUnused() ? n : (t.isLinkUnused() ? t : null);

@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import btools.mapaccess.TurnRestriction;
 import btools.util.CheapAngleMeter;
 
 /**
@@ -17,37 +18,26 @@ import btools.util.CheapAngleMeter;
  *
  * @author ab
  */
-public class RestrictionData extends MapCreatorBase {
+public class RestrictionData extends TurnRestriction {
   public String restrictionKey;
   public String restriction;
-  public short exceptions;
   public long fromWid;
   public long toWid;
   public long viaNid;
-  public RestrictionData next;
 
   public int viaLon;
   public int viaLat;
 
-  public int fromLon;
-  public int fromLat;
-
-  public int toLon;
-  public int toLat;
-
   public boolean badWayMatch;
 
-  private static Map<String, String> names = new HashMap<>();
-  private static Set<Long> badTRs = new TreeSet<>();
+  private static final Map<String, String> names = new HashMap<>();
+  private static final Set<Long> badTRs = new TreeSet<>();
 
   public RestrictionData() {
   }
 
-  public boolean isPositive() {
-    return restriction.startsWith("only_");
-  }
-
-  public boolean isValid() {
+  @Override
+  public boolean validate() {
     boolean valid = fromLon != 0 && toLon != 0 && (restriction.startsWith("only_") || restriction.startsWith("no_"));
     valid = valid && restriction.indexOf("on_red") < 0; // filter out on-red restrictions
     if ((!valid) || badWayMatch || !(checkGeometry())) {
@@ -55,6 +45,7 @@ public class RestrictionData extends MapCreatorBase {
         badTRs.add(((long) viaLon) << 32 | viaLat);
       }
     }
+    isPositive = restriction.startsWith("only_");
     return valid && "restriction".equals(restrictionKey);
   }
 
@@ -114,17 +105,17 @@ public class RestrictionData extends MapCreatorBase {
     restrictionKey = unifyName(di.readUTF());
     restriction = unifyName(di.readUTF());
     exceptions = di.readShort();
-    fromWid = readId(di);
-    toWid = readId(di);
-    viaNid = readId(di);
+    fromWid = di.readLong();
+    toWid = di.readLong();
+    viaNid = di.readLong();
   }
 
   public void writeTo(DataOutputStream dos) throws Exception {
     dos.writeUTF(restrictionKey);
     dos.writeUTF(restriction);
     dos.writeShort(exceptions);
-    writeId(dos, fromWid);
-    writeId(dos, toWid);
-    writeId(dos, viaNid);
+    dos.writeLong(fromWid);
+    dos.writeLong(toWid);
+    dos.writeLong(viaNid);
   }
 }

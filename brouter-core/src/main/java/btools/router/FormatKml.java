@@ -49,7 +49,7 @@ public class FormatKml extends Formatter {
         sb.append("      <name>poi</name>\n");
         for (int i = 0; i < t.pois.size(); i++) {
           OsmNodeNamed poi = t.pois.get(i);
-          createPlaceMark(sb, poi.name, poi.ilat, poi.ilon);
+          createPlaceMark(sb, poi.name, poi.iLat, poi.iLon);
         }
         sb.append("    </Folder>\n");
       }
@@ -74,7 +74,7 @@ public class FormatKml extends Formatter {
     sb.append("      <name>" + type + "</name>\n");
     for (int i = 0; i < waypoints.size(); i++) {
       MatchedWaypoint wp = waypoints.get(i);
-      createPlaceMark(sb, wp.name, wp.waypoint.ilat, wp.waypoint.ilon);
+      createPlaceMark(sb, wp.name, wp.waypoint.iLat, wp.waypoint.iLon);
     }
     sb.append("    </Folder>\n");
   }

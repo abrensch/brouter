@@ -50,15 +50,15 @@ public class OsmNogoPolygonTest {
 
   @Test
   public void testCalcBoundingCircle() {
-    double[] lonlat2m = CheapRuler.getLonLatToMeterScales(polygon.ilat);
+    double[] lonlat2m = CheapRuler.getLonLatToMeterScales(polygon.iLat);
     double dlon2m = lonlat2m[0];
     double dlat2m = lonlat2m[1];
 
     polygon.calcBoundingCircle();
     double r = polygon.radius;
     for (int i = 0; i < lons.length; i++) {
-      double dpx = (toOsmLon(lons[i], OFFSET_X) - polygon.ilon) * dlon2m;
-      double dpy = (toOsmLat(lats[i], OFFSET_Y) - polygon.ilat) * dlat2m;
+      double dpx = (toOsmLon(lons[i], OFFSET_X) - polygon.iLon) * dlon2m;
+      double dpy = (toOsmLat(lats[i], OFFSET_Y) - polygon.iLat) * dlat2m;
       double r1 = Math.sqrt(dpx * dpx + dpy * dpy);
       double diff = r - r1;
       assertTrue("i: " + i + " r(" + r + ") >= r1(" + r1 + ")", diff >= 0);
@@ -66,8 +66,8 @@ public class OsmNogoPolygonTest {
     polyline.calcBoundingCircle();
     r = polyline.radius;
     for (int i = 0; i < lons.length; i++) {
-      double dpx = (toOsmLon(lons[i], OFFSET_X) - polyline.ilon) * dlon2m;
-      double dpy = (toOsmLat(lats[i], OFFSET_Y) - polyline.ilat) * dlat2m;
+      double dpx = (toOsmLon(lons[i], OFFSET_X) - polyline.iLon) * dlon2m;
+      double dpy = (toOsmLat(lats[i], OFFSET_Y) - polyline.iLat) * dlat2m;
       double r1 = Math.sqrt(dpx * dpx + dpy * dpy);
       double diff = r - r1;
       assertTrue("i: " + i + " r(" + r + ") >= r1(" + r1 + ")", diff >= 0);

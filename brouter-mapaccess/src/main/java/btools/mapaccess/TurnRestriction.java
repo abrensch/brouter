@@ -5,7 +5,7 @@
  */
 package btools.mapaccess;
 
-public final class TurnRestriction {
+public class TurnRestriction {
   public boolean isPositive;
   public short exceptions;
 
@@ -16,6 +16,10 @@ public final class TurnRestriction {
   public int toLat;
 
   public TurnRestriction next;
+
+  public boolean validate() {
+    return true; // Runtime TR is always valid
+  }
 
   public boolean exceptBikes() {
     return (exceptions & 1) != 0;

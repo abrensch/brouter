@@ -75,16 +75,6 @@ public class ByteDataReader {
     return aboffset + size;
   }
 
-  public final byte[] readDataUntil(int endPointer) {
-    int size = endPointer - aboffset;
-    if (size == 0) {
-      return null;
-    }
-    byte[] data = new byte[size];
-    readFully(data);
-    return data;
-  }
-
   public final byte[] readVarBytes() {
     int len = readVarLengthUnsigned();
     if (len == 0) {

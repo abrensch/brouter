@@ -32,7 +32,7 @@ final class KinematicPath extends OsmPath {
   }
 
   @Override
-  protected double processWaySection(RoutingContext rc, double dist, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier) {
+  protected double processWaySection(RoutingContext rc, double dist, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int lastpriorityclassifier) {
     KinematicModel km = (KinematicModel) rc.pm;
 
     double cost = 0.;
@@ -62,7 +62,7 @@ final class KinematicPath extends OsmPath {
         }
       }
 
-      if (nsection == 0) { // process slowdown by crossing geometry
+      { // process slowdown by crossing geometry
         double junctionspeed = 999.; // just high
 
         int classifiermask = (int) rc.expCtxWay.getClassifierMask();

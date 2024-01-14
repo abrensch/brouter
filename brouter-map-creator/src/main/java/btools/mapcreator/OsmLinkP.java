@@ -31,10 +31,6 @@ public class OsmLinkP {
   protected OsmLinkP() {
   }
 
-  public final boolean counterLinkWritten() {
-    return descriptionBitmap == null;
-  }
-
   /**
    * Set the relevant next-pointer for the given source
    */

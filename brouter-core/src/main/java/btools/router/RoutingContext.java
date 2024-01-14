@@ -13,7 +13,6 @@ import java.util.Map;
 import btools.expressions.BExpressionContext;
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
-import btools.mapaccess.GeometryDecoder;
 import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmNode;
@@ -47,8 +46,6 @@ public final class RoutingContext {
 
   public BExpressionContextWay expCtxWay;
   public BExpressionContextNode expCtxNode;
-
-  public GeometryDecoder geometryDecoder = new GeometryDecoder();
 
   public int memoryclass = 64;
 
@@ -255,8 +252,8 @@ public final class RoutingContext {
         if (wp.calcDistance(nogo) < nogo.radius
           && (!(nogo instanceof OsmNogoPolygon)
           || (((OsmNogoPolygon) nogo).isClosed
-          ? ((OsmNogoPolygon) nogo).isWithin(wp.ilon, wp.ilat)
-          : ((OsmNogoPolygon) nogo).isOnPolyline(wp.ilon, wp.ilat)))) {
+          ? ((OsmNogoPolygon) nogo).isWithin(wp.iLon, wp.iLat)
+          : ((OsmNogoPolygon) nogo).isOnPolyline(wp.iLon, wp.iLat)))) {
           goodGuy = false;
         }
       }
@@ -282,8 +279,8 @@ public final class RoutingContext {
           && wp.calcDistance(nogo) < nogo.radius
           && (!(nogo instanceof OsmNogoPolygon)
           || (((OsmNogoPolygon) nogo).isClosed
-          ? ((OsmNogoPolygon) nogo).isWithin(wp.ilon, wp.ilat)
-          : ((OsmNogoPolygon) nogo).isOnPolyline(wp.ilon, wp.ilat)))) {
+          ? ((OsmNogoPolygon) nogo).isWithin(wp.iLon, wp.iLat)
+          : ((OsmNogoPolygon) nogo).isOnPolyline(wp.iLon, wp.iLat)))) {
           isInsideNogo = true;
           break;
         }
@@ -330,8 +327,8 @@ public final class RoutingContext {
         if (dist < nogo.radius
           && (!(nogo instanceof OsmNogoPolygon)
           || (((OsmNogoPolygon) nogo).isClosed
-          ? ((OsmNogoPolygon) nogo).isWithin(wp.ilon, wp.ilat)
-          : ((OsmNogoPolygon) nogo).isOnPolyline(wp.ilon, wp.ilat)))) {
+          ? ((OsmNogoPolygon) nogo).isWithin(wp.iLon, wp.iLat)
+          : ((OsmNogoPolygon) nogo).isOnPolyline(wp.iLon, wp.iLat)))) {
           continue;
         }
         allIn = false;
@@ -346,8 +343,8 @@ public final class RoutingContext {
     int n = nogopoints == null ? 0 : nogopoints.size();
     for (int i = 0; i < n; i++) {
       OsmNodeNamed nogo = nogopoints.get(i);
-      cs[0] += nogo.ilon;
-      cs[1] += nogo.ilat;
+      cs[0] += nogo.iLon;
+      cs[1] += nogo.iLat;
       // 10 is an arbitrary constant to get sub-integer precision in the checksum
       cs[2] += (long) (nogo.radius * 10.);
     }
@@ -396,10 +393,10 @@ public final class RoutingContext {
     if (nogopoints != null && !nogopoints.isEmpty() && d > 0.) {
       for (int ngidx = 0; ngidx < nogopoints.size(); ngidx++) {
         OsmNodeNamed nogo = nogopoints.get(ngidx);
-        double x1 = (lon1 - nogo.ilon) * dlon2m;
-        double y1 = (lat1 - nogo.ilat) * dlat2m;
-        double x2 = (lon2 - nogo.ilon) * dlon2m;
-        double y2 = (lat2 - nogo.ilat) * dlat2m;
+        double x1 = (lon1 - nogo.iLon) * dlon2m;
+        double y1 = (lat1 - nogo.iLat) * dlat2m;
+        double x2 = (lon2 - nogo.iLon) * dlon2m;
+        double y2 = (lat2 - nogo.iLat) * dlat2m;
         double r12 = x1 * x1 + y1 * y1;
         double r22 = x2 * x2 + y2 * y2;
         double radius = Math.abs(r12 < r22 ? y1 * dx - x1 * dy : y2 * dx - x2 * dy) / d;
@@ -450,8 +447,8 @@ public final class RoutingContext {
               wayfraction = -s2 / (d * d);
               double xm = x2 - wayfraction * dx;
               double ym = y2 - wayfraction * dy;
-              ilonshortest = (int) (xm / dlon2m + nogo.ilon);
-              ilatshortest = (int) (ym / dlat2m + nogo.ilat);
+              ilonshortest = (int) (xm / dlon2m + nogo.iLon);
+              ilatshortest = (int) (ym / dlat2m + nogo.iLat);
             } else if (s1 > s2) {
               wayfraction = 0.;
               ilonshortest = lon2;

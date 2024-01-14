@@ -6,6 +6,7 @@ dependencies {
     implementation project(':brouter-codec')
     implementation project(':brouter-util')
     implementation project(':brouter-expressions')
+    implementation project(':brouter-mapaccess')
 
     implementation group: 'org.openstreetmap.osmosis', name: 'osmosis-osm-binary', version: '0.48.3'
 

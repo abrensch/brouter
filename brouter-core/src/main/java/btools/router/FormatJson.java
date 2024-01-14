@@ -130,7 +130,7 @@ public class FormatJson extends Formatter {
       sb.append("    },\n");
       for (int i = 0; i <= t.pois.size() - 1; i++) {
         OsmNodeNamed poi = t.pois.get(i);
-        addFeature(sb, "poi", poi.name, poi.ilat, poi.ilon);
+        addFeature(sb, "poi", poi.name, poi.iLat, poi.iLon);
         if (i < t.matchedWaypoints.size() - 1) {
           sb.append(",");
         }
@@ -148,7 +148,7 @@ public class FormatJson extends Formatter {
           }
 
           MatchedWaypoint wp = t.matchedWaypoints.get(i);
-          addFeature(sb, type, wp.name, wp.waypoint.ilat, wp.waypoint.ilon);
+          addFeature(sb, type, wp.name, wp.waypoint.iLat, wp.waypoint.iLon);
           if (i < t.matchedWaypoints.size() - 1) {
             sb.append(",");
           }
@@ -186,7 +186,7 @@ public class FormatJson extends Formatter {
       StringWriter sw = new StringWriter(8192);
       BufferedWriter bw = new BufferedWriter(sw);
       addJsonHeader(bw);
-      addJsonFeature(bw, "info", "wpinfo", n.ilon, n.ilat, n.getElev(), (n.nodeDescription != null ? rc.expCtxWay.getKeyValueDescription(false, n.nodeDescription) : null));
+      addJsonFeature(bw, "info", "wpinfo", n.iLon, n.iLat, n.getElev(), (n.nodeDescription != null ? rc.expCtxWay.getKeyValueDescription(false, n.nodeDescription) : null));
       addJsonFooter(bw);
       bw.close();
       sw.close();

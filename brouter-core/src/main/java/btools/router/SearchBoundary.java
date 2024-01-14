@@ -31,10 +31,10 @@ public final class SearchBoundary {
     this.radius = radius;
     this.direction = direction;
 
-    p = new OsmNode(n.ilon, n.ilat);
+    p = new OsmNode(n.iLon, n.iLat);
 
-    int lon = (n.ilon / 5000000) * 5000000;
-    int lat = (n.ilat / 5000000) * 5000000;
+    int lon = (n.iLon / 5000000) * 5000000;
+    int lat = (n.iLat / 5000000) * 5000000;
 
     minlon0 = lon - 5000000;
     minlat0 = lat - 5000000;
@@ -48,8 +48,8 @@ public final class SearchBoundary {
   }
 
   public static String getFileName(OsmNode n) {
-    int lon = (n.ilon / 5000000) * 5000000;
-    int lat = (n.ilat / 5000000) * 5000000;
+    int lon = (n.iLon / 5000000) * 5000000;
+    int lat = (n.iLat / 5000000) * 5000000;
 
     int dlon = lon / 1000000 - 180;
     int dlat = lat / 1000000 - 90;
@@ -64,21 +64,21 @@ public final class SearchBoundary {
       return n.calcDistance(p) < radius;
     }
     if (cost == 0) {
-      return n.ilon > minlon0 && n.ilon < maxlon0 && n.ilat > minlat0 && n.ilat < maxlat0;
+      return n.iLon > minlon0 && n.iLon < maxlon0 && n.iLat > minlat0 && n.iLat < maxlat0;
     }
-    return n.ilon > minlon && n.ilon < maxlon && n.ilat > minlat && n.ilat < maxlat;
+    return n.iLon > minlon && n.iLon < maxlon && n.iLat > minlat && n.iLat < maxlat;
   }
 
   public int getBoundaryDistance(OsmNode n) {
     switch (direction) {
       case 0:
-        return n.calcDistance(new OsmNode(n.ilon, minlat));
+        return n.calcDistance(new OsmNode(n.iLon, minlat));
       case 1:
-        return n.calcDistance(new OsmNode(minlon, n.ilat));
+        return n.calcDistance(new OsmNode(minlon, n.iLat));
       case 2:
-        return n.calcDistance(new OsmNode(n.ilon, maxlat));
+        return n.calcDistance(new OsmNode(n.iLon, maxlat));
       case 3:
-        return n.calcDistance(new OsmNode(maxlon, n.ilat));
+        return n.calcDistance(new OsmNode(maxlon, n.iLat));
       default:
         throw new IllegalArgumentException("undefined direction: " + direction);
     }

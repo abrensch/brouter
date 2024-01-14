@@ -129,8 +129,8 @@ public class OsmNogoPolygon extends OsmNodeNamed {
     }
     while (true);
 
-    ilon = cx;
-    ilat = cy;
+    iLon = cx;
+    iLat = cy;
     radius = rad * 1.001 + 1.0; // ensure the outside-of-enclosing-circle test in RoutingContext.calcDistance() is not passed by segments ending very close to the radius due to limited numerical precision
   }
 

@@ -7,17 +7,16 @@ import btools.codec.TagValueCoder;
 import btools.codec.TagValueValidator;
 import btools.codec.TagValueWrapper;
 import btools.codec.WaypointMatcher;
-import btools.util.ByteDataWriter;
 
 /**
  * DirectWeaver does the same decoding as MicroCache2, but decodes directly
  * into the instance-graph, not into the intermediate nodes-cache
  */
-public final class DirectWeaver extends ByteDataWriter {
+public final class DirectWeaver { // extends ByteDataWriter {
   private long id64Base;
 
   public DirectWeaver(StatCoderContext bc, DataBuffers dataBuffers, long id64Base, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) {
-    super(null);
+    // super(null);
     this.id64Base = id64Base;
 
     TagValueCoder wayTagCoder = new TagValueCoder(bc, dataBuffers, wayValidator);
@@ -49,15 +48,11 @@ public final class DirectWeaver extends ByteDataWriter {
       nodes[n] = node;
     }
 
-    int netdatasize = bc.decodeNoisyNumber(10); // (not needed for direct weaving)
-    ab = dataBuffers.bbuf1;
-    aboffset = 0;
-
     int selev = 0;
     for (int n = 0; n < size; n++) { // loop over nodes
       OsmNode node = nodes[n];
-      int ilon = node.ilon;
-      int ilat = node.ilat;
+      int ilon = node.iLon;
+      int ilat = node.iLat;
 
       // future escapes (turn restrictions?)
       short trExceptions = 0;
@@ -84,7 +79,7 @@ public final class DirectWeaver extends ByteDataWriter {
       }
 
       selev += nodeEleDiff.decodeSignedValue();
-      node.selev = (short) selev;
+      node.sElev = (short) selev;
       TagValueWrapper nodeTags = nodeTagCoder.decodeTagValueSet();
       node.nodeDescription = nodeTags == null ? null : nodeTags.data; // TODO: unified?
 
@@ -97,8 +92,8 @@ public final class DirectWeaver extends ByteDataWriter {
 
         boolean isReverse = false;
         if (nodeIdx != n) { // internal (forward-) link
-          dlon_remaining = nodes[nodeIdx].ilon - ilon;
-          dlat_remaining = nodes[nodeIdx].ilat - ilat;
+          dlon_remaining = nodes[nodeIdx].iLon - ilon;
+          dlat_remaining = nodes[nodeIdx].iLat - ilat;
         } else {
           isReverse = bc.decodeBit();
           dlon_remaining = extLonDiff.decodeSignedValue();
@@ -109,45 +104,15 @@ public final class DirectWeaver extends ByteDataWriter {
 
         int linklon = ilon + dlon_remaining;
         int linklat = ilat + dlat_remaining;
-        aboffset = 0;
-        if (!isReverse) { // write geometry for forward links only
+        // aboffset = 0;
+        if (!isReverse) { // wp-matching for forward links only
           WaypointMatcher matcher = wayTags == null || wayTags.accessType < 2 ? null : waypointMatcher;
-          int ilontarget = ilon + dlon_remaining;
-          int ilattarget = ilat + dlat_remaining;
           if (matcher != null) {
-            if (!matcher.start(ilon, ilat, ilontarget, ilattarget)) {
-              matcher = null;
-            }
+            matcher.match(ilon, ilat, linklon, linklat);
           }
-
-          int transcount = bc.decodeVarBits();
-          int count = transcount + 1;
-          for (int i = 0; i < transcount; i++) {
-            int dlon = bc.decodePredictedValue(dlon_remaining / count);
-            int dlat = bc.decodePredictedValue(dlat_remaining / count);
-            dlon_remaining -= dlon;
-            dlat_remaining -= dlat;
-            count--;
-            int elediff = transEleDiff.decodeSignedValue();
-            if (wayTags != null) {
-              writeVarLengthSigned(dlon);
-              writeVarLengthSigned(dlat);
-              writeVarLengthSigned(elediff);
-            }
-
-            if (matcher != null)
-              matcher.transferNode(ilontarget - dlon_remaining, ilattarget - dlat_remaining);
-          }
-          if (matcher != null) matcher.end();
         }
 
         if (wayTags != null) {
-          byte[] geometry = null;
-          if (aboffset > 0) {
-            geometry = new byte[aboffset];
-            System.arraycopy(ab, 0, geometry, 0, aboffset);
-          }
-
           if (nodeIdx != n) { // valid internal (forward-) link
             OsmNode node2 = nodes[nodeIdx];
             OsmLink link = node.isLinkUnused() ? node : (node2.isLinkUnused() ? node2 : null);
@@ -155,10 +120,10 @@ public final class DirectWeaver extends ByteDataWriter {
               link = new OsmLink();
             }
             link.descriptionBitmap = wayTags.data;
-            link.geometry = geometry;
+            // link.geometry = geometry;
             node.addLink(link, isReverse, node2);
           } else { // weave external link
-            node.addLink(linklon, linklat, wayTags.data, geometry, hollowNodes, isReverse);
+            node.addLink(linklon, linklat, wayTags.data, hollowNodes, isReverse);
             node.visitID = 1;
           }
         }

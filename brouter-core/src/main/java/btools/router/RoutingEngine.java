@@ -206,18 +206,13 @@ public class RoutingEngine extends Thread {
               break;
             case "geojson": // read only gpx at the moment
             case "json":
-              // oldTrack = new FormatJson(routingContext).read(filename);
-              break;
             case "kml":
-              // oldTrack = new FormatJson(routingContext).read(filename);
-              break;
             default:
               break;
           }
           if (oldTrack != null && track.equalsTrack(oldTrack)) {
             continue;
           }
-          oldTrack = null;
           track.exportWaypoints = routingContext.exportWaypoints;
           filename = outfileBase + i + "." + routingContext.outputFormat;
           switch (routingContext.outputFormat) {
@@ -237,7 +232,6 @@ public class RoutingEngine extends Thread {
               break;
           }
           if (outputMessage != null) {
-            File out = new File(filename);
             FileWriter fw = new FileWriter(filename);
             fw.write(outputMessage);
             fw.close();
@@ -338,7 +332,7 @@ public class RoutingEngine extends Thread {
       }
 
       OsmNodeNamed n = new OsmNodeNamed(listOne.get(0).crosspoint);
-      n.selev = startNode != null ? startNode.getSElev() : Short.MIN_VALUE;
+      n.sElev = startNode != null ? startNode.getSElev() : Short.MIN_VALUE;
 
       switch (routingContext.outputFormat) {
         case "gpx":
@@ -675,10 +669,10 @@ public class RoutingEngine extends Thread {
 
           int lon0 = tt.nodes.get(ourSize - 2).getILon();
           int lat0 = tt.nodes.get(ourSize - 2).getILat();
-          int lon1 = startWp.crosspoint.ilon;
-          int lat1 = startWp.crosspoint.ilat;
-          int lon2 = node.ilon;
-          int lat2 = node.ilat;
+          int lon1 = startWp.crosspoint.iLon;
+          int lat1 = startWp.crosspoint.iLat;
+          int lon2 = node.iLon;
+          int lat2 = node.iLat;
           double angle3 = routingContext.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
           int dist = node.calcDistance(startWp.crosspoint);
           if (dist < routingContext.waypointCatchingRange)
@@ -1096,11 +1090,11 @@ public class RoutingEngine extends Thread {
       OsmPath startPath = routingContext.createPath(startLink);
       startLink.addLinkHolder(startPath, null);
       double minradius = 1e10;
-      for (OsmLink link = n1.firstlink; link != null; link = link.getNext(n1)) {
+      for (OsmLink link = n1.firstLink; link != null; link = link.getNext(n1)) {
         OsmNode nextNode = link.getTarget(n1);
         if (nextNode.isHollow())
           continue; // border node?
-        if (nextNode.firstlink == null)
+        if (nextNode.firstLink == null)
           continue; // don't care about dead ends
         if (nextNode == n1)
           continue; // ?
@@ -1401,13 +1395,13 @@ public class RoutingEngine extends Thread {
 
         routingContext.firstPrePath = null;
 
-        for (OsmLink link = currentNode.firstlink; link != null; link = link.getNext(currentNode)) {
+        for (OsmLink link = currentNode.firstLink; link != null; link = link.getNext(currentNode)) {
           OsmNode nextNode = link.getTarget(currentNode);
 
           if (!nodesCache.obtainNonHollowNode(nextNode)) {
             continue; // border node?
           }
-          if (nextNode.firstlink == null) {
+          if (nextNode.firstLink == null) {
             continue; // don't care about dead ends
           }
           if (nextNode == sourceNode) {
@@ -1421,13 +1415,13 @@ public class RoutingEngine extends Thread {
           }
         }
 
-        for (OsmLink link = currentNode.firstlink; link != null; link = link.getNext(currentNode)) {
+        for (OsmLink link = currentNode.firstLink; link != null; link = link.getNext(currentNode)) {
           OsmNode nextNode = link.getTarget(currentNode);
 
           if (!nodesCache.obtainNonHollowNode(nextNode)) {
             continue; // border node?
           }
-          if (nextNode.firstlink == null) {
+          if (nextNode.firstLink == null) {
             continue; // don't care about dead ends
           }
           if (nextNode == sourceNode) {
@@ -1633,8 +1627,8 @@ public class RoutingEngine extends Thread {
         OsmPath p = (OsmPath) extract[i];
         extract[i] = null;
         OsmNode n = p.getTargetNode();
-        res[j++] = n.ilon;
-        res[j++] = n.ilat;
+        res[j++] = n.iLon;
+        res[j++] = n.iLat;
       }
       return res;
     }

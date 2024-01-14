@@ -65,8 +65,8 @@ public class RoutingParamCollector {
     for (int i = 0; i < lats.length && i < lons.length; i++) {
       OsmNodeNamed n = new OsmNodeNamed();
       n.name = "via" + i;
-      n.ilon = (int) ((lons[i] + 180.) * 1000000. + 0.5);
-      n.ilat = (int) ((lats[i] + 90.) * 1000000. + 0.5);
+      n.iLon = (int) ((lons[i] + 180.) * 1000000. + 0.5);
+      n.iLat = (int) ((lats[i] + 90.) * 1000000. + 0.5);
       wplist.add(n);
     }
 
@@ -88,8 +88,8 @@ public class RoutingParamCollector {
   private OsmNodeNamed readPosition(double lon, double lat, String name) {
     OsmNodeNamed n = new OsmNodeNamed();
     n.name = name;
-    n.ilon = (int) ((lon + 180.) * 1000000. + 0.5);
-    n.ilat = (int) ((lat + 90.) * 1000000. + 0.5);
+    n.iLon = (int) ((lon + 180.) * 1000000. + 0.5);
+    n.iLat = (int) ((lat + 90.) * 1000000. + 0.5);
     return n;
   }
 
@@ -292,8 +292,8 @@ public class RoutingParamCollector {
         continue;
 
       OsmNodeNamed n = new OsmNodeNamed();
-      n.ilon = (int) ((Double.parseDouble(lonLatName[0]) + 180.) * 1000000. + 0.5);
-      n.ilat = (int) ((Double.parseDouble(lonLatName[1]) + 90.) * 1000000. + 0.5);
+      n.iLon = (int) ((Double.parseDouble(lonLatName[0]) + 180.) * 1000000. + 0.5);
+      n.iLat = (int) ((Double.parseDouble(lonLatName[1]) + 90.) * 1000000. + 0.5);
       n.name = lonLatName[2];
       poisList.add(n);
     }
@@ -345,8 +345,8 @@ public class RoutingParamCollector {
   private OsmNodeNamed readNogo(double lon, double lat, int radius, double nogoWeight) {
     OsmNodeNamed n = new OsmNodeNamed();
     n.name = "nogo" + radius;
-    n.ilon = (int) ((lon + 180.) * 1000000. + 0.5);
-    n.ilat = (int) ((lat + 90.) * 1000000. + 0.5);
+    n.iLon = (int) ((lon + 180.) * 1000000. + 0.5);
+    n.iLat = (int) ((lat + 90.) * 1000000. + 0.5);
     n.isNogo = true;
     n.nogoWeight = nogoWeight;
     return n;
