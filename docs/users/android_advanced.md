@@ -43,7 +43,7 @@ _routing-profile_.
 
 #### storageconfig.txt
 
-`storageconfig.txt` is used to specifiy additional paths which BRouter should
+`storageconfig.txt` is used to specify additional paths which BRouter should
 use.
 
 * `secondary_segment_dir` points to an additional directory containing routing
@@ -86,8 +86,8 @@ personal routing preferences.
 ## Routing via _file interface_
 
 The other option is using the BRouter app to calculate a route. This is the
-prefered option when calculating long-distance-routes that would not finish
-within the 60 seconds timout if calculated via the _service interface_.
+preferred option when calculating long-distance-routes that would not finish
+within the 60 seconds timeout if calculated via the _service interface_.
 
 To do this, start the BRouter app, select two or more waypoints and then start
 the route calculation. BRouter reads waypoints from the `import` folder
@@ -97,9 +97,10 @@ If your waypoint database contains a `from` and `to` waypoint the waypoint
 selection will be skipped. BRouter also uses `via1`, ..., `via9` as via
 waypoints.
 
-If a route is calculated, it is stored as `brouter0.gpx`. BRouter stores the route in
-`<basedir>/import/tracks` directory. If started once more with identical input,
-BRouter will store a second route `brouter1.gpx` for the first alternative and so on.
+If a route is calculated, it is stored as `brouter0.gpx`. BRouter stores the
+route in `<basedir>/import/tracks` directory. If started once more with
+identical input, BRouter will store a second route `brouter1.gpx` for the first
+alternative and so on.
 
 ## Mixed operation: _timeout-free recalculations_
 
@@ -116,7 +117,7 @@ _reference track_ in the `brouter/modes` subdirectory.
 If afterwards a route to the exact same destination is calculated via the
 service interface, BRouter uses a special calculation mode that makes use of the
 reference track for faster processing that is guaranteed to give a result within
-60 seconds. _Exact same_ destination means withing 5m, so best use the same
+60 seconds. _Exact same_ destination means within 5m, so best use the same
 waypoint for re-calculating that you used for the initial calculation.
 
 This way you can follow a long distance route via the _service interface_,

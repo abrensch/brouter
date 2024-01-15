@@ -16,7 +16,6 @@
 
 ## Contact
 
-Get in contact to the delevoper team via Github
+Get in contact to the developer team via Github
 
 https://github.com/abrensch/brouter
-
