@@ -12,7 +12,7 @@
 
 assign   consider_elevation     = false   # %consider_elevation% | Activate to prefer a route with few elevation meters | boolean
 assign   consider_noise         = false   # %consider_noise% | Activate to prefer a low-noise route | boolean
-assign   consider_river         = false   # %consider_river% | Activate to prefer a route along rivers or sees | boolean
+assign   consider_river         = false   # %consider_river% | Activate to prefer a route along rivers, lakes, etc. | boolean
 assign   consider_forest        = false   # %consider_forest% | Activate to prefer a route in forest or green areas| boolean
 assign   consider_town          = false   # %consider_town% | Activate to bypass cities / big towns as far as possible | boolean
 assign   consider_traffic       = 1       # %consider_traffic% | how do you plan to drive the tour? |  [1=as cyclist alone in the week, 0.5=as cyclist alone at weekend, 0.3 =with a group of cyclists, 0.1=with a group of cyclists at week-end]
