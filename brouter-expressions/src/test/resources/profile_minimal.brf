@@ -1,0 +1,43 @@
+---context:global   # following code refers to global config
+
+assign validForBikes 1
+
+assign downhillcost 0
+assign downhillcutoff 1.5
+assign uphillcost 0
+assign uphillcutoff 1.5
+
+
+---context:way   # following code refers to way-tags
+
+assign turncost 0
+assign initialcost 0
+
+assign isbike = or bicycle_road=yes or bicycle=yes or or bicycle=permissive bicycle=designated lcn=yes
+assign ispaved = surface=paved|asphalt|concrete|paving_stones|sett
+assign isunpaved = not or surface= or ispaved surface=fine_gravel|cobblestone
+assign probablyGood = or ispaved and ( or isbike highway=footway ) not isunpaved
+
+assign costs if ( highway=track|road|path|footway ) then
+               (
+                 if      ( highway=path ) then ( 10.0 )
+                 else if ( tracktype=grade1 ) then ( if probablyGood then 1.0 else 1.3 )
+                 else if ( tracktype=grade2 ) then ( if probablyGood then 1.1 else 2.0 )
+                 else if ( tracktype=grade3 ) then ( if probablyGood then 1.5 else 3.0 )
+                 else if ( tracktype=grade4 ) then ( if probablyGood then 2.0 else 5.0 )
+                 else if ( tracktype=grade5 ) then ( if probablyGood then 3.0 else 5.0 )
+                 else                              ( if probablyGood then 1.0 else 5.0 )
+               ) else
+               1
+
+assign costfactor
+  add costs
+  switch not highway=     1
+#  switch not railway=     1
+#  switch not or waterway= waterway=unknown  1
+  switch not route=       1
+  100000.0
+
+---context:node  # following code refers to node tags
+
+assign initialcost 0
