@@ -19,6 +19,7 @@ public final class SortedHeap<V> {
   /**
    * @return the lowest key value, or null if none
    */
+  @SuppressWarnings("unchecked")
   public V popLowestKeyValue() {
     SortedBin bin = firstNonEmpty;
     if (firstNonEmpty == null) {
