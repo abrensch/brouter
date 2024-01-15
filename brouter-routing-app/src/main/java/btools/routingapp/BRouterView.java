@@ -380,14 +380,14 @@ public class BRouterView extends View {
       try {
         cor.readAllPoints();
       } catch (Exception e) {
-        msg = "Error reading waypoints: " + e;
+        msg = getContext().getString(R.string.msg_read_wpt_error)+  ": " + e;
       }
 
       int size = cor.allpoints.size();
       if (size < 1)
-        msg = "coordinate source does not contain any waypoints!";
+        msg = getContext().getString(R.string.msg_no_wpt);
       if (size > 1000)
-        msg = "coordinate source contains too much waypoints: " + size + "(please use from/to/via names)";
+        msg = String.format(getContext().getString(R.string.msg_too_much_wpts), size);
     }
 
     if (msg != null) {
@@ -471,13 +471,13 @@ public class BRouterView extends View {
     if (needsWaypointSelection) {
       StringBuilder msg;
       if (wpList.size() == 0) {
-        msg = new StringBuilder("Expecting waypoint selection\n" + "(coordinate-source: " + cor.basedir + cor.rootdir + ")");
+        msg = new StringBuilder(getContext().getString(R.string.msg_no_wpt_selection) + "(coordinate-source: " + cor.basedir + cor.rootdir + ")");
       } else {
-        msg = new StringBuilder("current waypoint selection:\n");
+        msg = new StringBuilder(getContext().getString(R.string.msg_wpt_selection));
         for (int i = 0; i < wpList.size(); i++)
           msg.append(i > 0 ? "->" : "").append(wpList.get(i).name);
       }
-      ((BRouterActivity) getContext()).showResultMessage("Select Action", msg.toString(), wpList.size());
+      ((BRouterActivity) getContext()).showResultMessage(getContext().getString(R.string.title_action), msg.toString(), wpList.size());
       return;
     }
 
@@ -718,8 +718,13 @@ public class BRouterView extends View {
           ((BRouterActivity) getContext()).showErrorMessage(cr.getErrorMessage());
         } else {
           String memstat = memoryClass + "mb pathPeak " + ((cr.getPathPeak() + 500) / 1000) + "k";
-          String result = "version = BRouter-" + getContext().getString(R.string.app_version) + "\n" + "mem = " + memstat + "\ndistance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
-            + " m\n" + "plain ascend = " + cr.getPlainAscend() + " m\n" + "estimated time = " + cr.getTime();
+          String result = String.format(getContext().getString(R.string.msg_status_result),
+            getContext().getString(R.string.app_version),
+            memstat,
+            Double.toString(cr.getDistance() / 1000.),
+            Integer.toString(cr.getAscend()),
+            Integer.toString(cr.getPlainAscend()),
+            cr.getTime());
 
           rawTrack = cr.getFoundRawTrack();
 
@@ -728,9 +733,9 @@ public class BRouterView extends View {
             writeRawTrackToPath(rawTrackPath);
           }
 
-          String title = "Success";
+          String title = getContext().getString(R.string.success);
           if (cr.getAlternativeIndex() > 0)
-            title += " / " + cr.getAlternativeIndex() + ". Alternative";
+            title += " / " + cr.getAlternativeIndex() + ". " + getContext().getString(R.string.msg_alternative);
 
           ((BRouterActivity) getContext()).showResultMessage(title, result, rawTrackPath == null ? -1 : -3);
           trackOutfile = cr.getOutfile();
