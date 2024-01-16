@@ -17,9 +17,7 @@ final class StdPath extends OsmPath {
   private float elevation_buffer; // just another elevation buffer (for travel time)
 
   private int uphillcostdiv;
-  private int uphillmaxbuffercostdiv;
   private int downhillcostdiv;
-  private int downhillmaxbuffercostdiv;
 
   // Gravitational constant, g
   private static final double GRAVITY = 9.81;  // in meters per second^(-2)
@@ -41,9 +39,7 @@ final class StdPath extends OsmPath {
     totalTime = 0.f;
     totalEnergy = 0.f;
     uphillcostdiv = 0;
-    uphillmaxbuffercostdiv = 0;
     downhillcostdiv = 0;
-    downhillmaxbuffercostdiv = 0;
     elevation_buffer = 0.f;
   }
 
@@ -53,6 +49,8 @@ final class StdPath extends OsmPath {
     float turncostbase = rc.expctxWay.getTurncost();
     float uphillcutoff = rc.expctxWay.getUphillcutoff() * 10000;
     float downhillcutoff = rc.expctxWay.getDownhillcutoff() * 10000;
+    float uphillmaxslope = rc.expctxWay.getUphillmaxslope() * 10000;
+    float downhillmaxslope = rc.expctxWay.getDownhillmaxslope() * 10000;
     float cfup = rc.expctxWay.getUphillCostfactor();
     float cfdown = rc.expctxWay.getDownhillCostfactor();
     float cf = rc.expctxWay.getCostfactor();
@@ -64,12 +62,12 @@ final class StdPath extends OsmPath {
       downhillcostdiv = 1000000 / downhillcostdiv;
     }
 
-    downhillmaxbuffercostdiv = (int) rc.expctxWay.getDownhillmaxbuffercost();
-    if (downhillmaxbuffercostdiv > 0) {
-      downhillmaxbuffercostdiv = 1000000 / downhillmaxbuffercostdiv;
+    int downhillmaxslopecostdiv = (int) rc.expctxWay.getDownhillmaxslopecost();
+    if (downhillmaxslopecostdiv > 0) {
+      downhillmaxslopecostdiv = 1000000 / downhillmaxslopecostdiv;
     } else {
       // if not given, use legacy behavior
-      downhillmaxbuffercostdiv = downhillcostdiv;
+      downhillmaxslopecostdiv = downhillcostdiv;
     }
 
     uphillcostdiv = (int) rc.expctxWay.getUphillcost();
@@ -77,12 +75,12 @@ final class StdPath extends OsmPath {
       uphillcostdiv = 1000000 / uphillcostdiv;
     }
 
-    uphillmaxbuffercostdiv = (int) rc.expctxWay.getUphillmaxbuffercost();
-    if (uphillmaxbuffercostdiv > 0) {
-      uphillmaxbuffercostdiv = 1000000 / uphillmaxbuffercostdiv;
+    int uphillmaxslopecostdiv = (int) rc.expctxWay.getUphillmaxslopecost();
+    if (uphillmaxslopecostdiv > 0) {
+      uphillmaxslopecostdiv = 1000000 / uphillmaxslopecostdiv;
     } else {
       // if not given, use legacy behavior
-      uphillmaxbuffercostdiv = uphillcostdiv;
+      uphillmaxslopecostdiv = uphillcostdiv;
     }
 
     int dist = (int) distance; // legacy arithmetics needs int
@@ -119,12 +117,12 @@ final class StdPath extends OsmPath {
         reduce = excess;
       }
       ehbd -= reduce;
-      int elevationCost = 0;
+      float elevationCost = 0.f;
       if (downhillcostdiv > 0) {
-        elevationCost += Math.min(reduce, dist * rc.elevationbufferreduce) / downhillcostdiv;
+        elevationCost += Math.min(reduce, dist * downhillmaxslope) / downhillcostdiv;
       }
-      if (downhillmaxbuffercostdiv > 0) {
-        elevationCost += Math.max(0, reduce - dist * rc.elevationbufferreduce) / downhillmaxbuffercostdiv;
+      if (downhillmaxslopecostdiv > 0) {
+        elevationCost += Math.max(0, reduce - dist * downhillmaxslope) / downhillmaxslopecostdiv;
       }
       if (elevationCost > 0) {
         sectionCost += elevationCost;
@@ -151,12 +149,12 @@ final class StdPath extends OsmPath {
         reduce = excess;
       }
       ehbu -= reduce;
-      int elevationCost = 0;
+      float elevationCost = 0.f;
       if (uphillcostdiv > 0) {
-        elevationCost += Math.min(reduce, dist * rc.elevationbufferreduce) / uphillcostdiv;
+        elevationCost += Math.min(reduce, dist * uphillmaxslope) / uphillcostdiv;
       }
-      if (uphillmaxbuffercostdiv > 0) {
-        elevationCost += Math.max(0, reduce - dist * rc.elevationbufferreduce) / uphillmaxbuffercostdiv;
+      if (uphillmaxslopecostdiv > 0) {
+        elevationCost += Math.max(0, reduce - dist * uphillmaxslope) / uphillmaxslopecostdiv;
       }
       if (elevationCost > 0) {
         sectionCost += elevationCost;
