@@ -309,7 +309,9 @@ converted by `up/downhill[maxslope]cost` ratio to Elevationcost portion of Equiv
   L[km] * elevationbufferreduce[%] * 10. The elevation to Elevationcost
   conversion ratio is given by `up/downhill[maxslope]cost`.
 
-Whether `up/downhillmaxslope` or `up/downhillmaxslopecost` is used as conversion ratio depends on whether the elevation was accumulated below or above the slope thresholds set in `up/downhillmaxslope`.
+Whether `up/downhillmaxslope` or `up/downhillmaxslopecost` is used as conversion
+ratio depends on whether the elevation was accumulated below or above the slope
+threshold values defined in `up/downhillmaxslope`.
 
 Example:   Let's examine steady slopes with `elevationmaxbuffer=10`,
 `elevationpenaltybuffer=5`, `elevationbufferreduce=0.5`, `cutoffs=1.5`,
