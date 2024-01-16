@@ -96,11 +96,13 @@ public class BRouterService extends Service {
       if (errMsg != null) {
         return errMsg;
       }
+      // profile is already done
+      params.remove("profile");
 
       boolean canCompress = "true".equals(params.getString("acceptCompressedResult"));
       try {
         String gpxMessage = worker.getTrackFromParams(params);
-        if (canCompress && gpxMessage.startsWith("<")) {
+        if (canCompress && (gpxMessage.startsWith("<") || gpxMessage.startsWith("{"))) {
           try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             baos.write("z64".getBytes(Charset.forName("UTF-8"))); // marker prefix
@@ -271,6 +273,7 @@ public class BRouterService extends Service {
       }
     }
 
+    @SuppressWarnings("deprecation")
     private void logBundle(Bundle params) {
       if (AppLogger.isLogging()) {
         for (String k : params.keySet()) {

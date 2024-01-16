@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d segment</item>
+        <item quantity="other">%d segments</item>
+    </plurals>
+    <string name="cancel_download">Cancel·lar descàrrega</string>
+    <string name="import_profile">Importar perfil</string>
+    <string name="action_download">Descàrrega %s</string>
+    <string name="action_delete">Eliminar %s</string>
+    <string name="action_update">Actualitzar %s</string>
+    <string name="action_select">Seleccionar segments</string>
+    <string name="action_cancel">Aturar Descàrrega</string>
+    <string name="summary_segments">Espai=%1$s\nLliure=%2$s</string>
+    <string name="notification_title">Descarregar segments</string>
+
+    <string name="action_choose_folder">Escollir directori base brouter:</string>
+    <string name="action_select_profile">Seleccionar un perfil d\'enrutament</string>
+    <string name="main_action">Seleccionar Acció Principal</string>
+    <string name="main_action_1">Gestor de Baixades</string>
+    <string name="main_action_2">App BRouter</string>
+
+    <string name="cancel">Cancel·lar</string>
+    <string name="i_know">Ho sé</string>
+    <string name="close">Tancar</string>
+    <string name="exit">Sortir</string>
+    <string name="ok">D\'acord</string>
+    <string name="success">Èxit</string>
+    <string name="error">Ha aparegut un error</string>
+
+    <string name="title_download">Gestor de baixades BRouter</string>
+    <string name="summary_download">*** Atenció:***
+        \n\nEl Gestor de Baixades es fa servir per descarregar fitxers de dades
+        d\'enrutament, que poden arribar als 170 Mb cadascun. No inicies el Gestor
+        des d\'un mòbil sense un pla de dades!
+        La velocitat de baixada està limitada a 16 Mbit/s.</string>
+    <string name="title_timeoutfree">S\'ha preparat correctament un càlcul sense límit de temps</string>
+    <string name="summary_timeoutfree">S\'ha repetit amb èxit un càlcul a través
+        de l\'aplicació de cartografia que prèviament havia superat el temps d\'espera.
+        Si repeteixes la mateixa petició amb exactament el mateix destí i un punt de partida proper,
+        es garanteix que la petició no esgotarà el límit de temps.</string>
+    <string name="title_sdcard">Introdueix el directori base de la tarja SD:</string>
+    <string name="title_action">Seleccionar Acció</string>
+
+    <string name="action_via_select">Comprovar Selecció VIA:</string>
+    <string name="action_nogo_select">Comprovar Selecció NoGo:</string>
+    <string name="action_servermode">Mode-Servidor</string>
+    <string name="action_info">Info</string>
+    <string name="action_calc_route">Calc Ruta</string>
+    <string name="action_profile_settings">Ajustaments del perfil</string>
+    <string name="action_share">Compartir GPX</string>
+    <string name="action_select_from">Seleccionar des de</string>
+    <string name="action_select_to">Seleccionar a/via</string>
+
+    <string name="msg_no_profile">no hi ha dades al perfil</string>
+    <string name="msg_no_used_profile">, cap perfil utilitzat</string>
+    <string name="msg_too_much_data">Massa dades per baixar. Si us plau, redueix-les.</string>
+    <string name="msg_download_start">Baixada programada. Comprovar la connexió a internet si no comença.</string>
+    <string name="msg_wpt_selection">selecció actual de fita:\n</string>
+    <string name="msg_no_wpt_selection">Esperant selecció de fita\n</string>
+    <string name="msg_alternative">Alternativa</string>
+    <string name="msg_status_result">versió = BRouter-%1$s \n
+        memòria = %2$s \n
+        distància = %3$s km\n
+        ascensió filtrada = %4$s m\n
+        ascens en pla = %5$s m\n
+        temps estimat = %6$s</string>
+    <string name="msg_read_wpt_error">Error llegint fites</string>
+    <string name="msg_no_wpt">la font de coordenades no conté cap fita!</string>
+    <string name="msg_too_much_wpts">la font de coordenades conté massa fites: %1$d (si us plau, fes servir noms des de/a/via)</string>
+
+    <string name="no">No</string>
+    <string name="yes">Si</string>
+
+    <string name="title_delete">Confirmar Eliminar</string>
+    <string name="summary_delete">Voleu realment eliminar?</string>
+    <string name="title_version">Problema de versió</string>
+    <string name="summary_version">La versió base per les tesel·les ha canviat. Què vols fer?</string>
+    <string name="action_version1">Continuar amb la baixada, eliminar altres dades antigues</string>
+    <string name="action_version2">Seleccionar-ho tot per baixar i iniciar</string>
+    <string name="action_version3">Cancel·lar ara, completar un altre dia</string>
+    <string name="title_version_diff">Diferències de Versió</string>
+    <string name="summary_version_diff">La versió base de diverses tesel·les és diferent. Què vols fer?</string>
+    <string name="action_version_diff1">Baixar totes les tesel·les diferents</string>
+    <string name="action_version_diff2">Descartar les tesel·les diferents</string>
+    <string name="action_version_diff3">Cancel·lar ara, completar un altre dia</string>
+    <string name="summary_new_version">La nova versió de dades necessita una aplicació nova. Sisplau, actualitza BRouter primer</string>
+
+    <string name="msg_download_failed">Baixada fallida</string>
+    <string name="msg_download_cancel">Baixada cancel·lada</string>
+    <string name="msg_download_succeed">Baixada exitosa</string>
+    <string name="msg_download_started">Baixant…</string>
+
+</resources>

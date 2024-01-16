@@ -1,37 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2010 The Android Open Source Project
-
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-
-          http://www.apache.org/licenses/LICENSE-2.0
-
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
--->
-
-<resources>
-    <plurals name="numberOfSegments">
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
         <item quantity="one">%d segment</item>
         <item quantity="other">%d segments</item>
     </plurals>
-    <string name="app_name">BRouter</string>
-    <string name="cancel_download">Cancel Download</string>
-    <string name="import_profile">Import Profile</string>
-    <string name="profile_filename_example">filename.brf</string>
-    <string name="download_info_start">Starting download…</string>
-    <string name="download_info_cancel">Cancelling…</string>
+    <string name="cancel_download">Cancel download</string>
+    <string name="import_profile">Import profile</string>
     <string name="action_download">Download %s</string>
     <string name="action_delete">Delete %s</string>
     <string name="action_update">Update %s</string>
     <string name="action_select">Select segments</string>
-    <string name="action_cancel">Stop Download</string>
-    <string name="summary_segments">Size=%s\nFree=%s</string>
-    <string name="notification_channel_id">brouter_download</string>
-    <string name="notification_title">Download Segments</string>
-    <string name="channel_name">Downloads</string>
+    <string name="action_cancel">Stop download</string>
+    <string name="summary_segments">Size=%1$s\nFree=%2$s</string>
+    <string name="notification_title">Download segments</string>
+
+    <string name="action_choose_folder">Choose brouter data base dir:</string>
+    <string name="action_select_profile">Select a routing profile</string>
+    <string name="main_action">Select Main Action</string>
+    <string name="main_action_1">Download Manager</string>
+    <string name="main_action_2">BRouter App</string>
+
+    <string name="cancel">Cancel</string>
+    <string name="i_know">I know</string>
+    <string name="close">Close</string>
+    <string name="exit">Exit</string>
+    <string name="ok">OK</string>
+    <string name="success">Success</string>
+    <string name="error">An Error occurred</string>
+
+    <string name="title_download">BRouter Download Manager</string>
+    <string name="summary_download">*** Attention:***
+        \n\nThe Download Manager is used to download routing-data
+        files which can be up to 170MB each. Do not start the Download Manager
+        on a cellular data connection without a data plan!
+        Download speed is restricted to 16 MBit/s.</string>
+    <string name="title_timeoutfree">Successfully prepared a timeout-free calculation</string>
+    <string name="summary_timeoutfree">You successfully repeated a calculation that previously run into a timeout
+        when started from your map tool. If you repeat the same request from your
+        map tool, with the exact same destination point and a close-by starting point,
+        this request is guaranteed not to time out.</string>
+    <string name="title_sdcard">Enter SDCARD base dir:</string>
+    <string name="title_action">Select Action</string>
+
+    <string name="action_via_select">Check VIA Selection:</string>
+    <string name="action_nogo_select">Check NoGo Selection:</string>
+    <string name="action_servermode">Server-Mode</string>
+    <string name="action_info">Info</string>
+    <string name="action_calc_route">Calc Route</string>
+    <string name="action_profile_settings">Profile Settings</string>
+    <string name="action_share">Share GPX</string>
+    <string name="action_select_from">Select from</string>
+    <string name="action_select_to">Select to/via</string>
+
+    <string name="msg_no_profile">no profile data</string>
+    <string name="msg_no_used_profile">, no used profile</string>
+    <string name="msg_too_much_data">Too much data for download. Please reduce.</string>
+    <string name="msg_download_start">Download scheduled. Check internet connection if it doesn\'t start.</string>
+    <string name="msg_wpt_selection">current waypoint selection:\n</string>
+    <string name="msg_no_wpt_selection">Expecting waypoint selection\n</string>
+    <string name="msg_alternative">Alternative</string>
+    <string name="msg_status_result">version = BRouter-%1$s \n
+        mem = %2$s \n
+        distance = %3$s km\n
+        filtered ascend = %4$s m\n
+        plain ascend = %5$s m\n
+        estimated time = %6$s</string>
+    <string name="msg_read_wpt_error">Error reading waypoints</string>
+    <string name="msg_no_wpt">coordinate source does not contain any waypoints!</string>
+    <string name="msg_too_much_wpts">coordinate source contains too much waypoints: %1$d (please use from/to/via names)</string>
+
+    <string name="no">No</string>
+    <string name="yes">Yes</string>
+
+    <string name="title_delete">Confirm Delete</string>
+    <string name="summary_delete">Really delete?</string>
+    <string name="title_version">Version Problem</string>
+    <string name="summary_version">The base version for tiles has changed. What to do?</string>
+    <string name="action_version1">Continue with current download, delete other old data</string>
+    <string name="action_version2">Select all for download and start</string>
+    <string name="action_version3">Cancel now, complete on another day</string>
+    <string name="title_version_diff">Version Differences</string>
+    <string name="summary_version_diff">The base version for some tiles is different. What to do?</string>
+    <string name="action_version_diff1">Download all different tiles</string>
+    <string name="action_version_diff2">Drop all different tiles</string>
+    <string name="action_version_diff3">Cancel now, complete on another day</string>
+    <string name="summary_new_version">The new data version needs a new app. Please update BRouter first</string>
+
+    <string name="msg_download_failed">Download failed</string>
+    <string name="msg_download_cancel">Download cancelled</string>
+    <string name="msg_download_succeed">Download succeeded</string>
+    <string name="msg_download_started">Downloading…</string>
+
+
 </resources>

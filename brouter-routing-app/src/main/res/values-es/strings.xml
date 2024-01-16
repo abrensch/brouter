@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d segmento</item>
+        <item quantity="other">%d segmentos</item>
+    </plurals>
+    <string name="cancel_download">Cancelar descarga</string>
+    <string name="import_profile">Importar perfil</string>
+    <string name="action_download">Descargar %s</string>
+    <string name="action_delete">Eliminar %s</string>
+    <string name="action_update">Actualizar %s</string>
+    <string name="action_select">Seleccionar segmentos</string>
+    <string name="action_cancel">Detener descarga</string>
+    <string name="summary_segments">Tamaño=%1$s\nGratis=%2$s</string>
+    <string name="notification_title">Descargar segmentos</string>
+
+    <string name="action_choose_folder">Seleccionar directorio base brouter:</string>
+    <string name="action_select_profile">Seleccionar un perfil de enrutamiento</string>
+    <string name="main_action">Seleccionar Acción Principal</string>
+    <string name="main_action_1">Gestor de Descargas</string>
+    <string name="main_action_2">App BRouter</string>
+
+    <string name="cancel">Cancelar</string>
+    <string name="i_know">Lo se</string>
+    <string name="close">Cerrar</string>
+    <string name="exit">Salir</string>
+    <string name="ok">OK</string>
+    <string name="success">Salir</string>
+    <string name="error">Ha aparecido un error</string>
+
+    <string name="title_download">Gestor de descargas BRouter</string>
+    <string name="summary_download">*** Atención:***
+        \n\nEl Gestor de Descargas se usa para descargar ficheros de datos
+        de ruta, que pueden llegar a los 170 Mb cada uno. No inicies el Gestor
+        desde un terminal sin plan de datos!
+        La velocidad de descarga está limitada a 16 Mbit/s.</string>
+    <string name="title_timeoutfree">Se ha preparado correctamente un cálculo sin límite de tiempo</string>
+    <string name="summary_timeoutfree">Se ha repetido un cálculo a través
+        de la aplicación de mapas que previamente había superado el tiempo de espera.
+        Si repites la misma petición con exactamente el mismo destino y un punto de partida cercano,
+        se garantiza que la petición no agotará el límite de tiempo.</string>
+    <string name="title_sdcard">Introduce el directorio base de la tarjeta SD:</string>
+    <string name="title_action">Seleccionar Acción</string>
+
+    <string name="action_via_select">Comprobar Selección VIA:</string>
+    <string name="action_nogo_select">Comprobar Selección NoGo:</string>
+    <string name="action_servermode">Modo-Servidor</string>
+    <string name="action_info">Info</string>
+    <string name="action_calc_route">Calc Ruta</string>
+    <string name="action_profile_settings">Ajustes del perfil</string>
+    <string name="action_share">Compartir GPX</string>
+    <string name="action_select_from">Seleccionar desde</string>
+    <string name="action_select_to">Seleccionar a/vía</string>
+
+    <string name="msg_no_profile">no hay datos en el perfil</string>
+    <string name="msg_no_used_profile">, ningún perfil utilizado</string>
+    <string name="msg_too_much_data">Demasiados datos a descargar. Por favor, reducidlos.</string>
+    <string name="msg_download_start">Descarga programada. Comprueba la conexión a internet si no se inicia.</string>
+    <string name="msg_wpt_selection">selección actual de waypoint:\n</string>
+    <string name="msg_no_wpt_selection">Esperando selección de waypoint\n</string>
+    <string name="msg_alternative">Alternativa</string>
+    <string name="msg_status_result">versión = BRouter-%1$s \n
+        memoria = %2$s \n
+        distancia = %3$s km\n
+        ascensión filtrada = %4$s m\n
+        ascensión en llano = %5$s m\n
+        tiempo estimado = %6$s</string>
+    <string name="msg_read_wpt_error">Error leyendo waypoints</string>
+    <string name="msg_no_wpt">la fuente de coordenadas no contiene ningún waypoint!</string>
+    <string name="msg_too_much_wpts">la fuente de coordenadas contiene demasiados waypoints: %1$d (por favor, usa nombres desde/a/vía)</string>
+
+    <string name="no">No</string>
+    <string name="yes">Si</string>
+
+    <string name="title_delete">Confirmar Eliminar</string>
+    <string name="summary_delete">¿Quieres realmente eliminar?</string>
+    <string name="title_version">Problema de versión</string>
+    <string name="summary_version">La versión base para as teselas ha cambiado. ¿Qué quieres hacer?</string>
+    <string name="action_version1">Continuar con la descarga, eliminar otros datos antiguos</string>
+    <string name="action_version2">Seleccionar todo para descargar e iniciar</string>
+    <string name="action_version3">Cancelar ahora, completar otro día</string>
+    <string name="title_version_diff">Diferencias de versión</string>
+    <string name="summary_version_diff">La versión base de varias teselas es distinta. ¿Qué quieres hacer?</string>
+    <string name="action_version_diff1">Descargar todas las teselas distintas</string>
+    <string name="action_version_diff2">Descartar las teselas distintas</string>
+    <string name="action_version_diff3">Cancelar ahora, completar otro día</string>
+    <string name="summary_new_version">La nueva versión de datos necesita un aplicación nueva. Por favor, actualiza BRouter primero</string>
+
+    <string name="msg_download_failed">Descarga fallida</string>
+    <string name="msg_download_cancel">Descarga cancelada</string>
+    <string name="msg_download_succeed">Descarga exitosa</string>
+    <string name="msg_download_started">Descargando…</string>
+
+</resources>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d τμήμα</item>
+        <item quantity="other">%d τμήματα</item>
+    </plurals>
+    <string name="cancel_download">Ακύρωση λήψης</string>
+    <string name="import_profile">Εισαγωγή προφίλ</string>
+    <string name="action_download">Λήψη %s</string>
+    <string name="action_delete">Διαγραφή %s</string>
+    <string name="action_update">Ενημέρωση %s</string>
+    <string name="action_select">Επιλογή τμημάτων</string>
+    <string name="action_cancel">Διακοπή λήψης</string>
+    <string name="summary_segments">Μέγεθος=%1$s\nΕλεύθερο=%2$s</string>
+    <string name="notification_title">Λήψη τμημάτων</string>
+
+    <string name="action_choose_folder">Επιλέξτε φάκελο δεδομένων brouter:</string>
+    <string name="action_select_profile">Επιλέξτε ένα προφίλ δρομολόγησης</string>
+    <string name="main_action">Επιλέξτε ενέργεια</string>
+    <string name="main_action_1">Διαχειριστής λήψεων</string>
+    <string name="main_action_2">Εφαρμογή BRouter</string>
+
+    <string name="cancel">Ακύρωση</string>
+    <string name="i_know">Γνωρίζω</string>
+    <string name="close">Κλείσιμο</string>
+    <string name="exit">Έξοδος</string>
+    <string name="ok">OK</string>
+    <string name="success">Επιτυχία</string>
+    <string name="error">Παρουσιάστηκε σφάλμα</string>
+
+    <string name="title_download">BRouter διαχειριστής λήψεων</string>
+    <string name="summary_download">*** Προσοχή:***
+        \n\nΟ διαχειριστής λήψεων χρησιμοποιείται για τη λήψη αρχείων δεδομένων δρομολόγησης
+        που μπορεί να είναι έως 170MB το καθένα. Μην ξεκινήσετε το διαχειριστή λήψεων
+        σε σύνδεση δεδομένων κινητής τηλεφωνίας χωρίς πρόγραμμα δεδομένων!
+        Η ταχύτητα λήψης περιορίζεται στα 16 MBit/s.</string>
+    <string name="title_timeoutfree">Ετοιμάστηκε επιτυχώς ένας υπολογισμός χωρίς χρονικό όριο</string>
+    <string name="summary_timeoutfree">Επαναλάβατε με επιτυχία έναν υπολογισμό που πριν είχε χρονικό όριο
+        όταν ξεκίνησε από το εργαλείο χαρτών σας. Εάν επαναλάβετε το ίδιο αίτημα
+        από το εργαλείο χαρτών σας, με τον ίδιο ακριβώς προορισμό και μια κοντινή αφετηρία,
+        αυτό το αίτημα είναι εγγυημένο ότι δεν θα λήξει.</string>
+    <string name="title_sdcard">Εισάγετε φάκελο SDCARD:</string>
+    <string name="title_action">Επιλέξτε ενέργεια</string>
+
+    <string name="action_via_select">Ελέγξτε την επιλογή VIA:</string>
+    <string name="action_nogo_select">Ελέγξτε την επιλογή NoGo:</string>
+    <string name="action_servermode">Λειτουργία διακομιστή</string>
+    <string name="action_info">Πληροφορίες</string>
+    <string name="action_calc_route">Υπολογισμός διαδρομής</string>
+    <string name="action_profile_settings">Ρυθμίσεις προφίλ</string>
+    <string name="action_share">Κοινή χρήση GPX</string>
+    <string name="action_select_from">Επιλέξτε από</string>
+    <string name="action_select_to">Επιλέξτε προς/μέσω</string>
+
+    <string name="msg_no_profile">μη δεδομένα προφίλ</string>
+    <string name="msg_no_used_profile">, μη χρησιμοποιημένο προφίλ</string>
+    <string name="msg_too_much_data">Πάρα πολλά δεδομένα για λήψη. Παρακαλώ μειώστε.</string>
+    <string name="msg_download_start">Προγραμματισμένη λήψη. Ελέγξτε τη σύνδεση στο διαδίκτυο εάν δεν ξεκινά.</string>
+    <string name="msg_wpt_selection">τρέχουσα επιλογή σημείου:\n</string>
+    <string name="msg_no_wpt_selection">Αναμένεται επιλογή σημείου\n</string>
+    <string name="msg_alternative">Εναλλακτική</string>
+    <string name="msg_status_result">έκδοση = BRouter-%1$s \n
+        μνήμη = %2$s \n
+        απόσταση = %3$s km\n
+        φιλτραρισμένη άνοδος = %4$s m\n
+        απλή άνοδος = %5$s m\n
+        εκτιμώμενος χρόνος = %6$s</string>
+    <string name="msg_read_wpt_error">Σφάλμα ανάγνωσης σημείων</string>
+    <string name="msg_no_wpt">η πηγή συντεταγμένων δεν περιέχει σημεία!</string>
+    <string name="msg_too_much_wpts">η πηγή συντεταγμένων περιέχει πάρα πολλά σημεία: %1$d (παρακαλώ χρησιμοποιήστε από/προς/μέσω ονόματα)</string>
+
+    <string name="no">Όχι</string>
+    <string name="yes">Ναι</string>
+
+    <string name="title_delete">Επιβεβαίωση διαγραφής</string>
+    <string name="summary_delete">Να γίνει διαγραφή;</string>
+    <string name="title_version">Πρόβλημα έκδοσης</string>
+    <string name="summary_version">Η βασική έκδοση για τμήματα άλλαξε. Τι να κάνετε;</string>
+    <string name="action_version1">Συνέχεια με την τρέχουσα λήψη, διαγραφή άλλων παλαιών δεδομένων</string>
+    <string name="action_version2">Επιλέξτε όλα για λήψη και έναρξη</string>
+    <string name="action_version3">Ακύρωση τώρα, ολοκλήρωση άλλη μέρα</string>
+    <string name="title_version_diff">Διαφορές έκδοσης</string>
+    <string name="summary_version_diff">Η βασική έκδοση για ορισμένα τμήματα είναι διαφορετική. Τι να κάνετε;</string>
+    <string name="action_version_diff1">Λήψη όλων των διαφορετικών τμημάτων</string>
+    <string name="action_version_diff2">Απόρριψη όλων των διαφορετικών τμημάτων</string>
+    <string name="action_version_diff3">Ακύρωση τώρα, ολοκλήρωση άλλη μέρα</string>
+    <string name="summary_new_version">Η νέα έκδοση δεδομένων χρειάζεται νέα εφαρμογή. Ενημερώστε πρώτα το BRouter</string>
+
+    <string name="msg_download_failed">Η λήψη απέτυχε</string>
+    <string name="msg_download_cancel">Η λήψη ακυρώθηκε</string>
+    <string name="msg_download_succeed">Η λήψη ολοκληρώθηκε</string>
+    <string name="msg_download_started">Λήψη…</string>
+
+</resources>

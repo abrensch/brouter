@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d segment</item>
+        <item quantity="other">%d segmenty/ów</item>
+    </plurals>
+    <string name="cancel_download">Anuluj pobieranie</string>
+    <string name="import_profile">Importuj profil</string>
+    <string name="action_download">Pobierz %s</string>
+    <string name="action_delete">Usuń %s</string>
+    <string name="action_update">Zaktualizuj %s</string>
+    <string name="action_select">Wybierz segmenty</string>
+    <string name="action_cancel">Zatrzymaj pobieranie</string>
+    <string name="summary_segments">Rozmiar=%1$s\nDostępne=%2$s</string>
+    <string name="notification_title">Pobieranie segmentów</string>
+
+    <string name="action_choose_folder">Wybierz katalog bazy danych BRoutera:</string>
+    <string name="action_select_profile">Wybierz profil routingu</string>
+    <string name="main_action">Wybierz akcję główną</string>
+    <string name="main_action_1">Menedżer pobierania</string>
+    <string name="main_action_2">Aplikacja BRouter</string>
+
+    <string name="cancel">Anuluj</string>
+    <string name="i_know">Rozumiem</string>
+    <string name="close">Zamknij</string>
+    <string name="exit">Wyjdź</string>
+    <string name="ok">OK</string>
+    <string name="success">Sukces</string>
+    <string name="error">Wystąpił błąd</string>
+
+    <string name="title_download">Menedżer pobierania BRoutera</string>
+    <string name="summary_download">*** Uwaga: ***
+        \n\nMenedżer pobierania służy do pobierania plików danych routingu,
+        które mogą mieć do 170 MB każdy. Nie uruchamiaj Menedżera pobierania,
+        jeżeli korzystasz z komórkowej transmisji danych bez planu taryfowego!
+        Prędkość pobierania jest ograniczona do 16 MBit/s.</string>
+    <string name="title_timeoutfree">Pomyślnie przygotowano obliczenia nie przekraczając limitu czasu</string>
+    <string name="summary_timeoutfree">Pomyślnie powtórzono obliczenia, które wcześniej przekroczyły limit czasu
+        po uruchomieniu z narzędzia mapowego. Jeśli powtórzysz to samo żądanie ze swojego
+        narzędzia mapowego, z dokładnie tym samym punktem docelowym i pobliskim punktem początkowym,
+        gwarantuję, że to żądanie nie przekroczy limitu czasu.</string>
+    <string name="title_sdcard">Wybierz katalog SDCARD dla bazy:</string>
+    <string name="title_action">Wybierz akcję</string>
+
+    <string name="action_via_select">Sprawdź wybór VIA:</string>
+    <string name="action_nogo_select">Sprawdź wybór NoGo:</string>
+    <string name="action_servermode">Tryb serwera</string>
+    <string name="action_info">Informacje</string>
+    <string name="action_calc_route">Oblicz trasę</string>
+    <string name="action_profile_settings">Ustawienia profilu</string>
+    <string name="action_share">Udostępnij GPX</string>
+    <string name="action_select_from">Wybierz z</string>
+    <string name="action_select_to">Wybierz do/przez</string>
+
+    <string name="msg_no_profile">brak danych profilu</string>
+    <string name="msg_no_used_profile">, brak używanego profilu</string>
+    <string name="msg_too_much_data">Za dużo danych do pobrania. Proszę ogranicz.</string>
+    <string name="msg_download_start">Pobieranie zaplanowane. Jeśli się nie rozpocznie, sprawdź połączenie internetowe.</string>
+    <string name="msg_wpt_selection">bieżący wybór punktu trasy:\n</string>
+    <string name="msg_no_wpt_selection">Oczekuję na wybór punktu trasy\n</string>
+    <string name="msg_alternative">Alternatywa</string>
+    <string name="msg_status_result">wersja = BRouter-%1$s \n
+        pamięć = %2$s \n
+        odległość = %3$s km\n
+        filtrowane wznoszenie = %4$sm\n
+        zwykłe wznoszenie = %5$sm\n
+        szacowany czas = %6$s</string>
+    <string name="msg_read_wpt_error">Błąd podczas odczytu punktów trasy</string>
+    <string name="msg_no_wpt">Źródło współrzędnych nie zawiera żadnych punktów trasy!</string>
+    <string name="msg_too_much_wpts">Źródło współrzędnych zawiera zbyt dużo punktów trasy: %1$d (proszę używać nazw z/do/przez)</string>
+
+    <string name="no">Nie</string>
+    <string name="yes">Tak</string>
+
+    <string name="title_delete">Potwierdź usunięcie</string>
+    <string name="summary_delete">Naprawdę usunąć?</string>
+    <string name="title_version">Problem z wersją</string>
+    <string name="summary_version">Zmieniła się podstawowa wersja kafelków. Co robić?</string>
+    <string name="action_version1">Kontynuuj bieżące pobieranie, usuń inne stare dane</string>
+    <string name="action_version2">Wybierz wszystko i rozpocznij pobieranie</string>
+    <string name="action_version3">Anuluj teraz, dokończ innego dnia</string>
+    <string name="title_version_diff">Różnice wersji</string>
+    <string name="summary_version_diff">Wersja podstawowa dla niektórych kafelków jest inna. Co robić?</string>
+    <string name="action_version_diff1">Pobierz różne kafelki</string>
+    <string name="action_version_diff2">Opuść wszystkie różne kafelki</string>
+    <string name="action_version_diff3">Anuluj teraz, dokończ innego dnia</string>
+    <string name="summary_new_version">Nowa wersja danych wymaga nowej aplikacji. Najpierw zaktualizuj BRoutera</string>
+
+    <string name="msg_download_failed">Pobieranie nie powiodło się</string>
+    <string name="msg_download_cancel">Pobieranie anulowane</string>
+    <string name="msg_download_succeed">Pobieranie powiodło się</string>
+    <string name="msg_download_started">Pobieranie…</string>
+
+</resources>

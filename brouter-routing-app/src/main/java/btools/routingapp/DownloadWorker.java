@@ -4,6 +4,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.util.Log;
 
@@ -169,7 +170,10 @@ public class DownloadWorker extends Worker {
     }
     notificationBuilder.setContentText("Starting Download");
     // Mark the Worker as important
-    setForegroundAsync(new ForegroundInfo(NOTIFICATION_ID, notificationBuilder.build()));
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+      setForegroundAsync(new ForegroundInfo(NOTIFICATION_ID, notificationBuilder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC));
+    else
+      setForegroundAsync(new ForegroundInfo(NOTIFICATION_ID, notificationBuilder.build()));
     try {
       if (DEBUG) Log.d(LOG_TAG, "Download lookup & profiles");
       if (!downloadLookup()) {

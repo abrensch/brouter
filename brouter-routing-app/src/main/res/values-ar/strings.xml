@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d قطعة</item>
+        <item quantity="other">%d قطع</item>
+    </plurals>
+    <string name="cancel_download">إلغاء التنزيل</string>
+    <string name="import_profile">استيراد ملف تعريف</string>
+    <string name="action_download">تنزيل %s</string>
+    <string name="action_delete">حذف %s</string>
+    <string name="action_update">تحديث %s</string>
+    <string name="action_select">حدد القطع</string>
+    <string name="action_cancel">إيقاف التنزيل</string>
+    <string name="summary_segments">الحجم=%1$s\nالحجم المتوفر=%2$s</string>
+    <string name="notification_title">تحميل القطع</string>
+
+    <string name="action_choose_folder">اختر مكان قاعدة بيانات brouter:</string>
+    <string name="action_select_profile">اختر ملف تعريف التوجيه</string>
+    <string name="main_action">حدد الإجراء الرئيسي</string>
+    <string name="main_action_1">مدير التنزيلات</string>
+    <string name="main_action_2">تطبيق BRouter</string>
+
+    <string name="cancel">إلغاء</string>
+    <string name="i_know">أعرف ذلك</string>
+    <string name="close">إغلاق</string>
+    <string name="exit">خروج</string>
+    <string name="ok">موافق</string>
+    <string name="success">تم بنجاح</string>
+    <string name="error">حدث خطأ ما</string>
+
+    <string name="title_download">مدير تنزيلات BRouter</string>
+    <string name="summary_download">*** تحذير:***
+        \n\nيتم استخدام مدير التنزيل لتنزيل ملفات بيانات التوجيه عبر الطرق
+        والتي يمكن أن يصل حجمها إلى 170 ميجابايت، لذلك لا تقم بتشغيل
+        "مدير التنزيلات" حينما تكون متصلاً عبر البيانات الخلوية ومحدوداً بحجم التنزيلات!
+        سرعة التنزيل محدودة على 16 ميجابايت/بالثانية.</string>
+    <string name="title_timeoutfree">أنجزت عملية الحساب بنجاح وبدون تأخير</string>
+    <string name="summary_timeoutfree">لقد نجحت في تكرار عملية حسابية كانت قد انتهت في السابق
+        عند بدايتها من خلال أداة الخريطة، إذا قمت بتكرار نفس الطلب من
+        أداة الخريطة الخاصة بك ومع نفس الوجهة بالضبط وبنقطة بداية
+        قريبة، فسيضمن لك التطبيق عدم انتهاء مهلة هذا الطلب.</string>
+    <string name="title_sdcard">أدخل مسار الذاكرة الخارجية:</string>
+    <string name="title_action">اختر الإجراء</string>
+
+    <string name="action_via_select">التحقق من النقاط الوسيطة:</string>
+    <string name="action_nogo_select">التحقق من النقاط المسبتعدة:</string>
+    <string name="action_servermode">وضع-الخادم</string>
+    <string name="action_info">معلومات</string>
+    <string name="action_calc_route">حساب الطريق</string>
+    <string name="action_profile_settings">إعدادات ملف التعريف</string>
+    <string name="action_share">مشاركة ملف GPX</string>
+    <string name="action_select_from">اختر من</string>
+    <string name="action_select_to">اختر إلى/عبر</string>
+
+    <string name="msg_no_profile">لا توجد بيانات ملف التعريف</string>
+    <string name="msg_no_used_profile">، لا يوجد ملف تعريف مستخدم</string>
+    <string name="msg_too_much_data">هناك الكثير من البيانات للتنزيل، من فضلك قم بتقليلها.</string>
+    <string name="msg_download_start">تمت جدولة التنزيل، وتحقق من اتصالك بالإنترنت إذا لم يبدأ التنزيل.</string>
+    <string name="msg_wpt_selection">نقاط الطريق الحالية المحددة:\n</string>
+    <string name="msg_no_wpt_selection">نقاط الطريق المتوقعة المحددة\n</string>
+    <string name="msg_alternative">البديل</string>
+    <string name="msg_status_result">الإصدار = BRouter-%1$s \n
+        الذاكرة = %2$s \n
+        المسافة = %3$s كم\n
+        التصاعد المرشح = %4$s م\n
+        التصاعد العادي = %5$s م\n
+        الوقت المقدر = %6$s</string>
+    <string name="msg_read_wpt_error">خطأ في قراءة نقاط الطريق</string>
+    <string name="msg_no_wpt">لا يحتوي مصدر الإحداثيات على أي نقاط الطريق!</string>
+    <string name="msg_too_much_wpts">مصدر الإحداثيات يحتوي على عدد كبير جدًا من نقاط الطريق: %1$d (يرجى استخدام أسماء النقاط من/إلى/عبر from/to/via)</string>
+
+    <string name="no">لا</string>
+    <string name="yes">نعم</string>
+
+    <string name="title_delete">تأكيد الحذف</string>
+    <string name="summary_delete">هل ترغب بالحذف؟</string>
+    <string name="title_version">مشكلة في الإصدار</string>
+    <string name="summary_version">لقد تغير الإصدار الأساسي للصور المتجانبة، ما الإجراء المناسب لفعله؟</string>
+    <string name="action_version1">متابعة التنزيل الحالي، وحذف البيانات الأخرى القديمة</string>
+    <string name="action_version2">تحديد الكل للتنزيل والبدء</string>
+    <string name="action_version3">قم بالإلغاء في الوقت الحالي، واستكمله لاحقاً</string>
+    <string name="title_version_diff">اختلافات الإصدارات</string>
+    <string name="summary_version_diff">الإصدار الأساسي لبعض الصور المتجانبة مختلف. ما الإجراء المناسب لفعله؟</string>
+    <string name="action_version_diff1">تحميل المختلف من الصور المتجانبة</string>
+    <string name="action_version_diff2">حذف كل الصور المتجانبة المختلفة عن الأخرى</string>
+    <string name="action_version_diff3">قم بالإلغاء في الوقت الحالي، واستكمله لاحقاً</string>
+    <string name="summary_new_version">يحتاج إصدار البيانات الجديد إلى وجود التطبيق الجديد، لذا نرجوا منك تحديث BRouter أولاً</string>
+
+    <string name="msg_download_failed">فشل التنزيل</string>
+    <string name="msg_download_cancel">تم إلغاء التنزيل</string>
+    <string name="msg_download_succeed">تم التنزيل بنجاح</string>
+    <string name="msg_download_started">جار التنزيل…</string>
+
+</resources>

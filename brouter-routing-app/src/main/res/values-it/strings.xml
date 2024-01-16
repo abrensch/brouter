@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d segmento</item>
+        <item quantity="other">%d segmenti</item>
+    </plurals>
+    <string name="cancel_download">Annulla download</string>
+    <string name="import_profile">Importa profilo</string>
+    <string name="action_download">Scarica %s</string>
+    <string name="action_delete">Elimina %s</string>
+    <string name="action_update">Aggiorna %s</string>
+    <string name="action_select">Seleziona segmenti</string>
+    <string name="action_cancel">Interrompi download</string>
+    <string name="summary_segments">Taglia=%1$s\nGratis=%2$s</string>
+    <string name="notification_title">Scarica segmenti</string>
+
+    <string name="action_choose_folder">Seleziona la directory del database brouter:</string>
+    <string name="action_select_profile">Seleziona un profilo di instradamento</string>
+    <string name="main_action">Seleziona azione principale</string>
+    <string name="main_action_1">Gestore dei download</string>
+    <string name="main_action_2">Applicazione BRouter</string>
+
+    <string name="cancel">Annulla</string>
+    <string name="i_know">Lo so</string>
+    <string name="close">Chiudi</string>
+    <string name="exit">Esci</string>
+    <string name="ok">OK</string>
+    <string name="success">Successo</string>
+    <string name="error">Si è verificato un errore</string>
+
+    <string name="title_download">Gestore download BRouter</string>
+    <string name="summary_download">*** Attenzione:***
+         \n\nIl Download Manager viene utilizzato per scaricare i dati di routing
+         file che possono pesare fino a 170 MB ciascuno. Non avviare il Download Manager
+         su una connessione dati cellulare senza un piano dati!
+         La velocità di download è limitata a 16 MBit/s.</string>
+    <string name="title_timeoutfree">Preparato con successo un calcolo senza timeout</string>
+    <string name="summary_timeoutfree">Hai ripetuto con successo un calcolo che in precedenza era terminato con un timeout
+         quando avviato dal tuo strumento mappa. Se ripeti la stessa richiesta dal tuo
+         maptool, con lo stesso identico punto di destinazione e un punto di partenza vicino,
+         è garantito che questa richiesta non vada in timeout.</string>
+    <string name="title_sdcard">Inserisci la directory base della SDCARD:</string>
+    <string name="title_action">Seleziona azione</string>
+
+    <string name="action_via_select">Controlla la selezione VIA:</string>
+    <string name="action_nogo_select">Controlla la selezione NoGo:</string>
+    <string name="action_servermode">Modalità server</string>
+    <string name="action_info">Informazioni</string>
+    <string name="action_calc_route">Calcola percorso</string>
+    <string name="action_profile_settings">Impostazioni profilo</string>
+    <string name="action_share">Condividi GPX</string>
+    <string name="action_select_from">Seleziona da</string>
+    <string name="action_select_to">Seleziona a/via</string>
+
+    <string name="msg_no_profile">nessun dato del profilo</string>
+    <string name="msg_no_used_profile">, nessun profilo utilizzato</string>
+    <string name="msg_too_much_data">Troppi dati per il download. Per favore riduci.</string>
+    <string name="msg_download_start">Download programmato. Controlla la connessione Internet se non si avvia.</string>
+    <string name="msg_wpt_selection">selezione del waypoint corrente:\n</string>
+    <string name="msg_no_wpt_selection">Attesa selezione waypoint\n</string>
+    <string name="msg_alternative">Alternativa</string>
+    <string name="msg_status_result">versione = BRouter-%1$s \n
+        memoria = %2$s \n
+        distanza = %3$s km\n
+        salita filtrata = %4$s m\n
+        salita semplice = %5$s m\n
+        tempo stimato = %6$s</string>
+    <string name="msg_read_wpt_error">Errore durante la lettura dei waypoint</string>
+    <string name="msg_no_wpt">la fonte delle coordinate non contiene alcun waypoint!</string>
+    <string name="msg_too_much_wpts">la fonte delle coordinate contiene troppi waypoint: %1$d (usa i nomi da/a/via)</string>
+
+    <string name="no">No</string>
+    <string name="yes">Sì</string>
+
+    <string name="title_delete">Conferma eliminazione</string>
+    <string name="summary_delete">Eliminare davvero?</string>
+    <string name="title_version">Problema di versione</string>
+    <string name="summary_version">La versione base per i riquadri è cambiata. Cosa fare?</string>
+    <string name="action_version1">Continua con il download corrente, elimina altri vecchi dati</string>
+    <string name="action_version2">Seleziona tutto per il download e avvia</string>
+    <string name="action_version3">Annulla ora, completa un altro giorno</string>
+    <string name="title_version_diff">Differenze di versione</string>
+    <string name="summary_version_diff">La versione base di alcuni riquadri è diversa. Cosa fare?</string>
+    <string name="action_version_diff1">Scarica tutti i diversi riquadri</string>
+    <string name="action_version_diff2">Rilascia tutti i diversi riquadri</string>
+    <string name="action_version_diff3">Annulla ora, completa un altro giorno</string>
+    <string name="summary_new_version">La nuova versione dei dati necessita di una nuova app. Per favore aggiorna prima BRouter</string>
+
+    <string name="msg_download_failed">Download fallito</string>
+    <string name="msg_download_cancel">Download annullato</string>
+    <string name="msg_download_succeed">Download riuscito</string>
+    <string name="msg_download_started">Download in corso…</string>
+
+</resources>
