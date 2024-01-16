@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d Segment</item>
+        <item quantity="other">%d Segmente</item>
+    </plurals>
+    <string name="cancel_download">Download abbrechen</string>
+    <string name="import_profile">Profil importieren</string>
+    <string name="action_download">%s downloaden</string>
+    <string name="action_delete">%s löschen</string>
+    <string name="action_update">%s aktualisieren</string>
+    <string name="action_select">Segmente auswählen</string>
+    <string name="action_cancel">Download stoppen</string>
+    <string name="summary_segments">Größe=%1$s\nFrei=%2$s</string>
+    <string name="notification_title">Segmente herunterladen</string>
+
+    <string name="action_choose_folder">BRouter-Datenbankverzeichnis wählen:</string>
+    <string name="action_select_profile">Routenprofil wählen</string>
+    <string name="main_action">Standardaktion wählen</string>
+    <string name="main_action_1">Downloadmanager</string>
+    <string name="main_action_2">BRouter-App</string>
+
+    <string name="cancel">Abbrechen</string>
+    <string name="i_know">Ich weiß</string>
+    <string name="close">Schließen</string>
+    <string name="exit">Verlassen</string>
+    <string name="ok">OK</string>
+    <string name="success">Erfolg</string>
+    <string name="error">Ein Fehler ist aufgetreten</string>
+
+    <string name="title_download">BRouter Downloadmanager</string>
+    <string name="summary_download">*** Achtung:***
+        \n\nDer Downloadmanager wird zum Herunterladen von Routingdaten verwendet
+        die jeweils bis zu 170MB groß sein können. Starten Sie den Downloadmanager
+        nicht auf Mobiltelefonen ohne Mobilfunktdatentarif!
+        Die Downloadgeschwindigkeit ist auf 16 MBit/s begrenzt.</string>
+    <string name="title_timeoutfree">Berechnung ohne Zeitüberschreitung erfolgreich</string>
+    <string name="summary_timeoutfree">Sie haben eine Berechnung erfolgreich wiederholt, bei
+		der zuvor beim Start von Ihrem Karten-Tool aus eine Zeitüberschreitung auftrat.
+		Wenn Sie dieselbe Anfrage von Ihrem Karten-Tool aus wiederholen, mit genau demselben
+		Zielpunkt und einem nahe gelegenen Startpunkt, wird diese Anfrage garantiert nicht abbrechen.</string>
+    <string name="title_sdcard">SD-Karten Verzeichnis wählen:</string>
+    <string name="title_action">Aktion wählen</string>
+
+    <string name="action_via_select">Via-Auswahl prüfen:</string>
+    <string name="action_nogo_select">NoGo-Auswahl prüfen:</string>
+    <string name="action_servermode">Server-Modus</string>
+    <string name="action_info">Info</string>
+    <string name="action_calc_route">Route berechnen</string>
+    <string name="action_profile_settings">Profileinstellungen</string>
+    <string name="action_share">GPX teilen</string>
+    <string name="action_select_from">"Von" wählen</string>
+    <string name="action_select_to">"Nach"/Via wählen</string>
+
+    <string name="msg_no_profile">Keine Profildaten</string>
+    <string name="msg_no_used_profile">, kein verwendetes Profil</string>
+    <string name="msg_too_much_data">Zu viele Daten für den Download. Bitte reduzieren.</string>
+    <string name="msg_download_start">Download geplant. Überprüfen Sie die Internetverbindung, wenn der Download nicht startet.</string>
+    <string name="msg_wpt_selection">aktuelle Wegpunktauswahl:\n</string>
+    <string name="msg_no_wpt_selection">Erwarte Wegpunktauswahl\n</string>
+    <string name="msg_alternative">Alternative</string>
+    <string name="msg_status_result">Version = BRouter-%1$s\n
+        Speicher = %2$s \n
+        Abstand = %3$s km\n
+        gefilterter Aufstieg = %4$s m\n
+        flacher Aufstieg = %5$s m\n
+        geschätzte Zeit = %6$s</string>
+    <string name="msg_read_wpt_error">Fehler beim Lesen von Wegpunkten</string>
+    <string name="msg_no_wpt">Die Koordinatenquelle enthält keine Wegpunkte!</string>
+    <string name="msg_too_much_wpts">Die Koordinatenquelle enthält zu viele Wegpunkte: %1$d (bitte von/nach/via-Namen verwenden)</string>
+
+    <string name="no">Nein</string>
+    <string name="yes">Ja</string>
+
+    <string name="title_delete">Löschen bestätigen</string>
+    <string name="summary_delete">Wirklich löschen?</string>
+    <string name="title_version">Versionsproblem</string>
+    <string name="summary_version">Die Datenversion der Kacheln hat sich geändert. Bitte auswählen:</string>
+    <string name="action_version1">Download fortsetzen und alte Daten löschen?</string>
+    <string name="action_version2">Alle auswählen und Download starten</string>
+    <string name="action_version3">Abbrechen und später fortsetzen</string>
+    <string name="title_version_diff">Versionskonflikt</string>
+    <string name="summary_version_diff">Die Datenversion für einige Kacheln ist unterschiedlich. Bitte auswählen:</string>
+    <string name="action_version_diff1">Download alle unterschiedlichen Kacheln</string>
+    <string name="action_version_diff2">Überspringe alle unterschiedlichen Kacheln</string>
+    <string name="action_version_diff3">Abbrechen und später fortsetzen</string>
+    <string name="summary_new_version">Die neue Datenversion verlangt ein BRouter-Update. Bitte aktualisieren</string>
+
+    <string name="msg_download_failed">Download fehlgeschlagen</string>
+    <string name="msg_download_cancel">Download abgebrochen</string>
+    <string name="msg_download_succeed">Download erfolgreich</string>
+    <string name="msg_download_started">Download läuft…</string>
+
+</resources>

@@ -10,7 +10,6 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
-import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.os.Build;
@@ -171,7 +170,7 @@ public class BInstallerActivity extends AppCompatActivity {
       }
       mButtonDownload.setText(getString(R.string.action_download, getSegmentsPlural(selectedTilesDownload.size())));
       mButtonDownload.setEnabled(true);
-      mSummaryInfo.setText(getString(R.string.summary_segments, Formatter.formatFileSize(this, tileSize), Formatter.formatFileSize(this, getAvailableSpace(mBaseDir.getAbsolutePath()))));
+      mSummaryInfo.setText(String.format(getString(R.string.summary_segments), Formatter.formatFileSize(this, tileSize), Formatter.formatFileSize(this, getAvailableSpace(mBaseDir.getAbsolutePath()))));
     } else if (selectedTilesUpdate.size() > 0) {
       mButtonDownload.setText(getString(R.string.action_update, getSegmentsPlural(selectedTilesUpdate.size())));
       mButtonDownload.setEnabled(true);
@@ -214,7 +213,8 @@ public class BInstallerActivity extends AppCompatActivity {
         .build();
 
     } catch (IllegalStateException e) {
-      Toast.makeText(this, "Too much data for download. Please reduce.", Toast.LENGTH_LONG).show();
+      Object data;
+      Toast.makeText(this, R.string.msg_too_much_data, Toast.LENGTH_LONG).show();
 
       e.printStackTrace();
       return;
@@ -264,7 +264,7 @@ public class BInstallerActivity extends AppCompatActivity {
       }
 
       if (workInfo.getState() == WorkInfo.State.ENQUEUED) {
-        Toast.makeText(this, "Download scheduled. Check internet connection if it doesn't start.", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, R.string.msg_download_start, Toast.LENGTH_LONG).show();
         mProgressIndicator.hide();
         mProgressIndicator.setIndeterminate(true);
         mProgressIndicator.show();
@@ -279,7 +279,7 @@ public class BInstallerActivity extends AppCompatActivity {
         String segmentName = progress.getString(DownloadWorker.PROGRESS_SEGMENT_NAME);
         int percent = progress.getInt(DownloadWorker.PROGRESS_SEGMENT_PERCENT, 0);
         if (percent > 0) {
-          mDownloadSummaryInfo.setText("Downloading .. " + segmentName);
+          mDownloadSummaryInfo.setText(getString(R.string.msg_download_started) + segmentName);
         }
         if (percent > 0) {
           mProgressIndicator.setIndeterminate(false);
@@ -295,13 +295,13 @@ public class BInstallerActivity extends AppCompatActivity {
         String result;
         switch (workInfo.getState()) {
           case FAILED:
-            result = "Download failed";
+            result = getString(R.string.msg_download_failed);
             break;
           case CANCELLED:
-            result = "Download cancelled";
+            result = getString(R.string.msg_download_cancel);
             break;
           case SUCCEEDED:
-            result = "Download succeeded";
+            result = getString(R.string.msg_download_succeed);
             break;
           default:
             result = "";
@@ -349,12 +349,12 @@ public class BInstallerActivity extends AppCompatActivity {
     switch (id) {
       case DIALOG_CONFIRM_DELETE_ID:
         builder
-          .setTitle("Confirm Delete")
-          .setMessage("Really delete?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+          .setTitle(R.string.title_delete)
+          .setMessage(R.string.summary_delete).setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               deleteSelectedTiles();
             }
-          }).setNegativeButton("No", new DialogInterface.OnClickListener() {
+          }).setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
             }
           });
@@ -362,9 +362,9 @@ public class BInstallerActivity extends AppCompatActivity {
 
       case DIALOG_CONFIRM_NEXTSTEPS_ID:
         builder
-          .setTitle("Version Problem")
-          .setMessage("The base version for tiles has changed. What to do?")
-          .setPositiveButton("Continue with current download, delete other old data", new DialogInterface.OnClickListener() {
+          .setTitle(R.string.title_version)
+          .setMessage(R.string.summary_version)
+          .setPositiveButton(R.string.action_version1, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
 
               ArrayList<Integer> allTiles = mBInstallerView.getSelectedTiles(MASK_INSTALLED_RD5);
@@ -376,11 +376,11 @@ public class BInstallerActivity extends AppCompatActivity {
               }
               downloadSelectedTiles();
             }
-          }).setNegativeButton("Select all for download and start", new DialogInterface.OnClickListener() {
+          }).setNegativeButton(R.string.action_version2, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               downloadInstalledTiles();
             }
-          }).setNeutralButton("Cancel now, complete on an other day", new DialogInterface.OnClickListener() {
+          }).setNeutralButton(R.string.action_version3, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               File tmplookupFile = new File(mBaseDir, "brouter/profiles2/lookups.dat.tmp");
               tmplookupFile.delete();
@@ -391,17 +391,17 @@ public class BInstallerActivity extends AppCompatActivity {
 
       case DIALOG_CONFIRM_GETDIFFS_ID:
         builder
-          .setTitle("Version Differences")
-          .setMessage("The base version for some tiles is different. What to do?")
-          .setPositiveButton("Download all different tiles", new DialogInterface.OnClickListener() {
+          .setTitle(R.string.title_version_diff)
+          .setMessage(R.string.summary_version_diff)
+          .setPositiveButton(R.string.action_version_diff1, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               downloadDiffVersionTiles();
             }
-          }).setNegativeButton("Drop all different tiles", new DialogInterface.OnClickListener() {
+          }).setNegativeButton(R.string.action_version_diff2, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               dropDiffVersionTiles();
             }
-          }).setNeutralButton("Cancel now, complete on an other day", new DialogInterface.OnClickListener() {
+          }).setNeutralButton(R.string.action_version_diff3, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               finish();
             }
@@ -409,9 +409,9 @@ public class BInstallerActivity extends AppCompatActivity {
         return builder.create();
       case DIALOG_NEW_APP_NEEDED_ID:
         builder
-          .setTitle("App Version")
-          .setMessage("The new data version needs a new app. Please update BRouter first")
-          .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+          .setTitle(R.string.title_version)
+          .setMessage(R.string.summary_new_version)
+          .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
               finish();
             }
