@@ -72,14 +72,16 @@ Some variable names are pre-defined and accessed by the routing engine:
 
 - for the global section these are:
 
-  - 7 elevation configuration parameters:
+  - 11 elevation configuration parameters:
 
     - `downhillcost`
     - `downhillcutoff`
-    - `downhillmaxbuffercost`
+    - `downhillmaxslope`
+    - `downhillmaxslopecost`
     - `uphillcost`
     - `uphillcutoff`
-    - `uphillmaxbuffercost`
+    - `uphillmaxslope`
+    - `uphillmaxslopecost`
     - `elevationpenaltybuffer`
     - `elevationmaxbuffer`
     - `elevationbufferreduce`
@@ -279,33 +281,35 @@ it climbed only 10 m on those 500 m, all 10 m would be *swallowed* by cutoff,
 together with up to 5 m from the buffer, if there were any.
 
 When elevation does not fit the buffer of size `elevationmaxbuffer`, it is
-converted by `uphillcost`/`downhillcost` ratio to Elevationcost portion of Equivalentlength.
-`uphillcostfactors`/`downhillcostfactors` are used, if defined, otherwise costfactor is used.
+converted by `up/downhill[maxslope]cost` ratio to Elevationcost portion of Equivalentlength.
+`up/downhillcostfactors` are used, if defined, otherwise `costfactor` is used.
 
 - `elevationpenaltybuffer` - default 5(m).
 
   The variable value is used for 2 purposes
 
   - with `buffer content > elevationpenaltybuffer`, it starts partially convert
-    the buffered elevation to ElevationCost by `uphillcost`/`downhillcost`
+    the buffered elevation to ElevationCost by `up/downhillcost`
 
   - with `elevation taken = MIN (buffer content - elevationpenaltybuffer, WayLength[km] * elevationbufferreduce*10`
-    Up/downhillcost factor takes place instead of costfactor at the percentage
+    The `up/downhillcostfactor` takes place instead of `costfactor` at the percentage
     of how much is `WayLength[km] * elevationbufferreduce*10` is saturated by
     the buffer content above elevationpenaltybuffer.
 
 - `elevationmaxbuffer` - default 10(m)
 
   is the size of the buffer, above which all elevation is converted to
-  Elevationcost by `uphillmaxbuffercost`/`downhillmaxbuffercost` parameter or, if those are not defined, by `uphillcost`/`downhillcost` parameter.
-  Additionally, when reaching `elevationmaxbuffer`, `uphillcostfactor`/ `downhillcostfactor` fully replaces `costfactor` in way cost calculation if those cost factors are defined.
+  Elevationcost by `up/downhill[maxslope]cost` ratio, and - if defined -
+  `up/downhillcostfactor` fully replaces `costfactor` in way cost calculation.
 
 - `elevationbufferreduce` - default 0(slope%)
 
   is rate of conversion of the buffer content above elevationpenaltybuffer to
   ElevationCost. For a way of length L, the amount of converted elevation is
   L[km] * elevationbufferreduce[%] * 10. The elevation to Elevationcost
-  conversion ratio is given by Up/downhillcost.
+  conversion ratio is given by `up/downhill[maxslope]cost`.
+
+Whether `up/downhillmaxslope` or `up/downhillmaxslopecost` is used as conversion ratio depends on whether the elevation was accumulated below or above the slope thresholds set in `up/downhillmaxslope`.
 
 Example:   Let's examine steady slopes with `elevationmaxbuffer=10`,
 `elevationpenaltybuffer=5`, `elevationbufferreduce=0.5`, `cutoffs=1.5`,
@@ -316,7 +320,7 @@ All slopes within 0 .. 1.5% are swallowed by the cutoff.
 - For slope 1.75%, there will remain 0.25%.
 
   That saturates the elevationbufferreduce 0.5% by 50%. That gives Way cost to
-  be calculated 50% from costfactor and 50% from Up/downhillcostfactor.
+  be calculated 50% from `costfactor` and 50% from `up/downhillcostfactor`.
   Additionally, 0.25% gives 2.5m per 1km, converted to 2.5*60 = 150m of
   Elevationcost.
 
