@@ -137,6 +137,28 @@ The API endpoints exposed by this HTTP server are documented in the
 [`brouter-server/src/main/java/btools/server/request/ServerHandler.java`](brouter-server/src/main/java/btools/server/request/ServerHandler.java)
 file.
 
+## BRouter with Docker
+
+To build the Docker image run (in the project's top level directory):
+
+```
+docker build -t brouter .
+```
+
+Download the segment files as described in the previous chapter. The folder containing the
+segment files can be mounted into the container. Run BRouter as follows:
+
+```
+docker run --rm -v ./misc/scripts/segments4:/segments4 brouter
+```
+
+This will start brouter with a set of default routing profiles.
+
+If you want to provide your own routing profiles, you can also mount the folder containing the custom profiles:
+
+```
+docker run --rm -v ./misc/scripts/segments4:/segments4 -v /path/to/custom/profiles:/profiles2 brouter
+```
 
 ## Documentation
 
