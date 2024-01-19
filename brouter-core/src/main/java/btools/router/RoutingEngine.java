@@ -20,6 +20,8 @@ import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmNodePairSet;
+import btools.util.CheapAngleMeter;
+import btools.util.CheapRuler;
 import btools.util.CompactLongMap;
 import btools.util.SortedHeap;
 import btools.util.StackSampler;
@@ -587,6 +589,22 @@ public class RoutingEngine extends Thread {
         matchedWaypoints.add(mwp);
       }
       matchWaypointsToNodes(matchedWaypoints);
+      if (routingContext.startDirection != null) {
+        // add a nogo not to turn back
+        double angle = CheapAngleMeter.normalize(180 + routingContext.startDirection);
+        int[] np = CheapRuler.destination(matchedWaypoints.get(0).crosspoint.ilon, matchedWaypoints.get(0).crosspoint.ilat, 10, angle);
+        OsmNodeNamed n = new OsmNodeNamed();
+        n.name = "nogo8";
+        n.ilon = np[0];
+        n.ilat = np[1];
+        n.isNogo = true;
+        n.radius = 8;
+        n.nogoWeight = 9999;
+        if (routingContext.nogopoints == null) {
+          routingContext.nogopoints = new ArrayList<>();
+        }
+        routingContext.nogopoints.add(n);
+      }
 
       routingContext.checkMatchedWaypointAgainstNogos(matchedWaypoints);
 
