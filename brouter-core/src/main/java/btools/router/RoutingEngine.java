@@ -659,7 +659,8 @@ public class RoutingEngine extends Thread {
         routingContext.inverseDirection = false;
         wptIndex = i + 1;
       } else {
-        seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), i == matchedWaypoints.size() - 2 ? nearbyTrack : null, refTracks[i]);
+        //seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), i == matchedWaypoints.size() - 2 ? nearbyTrack : null, refTracks[i]);
+        seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), nearbyTrack, refTracks[i]);
         wptIndex = i;
       }
       if (seg == null)
@@ -1076,7 +1077,14 @@ public class RoutingEngine extends Thread {
       track.nogoChecksums = routingContext.getNogoChecksums();
       track.profileTimestamp = routingContext.profileTimestamp;
       track.isDirty = isDirty;
-      foundRawTrack = track;
+      if (foundRawTrack == null) {
+        foundRawTrack = track;
+      } else {
+        for (OsmPathElement n : track.nodes) {
+          foundRawTrack.nodes.add(n);
+        }
+        foundRawTrack.endPoint = endWp;
+      }
       if (engineMode==BROUTER_ENGINEMODE_PREPARE_REROUTE) {
         return null; // rerouting prepared
       }
