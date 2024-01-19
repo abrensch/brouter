@@ -110,7 +110,8 @@ public class BRouter {
       }
       re.doRun(0);
 
-      if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING) {
+      if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING ||
+          engineMode == RoutingEngine.BROUTER_ENGINEMODE_PREPARE_REROUTE) {
         // store new reference track if any
         // (can exist for timed-out search)
         if (re.getFoundRawTrack() != null) {

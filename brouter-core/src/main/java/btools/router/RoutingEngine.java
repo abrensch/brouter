@@ -32,6 +32,8 @@ public class RoutingEngine extends Thread {
   public final static int BROUTER_ENGINEMODE_SEED = 1;
   public final static int BROUTER_ENGINEMODE_GETELEV = 2;
 
+  public final static int BROUTER_ENGINEMODE_PREPARE_REROUTE = 6;
+
   private NodesCache nodesCache;
   private SortedHeap<OsmPath> openSet = new SortedHeap<>();
   private boolean finished = false;
@@ -160,6 +162,7 @@ public class RoutingEngine extends Thread {
 
     switch (engineMode) {
       case BROUTER_ENGINEMODE_ROUTING:
+      case BROUTER_ENGINEMODE_PREPARE_REROUTE:
         if (waypoints.size() < 2) {
           throw new IllegalArgumentException("we need two lat/lon points at least!");
         }
@@ -191,6 +194,9 @@ public class RoutingEngine extends Thread {
       ArrayList<String> messageList = new ArrayList<>();
       for (int i = 0; ; i++) {
         track = findTrack(refTracks, lastTracks);
+
+        if (engineMode==BROUTER_ENGINEMODE_PREPARE_REROUTE) break; // no output for rerouting prepare
+
         track.message = "track-length = " + track.distance + " filtered ascend = " + track.ascend
           + " plain-ascend = " + track.plainAscend + " cost=" + track.cost;
         if (track.energy != 0) {
@@ -576,6 +582,10 @@ public class RoutingEngine extends Thread {
         boolean found = nearbyTrack != null;
         boolean dirty = found && nearbyTrack.isDirty;
         logInfo("read referenceTrack, found=" + found + " dirty=" + dirty + " " + debugInfo);
+      }
+      if (nearbyTrack != null &&
+          engineMode==BROUTER_ENGINEMODE_PREPARE_REROUTE) {
+        return null; // already rerouting prepared
       }
     }
 
@@ -1067,6 +1077,10 @@ public class RoutingEngine extends Thread {
       track.profileTimestamp = routingContext.profileTimestamp;
       track.isDirty = isDirty;
       foundRawTrack = track;
+      if (engineMode==BROUTER_ENGINEMODE_PREPARE_REROUTE) {
+        return null; // rerouting prepared
+      }
+
     }
 
     if (!wasClean && isDirty) {
