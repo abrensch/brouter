@@ -20,9 +20,6 @@ public class OsmLink {
   protected OsmLink previous;
   protected OsmLink next;
 
-  private OsmLinkHolder reverselinkholder = null;
-  private OsmLinkHolder firstlinkholder = null;
-
   protected OsmLink() {
   }
 
@@ -79,39 +76,17 @@ public class OsmLink {
       n = next;
       next = null;
       targetNode = null;
-      firstlinkholder = null;
     } else if (sourceNode != null && sourceNode != source) {
       n = previous;
       previous = null;
       sourceNode = null;
-      reverselinkholder = null;
     } else {
-      throw new IllegalArgumentException("internal error: setNext: unknown source");
+      throw new IllegalArgumentException("internal error: clear: unknown source");
     }
     if (sourceNode == null && targetNode == null) {
       wayDescription = null;
     }
     return n;
-  }
-
-  public final void setFirstLinkHolder(OsmLinkHolder holder, OsmNode source) {
-    if (targetNode != null && targetNode != source) {
-      firstlinkholder = holder;
-    } else if (sourceNode != null && sourceNode != source) {
-      reverselinkholder = holder;
-    } else {
-      throw new IllegalArgumentException("internal error: setFirstLinkHolder: unknown source");
-    }
-  }
-
-  public final OsmLinkHolder getFirstLinkHolder(OsmNode source) {
-    if (targetNode != null && targetNode != source) {
-      return firstlinkholder;
-    } else if (sourceNode != null && sourceNode != source) {
-      return reverselinkholder;
-    } else {
-      throw new IllegalArgumentException("internal error: getFirstLinkHolder: unknown source");
-    }
   }
 
   public final boolean isReverse(OsmNode source) {
@@ -137,13 +112,4 @@ public class OsmLink {
   public final boolean isLinkUnused() {
     return sourceNode == null && targetNode == null;
   }
-
-  public final void addLinkHolder(OsmLinkHolder holder, OsmNode source) {
-    OsmLinkHolder firstHolder = getFirstLinkHolder(source);
-    if (firstHolder != null) {
-      holder.setNextForLink(firstHolder);
-    }
-    setFirstLinkHolder(holder, source);
-  }
-
 }

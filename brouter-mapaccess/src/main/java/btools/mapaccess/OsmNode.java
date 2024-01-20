@@ -7,9 +7,6 @@ package btools.mapaccess;
 
 import btools.util.CheapRuler;
 
-import java.util.Arrays;
-import java.util.Objects;
-
 public class OsmNode extends OsmLink implements OsmPos {
   /**
    * The latitude
@@ -196,6 +193,17 @@ public class OsmNode extends OsmLink implements OsmPos {
         l = nextLink;
       }
     }
+  }
+
+  public boolean linkStillValid( OsmLink link ) {
+    OsmLink l = firstLink;
+    while ( l != null ) {
+      if ( l == link ) {
+        return true;
+      }
+      l = l.getNext(this);
+    }
+    return false;
   }
 
   public final void unlinkLink(OsmLink link) {

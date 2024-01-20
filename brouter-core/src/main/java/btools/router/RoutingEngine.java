@@ -1085,10 +1085,8 @@ public class RoutingEngine extends Thread {
     try {
       routingContext.setWaypoint(wp, sameSegmentSearch ? endPos : null, false);
       OsmPath bestPath = null;
-      OsmLink bestLink = null;
       OsmLink startLink = new OsmLink(null, n1);
       OsmPath startPath = routingContext.createPath(startLink);
-      startLink.addLinkHolder(startPath, null);
       double minradius = 1e10;
       for (OsmLink link = n1.firstLink; link != null; link = link.getNext(n1)) {
         OsmNode nextNode = link.getTarget(n1);
@@ -1107,11 +1105,7 @@ public class RoutingEngine extends Thread {
         if (wp.radius < minradius) {
           bestPath = testPath;
           minradius = wp.radius;
-          bestLink = link;
         }
-      }
-      if (bestLink != null) {
-        bestLink.addLinkHolder(bestPath, n1);
       }
       bestPath.treedepth = 1;
 
@@ -1315,8 +1309,8 @@ public class RoutingEngine extends Thread {
         OsmNode sourceNode = path.getSourceNode();
         OsmNode currentNode = path.getTargetNode();
 
-        if (currentLink.isLinkUnused()) {
-          continue;
+        if (!sourceNode.linkStillValid(currentLink)) {
+          continue; // probably processed by another path
         }
 
         long currentNodeId = currentNode.getIdFromPos();
@@ -1368,17 +1362,12 @@ public class RoutingEngine extends Thread {
           }
         }
 
-        OsmLinkHolder firstLinkHolder = currentLink.getFirstLinkHolder(sourceNode);
-        for (OsmLinkHolder linkHolder = firstLinkHolder; linkHolder != null; linkHolder = linkHolder.getNextForLink()) {
-          ((OsmPath) linkHolder).airdistance = -1; // invalidate the entry in the open set;
-        }
-
         if (path.treedepth > 1) {
           boolean isBidir = currentLink.isBidirectional();
           sourceNode.unlinkLink(currentLink);
 
           // if the counterlink is alive and does not yet have a path, remove it
-          if (isBidir && currentLink.getFirstLinkHolder(currentNode) == null && !routingContext.considerTurnRestrictions) {
+          if (isBidir && !routingContext.considerTurnRestrictions) {
             currentNode.unlinkLink(currentLink);
           }
         }
@@ -1447,8 +1436,6 @@ public class RoutingEngine extends Thread {
             }
           }
 
-          OsmPath bestPath = null;
-
           boolean isFinalLink = false;
           long targetNodeId = nextNode.getIdFromPos();
           if (currentNodeId == endNodeId1 || currentNodeId == endNodeId2) {
@@ -1457,15 +1444,15 @@ public class RoutingEngine extends Thread {
             }
           }
 
-          for (OsmLinkHolder linkHolder = firstLinkHolder; linkHolder != null; linkHolder = linkHolder.getNextForLink()) {
-            OsmPath otherPath = (OsmPath) linkHolder;
+          OsmPath bestPath = null;
+          {
             try {
               if (isFinalLink) {
                 endPos.radius = 1.5; // 1.5 meters is the upper limit that will not change the unit-test result..
                 routingContext.setWaypoint(endPos, true);
               }
-              OsmPath testPath = routingContext.createPath(otherPath, link, refTrack, guideTrack != null);
-              if (testPath.cost >= 0 && (bestPath == null || testPath.cost < bestPath.cost) &&
+              OsmPath testPath = routingContext.createPath(path, link, refTrack, guideTrack != null);
+              if (testPath.cost >= 0 &&
                 (testPath.sourceNode.getIdFromPos() != testPath.targetNode.getIdFromPos())) {
                 bestPath = testPath;
               }
@@ -1481,21 +1468,8 @@ public class RoutingEngine extends Thread {
             boolean inRadius = boundary == null || boundary.isInBoundary(nextNode, bestPath.cost);
 
             if (inRadius && (isFinalLink || bestPath.cost + bestPath.airdistance <= (lastAirDistanceCostFactor != 0. ? maxTotalCost * lastAirDistanceCostFactor : maxTotalCost) + addDiff)) {
-              // add only if this may beat an existing path for that link
-              OsmLinkHolder dominator = link.getFirstLinkHolder(currentNode);
-              while (dominator != null) {
-                OsmPath dp = (OsmPath) dominator;
-                if (dp.airdistance != -1 && bestPath.definitlyWorseThan(dp)) {
-                  break;
-                }
-                dominator = dominator.getNextForLink();
-              }
-
-              if (dominator == null) {
                 bestPath.treedepth = path.treedepth + 1;
-                link.addLinkHolder(bestPath, currentNode);
                 addToOpenset(bestPath);
-              }
             }
           }
         }
