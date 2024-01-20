@@ -10,11 +10,11 @@ public class OsmLink {
   /**
    * The description bitmap contains the waytags (valid for both directions)
    */
-  public byte[] descriptionBitmap;
+  public byte[] wayDescription;
 
   // a link logically knows only its target, but for the reverse link, source and target are swapped
-  protected OsmNode n1;
-  protected OsmNode n2;
+  protected OsmNode sourceNode;
+  protected OsmNode targetNode;
 
   // same for the next-link-for-node pointer: previous applies to the reverse link
   protected OsmLink previous;
@@ -27,15 +27,15 @@ public class OsmLink {
   }
 
   public OsmLink(OsmNode source, OsmNode target) {
-    n1 = source;
-    n2 = target;
+    sourceNode = source;
+    targetNode = target;
   }
 
   /**
    * Get the relevant target-node for the given source
    */
   public final OsmNode getTarget(OsmNode source) {
-    return n2 != source && n2 != null ? n2 : n1;
+    return targetNode != source && targetNode != null ? targetNode : sourceNode;
     /* if ( n2 != null && n2 != source )
     {
       return n2;
@@ -55,7 +55,7 @@ public class OsmLink {
    * Get the relevant next-pointer for the given source
    */
   public final OsmLink getNext(OsmNode source) {
-    return n2 != source && n2 != null ? next : previous;
+    return targetNode != source && targetNode != null ? next : previous;
     /* if ( n2 != null && n2 != source )
     {
       return next;
@@ -75,29 +75,29 @@ public class OsmLink {
    */
   protected final OsmLink clear(OsmNode source) {
     OsmLink n;
-    if (n2 != null && n2 != source) {
+    if (targetNode != null && targetNode != source) {
       n = next;
       next = null;
-      n2 = null;
+      targetNode = null;
       firstlinkholder = null;
-    } else if (n1 != null && n1 != source) {
+    } else if (sourceNode != null && sourceNode != source) {
       n = previous;
       previous = null;
-      n1 = null;
+      sourceNode = null;
       reverselinkholder = null;
     } else {
       throw new IllegalArgumentException("internal error: setNext: unknown source");
     }
-    if (n1 == null && n2 == null) {
-      descriptionBitmap = null;
+    if (sourceNode == null && targetNode == null) {
+      wayDescription = null;
     }
     return n;
   }
 
   public final void setFirstLinkHolder(OsmLinkHolder holder, OsmNode source) {
-    if (n2 != null && n2 != source) {
+    if (targetNode != null && targetNode != source) {
       firstlinkholder = holder;
-    } else if (n1 != null && n1 != source) {
+    } else if (sourceNode != null && sourceNode != source) {
       reverselinkholder = holder;
     } else {
       throw new IllegalArgumentException("internal error: setFirstLinkHolder: unknown source");
@@ -105,9 +105,9 @@ public class OsmLink {
   }
 
   public final OsmLinkHolder getFirstLinkHolder(OsmNode source) {
-    if (n2 != null && n2 != source) {
+    if (targetNode != null && targetNode != source) {
       return firstlinkholder;
-    } else if (n1 != null && n1 != source) {
+    } else if (sourceNode != null && sourceNode != source) {
       return reverselinkholder;
     } else {
       throw new IllegalArgumentException("internal error: getFirstLinkHolder: unknown source");
@@ -115,7 +115,7 @@ public class OsmLink {
   }
 
   public final boolean isReverse(OsmNode source) {
-    return n1 != source && n1 != null;
+    return sourceNode != source && sourceNode != null;
     /* if ( n2 != null && n2 != source )
     {
       return false;
@@ -131,11 +131,11 @@ public class OsmLink {
   }
 
   public final boolean isBidirectional() {
-    return n1 != null && n2 != null;
+    return sourceNode != null && targetNode != null;
   }
 
   public final boolean isLinkUnused() {
-    return n1 == null && n2 == null;
+    return sourceNode == null && targetNode == null;
   }
 
   public final void addLinkHolder(OsmLinkHolder holder, OsmNode source) {

@@ -7,6 +7,9 @@ package btools.mapaccess;
 
 import btools.util.CheapRuler;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 public class OsmNode extends OsmLink implements OsmPos {
   /**
    * The latitude
@@ -32,6 +35,12 @@ public class OsmNode extends OsmLink implements OsmPos {
 
   public int visitID;
 
+  public final static int NO_BRIDGE_BIT = 1;
+  public final static int NO_TUNNEL_BIT = 2;
+  public final static int BORDER_BIT = 4;
+  public final static int TRANSFERNODE_BIT = 8;
+  public final static int DP_SURVIVOR_BIT = 64;
+
   public boolean hasBits( int mask ) {
     return (visitID & mask ) != 0;
   }
@@ -49,6 +58,10 @@ public class OsmNode extends OsmLink implements OsmPos {
    * The links to other nodes
    */
   public OsmLink firstLink;
+
+  public OsmLink getFirstLink() {
+    return firstLink;
+  }
 
   public OsmNode() {
   }
@@ -81,21 +94,29 @@ public class OsmNode extends OsmLink implements OsmPos {
     return sElev / 4.;
   }
 
+  // populate and return the inherited link, if available,
+  // else create a new one
+  public OsmLink createLink(OsmNode target) {
+    OsmLink link = isLinkUnused() ? this : new OsmLink();
+    addLink(link, false, target);
+    return link;
+  }
+
   public final void addLink(OsmLink link, boolean isReverse, OsmNode tn) {
     if (link == firstLink) {
       throw new IllegalArgumentException("UUUUPS");
     }
 
     if (isReverse) {
-      link.n1 = tn;
-      link.n2 = this;
+      link.sourceNode = tn;
+      link.targetNode = this;
       link.next = tn.firstLink;
       link.previous = firstLink;
       tn.firstLink = link;
       firstLink = link;
     } else {
-      link.n1 = this;
-      link.n2 = tn;
+      link.sourceNode = this;
+      link.targetNode = tn;
       link.next = firstLink;
       link.previous = tn.firstLink;
       tn.firstLink = link;
@@ -124,7 +145,7 @@ public class OsmNode extends OsmLink implements OsmPos {
       OsmNode t = l.getTarget(this);
       if (t.iLon == linklon && t.iLat == linklat) {
         tn = t;
-        if (isReverse || (l.descriptionBitmap == null && !l.isReverse(this))) {
+        if (isReverse || (l.wayDescription == null && !l.isReverse(this))) {
           link = l; // the correct one that needs our data
           break;
         }
@@ -143,7 +164,7 @@ public class OsmNode extends OsmLink implements OsmPos {
       addLink(link = new OsmLink(), isReverse, tn);
     }
     if (!isReverse) {
-      link.descriptionBitmap = description;
+      link.wayDescription = description;
     }
   }
 
@@ -187,14 +208,14 @@ public class OsmNode extends OsmLink implements OsmPos {
     OsmLink l = firstLink;
     while (l != null) {
       // if ( l.isReverse( this ) )
-      if (l.n1 != this && l.n1 != null) { // isReverse inline
+      if (l.sourceNode != this && l.sourceNode != null) { // isReverse inline
         OsmLink nl = l.previous;
         if (nl == link) {
           l.previous = n;
           return;
         }
         l = nl;
-      } else if (l.n2 != this && l.n2 != null) {
+      } else if (l.targetNode != this && l.targetNode != null) {
         OsmLink nl = l.next;
         if (nl == link) {
           l.next = n;

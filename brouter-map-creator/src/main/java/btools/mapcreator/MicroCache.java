@@ -4,6 +4,8 @@ import btools.codec.IntegerFifo3Pass;
 import btools.codec.NoisyDiffCoder;
 import btools.codec.StatCoderContext;
 import btools.codec.TagValueCoder;
+import btools.mapaccess.OsmLink;
+import btools.mapaccess.OsmNode;
 import btools.mapaccess.TurnRestriction;
 import btools.util.ByteDataWriter;
 
@@ -260,7 +262,7 @@ public final class MicroCache extends ByteDataWriter {
   }
 
 
-  public void writeNodeData(OsmNodeP node) {
+  public void writeNodeData(OsmNode node) {
     boolean valid = writeNodeData2(node);;
     if (valid) {
       finishNode(node.getIdFromPos());
@@ -269,7 +271,7 @@ public final class MicroCache extends ByteDataWriter {
     }
   }
 
-  public boolean writeNodeData2(OsmNodeP node) {
+  public boolean writeNodeData2(OsmNode node) {
     boolean hasLinks = false;
 
     // write turn restrictions
@@ -292,10 +294,10 @@ public final class MicroCache extends ByteDataWriter {
     writeVarBytes(node.nodeDescription);
 
     // buffer internal reverse links
-    ArrayList<OsmNodeP> internalReverse = new ArrayList<>();
+    ArrayList<OsmNode> internalReverse = new ArrayList<>();
 
-    for (OsmLinkP link = node.getFirstLink(); link != null; link = link.getNext(node)) {
-      OsmNodeP target = link.getTarget(node);;
+    for (OsmLink link = node.getFirstLink(); link != null; link = link.getNext(node)) {
+      OsmNode target = link.getTarget(node);;
       hasLinks = true;
 
       // internal reverse links later
@@ -307,7 +309,7 @@ public final class MicroCache extends ByteDataWriter {
         }
       }
 
-      byte[] description = link.descriptionBitmap;
+      byte[] description = link.wayDescription;
 
       // write link data
       int sizeoffset = writeSizePlaceHolder();
@@ -329,7 +331,7 @@ public final class MicroCache extends ByteDataWriter {
           }
         }
       }
-      OsmNodeP target = internalReverse.remove(nextIdx);
+      OsmNode target = internalReverse.remove(nextIdx);
       int sizeoffset = writeSizePlaceHolder();
       writeVarLengthSigned(target.iLon - node.iLon);
       writeVarLengthSigned(target.iLat - node.iLat);

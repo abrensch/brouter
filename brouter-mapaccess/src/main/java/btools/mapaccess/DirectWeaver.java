@@ -119,8 +119,7 @@ public final class DirectWeaver { // extends ByteDataWriter {
             if (link == null) {
               link = new OsmLink();
             }
-            link.descriptionBitmap = wayTags.data;
-            // link.geometry = geometry;
+            link.wayDescription = wayTags.data;
             node.addLink(link, isReverse, node2);
           } else { // weave external link
             node.addLink(linklon, linklat, wayTags.data, hollowNodes, isReverse);

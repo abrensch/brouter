@@ -13,6 +13,8 @@ import java.util.TreeMap;
 import btools.codec.StatCoderContext;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
+import btools.mapaccess.OsmLink;
+import btools.mapaccess.OsmNode;
 import btools.mapaccess.TurnRestriction;
 import btools.util.ByteArrayUnifier;
 import btools.util.CompactLongMap;
@@ -39,8 +41,8 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
   private boolean readingBorder;
 
-  private CompactLongMap<OsmNodeP> nodesMap;
-  private List<OsmNodeP> nodesList;
+  private CompactLongMap<OsmNode> nodesMap;
+  private List<OsmNode> nodesList;
   private CompactLongSet borderSet;
   private short lookupVersion;
   private short lookupMinorVersion;
@@ -214,7 +216,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
       new NodeIterator(this, true).processFile(nodeFile);
 
       // freeze the nodes-map
-      FrozenLongMap<OsmNodeP> nodesMapFrozen = new FrozenLongMap<>(nodesMap);
+      FrozenLongMap<OsmNode> nodesMapFrozen = new FrozenLongMap<>(nodesMap);
       nodesMap = nodesMapFrozen;
 
       File restrictionFile = fileFromTemplate(wayfile, new File(nodeTilesIn.getParentFile(), "restrictions55"), "rt5");
@@ -225,7 +227,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
         try {
           for (; ; ) {
             RestrictionData res = new RestrictionData(di);
-            OsmNodeP n = nodesMap.get(res.viaNid);
+            OsmNode n = nodesMap.get(res.viaNid);
             if (n != null) {
               res.viaLon = n.iLon;
               res.viaLat = n.iLat;
@@ -246,7 +248,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
   @Override
   public void nextNode(NodeData data) throws Exception {
-    OsmNodeP n = new OsmNodeP();
+    OsmNode n = new OsmNode();
     n.iLon = data.ilon;
     n.iLat = data.ilat;
     n.sElev = data.selev;
@@ -257,6 +259,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     }
 
     if (readingBorder) {
+      n.setBits( OsmNode.BORDER_BIT );
       borderSet.fastAdd(data.nid);
       return;
     }
@@ -278,12 +281,12 @@ public class WayLinker extends MapCreatorBase implements Runnable {
   // starts or ends at it's via node. However, we allow
   // ways not ending at the via node, and in this case we take
   // the leg according to the mapped direction
-  private void checkRestriction(OsmNodeP n1, OsmNodeP n2, WayData w) {
+  private void checkRestriction(OsmNode n1, OsmNode n2, WayData w) {
     checkRestriction(n1, n2, w, true);
     checkRestriction(n2, n1, w, false);
   }
 
-  private void checkRestriction(OsmNodeP n1, OsmNodeP n2, WayData w, boolean checkFrom) {
+  private void checkRestriction(OsmNode n1, OsmNode n2, WayData w, boolean checkFrom) {
     TurnRestriction tr = n2.firstRestriction;
     while (tr != null) {
       RestrictionData r = (RestrictionData)tr;
@@ -291,7 +294,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
         if (r.fromLon == 0 || checkFrom) {
           r.fromLon = n1.iLon;
           r.fromLat = n1.iLat;
-          n1.setBits(OsmNodeP.DP_SURVIVOR_BIT);
           if (isInnerNode(n2, w)) {
             r.badWayMatch = true;
           }
@@ -301,7 +303,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
         if (r.toLon == 0 || !checkFrom) {
           r.toLon = n1.iLon;
           r.toLat = n1.iLat;
-          n1.setBits(OsmNodeP.DP_SURVIVOR_BIT);
           if (isInnerNode(n2, w)) {
             r.badWayMatch = true;
           }
@@ -311,7 +312,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     }
   }
 
-  private boolean isInnerNode(OsmNodeP n, WayData w) {
+  private boolean isInnerNode(OsmNode n, WayData w) {
     return n != nodesMap.get(w.nodes.get(0)) && n != nodesMap.get(w.nodes.get(w.nodes.size() - 1));
   }
 
@@ -330,22 +331,22 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     byte wayBits = 0;
     expCtxWay.decode(description);
     if (!expCtxWay.getBooleanLookupValue("bridge"))
-      wayBits |= OsmNodeP.NO_BRIDGE_BIT;
+      wayBits |= OsmNode.NO_BRIDGE_BIT;
     if (!expCtxWay.getBooleanLookupValue("tunnel"))
-      wayBits |= OsmNodeP.NO_TUNNEL_BIT;
+      wayBits |= OsmNode.NO_TUNNEL_BIT;
 
-    OsmNodeP n2 = null;
+    OsmNode n2 = null;
     for (int i = 0; i < way.nodes.size(); i++) {
       long nid = way.nodes.get(i);
-      OsmNodeP n1 = n2;
+      OsmNode n1 = n2;
       n2 = nodesMap.get(nid);
 
       if (n1 != null && n2 != null && n1 != n2) {
         checkRestriction(n1, n2, way);
 
-        OsmLinkP link = n2.createLink(n1);
+        OsmLink link = n1.createLink(n2);
 
-        link.descriptionBitmap = description;
+        link.wayDescription = description;
       }
       if (n2 != null) {
         n2.setBits(wayBits);
@@ -366,14 +367,17 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     int maxLon = minLon + 5000000;
     int maxLat = minLat + 5000000;
 
+    // do Douglas Peuker elimination of too dense transfer nodes
+    DPFilter.doDPFilter(nodesList);
+
     {
       // open the output file
       File outfile = fileFromTemplate(wayfile, dataTilesOut, dataTilesSuffix);
       DataOutputStream os = createOutStream(outfile);
 
-      LazyArrayOfLists<OsmNodeP> subs = new LazyArrayOfLists<>(nCaches);
+      LazyArrayOfLists<OsmNode> subs = new LazyArrayOfLists<>(nCaches);
       byte[][] subByteArrays = new byte[nCaches][];
-      for (OsmNodeP n : nodesList) {
+      for (OsmNode n : nodesList) {
         if (n.getFirstLink() == null)
           continue;
         if (n.iLon < minLon || n.iLon >= maxLon || n.iLat < minLat || n.iLat >= maxLat)
@@ -389,17 +393,17 @@ public class WayLinker extends MapCreatorBase implements Runnable {
       int pos = 0;
 
       for (int si = 0; si < nCaches; si++) {
-        List<OsmNodeP> subList = subs.getList(si);
+        List<OsmNode> subList = subs.getList(si);
         int size = subList.size();
         if (size > 0) {
-          OsmNodeP n0 = subList.get(0);
+          OsmNode n0 = subList.get(0);
           int lonIdxDiv = n0.iLon / cellSize;
           int latIdxDiv = n0.iLat / cellSize;
           MicroCache mc = new MicroCache(size, abBuf2, lonIdxDiv, latIdxDiv, cellSize);
 
           // sort via treemap
-          TreeMap<Integer, OsmNodeP> sortedList = new TreeMap<>();
-          for (OsmNodeP n : subList) {
+          TreeMap<Integer, OsmNode> sortedList = new TreeMap<>();
+          for (OsmNode n : subList) {
             long longId = n.getIdFromPos();
             int shrinkId = mc.shrinkId(longId);
             if (mc.expandId(shrinkId) != longId) {
@@ -408,7 +412,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
             sortedList.put(shrinkId, n);
           }
 
-          for (OsmNodeP n : sortedList.values()) {
+          for (OsmNode n : sortedList.values()) {
             mc.writeNodeData(n);
           }
           if (mc.getSize() > 0) {

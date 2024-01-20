@@ -100,7 +100,7 @@ abstract class OsmPath implements OsmLinkHolder {
   static int seg = 1;
 
   protected void addAddionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, OsmLink link, RoutingContext rc) {
-    byte[] description = link.descriptionBitmap;
+    byte[] description = link.wayDescription;
     if (description == null) { // could be a beeline path
       message = new MessageData();
       if (message != null) {
