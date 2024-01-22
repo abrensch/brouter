@@ -9,8 +9,7 @@ import btools.mapaccess.OsmNode;
 import btools.mapaccess.TurnRestriction;
 import btools.util.ByteDataWriter;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * MicroCache2 is the new format that uses statistical encoding and
@@ -43,10 +42,6 @@ public final class MicroCache extends ByteDataWriter {
     fapos[size] = aboffset;
     faid[size] = shrinkId(id);
     size++;
-  }
-
-  public void discardNode() {
-    aboffset = startPos(size);
   }
 
   public int getSize() {
@@ -109,13 +104,150 @@ public final class MicroCache extends ByteDataWriter {
       && ilat >= latBase && ilat < latBase + cellSize;
   }
 
+  public int encodeMicroCache(List<OsmNode> nodes, byte[] buffer) {
+    SortedMap<Integer,OsmNode> sortedNodes = sortNodes(nodes);
+
+    for( OsmNode n: sortedNodes.values() ) {
+      writeNodeData(n);
+    }
+    return encodeMicroCache(buffer);
+  }
+
+  public int encodeMicroCache2(List<OsmNode> nodes, byte[] buffer) {
+    SortedMap<Integer,OsmNode> sortedNodes = sortNodes(nodes);
+
+    HashMap<Long, Integer> idMap = new HashMap<>();
+    int nodeIndex = 0;
+    for (OsmNode node : sortedNodes.values() ) { // loop over nodes
+      idMap.put(node.getIdFromPos(), nodeIndex++);
+    }
+
+    IntegerFifo3Pass restrictionBits = new IntegerFifo3Pass(16);
+
+    TagValueCoder wayTagCoder = new TagValueCoder();
+    TagValueCoder nodeTagCoder = new TagValueCoder();
+    NoisyDiffCoder nodeIdxDiff = new NoisyDiffCoder();
+    NoisyDiffCoder nodeEleDiff = new NoisyDiffCoder();
+    NoisyDiffCoder extLonDiff = new NoisyDiffCoder();
+    NoisyDiffCoder extLatDiff = new NoisyDiffCoder();
+
+    for (int pass = 1; ; pass++) { // 3 passes: counters, stat-collection, encoding
+      StatCoderContext bc = new StatCoderContext(buffer);
+
+      restrictionBits.init();
+
+      wayTagCoder.encodeDictionary(bc);
+      nodeTagCoder.encodeDictionary(bc);
+      nodeIdxDiff.encodeDictionary(bc);
+      nodeEleDiff.encodeDictionary(bc);
+      extLonDiff.encodeDictionary(bc);
+      extLatDiff.encodeDictionary(bc);
+      bc.encodeNoisyNumber(size, 5);
+      bc.encodeSortedArray(faid, 0, size, 0x20000000, 0);
+      int lastSelev = 0;
+
+      for (OsmNode node : sortedNodes.values() ) { // loop over nodes
+        aboffset = startPos(n);
+        aboffsetEnd = fapos[n];
+
+        int ilon = node.iLon;
+        int ilat = node.iLat;
+
+        // write turn restrictions
+        TurnRestriction tr = node.firstRestriction;
+        while (tr != null) {
+          short exceptions = tr.exceptions; // except bikes, psv, ...
+          if (exceptions != 0) {
+            bc.encodeVarBits(2); // 2 = tr exceptions
+            bc.encodeNoisyNumber(10, 5); // bit-count
+            bc.encodeBounded(1023, exceptions & 1023);
+          }
+          bc.encodeVarBits(1); // 1 = turn restriction
+          bc.encodeNoisyNumber(restrictionBits.getNext(), 5); // bit-count using look-ahead fifo
+          long b0 = bc.getWritingBitPosition();
+          bc.encodeBit(tr.isPositive); // isPositive
+          bc.encodeNoisyDiff(tr.fromLon - ilon, 10); // fromLon
+          bc.encodeNoisyDiff(tr.fromLat - ilat, 10); // fromLat
+          bc.encodeNoisyDiff(tr.toLon - ilon, 10); // toLon
+          bc.encodeNoisyDiff(tr.toLat - ilat, 10); // toLat
+          restrictionBits.add((int) (bc.getWritingBitPosition() - b0));
+          tr = tr.next;
+        }
+        bc.encodeVarBits(0); // end of extra data
+
+        int sElev = node.sElev;
+        nodeEleDiff.encodeSignedValue(sElev - lastSelev);
+        lastSelev = sElev;
+        nodeTagCoder.encodeTagValueSet(readVarBytes());
+        int nlinks = node.linkCount();
+        bc.encodeNoisyNumber(nlinks, 1);
+
+        OsmLink link = node.firstLink;
+        while (link != null) { // loop over links
+          // read link data
+          int ilonlink = ilon + readVarLengthSigned();
+          int ilatlink = ilat + readVarLengthSigned();
+
+          int sizecode = readVarLengthUnsigned();
+          boolean isReverse = (sizecode & 1) != 0;
+          int descSize = sizecode >> 1;
+          byte[] description = null;
+          if (descSize > 0) {
+            description = new byte[descSize];
+            readFully(description);
+          }
+
+          long link64 = ((long) ilonlink) << 32 | ilatlink;
+          Integer idx = idMap.get(link64);
+          boolean isInternal = idx != null;
+
+          if (isReverse && isInternal) {
+            continue; // do not encode internal reverse links
+          }
+
+          if (isInternal) {
+            int nodeIdx = idx.intValue();
+            if (nodeIdx == n) throw new RuntimeException("ups: self ref?");
+            nodeIdxDiff.encodeSignedValue(nodeIdx - n);
+          } else {
+            nodeIdxDiff.encodeSignedValue(0);
+            bc.encodeBit(isReverse);
+            extLonDiff.encodeSignedValue(ilonlink - ilon);
+            extLatDiff.encodeSignedValue(ilatlink - ilat);
+          }
+          wayTagCoder.encodeTagValueSet(description);
+        }
+        linkCounts.add(nlinks);
+      }
+      if (pass == 3) {
+        return bc.closeAndGetEncodedLength();
+      }
+    }
+  }
+
+  private SortedMap<Integer,OsmNode> sortNodes(List<OsmNode> nodes ) {
+    // sort via treemap
+    TreeMap<Integer, OsmNode> sortedList = new TreeMap<>();
+    for (OsmNode n : nodes) {
+      long longId = n.getIdFromPos();
+      int shrinkId = shrinkId(longId);
+      if (expandId(shrinkId) != longId) {
+        throw new IllegalArgumentException("inconstistent shrinking: " + longId + "<->" + expandId(shrinkId) );
+      }
+      sortedList.put(shrinkId, n);
+    }
+    return sortedList;
+  }
+
+
+
   /**
    * (stasticially) encode the micro-cache into the format used in the datafiles
    *
    * @param buffer byte array to encode into (considered big enough)
    * @return the size of the encoded data
    */
-  public int encodeMicroCache(byte[] buffer) {
+  private int encodeMicroCache(byte[] buffer) {
     HashMap<Long, Integer> idMap = new HashMap<>();
     for (int n = 0; n < size; n++) { // loop over nodes
       idMap.put(expandId(faid[n]), n);
@@ -130,48 +262,30 @@ public final class MicroCache extends ByteDataWriter {
     NoisyDiffCoder nodeEleDiff = new NoisyDiffCoder();
     NoisyDiffCoder extLonDiff = new NoisyDiffCoder();
     NoisyDiffCoder extLatDiff = new NoisyDiffCoder();
-    NoisyDiffCoder transEleDiff = new NoisyDiffCoder();
 
     for (int pass = 1; ; pass++) { // 3 passes: counters, stat-collection, encoding
-      boolean dostats = pass == 3;
-      boolean dodebug = debug && pass == 3;
-
       StatCoderContext bc = new StatCoderContext(buffer);
 
       linkCounts.init();
       restrictionBits.init();
 
       wayTagCoder.encodeDictionary(bc);
-      if (dostats) bc.assignBits("wayTagDictionary");
       nodeTagCoder.encodeDictionary(bc);
-      if (dostats) bc.assignBits("nodeTagDictionary");
       nodeIdxDiff.encodeDictionary(bc);
       nodeEleDiff.encodeDictionary(bc);
       extLonDiff.encodeDictionary(bc);
       extLatDiff.encodeDictionary(bc);
-      transEleDiff.encodeDictionary(bc);
-      if (dostats) bc.assignBits("noisebits");
       bc.encodeNoisyNumber(size, 5);
-      if (dostats) bc.assignBits("nodecount");
       bc.encodeSortedArray(faid, 0, size, 0x20000000, 0);
-      if (dostats) bc.assignBits("node-positions");
-      if (dodebug) System.out.println("*** encoding cache of size=" + size);
       int lastSelev = 0;
 
       for (int n = 0; n < size; n++) { // loop over nodes
         aboffset = startPos(n);
         aboffsetEnd = fapos[n];
-        if (dodebug)
-          System.out.println("*** encoding node " + n + " from " + aboffset + " to " + aboffsetEnd);
 
         long id64 = expandId(faid[n]);
         int ilon = (int) (id64 >> 32);
         int ilat = (int) (id64 & 0xffffffff);
-
-        if (aboffset == aboffsetEnd) {
-          bc.encodeVarBits(13); // empty node escape (delta files only)
-          continue;
-        }
 
         // write turn restrictions
         while (readBoolean()) {
@@ -193,25 +307,16 @@ public final class MicroCache extends ByteDataWriter {
         }
         bc.encodeVarBits(0); // end of extra data
 
-        if (dostats) bc.assignBits("extradata");
-
         int sElev = readShort();
         nodeEleDiff.encodeSignedValue(sElev - lastSelev);
-        if (dostats) bc.assignBits("nodeele");
         lastSelev = sElev;
         nodeTagCoder.encodeTagValueSet(readVarBytes());
-        if (dostats) bc.assignBits("nodeTagIdx");
         int nlinks = linkCounts.getNext();
-        if (dodebug) System.out.println("*** nlinks=" + nlinks);
         bc.encodeNoisyNumber(nlinks, 1);
-        if (dostats) bc.assignBits("link-counts");
 
         nlinks = 0;
         while (hasMoreData()) { // loop over links
           // read link data
-          int startPointer = aboffset;
-          int endPointer = getEndPointer();
-
           int ilonlink = ilon + readVarLengthSigned();
           int ilatlink = ilat + readVarLengthSigned();
 
@@ -229,29 +334,21 @@ public final class MicroCache extends ByteDataWriter {
           boolean isInternal = idx != null;
 
           if (isReverse && isInternal) {
-            if (dodebug)
-              System.out.println("*** NOT encoding link reverse=" + isReverse + " internal=" + isInternal);
             continue; // do not encode internal reverse links
           }
-          if (dodebug)
-            System.out.println("*** encoding link reverse=" + isReverse + " internal=" + isInternal);
           nlinks++;
 
           if (isInternal) {
             int nodeIdx = idx.intValue();
-            if (dodebug) System.out.println("*** target nodeIdx=" + nodeIdx);
             if (nodeIdx == n) throw new RuntimeException("ups: self ref?");
             nodeIdxDiff.encodeSignedValue(nodeIdx - n);
-            if (dostats) bc.assignBits("nodeIdx");
           } else {
             nodeIdxDiff.encodeSignedValue(0);
             bc.encodeBit(isReverse);
             extLonDiff.encodeSignedValue(ilonlink - ilon);
             extLatDiff.encodeSignedValue(ilatlink - ilat);
-            if (dostats) bc.assignBits("externalNode");
           }
           wayTagCoder.encodeTagValueSet(description);
-          if (dostats) bc.assignBits("wayDescIdx");
         }
         linkCounts.add(nlinks);
       }
@@ -261,18 +358,7 @@ public final class MicroCache extends ByteDataWriter {
     }
   }
 
-
-  public void writeNodeData(OsmNode node) {
-    boolean valid = writeNodeData2(node);;
-    if (valid) {
-      finishNode(node.getIdFromPos());
-    } else {
-      discardNode();
-    }
-  }
-
-  public boolean writeNodeData2(OsmNode node) {
-    boolean hasLinks = false;
+  private void writeNodeData(OsmNode node) {
 
     // write turn restrictions
     TurnRestriction r = node.firstRestriction;
@@ -298,7 +384,6 @@ public final class MicroCache extends ByteDataWriter {
 
     for (OsmLink link = node.getFirstLink(); link != null; link = link.getNext(node)) {
       OsmNode target = link.getTarget(node);;
-      hasLinks = true;
 
       // internal reverse links later
       boolean isReverse = link.isReverse(node);
@@ -312,11 +397,9 @@ public final class MicroCache extends ByteDataWriter {
       byte[] description = link.wayDescription;
 
       // write link data
-      int sizeoffset = writeSizePlaceHolder();
       writeVarLengthSigned(target.iLon - node.iLon);
       writeVarLengthSigned(target.iLat - node.iLat);
       writeModeAndDesc(isReverse, description);
-      injectSize(sizeoffset);
     }
 
     while (internalReverse.size() > 0) {
@@ -332,12 +415,10 @@ public final class MicroCache extends ByteDataWriter {
         }
       }
       OsmNode target = internalReverse.remove(nextIdx);
-      int sizeoffset = writeSizePlaceHolder();
       writeVarLengthSigned(target.iLon - node.iLon);
       writeVarLengthSigned(target.iLat - node.iLat);
       writeModeAndDesc(true, null);
-      injectSize(sizeoffset);
     }
-    return hasLinks;
+    finishNode(node.getIdFromPos());
   }
 }

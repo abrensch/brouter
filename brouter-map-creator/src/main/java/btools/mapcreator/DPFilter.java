@@ -24,17 +24,12 @@ public class DPFilter {
    * @return true if this is a transfer node
    */
   private static boolean isTransferNode(OsmNode n) {
-    if (n.nodeDescription != null || n.firstRestriction != null || n.hasBits(OsmNode.BORDER_BIT)) {
+    if (n.nodeDescription != null || n.firstRestriction != null
+        || n.hasBits(OsmNode.BORDER_BIT) || n.linkCount() != 2) {
       return false;
     }
     OsmLink l1 = n.getFirstLink();
-    if (l1 == null) {
-      return false;
-    }
     OsmLink l2 = l1.getNext( n );
-    if (l2 == null || l2.getNext(n) != null ) {
-      return false;
-    }
     if ( l1.isReverse(n) == l2.isReverse(n) ) {
       return false;
     }

@@ -378,7 +378,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
       LazyArrayOfLists<OsmNode> subs = new LazyArrayOfLists<>(nCaches);
       byte[][] subByteArrays = new byte[nCaches][];
       for (OsmNode n : nodesList) {
-        if (n.getFirstLink() == null)
+        if (n.linkCount() == 0)
           continue;
         if (n.iLon < minLon || n.iLon >= maxLon || n.iLat < minLat || n.iLat >= maxLat)
           continue;
@@ -401,27 +401,11 @@ public class WayLinker extends MapCreatorBase implements Runnable {
           int latIdxDiv = n0.iLat / cellSize;
           MicroCache mc = new MicroCache(size, abBuf2, lonIdxDiv, latIdxDiv, cellSize);
 
-          // sort via treemap
-          TreeMap<Integer, OsmNode> sortedList = new TreeMap<>();
-          for (OsmNode n : subList) {
-            long longId = n.getIdFromPos();
-            int shrinkId = mc.shrinkId(longId);
-            if (mc.expandId(shrinkId) != longId) {
-              throw new IllegalArgumentException("inconstistent shrinking: " + longId + "<->" + mc.expandId(shrinkId) );
-            }
-            sortedList.put(shrinkId, n);
-          }
-
-          for (OsmNode n : sortedList.values()) {
-            mc.writeNodeData(n);
-          }
-          if (mc.getSize() > 0) {
-            int len = mc.encodeMicroCache(abBuf1);
-            byte[] subBytes = new byte[len];
-            System.arraycopy(abBuf1, 0, subBytes, 0, len);
-            pos += subBytes.length + 4; // reserve 4 bytes for crc
-            subByteArrays[si] = subBytes;
-          }
+          int len = mc.encodeMicroCache(subList,abBuf1);
+          byte[] subBytes = new byte[len];
+          System.arraycopy(abBuf1, 0, subBytes, 0, len);
+          pos += subBytes.length + 4; // reserve 4 bytes for crc
+          subByteArrays[si] = subBytes;
         }
         posIdx[si] = pos;
       }

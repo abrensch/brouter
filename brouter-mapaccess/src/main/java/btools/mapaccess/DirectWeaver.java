@@ -25,7 +25,6 @@ public final class DirectWeaver { // extends ByteDataWriter {
     NoisyDiffCoder nodeEleDiff = new NoisyDiffCoder(bc);
     NoisyDiffCoder extLonDiff = new NoisyDiffCoder(bc);
     NoisyDiffCoder extLatDiff = new NoisyDiffCoder(bc);
-    NoisyDiffCoder transEleDiff = new NoisyDiffCoder(bc);
 
     int size = bc.decodeNoisyNumber(5);
 

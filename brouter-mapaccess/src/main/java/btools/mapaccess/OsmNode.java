@@ -91,6 +91,16 @@ public class OsmNode extends OsmLink implements OsmPos {
     return sElev / 4.;
   }
 
+  public int linkCount() {
+    int cnt = 0;
+    OsmLink l = firstLink;
+    while ( l != null ) {
+      cnt++;
+      l = l.getNext(this);
+    }
+    return cnt;
+  }
+
   // populate and return the inherited link, if available,
   // else create a new one
   public OsmLink createLink(OsmNode target) {
