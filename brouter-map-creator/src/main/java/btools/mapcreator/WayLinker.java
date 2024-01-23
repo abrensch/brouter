@@ -409,9 +409,8 @@ public class WayLinker extends MapCreatorBase implements Runnable {
           OsmNode n0 = subList.get(0);
           int lonBase = n0.iLon - n0.iLon % cellSize;
           int latBase = n0.iLat - n0.iLat % cellSize;
-          OsmTile mc = new OsmTile(lonBase, latBase);
 
-          int len = mc.encodeTile(subList,abBuf1);
+          int len = new OsmTile(lonBase, latBase).encodeTile(subList,abBuf1);
           byte[] subBytes = new byte[len];
           System.arraycopy(abBuf1, 0, subBytes, 0, len);
           pos += subBytes.length + 4; // reserve 4 bytes for crc

@@ -114,7 +114,24 @@ public final class OsmTile {
           if (nodeIdx != n) { // internal (forward-) link
             node.createLink(wayTags.data, nodes[nodeIdx]);
           } else { // weave external link
-            node.addLink(linkLon, linkLat, wayTags.data, hollowNodes, isReverse);
+
+            OsmLink link = node.linkForTarget(linkLon,linkLat );
+            if ( link != null ) {
+              link.wayDescription = wayTags.data; // TODO: 2-node-loops?
+            } else {
+              // .. not found, check the hollow nodes
+              OsmNode tn = hollowNodes.get(linkLon, linkLat); // target node
+              if (tn == null) { // node not yet known, create a new hollow proxy
+                tn = new OsmNode(linkLon, linkLat);
+                tn.setHollow();
+                hollowNodes.put(tn);
+              }
+              if (isReverse) {
+                tn.createLink(wayTags.data, node);
+              } else {
+                node.createLink(wayTags.data, tn);
+              }
+            }
             node.visitID = 1;
           }
         }
