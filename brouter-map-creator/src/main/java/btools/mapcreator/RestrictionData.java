@@ -36,17 +36,27 @@ public class RestrictionData extends TurnRestriction {
   public RestrictionData() {
   }
 
-  @Override
-  public boolean validate() {
+  public TurnRestriction validate() {
     boolean valid = fromLon != 0 && toLon != 0 && (restriction.startsWith("only_") || restriction.startsWith("no_"));
-    valid = valid && restriction.indexOf("on_red") < 0; // filter out on-red restrictions
+    valid &= restriction.indexOf("on_red") < 0; // filter out on-red restrictions
     if ((!valid) || badWayMatch || !(checkGeometry())) {
       synchronized (badTRs) {
         badTRs.add(((long) viaLon) << 32 | viaLat);
       }
     }
-    isPositive = restriction.startsWith("only_");
-    return valid && "restriction".equals(restrictionKey);
+    valid &= "restriction".equals(restrictionKey);
+    if ( !valid ) {
+      return null;
+    }
+
+    TurnRestriction tr = new TurnRestriction();
+    tr.isPositive = restriction.startsWith("only_");;
+    tr.exceptions = exceptions;
+    tr.fromLon = fromLon;
+    tr.fromLat = fromLat;
+    tr.toLon = fromLat;
+    tr.toLat = fromLat;
+    return tr;
   }
 
   private boolean checkGeometry() {

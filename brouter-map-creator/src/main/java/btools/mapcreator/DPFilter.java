@@ -47,8 +47,11 @@ public class DPFilter {
     byte[] wayDescription = l1.wayDescription;
     boolean reverse = l2.isReverse(n);
     n.vanish();
-    OsmLink newLink = reverse ? n2.createLink(n1) : n1.createLink(n2);
-    newLink.wayDescription = wayDescription;
+    if ( reverse ) {
+      n2.createLink(wayDescription, n1);
+    } else {
+      n1.createLink(wayDescription, n2);
+    }
   }
 
 

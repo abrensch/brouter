@@ -153,7 +153,7 @@ public final class NodesCache {
       int cellsize = 12500;
       preloadPosition(mwp.waypoint, cellsize);
       // get a second chance
-      if (mwp.crosspoint == null) {
+      if (mwp.crossPoint == null) {
         cellsize = 1000000 / 32;
         preloadPosition(mwp.waypoint, cellsize);
       }
@@ -165,16 +165,16 @@ public final class NodesCache {
     int len = unmatchedWaypoints.size();
     for (int i = 0; i < len; i++) {
       MatchedWaypoint mwp = unmatchedWaypoints.get(i);
-      if (mwp.crosspoint == null) {
+      if (mwp.crossPoint == null) {
         if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
-          mwp.crosspoint = new OsmNode(mwp.waypoint.iLon, mwp.waypoint.iLat);
+          mwp.crossPoint = new OsmNode(mwp.waypoint.iLon, mwp.waypoint.iLat);
           mwp.direct = true;
         } else {
           throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
         }
       }
       if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
-        mwp.crosspoint = new OsmNode(mwp.waypoint.iLon, mwp.waypoint.iLat);
+        mwp.crossPoint = new OsmNode(mwp.waypoint.iLon, mwp.waypoint.iLat);
         mwp.direct = true;
       }
     }

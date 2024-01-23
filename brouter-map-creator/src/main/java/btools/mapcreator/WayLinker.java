@@ -8,13 +8,13 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.List;
-import java.util.TreeMap;
 
 import btools.codec.StatCoderContext;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmNode;
+import btools.mapaccess.OsmTile;
 import btools.mapaccess.TurnRestriction;
 import btools.util.ByteArrayUnifier;
 import btools.util.CompactLongMap;
@@ -318,18 +318,18 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
   @Override
   public void nextWay(WayData way) throws Exception {
-    byte[] description = abUnifier.unify(way.description);
+    byte[] wayDescription = abUnifier.unify(way.description);
 
     // filter according to profile
-    expCtxWay.evaluate(false, description);
+    expCtxWay.evaluate(false, wayDescription);
     boolean ok = expCtxWay.getCostfactor() < 10000.;
-    expCtxWay.evaluate(true, description);
+    expCtxWay.evaluate(true, wayDescription);
     ok |= expCtxWay.getCostfactor() < 10000.;
     if (!ok)
       return;
 
     byte wayBits = 0;
-    expCtxWay.decode(description);
+    expCtxWay.decode(wayDescription);
     if (!expCtxWay.getBooleanLookupValue("bridge"))
       wayBits |= OsmNode.NO_BRIDGE_BIT;
     if (!expCtxWay.getBooleanLookupValue("tunnel"))
@@ -343,10 +343,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
       if (n1 != null && n2 != null && n1 != n2) {
         checkRestriction(n1, n2, way);
-
-        OsmLink link = n1.createLink(n2);
-
-        link.wayDescription = description;
+        n1.createLink(wayDescription,n2);
       }
       if (n2 != null) {
         n2.setBits(wayBits);
@@ -362,13 +359,14 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     borderSet = null;
 
     byte[] abBuf1 = new byte[10 * 1024 * 1024];
-    byte[] abBuf2 = new byte[10 * 1024 * 1024];
 
     int maxLon = minLon + 5000000;
     int maxLat = minLat + 5000000;
 
     // do Douglas Peuker elimination of too dense transfer nodes
     DPFilter.doDPFilter(nodesList);
+
+
 
     {
       // open the output file
@@ -382,6 +380,18 @@ public class WayLinker extends MapCreatorBase implements Runnable {
           continue;
         if (n.iLon < minLon || n.iLon >= maxLon || n.iLat < minLat || n.iLat >= maxLat)
           continue;
+
+        // filter-out invalid TRs
+        TurnRestriction firstValidTR = null;
+        for( TurnRestriction rd = n.firstRestriction; rd != null; rd = rd.next ) {
+          TurnRestriction tr = ((RestrictionData)rd).validate();
+          if ( tr != null ) {
+            tr.next = firstValidTR;
+            firstValidTR = tr;
+          }
+          n.firstRestriction = firstValidTR;
+        }
+
         int subLonIdx = (n.iLon - minLon) / cellSize;
         int subLatIdx = (n.iLat - minLat) / cellSize;
         int si = subLatIdx * divisor + subLonIdx;
@@ -393,15 +403,15 @@ public class WayLinker extends MapCreatorBase implements Runnable {
       int pos = 0;
 
       for (int si = 0; si < nCaches; si++) {
-        List<OsmNode> subList = subs.getList(si);
-        int size = subList.size();
+        int size = subs.getSize(si);
         if (size > 0) {
+          List<OsmNode> subList = subs.getList(si);
           OsmNode n0 = subList.get(0);
-          int lonIdxDiv = n0.iLon / cellSize;
-          int latIdxDiv = n0.iLat / cellSize;
-          MicroCache mc = new MicroCache(size, abBuf2, lonIdxDiv, latIdxDiv, cellSize);
+          int lonBase = n0.iLon - n0.iLon % cellSize;
+          int latBase = n0.iLat - n0.iLat % cellSize;
+          OsmTile mc = new OsmTile(lonBase, latBase);
 
-          int len = mc.encodeMicroCache(subList,abBuf1);
+          int len = mc.encodeTile(subList,abBuf1);
           byte[] subBytes = new byte[len];
           System.arraycopy(abBuf1, 0, subBytes, 0, len);
           pos += subBytes.length + 4; // reserve 4 bytes for crc

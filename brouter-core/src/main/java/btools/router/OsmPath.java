@@ -6,12 +6,11 @@
 package btools.router;
 
 import btools.mapaccess.OsmLink;
-import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.TurnRestriction;
 import btools.util.CheapRuler;
 
-abstract class OsmPath implements OsmLinkHolder {
+abstract class OsmPath {
   /**
    * The cost of that path (a modified distance)
    */
@@ -19,9 +18,9 @@ abstract class OsmPath implements OsmLinkHolder {
 
   // the elevation assumed for that path can have a value
   // if the corresponding node has not
-  public short selev;
+  public short sElev;
 
-  public int airdistance = 0; // distance to endpos
+  public int airDistance = 0; // distance to endpos
 
   protected OsmNode sourceNode;
   protected OsmNode targetNode;
@@ -29,10 +28,7 @@ abstract class OsmPath implements OsmLinkHolder {
   protected OsmLink link;
   public OsmPathElement originElement;
   public OsmPathElement myElement;
-
-  private OsmLinkHolder nextForLink = null;
-
-  public int treedepth = 0;
+  public int treeDepth = 0;
 
   // the position of the waypoint just before
   // this path position (for angle calculation)
@@ -43,7 +39,7 @@ abstract class OsmPath implements OsmLinkHolder {
   protected float lastClassifier;
   protected float lastInitialCost;
 
-  protected int priorityclassifier;
+  protected int priorityClassifier;
 
   private static final int PATH_START_BIT = 1;
   private static final int CAN_LEAVE_DESTINATION_BIT = 2;
@@ -70,7 +66,7 @@ abstract class OsmPath implements OsmLinkHolder {
   public void init(OsmLink link) {
     this.link = link;
     targetNode = link.getTarget(null);
-    selev = targetNode.getSElev();
+    sElev = targetNode.getSElev();
 
     originLon = -1;
     originLat = -1;
@@ -88,9 +84,9 @@ abstract class OsmPath implements OsmLinkHolder {
     this.lastClassifier = origin.lastClassifier;
     this.lastInitialCost = origin.lastInitialCost;
     this.bitfield = origin.bitfield;
-    this.priorityclassifier = origin.priorityclassifier;
+    this.priorityClassifier = origin.priorityClassifier;
     init(origin);
-    addAddionalPenalty(refTrack, detailMode, origin, link, rc);
+    addAdditionalPenalty(refTrack, detailMode, origin, link, rc);
   }
 
   protected abstract void init(OsmPath orig);
@@ -99,27 +95,23 @@ abstract class OsmPath implements OsmLinkHolder {
 
   static int seg = 1;
 
-  protected void addAddionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, OsmLink link, RoutingContext rc) {
+  protected void addAdditionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, OsmLink link, RoutingContext rc) {
     byte[] description = link.wayDescription;
     if (description == null) { // could be a beeline path
       message = new MessageData();
-      if (message != null) {
-        message.turnangle = 0;
-        message.time = (float) 1;
-        message.energy = (float) 0;
-        message.priorityclassifier = 0;
-        message.classifiermask = 0;
-        message.lon = targetNode.getILon();
-        message.lat = targetNode.getILat();
-        message.ele = Short.MIN_VALUE;
-        message.linkdist = sourceNode.calcDistance(targetNode);
-        message.wayKeyValues = "direct_segment=" + seg;
-        seg++;
-      }
+      message.turnangle = 0;
+      message.time = (float) 1;
+      message.energy = (float) 0;
+      message.priorityclassifier = 0;
+      message.classifiermask = 0;
+      message.lon = targetNode.getILon();
+      message.lat = targetNode.getILat();
+      message.ele = Short.MIN_VALUE;
+      message.linkdist = sourceNode.calcDistance(targetNode);
+      message.wayKeyValues = "direct_segment=" + seg;
+      seg++;
       return;
     }
-
-    boolean recordTransferNodes = detailMode;
 
     rc.nogoCost = 0.;
 
@@ -129,9 +121,7 @@ abstract class OsmPath implements OsmLinkHolder {
 
     int lon1 = sourceNode.getILon();
     int lat1 = sourceNode.getILat();
-    short ele1 = origin.selev;
-
-    int linkdisttotal = 0;
+    short ele1 = origin.sElev;
 
     message = detailMode ? new MessageData() : null;
 
@@ -141,23 +131,23 @@ abstract class OsmPath implements OsmLinkHolder {
     rc.expCtxWay.evaluate(rc.inverseDirection ^ isReverse, description);
 
 
-    // calculate the costfactor inputs
-    float costfactor = rc.expCtxWay.getCostfactor();
-    int lastpriorityclassifier = priorityclassifier;
-    priorityclassifier = (int) rc.expCtxWay.getPriorityClassifier();
+    // calculate the costFactor inputs
+    float costFactor = rc.expCtxWay.getCostfactor();
+    int lastPriorityClassifier = priorityClassifier;
+    priorityClassifier = (int) rc.expCtxWay.getPriorityClassifier();
 
     // *** add initial cost if the classifier changed
     float newClassifier = rc.expCtxWay.getInitialClassifier();
     float newInitialCost = rc.expCtxWay.getInitialcost();
     float classifierDiff = newClassifier - lastClassifier;
     if (newClassifier != 0. && lastClassifier != 0. && (classifierDiff > 0.0005 || classifierDiff < -0.0005)) {
-      float initialcost = rc.inverseDirection ? lastInitialCost : newInitialCost;
-      if (initialcost >= 1000000.) {
+      float initialCost = rc.inverseDirection ? lastInitialCost : newInitialCost;
+      if (initialCost >= 1000000.) {
         cost = -1;
         return;
       }
 
-      int iicost = (int) initialcost;
+      int iicost = (int) initialCost;
       if (message != null) {
         message.linkinitcost += iicost;
       }
@@ -167,8 +157,8 @@ abstract class OsmPath implements OsmLinkHolder {
     lastInitialCost = newInitialCost;
 
     // *** destination logic: no destination access in between
-    int classifiermask = (int) rc.expCtxWay.getClassifierMask();
-    boolean newDestination = (classifiermask & 64) != 0;
+    int classifierMask = (int) rc.expCtxWay.getClassifierMask();
+    boolean newDestination = (classifierMask & 64) != 0;
     boolean oldDestination = getBit(IS_ON_DESTINATION_BIT);
     if (getBit(PATH_START_BIT)) {
       setBit(PATH_START_BIT, false);
@@ -213,7 +203,7 @@ abstract class OsmPath implements OsmLinkHolder {
         message = new MessageData();
       }
 
-      int dist = rc.calcDistance(lon1, lat1, lon2, lat2);
+      int distance = rc.calcDistance(lon1, lat1, lon2, lat2);
 
       boolean stopAtEndpoint = false;
       if (rc.shortestmatch) {
@@ -228,7 +218,7 @@ abstract class OsmPath implements OsmLinkHolder {
           lat0 = -1;
           isStartpoint = true;
 
-          if (recordTransferNodes) {
+          if (detailMode) {
             if (rc.wayfraction > 0.) {
               ele1 = interpolateEle(ele1, ele2, 1. - rc.wayfraction);
               originElement = OsmPathElement.create(rc.ilonshortest, rc.ilatshortest, ele1, null);
@@ -238,7 +228,7 @@ abstract class OsmPath implements OsmLinkHolder {
           }
 
           if (rc.checkPendingEndpoint()) {
-            dist = rc.calcDistance(rc.ilonshortest, rc.ilatshortest, lon2, lat2);
+            distance = rc.calcDistance(rc.ilonshortest, rc.ilatshortest, lon2, lat2);
             if (rc.shortestmatch) {
               stopAtEndpoint = true;
               ele2 = interpolateEle(ele1, ele2, rc.wayfraction);
@@ -248,9 +238,8 @@ abstract class OsmPath implements OsmLinkHolder {
       }
 
       if (message != null) {
-        message.linkdist += dist;
+        message.linkdist += distance;
       }
-      linkdisttotal += dist;
 
       // apply a start-direction if appropriate (by faking the origin position)
       if (isStartpoint) {
@@ -280,8 +269,8 @@ abstract class OsmPath implements OsmLinkHolder {
 
       double elevation = ele2 == Short.MIN_VALUE ? 100. : ele2 / 4.;
 
-      double sectionCost = processWaySection(rc, dist, delta_h, elevation, angle, cosangle, isStartpoint, lastpriorityclassifier);
-      if ((sectionCost < 0. || costfactor > 9998. && !detailMode) || sectionCost + cost >= 2000000000.) {
+      double sectionCost = processWaySection(rc, distance, delta_h, elevation, angle, cosangle, isStartpoint, lastPriorityClassifier);
+      if ((sectionCost < 0. || costFactor > 9998. && !detailMode) || sectionCost + cost >= 2000000000.) {
         cost = -1;
         return;
       }
@@ -289,14 +278,14 @@ abstract class OsmPath implements OsmLinkHolder {
       cost += (int) sectionCost;
 
      // compute kinematic
-      computeKinematic(rc, dist, delta_h, detailMode);
+      computeKinematic(rc, distance, delta_h, detailMode);
 
       if (message != null) {
         message.turnangle = (float) angle;
         message.time = (float) getTotalTime();
         message.energy = (float) getTotalEnergy();
-        message.priorityclassifier = priorityclassifier;
-        message.classifiermask = classifiermask;
+        message.priorityclassifier = priorityClassifier;
+        message.classifiermask = classifierMask;
         message.lon = lon2;
         message.lat = lat2;
         message.ele = originEle2;
@@ -304,7 +293,7 @@ abstract class OsmPath implements OsmLinkHolder {
       }
 
       if (stopAtEndpoint) {
-        if (recordTransferNodes) {
+        if (detailMode) {
           originElement = OsmPathElement.create(rc.ilonshortest, rc.ilatshortest, originEle2, originElement);
           originElement.cost = cost;
           if (message != null) {
@@ -319,12 +308,11 @@ abstract class OsmPath implements OsmLinkHolder {
         return;
       }
 
-        // *** penalty for being part of the reference track
-        if (refTrack != null && refTrack.containsNode(targetNode) && refTrack.containsNode(sourceNode)) {
-          int reftrackcost = linkdisttotal;
-          cost += reftrackcost;
-        }
-        selev = ele2;
+      // *** penalty for being part of the reference track
+      if (refTrack != null && refTrack.containsNode(targetNode) && refTrack.containsNode(sourceNode)) {
+        cost += distance;
+      }
+      sElev = ele2;
     }
 
     // check for nogo-matches (after the *actual* start of segment)
@@ -361,8 +349,6 @@ abstract class OsmPath implements OsmLinkHolder {
 
   public abstract int elevationCorrection();
 
-  public abstract boolean definitlyWorseThan(OsmPath p);
-
   public OsmNode getSourceNode() {
     return sourceNode;
   }
@@ -373,15 +359,6 @@ abstract class OsmPath implements OsmLinkHolder {
 
   public OsmLink getLink() {
     return link;
-  }
-
-
-  public void setNextForLink(OsmLinkHolder holder) {
-    nextForLink = holder;
-  }
-
-  public OsmLinkHolder getNextForLink() {
-    return nextForLink;
   }
 
   public double getTotalTime() {

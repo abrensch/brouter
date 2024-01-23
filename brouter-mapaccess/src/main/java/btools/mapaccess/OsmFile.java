@@ -78,14 +78,15 @@ final class OsmFile {
     int latIdx = (iLat-iLatBase) / cellSize;
     int subIdx = latIdx * divisor + lonIdx;
     if ( !microTileDecoded[subIdx] ) {
-      long id64Base = ((long) (lonIdx * cellSize + iLonBase)) << 32 | (latIdx * cellSize + iLatBase);
+      int lonBase = lonIdx * cellSize + iLonBase;
+      int latBase = latIdx * cellSize + iLatBase;
 
-      decodeMicroTileForIndex(subIdx, id64Base, dataBuffers, wayValidator, waypointMatcher, true, hollowNodes);
+      decodeMicroTileForIndex(subIdx, lonBase, latBase, dataBuffers, wayValidator, waypointMatcher, true, hollowNodes);
       microTileDecoded[subIdx] = true;
     }
   }
 
-  public void decodeMicroTileForIndex(int subIdx, long id64Base, DataBuffers dataBuffers, TagValueValidator wayValidator,
+  public void decodeMicroTileForIndex(int subIdx, int lonBase, int latBase, DataBuffers dataBuffers, TagValueValidator wayValidator,
                               WaypointMatcher waypointMatcher, boolean reallyDecode, OsmNodesMap hollowNodes) throws IOException {
     byte[] ab = dataBuffers.iobuffer;
     int asize = getDataInputForSubIdx(subIdx, ab);
@@ -105,7 +106,7 @@ final class OsmFile {
         if (hollowNodes == null) {
           throw new IllegalArgumentException("expected hollowNodes non-null");
         }
-        new DirectWeaver(bc, dataBuffers, id64Base, wayValidator, waypointMatcher, hollowNodes);
+        new OsmTile(lonBase,latBase).decodeTile(bc, dataBuffers, wayValidator, waypointMatcher, hollowNodes);
       }
     } finally {
       // crc check only if the buffer has not been fully read

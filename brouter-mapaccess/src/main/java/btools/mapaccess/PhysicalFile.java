@@ -34,7 +34,7 @@ final public class PhysicalFile {
       int nTiles = 160*160;
       osmf = new OsmFile(f, 0, 0, dataBuffers);
       for (int tileIdx = 0; tileIdx < nTiles; tileIdx++) {
-        osmf.decodeMicroTileForIndex(tileIdx, 0L, dataBuffers, null, null, false, null);
+        osmf.decodeMicroTileForIndex(tileIdx, 0, 0, dataBuffers, null, null, false, null);
       }
     } finally {
       if (osmf != null)

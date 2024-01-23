@@ -81,10 +81,10 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
         (i == 0 ||
           waypoints.get(i - 1).direct)
       ) {
-        if (mwp.crosspoint == null) {
-          mwp.crosspoint = new OsmNode();
-          mwp.crosspoint.iLon = mwp.waypoint.iLon;
-          mwp.crosspoint.iLat = mwp.waypoint.iLat;
+        if (mwp.crossPoint == null) {
+          mwp.crossPoint = new OsmNode();
+          mwp.crossPoint.iLon = mwp.waypoint.iLon;
+          mwp.crossPoint.iLat = mwp.waypoint.iLat;
           mwp.hasUpdate = true;
           anyUpdate = true;
         }
@@ -118,20 +118,20 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
         mwp.hasUpdate = true;
         anyUpdate = true;
         // calculate crosspoint
-        if (mwp.crosspoint == null)
-          mwp.crosspoint = new OsmNode();
+        if (mwp.crossPoint == null)
+          mwp.crossPoint = new OsmNode();
         if (s2 < 0.) {
           double wayfraction = -s2 / (d * d);
           double xm = x2 - wayfraction * dx;
           double ym = y2 - wayfraction * dy;
-          mwp.crosspoint.iLon = (int) (xm / dlon2m + wp.iLon);
-          mwp.crosspoint.iLat = (int) (ym / dlat2m + wp.iLat);
+          mwp.crossPoint.iLon = (int) (xm / dlon2m + wp.iLon);
+          mwp.crossPoint.iLat = (int) (ym / dlat2m + wp.iLat);
         } else if (s1 > s2) {
-          mwp.crosspoint.iLon = lon2;
-          mwp.crosspoint.iLat = lat2;
+          mwp.crossPoint.iLon = lon2;
+          mwp.crossPoint.iLat = lat2;
         } else {
-          mwp.crosspoint.iLon = lon1;
-          mwp.crosspoint.iLat = lat1;
+          mwp.crossPoint.iLon = lon1;
+          mwp.crossPoint.iLat = lat1;
         }
       }
     }
@@ -169,12 +169,12 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
           mw.waypoint = new OsmNode();
           mw.waypoint.iLon = mwp.waypoint.iLon;
           mw.waypoint.iLat = mwp.waypoint.iLat;
-          mw.crosspoint = new OsmNode();
-          mw.crosspoint.iLon = mwp.crosspoint.iLon;
-          mw.crosspoint.iLat = mwp.crosspoint.iLat;
+          mw.crossPoint = new OsmNode();
+          mw.crossPoint.iLon = mwp.crossPoint.iLon;
+          mw.crossPoint.iLat = mwp.crossPoint.iLat;
           mw.node1 = new OsmNode(lonStart, latStart);
           mw.node2 = new OsmNode(lonTarget, latTarget);
-          mw.name = mwp.name + "_w_" + mwp.crosspoint.hashCode();
+          mw.name = mwp.name + "_w_" + mwp.crossPoint.hashCode();
           mw.radius = mwp.radius;
           mw.directionDiff = diff;
           mw.directionToNext = mwp.directionToNext;
@@ -188,12 +188,12 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
           mw.waypoint = new OsmNode();
           mw.waypoint.iLon = mwp.waypoint.iLon;
           mw.waypoint.iLat = mwp.waypoint.iLat;
-          mw.crosspoint = new OsmNode();
-          mw.crosspoint.iLon = mwp.crosspoint.iLon;
-          mw.crosspoint.iLat = mwp.crosspoint.iLat;
+          mw.crossPoint = new OsmNode();
+          mw.crossPoint.iLon = mwp.crossPoint.iLon;
+          mw.crossPoint.iLat = mwp.crossPoint.iLat;
           mw.node1 = new OsmNode(lonTarget, latTarget);
           mw.node2 = new OsmNode(lonStart, latStart);
-          mw.name = mwp.name + "_w2_" + mwp.crosspoint.hashCode();
+          mw.name = mwp.name + "_w2_" + mwp.crossPoint.hashCode();
           mw.radius = mwp.radius;
           mw.directionDiff = diff;
           mw.directionToNext = mwp.directionToNext;
@@ -201,8 +201,8 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
           updateWayList(mwp.wayNearest, mw);
 
           MatchedWaypoint way = mwp.wayNearest.get(0);
-          mwp.crosspoint.iLon = way.crosspoint.iLon;
-          mwp.crosspoint.iLat = way.crosspoint.iLat;
+          mwp.crossPoint.iLon = way.crossPoint.iLon;
+          mwp.crossPoint.iLat = way.crossPoint.iLat;
           mwp.node1 = new OsmNode(way.node1.iLon, way.node1.iLat);
           mwp.node2 = new OsmNode(way.node2.iLon, way.node2.iLat);
           mwp.directionDiff = way.directionDiff;

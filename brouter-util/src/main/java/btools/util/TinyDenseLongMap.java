@@ -5,7 +5,7 @@ package btools.util;
  * but actually is made for a medium count of non-dense keys
  * <p>
  * It's used as a replacement for DenseLongMap where we
- * have limited memory and far less keys than maykey
+ * have limited memory and far less keys than max-key
  *
  * @author ab
  */

@@ -17,10 +17,6 @@ public class TurnRestriction {
 
   public TurnRestriction next;
 
-  public boolean validate() {
-    return true; // Runtime TR is always valid
-  }
-
   public boolean exceptBikes() {
     return (exceptions & 1) != 0;
   }

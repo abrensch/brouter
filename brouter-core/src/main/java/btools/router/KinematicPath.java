@@ -82,7 +82,7 @@ final class KinematicPath extends OsmPath {
             hasResidential = true;
           }
 
-          if (pp.priorityclassifier > priorityclassifier || pp.priorityclassifier == priorityclassifier && priorityclassifier < 20) {
+          if (pp.priorityclassifier > priorityClassifier || pp.priorityclassifier == priorityClassifier && priorityClassifier < 20) {
             double diff = pp.angle - angle;
             if (diff < -40. && diff > -140.) hasLeftWay = true;
             if (diff > 40. && diff < 140.) hasRightWay = true;
@@ -94,12 +94,12 @@ final class KinematicPath extends OsmPath {
         if (hasRightWay && junctionspeed > km.rightWaySpeed) junctionspeed = km.rightWaySpeed;
         if (hasResidential && junctionspeed > residentialSpeed) junctionspeed = residentialSpeed;
 
-        if ((lastpriorityclassifier < 20) ^ (priorityclassifier < 20)) {
+        if ((lastpriorityclassifier < 20) ^ (priorityClassifier < 20)) {
           extraTime += 10.;
           junctionspeed = 0; // full stop for entering or leaving road network
         }
 
-        if (lastpriorityclassifier != priorityclassifier && (classifiermask & 8) != 0) {
+        if (lastpriorityclassifier != priorityClassifier && (classifiermask & 8) != 0) {
           extraTime += 2.; // two seconds for entering a link-type
         }
         turnspeed = turnspeed > junctionspeed ? junctionspeed : turnspeed;
@@ -242,14 +242,6 @@ final class KinematicPath extends OsmPath {
   @Override
   public int elevationCorrection() {
     return 0;
-  }
-
-  @Override
-  public boolean definitlyWorseThan(OsmPath path) {
-    KinematicPath p = (KinematicPath) path;
-
-    int c = p.cost;
-    return cost > c + 100;
   }
 
   @Override

@@ -103,17 +103,14 @@ public class OsmNode extends OsmLink implements OsmPos {
 
   // populate and return the inherited link, if available,
   // else create a new one
-  public OsmLink createLink(OsmNode target) {
-    OsmLink link = isLinkUnused() ? this : new OsmLink();
+  public OsmLink createLink(byte[] wayDescription, OsmNode target) {
+    OsmLink link = isLinkUnused() ? this : (target.isLinkUnused() ? target : new OsmLink() );
+    link.wayDescription = wayDescription;
     addLink(link, false, target);
     return link;
   }
 
   public final void addLink(OsmLink link, boolean isReverse, OsmNode tn) {
-    if (link == firstLink) {
-      throw new IllegalArgumentException("UUUUPS");
-    }
-
     if (isReverse) {
       link.sourceNode = tn;
       link.targetNode = this;

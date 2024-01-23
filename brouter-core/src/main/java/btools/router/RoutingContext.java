@@ -273,7 +273,7 @@ public final class RoutingContext {
     for (int i = 0; i < theSize; i++) {
       MatchedWaypoint mwp = matchedWaypoints.get(i);
       boolean isInsideNogo = false;
-      OsmNode wp = mwp.crosspoint;
+      OsmNode wp = mwp.crossPoint;
       for (OsmNodeNamed nogo : nogopoints) {
         if (Double.isNaN(nogo.nogoWeight)
           && wp.calcDistance(nogo) < nogo.radius

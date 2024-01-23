@@ -207,11 +207,6 @@ public final class OsmNodesMap {
     }
   }
 
-
-  public ByteArrayUnifier getByteArrayUnifier() {
-    return abUnifier;
-  }
-
   /**
    * Get a node from the map
    *

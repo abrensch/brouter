@@ -14,7 +14,7 @@ import java.util.ArrayList;
 public final class MatchedWaypoint {
   public OsmNode node1;
   public OsmNode node2;
-  public OsmNode crosspoint;
+  public OsmNode crossPoint;
   public OsmNode waypoint;
   public String name;  // waypoint name used in error messages
   public double radius;  // distance in meter between waypoint and crosspoint
@@ -31,8 +31,8 @@ public final class MatchedWaypoint {
     dos.writeInt(node1.iLon);
     dos.writeInt(node2.iLat);
     dos.writeInt(node2.iLon);
-    dos.writeInt(crosspoint.iLat);
-    dos.writeInt(crosspoint.iLon);
+    dos.writeInt(crossPoint.iLat);
+    dos.writeInt(crossPoint.iLon);
     dos.writeInt(waypoint.iLat);
     dos.writeInt(waypoint.iLon);
     dos.writeDouble(radius);
@@ -42,15 +42,15 @@ public final class MatchedWaypoint {
     MatchedWaypoint mwp = new MatchedWaypoint();
     mwp.node1 = new OsmNode();
     mwp.node2 = new OsmNode();
-    mwp.crosspoint = new OsmNode();
+    mwp.crossPoint = new OsmNode();
     mwp.waypoint = new OsmNode();
 
     mwp.node1.iLat = dis.readInt();
     mwp.node1.iLon = dis.readInt();
     mwp.node2.iLat = dis.readInt();
     mwp.node2.iLon = dis.readInt();
-    mwp.crosspoint.iLat = dis.readInt();
-    mwp.crosspoint.iLon = dis.readInt();
+    mwp.crossPoint.iLat = dis.readInt();
+    mwp.crossPoint.iLon = dis.readInt();
     mwp.waypoint.iLat = dis.readInt();
     mwp.waypoint.iLon = dis.readInt();
     mwp.radius = dis.readDouble();

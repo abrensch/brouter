@@ -173,23 +173,6 @@ final class StdPath extends OsmPath {
       + (uphillcostdiv > 0 ? ehbu / uphillcostdiv : 0);
   }
 
-  @Override
-  public boolean definitlyWorseThan(OsmPath path) {
-    StdPath p = (StdPath) path;
-
-    int c = p.cost;
-    if (p.downhillcostdiv > 0) {
-      int delta = p.ehbd / p.downhillcostdiv - (downhillcostdiv > 0 ? ehbd / downhillcostdiv : 0);
-      if (delta > 0) c += delta;
-    }
-    if (p.uphillcostdiv > 0) {
-      int delta = p.ehbu / p.uphillcostdiv - (uphillcostdiv > 0 ? ehbu / uphillcostdiv : 0);
-      if (delta > 0) c += delta;
-    }
-
-    return cost > c;
-  }
-
   private double calcIncline(double dist) {
     double min_delta = 3.;
     double shift = 0.;
