@@ -6,6 +6,7 @@ dependencies {
     implementation project(':brouter-util')
     implementation project(':brouter-codec')
     implementation project(':brouter-expressions')
+    implementation project(':brouter-statcoding')
     testImplementation 'junit:junit:4.13.2'
 }
 

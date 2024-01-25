@@ -1,28 +1,16 @@
 package btools.mapcreator;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 
 import btools.codec.StatCoderContext;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
-import btools.mapaccess.OsmLink;
-import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmTile;
-import btools.mapaccess.TurnRestriction;
-import btools.util.ByteArrayUnifier;
-import btools.util.CompactLongMap;
-import btools.util.CompactLongSet;
-import btools.util.Crc32;
-import btools.util.FrozenLongMap;
-import btools.util.FrozenLongSet;
-import btools.util.LazyArrayOfLists;
+import btools.mapaccess.*;
+import btools.statcoding.BitOutputStream;
+import btools.statcoding.codecs.AdaptiveDiffEncoder;
+import btools.util.*;
 
 /**
  * WayLinker finally puts the pieces together to create the rd5 files. For each
@@ -44,10 +32,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
   private CompactLongMap<OsmNode> nodesMap;
   private List<OsmNode> nodesList;
   private CompactLongSet borderSet;
-  private short lookupVersion;
-  private short lookupMinorVersion;
-
-  private long creationTimeStamp;
 
   private BExpressionContextWay expCtxWay;
 
@@ -155,12 +139,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     expCtxWay = new BExpressionContextWay(meta);
     meta.readMetaData(lookupFile);
 
-    lookupVersion = meta.lookupVersion;
-    lookupMinorVersion = meta.lookupMinorVersion;
-
     expCtxWay.parseFile(profileFile, "global");
-
-    creationTimeStamp = System.currentTimeMillis();
 
     abUnifier = new ByteArrayUnifier(16384, false);
   }
@@ -353,12 +332,10 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
   @Override
   public void wayFileEnd(File wayfile) throws Exception {
-    int nCaches = divisor * divisor;
 
     nodesMap = null;
     borderSet = null;
 
-    byte[] abBuf1 = new byte[10 * 1024 * 1024];
 
     int maxLon = minLon + 5000000;
     int maxLat = minLat + 5000000;
@@ -366,79 +343,31 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     // do Douglas Peuker elimination of too dense transfer nodes
     DPFilter.doDPFilter(nodesList);
 
+    // filter out irrelevant nodes (also those that where dropped in DP-elimination)
+    ArrayList<OsmNode> filteredNodesList = new ArrayList<>(nodesList.size());
+    for (OsmNode n : nodesList) {
+      if (n.linkCount() == 0)
+        continue;
+      if (n.iLon < minLon || n.iLon >= maxLon || n.iLat < minLat || n.iLat >= maxLat)
+        continue;
+      filteredNodesList.add(n);
 
-
-    {
-      // open the output file
-      File outfile = fileFromTemplate(wayfile, dataTilesOut, dataTilesSuffix);
-      DataOutputStream os = createOutStream(outfile);
-
-      LazyArrayOfLists<OsmNode> subs = new LazyArrayOfLists<>(nCaches);
-      byte[][] subByteArrays = new byte[nCaches][];
-      for (OsmNode n : nodesList) {
-        if (n.linkCount() == 0)
-          continue;
-        if (n.iLon < minLon || n.iLon >= maxLon || n.iLat < minLat || n.iLat >= maxLat)
-          continue;
-
-        // filter-out invalid TRs
-        TurnRestriction firstValidTR = null;
-        for( TurnRestriction rd = n.firstRestriction; rd != null; rd = rd.next ) {
-          TurnRestriction tr = ((RestrictionData)rd).validate();
-          if ( tr != null ) {
-            tr.next = firstValidTR;
-            firstValidTR = tr;
-          }
-          n.firstRestriction = firstValidTR;
-        }
-
-        int subLonIdx = (n.iLon - minLon) / cellSize;
-        int subLatIdx = (n.iLat - minLat) / cellSize;
-        int si = subLatIdx * divisor + subLonIdx;
-        subs.getList(si).add(n);
-      }
-      nodesList = null;
-      subs.trimAll();
-      int[] posIdx = new int[nCaches];
-      int pos = 0;
-
-      for (int si = 0; si < nCaches; si++) {
-        int size = subs.getSize(si);
-        if (size > 0) {
-          List<OsmNode> subList = subs.getList(si);
-          OsmNode n0 = subList.get(0);
-          int lonBase = n0.iLon - n0.iLon % cellSize;
-          int latBase = n0.iLat - n0.iLat % cellSize;
-
-          int len = new OsmTile(lonBase, latBase).encodeTile(subList,abBuf1);
-          byte[] subBytes = new byte[len];
-          System.arraycopy(abBuf1, 0, subBytes, 0, len);
-          pos += subBytes.length + 4; // reserve 4 bytes for crc
-          subByteArrays[si] = subBytes;
-        }
-        posIdx[si] = pos;
-      }
-      byte[] abSubIndex = compileIndex(posIdx);
-      os.write(abSubIndex, 0, abSubIndex.length);
-      for (int si = 0; si < nCaches; si++) {
-        byte[] ab = subByteArrays[si];
-        if (ab != null) {
-          os.write(ab);
-          os.writeInt(Crc32.crc(ab, 0, ab.length));
+      // filter-out invalid TRs
+      TurnRestriction rd = n.firstRestriction;
+      n.firstRestriction = null;
+      while (rd != null) {
+        TurnRestriction tr = ((RestrictionData) rd).validate();
+        rd = rd.next;
+        if (tr != null) {
+          n.addTurnRestriction(tr);
         }
       }
-      os.close();
     }
-    System.out.println("**** codec stats: *******\n" + StatCoderContext.getBitReport());
-  }
+    nodesList = null;
+    filteredNodesList.trimToSize();
 
-  private byte[] compileIndex(int[] posIdx) throws Exception {
-    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    DataOutputStream dos = new DataOutputStream(bos);
-    for (int pos : posIdx) {
-      dos.writeInt(pos);
-    }
-    dos.close();
-    return bos.toByteArray();
+    // and write the filtered nodes to a file
+    File outFile = fileFromTemplate(wayfile, dataTilesOut, dataTilesSuffix);
+    new OsmFile( outFile, minLon, minLat).createWithNodes( filteredNodesList );
   }
 }

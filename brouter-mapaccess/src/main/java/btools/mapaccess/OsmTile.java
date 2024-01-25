@@ -56,19 +56,15 @@ public final class OsmTile {
       OsmNode node = nodes[n];
 
       // future escapes (turn restrictions?)
-      short trExceptions = 0;
       for (; ; ) {
         int featureId = bc.decodeVarBits();
         if (featureId == 0) break;
         int bitsize = bc.decodeNoisyNumber(5);
 
-        if (featureId == 2) { // exceptions to turn-restriction
-          trExceptions = (short) bc.decodeBounded(1023);
-        } else if (featureId == 1) { // turn-restriction
+        if (featureId == 1) { // turn-restriction
           TurnRestriction tr = new TurnRestriction();
-          tr.exceptions = trExceptions;
-          trExceptions = 0;
           tr.isPositive = bc.decodeBit();
+          tr.exceptions = (short) bc.decodeBounded(1023);;
           tr.fromLon = node.iLon + bc.decodeNoisyDiff(10);
           tr.fromLat = node.iLat + bc.decodeNoisyDiff(10);
           tr.toLon = node.iLon + bc.decodeNoisyDiff(10);
@@ -234,20 +230,15 @@ public final class OsmTile {
         // write turn restrictions
         TurnRestriction tr = node.firstRestriction;
         while (tr != null) {
-          short exceptions = tr.exceptions; // except bikes, psv, ...
-          if (exceptions != 0) {
-            bc.encodeVarBits(2); // 2 = tr exceptions
-            bc.encodeNoisyNumber(10, 5); // bit-count
-            bc.encodeBounded(1023, exceptions & 1023);
-          }
           bc.encodeVarBits(1); // 1 = turn restriction
           bc.encodeNoisyNumber(restrictionBits.getNext(), 5); // bit-count using look-ahead fifo
           long b0 = bc.getWritingBitPosition();
-          bc.encodeBit(tr.isPositive); // isPositive
-          bc.encodeNoisyDiff(tr.fromLon - ilon, 10); // fromLon
-          bc.encodeNoisyDiff(tr.fromLat - ilat, 10); // fromLat
-          bc.encodeNoisyDiff(tr.toLon - ilon, 10); // toLon
-          bc.encodeNoisyDiff(tr.toLat - ilat, 10); // toLat
+          bc.encodeBit(tr.isPositive);
+          bc.encodeBounded(1023, tr.exceptions & 1023);
+          bc.encodeNoisyDiff(tr.fromLon - ilon, 10);
+          bc.encodeNoisyDiff(tr.fromLat - ilat, 10);
+          bc.encodeNoisyDiff(tr.toLon - ilon, 10);
+          bc.encodeNoisyDiff(tr.toLat - ilat, 10);
           restrictionBits.add((int) (bc.getWritingBitPosition() - b0));
           tr = tr.next;
         }

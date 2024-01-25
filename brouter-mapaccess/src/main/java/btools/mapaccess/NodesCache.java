@@ -62,7 +62,7 @@ public final class NodesCache {
       if (osmf == null) {
         return false;
       }
-      osmf.checkDecodeMicroTile(ilon, ilat, dataBuffers, expCtxWay, waypointMatcher, nodesMap);
+      osmf.checkDecodeTile(ilon, ilat, dataBuffers, expCtxWay, waypointMatcher, nodesMap);
       return true;
     } catch (IOException re) {
       throw new RuntimeException(re.getMessage());
@@ -223,7 +223,8 @@ public final class NodesCache {
     }
     OsmFile osmf = null;
     if (f != null) {
-      osmf = new OsmFile(f, iLonBase, iLatBase, dataBuffers);
+      osmf = new OsmFile(f, iLonBase, iLatBase);
+      osmf.openForReading();
     }
     fileCache.put(filenameBase, osmf);
 

@@ -18,6 +18,9 @@ public class BitOutputStream extends OutputStream implements DataOutput {
     private int bits; // bits left in buffer
     private long b; // buffer word
     private long bytesWritten;
+    private boolean crcEnabled;
+    private long currentCrc;
+
 
     protected final OutputStream out;
     private DataOutputStream dos; // created lazily if needed
@@ -43,9 +46,15 @@ public class BitOutputStream extends OutputStream implements DataOutput {
 
     private void writeInternal(int b) throws IOException {
         out.write(b);
-        bytesWritten++;
+        countBytes(b);
     }
 
+  private void countBytes(int b) {
+      bytesWritten++;
+      if (crcEnabled) {
+          currentCrc = Crc64.update(currentCrc, b);
+      }
+  }
     private void flushBuffer() throws IOException {
         while (bits > 7) {
             writeHighByte(b);
@@ -61,6 +70,20 @@ public class BitOutputStream extends OutputStream implements DataOutput {
             bits -= 8;
         }
         bits = 0;
+    }
+
+    public void startCRC() {
+        crcEnabled = true;
+        currentCrc = 0L;
+    }
+
+    public long finishCRC() throws IOException {
+        if ( !crcEnabled ) {
+            throw new RuntimeException( "crc not enabled!" );
+        }
+        flushBufferAndReAlign();
+        crcEnabled = false;
+        return currentCrc;
     }
 
     /**
@@ -98,14 +121,18 @@ public class BitOutputStream extends OutputStream implements DataOutput {
     public void write(int b) throws IOException {
         flushBufferAndReAlign();
         out.write(b);
-        bytesWritten++;
+        countBytes(b);
     }
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
         flushBufferAndReAlign();
         out.write(b, off, len);
-        bytesWritten += len;
+        int p = off;
+        int end = p+len;
+        while (p<end) {
+            countBytes(b[p++]);
+        }
     }
 
     /**

@@ -18,7 +18,7 @@ public class IntegrityCheckTest {
     assertNotNull("Missing segments", files);
 
     for (File f : files) {
-      assertNull(PhysicalFile.checkFileIntegrity(f));
+      assertNull(OsmFile.checkFileIntegrity(f));
     }
   }
 
