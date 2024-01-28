@@ -74,7 +74,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
 
     public void startCRC() {
         crcEnabled = true;
-        currentCrc = 0L;
+        currentCrc = -1L;
     }
 
     public long finishCRC() throws IOException {
@@ -342,14 +342,14 @@ public class BitOutputStream extends OutputStream implements DataOutput {
      */
     public final void encodeUnsignedVarBits(long value, int noisyBits) throws IOException {
         checkNoisyRange( noisyBits );
-        if (value < 0) {
-            throw new IllegalArgumentException("encodeUnsignedVarBits expects non-negative value but is: " + value);
-        }
-        encodeUnsignedVarBits( value >>> noisyBits );
+        encodeUnsignedVarBits( value >> noisyBits );
         encodeBits(noisyBits,value);
     }
 
-    private void encodeUnsignedVarBits(long value) throws IOException {
+    public void encodeUnsignedVarBits(long value) throws IOException {
+        if (value < 0) {
+          throw new IllegalArgumentException("encodeUnsignedVarBits expects non-negative value but is: " + value);
+        }
         int nBits = 0;
         while (nBits < 63 && value >= 1L << nBits ) {
             value -= 1L << nBits++;

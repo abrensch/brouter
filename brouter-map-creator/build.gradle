@@ -11,5 +11,5 @@ dependencies {
 
     implementation group: 'org.openstreetmap.osmosis', name: 'osmosis-osm-binary', version: '0.48.3'
 
-    testImplementation('junit:junit:4.13.1')
+    testImplementation('junit:junit:4.13.2')
 }

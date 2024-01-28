@@ -4,12 +4,9 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import btools.codec.StatCoderContext;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.*;
-import btools.statcoding.BitOutputStream;
-import btools.statcoding.codecs.AdaptiveDiffEncoder;
 import btools.util.*;
 
 /**
@@ -39,8 +36,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
   private int minLon;
   private int minLat;
-  private final int divisor = 160;
-  private final int cellSize = 5000000 / divisor;
 
   private boolean isSlave;
   private ThreadController tc;
@@ -368,6 +363,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
     // and write the filtered nodes to a file
     File outFile = fileFromTemplate(wayfile, dataTilesOut, dataTilesSuffix);
-    new OsmFile( outFile, minLon, minLat).createWithNodes( filteredNodesList );
+    new OsmFile( outFile, minLon, minLat, new byte[10*1024*1024]).createWithNodes( filteredNodesList );
   }
 }

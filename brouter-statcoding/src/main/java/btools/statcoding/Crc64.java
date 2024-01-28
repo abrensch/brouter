@@ -34,8 +34,15 @@ public class Crc64 {
         }
     }
     public static long update(long crc, int b) {
-        long v = ~crc;
-        v = table[(int) ((v ^ b) & 0xff)] ^ (v >>> 8);
-        return ~v;
+        return table[(int) ((crc ^ b) & 0xff)] ^ (crc >>> 8);
     }
+
+  public static long crc(byte[] ab, int offset, int len) {
+    long crc = -1L;
+    int end = offset + len;
+    for (int j = offset; j < end; j++) {
+      crc = update(crc, ab[j]);
+    }
+    return crc;
+  }
 }

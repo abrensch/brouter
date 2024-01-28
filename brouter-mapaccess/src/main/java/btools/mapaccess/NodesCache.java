@@ -223,7 +223,7 @@ public final class NodesCache {
     }
     OsmFile osmf = null;
     if (f != null) {
-      osmf = new OsmFile(f, iLonBase, iLatBase);
+      osmf = new OsmFile(f, iLonBase, iLatBase, dataBuffers.iobuffer);
       osmf.openForReading();
     }
     fileCache.put(filenameBase, osmf);

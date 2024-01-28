@@ -1,14 +1,16 @@
 package btools.util;
 
+import btools.statcoding.Crc64;
+
 public final class ByteArrayUnifier implements IByteArrayUnifier {
-  private byte[][] byteArrayCache;
-  private int[] crcCrosscheck;
-  private int size;
+  private final byte[][] byteArrayCache;
+  private long[] crcCrosscheck;
+  private final int size;
 
   public ByteArrayUnifier(int size, boolean validateImmutability) {
     this.size = size;
     byteArrayCache = new byte[size][];
-    if (validateImmutability) crcCrosscheck = new int[size];
+    if (validateImmutability) crcCrosscheck = new long[size];
   }
 
   /**
@@ -24,8 +26,8 @@ public final class ByteArrayUnifier implements IByteArrayUnifier {
   }
 
   public byte[] unify(byte[] ab, int offset, int len) {
-    int crc = Crc32.crc(ab, offset, len);
-    int idx = (crc & 0xfffffff) % size;
+    long crc = Crc64.crc(ab, offset, len);
+    int idx = ((int)crc & 0xfffffff) % size;
     byte[] abc = byteArrayCache[idx];
     if (abc != null && abc.length == len) {
       int i = 0;
@@ -39,10 +41,10 @@ public final class ByteArrayUnifier implements IByteArrayUnifier {
     }
     if (crcCrosscheck != null) {
       if (byteArrayCache[idx] != null) {
-        byte[] abold = byteArrayCache[idx];
-        int crcold = Crc32.crc(abold, 0, abold.length);
-        if (crcold != crcCrosscheck[idx])
-          throw new IllegalArgumentException("ByteArrayUnifier: immutablity validation failed!");
+        byte[] abOld = byteArrayCache[idx];
+        long crcOld = Crc64.crc(abOld, 0, abOld.length);
+        if (crcOld != crcCrosscheck[idx])
+          throw new IllegalArgumentException("ByteArrayUnifier: immutability validation failed!");
       }
       crcCrosscheck[idx] = crc;
     }

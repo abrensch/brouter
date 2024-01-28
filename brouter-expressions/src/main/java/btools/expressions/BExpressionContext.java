@@ -19,8 +19,8 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.Locale;
 
+import btools.statcoding.Crc64;
 import btools.util.BitCoderContext;
-import btools.util.Crc32;
 import btools.util.IByteArrayUnifier;
 import btools.util.LruMap;
 
@@ -328,7 +328,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   // @Override
   public final byte[] unify(byte[] ab, int offset, int len) {
     probeCacheNode.ab = null; // crc based cache lookup only
-    probeCacheNode.hash = Crc32.crc(ab, offset, len);
+    probeCacheNode.hash = (int) Crc64.crc(ab, offset, len);
 
     CacheNode cn = (CacheNode) cache.get(probeCacheNode);
     if (cn != null) {
@@ -371,7 +371,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       cn = lastCacheNode;
     } else {
       probeCacheNode.ab = ab;
-      probeCacheNode.hash = Crc32.crc(ab, 0, ab.length);
+      probeCacheNode.hash = (int)Crc64.crc(ab, 0, ab.length);
       cn = (CacheNode) cache.get(probeCacheNode);
     }
 

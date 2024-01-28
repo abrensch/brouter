@@ -9,7 +9,6 @@ public final class DataBuffers {
   public byte[] iobuffer;
   public byte[] tagbuf1 = new byte[256];
   public BitCoderContext bctx1 = new BitCoderContext(tagbuf1);
-  public int[] ibuf2 = new int[2048];
 
   public DataBuffers() {
     this(new byte[102400]);

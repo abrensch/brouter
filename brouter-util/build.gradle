@@ -3,5 +3,6 @@ plugins {
 }
 
 dependencies {
-	testImplementation('junit:junit:4.13.1')
+    implementation project(':brouter-statcoding')
+    testImplementation 'junit:junit:4.13.2'
 }

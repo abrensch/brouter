@@ -23,6 +23,7 @@ public class BitInputStream extends InputStream implements DataInput {
     private int bits; // bits left in buffer
     private int eofBits; // dummy bits read after eof
     private long b; // buffer word
+    private long bytesRead;
 
     protected InputStream in;
     private DataInputStream dis; // created lazily if needed
@@ -141,7 +142,7 @@ public class BitInputStream extends InputStream implements DataInput {
 
     @Override
     public int available() throws IOException {
-        return (bits >> 3) + in.available();
+        return Math.max( 0, (bits >> 3) + in.available() - (eofBits >> 3));
     }
 
     @Override

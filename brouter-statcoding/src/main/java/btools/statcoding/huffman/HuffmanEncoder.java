@@ -21,7 +21,7 @@ public abstract class HuffmanEncoder<V> {
 
     private final HashMap<Object, TreeNode> symbols = new HashMap<>();
     private int pass;
-    private long nextTagValueSetId;
+    private long nextDistinctObjectId;
 
     /**
      * Encode an object. In pass 1 this gathers statistics, in pass 2 this actually
@@ -38,7 +38,7 @@ public abstract class HuffmanEncoder<V> {
             bos.encodeBits(tn.bits, tn.code);
         } else {
             if (tn == null) {
-                tn = new TreeNode(nextTagValueSetId++);
+                tn = new TreeNode(nextDistinctObjectId++);
                 tn.obj = obj;
                 symbols.put(obj, tn);
             }
@@ -67,7 +67,7 @@ public abstract class HuffmanEncoder<V> {
                         new TreeNode.FrequencyComparator());
                 queue.addAll(symbols.values());
                 while (queue.size() > 1) {
-                    TreeNode node = new TreeNode(nextTagValueSetId++);
+                    TreeNode node = new TreeNode(nextDistinctObjectId++);
                     node.child1 = queue.poll();
                     node.child2 = queue.poll();
                     node.frequency = node.child1.frequency + node.child2.frequency;
