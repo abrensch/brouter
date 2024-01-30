@@ -98,10 +98,10 @@ public final class VoiceHintProcessor {
       }
       if (roundaboutExit > 0) {
         roundAboutTurnAngle += sumNonConsumedWithinCatchingRange(inputs, hintIdx);
-        double startTurn = (roundaboudStartIdx != -1 ? inputs.get(roundaboudStartIdx).goodWay.turnangle : turnAngle);
+        double startTurn = (roundaboudStartIdx != -1 ? inputs.get(roundaboudStartIdx + 1).goodWay.turnangle : turnAngle);
         input.angle = roundAboutTurnAngle;
         input.distanceToNext = distance;
-        input.roundaboutExit = startTurn < 0 ? -roundaboutExit : roundaboutExit;
+        input.roundaboutExit = startTurn < 0 ? roundaboutExit : -roundaboutExit;
         distance = 0.;
         results.add(input);
         roundAboutTurnAngle = 0.f;
@@ -284,15 +284,14 @@ public final class VoiceHintProcessor {
                 inputLastSaved.distanceToNext += input.distanceToNext;
               }
             }
-          }
-          else {
+          } else {
             // add all others
             // ignore motorway / primary continue
-            if (
-                ((input.goodWay.getPrio() != 28) &&
-                 (input.goodWay.getPrio() != 30) &&
-                 (input.goodWay.getPrio() != 26))
-                || Math.abs(input.angle) > 5.f) { // motorway / primary exit
+            if (((input.goodWay.getPrio() != 28) &&
+                (input.goodWay.getPrio() != 30) &&
+                (input.goodWay.getPrio() != 26))
+                || input.isRoundabout()
+                || Math.abs(input.angle) > 21.f) {
               results.add(input);
               inputLastSaved = input;
             } else {
@@ -314,8 +313,7 @@ public final class VoiceHintProcessor {
             if (input.goodWay.getPrio() < input.maxBadPrio) {
               if (inputLastSaved != null && inputLastSaved.cmd != VoiceHint.C
                   && (inputLastSaved != null && inputLastSaved.distanceToNext > minRange)
-                  && transportMode != VoiceHintList.TRANS_MODE_CAR)
-              {
+                  && transportMode != VoiceHintList.TRANS_MODE_CAR) {
                 // add when straight and not linktype
                 // and last vh not straight
                 save = true;
@@ -353,8 +351,8 @@ public final class VoiceHintProcessor {
             // add when angle above 22.5 deg
             save = true;
           } else if (Math.abs(input.angle) < SIGNIFICANT_ANGLE) {
-            // add when angle below 22.5 deg
-            save = true;
+            // add when angle below 22.5 deg ???
+            // save = true;
           } else {
             // otherwise ignore but add distance to next
             if (nextInput != null) { // when drop add distance to last
