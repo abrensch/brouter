@@ -1,10 +1,13 @@
 package btools.mapaccess;
 
-import btools.codec.*;
 import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
 import btools.statcoding.codecs.AdaptiveDiffDecoder;
 import btools.statcoding.codecs.AdaptiveDiffEncoder;
+import btools.statcoding.huffman.HuffmanDecoder;
+import btools.statcoding.huffman.HuffmanEncoder;
+import btools.util.SimpleByteArrayOutputStream;
+import btools.util.TagValueValidator;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -28,23 +31,113 @@ public final class OsmTile {
     this.latBase = latBase;
   }
 
+  private long[] shringIDs;
+  private OsmNode[] nodes;
+  private OsmNodesMap hollowNodes;
+
   public int decodeTile(byte[] buffer, DataBuffers dataBuffers, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) throws IOException {
 
     BitInputStream bis = new BitInputStream( new ByteArrayInputStream( buffer ) );
     TagValueDecoder wayTagDecoder = new TagValueDecoder(dataBuffers,wayValidator);
     TagValueDecoder nodeTagDecoder = new TagValueDecoder(dataBuffers,null);
-    AdaptiveDiffDecoder nodeIdxDiff = new AdaptiveDiffDecoder(bis);
+    HuffmanDecoder<Integer> indexDeltaDecoder  = new HuffmanDecoder<>() {
+      protected Integer decodeObjectFromStream() throws IOException {
+        return (int)bis.decodeBits(5); // 0=no more link 1=big delta 2..30 = delta+16
+      }
+    };
+
+
     AdaptiveDiffDecoder nodeEleDiff = new AdaptiveDiffDecoder(bis);
     AdaptiveDiffDecoder extLonDiff = new AdaptiveDiffDecoder(bis);
     AdaptiveDiffDecoder extLatDiff = new AdaptiveDiffDecoder(bis);
     wayTagDecoder.init( bis, 10 );
     nodeTagDecoder.init( bis, 10 );
-    long[] shringIDs = bis.decodeUniqueSortedArray();
+    indexDeltaDecoder.init( bis, 7 );
+    shringIDs = bis.decodeUniqueSortedArray();
     int size = shringIDs.length;
+    nodes = new OsmNode[size];
+    this.hollowNodes = hollowNodes;
 
-    OsmNode[] nodes = new OsmNode[size];
-    for (int n = 0; n < size; n++) {
-      long id = expandId((int)shringIDs[n]);
+    for (int n = 0; n < size; n++) { // loop over nodes
+      for (;;) { // loop over links
+        int deltaCode = indexDeltaDecoder.decodeObject();
+        if ( deltaCode == 0 ) {
+          break;
+        }
+        int nodeIdxDelta = deltaCode == 1 ? (int)bis.decodeSignedVarBits(6) : deltaCode-16;
+        int nodeIdx = n + nodeIdxDelta;
+        boolean isExternal = nodeIdx == n;
+        boolean isReverse = isExternal ? bis.decodeBit() : false;
+        int lonDiff = isExternal ? (int)extLonDiff.decode() : 0;
+        int latDiff = isExternal ? (int)extLatDiff.decode() : 0;
+        TagValueWrapper wayTags = wayTagDecoder.decodeObject();
+        if (wayTags != null) {
+          OsmNode sourceNode = getNode(n);
+          OsmLink link = null;
+          OsmNode targetNode = getNode(nodeIdx);
+          if (isExternal) {
+            int linkLon = sourceNode.iLon + lonDiff;
+            int linkLat = sourceNode.iLat + latDiff;
+            link = sourceNode.linkForTarget(linkLon, linkLat);
+            if (link != null) {
+              link.wayDescription = wayTags.data; // TODO: 2-node-loops?
+              targetNode = link.getTarget(sourceNode);
+            } else {
+              // .. not found, check the hollow nodes
+              targetNode = hollowNodes.get(linkLon, linkLat);
+              if (targetNode == null) { // node not yet known, create a new hollow proxy
+                targetNode = new OsmNode(linkLon, linkLat);
+                targetNode.setHollow();
+                hollowNodes.put(targetNode);
+              }
+            }
+          }
+          if (link == null) {
+            if (isReverse) {
+              targetNode.createLink(wayTags.data, sourceNode);
+            } else {
+              sourceNode.createLink(wayTags.data, targetNode);
+            }
+          }
+          if (waypointMatcher != null && !isReverse && wayTags.accessType > 1) {
+            waypointMatcher.match(sourceNode, targetNode);
+          }
+          sourceNode.visitID = 1;
+        }
+      }  // ... loop over links
+    } // ... loop over nodes
+
+    int selev = 0;
+    OsmNode dummy = new OsmNode(0,0);
+    for (int n = 0; n < size; n++) { // loop over nodes
+
+      OsmNode node = nodes[n] != null ? nodes[n] : dummy;
+      selev += nodeEleDiff.decode();
+      node.sElev = (short) selev;
+      TagValueWrapper nodeTags = nodeTagDecoder.decodeObject();
+      node.nodeDescription = nodeTags == null ? null : nodeTags.data; // TODO: unified?
+
+      // decode TRs
+      while (bis.decodeBit()) {
+        TurnRestriction tr = new TurnRestriction();
+        tr.isPositive = bis.decodeBit();
+        tr.exceptions = (short) bis.decodeBounded(1023);
+        tr.fromLon = (int) (node.iLon + bis.decodeSignedVarBits(10));
+        tr.fromLat = (int) (node.iLat + bis.decodeSignedVarBits(10));
+        tr.toLon = (int) (node.iLon + bis.decodeSignedVarBits(10));
+        tr.toLat = (int) (node.iLat + bis.decodeSignedVarBits(10));
+        node.addTurnRestriction(tr);
+      }
+    }
+
+
+    hollowNodes.cleanupAndCount(nodes);
+    return buffer.length - bis.available();
+  }
+
+  private OsmNode getNode( int idx ) {
+    if ( nodes[idx] == null ) {
+      long id = expandId((int) shringIDs[idx]);
       int iLon = (int) (id >> 32);
       int iLat = (int) (id & 0xffffffff);
       OsmNode node = hollowNodes.get(iLon, iLat);
@@ -54,85 +147,9 @@ public final class OsmTile {
         node.visitID = 1;
         hollowNodes.remove(node);
       }
-      nodes[n] = node;
+      nodes[idx] = node;
     }
-
-    int selev = 0;
-    for (int n = 0; n < size; n++) { // loop over nodes
-      OsmNode node = nodes[n];
-
-      selev += nodeEleDiff.decode();
-      node.sElev = (short) selev;
-      TagValueWrapper nodeTags = nodeTagDecoder.decodeObject();
-      node.nodeDescription = nodeTags == null ? null : nodeTags.data; // TODO: unified?
-
-      // decode node items
-      for (; ; ) {
-        long itemId = bis.decodeUnsignedVarBits();
-        if (itemId == 0L) break;
-        if (itemId == 2L) { // turn-restriction
-          TurnRestriction tr = new TurnRestriction();
-          tr.isPositive = bis.decodeBit();
-          tr.exceptions = (short) bis.decodeBounded(1023);
-          tr.fromLon = (int)(node.iLon + bis.decodeSignedVarBits(10));
-          tr.fromLat = (int)(node.iLat + bis.decodeSignedVarBits(10));
-          tr.toLon = (int)(node.iLon + bis.decodeSignedVarBits(10));
-          tr.toLat = (int)(node.iLat + bis.decodeSignedVarBits(10));
-          node.addTurnRestriction(tr);
-        } else if (itemId == 1) { // link
-
-          int nodeIdx = (int)(n + nodeIdxDiff.decode());
-          int linkLon;
-          int linkLat;
-          boolean isReverse = false;
-          if (nodeIdx != n) { // internal (forward-) link
-            linkLon = nodes[nodeIdx].iLon;
-            linkLat = nodes[nodeIdx].iLat;
-          } else {
-            isReverse = bis.decodeBit();
-            linkLon = (int)(node.iLon + extLonDiff.decode());
-            linkLat = (int)(node.iLat + extLatDiff.decode());
-          }
-          TagValueWrapper wayTags = wayTagDecoder.decodeObject();
-          if (!isReverse) { // wp-matching for forward links only
-            WaypointMatcher matcher = wayTags == null || wayTags.accessType < 2 ? null : waypointMatcher;
-            if (matcher != null) {
-              matcher.match(node.iLon, node.iLat, linkLon, linkLat);
-            }
-          }
-          if (wayTags != null) {
-            if (nodeIdx != n) { // internal (forward-) link
-              node.createLink(wayTags.data, nodes[nodeIdx]);
-            } else { // weave external link
-
-              OsmLink link = node.linkForTarget(linkLon, linkLat);
-              if (link != null) {
-                link.wayDescription = wayTags.data; // TODO: 2-node-loops?
-              } else {
-                // .. not found, check the hollow nodes
-                OsmNode tn = hollowNodes.get(linkLon, linkLat); // target node
-                if (tn == null) { // node not yet known, create a new hollow proxy
-                  tn = new OsmNode(linkLon, linkLat);
-                  tn.setHollow();
-                  hollowNodes.put(tn);
-                }
-                if (isReverse) {
-                  tn.createLink(wayTags.data, node);
-                } else {
-                  node.createLink(wayTags.data, tn);
-                }
-              }
-              node.visitID = 1;
-            }
-          }
-        } else {
-          throw new RuntimeException( "unknown item-id: " + itemId );
-        }
-      }  // ... loop over node items
-    } // ... loop over nodes
-
-    hollowNodes.cleanupAndCount(nodes);
-    return buffer.length - bis.available();
+    return nodes[idx];
   }
 
   private static final long[] id32_00 = new long[1024];
@@ -195,26 +212,71 @@ public final class OsmTile {
     }
     TagValueEncoder wayTagEncoder = new TagValueEncoder();
     TagValueEncoder nodeTagEncoder = new TagValueEncoder();
+    HuffmanEncoder<Integer> indexDeltaEncoder  = new HuffmanEncoder<>() {
+      protected void encodeObjectToStream(Integer i) throws IOException {
+        bos.encodeBits(5,i); // 0=no more link 1=big delta 2..30 = delta+16
+      }
+    };
 
     for (int pass = 1;; pass++) { // 2 passes: huffman-stats, final write
       BitOutputStream bos = new BitOutputStream( new SimpleByteArrayOutputStream( buffer ) );
       wayTagEncoder.init(bos);
       nodeTagEncoder.init(bos);
-      AdaptiveDiffEncoder nodeIdxDiff = new AdaptiveDiffEncoder(bos);
+      indexDeltaEncoder.init(bos);
       AdaptiveDiffEncoder nodeEleDiff = new AdaptiveDiffEncoder(bos);
       AdaptiveDiffEncoder extLonDiff = new AdaptiveDiffEncoder(bos);
       AdaptiveDiffEncoder extLatDiff = new AdaptiveDiffEncoder(bos);
 
+
       bos.encodeUniqueSortedArray( shrinkIDs );
-      int lastSelev = 0;
 
       nodeIndex = 0;
       for (OsmNode node : sortedNodes.values() ) { // loop over nodes
+        for (OsmLink link = node.firstLink; link != null; link = link.getNext(node)) { // loop over links
+          OsmNode target = link.getTarget(node);
+          boolean isReverse = link.isReverse(node);
+          Integer idx = idMap.get(target.getIdFromPos());
+          boolean isInternal = idx != null;
+          if (isReverse && isInternal) {
+            continue; // do not encode internal reverse links
+          }
+          if (isInternal) {
+            int delta = idx - nodeIndex;
+            if (delta == 0) throw new RuntimeException("ups: self ref?");
+            if ( Math.abs( delta ) <= 14 ) {
+              indexDeltaEncoder.encodeObject( delta+16 );
+            } else {
+              indexDeltaEncoder.encodeObject( 1 );
+              bos.encodeSignedVarBits(delta,6);
+            }
+          } else {
+            indexDeltaEncoder.encodeObject( 16 );
+            bos.encodeBit(isReverse);
+            extLonDiff.encode(target.iLon - node.iLon);
+            extLatDiff.encode(target.iLat - node.iLat);
+          }
+System.out.println( "way tags... ") ;
+          wayTagEncoder.encodeTagValues(link.wayDescription);
+        }
+        indexDeltaEncoder.encodeObject( 0 );
+        nodeIndex++;
+      }
+
+      int lastSelev = 0;
+      nodeIndex = 0;
+      for (OsmNode node : sortedNodes.values() ) { // loop over nodes again
+
+        // write elevation and node tags
+        int sElev = node.sElev;
+        nodeEleDiff.encode(sElev - lastSelev);
+        lastSelev = sElev;
+        System.out.println( "node tags... ") ;
+        nodeTagEncoder.encodeTagValues(node.nodeDescription);
 
         // write turn restrictions
         TurnRestriction tr = node.firstRestriction;
         while (tr != null) {
-          bos.encodeUnsignedVarBits(2L); // 2 = turn restriction
+          bos.encodeBit(true);  // TR follows
           bos.encodeBit(tr.isPositive);
           bos.encodeSignedVarBits(tr.fromLon - node.iLon, 10);
           bos.encodeSignedVarBits(tr.fromLat - node.iLat, 10);
@@ -222,36 +284,9 @@ public final class OsmTile {
           bos.encodeSignedVarBits(tr.toLat - node.iLat, 10);
           tr = tr.next;
         }
+        bos.encodeBit(false); // end of TRs
 
-        int sElev = node.sElev;
-        nodeEleDiff.encode(sElev - lastSelev);
-        lastSelev = sElev;
-        nodeTagEncoder.encodeTagValues(node.nodeDescription);
 
-        for( OsmLink link = node.firstLink; link != null; link = link.getNext(node)) { // loop over links
-
-          OsmNode target = link.getTarget(node);
-          boolean isReverse = link.isReverse(node);
-
-          Integer idx = idMap.get(target.getIdFromPos());
-          boolean isInternal = idx != null;
-
-          if (isReverse && isInternal) {
-            continue; // do not encode internal reverse links
-          }
-          bos.encodeUnsignedVarBits(1L); // 1 = link
-          if (isInternal) {
-            if (idx == nodeIndex) throw new RuntimeException("ups: self ref?");
-            nodeIdxDiff.encode(idx - nodeIndex);
-          } else {
-            nodeIdxDiff.encode(0);
-            bos.encodeBit(isReverse);
-            extLonDiff.encode(target.iLon - node.iLon);
-            extLatDiff.encode(target.iLat - node.iLat);
-          }
-          wayTagEncoder.encodeTagValues(link.wayDescription);
-        }
-        bos.encodeUnsignedVarBits(0); // end of node data
         nodeIndex++;
       }
       if (pass == 2) {

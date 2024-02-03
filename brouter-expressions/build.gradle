@@ -5,6 +5,5 @@ plugins {
 dependencies {
     implementation project(':brouter-statcoding')
     implementation project(':brouter-util')
-    implementation project(':brouter-codec')
 	testImplementation 'junit:junit:4.13.2'
 }

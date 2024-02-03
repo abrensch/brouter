@@ -43,7 +43,7 @@ public final class OsmNodesMap {
   private void justCount(OsmNode[] nodes) {
     for (int i = 0; i < nodes.length; i++) {
       OsmNode n = nodes[i];
-      if (n.firstLink != null) {
+      if (n != null && n.firstLink != null) {
         nodesCreated++;
       }
     }
@@ -53,7 +53,7 @@ public final class OsmNodesMap {
     baseID = lastVisitID++;
     for (int i = 0; i < nodes.length; i++) { // loop over nodes again just for housekeeping
       OsmNode n = nodes[i];
-      if (n.firstLink != null) {
+      if (n != null && n.firstLink != null) {
         if (n.visitID == 1) {
           try {
             minVisitIdInSubtree(null, n);

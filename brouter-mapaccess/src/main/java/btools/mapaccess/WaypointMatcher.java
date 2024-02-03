@@ -1,4 +1,4 @@
-package btools.codec;
+package btools.mapaccess;
 
 /**
  * a waypoint matcher gets way geometries
@@ -6,5 +6,5 @@ package btools.codec;
  * matches to the waypoints
  */
 public interface WaypointMatcher {
-  boolean match(int ilonStart, int ilatStart, int ilonTarget, int ilatTarget);
+  boolean match(OsmNode start, OsmNode target);
 }

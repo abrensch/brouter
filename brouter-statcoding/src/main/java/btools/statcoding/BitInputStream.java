@@ -23,7 +23,6 @@ public class BitInputStream extends InputStream implements DataInput {
     private int bits; // bits left in buffer
     private int eofBits; // dummy bits read after eof
     private long b; // buffer word
-    private long bytesRead;
 
     protected InputStream in;
     private DataInputStream dis; // created lazily if needed
@@ -424,11 +423,26 @@ public class BitInputStream extends InputStream implements DataInput {
      * @param max the number of lower bits considered noisy
      * @return the decoded value
      */
+    public final int decodeBoundedInt(int max) throws IOException {
+
+        // small number shortcut using lookup-tables
+        if (max<16) {
+            fillBuffer();
+            int idx = max << 4 | (int)(b >>> 60);
+            int count = boundLengthsArrays[idx];
+            b <<= count;
+            bits -= count;
+            return boundValuesArrays[idx];
+        }
+        return (int)decodeBounded(max);
+    }
+
     public final long decodeBounded(long max) throws IOException {
+
         long m = max;
         int n = 0;
         while ((m >>>= 1) != 0L) {
-            n++;
+          n++;
         }
         long value = decodeBits( n );
 
@@ -436,10 +450,29 @@ public class BitInputStream extends InputStream implements DataInput {
         long im = 1L << n; // integer mask
         if ((value | im) <= max ) {
             if ( decodeBit() ) {
-                value |= im;
+              value |= im;
             }
         }
         return value;
+    }
+
+    private static final int[] boundLengthsArrays = new int[256];
+    private static final int[] boundValuesArrays = new int[256];
+    static {
+        BitInputStream bis = new BitInputStream((InputStream)null);
+        for( int max=0; max<16; max++ ) {
+            for(int v = 0; v<16; v++) {
+                int idx = max << 4 | v;
+                bis.b = ((long)v) << 60;
+                bis.bits = 64;
+                try {
+                  boundValuesArrays[idx] = (int)bis.decodeBounded(max);
+                } catch( IOException ioe ) {
+                    throw new RuntimeException( ioe );
+                }
+              boundLengthsArrays[idx] = 64-bis.bits;
+            }
+        }
     }
 
     /**
@@ -535,11 +568,11 @@ public class BitInputStream extends InputStream implements DataInput {
 
         long nextBit = 1L << nextBitPos;
         int size1;
-        if (subSize > nextBit) {
-            long min = subSize - nextBit;
-            size1 = (int) (decodeBounded(nextBit - min) + min);
+        if (subSize >= nextBit) {
+            int min = subSize - (int)nextBit;
+            size1 = decodeBoundedInt((int)nextBit - min) + min;
         } else {
-            size1 = (int) decodeBounded(subSize);
+            size1 = decodeBoundedInt(subSize);
         }
         int size2 = subSize - size1;
 
@@ -563,9 +596,9 @@ public class BitInputStream extends InputStream implements DataInput {
      *
      * @return an index to the lookup array
      */
-    public final int decodeLookupIndex(int[] lengthArray, int lookupBits) throws IOException {
+    public final int decodeLookupIndex(int[] lengthArray, int m64lookupBits) throws IOException {
         fillBuffer();
-        int v = (int) (b >>> (64-lookupBits));
+        int v = (int) (b >>> m64lookupBits);
         int count = lengthArray[v];
         b <<= count;
         bits -= count;

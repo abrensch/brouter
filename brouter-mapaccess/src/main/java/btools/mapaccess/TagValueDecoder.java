@@ -1,7 +1,7 @@
-package btools.codec;
+package btools.mapaccess;
 
+import btools.util.TagValueValidator;
 import btools.statcoding.huffman.HuffmanDecoder;
-import btools.statcoding.huffman.HuffmanEncoder;
 
 import java.io.IOException;
 

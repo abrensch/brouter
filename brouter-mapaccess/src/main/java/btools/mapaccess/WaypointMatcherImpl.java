@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Collections;
 import java.util.Comparator;
 
-import btools.codec.WaypointMatcher;
 import btools.util.CheapRuler;
 import btools.util.CheapAngleMeter;
 
@@ -21,10 +20,8 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
   private List<MatchedWaypoint> waypoints;
   private OsmNodePairSet islandPairs;
 
-  private int lonStart;
-  private int latStart;
-  private int lonTarget;
-  private int latTarget;
+  private OsmNode start;
+  private OsmNode target;
   private boolean anyUpdate;
 
   private Comparator<MatchedWaypoint> comparator;
@@ -138,29 +135,25 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
   }
 
   @Override
-  public boolean match(int ilonStart, int ilatStart, int ilonTarget, int ilatTarget) {
+  public boolean match(OsmNode start, OsmNode target) {
     if (islandPairs.size() > 0) {
-      long n1 = ((long) ilonStart) << 32 | ilatStart;
-      long n2 = ((long) ilonTarget) << 32 | ilatTarget;
-      if (islandPairs.hasPair(n1, n2)) {
+      if (islandPairs.hasPair(start.getILat(), target.getIdFromPos())) {
         return false;
       }
     }
-    lonStart = ilonStart;
-    latStart = ilatStart;
-    lonTarget = ilonTarget;
-    latTarget = ilatTarget;
+    this.start = start;
+    this.target = target;
     anyUpdate = false;
     end();
     return true;
   }
 
   private void end() {
-    checkSegment(lonStart, latStart, lonTarget, latTarget);
+    checkSegment(start.iLon, start.iLat, target.iLon, target.iLat);
     if (anyUpdate) {
       for (MatchedWaypoint mwp : waypoints) {
         if (mwp.hasUpdate) {
-          double angle = CheapAngleMeter.getDirection(lonStart, latStart, lonTarget, latTarget);
+          double angle = CheapAngleMeter.getDirection(start.iLon, start.iLat, target.iLon, target.iLat);
           double diff = CheapAngleMeter.getDifferenceFromDirection(mwp.directionToNext, angle);
 
           mwp.hasUpdate = false;
@@ -172,8 +165,8 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
           mw.crossPoint = new OsmNode();
           mw.crossPoint.iLon = mwp.crossPoint.iLon;
           mw.crossPoint.iLat = mwp.crossPoint.iLat;
-          mw.node1 = new OsmNode(lonStart, latStart);
-          mw.node2 = new OsmNode(lonTarget, latTarget);
+          mw.node1 = new OsmNode(start.iLon, start.iLat);
+          mw.node2 = new OsmNode(target.iLon, target.iLat);
           mw.name = mwp.name + "_w_" + mwp.crossPoint.hashCode();
           mw.radius = mwp.radius;
           mw.directionDiff = diff;
@@ -182,7 +175,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
           updateWayList(mwp.wayNearest, mw);
 
           // revers
-          angle = CheapAngleMeter.getDirection(lonTarget, latTarget, lonStart, latStart);
+          angle = CheapAngleMeter.getDirection(target.iLon, target.iLat, start.iLon, start.iLat);
           diff = CheapAngleMeter.getDifferenceFromDirection(mwp.directionToNext, angle);
           mw = new MatchedWaypoint();
           mw.waypoint = new OsmNode();
@@ -191,8 +184,8 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
           mw.crossPoint = new OsmNode();
           mw.crossPoint.iLon = mwp.crossPoint.iLon;
           mw.crossPoint.iLat = mwp.crossPoint.iLat;
-          mw.node1 = new OsmNode(lonTarget, latTarget);
-          mw.node2 = new OsmNode(lonStart, latStart);
+          mw.node1 = new OsmNode(target.iLon, target.iLat);
+          mw.node2 = new OsmNode(start.iLon, start.iLat);
           mw.name = mwp.name + "_w2_" + mwp.crossPoint.hashCode();
           mw.radius = mwp.radius;
           mw.directionDiff = diff;

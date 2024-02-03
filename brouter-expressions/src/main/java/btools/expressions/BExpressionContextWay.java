@@ -6,7 +6,7 @@
 
 package btools.expressions;
 
-import btools.codec.TagValueValidator;
+import btools.util.TagValueValidator;
 
 public final class BExpressionContextWay extends BExpressionContext implements TagValueValidator {
   private boolean decodeForbidden = true;

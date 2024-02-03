@@ -1,13 +1,9 @@
-package btools.codec;
+package btools.mapaccess;
 
+import btools.mapaccess.TagValueWrapper;
 import btools.statcoding.huffman.HuffmanEncoder;
-import btools.util.BitCoderContext;
 
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.PriorityQueue;
 
 /**
  * Encoder for way-/node-descriptions
@@ -21,9 +17,18 @@ public final class TagValueEncoder extends HuffmanEncoder<TagValueWrapper> {
     tagValues.writeToBitstream( bos );
   }
 
+  private TagValueWrapper lastObject ;
+
   public void encodeTagValues( byte[] tagValues ) throws IOException {
     TagValueWrapper w = new TagValueWrapper();
     w.data = tagValues;
+
+    if ( w.equals( lastObject))  {
+      System.out.println( "tw-repeat!" );
+    } else {
+      System.out.println( "tw-new" );
+      lastObject = w;
+    }
     encodeObject(w);
   }
 }

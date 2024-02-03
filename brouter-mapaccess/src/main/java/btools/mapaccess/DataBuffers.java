@@ -1,4 +1,4 @@
-package btools.codec;
+package btools.mapaccess;
 
 import btools.util.BitCoderContext;
 

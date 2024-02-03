@@ -3,7 +3,6 @@ plugins {
 }
 
 dependencies {
-    implementation project(':brouter-codec')
     implementation project(':brouter-util')
     implementation project(':brouter-expressions')
     implementation project(':brouter-mapaccess')

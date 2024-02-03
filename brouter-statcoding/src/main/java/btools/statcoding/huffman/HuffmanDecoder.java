@@ -17,6 +17,7 @@ public abstract class HuffmanDecoder<V> {
     protected BitInputStream bis;
 
     private int lookupBits;
+    private int m64lookupBits;
     private Object[] subtrees;
     private int[] lengths;
 
@@ -28,7 +29,7 @@ public abstract class HuffmanDecoder<V> {
      * @return obj the decoded object
      */
     public final V decodeObject() throws IOException {
-        int idx = bis.decodeLookupIndex(lengths,lookupBits);
+        int idx = bis.decodeLookupIndex(lengths,m64lookupBits);
         Object node = subtrees[idx];
         while (node instanceof TreeNode) {
             TreeNode tn = (TreeNode) node;
@@ -60,6 +61,7 @@ public abstract class HuffmanDecoder<V> {
         }
         this.bis = bis;
         this.lookupBits = lookupBits;
+        this.m64lookupBits = 64-lookupBits;
         boolean hasSymbols = bis.decodeBit();
         if (hasSymbols) {
             subtrees = new Object[1 << lookupBits];

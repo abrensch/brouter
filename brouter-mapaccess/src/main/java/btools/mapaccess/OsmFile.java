@@ -10,9 +10,7 @@ import java.io.*;
 import java.util.BitSet;
 import java.util.List;
 
-import btools.codec.DataBuffers;
-import btools.codec.TagValueValidator;
-import btools.codec.WaypointMatcher;
+import btools.util.TagValueValidator;
 import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
 import btools.statcoding.Crc64;

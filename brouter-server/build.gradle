@@ -42,7 +42,6 @@ distributions {
     main {
 
         contents {
-            exclude('**/brouter-codec*.jar')
             exclude('**/brouter-core*.jar')
             exclude('**/brouter-expressions*.jar')
             exclude('**/brouter-map-creator*.jar')
@@ -70,7 +69,6 @@ distributions {
 }
 
 dependencies {
-    implementation project(':brouter-codec')
     implementation project(':brouter-core')
     implementation project(':brouter-expressions')
     implementation project(':brouter-map-creator')

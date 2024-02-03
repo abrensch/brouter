@@ -1,4 +1,4 @@
-package btools.codec;
+package btools.util;
 
 
 public interface TagValueValidator {
