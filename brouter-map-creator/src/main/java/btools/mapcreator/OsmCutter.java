@@ -35,25 +35,6 @@ public class OsmCutter extends MapCreatorBase {
 
   private DatabasePseudoTagProvider dbPseudoTagProvider;
 
-  public static void main(String[] args) throws Exception {
-    System.out.println("*** OsmCutter: cut an osm map in node-tiles + a way file");
-    if (args.length != 6 && args.length != 7) {
-      System.out.println("usage: bzip2 -dc <map> | java OsmCutter <lookup-file> <out-tile-dir> <out-way-file> <out-rel-file> <out-res-file> <filter-profile>");
-      System.out.println("or   : java OsmCutter <lookup-file> <out-tile-dir> <out-way-file> <out-rel-file> <out-res-file> <filter-profile> <inputfile> ");
-      return;
-    }
-
-    new OsmCutter().process(
-      new File(args[0])
-      , new File(args[1])
-      , new File(args[2])
-      , new File(args[3])
-      , new File(args[4])
-      , new File(args[5])
-      , args.length > 6 ? new File(args[6]) : null
-    );
-  }
-
   private BExpressionContextWay _expctxWay;
   private BExpressionContextNode _expctxNode;
 

@@ -24,9 +24,9 @@ public final class TagValueEncoder extends HuffmanEncoder<TagValueWrapper> {
     w.data = tagValues;
 
     if ( w.equals( lastObject))  {
-      System.out.println( "tw-repeat!" );
+      // System.out.println( "tw-repeat!" );
     } else {
-      System.out.println( "tw-new" );
+      // System.out.println( "tw-new" );
       lastObject = w;
     }
     encodeObject(w);

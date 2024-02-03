@@ -50,7 +50,9 @@ public final class NodesCache {
 
   public void clean() {
     for (OsmFile osmf : fileCache.values()) {
-      osmf.clean();
+      if ( osmf != null ) {
+        osmf.clean();
+      }
     }
   }
 

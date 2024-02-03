@@ -16,26 +16,6 @@ import btools.util.TinyDenseLongMap;
 public class WayCutter extends MapCreatorBase {
   private DenseLongMap tileIndexMap;
 
-  public static void main(String[] args) throws Exception {
-    System.out.println("*** WayCutter: Soft-Cut way-data into tiles");
-    if (args.length != 3) {
-      System.out.println("usage: java WayCutter <node-tiles-in> <way-file-in> <way-tiles-out>");
-
-      return;
-    }
-    new WayCutter().process(new File(args[0]), new File(args[1]), new File(args[2]));
-  }
-
-  public void process(File nodeTilesIn, File wayFileIn, File wayTilesOut) throws Exception {
-    init(wayTilesOut);
-
-    new NodeIterator(this, false).processDir(nodeTilesIn, ".tlf");
-
-    // *** finally process the way-file, cutting into pieces
-    new WayIterator(this, true).processFile(wayFileIn);
-    finish();
-  }
-
   public void init(File wayTilesOut) throws Exception {
     this.outTileDir = wayTilesOut;
 

@@ -28,16 +28,6 @@ public class RelationMerger extends MapCreatorBase {
 
   private DataOutputStream wayOutStream;
 
-  public static void main(String[] args) throws Exception {
-    System.out.println("*** RelationMerger: merge relations into ways");
-    if (args.length != 6) {
-      System.out.println("usage: java RelationMerger <way-file-in> <way-file-out> <relation-file> <lookup-file> <report-profile> <check-profile>");
-
-      return;
-    }
-    new RelationMerger().process(new File(args[0]), new File(args[1]), new File(args[2]), new File(args[3]), new File(args[4]), new File(args[5]));
-  }
-
   public void init(File relationFileIn, File lookupFile, File reportProfile, File checkProfile) throws Exception {
     // read lookup + profile for relation access-check
     BExpressionMetaData metaReport = new BExpressionMetaData();

@@ -20,30 +20,8 @@ public class NodeFilter extends MapCreatorBase {
   private File nodeTilesOut;
   protected DenseLongMap nodebitmap;
 
-  public static void main(String[] args) throws Exception {
-    System.out.println("*** NodeFilter: Filter way related nodes");
-    if (args.length != 3) {
-      System.out.println("usage: java NodeFilter <node-tiles-in> <way-file-in> <node-tiles-out>");
-      return;
-    }
-
-    new NodeFilter().process(new File(args[0]), new File(args[1]), new File(args[2]));
-  }
-
   public void init() throws Exception {
     nodebitmap = Boolean.getBoolean("useDenseMaps") ? new DenseLongMap(512) : new TinyDenseLongMap();
-  }
-
-  public void process(File nodeTilesIn, File wayFileIn, File nodeTilesOut) throws Exception {
-    init();
-
-    this.nodeTilesOut = nodeTilesOut;
-
-    // read the wayfile into a bitmap of used nodes
-    new WayIterator(this, false).processFile(wayFileIn);
-
-    // finally filter all node files
-    new NodeIterator(this, true).processDir(nodeTilesIn, ".tls");
   }
 
   @Override

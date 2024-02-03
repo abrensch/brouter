@@ -255,7 +255,6 @@ public final class OsmTile {
             extLonDiff.encode(target.iLon - node.iLon);
             extLatDiff.encode(target.iLat - node.iLat);
           }
-System.out.println( "way tags... ") ;
           wayTagEncoder.encodeTagValues(link.wayDescription);
         }
         indexDeltaEncoder.encodeObject( 0 );
@@ -270,7 +269,6 @@ System.out.println( "way tags... ") ;
         int sElev = node.sElev;
         nodeEleDiff.encode(sElev - lastSelev);
         lastSelev = sElev;
-        System.out.println( "node tags... ") ;
         nodeTagEncoder.encodeTagValues(node.nodeDescription);
 
         // write turn restrictions
@@ -278,6 +276,7 @@ System.out.println( "way tags... ") ;
         while (tr != null) {
           bos.encodeBit(true);  // TR follows
           bos.encodeBit(tr.isPositive);
+          bos.encodeBounded( 1023, tr.exceptions & 1023 );
           bos.encodeSignedVarBits(tr.fromLon - node.iLon, 10);
           bos.encodeSignedVarBits(tr.fromLat - node.iLat, 10);
           bos.encodeSignedVarBits(tr.toLon - node.iLon, 10);

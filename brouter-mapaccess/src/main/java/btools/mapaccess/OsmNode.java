@@ -37,6 +37,7 @@ public class OsmNode extends OsmLink implements OsmPos {
   public final static int BORDER_BIT = 4;
   public final static int TRANSFERNODE_BIT = 8;
   public final static int DP_SURVIVOR_BIT = 64;
+  public final static int DP_CANDIDATE_BIT = 128;
 
   public boolean hasBits( int mask ) {
     return (visitID & mask ) != 0;
@@ -114,6 +115,10 @@ public class OsmNode extends OsmLink implements OsmPos {
   // populate and return the inherited link, if available,
   // else create a new one
   public OsmLink createLink(byte[] wayDescription, OsmNode target) {
+
+    if ( target == this ) {
+      throw new RuntimeException(" self ref!");
+    }
     OsmLink link = isLinkUnused() ? this : (target.isLinkUnused() ? target : new OsmLink() );
     link.wayDescription = wayDescription;
     link.sourceNode = this;

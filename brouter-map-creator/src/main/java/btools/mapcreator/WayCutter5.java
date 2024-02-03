@@ -30,15 +30,6 @@ public class WayCutter5 extends MapCreatorBase {
   public NodeCutter nodeCutter;
   public RestrictionCutter5 restrictionCutter5;
 
-  public static void main(String[] args) throws Exception {
-    System.out.println("*** WayCutter5: Soft-Cut way-data into tiles");
-    if (args.length != 4) {
-      System.out.println("usage: java WayCutter5 <node-tiles-in> <way-tiles-in> <way-tiles-out> <border-nids-out>");
-      return;
-    }
-    new WayCutter5().process(new File(args[0]), new File(args[1]), new File(args[2]), new File(args[3]));
-  }
-
   public void process(File nodeTilesIn, File wayTilesIn, File wayTilesOut, File borderNidsOut) throws Exception {
     this.nodeTilesIn = nodeTilesIn;
     this.outTileDir = wayTilesOut;

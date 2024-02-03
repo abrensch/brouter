@@ -37,6 +37,9 @@ public class DPFilter {
   }
 
   private static void dropTransferNode(OsmNode n) {
+    if ( n.linkCount() == 0 ) {
+      return; // self-dropped (last member of a tranfernode-ring)
+    }
     if ( !isTransferNode(n) ) {
       throw new RuntimeException( "not a transfer node!" );
     }
@@ -47,10 +50,12 @@ public class DPFilter {
     byte[] wayDescription = l1.wayDescription;
     boolean reverse = l2.isReverse(n);
     n.vanish();
-    if ( reverse ) {
-      n2.createLink(wayDescription, n1);
-    } else {
-      n1.createLink(wayDescription, n2);
+    if ( n1 != n2 ) { // prevent 2-node-loops from dropping transfernode-rings
+      if (reverse) {
+        n2.createLink(wayDescription, n1);
+      } else {
+        n1.createLink(wayDescription, n2);
+      }
     }
   }
 

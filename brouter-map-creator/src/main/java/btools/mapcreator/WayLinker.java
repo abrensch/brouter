@@ -2,7 +2,9 @@ package btools.mapcreator;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
@@ -45,6 +47,12 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     long currentSlaveSize;
     long currentMasterSize = 2000000000L;
 
+    Set<String> filesProcessed = new HashSet<>();
+
+    synchronized boolean registerFileProcessed(String name) {
+      return filesProcessed.add( name );
+    }
+
     synchronized boolean setCurrentMasterSize(long size) {
       try {
         if (size <= currentSlaveSize) {
@@ -62,7 +70,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     }
 
     synchronized boolean setCurrentSlaveSize(long size) throws Exception {
-      if (size >= currentMasterSize) {
+      if (size > currentMasterSize) {
         return false;
       }
 
@@ -86,7 +94,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
   public static void main(String[] args) throws Exception {
     System.out.println("*** WayLinker: Format a region of an OSM map for routing");
-    if (args.length != 8) {
+    if (args.length != 7) {
       System.out
         .println("usage: java WayLinker <node-tiles-in> <way-tiles-in> <border-nodes> <lookup-file> <profile-file> <data-tiles-out> <data-tiles-suffix> ");
       return;
@@ -173,6 +181,10 @@ public class WayLinker extends MapCreatorBase implements Runnable {
       if (!tc.setCurrentMasterSize(fileSize)) {
         return false;
       }
+    }
+
+    if ( !tc.registerFileProcessed( wayfile.getName()) ) {
+      return false;
     }
 
     // process corresponding node-file, if any
