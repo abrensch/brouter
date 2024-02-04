@@ -695,6 +695,16 @@ sidewalk:bicycle;0000000439 yes designated
 sidewalk:left:bicycle;0000001722 yes designated
 sidewalk:right:bicycle;0000002667 yes designated
 
+sidewalk:left;0000000001 no
+sidewalk:left;0000000001 separate
+sidewalk:left;0000000001 yes designated
+sidewalk:right;0000000001 no
+sidewalk:right;0000000001 separate
+sidewalk:right;0000000001 yes designated
+sidewalk:both;0000000001 no
+sidewalk:both;0000000001 yes
+sidewalk:both;0000000001 separate
+
 bicycle_road;0000006521 yes designated
 
 cyclestreet;0000000001 yes designated
