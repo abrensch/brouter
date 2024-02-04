@@ -4,6 +4,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.util.Log;
 
@@ -17,28 +18,42 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
+import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.PhysicalFile;
 import btools.mapaccess.Rd5DiffManager;
 import btools.mapaccess.Rd5DiffTool;
 import btools.util.ProgressListener;
 
 public class DownloadWorker extends Worker {
+  public static final String WORKER_NAME = "BRouterWorker";
+
+  private final static boolean DEBUG = false;
+
   public static final String KEY_INPUT_SEGMENT_NAMES = "SEGMENT_NAMES";
+  public static final String KEY_INPUT_SEGMENT_ALL = "SEGMENT_ALL";
   public static final String KEY_OUTPUT_ERROR = "ERROR";
+
+  public static final int VALUE_SEGMENT_PARTS = 0;
+  public static final int VALUE_SEGMENT_ALL = 1;
+  public static final int VALUE_SEGMENT_DIFFS = 2;
+  public static final int VALUE_SEGMENT_DROPDIFFS = 3;
+
   public static final String PROGRESS_SEGMENT_NAME = "PROGRESS_SEGMENT_NAME";
   public static final String PROGRESS_SEGMENT_PERCENT = "PROGRESS_SEGMENT_PERCENT";
 
-  private final static boolean DEBUG = false;
   private static final int NOTIFICATION_ID = new Random().nextInt();
-  private static final String PROFILES_DIR = "profiles2/";
+  public static final String PROFILES_DIR = "profiles2/";
   private static final String SEGMENTS_DIR = "segments4/";
   private static final String SEGMENT_DIFF_SUFFIX = ".df5";
   private static final String SEGMENT_SUFFIX = ".rd5";
@@ -51,6 +66,13 @@ public class DownloadWorker extends Worker {
   private final DownloadProgressListener downloadProgressListener;
   private final Data.Builder progressBuilder = new Data.Builder();
   private final NotificationCompat.Builder notificationBuilder;
+  private int downloadAll;
+  private boolean versionChanged;
+  private List<URL> done = new ArrayList<>();
+
+  int version = -1;
+  int appversion = -1;
+  String errorCode = null;
 
   public DownloadWorker(
     @NonNull Context context,
@@ -70,16 +92,21 @@ public class DownloadWorker extends Worker {
 
       @Override
       public void onDownloadStart(String downloadName, DownloadType downloadType) {
+        if (DEBUG) Log.d(LOG_TAG, "onDownloadStart " + downloadName);
         currentDownloadName = downloadName;
         currentDownloadType = downloadType;
         if (downloadType == DownloadType.SEGMENT) {
           progressBuilder.putString(PROGRESS_SEGMENT_NAME, downloadName);
           notificationBuilder.setContentText(downloadName);
+        } else {
+          progressBuilder.putString(PROGRESS_SEGMENT_NAME, "check profiles");
         }
+        setProgressAsync(progressBuilder.build());
       }
 
       @Override
       public void onDownloadInfo(String info) {
+        if (DEBUG) Log.d(LOG_TAG, "onDownloadInfo " + info);
         notificationBuilder.setContentText(currentDownloadName + ": " + info);
         notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
       }
@@ -100,6 +127,7 @@ public class DownloadWorker extends Worker {
           notificationBuilder.setProgress(0, 0, true);
           progressBuilder.putInt(PROGRESS_SEGMENT_PERCENT, -1);
         }
+        progressBuilder.putString(PROGRESS_SEGMENT_NAME, currentDownloadName);
         notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
         setProgressAsync(progressBuilder.build());
 
@@ -108,12 +136,14 @@ public class DownloadWorker extends Worker {
 
       @Override
       public void onDownloadFinished() {
+        if (DEBUG) Log.d(LOG_TAG, "onDownloadFinished ");
       }
     };
 
     diffProgressListener = new ProgressListener() {
       @Override
       public void updateProgress(String task, int progress) {
+        if (DEBUG) Log.d(LOG_TAG, "updateProgress " + task + " " + progress);
         downloadProgressListener.onDownloadInfo(task);
         downloadProgressListener.onDownloadProgress(100, progress);
       }
@@ -131,58 +161,163 @@ public class DownloadWorker extends Worker {
     Data inputData = getInputData();
     Data.Builder output = new Data.Builder();
     String[] segmentNames = inputData.getStringArray(KEY_INPUT_SEGMENT_NAMES);
+    downloadAll = inputData.getInt(KEY_INPUT_SEGMENT_ALL, 0);
+    if (DEBUG)
+      Log.d(LOG_TAG, "doWork done " + done.size() + " segs " + segmentNames.length + " " + this);
     if (segmentNames == null) {
       if (DEBUG) Log.d(LOG_TAG, "Failure: no segmentNames");
       return Result.failure();
     }
     notificationBuilder.setContentText("Starting Download");
     // Mark the Worker as important
-    setForegroundAsync(new ForegroundInfo(NOTIFICATION_ID, notificationBuilder.build()));
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+      setForegroundAsync(new ForegroundInfo(NOTIFICATION_ID, notificationBuilder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC));
+    else
+      setForegroundAsync(new ForegroundInfo(NOTIFICATION_ID, notificationBuilder.build()));
     try {
       if (DEBUG) Log.d(LOG_TAG, "Download lookup & profiles");
-      downloadLookupAndProfiles();
+      if (!downloadLookup()) {
+        output.putString(KEY_OUTPUT_ERROR, (errorCode != null ? errorCode : "Version error"));
+        return Result.failure(output.build());
+      }
+
+      if (!versionChanged && downloadAll != VALUE_SEGMENT_ALL) {
+        List<String> tmpSegementNames = new ArrayList<>();
+        File segmentFolder = new File(baseDir, SEGMENTS_DIR);
+        File[] files = segmentFolder.listFiles(new FileFilter() {
+          @Override
+          public boolean accept(File file) {
+            return (file.getPath().endsWith(SEGMENT_SUFFIX));
+          }
+        });
+        for (File f : files) {
+          int thePFversion = PhysicalFile.checkVersionIntegrity(f);
+          if (DEBUG) Log.d("worker", "check " + f.getName() + " " + thePFversion + "=" + version);
+          if (thePFversion != -1 && thePFversion != version) {
+            tmpSegementNames.add(f.getName().substring(0, f.getName().indexOf(".")));
+            versionChanged = true;
+          }
+        }
+        if (tmpSegementNames.size() > 0 && (downloadAll != VALUE_SEGMENT_DIFFS && downloadAll != VALUE_SEGMENT_DROPDIFFS)) {
+          output.putString(KEY_OUTPUT_ERROR, "Version diffs");
+          return Result.failure(output.build());
+        }
+        if (downloadAll == VALUE_SEGMENT_DIFFS) {
+          segmentNames = tmpSegementNames.toArray(new String[0]);
+        } else if (downloadAll == VALUE_SEGMENT_DROPDIFFS) {
+          for (String segmentName : tmpSegementNames) {
+            File segmentFile = new File(baseDir, SEGMENTS_DIR + segmentName + SEGMENT_SUFFIX);
+            segmentFile.delete();
+          }
+          return Result.success();
+        }
+      }
+
+      downloadProfiles();
 
       for (String segmentName : segmentNames) {
+        if (isStopped()) break;
         downloadProgressListener.onDownloadStart(segmentName, DownloadType.SEGMENT);
         if (DEBUG) Log.d(LOG_TAG, "Download segment " + segmentName);
         downloadSegment(mServerConfig.getSegmentUrl(), segmentName + SEGMENT_SUFFIX);
       }
     } catch (IOException e) {
-      Log.w(LOG_TAG, e);
-      output.putString(KEY_OUTPUT_ERROR, e.toString());
+      output.putString(KEY_OUTPUT_ERROR, e.getMessage());
       return Result.failure(output.build());
     } catch (InterruptedException e) {
-      Log.w(LOG_TAG, e);
-      output.putString(KEY_OUTPUT_ERROR, e.toString());
+      output.putString(KEY_OUTPUT_ERROR, e.getMessage());
       return Result.failure(output.build());
     }
     if (DEBUG) Log.d(LOG_TAG, "doWork finished");
     return Result.success();
   }
 
-  private void downloadLookupAndProfiles() throws IOException, InterruptedException {
+  private boolean downloadLookup() throws IOException, InterruptedException {
     String[] lookups = mServerConfig.getLookups();
     for (String fileName : lookups) {
+      appversion = BuildConfig.VERSION_CODE;
       if (fileName.length() > 0) {
         File lookupFile = new File(baseDir, PROFILES_DIR + fileName);
-        String lookupLocation = mServerConfig.getLookupUrl() + fileName;
-        URL lookupUrl = new URL(lookupLocation);
-        downloadProgressListener.onDownloadStart(fileName, DownloadType.LOOKUP);
-        downloadFile(lookupUrl, lookupFile, false);
-        downloadProgressListener.onDownloadFinished();
+        BExpressionMetaData meta = new BExpressionMetaData();
+        meta.readMetaData(lookupFile);
+        version = meta.lookupVersion;
+        int newappversion = meta.minAppVersion;
+
+        int size = (int) (lookupFile.exists() ? lookupFile.length() : 0);
+        File tmplookupFile = new File(baseDir, PROFILES_DIR + fileName + ".tmp");
+        boolean changed = false;
+        if (tmplookupFile.exists()) {
+          lookupFile.delete();
+          tmplookupFile.renameTo(lookupFile);
+          versionChanged = true;
+          meta.readMetaData(lookupFile);
+          version = meta.lookupVersion;
+          newappversion = meta.minAppVersion;
+        } else {
+          String lookupLocation = mServerConfig.getLookupUrl() + fileName;
+          URL lookupUrl = new URL(lookupLocation);
+          downloadProgressListener.onDownloadStart(fileName, DownloadType.LOOKUP);
+          changed = downloadFile(lookupUrl, tmplookupFile, size, false, DownloadType.LOOKUP);
+          downloadProgressListener.onDownloadFinished();
+          done.add(lookupUrl);
+        }
+        int newversion = version;
+        if (changed) {
+          meta = new BExpressionMetaData();
+          meta.readMetaData(tmplookupFile);
+          newversion = meta.lookupVersion;
+          newappversion = meta.minAppVersion;
+        }
+        if (newappversion != -1 && newappversion > appversion) {
+          if (DEBUG) Log.d(LOG_TAG, "app version old " + appversion + " new " + newappversion);
+          errorCode = "Version new app";
+          return false;
+        }
+        if (changed && downloadAll == VALUE_SEGMENT_PARTS) {
+          if (DEBUG) Log.d(LOG_TAG, "version old " + version + " new " + newversion);
+          if (version != newversion) {
+            errorCode = "Version error";
+            return false;
+          }
+        }
+        if (changed) {
+          lookupFile.delete();
+          tmplookupFile.renameTo(lookupFile);
+          versionChanged = changed;
+          meta.readMetaData(lookupFile);
+          version = meta.lookupVersion;
+        } else {
+          if (tmplookupFile.exists()) tmplookupFile.delete();
+        }
+
       }
     }
 
+    return true;
+  }
+
+  private void downloadProfiles() throws IOException, InterruptedException {
     String[] profiles = mServerConfig.getProfiles();
     for (String fileName : profiles) {
+      if (isStopped()) break;
       if (fileName.length() > 0) {
         File profileFile = new File(baseDir, PROFILES_DIR + fileName);
-        if (profileFile.exists()) {
+        //if (profileFile.exists())
+        {
           String profileLocation = mServerConfig.getProfilesUrl() + fileName;
           URL profileUrl = new URL(profileLocation);
-          downloadProgressListener.onDownloadStart(fileName, DownloadType.PROFILE);
-          downloadFile(profileUrl, profileFile, false);
-          downloadProgressListener.onDownloadFinished();
+          int size = (int) (profileFile.exists() ? profileFile.length() : 0);
+
+          try {
+            downloadProgressListener.onDownloadStart(fileName, DownloadType.PROFILE);
+            downloadFile(profileUrl, profileFile, size, false, DownloadType.PROFILE);
+            downloadProgressListener.onDownloadFinished();
+            done.add(profileUrl);
+          } catch (IOException e) {
+            // no need to block other updates
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e.getMessage());
+          }
         }
       }
     }
@@ -191,29 +326,38 @@ public class DownloadWorker extends Worker {
   private void downloadSegment(String segmentBaseUrl, String segmentName) throws IOException, InterruptedException {
     File segmentFile = new File(baseDir, SEGMENTS_DIR + segmentName);
     File segmentFileTemp = new File(segmentFile.getAbsolutePath() + "_tmp");
+    if (DEBUG) Log.d(LOG_TAG, "Download " + segmentName + " " + version + " " + versionChanged);
     try {
       if (segmentFile.exists()) {
-        if (DEBUG) Log.d(LOG_TAG, "Calculating local checksum");
-        String md5 = Rd5DiffManager.getMD5(segmentFile);
-        String segmentDeltaLocation = segmentBaseUrl + "diff/" + segmentName.replace(SEGMENT_SUFFIX, "/" + md5 + SEGMENT_DIFF_SUFFIX);
-        URL segmentDeltaUrl = new URL(segmentDeltaLocation);
-        if (httpFileExists(segmentDeltaUrl)) {
-          File segmentDeltaFile = new File(segmentFile.getAbsolutePath() + "_diff");
-          try {
-            downloadFile(segmentDeltaUrl, segmentDeltaFile, true);
-            if (DEBUG) Log.d(LOG_TAG, "Applying delta");
-            Rd5DiffTool.recoverFromDelta(segmentFile, segmentDeltaFile, segmentFileTemp, diffProgressListener);
-          } catch (IOException e) {
-            throw new IOException("Failed to download & apply delta update", e);
-          } finally {
-            segmentDeltaFile.delete();
+        if (!versionChanged) {    // no diff file on version change
+          String md5 = Rd5DiffManager.getMD5(segmentFile);
+          if (DEBUG) Log.d(LOG_TAG, "Calculating local checksum " + md5);
+          String segmentDeltaLocation = segmentBaseUrl + "diff/" + segmentName.replace(SEGMENT_SUFFIX, "/" + md5 + SEGMENT_DIFF_SUFFIX);
+          URL segmentDeltaUrl = new URL(segmentDeltaLocation);
+          if (httpFileExists(segmentDeltaUrl)) {
+            File segmentDeltaFile = new File(segmentFile.getAbsolutePath() + "_diff");
+            try {
+              downloadFile(segmentDeltaUrl, segmentDeltaFile, 0, true, DownloadType.SEGMENT);
+              done.add(segmentDeltaUrl);
+              if (DEBUG) Log.d(LOG_TAG, "Applying delta");
+              Rd5DiffTool.recoverFromDelta(segmentFile, segmentDeltaFile, segmentFileTemp, diffProgressListener);
+            } catch (IOException e) {
+              throw new IOException("Failed to download & apply delta update", e);
+            } finally {
+              segmentDeltaFile.delete();
+            }
+          }
+        } else {
+          if (segmentFileTemp.exists()) {
+            segmentFileTemp.delete();
           }
         }
       }
 
       if (!segmentFileTemp.exists()) {
         URL segmentUrl = new URL(segmentBaseUrl + segmentName);
-        downloadFile(segmentUrl, segmentFileTemp, true);
+        downloadFile(segmentUrl, segmentFileTemp, 0, true, DownloadType.SEGMENT);
+        done.add(segmentUrl);
       }
 
       PhysicalFile.checkFileIntegrity(segmentFileTemp);
@@ -235,24 +379,46 @@ public class DownloadWorker extends Worker {
     HttpURLConnection connection = (HttpURLConnection) downloadUrl.openConnection();
     connection.setConnectTimeout(5000);
     connection.setRequestMethod("HEAD");
-    connection.connect();
+    connection.setDoInput(false);
+    try {
+      connection.connect();
+      return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
+    } finally {
+      connection.disconnect();
+    }
 
-    return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
   }
 
-  private void downloadFile(URL downloadUrl, File outputFile, boolean limitDownloadSpeed) throws IOException, InterruptedException {
+  private boolean downloadFile(URL downloadUrl, File outputFile, int fileSize, boolean limitDownloadSpeed, DownloadType type) throws IOException, InterruptedException {
+    if (DEBUG) Log.d(LOG_TAG, "download " + outputFile.getAbsolutePath());
     HttpURLConnection connection = (HttpURLConnection) downloadUrl.openConnection();
     connection.setConnectTimeout(5000);
-    connection.connect();
+    connection.setDefaultUseCaches(false);
 
-    if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-      throw new IOException("HTTP Request failed: " + downloadUrl + " returned " + connection.getResponseCode());
-    }
-    int fileLength = connection.getContentLength();
-    try (
-      InputStream input = connection.getInputStream();
-      OutputStream output = new FileOutputStream(outputFile)
-    ) {
+    InputStream input = null;
+    OutputStream output = null;
+    try {
+      connection.connect();
+
+      if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+        throw new IOException("HTTP Request failed: " + downloadUrl + " returned " + connection.getResponseCode());
+      }
+      int dataLength = connection.getContentLength();
+      // no need of download when size equal
+      // file size not the best coice but easy to handle, date is not available
+      switch (type) {
+        case LOOKUP:
+          if (fileSize == dataLength) return false;
+          break;
+        case PROFILE:
+          if (fileSize == dataLength) return false;
+          break;
+        default:
+          break;
+      }
+      input = connection.getInputStream();
+      output = new FileOutputStream(outputFile);
+
       byte[] buffer = new byte[4096];
       int total = 0;
       long t0 = System.currentTimeMillis();
@@ -264,7 +430,7 @@ public class DownloadWorker extends Worker {
         total += count;
         output.write(buffer, 0, count);
 
-        downloadProgressListener.onDownloadProgress(fileLength, total);
+        downloadProgressListener.onDownloadProgress(dataLength, total);
 
         if (limitDownloadSpeed) {
           // enforce < 16 Mbit/s
@@ -274,7 +440,12 @@ public class DownloadWorker extends Worker {
           }
         }
       }
+    } finally {
+      if (input != null) input.close();
+      if (output != null) output.close();
+      connection.disconnect();
     }
+    return true;
   }
 
   @NonNull
@@ -313,7 +484,7 @@ public class DownloadWorker extends Worker {
     notificationManager.createNotificationChannel(channel);
   }
 
-  enum DownloadType {
+  public enum DownloadType {
     LOOKUP,
     PROFILE,
     SEGMENT

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d segment</item>
+        <item quantity="other">%d segments</item>
+    </plurals>
+    <string name="cancel_download">Annuler le téléchargement</string>
+    <string name="import_profile">Importer le profil</string>
+    <string name="action_download">Télécharger %s</string>
+    <string name="action_delete">Supprimer %s</string>
+    <string name="action_update">Mettre à jour %s</string>
+    <string name="action_select">Sélectionner les segments</string>
+    <string name="action_cancel">Arrêter le téléchargement</string>
+    <string name="summary_segments">Taille=%1$s\nGratuit=%2$s</string>
+    <string name="notification_title">Télécharger les segments</string>
+
+    <string name="action_choose_folder">Choisissez le répertoire de la base de données brouter:</string>
+    <string name="action_select_profile">Sélectionnez un profil de routage</string>
+    <string name="main_action">Sélectionner l\'action principale</string>
+    <string name="main_action_1">Gestionnaire de téléchargement</string>
+    <string name="main_action_2">Application BRouter</string>
+
+    <string name="cancel">Annuler</string>
+    <string name="i_know">Je sais</string>
+    <string name="close">Fermer</string>
+    <string name="exit">Quitter</string>
+    <string name="ok">OK</string>
+    <string name="success">Succès</string>
+    <string name="error">Une erreur s\'est produite</string>
+
+    <string name="title_download">Gestionnaire de téléchargement BRouter</string>
+    <string name="summary_download">*** Attention :***
+         \n\nLe gestionnaire de téléchargement est utilisé pour télécharger les données de routage
+         fichiers pouvant atteindre 170MB chacun. Ne démarrez pas le gestionnaire de téléchargement
+         sur une connexion de données cellulaires sans forfait de données !
+         La vitesse de téléchargement est limitée à 16 MBit/s.</string>
+    <string name="title_timeoutfree">Préparation réussie d\'un calcul sans délai d\'attente</string>
+    <string name="summary_timeoutfree">Vous avez répété avec succès un calcul qui avait précédemment expiré
+         lorsqu\'il est démarré à partir de votre outil cartographique. Si vous répétez la même demande de votre
+         maptool, avec exactement le même point de destination et un point de départ à proximité,
+         il est garanti que cette requête n\'expirera pas.</string>
+    <string name="title_sdcard">Entrez le répertoire de base de la SDCARD:</string>
+    <string name="title_action">Sélectionner une action</string>
+
+    <string name="action_via_select">Vérifier la sélection VIA:</string>
+    <string name="action_nogo_select">Vérifier la sélection NoGo:</string>
+    <string name="action_servermode">Mode serveur</string>
+    <string name="action_info">Informations</string>
+    <string name="action_calc_route">Calculer l\'itinéraire</string>
+    <string name="action_profile_settings">Paramètres du profil</string>
+    <string name="action_share">Partager GPX</string>
+    <string name="action_select_from">Sélectionner de</string>
+    <string name="action_select_to">Sélectionner vers/via</string>
+
+    <string name="msg_no_profile">aucune donnée de profil</string>
+    <string name="msg_no_used_profile">, aucun profil utilisé</string>
+    <string name="msg_too_much_data">Trop de données à télécharger. Veuillez réduire.</string>
+    <string name="msg_download_start">Téléchargement planifié. Vérifiez la connexion Internet si elle ne démarre pas.</string>
+    <string name="msg_wpt_selection">sélection actuelle du waypoint:\n</string>
+    <string name="msg_no_wpt_selection">Sélection de waypoint en attente\n</string>
+    <string name="msg_alternative">Alternative</string>
+    <string name="msg_status_result">version = BRouter-%1$s \n
+        mémoire = %2$s \n
+        distance = %3$s km\n
+        montée filtrée = %4$s m\n
+        montée simple = %5$s m\n
+        temps estimé = %6$s</string>
+    <string name="msg_read_wpt_error">Erreur lors de la lecture des waypoints</string>
+    <string name="msg_no_wpt">la source de coordonnées ne contient aucun waypoint!</string>
+    <string name="msg_too_much_wpts">la source de coordonnées contient trop de waypoints: %1$d (veuillez utiliser les noms de/vers/via)</string>
+
+    <string name="no">Non</string>
+    <string name="yes">Oui</string>
+
+    <string name="title_delete">Confirmer la suppression</string>
+    <string name="summary_delete">Vraiment supprimer?</string>
+    <string name="title_version">Problème de version</string>
+    <string name="summary_version">La version de base des vignettes a changé. Que faire?</string>
+    <string name="action_version1">Continuer le téléchargement en cours, supprimer les autres anciennes données</string>
+    <string name="action_version2">Sélectionnez tout pour télécharger et démarrer</string>
+    <string name="action_version3">Annuler maintenant, terminer un autre jour</string>
+    <string name="title_version_diff">Différences de version</string>
+    <string name="summary_version_diff">La version de base de certaines vignettes est différente. Que faire?</string>
+    <string name="action_version_diff1">Télécharger toutes les différentes vignettes</string>
+    <string name="action_version_diff2">Supprimez toutes les différentes vignettes</string>
+    <string name="action_version_diff3">Annuler maintenant, terminer un autre jour</string>
+    <string name="summary_new_version">La nouvelle version des données nécessite une nouvelle application. Veuillez d\'abord mettre à jour BRouter</string>
+
+    <string name="msg_download_failed">Téléchargement échoué</string>
+    <string name="msg_download_cancel">Téléchargement annulé</string>
+    <string name="msg_download_succeed">Téléchargement réussi</string>
+    <string name="msg_download_started">Téléchargement…</string>
+
+</resources>

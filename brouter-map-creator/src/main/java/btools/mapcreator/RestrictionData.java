@@ -6,6 +6,8 @@ import java.io.DataOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 import btools.util.CheapAngleMeter;
@@ -35,8 +37,8 @@ public class RestrictionData extends MapCreatorBase {
 
   public boolean badWayMatch;
 
-  private static HashMap<String, String> names = new HashMap<>();
-  private static TreeSet<Long> badTRs = new TreeSet<>();
+  private static Map<String, String> names = new HashMap<>();
+  private static Set<Long> badTRs = new TreeSet<>();
 
   public RestrictionData() {
   }
@@ -47,6 +49,7 @@ public class RestrictionData extends MapCreatorBase {
 
   public boolean isValid() {
     boolean valid = fromLon != 0 && toLon != 0 && (restriction.startsWith("only_") || restriction.startsWith("no_"));
+    valid = valid && restriction.indexOf("on_red") < 0; // filter out on-red restrictions
     if ((!valid) || badWayMatch || !(checkGeometry())) {
       synchronized (badTRs) {
         badTRs.add(((long) viaLon) << 32 | viaLat);

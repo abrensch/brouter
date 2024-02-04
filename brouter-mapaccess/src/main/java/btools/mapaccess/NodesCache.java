@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import btools.codec.DataBuffers;
 import btools.codec.MicroCache;
@@ -26,7 +27,7 @@ public final class NodesCache {
   private boolean forceSecondaryData;
   private String currentFileName;
 
-  private HashMap<String, PhysicalFile> fileCache;
+  private Map<String, PhysicalFile> fileCache;
   private DataBuffers dataBuffers;
 
   private OsmFile[][] fileRows;
@@ -38,7 +39,7 @@ public final class NodesCache {
 
   private long cacheSum = 0;
   private long maxmemtiles;
-  private boolean detailed;
+  private boolean detailed; // NOPMD used in constructor
 
   private boolean garbageCollectionEnabled = false;
   private boolean ghostCleaningDone = false;
@@ -94,7 +95,7 @@ public final class NodesCache {
         fileRows = new OsmFile[180][];
       }
     } else {
-      fileCache = new HashMap<String, PhysicalFile>(4);
+      fileCache = new HashMap<>(4);
       fileRows = new OsmFile[180][];
       dataBuffers = new DataBuffers();
       secondarySegmentsDir = StorageConfigHelper.getSecondarySegmentDir(segmentDir);
@@ -186,6 +187,8 @@ public final class NodesCache {
         ghostWakeup += segment.getDataSize();
       }
       return segment;
+    } catch (IOException re) {
+      throw new RuntimeException(re.getMessage());
     } catch (RuntimeException re) {
       throw re;
     } catch (Exception e) {
@@ -217,8 +220,7 @@ public final class NodesCache {
       node.parseNodeBody(segment, nodesMap, expCtxWay);
     }
 
-    if (garbageCollectionEnabled) // garbage collection
-    {
+    if (garbageCollectionEnabled) { // garbage collection
       cacheSum -= segment.collect(segment.getSize() >> 1); // threshold = 1/2 of size is deleted
     }
 
@@ -283,21 +285,37 @@ public final class NodesCache {
   public void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints, double maxDistance, OsmNodePairSet islandNodePairs) {
     waypointMatcher = new WaypointMatcherImpl(unmatchedWaypoints, maxDistance, islandNodePairs);
     for (MatchedWaypoint mwp : unmatchedWaypoints) {
-      preloadPosition(mwp.waypoint);
+      int cellsize = 12500;
+      preloadPosition(mwp.waypoint, cellsize);
+      // get a second chance
+      if (mwp.crosspoint == null) {
+        cellsize = 1000000 / 32;
+        preloadPosition(mwp.waypoint, cellsize);
+      }
     }
 
     if (first_file_access_failed) {
       throw new IllegalArgumentException("datafile " + first_file_access_name + " not found");
     }
-    for (MatchedWaypoint mwp : unmatchedWaypoints) {
+    int len = unmatchedWaypoints.size();
+    for (int i = 0; i < len; i++) {
+      MatchedWaypoint mwp = unmatchedWaypoints.get(i);
       if (mwp.crosspoint == null) {
-        throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
+        if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
+          mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
+          mwp.direct = true;
+        } else {
+          throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
+        }
+      }
+      if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
+        mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
+        mwp.direct = true;
       }
     }
   }
 
-  private void preloadPosition(OsmNode n) {
-    int d = 12500;
+  private void preloadPosition(OsmNode n, int d) {
     first_file_access_failed = false;
     first_file_access_name = null;
     loadSegmentFor(n.ilon, n.ilat);

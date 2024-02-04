@@ -36,10 +36,10 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
 
   public String _modelClass;
 
-  private Map<String, Integer> lookupNumbers = new HashMap<String, Integer>();
-  private ArrayList<BExpressionLookupValue[]> lookupValues = new ArrayList<BExpressionLookupValue[]>();
-  private ArrayList<String> lookupNames = new ArrayList<String>();
-  private ArrayList<int[]> lookupHistograms = new ArrayList<int[]>();
+  private Map<String, Integer> lookupNumbers = new HashMap<>();
+  private List<BExpressionLookupValue[]> lookupValues = new ArrayList<>();
+  private List<String> lookupNames = new ArrayList<>();
+  private List<int[]> lookupHistograms = new ArrayList<>();
   private boolean[] lookupIdxUsed;
 
   private boolean lookupDataFrozen = false;
@@ -50,7 +50,11 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   private BitCoderContext ctxEndode = new BitCoderContext(abBuf);
   private BitCoderContext ctxDecode = new BitCoderContext(new byte[0]);
 
-  private Map<String, Integer> variableNumbers = new HashMap<String, Integer>();
+  private Map<String, Integer> variableNumbers = new HashMap<>();
+
+  List<BExpression> lastAssignedExpression = new ArrayList<>();
+  boolean skipConstantExpressionOptimizations = false;
+  int expressionNodeCount;
 
   private float[] variableData;
 
@@ -134,8 +138,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     // (skip first bit ("reversedirection") )
 
     // all others are generic
-    for (int inum = 1; inum < lookupValues.size(); inum++) // loop over lookup names
-    {
+    for (int inum = 1; inum < lookupValues.size(); inum++) { // loop over lookup names
       int d = ld[inum];
       if (d == 0) {
         skippedTags++;
@@ -162,8 +165,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     // crosscheck: decode and compare
     int[] ld2 = new int[lookupValues.size()];
     decode(ld2, false, ab);
-    for (int inum = 1; inum < lookupValues.size(); inum++) // loop over lookup names (except reverse dir)
-    {
+    for (int inum = 1; inum < lookupValues.size(); inum++) { // loop over lookup names (except reverse dir)
       if (ld2[inum] != ld[inum])
         throw new RuntimeException("assertion failed encoding inum=" + inum + " val=" + ld[inum] + " " + getKeyValueDescription(false, ab));
     }
@@ -212,8 +214,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   public String getKeyValueDescription(boolean inverseDirection, byte[] ab) {
     StringBuilder sb = new StringBuilder(200);
     decode(lookupData, inverseDirection, ab);
-    for (int inum = 0; inum < lookupValues.size(); inum++) // loop over lookup names
-    {
+    for (int inum = 0; inum < lookupValues.size(); inum++) { // loop over lookup names
       BExpressionLookupValue[] va = lookupValues.get(inum);
       int val = lookupData[inum];
       String value = (val >= 1000) ? Float.toString((val - 1000) / 100f) : va[val].toString();
@@ -226,10 +227,9 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   }
 
   public List<String> getKeyValueList(boolean inverseDirection, byte[] ab) {
-    ArrayList<String> res = new ArrayList<String>();
+    ArrayList<String> res = new ArrayList<>();
     decode(lookupData, inverseDirection, ab);
-    for (int inum = 0; inum < lookupValues.size(); inum++) // loop over lookup names
-    {
+    for (int inum = 0; inum < lookupValues.size(); inum++) { // loop over lookup names
       BExpressionLookupValue[] va = lookupValues.get(inum);
       int val = lookupData[inum];
       // no negative values
@@ -433,7 +433,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
 
 
   public void dumpStatistics() {
-    TreeMap<String, String> counts = new TreeMap<String, String>();
+    TreeMap<String, String> counts = new TreeMap<>();
     // first count
     for (String name : lookupNumbers.keySet()) {
       int cnt = 0;
@@ -532,7 +532,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       }
 
       // unknown name, create
-      num = Integer.valueOf(lookupValues.size());
+      num = lookupValues.size();
       lookupNumbers.put(name, num);
       lookupNames.add(name);
       lookupValues.add(new BExpressionLookupValue[]{new BExpressionLookupValue("")
@@ -565,86 +565,89 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
           String org = value;
           try {
             // remove some unused characters
-            value = value.replace(",", ".");
-            value = value.replace(">", "");
-            value = value.replace("_", "");
+            value = value.replaceAll(",", ".");
+            value = value.replaceAll(">", "");
+            value = value.replaceAll("_", "");
+            value = value.replaceAll(" ", "");
+            value = value.replaceAll("~", "");
+            value = value.replace((char) 8217, '\'');
+            value = value.replace((char) 8221, '"');
             if (value.indexOf("-") == 0) value = value.substring(1);
-            if (value.indexOf("~") == 0) value = value.substring(1);
-            if (value.contains("-")) {    // replace eg. 1.4-1.6 m
+            if (value.contains("-")) {
+              // replace eg. 1.4-1.6 m to 1.4m
+              // but also 1'-6" to 1'
+              // keep the unit of measure
               String tmp = value.substring(value.indexOf("-") + 1).replaceAll("[0-9.,-]", "");
-              value = value.substring(0, value.indexOf("-")) + tmp;
+              value = value.substring(0, value.indexOf("-"));
+              if (value.matches("\\d+(\\.\\d+)?")) value += tmp;
             }
+            value = value.toLowerCase(Locale.US);
+
             // do some value conversion
-            if (value.toLowerCase().contains("ft")) {
-              float foot = 0f;
+            if (value.contains("ft")) {
+              float feet = 0f;
               int inch = 0;
-              String[] sa = value.toLowerCase().trim().split("ft");
-              if (sa.length >= 1) foot = Float.parseFloat(sa[0].trim());
+              String[] sa = value.split("ft");
+              if (sa.length >= 1) feet = Float.parseFloat(sa[0]);
               if (sa.length == 2) {
                 value = sa[1];
                 if (value.indexOf("in") > 0) value = value.substring(0, value.indexOf("in"));
-                inch = Integer.parseInt(value.trim());
-                foot += inch / 12f;
+                inch = Integer.parseInt(value);
+                feet += inch / 12f;
               }
-              value = String.format(Locale.US, "%3.1f", foot * 0.3048f);
-            }
-            if (value.toLowerCase().contains("'")) {
-              float foot = 0f;
+              value = String.format(Locale.US, "%3.1f", feet * 0.3048f);
+            } else if (value.contains("'")) {
+              float feet = 0f;
               int inch = 0;
-              String[] sa = value.toLowerCase().trim().split("'");
-              if (sa.length >= 1) foot = Float.parseFloat(sa[0].trim());
+              String[] sa = value.split("'");
+              if (sa.length >= 1) feet = Float.parseFloat(sa[0]);
               if (sa.length == 2) {
                 value = sa[1];
                 if (value.indexOf("''") > 0) value = value.substring(0, value.indexOf("''"));
                 if (value.indexOf("\"") > 0) value = value.substring(0, value.indexOf("\""));
-                inch = Integer.parseInt(value.trim());
-                foot += inch / 12f;
+                inch = Integer.parseInt(value);
+                feet += inch / 12f;
               }
-              value = String.format(Locale.US, "%3.1f", foot * 0.3048f);
+              value = String.format(Locale.US, "%3.1f", feet * 0.3048f);
             } else if (value.contains("in") || value.contains("\"")) {
               float inch = 0f;
               if (value.indexOf("in") > 0) value = value.substring(0, value.indexOf("in"));
               if (value.indexOf("\"") > 0) value = value.substring(0, value.indexOf("\""));
-              inch = Float.parseFloat(value.trim());
+              inch = Float.parseFloat(value);
               value = String.format(Locale.US, "%3.1f", inch * 0.0254f);
-            } else if (value.toLowerCase().contains("feet") || value.toLowerCase().contains("foot")) {
+            } else if (value.contains("feet") || value.contains("foot")) {
               float feet = 0f;
-              String s = value.substring(0, value.toLowerCase().indexOf("f"));
-              feet = Float.parseFloat(s.trim());
+              String s = value.substring(0, value.indexOf("f"));
+              feet = Float.parseFloat(s);
               value = String.format(Locale.US, "%3.1f", feet * 0.3048f);
-            } else if (value.toLowerCase().contains("fathom") || value.toLowerCase().contains("fm")) {
-              float fathom = 0f;
-              String s = value.substring(0, value.toLowerCase().indexOf("f"));
-              fathom = Float.parseFloat(s.trim());
+            } else if (value.contains("fathom") || value.contains("fm")) {
+              String s = value.substring(0, value.indexOf("f"));
+              float fathom = Float.parseFloat(s);
               value = String.format(Locale.US, "%3.1f", fathom * 1.8288f);
             } else if (value.contains("cm")) {
-              String[] sa = value.trim().split("cm");
-              if (sa.length == 1) value = sa[0].trim();
-              float cm = Float.parseFloat(value.trim());
-              value = String.format(Locale.US, "%3.1f", cm * 100f);
-            } else if (value.toLowerCase().contains("meter")) {
-              String s = value.substring(0, value.toLowerCase().indexOf("m"));
-              value = s.trim();
-            } else if (value.toLowerCase().contains("mph")) {
-              value = value.replace("_", "");
-              String[] sa = value.trim().toLowerCase().split("mph");
-              if (sa.length >= 1) value = sa[0].trim();
-              float mph = Float.parseFloat(value.trim());
+              String[] sa = value.split("cm");
+              if (sa.length >= 1) value = sa[0];
+              float cm = Float.parseFloat(value);
+              value = String.format(Locale.US, "%3.1f", cm / 100f);
+            } else if (value.contains("meter")) {
+              value = value.substring(0, value.indexOf("m"));
+            } else if (value.contains("mph")) {
+              String[] sa = value.split("mph");
+              if (sa.length >= 1) value = sa[0];
+              float mph = Float.parseFloat(value);
               value = String.format(Locale.US, "%3.1f", mph * 1.609344f);
-            } else if (value.toLowerCase().contains("knot")) {
-              String[] sa = value.trim().toLowerCase().split("knot");
-              if (sa.length >= 1) value = sa[0].trim();
-              float nm = Float.parseFloat(value.trim());
+            } else if (value.contains("knot")) {
+              String[] sa = value.split("knot");
+              if (sa.length >= 1) value = sa[0];
+              float nm = Float.parseFloat(value);
               value = String.format(Locale.US, "%3.1f", nm * 1.852f);
             } else if (value.contains("kmh") || value.contains("km/h") || value.contains("kph")) {
-              String[] sa = value.trim().split("k");
-              if (sa.length == 1) value = sa[0].trim();
+              String[] sa = value.split("k");
+              if (sa.length > 1) value = sa[0];
             } else if (value.contains("m")) {
-              String s = value.substring(0, value.toLowerCase().indexOf("m"));
-              value = s.trim();
+              value = value.substring(0, value.indexOf("m"));
             } else if (value.contains("(")) {
-              String s = value.substring(0, value.toLowerCase().indexOf("("));
-              value = s.trim();
+              value = value.substring(0, value.indexOf("("));
             }
             // found negative maxdraft values
             // no negative values
@@ -774,6 +777,10 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   }
 
   public void parseFile(File file, String readOnlyContext) {
+    parseFile(file, readOnlyContext, null);
+  }
+
+  public void parseFile(File file, String readOnlyContext, Map<String, String> keyValues) {
     if (!file.exists()) {
       throw new IllegalArgumentException("profile " + file + " does not exist");
     }
@@ -782,15 +789,15 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
         linenr = 1;
         String realContext = context;
         context = readOnlyContext;
-        expressionList = _parseFile(file);
+        expressionList = _parseFile(file, keyValues);
         variableData = new float[variableNumbers.size()];
         evaluate(lookupData); // lookupData is dummy here - evaluate just to create the variables
         context = realContext;
       }
       linenr = 1;
       minWriteIdx = variableData == null ? 0 : variableData.length;
-
-      expressionList = _parseFile(file);
+      expressionList = _parseFile(file, null);
+      lastAssignedExpression = null;
 
       // determine the build-in variable indices
       String[] varNames = getBuildInVariableNames();
@@ -805,10 +812,9 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       for (int i = 0; i < minWriteIdx; i++) {
         variableData[i] = readOnlyData[i];
       }
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("ParseException " + file + " at line " + linenr + ": " + e.getMessage());
     } catch (Exception e) {
-      if (e instanceof IllegalArgumentException) {
-        throw new IllegalArgumentException("ParseException " + file + " at line " + linenr + ": " + e.getMessage());
-      }
       throw new RuntimeException(e);
     }
     if (expressionList.size() == 0) {
@@ -817,10 +823,19 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     }
   }
 
-  private List<BExpression> _parseFile(File file) throws Exception {
+  private List<BExpression> _parseFile(File file, Map<String, String> keyValues) throws Exception {
     _br = new BufferedReader(new FileReader(file));
     _readerDone = false;
-    List<BExpression> result = new ArrayList<BExpression>();
+    List<BExpression> result = new ArrayList<>();
+
+    // if injected keyValues are present, create assign expressions for them
+    if (keyValues != null) {
+      for (String key : keyValues.keySet()) {
+        String value = keyValues.get(key);
+        result.add(BExpression.createAssignExpressionFromKeyValue(this, key, value));
+      }
+    }
+
     for (; ; ) {
       BExpression exp = BExpression.parse(this, 0);
       if (exp == null) break;
@@ -834,6 +849,15 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   public void setVariableValue(String name, float value, boolean create) {
     Integer num = variableNumbers.get(name);
     if (num != null) {
+      variableData[num.intValue()] = value;
+    } else if (create) {
+      num = getVariableIdx(name, create);
+      float[] readOnlyData = variableData;
+      int minWriteIdx = readOnlyData.length;
+      variableData = new float[variableNumbers.size()];
+      for (int i = 0; i < minWriteIdx; i++) {
+        variableData[i] = readOnlyData[i];
+      }
       variableData[num.intValue()] = value;
     }
   }
@@ -851,8 +875,9 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     Integer num = variableNumbers.get(name);
     if (num == null) {
       if (create) {
-        num = new Integer(variableNumbers.size());
+        num = variableNumbers.size();
         variableNumbers.put(name, num);
+        lastAssignedExpression.add(null);
       } else {
         return -1;
       }
@@ -883,13 +908,26 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   }
 
   public final boolean isLookupIdxUsed(int idx) {
-    return idx < lookupIdxUsed.length ? lookupIdxUsed[idx] : false;
+    return idx < lookupIdxUsed.length && lookupIdxUsed[idx];
   }
 
   public final void setAllTagsUsed() {
     for (int i = 0; i < lookupIdxUsed.length; i++) {
       lookupIdxUsed[i] = true;
     }
+  }
+
+  public String usedTagList() {
+    StringBuilder sb = new StringBuilder();
+    for (int inum = 0; inum < lookupValues.size(); inum++) {
+      if (lookupIdxUsed[inum]) {
+        if (sb.length() > 0) {
+          sb.append(',');
+        }
+        sb.append(lookupNames.get(inum));
+      }
+    }
+    return sb.toString();
   }
 
   int getLookupValueIdx(int nameIdx, String value) {

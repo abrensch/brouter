@@ -7,7 +7,7 @@ assign downhillcutoff 1.5
 assign uphillcost 0
 assign uphillcutoff 1.5
 
-assign   turnInstructionMode  = 1  # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style
+assign   turnInstructionMode  = 1  # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style]
 assign   validForFoot        1
 
 ---context:way   # following code refers to way-tags

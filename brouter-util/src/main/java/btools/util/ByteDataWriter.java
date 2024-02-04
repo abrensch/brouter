@@ -99,8 +99,7 @@ public class ByteDataWriter extends ByteDataReader {
       size++;
     }
     while (v != 0);
-    if (size > 1) // doesn't fit -> shift the data after the placeholder
-    {
+    if (size > 1) { // doesn't fit -> shift the data after the placeholder
       System.arraycopy(ab, sizeoffset + 1, ab, sizeoffset + size, datasize);
     }
     aboffset = sizeoffset;
@@ -142,7 +141,6 @@ public class ByteDataWriter extends ByteDataReader {
     ab[aboffset++] = (byte) (i7 | 0x80);
 
     ab[aboffset++] = (byte) (v);
-    return;
   }
 
   public int size() {

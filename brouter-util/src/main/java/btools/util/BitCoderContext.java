@@ -128,8 +128,7 @@ public class BitCoderContext {
       bits -= len;
       return vl_values[b12]; // full value lookup
     }
-    if (len <= 23) // // only length lookup
-    {
+    if (len <= 23) { // // only length lookup
       int len2 = len >> 1;
       b >>>= (len2 + 1);
       int mask = 0xffffffff >>> (32 - len2);
@@ -309,12 +308,12 @@ public class BitCoderContext {
     for (int i = 0; i < 31; i++) {
       int value = ctx.decodeVarBits();
       int v0 = (1 << i) + 3;
-      if (!(v0 == value))
+      if (v0 != value)
         throw new RuntimeException("value mismatch value=" + value + "v0=" + v0);
     }
     for (int i = 0; i < 100000; i += 13) {
       int value = ctx.decodeVarBits();
-      if (!(value == i))
+      if (value != i)
         throw new RuntimeException("value mismatch i=" + i + "v=" + value);
     }
   }

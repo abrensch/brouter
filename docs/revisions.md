@@ -2,7 +2,61 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### [brouter-1.6.3.zip](../brouter_bin/brouter-1.6.3.zip) (current revision, 21.12.2021)
+### [brouter-1.7.3.zip](../brouter_bin/brouter-1.7.3.zip) (current revision, 19.08.2023)
+
+- Minor bug fixes
+
+
+### [brouter-1.7.2.zip](../brouter_bin/brouter-1.7.2.zip) (19.07.2023)
+
+- Re-index Json output
+  Note: This is different to releases 1.7.0 and 1.7.1. It is recommended to use the current version to avoid breaks in voice hint output for GeoJson.
+
+
+### [brouter-1.7.1.zip](../brouter_bin/brouter-1.7.1.zip) (12.07.2023)
+
+Android
+
+- Add parameter dialog for profile
+- Add portrait mode for download view
+- Add silent mode for calling apps
+- Fixed download lookups.dat when download only single rd5 tile.
+
+
+Library
+
+- Update matching points rules on areas with longer distances between way points
+- Optimize constant expressions in profile parsing
+- Rework on roundabouts (left-hand driving)
+- Add new function 'get elevation'
+- Minor bug fixes
+
+
+### [brouter-1.7.0.zip](../brouter_bin/brouter-1.7.0.zip) (29.04.2023)
+
+Android
+
+-   Enable Android 13 (SDK 33)
+-   Remove external coord readers (OsmAnd, Locus, Orux)
+-   Remove brouter.redirect
+-   Remove version for Android 19
+-   Sort profiles
+-   New download worker (foreground)
+
+Library
+
+-   U-turn command (180 degree)
+-   Recalculation of ascend over all segments
+-   Recalculation on elevations (bridges/tunnel)
+-   Rework on turn instructions
+-   Allow straight lines between 2 via points
+-   Correction of misplaced via points
+-   Remove double points
+-   New locus export with info on trkpt
+
+[Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.6.4%22+is%3Aclosed)
+
+### [brouter-1.6.3.zip](../brouter_bin/brouter-1.6.3.zip) (21.12.2021)
 
 -   Enable Android 11
 -   Move storage to /Android/media/btools.routingapp

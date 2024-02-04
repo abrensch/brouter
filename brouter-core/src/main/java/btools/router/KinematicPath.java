@@ -5,9 +5,6 @@
  */
 package btools.router;
 
-import btools.util.FastMath;
-
-
 final class KinematicPath extends OsmPath {
   private double ekin; // kinetic energy (Joule)
   private double totalTime;  // travel time (seconds)
@@ -23,7 +20,6 @@ final class KinematicPath extends OsmPath {
     totalEnergy = origin.totalEnergy;
     floatingAngleLeft = origin.floatingAngleLeft;
     floatingAngleRight = origin.floatingAngleRight;
-    priorityclassifier = origin.priorityclassifier;
   }
 
   @Override
@@ -50,15 +46,14 @@ final class KinematicPath extends OsmPath {
     } else {
       double turnspeed = 999.; // just high
 
-      if (km.turnAngleDecayTime != 0.) // process turn-angle slowdown
-      {
+      if (km.turnAngleDecayTime != 0.) { // process turn-angle slowdown
         if (angle < 0) floatingAngleLeft -= (float) angle;
         else floatingAngleRight += (float) angle;
         float aa = Math.max(floatingAngleLeft, floatingAngleRight);
 
         double curveSpeed = aa > 10. ? 200. / aa : 20.;
         double distanceTime = dist / curveSpeed;
-        double decayFactor = FastMath.exp(-distanceTime / km.turnAngleDecayTime);
+        double decayFactor = Math.exp(-distanceTime / km.turnAngleDecayTime);
         floatingAngleLeft = (float) (floatingAngleLeft * decayFactor);
         floatingAngleRight = (float) (floatingAngleRight * decayFactor);
 
@@ -67,8 +62,7 @@ final class KinematicPath extends OsmPath {
         }
       }
 
-      if (nsection == 0) // process slowdown by crossing geometry
-      {
+      if (nsection == 0) { // process slowdown by crossing geometry
         double junctionspeed = 999.; // just high
 
         int classifiermask = (int) rc.expctxWay.getClassifierMask();
@@ -80,13 +74,11 @@ final class KinematicPath extends OsmPath {
         for (OsmPrePath prePath = rc.firstPrePath; prePath != null; prePath = prePath.next) {
           KinematicPrePath pp = (KinematicPrePath) prePath;
 
-          if (((pp.classifiermask ^ classifiermask) & 8) != 0) // exactly one is linktype
-          {
+          if (((pp.classifiermask ^ classifiermask) & 8) != 0) { // exactly one is linktype
             continue;
           }
 
-          if ((pp.classifiermask & 32) != 0) // touching a residential?
-          {
+          if ((pp.classifiermask & 32) != 0) { // touching a residential?
             hasResidential = true;
           }
 
@@ -248,12 +240,12 @@ final class KinematicPath extends OsmPath {
 
 
   @Override
-  public int elevationCorrection(RoutingContext rc) {
+  public int elevationCorrection() {
     return 0;
   }
 
   @Override
-  public boolean definitlyWorseThan(OsmPath path, RoutingContext rc) {
+  public boolean definitlyWorseThan(OsmPath path) {
     KinematicPath p = (KinematicPath) path;
 
     int c = p.cost;

@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+
+<ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Custom Rules"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>
+        BRouter PMD Ruleset
+    </description>
+
+    <rule ref="rulesets/java/quickstart.xml">
+        <exclude name="AbstractClassWithoutAnyMethod" />
+        <exclude name="AssignmentInOperand" />
+        <exclude name="AssignmentToNonFinalStatic" />
+        <exclude name="AvoidBranchingStatementAsLastInLoop" />
+        <exclude name="AvoidCatchingThrowable" />
+        <exclude name="AvoidProtectedFieldInFinalClass" />
+        <exclude name="AvoidUsingVolatile" />
+        <exclude name="CloseResource" />
+        <exclude name="CompareObjectsWithEquals" />
+        <exclude name="ControlStatementBraces" />
+        <exclude name="DoNotCallGarbageCollectionExplicitly" />
+        <exclude name="EmptyCatchBlock" />
+        <exclude name="EmptyControlStatement" />
+        <exclude name="ForLoopCanBeForeach" />
+        <exclude name="LiteralsFirstInComparisons" />
+        <exclude name="MissingOverride" />
+        <exclude name="OneDeclarationPerLine" />
+        <exclude name="OverrideBothEqualsAndHashcode" />
+        <exclude name="PreserveStackTrace" />
+        <exclude name="ReturnEmptyCollectionRatherThanNull" />
+        <exclude name="UncommentedEmptyConstructor" />
+        <exclude name="UncommentedEmptyMethodBody" />
+        <exclude name="UnusedFormalParameter" />
+        <exclude name="UnusedLocalVariable" />
+        <exclude name="UnusedPrivateField" />
+        <exclude name="UnusedPrivateMethod" />
+        <exclude name="UseCollectionIsEmpty" />
+        <exclude name="UseLocaleWithCaseConversions" />
+        <exclude name="UseNotifyAllInsteadOfNotify" />
+        <exclude name="UseUtilityClass" />
+        <exclude name="UselessParentheses" />
+
+        <!-- Naming -->
+        <exclude name="FormalParameterNamingConventions" />
+        <exclude name="LocalVariableNamingConventions" />
+        <exclude name="MethodNamingConventions" />
+    </rule>
+
+    <!-- Rules similar to Android Studio code inspection default settings -->
+    <!-- <rule ref="category/java/bestpractices.xml/UnusedAssignment" /> -->
+    <rule ref="category/java/codestyle.xml/UseDiamondOperator" />
+    <!-- <rule ref="category/java/design.xml/ImmutableField" /> -->
+    <!-- Will be added in PMD 7 -->
+    <!-- <rule ref="category/java/codestyle.xml/UnnecessaryBoxing" /> -->
+
+</ruleset>

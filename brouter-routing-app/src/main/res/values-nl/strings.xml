@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d segment</item>
+        <item quantity="other">%d segmenten</item>
+    </plurals>
+    <string name="cancel_download">Download annuleren</string>
+    <string name="import_profile">Profiel importeren</string>
+    <string name="action_download">Downloaden %s</string>
+    <string name="action_delete">Verwijderen %s</string>
+    <string name="action_update">Bijwerken %s</string>
+    <string name="action_select">Segmenten selecteren</string>
+    <string name="action_cancel">Download stoppen</string>
+    <string name="summary_segments">Grootte=%1$s\nGratis=%2$s</string>
+    <string name="notification_title">Segmenten downloaden</string>
+
+    <string name="action_choose_folder">Kies de brouter database map:</string>
+    <string name="action_select_profile">Selecteer een routingprofiel</string>
+    <string name="main_action">Selecteer de hoofdactie</string>
+    <string name="main_action_1">Download beheerder</string>
+    <string name="main_action_2">BRouter App</string>
+
+    <string name="cancel">Annuleer</string>
+    <string name="i_know">Ik weet het</string>
+    <string name="close">Sluiten</string>
+    <string name="exit">Verlaat</string>
+    <string name="ok">OK</string>
+    <string name="success">Succes</string>
+    <string name="error">Er is een fout opgetreden</string>
+
+    <string name="title_download">BRouter Download Manager</string>
+    <string name="summary_download">*** OPgelet:***
+        \n\nDe Download Manager wordt gebruikt voor het downloaden van routing-gegevens
+        bestanden die elk maximaal 170 MB groot kunnen zijn. Start de Download Manager
+        niet op een mobiele dataverbinding zonder data-abonnement!
+        De downloadsnelheid is beperkt tot 16 MBit/s.</string>
+    <string name="title_timeoutfree">Een time-outvrije berekening is succesvol voorbereid</string>
+    <string name="summary_timeoutfree">Je hebt met succes een berekening herhaald die eerder op een time-out
+        stuitte toen deze vanuit je map tool werd gestart. Als u hetzelfde verzoek herhaalt
+        vanuit uw map tool, met exact hetzelfde bestemmingspunt en een dichtbijgelegen beginpunt,
+        zal deze aanvraag gegarandeerd geen time-out krijgen.</string>
+    <string name="title_sdcard">De SDCARD basis directory invoeren:</string>
+    <string name="title_action">Actie selecteren</string>
+
+    <string name="action_via_select">Controleer de VIA selectie:</string>
+    <string name="action_nogo_select">Controleer de NoGo selectie:</string>
+    <string name="action_servermode">Server-mode</string>
+    <string name="action_info">Info</string>
+    <string name="action_calc_route">Bereken route</string>
+    <string name="action_profile_settings">Profiel instellingen</string>
+    <string name="action_share">GPX delen</string>
+    <string name="action_select_from">Selecteer van</string>
+    <string name="action_select_to">Selecteer naar/via</string>
+
+    <string name="msg_no_profile">geen profiel data</string>
+    <string name="msg_no_used_profile">, geen gebruikt profiel</string>
+    <string name="msg_too_much_data">Te veel gegevens om te downloaden. Verminder a.u.b.</string>
+    <string name="msg_download_start">Download is gepland. Controleer de internetverbinding als deze  niet start.</string>
+    <string name="msg_wpt_selection">huidige waypointselectie:\n</string>
+    <string name="msg_no_wpt_selection">Verwacht waypointselectie\n</string>
+    <string name="msg_alternative">Alternatief</string>
+    <string name="msg_status_result">versie = BRouter-%1$s \n
+        geheugen = %2$s \n
+        afstand = %3$s km\n
+        gefilterde opstijging = %4$s m\n
+        simpel opstijging = %5$s m\n
+        geschatte tijd = %6$s</string>
+    <string name="msg_read_wpt_error">Fout bij het lezen van waypoints</string>
+    <string name="msg_no_wpt">coördinaten bron bevat geen waypoints!</string>
+    <string name="msg_too_much_wpts">De coördinatenbron bevat te veel waypoints: %1$d (gebruik van/naar/via namen)</string>
+
+    <string name="no">Nee</string>
+    <string name="yes">Ja</string>
+
+    <string name="title_delete">Verwijderen bevestigen</string>
+    <string name="summary_delete">Echt verwijderen?</string>
+    <string name="title_version">Versie probleem</string>
+    <string name="summary_version">De basisversie voor de tegels is gewijzigd. Wat moet er gebeuren?</string>
+    <string name="action_version1">Doorgaan met de huidige download, verwijder de oude gegevens.</string>
+    <string name="action_version2">Selecteer alles om te downloaden en start</string>
+    <string name="action_version3">Annuleer nu, voltooi op een andere dag</string>
+    <string name="title_version_diff">Versieverschillen</string>
+    <string name="summary_version_diff">De basisversie voor sommige tiles is anders. Wat moet er gebeuren?</string>
+    <string name="action_version_diff1">Download alle verschillende tegels</string>
+    <string name="action_version_diff2">Laat alle verschillende tegels vallen</string>
+    <string name="action_version_diff3">Annuleer nu, en voltooi op een andere dag</string>
+    <string name="summary_new_version">Voor de nieuwe gegevensversie is een nieuwe app nodig. Update eerst de BRouter</string>
+
+    <string name="msg_download_failed">Download is mislukt</string>
+    <string name="msg_download_cancel">Download is geannuleerd</string>
+    <string name="msg_download_succeed">Download is geslaagd</string>
+    <string name="msg_download_started">Downloaden…</string>
+
+</resources>

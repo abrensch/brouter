@@ -1,13 +1,11 @@
 package btools.routingapp;
 
-
 import android.app.Service;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Base64;
-import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -21,15 +19,17 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 import btools.router.OsmNodeNamed;
+import btools.router.RoutingEngine;
 
 public class BRouterService extends Service {
 
   @Override
   public IBinder onBind(Intent arg0) {
-    Log.d(getClass().getSimpleName(), "onBind()");
     return myBRouterServiceStub;
   }
 
@@ -40,6 +40,11 @@ public class BRouterService extends Service {
 
       BRouterWorker worker = new BRouterWorker();
 
+      int engineMode = 0;
+      if (params.containsKey("engineMode")) {
+        engineMode = params.getInt("engineMode", 0);
+      }
+
       // get base dir from private file
       String baseDir = null;
       InputStream configInput = null;
@@ -49,52 +54,60 @@ public class BRouterService extends Service {
         baseDir = br.readLine();
       } catch (Exception e) {
       } finally {
-        if (configInput != null) try {
-          configInput.close();
-        } catch (Exception ee) {
-        }
+        if (configInput != null)
+          try {
+            configInput.close();
+          } catch (Exception ee) {
+          }
       }
       worker.baseDir = baseDir;
       worker.segmentDir = new File(baseDir, "brouter/segments4");
-
-      String remoteProfile = params.getString("remoteProfile");
-
-      if (remoteProfile == null) {
-        remoteProfile = checkForTestDummy(baseDir);
-      }
-
       String errMsg = null;
-      if (remoteProfile != null) {
-        errMsg = getConfigForRemoteProfile(worker, baseDir, remoteProfile);
-      } else if (params.containsKey("profile")) {
-        String profile = params.getString("profile");
-        worker.profileName = profile;
-        worker.profilePath = baseDir + "/brouter/profiles2/" + profile + ".brf";
-        worker.rawTrackPath = baseDir + "/brouter/modes/" + profile + "_rawtrack.dat";
-        if (!new File(worker.profilePath).exists())
-          errMsg = "Profile " + profile + " does not exists";
-        try {
-          readNogos(worker, baseDir);
-        } catch (Exception e) {
-          errMsg = e.getLocalizedMessage();
+
+      if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING) {
+        String remoteProfile = params.getString("remoteProfile", null);
+
+        if (remoteProfile == null) {
+          remoteProfile = checkForTestDummy(baseDir);
+        }
+
+        if (remoteProfile != null) {
+          errMsg = getConfigForRemoteProfile(worker, baseDir, remoteProfile);
+        } else if (params.containsKey("profile")) {
+          String profile = params.getString("profile");
+          worker.profileName = profile;
+          worker.profilePath = baseDir + "/brouter/profiles2/" + profile + ".brf";
+          worker.rawTrackPath = baseDir + "/brouter/modes/" + profile + "_rawtrack.dat";
+          if (!new File(worker.profilePath).exists()) {
+            errMsg = "Profile " + profile + " does not exists";
+          } else {
+            try {
+              readNogos(worker, baseDir);
+            } catch (Exception e) {
+              errMsg = e.getLocalizedMessage();
+            }
+          }
+        } else {
+          errMsg = getConfigFromMode(worker, baseDir, params.getString("v"), params.getString("fast"));
         }
       } else {
-        errMsg = getConfigFromMode(worker, baseDir, params.getString("v"), params.getString("fast"));
+        worker.profilePath = baseDir + "/brouter/profiles2/dummy.brf";
       }
-
       if (errMsg != null) {
         return errMsg;
       }
+      // profile is already done
+      params.remove("profile");
 
       boolean canCompress = "true".equals(params.getString("acceptCompressedResult"));
       try {
         String gpxMessage = worker.getTrackFromParams(params);
-        if (canCompress && gpxMessage.startsWith("<")) {
+        if (canCompress && (gpxMessage.startsWith("<") || gpxMessage.startsWith("{"))) {
           try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             baos.write("z64".getBytes(Charset.forName("UTF-8"))); // marker prefix
             OutputStream os = new GZIPOutputStream(baos);
-            byte[] ab = gpxMessage.getBytes(Charset.forName("UTF-8")); //StandardCharsets.UTF_8
+            byte[] ab = gpxMessage.getBytes(Charset.forName("UTF-8")); // StandardCharsets.UTF_8
             gpxMessage = null;
             os.write(ab);
             ab = null;
@@ -127,20 +140,38 @@ public class BRouterService extends Service {
           if (!smc.mode.equals(mode_key))
             continue;
           worker.profileName = smc.profile;
+          worker.profileParams = (smc.params.equals("noparams") ? null : smc.params);
           worker.profilePath = baseDir + "/brouter/profiles2/" + smc.profile + ".brf";
           worker.rawTrackPath = baseDir + "/brouter/modes/" + mode_key + "_rawtrack.dat";
 
           readNogos(worker, baseDir);
+
+          // veto nogos by profiles veto list
+          List<OsmNodeNamed> nogoList = new ArrayList<>(worker.nogoList);
+          worker.nogoList.clear();
+          for (OsmNodeNamed nogo : nogoList) {
+            if (!smc.nogoVetos.contains(nogo.ilon + "," + nogo.ilat)) {
+              worker.nogoList.add(nogo);
+            }
+          }
+          List<OsmNodeNamed> nogoPolygonsList = new ArrayList<>(worker.nogoPolygonsList);
+          worker.nogoPolygonsList.clear();
+          for (OsmNodeNamed nogo : nogoPolygonsList) {
+            if (!smc.nogoVetos.contains(nogo.ilon + "," + nogo.ilat)) {
+              worker.nogoPolygonsList.add(nogo);
+            }
+          }
 
           return null;
         }
       } catch (Exception e) {
         return "no brouter service config found, mode " + mode_key;
       } finally {
-        if (br != null) try {
-          br.close();
-        } catch (Exception ee) {
-        }
+        if (br != null)
+          try {
+            br.close();
+          } catch (Exception ee) {
+          }
       }
       return "no brouter service config found for mode " + mode_key;
     }
@@ -163,10 +194,11 @@ public class BRouterService extends Service {
             os = new FileOutputStream(profileFile);
             os.write(profileBytes);
           } finally {
-            if (os != null) try {
-              os.close();
-            } catch (IOException io) {
-            }
+            if (os != null)
+              try {
+                os.close();
+              } catch (IOException io) {
+              }
           }
         }
       } catch (Exception e) {
@@ -178,10 +210,9 @@ public class BRouterService extends Service {
     private void readNogos(BRouterWorker worker, String baseDir) throws Exception {
       // add nogos from waypoint database
       CoordinateReader cor = CoordinateReader.obtainValidReader(baseDir, true);
-      worker.nogoList = new ArrayList<OsmNodeNamed>(cor.nogopoints);
-      worker.nogoPolygonsList = new ArrayList<OsmNodeNamed>();
+      worker.nogoList = new ArrayList<>(cor.nogopoints);
+      worker.nogoPolygonsList = new ArrayList<>();
     }
-
 
     private boolean fileEqual(byte[] fileBytes, File file) throws Exception {
       if (!file.exists()) {
@@ -196,8 +227,10 @@ public class BRouterService extends Service {
         is = new FileInputStream(file);
         while (pos < nbytes) {
           int len = is.read(buf, 0, blen);
-          if (len <= 0) return false;
-          if (pos + len > nbytes) return false;
+          if (len <= 0)
+            return false;
+          if (pos + len > nbytes)
+            return false;
           for (int j = 0; j < len; j++) {
             if (fileBytes[pos++] != buf[j]) {
               return false;
@@ -206,16 +239,18 @@ public class BRouterService extends Service {
         }
         return true;
       } finally {
-        if (is != null) try {
-          is.close();
-        } catch (IOException io) {
-        }
+        if (is != null)
+          try {
+            is.close();
+          } catch (IOException io) {
+          }
       }
     }
 
     private String checkForTestDummy(String baseDir) {
       File testdummy = new File(baseDir + "/brouter/profiles2/remotetestdummy.brf");
-      if (!testdummy.exists()) return null;
+      if (!testdummy.exists())
+        return null;
       BufferedReader br = null;
       StringBuilder sb = new StringBuilder();
       try {
@@ -230,18 +265,25 @@ public class BRouterService extends Service {
       } catch (Exception e) {
         throw new RuntimeException("error reading " + testdummy);
       } finally {
-        if (br != null) try {
-          br.close();
-        } catch (Exception ee) {
-        }
+        if (br != null)
+          try {
+            br.close();
+          } catch (Exception ee) {
+          }
       }
     }
 
+    @SuppressWarnings("deprecation")
     private void logBundle(Bundle params) {
       if (AppLogger.isLogging()) {
         for (String k : params.keySet()) {
           Object val = "remoteProfile".equals(k) ? "<..cut..>" : params.get(k);
-          String desc = "key=" + k + (val == null ? "" : " class=" + val.getClass() + " val=" + val.toString());
+          String desc = "key=" + k + (val == null ? "" : " class=" + val.getClass() + " val=");
+          if (val instanceof double[]) {
+            desc += Arrays.toString(params.getDoubleArray(k));
+          } else {
+            desc += val.toString();
+          }
           AppLogger.log(desc);
         }
       }
@@ -252,23 +294,19 @@ public class BRouterService extends Service {
   @Override
   public void onCreate() {
     super.onCreate();
-    Log.d(getClass().getSimpleName(), "onCreate()");
   }
 
   @Override
   public void onDestroy() {
     super.onDestroy();
-    Log.d(getClass().getSimpleName(), "onDestroy()");
   }
 
-
   // This is the old onStart method that will be called on the pre-2.0
-  // platform.  On 2.0 or later we override onStartCommand() so this
+  // platform. On 2.0 or later we override onStartCommand() so this
   // method will not be called.
   @Override
   @SuppressWarnings("deprecation")
   public void onStart(Intent intent, int startId) {
-    Log.d(getClass().getSimpleName(), "onStart()");
     handleStart(intent, startId);
   }
 

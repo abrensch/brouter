@@ -1,11 +1,10 @@
 package btools.expressions;
 
-import java.util.*;
-import java.io.*;
-import java.net.URL;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.io.File;
+import java.net.URL;
 
 public class EncodeDecodeTest {
   @Test
@@ -30,7 +29,7 @@ public class EncodeDecodeTest {
       "depth=1'6\"",
 //    "depth=6 feet",
       "maxheight=5.1m",
-      "maxdraft=~3 mt",
+      "maxdraft=~3 m - 4 m",
       "reversedirection=yes"
     };
 

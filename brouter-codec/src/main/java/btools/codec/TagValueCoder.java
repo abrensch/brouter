@@ -2,6 +2,7 @@ package btools.codec;
 
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.PriorityQueue;
 
 import btools.util.BitCoderContext;
@@ -16,7 +17,7 @@ import btools.util.BitCoderContext;
  * but doesn't do anything at pass1
  */
 public final class TagValueCoder {
-  private HashMap<TagValueSet, TagValueSet> identityMap;
+  private Map<TagValueSet, TagValueSet> identityMap;
   private Object tree;
   private BitCoderContext bc;
   private int pass;
@@ -57,7 +58,7 @@ public final class TagValueCoder {
         TagValueSet dummy = new TagValueSet(nextTagValueSetId++);
         identityMap.put(dummy, dummy);
       }
-      PriorityQueue<TagValueSet> queue = new PriorityQueue<TagValueSet>(2 * identityMap.size(), new TagValueSet.FrequencyComparator());
+      PriorityQueue<TagValueSet> queue = new PriorityQueue<>(2 * identityMap.size(), new TagValueSet.FrequencyComparator());
       queue.addAll(identityMap.values());
       while (queue.size() > 1) {
         TagValueSet node = new TagValueSet(nextTagValueSetId++);
@@ -78,7 +79,7 @@ public final class TagValueCoder {
   }
 
   public TagValueCoder() {
-    identityMap = new HashMap<TagValueSet, TagValueSet>();
+    identityMap = new HashMap<>();
   }
 
   private Object decodeTree(BitCoderContext bc, DataBuffers buffers, TagValueValidator validator) {

@@ -12,7 +12,7 @@ public final class BExpressionContextWay extends BExpressionContext implements T
   private boolean decodeForbidden = true;
 
   private static String[] buildInVariables =
-    {"costfactor", "turncost", "uphillcostfactor", "downhillcostfactor", "initialcost", "nodeaccessgranted", "initialclassifier", "trafficsourcedensity", "istrafficbackbone", "priorityclassifier", "classifiermask", "maxspeed"};
+    {"costfactor", "turncost", "uphillcostfactor", "downhillcostfactor", "initialcost", "nodeaccessgranted", "initialclassifier", "trafficsourcedensity", "istrafficbackbone", "priorityclassifier", "classifiermask", "maxspeed", "uphillcost", "downhillcost", "uphillcutoff", "downhillcutoff", "uphillmaxslope", "downhillmaxslope", "uphillmaxslopecost", "downhillmaxslopecost"};
 
   protected String[] getBuildInVariableNames() {
     return buildInVariables;
@@ -64,6 +64,38 @@ public final class BExpressionContextWay extends BExpressionContext implements T
 
   public float getMaxspeed() {
     return getBuildInVariable(11);
+  }
+
+  public float getUphillcost() {
+    return getBuildInVariable(12);
+  }
+
+  public float getDownhillcost() {
+    return getBuildInVariable(13);
+  }
+
+  public float getUphillcutoff() {
+    return getBuildInVariable(14);
+  }
+
+  public float getDownhillcutoff() {
+    return getBuildInVariable(15);
+  }
+
+  public float getUphillmaxslope() {
+    return getBuildInVariable(16);
+  }
+
+  public float getDownhillmaxslope() {
+    return getBuildInVariable(17);
+  }
+
+  public float getUphillmaxslopecost() {
+    return getBuildInVariable(18);
+  }
+
+  public float getDownhillmaxslopecost() {
+    return getBuildInVariable(19);
   }
 
   public BExpressionContextWay(BExpressionMetaData meta) {

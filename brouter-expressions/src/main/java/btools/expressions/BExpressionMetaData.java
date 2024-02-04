@@ -9,16 +9,8 @@ package btools.expressions;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
-import java.util.TreeMap;
-
-import btools.util.BitCoderContext;
-import btools.util.Crc32;
 
 
 public final class BExpressionMetaData {
@@ -26,11 +18,13 @@ public final class BExpressionMetaData {
   private static final String VERSION_TAG = "---lookupversion:";
   private static final String MINOR_VERSION_TAG = "---minorversion:";
   private static final String VARLENGTH_TAG = "---readvarlength";
+  private static final String MIN_APP_VERSION_TAG = "---minappversion:";
 
   public short lookupVersion = -1;
   public short lookupMinorVersion = -1;
+  public short minAppVersion = -1;
 
-  private HashMap<String, BExpressionContext> listeners = new HashMap<String, BExpressionContext>();
+  private Map<String, BExpressionContext> listeners = new HashMap<>();
 
   public void registerListener(String context, BExpressionContext ctx) {
     listeners.put(context, ctx);
@@ -59,8 +53,11 @@ public final class BExpressionMetaData {
           lookupMinorVersion = Short.parseShort(line.substring(MINOR_VERSION_TAG.length()));
           continue;
         }
-        if (line.startsWith(VARLENGTH_TAG)) // tag removed...
-        {
+        if (line.startsWith(MIN_APP_VERSION_TAG)) {
+          minAppVersion = Short.parseShort(line.substring(MIN_APP_VERSION_TAG.length()));
+          continue;
+        }
+        if (line.startsWith(VARLENGTH_TAG)) { // tag removed...
           continue;
         }
         if (ctx != null) ctx.parseMetaLine(line);

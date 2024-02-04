@@ -1,11 +1,12 @@
 package btools.codec;
 
+import java.util.Map;
 import java.util.TreeMap;
 
 import btools.util.BitCoderContext;
 
 public final class StatCoderContext extends BitCoderContext {
-  private static TreeMap<String, long[]> statsPerName;
+  private static Map<String, long[]> statsPerName;
   private long lastbitpos = 0;
 
 
@@ -38,7 +39,7 @@ public final class StatCoderContext extends BitCoderContext {
   public void assignBits(String name) {
     long bitpos = getWritingBitPosition();
     if (statsPerName == null) {
-      statsPerName = new TreeMap<String, long[]>();
+      statsPerName = new TreeMap<>();
     }
     long[] stats = statsPerName.get(name);
     if (stats == null) {
@@ -183,8 +184,7 @@ public final class StatCoderContext extends BitCoderContext {
    * @param mask    should be 0
    */
   public void encodeSortedArray(int[] values, int offset, int subsize, int nextbit, int mask) {
-    if (subsize == 1) // last-choice shortcut
-    {
+    if (subsize == 1) { // last-choice shortcut
       while (nextbit != 0) {
         encodeBit((values[offset] & nextbit) != 0);
         nextbit >>= 1;
@@ -226,8 +226,7 @@ public final class StatCoderContext extends BitCoderContext {
    * @see #encodeSortedArray
    */
   public void decodeSortedArray(int[] values, int offset, int subsize, int nextbitpos, int value) {
-    if (subsize == 1) // last-choice shortcut
-    {
+    if (subsize == 1) { // last-choice shortcut
       if (nextbitpos >= 0) {
         value |= decodeBitsReverse(nextbitpos + 1);
       }

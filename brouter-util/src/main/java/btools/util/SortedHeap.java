@@ -1,7 +1,5 @@
 package btools.util;
 
-import java.util.Random;
-
 /**
  * Memory efficient and lightning fast heap to get the lowest-key value of a set of key-object pairs
  *
@@ -21,6 +19,7 @@ public final class SortedHeap<V> {
   /**
    * @return the lowest key value, or null if none
    */
+  @SuppressWarnings("unchecked")
   public V popLowestKeyValue() {
     SortedBin bin = firstNonEmpty;
     if (firstNonEmpty == null) {
@@ -211,8 +210,7 @@ public final class SortedHeap<V> {
   public void add(int key, V value) {
     size++;
 
-    if (first.lp == 0 && second.lp == 0) // both full ?
-    {
+    if (first.lp == 0 && second.lp == 0) { // both full ?
       sortUp();
     }
     if (first.lp > 0) {

@@ -29,6 +29,7 @@ import btools.router.OsmTrack;
 import btools.router.ProfileCache;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
+import btools.router.RoutingParamCollector;
 import btools.server.request.ProfileUploadHandler;
 import btools.server.request.RequestHandler;
 import btools.server.request.ServerHandler;
@@ -81,7 +82,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       String agent = null;
       String encodings = null;
       String xff = null; // X-Forwarded-For
-      String referer = null;
 
       // more headers until first empty line
       for (; ; ) {
@@ -108,12 +108,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         if (line.startsWith("x-forwarded-for: ")) {
           xff = line.substring("x-forwarded-for: ".length());
         }
-        if (line.startsWith("Referer: ")) {
-          referer = line.substring("Referer: ".length());
-        }
-        if (line.startsWith("Referrer: ")) {
-          referer = line.substring("Referrer: ".length());
-        }
       }
 
       InetAddress ip = clientSocket.getInetAddress();
@@ -139,15 +133,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         }
       }
 
-      if (referer != null && referer.indexOf("brouter.de/brouter-web") >= 0) {
-        if (getline.indexOf("%7C") >= 0 && getline.indexOf("%2C") >= 0) {
-          writeHttpHeader(bw, HTTP_STATUS_FORBIDDEN);
-          bw.write("Spam? please stop");
-          bw.flush();
-          return;
-        }
-      }
-
       if (getline.startsWith("GET /favicon.ico")) {
         writeHttpHeader(bw, HTTP_STATUS_NOT_FOUND);
         bw.flush();
@@ -162,7 +147,9 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       }
 
       String url = getline.split(" ")[1];
-      HashMap<String, String> params = getUrlParams(url);
+
+      RoutingParamCollector routingParamCollector = new RoutingParamCollector();
+      Map<String, String> params = routingParamCollector.getUrlParams(url);
 
       long maxRunningTime = getMaxRunningTime();
 
@@ -202,25 +189,18 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         return;
       }
       RoutingContext rc = handler.readRoutingContext();
-      List<OsmNodeNamed> wplist = handler.readWayPointList();
+      List<OsmNodeNamed> wplist = routingParamCollector.getWayPointList(params.get("lonlats"));
 
       if (wplist.size() < 10) {
         SuspectManager.nearRecentWps.add(wplist);
       }
-      for (Map.Entry<String, String> e : params.entrySet()) {
-        if ("timode".equals(e.getKey())) {
-          rc.turnInstructionMode = Integer.parseInt(e.getValue());
-        } else if ("heading".equals(e.getKey())) {
-          rc.startDirection = Integer.valueOf(Integer.parseInt(e.getValue()));
-          rc.forceUseStartDirection = true;
-        } else if (e.getKey().startsWith("profile:")) {
-          if (rc.keyValues == null) {
-            rc.keyValues = new HashMap<String, String>();
-          }
-          rc.keyValues.put(e.getKey().substring(8), e.getValue());
-        }
+      int engineMode = 0;
+      if (params.containsKey("engineMode")) {
+        engineMode = Integer.parseInt(params.get("engineMode"));
       }
-      cr = new RoutingEngine(null, null, serviceContext.segmentDir, wplist, rc);
+      routingParamCollector.setParams(rc, wplist, params);
+
+      cr = new RoutingEngine(null, null, serviceContext.segmentDir, wplist, rc, engineMode);
       cr.quite = true;
       cr.doRun(maxRunningTime);
 
@@ -231,19 +211,29 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       } else {
         OsmTrack track = cr.getFoundTrack();
 
+        if (engineMode == 2) {
+          // no zip for this engineMode
+          encodings = null;
+        }
         String headers = encodings == null || encodings.indexOf("gzip") < 0 ? null : "Content-Encoding: gzip\n";
         writeHttpHeader(bw, handler.getMimeType(), handler.getFileName(), headers, HTTP_STATUS_OK);
-        if (track != null) {
-          if (headers != null) // compressed
-          {
-            java.io.ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            Writer w = new OutputStreamWriter(new GZIPOutputStream(baos), "UTF-8");
-            w.write(handler.formatTrack(track));
-            w.close();
-            bw.flush();
-            clientSocket.getOutputStream().write(baos.toByteArray());
-          } else {
-            bw.write(handler.formatTrack(track));
+        if (engineMode == 0) {
+          if (track != null) {
+            if (headers != null) { // compressed
+              ByteArrayOutputStream baos = new ByteArrayOutputStream();
+              Writer w = new OutputStreamWriter(new GZIPOutputStream(baos), "UTF-8");
+              w.write(handler.formatTrack(track));
+              w.close();
+              bw.flush();
+              clientSocket.getOutputStream().write(baos.toByteArray());
+            } else {
+              bw.write(handler.formatTrack(track));
+            }
+          }
+        } else if (engineMode == 2) {
+          String s = cr.getFoundInfo();
+          if (s != null) {
+            bw.write(s);
           }
         }
       }
@@ -258,15 +248,18 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       e.printStackTrace();
     } finally {
       cr = null;
-      if (br != null) try {
+      if (br != null)
+        try {
           br.close();
         } catch (Exception e) {
         }
-      if (bw != null) try {
+      if (bw != null)
+        try {
           bw.close();
         } catch (Exception e) {
         }
-      if (clientSocket != null) try {
+      if (clientSocket != null)
+        try {
           clientSocket.close();
         } catch (Exception e) {
         }
@@ -302,7 +295,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
     ProfileCache.setSize(2 * maxthreads);
 
-    PriorityQueue<RouteServer> threadQueue = new PriorityQueue<RouteServer>();
+    PriorityQueue<RouteServer> threadQueue = new PriorityQueue<>();
 
     ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]), 100, InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
 
@@ -366,8 +359,8 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
   }
 
 
-  private static HashMap<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
-    HashMap<String, String> params = new HashMap<String, String>();
+  private static Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
+    HashMap<String, String> params = new HashMap<>();
     String decoded = URLDecoder.decode(url, "UTF-8");
     StringTokenizer tk = new StringTokenizer(decoded, "?&");
     while (tk.hasMoreTokens()) {

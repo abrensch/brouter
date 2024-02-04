@@ -1,10 +1,10 @@
 package btools.util;
 
-import java.util.Random;
-import java.util.HashMap;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Random;
 
 public class CompactMapTest {
   @Test
@@ -22,14 +22,14 @@ public class CompactMapTest {
 
   private void hashMapComparison(int mapsize, int trycount) {
     Random rand = new Random(12345);
-    HashMap<Long, String> hmap = new HashMap<Long, String>();
-    CompactLongMap<String> cmap_slow = new CompactLongMap<String>();
-    CompactLongMap<String> cmap_fast = new CompactLongMap<String>();
+    HashMap<Long, String> hmap = new HashMap<>();
+    CompactLongMap<String> cmap_slow = new CompactLongMap<>();
+    CompactLongMap<String> cmap_fast = new CompactLongMap<>();
 
     for (int i = 0; i < mapsize; i++) {
       String s = "" + i;
       long k = mapsize < 10 ? i : rand.nextInt(20000);
-      Long KK = new Long(k);
+      Long KK = k;
 
       if (!hmap.containsKey(KK)) {
         hmap.put(KK, s);
@@ -40,16 +40,16 @@ public class CompactMapTest {
 
     for (int i = 0; i < trycount * 2; i++) {
       if (i == trycount) {
-        cmap_slow = new FrozenLongMap<String>(cmap_slow);
-        cmap_fast = new FrozenLongMap<String>(cmap_fast);
+        cmap_slow = new FrozenLongMap<>(cmap_slow);
+        cmap_fast = new FrozenLongMap<>(cmap_fast);
       }
       long k = mapsize < 10 ? i : rand.nextInt(20000);
-      Long KK = new Long(k);
+      Long KK = k;
       String s = hmap.get(KK);
 
       boolean contained = hmap.containsKey(KK);
-      Assert.assertTrue("containsKey missmatch (slow)", contained == cmap_slow.contains(k));
-      Assert.assertTrue("containsKey missmatch (fast)", contained == cmap_fast.contains(k));
+      Assert.assertEquals("containsKey missmatch (slow)", contained, cmap_slow.contains(k));
+      Assert.assertEquals("containsKey missmatch (fast)", contained, cmap_fast.contains(k));
 
       if (contained) {
         Assert.assertEquals("object missmatch (fast)", s, cmap_fast.get(k));

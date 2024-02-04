@@ -5,18 +5,26 @@ import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class ConvertLidarTile {
-  public static int NROWS;
-  public static int NCOLS;
+  private static int NROWS;
+  private static int NCOLS;
 
   public static final short NODATA2 = -32767; // hgt-formats nodata
   public static final short NODATA = Short.MIN_VALUE;
+
+  private static final String HGT_FILE_EXT = ".hgt";
+  private static final int HGT_BORDER_OVERLAP = 1;
+  private static final int HGT_3ASEC_ROWS = 1201; // 3 arc second resolution (90m)
+  private static final int HGT_3ASEC_FILE_SIZE = HGT_3ASEC_ROWS * HGT_3ASEC_ROWS * Short.BYTES;
+  private static final int HGT_1ASEC_ROWS = 3601; // 1 arc second resolution (30m)
 
   static short[] imagePixels;
 
@@ -25,8 +33,9 @@ public class ConvertLidarTile {
     try {
       for (; ; ) {
         ZipEntry ze = zis.getNextEntry();
-        if (ze.getName().endsWith(".hgt")) {
-          readHgtFromStream(zis, rowOffset, colOffset);
+        if (ze == null) break;
+        if (ze.getName().toLowerCase().endsWith(HGT_FILE_EXT)) {
+          readHgtFromStream(zis, rowOffset, colOffset, HGT_3ASEC_ROWS);
           return;
         }
       }
@@ -35,20 +44,20 @@ public class ConvertLidarTile {
     }
   }
 
-  private static void readHgtFromStream(InputStream is, int rowOffset, int colOffset)
+  private static void readHgtFromStream(InputStream is, int rowOffset, int colOffset, int rowLength)
     throws Exception {
     DataInputStream dis = new DataInputStream(new BufferedInputStream(is));
-    for (int ir = 0; ir < 1201; ir++) {
+    for (int ir = 0; ir < rowLength; ir++) {
       int row = rowOffset + ir;
 
-      for (int ic = 0; ic < 1201; ic++) {
+      for (int ic = 0; ic < rowLength; ic++) {
         int col = colOffset + ic;
 
         int i1 = dis.read(); // msb first!
         int i0 = dis.read();
 
         if (i0 == -1 || i1 == -1)
-          throw new RuntimeException("unexcepted end of file reading hgt entry!");
+          throw new RuntimeException("unexpected end of file reading hgt entry!");
 
         short val = (short) ((i1 << 8) | i0);
 
@@ -60,7 +69,6 @@ public class ConvertLidarTile {
       }
     }
   }
-
 
   private static void setPixel(int row, int col, short val) {
     if (row >= 0 && row < NROWS && col >= 0 && col < NCOLS) {
@@ -157,7 +165,7 @@ public class ConvertLidarTile {
     String s = "E";
     if (lon < 0) {
       lon = -lon;
-      s = "E";
+      s = "W";
     }
     String n = "000" + lon;
     return s + n.substring(n.length() - 3);
@@ -184,6 +192,59 @@ public class ConvertLidarTile {
     int ilat_base = 150 - srtmLatIdx * 5 - 90;
 
     doConvert(args[1], ilon_base, ilat_base, filename30);
+  }
+
+  public SrtmRaster getRaster(File f, double lon, double lat) throws Exception {
+    long fileSize;
+    InputStream inputStream;
+
+    if (f.getName().toLowerCase().endsWith(".zip")) {
+      ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(f)));
+      for (; ; ) {
+        ZipEntry ze = zis.getNextEntry();
+        if (ze == null) {
+          throw new FileNotFoundException(f.getName() + " doesn't contain a " + HGT_FILE_EXT + " file.");
+        }
+        if (ze.getName().toLowerCase().endsWith(HGT_FILE_EXT)) {
+          fileSize = ze.getSize();
+          inputStream = zis;
+          break;
+        }
+      }
+    } else {
+      fileSize = f.length();
+      inputStream = new FileInputStream(f);
+    }
+
+    int rowLength;
+    if (fileSize > HGT_3ASEC_FILE_SIZE) {
+      rowLength = HGT_1ASEC_ROWS;
+    } else {
+      rowLength = HGT_3ASEC_ROWS;
+    }
+
+    // stay at 1 deg * 1 deg raster
+    NROWS = rowLength;
+    NCOLS = rowLength;
+
+    imagePixels = new short[NROWS * NCOLS];
+
+    // prefill as NODATA
+    Arrays.fill(imagePixels, NODATA);
+    readHgtFromStream(inputStream, 0, 0, rowLength);
+    inputStream.close();
+
+    SrtmRaster raster = new SrtmRaster();
+    raster.nrows = NROWS;
+    raster.ncols = NCOLS;
+    raster.halfcol = false; // assume full resolution
+    raster.noDataValue = NODATA;
+    raster.cellsize = 1. / (double) (rowLength - HGT_BORDER_OVERLAP);
+    raster.xllcorner = (int) (lon < 0 ? lon - 1 : lon); //onDegreeStart - raster.cellsize;
+    raster.yllcorner = (int) (lat < 0 ? lat - 1 : lat); //latDegreeStart - raster.cellsize;
+    raster.eval_array = imagePixels;
+
+    return raster;
   }
 
 }

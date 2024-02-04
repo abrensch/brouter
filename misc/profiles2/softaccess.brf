@@ -20,3 +20,4 @@ assign costfactor
 
 ---context:node  # following code refers to node tags
 
+assign initialcost = 0

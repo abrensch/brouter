@@ -36,6 +36,10 @@ public class OsmPathElement implements OsmPos {
     return selev;
   }
 
+  public final void setSElev(short s) {
+    selev = s;
+  }
+
   public final double getElev() {
     return selev / 4.;
   }
@@ -60,12 +64,18 @@ public class OsmPathElement implements OsmPos {
     }
   }
 
+  public final void setAngle(float e) {
+    if (message != null) {
+      message.turnangle = e;
+    }
+  }
+
   public final long getIdFromPos() {
     return ((long) ilon) << 32 | ilat;
   }
 
   public final int calcDistance(OsmPos p) {
-    return (int) (CheapRuler.distance(ilon, ilat, p.getILon(), p.getILat()) + 1.0);
+    return (int) Math.max(1.0, Math.round(CheapRuler.distance(ilon, ilat, p.getILon(), p.getILat())));
   }
 
   public OsmPathElement origin;
@@ -73,7 +83,7 @@ public class OsmPathElement implements OsmPos {
   // construct a path element from a path
   public static final OsmPathElement create(OsmPath path, boolean countTraffic) {
     OsmNode n = path.getTargetNode();
-    OsmPathElement pe = create(n.getILon(), n.getILat(), path.selev, path.originElement, countTraffic);
+    OsmPathElement pe = create(n.getILon(), n.getILat(), n.getSElev(), path.originElement, countTraffic);
     pe.cost = path.cost;
     pe.message = path.message;
     return pe;
@@ -96,6 +106,10 @@ public class OsmPathElement implements OsmPos {
 
   public String toString() {
     return ilon + "_" + ilat;
+  }
+
+  public boolean positionEquals(OsmPathElement e) {
+    return this.ilat == e.ilat && this.ilon == e.ilon;
   }
 
   public void writeToStream(DataOutput dos) throws IOException {

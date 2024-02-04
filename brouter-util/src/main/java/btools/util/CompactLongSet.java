@@ -141,10 +141,7 @@ public class CompactLongSet {
         n = nn;
       }
     }
-    if (a[n] == id) {
-      return true;
-    }
-    return false;
+    return a[n] == id;
   }
 
   protected void moveToFrozenArray(long[] faid) {
@@ -152,8 +149,7 @@ public class CompactLongSet {
       pa[i] = 0;
     }
 
-    for (int ti = 0; ti < size; ti++) // target-index
-    {
+    for (int ti = 0; ti < size; ti++) { // target-index
       int bp = size; // treat size as bitpattern
       int minIdx = -1;
       long minId = 0;

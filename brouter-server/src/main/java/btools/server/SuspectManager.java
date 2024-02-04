@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
@@ -239,12 +240,11 @@ public class SuspectManager extends Thread {
     bw.write("<html><body>\n");
     bw.write("BRouter suspect manager. <a href=\"http://brouter.de/brouter/suspect_manager_help.html\">Help</a><br><br>\n");
 
-    if (filter == null) // generate country list
-    {
+    if (filter == null) { // generate country list
       bw.write("<table>\n");
       File countryParent = new File("worldpolys" + country);
       File[] files = countryParent.listFiles();
-      TreeSet<String> names = new TreeSet<String>();
+      TreeSet<String> names = new TreeSet<>();
       for (File f : files) {
         String name = f.getName();
         if (name.endsWith(".poly")) {
@@ -542,7 +542,6 @@ public class SuspectManager extends Thread {
     }
     bw.write("</body></html>\n");
     bw.flush();
-    return;
   }
 
 
@@ -581,7 +580,7 @@ public class SuspectManager extends Thread {
     }
   }
 
-  private static HashMap<String, SuspectList> allSuspectsMap = new HashMap<String, SuspectList>();
+  private static Map<String, SuspectList> allSuspectsMap = new HashMap<>();
 
   private static SuspectList getDailySuspectsIfLoaded() throws IOException {
     synchronized (allSuspectsMap) {

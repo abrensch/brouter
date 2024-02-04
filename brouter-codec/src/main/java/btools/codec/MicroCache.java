@@ -243,11 +243,11 @@ public class MicroCache extends ByteDataWriter {
 
   private String _compareWith(MicroCache mc) {
     if (size != mc.size) {
-      return "size missmatch: " + size + "->" + mc.size;
+      return "size mismatch: " + size + "->" + mc.size;
     }
     for (int i = 0; i < size; i++) {
       if (faid[i] != mc.faid[i]) {
-        return "faid missmatch at index " + i + ":" + faid[i] + "->" + mc.faid[i];
+        return "faid mismatch at index " + i + ":" + faid[i] + "->" + mc.faid[i];
       }
       int start = i > 0 ? fapos[i - 1] : 0;
       int end = fapos[i] < mc.fapos[i] ? fapos[i] : mc.fapos[i];
@@ -257,15 +257,15 @@ public class MicroCache extends ByteDataWriter {
           return "data buffer too small";
         }
         if (ab[start + offset] != mc.ab[start + offset]) {
-          return "data missmatch at index " + i + " offset=" + offset;
+          return "data mismatch at index " + i + " offset=" + offset;
         }
       }
       if (fapos[i] != mc.fapos[i]) {
-        return "fapos missmatch at index " + i + ":" + fapos[i] + "->" + mc.fapos[i];
+        return "fapos mismatch at index " + i + ":" + fapos[i] + "->" + mc.fapos[i];
       }
     }
     if (aboffset != mc.aboffset) {
-      return "datasize missmatch: " + aboffset + "->" + mc.aboffset;
+      return "datasize mismatch: " + aboffset + "->" + mc.aboffset;
     }
     return null;
   }
@@ -318,8 +318,7 @@ public class MicroCache extends ByteDataWriter {
     while (idx1 < mc1.size || idx2 < mc2.size) {
       int id1 = idx1 < mc1.size ? mc1.faid[idx1] : Integer.MAX_VALUE;
       int id2 = idx2 < mc2.size ? mc2.faid[idx2] : Integer.MAX_VALUE;
-      if (id1 >= id2) // data from diff file wins
-      {
+      if (id1 >= id2) { // data from diff file wins
         int start2 = idx2 > 0 ? mc2.fapos[idx2 - 1] : 0;
         int len2 = mc2.fapos[idx2++] - start2;
         if (keepEmptyNodes || len2 > 0) {
@@ -327,8 +326,7 @@ public class MicroCache extends ByteDataWriter {
           fapos[size] = aboffset;
           faid[size++] = id2;
         }
-        if (id1 == id2) // // id exists in both caches
-        {
+        if (id1 == id2) { // // id exists in both caches
           idx1++;
         }
       } else // use data from base file

@@ -14,7 +14,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 
 import btools.expressions.BExpressionContextWay;
 import btools.util.CheapRuler;
@@ -52,7 +52,7 @@ public class OsmTrafficMap {
     public OsmTrafficElement next;
   }
 
-  private CompactLongMap<OsmTrafficElement> map = new CompactLongMap<OsmTrafficElement>();
+  private CompactLongMap<OsmTrafficElement> map = new CompactLongMap<>();
 
   public void loadAll(File file, int minLon, int minLat, int maxLon, int maxLat, boolean includeMotorways) throws Exception {
     load(file, minLon, minLat, maxLon, maxLat, includeMotorways);
@@ -107,7 +107,7 @@ public class OsmTrafficMap {
       is.close();
     }
 
-    map = new FrozenLongMap<OsmTrafficElement>(map);
+    map = new FrozenLongMap<>(map);
     System.out.println("read traffic-elements: " + trafficElements);
   }
 
@@ -188,7 +188,7 @@ public class OsmTrafficMap {
     return map.get(n);
   }
 
-  public byte[] addTrafficClass(ArrayList<OsmNodeP> linkNodes, byte[] description) throws IOException {
+  public byte[] addTrafficClass(List<OsmNodeP> linkNodes, byte[] description) throws IOException {
     double distance = 0.;
     double sum = 0.;
 

@@ -37,7 +37,7 @@ public final class MixCoderDataInputStream extends DataInputStream {
     return lastValue;
   }
 
-  public final boolean decodeBit() throws IOException {
+  public boolean decodeBit() throws IOException {
     fillBuffer();
     boolean value = ((b & 1) != 0);
     b >>>= 1;
@@ -45,7 +45,7 @@ public final class MixCoderDataInputStream extends DataInputStream {
     return value;
   }
 
-  public final int decodeVarBits2() throws IOException {
+  public int decodeVarBits2() throws IOException {
     int range = 0;
     while (!decodeBit()) {
       range = 2 * range + 1;
@@ -58,7 +58,7 @@ public final class MixCoderDataInputStream extends DataInputStream {
    *
    * @see #encodeBounded
    */
-  public final int decodeBounded(int max) throws IOException {
+  public int decodeBounded(int max) throws IOException {
     int value = 0;
     int im = 1; // integer mask
     while ((value | im) <= max) {
@@ -75,7 +75,7 @@ public final class MixCoderDataInputStream extends DataInputStream {
    * @see #encodeVarBits
    */
 
-  public final int decodeVarBits() throws IOException {
+  public int decodeVarBits() throws IOException {
     fillBuffer();
     int b12 = b & 0xfff;
     int len = vl_length[b12];
@@ -84,8 +84,7 @@ public final class MixCoderDataInputStream extends DataInputStream {
       bits -= len;
       return vl_values[b12]; // full value lookup
     }
-    if (len <= 23) // // only length lookup
-    {
+    if (len <= 23) { // // only length lookup
       int len2 = len >> 1;
       b >>>= (len2 + 1);
       int mask = 0xffffffff >>> (32 - len2);

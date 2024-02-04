@@ -63,7 +63,8 @@ public class BInstallerView extends View {
     if (currentScale() * ratio >= 1) {
       mat.postScale(ratio, ratio, focusX, focusY);
       fitBounds();
-      tilesVisible = currentScale() >= SCALE_GRID_VISIBLE;
+      boolean landscape = getWidth() > getHeight();
+      tilesVisible = currentScale() >= (landscape ? SCALE_GRID_VISIBLE: SCALE_GRID_VISIBLE-1);
 
       invalidate();
     }
@@ -75,18 +76,20 @@ public class BInstallerView extends View {
   }
 
   public void setTileStatus(int tileIndex, int tileMask) {
-    tileStatus[tileIndex] |= tileMask;
-    if (mOnSelectListener != null) {
-      mOnSelectListener.onSelect();
+    if (mOnSelectListener == null) {
+      return;
     }
+    tileStatus[tileIndex] |= tileMask;
+    mOnSelectListener.onSelect();
     invalidate();
   }
 
   public void toggleTileStatus(int tileIndex, int tileMask) {
-    tileStatus[tileIndex] ^= tileMask;
-    if (mOnSelectListener != null) {
-      mOnSelectListener.onSelect();
+    if (mOnSelectListener == null) {
+      return;
     }
+    tileStatus[tileIndex] ^= tileMask;
+    mOnSelectListener.onSelect();
     invalidate();
   }
 
@@ -147,7 +150,9 @@ public class BInstallerView extends View {
 
     viewscale = Math.max(scaleX, scaleY);
 
-    mat.postScale(viewscale, viewscale);
+    mat.preScale(viewscale, viewscale, bmp.getWidth() /2f, 0);
+    setRatio(1f, bmp.getWidth() /2f, bmp.getHeight() /2f);
+
     tilesVisible = false;
   }
 
@@ -170,7 +175,7 @@ public class BInstallerView extends View {
           int tidx = gridPos2Tileindex(ix, iy);
           int tilesize = BInstallerSizes.getRd5Size(tidx);
           if (tilesize > 0) {
-            canvas.drawRect(fw * ix, fh * (iy + 1), fw * (ix + 1), fh * iy, paintGrid);
+            canvas.drawRect(fw * ix, fh * iy, fw * (ix + 1), fh * (iy + 1), paintGrid);
           }
         }
       }
@@ -209,7 +214,7 @@ public class BInstallerView extends View {
             canvas.drawLine(fw * ix, fh * (iy + 1), fw * (ix + 1), fh * iy, pnt);
 
             // draw frame
-            canvas.drawRect(fw * ix, fh * (iy + 1), fw * (ix + 1), fh * iy, pnt);
+            canvas.drawRect(fw * ix, fh * iy, fw * (ix + 1), fh * (iy + 1), pnt);
           }
         }
       }
@@ -283,7 +288,7 @@ public class BInstallerView extends View {
     @Override
     public boolean onDoubleTap(MotionEvent e) {
       if (!tilesVisible) {
-        setScale(5, e.getX(), e.getY());
+        setScale(4, e.getX(), e.getY());
       } else {
         setScale(1, e.getX(), e.getY());
       }

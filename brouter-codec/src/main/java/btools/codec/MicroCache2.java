@@ -75,8 +75,7 @@ public final class MicroCache2 extends MicroCache {
     LinkedListContainer reverseLinks = new LinkedListContainer(size, dataBuffers.ibuf1);
 
     int selev = 0;
-    for (int n = 0; n < size; n++) // loop over nodes
-    {
+    for (int n = 0; n < size; n++) { // loop over nodes
       int ilon = alon[n];
       int ilat = alat[n];
 
@@ -91,11 +90,9 @@ public final class MicroCache2 extends MicroCache {
       while (featureId != 0) {
         int bitsize = bc.decodeNoisyNumber(5);
 
-        if (featureId == 2) // exceptions to turn-restriction
-        {
+        if (featureId == 2) { // exceptions to turn-restriction
           trExceptions = (short) bc.decodeBounded(1023);
-        } else if (featureId == 1) // turn-restriction
-        {
+        } else if (featureId == 1) { // turn-restriction
           writeBoolean(true);
           writeShort(trExceptions); // exceptions from previous feature
           trExceptions = 0;
@@ -128,8 +125,7 @@ public final class MicroCache2 extends MicroCache {
         int dlat_remaining;
 
         boolean isReverse = false;
-        if (nodeIdx != n) // internal (forward-) link
-        {
+        if (nodeIdx != n) { // internal (forward-) link
           dlon_remaining = alon[nodeIdx] - ilon;
           dlat_remaining = alat[nodeIdx] - ilat;
         } else {
@@ -151,8 +147,7 @@ public final class MicroCache2 extends MicroCache {
           writeVarLengthSigned(dlat_remaining);
 
           validBits[n >> 5] |= 1 << n; // mark source-node valid
-          if (nodeIdx != n) // valid internal (forward-) link
-          {
+          if (nodeIdx != n) { // valid internal (forward-) link
             reverseLinks.addDataElement(nodeIdx, n); // register reverse link
             finaldatasize += 1 + aboffset - startPointer; // reserve place for reverse
             validBits[nodeIdx >> 5] |= 1 << nodeIdx; // mark target-node valid
@@ -160,8 +155,7 @@ public final class MicroCache2 extends MicroCache {
           writeModeAndDesc(isReverse, wayTags == null ? null : wayTags.data);
         }
 
-        if (!isReverse) // write geometry for forward links only
-        {
+        if (!isReverse) { // write geometry for forward links only
           WaypointMatcher matcher = wayTags == null || wayTags.accessType < 2 ? null : waypointMatcher;
           int ilontarget = ilon + dlon_remaining;
           int ilattarget = ilat + dlat_remaining;
@@ -293,10 +287,9 @@ public final class MicroCache2 extends MicroCache {
 
   @Override
   public int encodeMicroCache(byte[] buffer) {
-    HashMap<Long, Integer> idMap = new HashMap<Long, Integer>();
-    for (int n = 0; n < size; n++) // loop over nodes
-    {
-      idMap.put(Long.valueOf(expandId(faid[n])), Integer.valueOf(n));
+    HashMap<Long, Integer> idMap = new HashMap<>();
+    for (int n = 0; n < size; n++) { // loop over nodes
+      idMap.put(expandId(faid[n]), n);
     }
 
     IntegerFifo3Pass linkCounts = new IntegerFifo3Pass(256);
@@ -313,8 +306,7 @@ public final class MicroCache2 extends MicroCache {
 
     int netdatasize = 0;
 
-    for (int pass = 1; ; pass++) // 3 passes: counters, stat-collection, encoding
-    {
+    for (int pass = 1; ; pass++) { // 3 passes: counters, stat-collection, encoding
       boolean dostats = pass == 3;
       boolean dodebug = debug && pass == 3;
 
@@ -345,8 +337,7 @@ public final class MicroCache2 extends MicroCache {
       if (dodebug) System.out.println("*** encoding cache of size=" + size);
       int lastSelev = 0;
 
-      for (int n = 0; n < size; n++) // loop over nodes
-      {
+      for (int n = 0; n < size; n++) { // loop over nodes
         aboffset = startPos(n);
         aboffsetEnd = fapos[n];
         if (dodebug)
@@ -395,8 +386,7 @@ public final class MicroCache2 extends MicroCache {
         if (dostats) bc.assignBits("link-counts");
 
         nlinks = 0;
-        while (hasMoreData()) // loop over links
-        {
+        while (hasMoreData()) { // loop over links
           // read link data
           int startPointer = aboffset;
           int endPointer = getEndPointer();
@@ -414,7 +404,7 @@ public final class MicroCache2 extends MicroCache {
           }
 
           long link64 = ((long) ilonlink) << 32 | ilatlink;
-          Integer idx = idMap.get(Long.valueOf(link64));
+          Integer idx = idMap.get(link64);
           boolean isInternal = idx != null;
 
           if (isReverse && isInternal) {

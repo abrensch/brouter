@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -89,7 +90,7 @@ public class BRouterView extends View {
     if (cr != null) cr.terminate();
   }
 
-  public void init() {
+  public void init(boolean silent) {
     try {
       // get base dir from private file
       File baseDir = ConfigHelper.getBaseDir(getContext());
@@ -106,7 +107,7 @@ public class BRouterView extends View {
             String version = "v" + getContext().getString(R.string.app_version);
             File vFile = new File(brd, "profiles2/" + version);
             if (vFile.exists()) {
-              startSetup(baseDir, false);
+              startSetup(baseDir, false, silent);
               return;
             }
             String message = "(previous basedir " + baseDir + " has to migrate )";
@@ -116,7 +117,7 @@ public class BRouterView extends View {
             waitingForMigration = true;
             oldMigrationPath = brd.getAbsolutePath();
           } else {
-            startSetup(baseDir, false);
+            startSetup(baseDir, false, silent);
           }
           return;
         }
@@ -136,7 +137,7 @@ public class BRouterView extends View {
     }
   }
 
-  public void startSetup(File baseDir, boolean storeBasedir) {
+  public void startSetup(File baseDir, boolean storeBasedir, boolean silent) {
     if (baseDir == null) {
       baseDir = retryBaseDir;
       retryBaseDir = null;
@@ -173,8 +174,18 @@ public class BRouterView extends View {
       // new init is done move old files
       if (waitingForMigration) {
         Log.d("BR", "path " + oldMigrationPath + " " + basedir);
-        if (!oldMigrationPath.equals(basedir + "/brouter"))
-          moveFolders(oldMigrationPath, basedir + "/brouter");
+        Thread t = new Thread(new Runnable() {
+          @Override
+          public void run() {
+            if (!oldMigrationPath.equals(basedir + "/brouter"))
+              moveFolders(oldMigrationPath, basedir + "/brouter");
+          }});
+        t.start();
+        try {
+          t.join(500);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
         waitingForMigration = false;
       }
 
@@ -228,6 +239,12 @@ public class BRouterView extends View {
         throw new IllegalArgumentException("The profile-directory " + profileDir + " contains no routing profiles (*.brf)."
           + " see brouter.de/brouter for setup instructions.");
       }
+      if (silent) {
+        Intent intent = new Intent(getContext(), BInstallerActivity.class);
+        getContext().startActivity(intent);
+        return;
+      };
+
       if (!RoutingHelper.hasDirectoryAnyDatafiles(segmentDir)) {
         ((BRouterActivity) getContext()).startDownloadManager();
         waitingForSelection = true;
@@ -256,6 +273,8 @@ public class BRouterView extends View {
       ConfigMigration.tryMigrateStorageConfig(
         new File(basedir + "/brouter/segments3/storageconfig.txt"),
         new File(basedir + "/brouter/segments4/storageconfig.txt"));
+    } else {
+      ServerConfig.checkForUpdate(getContext(), segmentDir, "segments4.zip");
     }
     profileDir = new File(basedir, "brouter/profiles2");
     assertDirectoryExists("profile directory", profileDir, "profiles2.zip", version);
@@ -361,14 +380,14 @@ public class BRouterView extends View {
       try {
         cor.readAllPoints();
       } catch (Exception e) {
-        msg = "Error reading waypoints: " + e;
+        msg = getContext().getString(R.string.msg_read_wpt_error)+  ": " + e;
       }
 
       int size = cor.allpoints.size();
       if (size < 1)
-        msg = "coordinate source does not contain any waypoints!";
+        msg = getContext().getString(R.string.msg_no_wpt);
       if (size > 1000)
-        msg = "coordinate source contains too much waypoints: " + size + "(please use from/to/via names)";
+        msg = String.format(getContext().getString(R.string.msg_too_much_wpts), size);
     }
 
     if (msg != null) {
@@ -452,13 +471,13 @@ public class BRouterView extends View {
     if (needsWaypointSelection) {
       StringBuilder msg;
       if (wpList.size() == 0) {
-        msg = new StringBuilder("Expecting waypoint selection\n" + "(coordinate-source: " + cor.basedir + cor.rootdir + ")");
+        msg = new StringBuilder(getContext().getString(R.string.msg_no_wpt_selection) + "(coordinate-source: " + cor.basedir + cor.rootdir + ")");
       } else {
-        msg = new StringBuilder("current waypoint selection:\n");
+        msg = new StringBuilder(getContext().getString(R.string.msg_wpt_selection));
         for (int i = 0; i < wpList.size(); i++)
           msg.append(i > 0 ? "->" : "").append(wpList.get(i).name);
       }
-      ((BRouterActivity) getContext()).showResultMessage("Select Action", msg.toString(), wpList.size());
+      ((BRouterActivity) getContext()).showResultMessage(getContext().getString(R.string.title_action), msg.toString(), wpList.size());
       return;
     }
 
@@ -559,7 +578,10 @@ public class BRouterView extends View {
             }
             String name = ze.getName();
             File outfile = new File(path, name);
-            if (!outfile.exists() && outfile.getParentFile() != null) {
+            String canonicalPath = outfile.getCanonicalPath();
+            if (canonicalPath.startsWith(path.getCanonicalPath()) &&
+              !outfile.exists() &&
+              outfile.getParentFile() != null) {
               outfile.getParentFile().mkdirs();
               FileOutputStream fos = new FileOutputStream(outfile);
 
@@ -572,6 +594,7 @@ public class BRouterView extends View {
               fos.close();
             }
           }
+          zis.close();
           is.close();
           return true;
         } catch (IOException io) {
@@ -580,6 +603,7 @@ public class BRouterView extends View {
 
       }
     }
+
     if (!path.exists() || !path.isDirectory())
       throw new IllegalArgumentException(message + ": " + path + " cannot be created");
     return false;
@@ -694,8 +718,13 @@ public class BRouterView extends View {
           ((BRouterActivity) getContext()).showErrorMessage(cr.getErrorMessage());
         } else {
           String memstat = memoryClass + "mb pathPeak " + ((cr.getPathPeak() + 500) / 1000) + "k";
-          String result = "version = BRouter-" + getContext().getString(R.string.app_version) + "\n" + "mem = " + memstat + "\ndistance = " + cr.getDistance() / 1000. + " km\n" + "filtered ascend = " + cr.getAscend()
-            + " m\n" + "plain ascend = " + cr.getPlainAscend() + " m\n" + "estimated time = " + cr.getTime();
+          String result = String.format(getContext().getString(R.string.msg_status_result),
+            getContext().getString(R.string.app_version),
+            memstat,
+            Double.toString(cr.getDistance() / 1000.),
+            Integer.toString(cr.getAscend()),
+            Integer.toString(cr.getPlainAscend()),
+            cr.getTime());
 
           rawTrack = cr.getFoundRawTrack();
 
@@ -704,9 +733,9 @@ public class BRouterView extends View {
             writeRawTrackToPath(rawTrackPath);
           }
 
-          String title = "Success";
+          String title = getContext().getString(R.string.success);
           if (cr.getAlternativeIndex() > 0)
-            title += " / " + cr.getAlternativeIndex() + ". Alternative";
+            title += " / " + cr.getAlternativeIndex() + ". " + getContext().getString(R.string.msg_alternative);
 
           ((BRouterActivity) getContext()).showResultMessage(title, result, rawTrackPath == null ? -1 : -3);
           trackOutfile = cr.getOutfile();
@@ -740,7 +769,8 @@ public class BRouterView extends View {
         paintPosition(n.ilon, n.ilat, color, minradius);
       }
 
-      canvas.drawBitmap(imgPixels, 0, imgw, (float) 0., (float) 0., imgw, imgh, false, null);
+      Bitmap bmp = Bitmap.createBitmap(imgPixels, imgw, imgh, Bitmap.Config.RGB_565);
+      canvas.drawBitmap(bmp, 0, 0, null);
 
       // nogo circles if any
       for (int ngi = 0; ngi < nogoList.size(); ngi++) {
@@ -820,7 +850,15 @@ public class BRouterView extends View {
     for (int i = 0; i < 6; i++) {
       if (checkedModes[i]) {
         writeRawTrackToMode(routingModes[i]);
-        ServiceModeConfig smc = new ServiceModeConfig(routingModes[i], profileName);
+        ServiceModeConfig sm = map.get(routingModes[i]);
+        String s = null;
+        String p = null;
+        if (sm != null) {
+          s = sm.params;
+          p = sm.profile;
+        }
+        if (s == null || !p.equals(profileName)) s = "noparams";
+        ServiceModeConfig smc = new ServiceModeConfig(routingModes[i], profileName, s);
         for (OsmNodeNamed nogo : nogoVetoList) {
           smc.nogoVetos.add(nogo.ilon + "," + nogo.ilat);
         }
@@ -849,6 +887,81 @@ public class BRouterView extends View {
         }
     }
     ((BRouterActivity) getContext()).showModeConfigOverview(msg.toString());
+  }
+
+  public void configureServiceParams(String profile, String sparams) {
+    List<ServiceModeConfig> map = new ArrayList<>();
+    BufferedReader br = null;
+    String modesFile = modesDir + "/serviceconfig.dat";
+    try {
+      br = new BufferedReader(new FileReader(modesFile));
+      for (; ; ) {
+        String line = br.readLine();
+        if (line == null)
+          break;
+        ServiceModeConfig smc = new ServiceModeConfig(line);
+        if (smc.profile.equals(profile)) smc.params = sparams;
+        map.add(smc);
+      }
+    } catch (Exception ignored) {
+    } finally {
+      if (br != null)
+        try {
+          br.close();
+        } catch (Exception ignored) {
+        }
+    }
+
+    // now write new config
+    BufferedWriter bw = null;
+    StringBuilder msg = new StringBuilder("Mode mapping is now:\n");
+    msg.append("( [");
+    msg.append(nogoVetoList.size() > 0 ? nogoVetoList.size() : "..").append("] counts nogo-vetos)\n");
+    try {
+      bw = new BufferedWriter(new FileWriter(modesFile));
+      for (ServiceModeConfig smc : map) {
+        bw.write(smc.toLine());
+        bw.write('\n');
+        msg.append(smc).append('\n');
+      }
+    } catch (Exception ignored) {
+    } finally {
+      if (bw != null)
+        try {
+          bw.close();
+        } catch (Exception ignored) {
+        }
+    }
+    ((BRouterActivity) getContext()).showModeConfigOverview(msg.toString());
+  }
+
+  public String getConfigureServiceParams(String profile) {
+    List<ServiceModeConfig> map = new ArrayList<>();
+    BufferedReader br = null;
+    String modesFile = modesDir + "/serviceconfig.dat";
+    try {
+      br = new BufferedReader(new FileReader(modesFile));
+      for (; ; ) {
+        String line = br.readLine();
+        if (line == null)
+          break;
+        ServiceModeConfig smc = new ServiceModeConfig(line);
+        if (smc.profile.equals(profile)) {
+          if (!smc.params.equals("noparams")) return smc.params;
+          else return "";
+        }
+        map.add(smc);
+      }
+    } catch (Exception ignored) {
+    } finally {
+      if (br != null)
+        try {
+          br.close();
+        } catch (Exception ignored) {
+        }
+    }
+    // no profile found
+    return null;
   }
 
   public void shareTrack() {

@@ -7,12 +7,13 @@ package btools.mapaccess;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import btools.util.ByteArrayUnifier;
-import btools.util.SortedHeap;
 
 public final class OsmNodesMap {
-  private HashMap<OsmNode, OsmNode> hmap = new HashMap<OsmNode, OsmNode>(4096);
+  private Map<OsmNode, OsmNode> hmap = new HashMap<>(4096);
 
   private ByteArrayUnifier abUnifier = new ByteArrayUnifier(16384, false);
 
@@ -52,8 +53,7 @@ public final class OsmNodesMap {
 
   private void cleanupPeninsulas(OsmNode[] nodes) {
     baseID = lastVisitID++;
-    for (int i = 0; i < nodes.length; i++) // loop over nodes again just for housekeeping
-    {
+    for (int i = 0; i < nodes.length; i++) { // loop over nodes again just for housekeeping
       OsmNode n = nodes[i];
       if (n.firstlink != null) {
         if (n.visitID == 1) {
@@ -87,8 +87,7 @@ public final class OsmNodesMap {
       } else if (minIdSub == 0) {
         int nodesCreatedUntilHere = nodesCreated;
         minIdSub = minVisitIdInSubtree(n, t);
-        if (minIdSub > n.visitID) // peninsula ?
-        {
+        if (minIdSub > n.visitID) { // peninsula ?
           nodesCreated = nodesCreatedUntilHere;
           n.unlinkLink(l);
           t.unlinkLink(l);
@@ -123,14 +122,10 @@ public final class OsmNodesMap {
     return total <= currentmaxmem;
   }
 
-  private void addActiveNode(ArrayList<OsmNode> nodes2check, OsmNode n) {
-    n.visitID = lastVisitID;
-    nodesCreated++;
-    nodes2check.add(n);
-  }
+  private List<OsmNode> nodes2check;
 
   // is there an escape from this node
-  // to a hollow node (or destination node) ?  
+  // to a hollow node (or destination node) ?
   public boolean canEscape(OsmNode n0) {
     boolean sawLowIDs = false;
     lastVisitID++;
@@ -170,14 +165,18 @@ public final class OsmNodesMap {
     return false;
   }
 
-  private ArrayList<OsmNode> nodes2check;
+  private void addActiveNode(List<OsmNode> nodes2check, OsmNode n) {
+    n.visitID = lastVisitID;
+    nodesCreated++;
+    nodes2check.add(n);
+  }
 
   public void clearTemp() {
     nodes2check = null;
   }
 
   public void collectOutreachers() {
-    nodes2check = new ArrayList<OsmNode>(nodesCreated);
+    nodes2check = new ArrayList<>(nodesCreated);
     nodesCreated = 0;
     for (OsmNode n : hmap.values()) {
       addActiveNode(nodes2check, n);
@@ -226,9 +225,8 @@ public final class OsmNodesMap {
 
 
   public void remove(OsmNode node) {
-    if (node != endNode1 && node != endNode2) // keep endnodes in hollow-map even when loaded
-    {                                           // (needed for escape analysis)
-      hmap.remove(node);
+    if (node != endNode1 && node != endNode2) { // keep endnodes in hollow-map even when loaded
+      hmap.remove(node);                        // (needed for escape analysis)
     }
   }
 

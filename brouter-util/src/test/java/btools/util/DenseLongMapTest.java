@@ -1,11 +1,11 @@
 package btools.util;
 
-import java.util.Random;
-import java.util.HashMap;
-import java.util.HashSet;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Random;
 
 public class DenseLongMapTest {
   @Test
@@ -16,21 +16,21 @@ public class DenseLongMapTest {
 
   private void hashMapComparison(int mapsize, int trycount, long keyrange) {
     Random rand = new Random(12345);
-    HashMap<Long, Integer> hmap = new HashMap<Long, Integer>();
+    HashMap<Long, Integer> hmap = new HashMap<>();
     DenseLongMap dmap = new DenseLongMap(512);
 
     for (int i = 0; i < mapsize; i++) {
       int value = i % 255;
       long k = (long) (rand.nextDouble() * keyrange);
-      Long KK = new Long(k);
+      Long KK = k;
 
-      hmap.put(KK, new Integer(value));
+      hmap.put(KK, value);
       dmap.put(k, value); // duplicate puts allowed!
     }
 
     for (int i = 0; i < trycount; i++) {
       long k = (long) (rand.nextDouble() * keyrange);
-      Long KK = new Long(k);
+      Long KK = k;
       Integer VV = hmap.get(KK);
       int hvalue = VV == null ? -1 : VV.intValue();
       int dvalue = dmap.getInt(k);
@@ -48,17 +48,17 @@ public class DenseLongMapTest {
     int trycount = 100000;
 
     Random rand = new Random(12345);
-    HashSet<Long> hset = new HashSet<Long>();
+    HashSet<Long> hset = new HashSet<>();
 
     DenseLongMap dmap = new DenseLongMap(512);
     for (int i = 0; i < mapputs; i++) {
       long k = (long) (rand.nextDouble() * keyrange);
-      hset.add(new Long(k));
+      hset.add(k);
       dmap.put(k, 0);
     }
     for (int i = 0; i < trycount; i++) {
       long k = (long) (rand.nextDouble() * keyrange);
-      boolean hcontains = hset.contains(new Long(k));
+      boolean hcontains = hset.contains(k);
       boolean dcontains = dmap.getInt(k) == 0;
 
       if (hcontains != dcontains) {
@@ -94,7 +94,7 @@ public class DenseLongMapTest {
     }
 
     // need to use the map again for valid memory measure
-    Assert.assertTrue("out of range test", dmap.getInt(-1) == -1);
+    Assert.assertEquals("out of range test", -1, dmap.getInt(-1));
   }
 
 }

@@ -17,7 +17,7 @@ public class SuspectInfo {
   public int triggers;
 
   public static void addSuspect(Map<Long, SuspectInfo> map, long id, int prio, int trigger) {
-    Long iD = Long.valueOf(id);
+    Long iD = id;
     SuspectInfo info = map.get(iD);
     if (info == null) {
       info = new SuspectInfo();

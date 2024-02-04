@@ -1,0 +1,88 @@
+---context:global   # following code refers to global config
+
+assign   global_false = false
+assign   global_true = true
+assign   global_and = and false global_true
+
+assign   global_inject1 = 5
+assign   global_inject2 = 13
+assign   global_inject2 = add global_inject2 3
+
+assign global_or = or ( or global_true global_false ) ( or global_false global_true )
+assign global_and = and ( and global_true true ) false
+
+---context:way   # following code refers to way-tags
+
+assign v = highway=primary
+assign w = surface=asphalt
+
+# test constant or/and
+assign costfactor =
+  add multiply 1 or 1 1
+  add multiply 2 or 1 0
+  add multiply 4 or 0 1
+  add multiply 8 or 0 0
+  add multiply 16 and 1 1
+  add multiply 32 and 1 1
+  add multiply 64 and 1 1
+      multiply 128 and 1 1
+  
+# test variable or
+assign turncost =
+  add multiply 1 or v 1
+  add multiply 2 or v 0
+  add multiply 4 or 0 v
+  add multiply 8 or 1 v
+      multiply 16 or v w
+
+# test variable and
+assign uphillcostfactor =
+  add multiply 1 and v 1
+  add multiply 2 and v 0
+  add multiply 4 and 0 v
+  add multiply 8 and 1 v
+      multiply 16 and v w
+
+# test add
+assign downhillcostfactor =
+  add multiply 1 add 1 1
+  add multiply 2 add 1 0
+  add multiply 4 add 0 1
+  add multiply 8 add 0 0
+  add multiply 16 add v 1
+  add multiply 32 add v 0
+  add multiply 64 add 1 v
+      multiply 128 add 0 v
+
+# test max
+assign initialcost =
+  add multiply 1 max 1 2
+  add multiply 2 max multiply 2 v 1
+  add multiply 4 max 1 multiply 2 v
+      multiply 8 max multiply 2 v v
+
+# test switch
+assign initialclassifier =
+  add multiply 1 switch 1 1 0
+  add multiply 2 switch 0 1 0
+  add multiply 4 switch 1 0 1
+  add multiply 8 switch 0 0 1
+  add multiply 16 switch v 1 1
+  add multiply 32 switch v 0 1
+  add multiply 64 switch v 1 0
+  add multiply 128 switch v 0 1
+      multiply 256 switch 1 v w
+
+# test global calcs
+assign priorityclassifier =
+  add multiply 1 global_false
+  add multiply 2 global_true
+  add multiply 4 global_and
+  add multiply 8 global_inject1
+  add multiply 16 global_inject2
+  add multiply 32 global_or
+      multiply 64 global_and
+
+---context:node  # following code refers to node tags
+
+assign initialcost = 1

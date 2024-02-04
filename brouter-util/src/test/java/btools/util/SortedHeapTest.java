@@ -1,16 +1,14 @@
 package btools.util;
 
-import java.util.Random;
-import java.util.HashMap;
-import java.util.HashSet;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.Random;
 
 public class SortedHeapTest {
   @Test
   public void sortedHeapTest1() {
-    SortedHeap<String> sh = new SortedHeap<String>();
+    SortedHeap<String> sh = new SortedHeap<>();
     Random rnd = new Random();
     for (int i = 0; i < 100000; i++) {
       int val = rnd.nextInt(1000000);
@@ -30,13 +28,13 @@ public class SortedHeapTest {
       Assert.assertTrue("sorting test", val >= lastval);
       lastval = val;
     }
-    Assert.assertTrue("total count test", cnt == 100000);
+    Assert.assertEquals("total count test", 100000, cnt);
 
   }
 
   @Test
   public void sortedHeapTest2() {
-    SortedHeap<String> sh = new SortedHeap<String>();
+    SortedHeap<String> sh = new SortedHeap<>();
     Random rnd = new Random();
     for (int i = 0; i < 100000; i++) {
       sh.add(i, "" + i);
@@ -49,10 +47,10 @@ public class SortedHeapTest {
       if (s == null) break;
       cnt++;
       int val = Integer.parseInt(s);
-      Assert.assertTrue("sequence test", val == expected);
+      Assert.assertEquals("sequence test", val, expected);
       expected++;
     }
-    Assert.assertTrue("total count test", cnt == 100000);
+    Assert.assertEquals("total count test", 100000, cnt);
 
   }
 }

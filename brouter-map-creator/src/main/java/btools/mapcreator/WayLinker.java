@@ -38,7 +38,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
   private File trafficTilesIn;
   private File dataTilesOut;
   private File borderFileIn;
-  private File restrictionsFileIn;
 
   private String dataTilesSuffix;
 
@@ -109,7 +108,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
   private void reset() {
     minLon = -1;
     minLat = -1;
-    nodesMap = new CompactLongMap<OsmNodeP>();
+    nodesMap = new CompactLongMap<>();
     borderSet = new CompactLongSet();
   }
 
@@ -157,7 +156,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     this.trafficTilesIn = new File("../traffic");
     this.dataTilesOut = dataTilesOut;
     this.borderFileIn = borderFileIn;
-    this.restrictionsFileIn = restrictionsFileIn;
     this.dataTilesSuffix = dataTilesSuffix;
 
     BExpressionMetaData meta = new BExpressionMetaData();
@@ -233,7 +231,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
       new NodeIterator(this, true).processFile(nodeFile);
 
       // freeze the nodes-map
-      FrozenLongMap<OsmNodeP> nodesMapFrozen = new FrozenLongMap<OsmNodeP>(nodesMap);
+      FrozenLongMap<OsmNodeP> nodesMapFrozen = new FrozenLongMap<>(nodesMap);
       nodesMap = nodesMapFrozen;
 
       File restrictionFile = fileFromTemplate(wayfile, new File(nodeTilesIn.getParentFile(), "restrictions55"), "rt5");
@@ -417,7 +415,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
       int nLatSegs = (maxLat - minLat) / 1000000;
 
       // sort the nodes into segments
-      LazyArrayOfLists<OsmNodeP> seglists = new LazyArrayOfLists<OsmNodeP>(nLonSegs * nLatSegs);
+      LazyArrayOfLists<OsmNodeP> seglists = new LazyArrayOfLists<>(nLonSegs * nLatSegs);
       for (OsmNodeP n : nodesList) {
         if (n == null || n.getFirstLink() == null || n.isTransferNode())
           continue;
@@ -452,7 +450,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
           if (seglists.getSize(tileIndex) > 0) {
             List<OsmNodeP> nlist = seglists.getList(tileIndex);
 
-            LazyArrayOfLists<OsmNodeP> subs = new LazyArrayOfLists<OsmNodeP>(ncaches);
+            LazyArrayOfLists<OsmNodeP> subs = new LazyArrayOfLists<>(ncaches);
             byte[][] subByteArrays = new byte[ncaches][];
             for (int ni = 0; ni < nlist.size(); ni++) {
               OsmNodeP n = nlist.get(ni);
@@ -475,14 +473,14 @@ public class WayLinker extends MapCreatorBase implements Runnable {
                 MicroCache mc = new MicroCache2(size, abBuf2, lonIdxDiv, latIdxDiv, divisor);
 
                 // sort via treemap
-                TreeMap<Integer, OsmNodeP> sortedList = new TreeMap<Integer, OsmNodeP>();
+                TreeMap<Integer, OsmNodeP> sortedList = new TreeMap<>();
                 for (OsmNodeP n : subList) {
                   long longId = n.getIdFromPos();
                   int shrinkid = mc.shrinkId(longId);
                   if (mc.expandId(shrinkid) != longId) {
                     throw new IllegalArgumentException("inconstistent shrinking: " + longId);
                   }
-                  sortedList.put(Integer.valueOf(shrinkid), n);
+                  sortedList.put(shrinkid, n);
                 }
 
                 for (OsmNodeP n : sortedList.values()) {
