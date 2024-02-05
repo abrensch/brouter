@@ -71,7 +71,7 @@ assign onewaypenalty
        switch switch reversedirection=yes
                      switch oneway=
                             junction=roundabout
-                            or oneway=yes oneway=1
+                            or oneway=yes or oneway=true oneway=1
                      oneway=-1
               10000
               0.0
@@ -129,7 +129,7 @@ assign priorityclassifier =
 
 assign isbadoneway = not equal onewaypenalty 0
 assign isgoodoneway = if reversedirection=yes then oneway=-1
-                      else if oneway= then junction=roundabout else oneway=yes|1
+                      else if oneway= then junction=roundabout else oneway=yes|true|1
 assign isroundabout = junction=roundabout
 assign isgoodforcars = if greater priorityclassifier 6 then true
                   else if ( or isresidentialorliving highway=service ) then true
