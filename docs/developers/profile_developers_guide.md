@@ -176,7 +176,7 @@ All expressions have one of the following basic forms:
   - `and      <boolean expression 1> <boolean expression 2>`
   - `xor      <boolean expression 1> <boolean expression 2>`
   - `multiply <numeric expression 1> <numeric expression 2>`
-  - `div      <numeric expression 1> <numeric expression 2>`
+  - `divide   <numeric expression 1> <numeric expression 2>`
   - `add      <numeric expression 1> <numeric expression 2>`
   - `sub      <numeric expression 1> <numeric expression 2>`
   - `max      <numeric expression 1> <numeric expression 2>`
