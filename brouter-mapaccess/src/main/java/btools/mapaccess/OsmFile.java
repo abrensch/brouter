@@ -9,6 +9,8 @@ package btools.mapaccess;
 import java.io.*;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import btools.util.TagValueValidator;
 import btools.statcoding.BitInputStream;
@@ -75,6 +77,7 @@ public final class OsmFile {
 
     tileIndex= new long[nTiles + 1];
     int indexSize;
+    Map<String,long[]> bitStatistics = new TreeMap<>();
 
     // ... and write them to a file
     try (BitOutputStream bos = new BitOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
@@ -90,7 +93,7 @@ public final class OsmFile {
           OsmNode n0 = subList.get(0);
           int lonBase = n0.iLon - n0.iLon % cellSize;
           int latBase = n0.iLat - n0.iLat % cellSize;
-          int len = new OsmTile(lonBase, latBase).encodeTile(subList, ioBuffer);
+          int len = new OsmTile(lonBase, latBase).encodeTile(subList, ioBuffer, bitStatistics);
           bos.startCRC();
           bos.write(ioBuffer, 0, len);
           bos.writeLong(bos.finishCRC());
@@ -107,6 +110,15 @@ public final class OsmFile {
       bos.writeLong(bos.finishCRC());
       indexSize = (int)((bos.getBitPosition() >> 3) - tileIndex[nTiles]);
     }
+
+    // report the bit statistics
+    System.out.println("**** bit stats report ****");
+    for (String name : bitStatistics.keySet()) {
+      long[] stats = bitStatistics.get(name);
+      System.out.println(name + " count=" + stats[1] + " bits=" + stats[0] );
+    }
+    System.out.println("***************************");
+
     // re-open random-access to write the index position
     RandomAccessFile ra = new RandomAccessFile(file, "rw");
     ra.writeLong(tileIndex[nTiles]);

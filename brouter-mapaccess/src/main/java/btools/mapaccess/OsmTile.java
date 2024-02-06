@@ -4,6 +4,8 @@ import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
 import btools.statcoding.codecs.AdaptiveDiffDecoder;
 import btools.statcoding.codecs.AdaptiveDiffEncoder;
+import btools.statcoding.codecs.Number2PassDecoder;
+import btools.statcoding.codecs.Number2PassEncoder;
 import btools.statcoding.huffman.HuffmanDecoder;
 import btools.statcoding.huffman.HuffmanEncoder;
 import btools.util.SimpleByteArrayOutputStream;
@@ -11,10 +13,7 @@ import btools.util.TagValueValidator;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * OsmTile handles the encoding and decoding of the nodes in a tile
@@ -45,33 +44,61 @@ public final class OsmTile {
         return (int)bis.decodeBits(5); // 0=no more link 1=big delta 2..30 = delta+16
       }
     };
-
-
+    HuffmanDecoder<Integer> linkCountDecoder  = new HuffmanDecoder<>() {
+      protected Integer decodeObjectFromStream() throws IOException {
+        return (int)bis.decodeUnsignedVarBits(2); // 0=no more link 1=big delta 2..30 = delta+16
+      }
+    };
+    Number2PassDecoder extDiffDecoder = new Number2PassDecoder();
+    Number2PassDecoder largeDiffDecoder = new Number2PassDecoder();
     AdaptiveDiffDecoder nodeEleDiff = new AdaptiveDiffDecoder(bis);
-    AdaptiveDiffDecoder extLonDiff = new AdaptiveDiffDecoder(bis);
-    AdaptiveDiffDecoder extLatDiff = new AdaptiveDiffDecoder(bis);
     wayTagDecoder.init( bis, 10 );
     nodeTagDecoder.init( bis, 10 );
     indexDeltaDecoder.init( bis, 7 );
+    linkCountDecoder.init( bis, 5 );
+    largeDiffDecoder.init(bis);
+    extDiffDecoder.init(bis);
     shringIDs = bis.decodeUniqueSortedArray();
     int size = shringIDs.length;
     nodes = new OsmNode[size];
     this.hollowNodes = hollowNodes;
 
+    int[] linksReceived = new int[size];
+    OsmNode dummy = new OsmNode(0,0);
+
     for (int n = 0; n < size; n++) { // loop over nodes
-      for (;;) { // loop over links
+
+      int links = linkCountDecoder.decodeObject();
+      boolean isTransferNode = links == 0;
+      int linksToRead = (isTransferNode ? 2 : links ) - linksReceived[n];
+      for (int linkIndex=0; linkIndex < linksToRead;  linkIndex++) { // loop over links
         int deltaCode = indexDeltaDecoder.decodeObject();
-        if ( deltaCode == 0 ) {
-          break;
-        }
-        int nodeIdxDelta = deltaCode == 1 ? (int)bis.decodeSignedVarBits(6) : deltaCode-16;
+        int nodeIdxDelta = deltaCode == 31 ? (int) largeDiffDecoder.decode() + 31: deltaCode;
         int nodeIdx = n + nodeIdxDelta;
-        boolean isExternal = nodeIdx == n;
-        boolean isReverse = isExternal ? bis.decodeBit() : false;
-        int lonDiff = isExternal ? (int)extLonDiff.decode() : 0;
-        int latDiff = isExternal ? (int)extLatDiff.decode() : 0;
-        TagValueWrapper wayTags = wayTagDecoder.decodeObject();
-        if (wayTags != null) {
+        boolean isExternal = deltaCode == 0;
+        int lonDiff = isExternal ? (int) extDiffDecoder.decode() : 0;
+        int latDiff = isExternal ? (int) extDiffDecoder.decode() : 0;
+
+        // transfer nodes eventually know their tagging already
+        byte[] wayDescription = null;
+        boolean isReverse = false;
+        if (isTransferNode && linksReceived[n] > 0) {
+          if (nodes[n] != null) {
+            OsmLink template = nodes[n].firstLink;
+            wayDescription = template.wayDescription;
+            isReverse = !template.isReverse(nodes[n]);
+          }
+        } else {
+          isReverse = bis.decodeBit();
+          TagValueWrapper w = wayTagDecoder.decodeObject();
+          wayDescription = w == null ? null : w.data;
+        }
+        linksReceived[n]++;
+        if (!isExternal) {
+          linksReceived[nodeIdx]++;
+        }
+        // do the actual weaving only if the way is routable
+        if (wayDescription != null) {
           OsmNode sourceNode = getNode(n);
           OsmLink link = null;
           OsmNode targetNode = getNode(nodeIdx);
@@ -80,7 +107,7 @@ public final class OsmTile {
             int linkLat = sourceNode.iLat + latDiff;
             link = sourceNode.linkForTarget(linkLon, linkLat);
             if (link != null) {
-              link.wayDescription = wayTags.data; // TODO: 2-node-loops?
+              link.wayDescription = wayDescription; // TODO: 2-node-loops?
               targetNode = link.getTarget(sourceNode);
             } else {
               // .. not found, check the hollow nodes
@@ -94,39 +121,46 @@ public final class OsmTile {
           }
           if (link == null) {
             if (isReverse) {
-              targetNode.createLink(wayTags.data, sourceNode);
+              targetNode.createLink(wayDescription, sourceNode);
             } else {
-              sourceNode.createLink(wayTags.data, targetNode);
+              sourceNode.createLink(wayDescription, targetNode);
             }
           }
-          if (waypointMatcher != null && !isReverse && wayTags.accessType > 1) {
+          if (waypointMatcher != null) {
             waypointMatcher.match(sourceNode, targetNode);
           }
           sourceNode.visitID = 1;
         }
       }  // ... loop over links
-    } // ... loop over nodes
-
-    int selev = 0;
-    OsmNode dummy = new OsmNode(0,0);
-    for (int n = 0; n < size; n++) { // loop over nodes
 
       OsmNode node = nodes[n] != null ? nodes[n] : dummy;
-      selev += nodeEleDiff.decode();
-      node.sElev = (short) selev;
-      TagValueWrapper nodeTags = nodeTagDecoder.decodeObject();
-      node.nodeDescription = nodeTags == null ? null : nodeTags.data; // TODO: unified?
+      node.sElev = (short) nodeEleDiff.decode();
 
-      // decode TRs
-      while (bis.decodeBit()) {
-        TurnRestriction tr = new TurnRestriction();
-        tr.isPositive = bis.decodeBit();
-        tr.exceptions = (short) bis.decodeBounded(1023);
-        tr.fromLon = (int) (node.iLon + bis.decodeSignedVarBits(10));
-        tr.fromLat = (int) (node.iLat + bis.decodeSignedVarBits(10));
-        tr.toLon = (int) (node.iLon + bis.decodeSignedVarBits(10));
-        tr.toLat = (int) (node.iLat + bis.decodeSignedVarBits(10));
-        node.addTurnRestriction(tr);
+      if ( isTransferNode ) {
+        continue; // node feature processing only for network nodes
+      }
+
+      for(;;) {
+        long feature = bis.decodeUnsignedVarBits();
+        if ( feature == 0L ) {
+          break; // no more node features
+        }
+        if ( feature == 1L ) {
+          TagValueWrapper nodeTags = nodeTagDecoder.decodeObject();
+          node.nodeDescription = nodeTags == null ? null : nodeTags.data; // TODO: unified?
+        } else if ( feature == 2L ){
+          // decode TR
+          TurnRestriction tr = new TurnRestriction();
+          tr.isPositive = bis.decodeBit();
+          tr.exceptions = (short) bis.decodeBounded(1023);
+          tr.fromLon = (int) (node.iLon + bis.decodeSignedVarBits(10));
+          tr.fromLat = (int) (node.iLat + bis.decodeSignedVarBits(10));
+          tr.toLon = (int) (node.iLon + bis.decodeSignedVarBits(10));
+          tr.toLat = (int) (node.iLat + bis.decodeSignedVarBits(10));
+          node.addTurnRestriction(tr);
+        } else {
+          throw new RuntimeException( "unknown node feature: " + feature );
+        }
       }
     }
 
@@ -197,96 +231,142 @@ public final class OsmTile {
     return id32;
   }
 
-  public int encodeTile(List<OsmNode> nodes, byte[] buffer) throws IOException {
+  public int encodeTile(List<OsmNode> nodes, byte[] buffer, Map<String,long[]> bitStatistics) throws IOException {
     SortedMap<Integer,OsmNode> sortedNodes = sortNodes(nodes);
 
     HashMap<Long, Integer> idMap = new HashMap<>();
-    int nodeIndex = 0;
-    for (OsmNode node : sortedNodes.values() ) { // loop over nodes
-      idMap.put(node.getIdFromPos(), nodeIndex++);
-    }
-    long[] shrinkIDs = new long[sortedNodes.size()];
-    nodeIndex = 0;
-    for( int shrinkID : sortedNodes.keySet() ) {
-      shrinkIDs[nodeIndex++] = shrinkID;
+    int size = sortedNodes.size();
+    OsmNode[] nodeArray = new OsmNode[size];
+    long[] shrinkIDs = new long[size];
+    int nodeIdx = 0;
+    for (Map.Entry<Integer,OsmNode> e : sortedNodes.entrySet() ) { // loop over nodes
+      OsmNode node = e.getValue();
+      shrinkIDs[nodeIdx] = e.getKey();
+      nodeArray[nodeIdx] = node;
+      idMap.put(node.getIdFromPos(), nodeIdx++);
     }
     TagValueEncoder wayTagEncoder = new TagValueEncoder();
     TagValueEncoder nodeTagEncoder = new TagValueEncoder();
     HuffmanEncoder<Integer> indexDeltaEncoder  = new HuffmanEncoder<>() {
       protected void encodeObjectToStream(Integer i) throws IOException {
-        bos.encodeBits(5,i); // 0=no more link 1=big delta 2..30 = delta+16
+        bos.encodeBits(5,i); // 0=extern, 1..31 = delta, 32=big Delta
       }
     };
+    HuffmanEncoder<Integer> linkCountEncoder  = new HuffmanEncoder<>() {
+      protected void encodeObjectToStream(Integer i) throws IOException {
+        bos.encodeUnsignedVarBits(i,2);
+      }
+    };
+    Number2PassEncoder extDiffEncoder = new Number2PassEncoder();
+    Number2PassEncoder largeDiffEncoder = new Number2PassEncoder();
 
     for (int pass = 1;; pass++) { // 2 passes: huffman-stats, final write
-      BitOutputStream bos = new BitOutputStream( new SimpleByteArrayOutputStream( buffer ) );
-      wayTagEncoder.init(bos);
-      nodeTagEncoder.init(bos);
-      indexDeltaEncoder.init(bos);
-      AdaptiveDiffEncoder nodeEleDiff = new AdaptiveDiffEncoder(bos);
-      AdaptiveDiffEncoder extLonDiff = new AdaptiveDiffEncoder(bos);
-      AdaptiveDiffEncoder extLatDiff = new AdaptiveDiffEncoder(bos);
 
+      int[] linksReceived = new int[size];
+
+      BitOutputStream bos = new BitOutputStream( new SimpleByteArrayOutputStream( buffer ) );
+      if ( pass == 2 ) {
+        bos.registerBitStatistics(bitStatistics);
+      }
+      wayTagEncoder.init(bos);
+      bos.assignBits( "dictionary way");
+      nodeTagEncoder.init(bos);
+      bos.assignBits( "dictionary node");
+      indexDeltaEncoder.init(bos);
+      bos.assignBits( "dictionary delta");
+      linkCountEncoder.init(bos);
+      largeDiffEncoder.init(bos);
+      extDiffEncoder.init(bos);
+      bos.assignBits( "dictionary linkcount");
+      AdaptiveDiffEncoder nodeEleDiff = new AdaptiveDiffEncoder(bos);
 
       bos.encodeUniqueSortedArray( shrinkIDs );
+      bos.assignBits( "lon/lat coords");
 
-      nodeIndex = 0;
-      for (OsmNode node : sortedNodes.values() ) { // loop over nodes
+      for (int nodeIndex = 0; nodeIndex<size; nodeIndex++ ) { // loop over nodes
+        OsmNode node = nodeArray[nodeIndex];
+
+        // check classify as transfer node
+        boolean isTransferNode = false;
+        if (node.nodeDescription == null && node.firstRestriction == null && node.linkCount() == 2) {
+            OsmLink l1 = node.getFirstLink();
+            OsmLink l2 = l1.getNext(node);
+            if (Arrays.equals(l1.wayDescription, l2.wayDescription)) {
+              if (l1.isReverse(node) != l2.isReverse(node)) {
+                Integer idx1 = idMap.get(l1.getTarget(node).getIdFromPos());
+                Integer idx2 = idMap.get(l2.getTarget(node).getIdFromPos());
+                if (idx1 != null && idx2 != null) {
+                  isTransferNode = true;
+                }
+              }
+            }
+        }
+        linkCountEncoder.encodeObject( isTransferNode ? 0  : node.linkCount() );
+        bos.assignBits( "link count");
         for (OsmLink link = node.firstLink; link != null; link = link.getNext(node)) { // loop over links
+
           OsmNode target = link.getTarget(node);
           boolean isReverse = link.isReverse(node);
           Integer idx = idMap.get(target.getIdFromPos());
           boolean isInternal = idx != null;
-          if (isReverse && isInternal) {
-            continue; // do not encode internal reverse links
+          if (isInternal && idx < nodeIndex) {
+            continue; // do not encode internal backward links
           }
           if (isInternal) {
             int delta = idx - nodeIndex;
-            if (delta == 0) throw new RuntimeException("ups: self ref?");
-            if ( Math.abs( delta ) <= 14 ) {
-              indexDeltaEncoder.encodeObject( delta+16 );
+            if (delta <= 0) throw new RuntimeException("ups: self ref?");
+            if ( delta< 31 ) {
+              indexDeltaEncoder.encodeObject( delta );
+              bos.assignBits( "delta small");
             } else {
-              indexDeltaEncoder.encodeObject( 1 );
-              bos.encodeSignedVarBits(delta,6);
+              indexDeltaEncoder.encodeObject( 31 );
+              bos.assignBits( "delta large marker");
+              largeDiffEncoder.encode(delta-31 );
+              bos.assignBits( "delta large");
             }
+            linksReceived[idx]++;
           } else {
-            indexDeltaEncoder.encodeObject( 16 );
-            bos.encodeBit(isReverse);
-            extLonDiff.encode(target.iLon - node.iLon);
-            extLatDiff.encode(target.iLat - node.iLat);
+            indexDeltaEncoder.encodeObject( 0 );
+            bos.assignBits( "delta extern marker ");
+            extDiffEncoder.encode(target.iLon - node.iLon );
+            extDiffEncoder.encode(target.iLat - node.iLat );
+            bos.assignBits( "delta extern");
           }
-          wayTagEncoder.encodeTagValues(link.wayDescription);
+          if ( !isTransferNode || linksReceived[nodeIndex] == 0 ) {
+            bos.encodeBit(isReverse);
+            wayTagEncoder.encodeTagValues(link.wayDescription);
+            bos.assignBits( "tags way");
+          }
+          linksReceived[nodeIndex]++;
         }
-        indexDeltaEncoder.encodeObject( 0 );
-        nodeIndex++;
-      }
-
-      int lastSelev = 0;
-      nodeIndex = 0;
-      for (OsmNode node : sortedNodes.values() ) { // loop over nodes again
 
         // write elevation and node tags
         int sElev = node.sElev;
-        nodeEleDiff.encode(sElev - lastSelev);
-        lastSelev = sElev;
-        nodeTagEncoder.encodeTagValues(node.nodeDescription);
+        nodeEleDiff.encode(sElev);
+        bos.assignBits( "elevation");
 
-        // write turn restrictions
-        TurnRestriction tr = node.firstRestriction;
-        while (tr != null) {
-          bos.encodeBit(true);  // TR follows
-          bos.encodeBit(tr.isPositive);
-          bos.encodeBounded( 1023, tr.exceptions & 1023 );
-          bos.encodeSignedVarBits(tr.fromLon - node.iLon, 10);
-          bos.encodeSignedVarBits(tr.fromLat - node.iLat, 10);
-          bos.encodeSignedVarBits(tr.toLon - node.iLon, 10);
-          bos.encodeSignedVarBits(tr.toLat - node.iLat, 10);
-          tr = tr.next;
+         if ( !isTransferNode ) { // node features for network nodes only
+          if ( node.nodeDescription != null ) {
+            bos.encodeUnsignedVarBits(1L );  // node tags follow
+            nodeTagEncoder.encodeTagValues(node.nodeDescription);
+            bos.assignBits("tags node");
+          }
+
+          // write turn restrictions
+          TurnRestriction tr = node.firstRestriction;
+          while (tr != null) {
+            bos.encodeUnsignedVarBits(2L );  // TR follows
+            bos.encodeBit(tr.isPositive);
+            bos.encodeBounded(1023, tr.exceptions & 1023);
+            bos.encodeSignedVarBits(tr.fromLon - node.iLon, 10);
+            bos.encodeSignedVarBits(tr.fromLat - node.iLat, 10);
+            bos.encodeSignedVarBits(tr.toLon - node.iLon, 10);
+            bos.encodeSignedVarBits(tr.toLat - node.iLat, 10);
+            tr = tr.next;
+            bos.assignBits("turn restrictions");
+          }
+          bos.encodeUnsignedVarBits(0L );  // node features finished
         }
-        bos.encodeBit(false); // end of TRs
-
-
-        nodeIndex++;
       }
       if (pass == 2) {
         bos.close();

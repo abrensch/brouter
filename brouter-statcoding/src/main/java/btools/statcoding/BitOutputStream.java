@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /**
  * BitOutputStream is a replacement for java.io.DataOutputStream extending it by
@@ -579,4 +580,35 @@ public class BitOutputStream extends OutputStream implements DataOutput {
             encodeUniqueSortedArray(values, i, size2, nextBitPos - 1, mask);
         }
     }
+
+  private Map<String,long[]> bitStatistics;
+  private long lastBitPos;
+
+  public void registerBitStatistics( Map<String,long[]> bitStatistics ) {
+    this.bitStatistics = bitStatistics;
+    lastBitPos = getBitPosition();
+  }
+
+  /**
+   * assign the encoded bits since the last call assignBits to the given
+   * name. Used for encoding statistics
+   *
+   * @see #registerBitStatistics
+   */
+  public void assignBits(String name) {
+    if ( bitStatistics != null ) {
+      long bitPos = getBitPosition();
+      if (name != null) {
+        long[] stats = bitStatistics.get(name);
+        if (stats == null) {
+          stats = new long[2];
+          bitStatistics.put(name, stats);
+        }
+        stats[0] += bitPos - lastBitPos;
+        stats[1]++;
+      }
+      lastBitPos = bitPos;
+    }
+  }
+
 }
