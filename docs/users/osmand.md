@@ -67,3 +67,29 @@ application profiles"/>
 The BRouter app should be launched before OsmAnd for this specific entry to
 appear in OsmAnd. Therefore, if you cannot find "BRouter (offline)" navigation
 option, you should force quit OsmAnd and restart it.
+
+
+## OsmAnd version 4.7.1
+
+From version 4.7.1 upwards Osmand supports the profile parameter for mapping:
+Since Osmand version 3, many profiles can be defined in Osmand and the user can easily switch between these profiles.
+This allow now when using the service-interface to address different brouter-profiles in a more flexible and better comprehensive way.
+
+- If in Osmand a profile has "BRouter" defined as navigation service
+- AND the profile-name looks like "Brouter[mysting]
+
+==> then the profile "mystring" will be used in the Brouter-app!
+(this new mapping replaces in that case the basic mapping defined above and based on the file "serviceconfig.dat)
+
+### Examples: Osmand-profile name	Brouter-app
+```
+[Brouter[trekking]	"trekking" profile will be used (file trekking.brf)
+[Brouter[racebike]	"racebike" profile will be used (file racebike.brf)
+....
+```
+Remark:
+Currently Osmand do not check the defined name (case sensitiv) for the Brouter-profile (mystring).
+If no profile is found, the routing will fail with "Could not calculate route.."!
+
+<img src="osmand/brouter-osmand-4.7.1.png" alt="BRouter configuration in OsmAnd
+application profiles"/>
