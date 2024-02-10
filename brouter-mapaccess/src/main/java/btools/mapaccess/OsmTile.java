@@ -1,6 +1,7 @@
 package btools.mapaccess;
 
 import btools.statcoding.BitInputStream;
+import btools.statcoding.BitInterleavedConverter;
 import btools.statcoding.BitOutputStream;
 import btools.statcoding.codecs.AdaptiveDiffDecoder;
 import btools.statcoding.codecs.AdaptiveDiffEncoder;
@@ -30,7 +31,7 @@ public final class OsmTile {
     this.latBase = latBase;
   }
 
-  private long[] shringIDs;
+  private long[] shrinkIDs;
   private OsmNode[] nodes;
   private OsmNodesMap hollowNodes;
 
@@ -39,9 +40,14 @@ public final class OsmTile {
     BitInputStream bis = new BitInputStream( new ByteArrayInputStream( buffer ) );
     TagValueDecoder wayTagDecoder = new TagValueDecoder(dataBuffers,wayValidator);
     TagValueDecoder nodeTagDecoder = new TagValueDecoder(dataBuffers,null);
-    HuffmanDecoder<Integer> indexDeltaDecoder  = new HuffmanDecoder<>() {
+    HuffmanDecoder<Integer> indexDeltaDecoder1 = new HuffmanDecoder<>() {
       protected Integer decodeObjectFromStream() throws IOException {
-        return (int)bis.decodeBits(5); // 0=no more link 1=big delta 2..30 = delta+16
+        return (int)bis.decodeBits(3); // 0=no more link 1=big delta 2..30 = delta+16
+      }
+    };
+    HuffmanDecoder<Integer> indexDeltaDecoder2 = new HuffmanDecoder<>() {
+      protected Integer decodeObjectFromStream() throws IOException {
+        return (int)bis.decodeBits(3); // 0=no more link 1=big delta 2..30 = delta+16
       }
     };
     HuffmanDecoder<Integer> linkCountDecoder  = new HuffmanDecoder<>() {
@@ -54,12 +60,13 @@ public final class OsmTile {
     AdaptiveDiffDecoder nodeEleDiff = new AdaptiveDiffDecoder(bis);
     wayTagDecoder.init( bis, 10 );
     nodeTagDecoder.init( bis, 10 );
-    indexDeltaDecoder.init( bis, 7 );
+    indexDeltaDecoder1.init( bis, 7 );
+    indexDeltaDecoder2.init( bis, 7 );
     linkCountDecoder.init( bis, 5 );
     largeDiffDecoder.init(bis);
     extDiffDecoder.init(bis);
-    shringIDs = bis.decodeUniqueSortedArray();
-    int size = shringIDs.length;
+    shrinkIDs = bis.decodeUniqueSortedArray();
+    int size = shrinkIDs.length;
     nodes = new OsmNode[size];
     this.hollowNodes = hollowNodes;
 
@@ -72,8 +79,8 @@ public final class OsmTile {
       boolean isTransferNode = links == 0;
       int linksToRead = (isTransferNode ? 2 : links ) - linksReceived[n];
       for (int linkIndex=0; linkIndex < linksToRead;  linkIndex++) { // loop over links
-        int deltaCode = indexDeltaDecoder.decodeObject();
-        int nodeIdxDelta = deltaCode == 31 ? (int) largeDiffDecoder.decode() + 31: deltaCode;
+        int deltaCode = isTransferNode ? indexDeltaDecoder1.decodeObject() : indexDeltaDecoder2.decodeObject();
+        int nodeIdxDelta = deltaCode == 7 ? (int) largeDiffDecoder.decode() + 7: deltaCode;
         int nodeIdx = n + nodeIdxDelta;
         boolean isExternal = deltaCode == 0;
         int lonDiff = isExternal ? (int) extDiffDecoder.decode() : 0;
@@ -152,7 +159,7 @@ public final class OsmTile {
           // decode TR
           TurnRestriction tr = new TurnRestriction();
           tr.isPositive = bis.decodeBit();
-          tr.exceptions = (short) bis.decodeBounded(1023);
+          tr.exceptions = (short) bis.decodeUnsignedVarBits(10);
           tr.fromLon = (int) (node.iLon + bis.decodeSignedVarBits(10));
           tr.fromLat = (int) (node.iLat + bis.decodeSignedVarBits(10));
           tr.toLon = (int) (node.iLon + bis.decodeSignedVarBits(10));
@@ -171,9 +178,9 @@ public final class OsmTile {
 
   private OsmNode getNode( int idx ) {
     if ( nodes[idx] == null ) {
-      long id = expandId((int) shringIDs[idx]);
-      int iLon = (int) (id >> 32);
-      int iLat = (int) (id & 0xffffffff);
+      long s32 = BitInterleavedConverter.interleaved2Shift32(shrinkIDs[idx]);
+      int iLon = lonBase + BitInterleavedConverter.xFromShift32(s32);
+      int iLat = latBase + BitInterleavedConverter.yFromShift32(s32);
       OsmNode node = hollowNodes.get(iLon, iLat);
       if (node == null) {
         node = new OsmNode(iLon, iLat);
@@ -186,60 +193,15 @@ public final class OsmTile {
     return nodes[idx];
   }
 
-  private static final long[] id32_00 = new long[1024];
-  private static final long[] id32_10 = new long[1024];
-  private static final long[] id32_20 = new long[1024];
-
-  static {
-    for (int i = 0; i < 1024; i++) {
-      id32_00[i] = _expandId(i);
-      id32_10[i] = _expandId(i << 10);
-      id32_20[i] = _expandId(i << 20);
-    }
-  }
-
-  private static long _expandId(int id32) {
-    int dlon = 0;
-    int dlat = 0;
-
-    for (int bm = 1; bm < 0x8000; bm <<= 1) {
-      if ((id32 & 1) != 0) dlon |= bm;
-      if ((id32 & 2) != 0) dlat |= bm;
-      id32 >>= 2;
-    }
-    return ((long) dlon) << 32 | dlat;
-  }
-
-  public long expandId(int id32) {
-    return (((long) lonBase) << 32 | latBase) + id32_00[id32 & 1023] + id32_10[(id32 >> 10) & 1023] + id32_20[(id32 >> 20) & 1023];
-  }
-
-  /**
-   * shrink a 64-bit (lon|lat) global-id into a a 32-bit micro-cache-internal id
-   */
-  public int shrinkId(int iLon, int iLat) {
-    int dLon = iLon - lonBase;
-    int dLat = iLat - latBase;
-
-    int id32 = 0;
-
-    for (int bm = 0x4000; bm > 0; bm >>= 1) {
-      id32 <<= 2;
-      if ((dLon & bm) != 0) id32 |= 1;
-      if ((dLat & bm) != 0) id32 |= 2;
-    }
-    return id32;
-  }
-
   public int encodeTile(List<OsmNode> nodes, byte[] buffer, Map<String,long[]> bitStatistics) throws IOException {
-    SortedMap<Integer,OsmNode> sortedNodes = sortNodes(nodes);
+    SortedMap<Long,OsmNode> sortedNodes = sortNodes(nodes);
 
     HashMap<Long, Integer> idMap = new HashMap<>();
     int size = sortedNodes.size();
     OsmNode[] nodeArray = new OsmNode[size];
     long[] shrinkIDs = new long[size];
     int nodeIdx = 0;
-    for (Map.Entry<Integer,OsmNode> e : sortedNodes.entrySet() ) { // loop over nodes
+    for (Map.Entry<Long,OsmNode> e : sortedNodes.entrySet() ) { // loop over nodes
       OsmNode node = e.getValue();
       shrinkIDs[nodeIdx] = e.getKey();
       nodeArray[nodeIdx] = node;
@@ -247,9 +209,14 @@ public final class OsmTile {
     }
     TagValueEncoder wayTagEncoder = new TagValueEncoder();
     TagValueEncoder nodeTagEncoder = new TagValueEncoder();
-    HuffmanEncoder<Integer> indexDeltaEncoder  = new HuffmanEncoder<>() {
+    HuffmanEncoder<Integer> indexDeltaEncoder1  = new HuffmanEncoder<>() {
       protected void encodeObjectToStream(Integer i) throws IOException {
-        bos.encodeBits(5,i); // 0=extern, 1..31 = delta, 32=big Delta
+        bos.encodeBits(3,i); // 0=extern, 1..31 = delta, 32=big Delta
+      }
+    };
+    HuffmanEncoder<Integer> indexDeltaEncoder2  = new HuffmanEncoder<>() {
+      protected void encodeObjectToStream(Integer i) throws IOException {
+        bos.encodeBits(3,i); // 0=extern, 1..31 = delta, 32=big Delta
       }
     };
     HuffmanEncoder<Integer> linkCountEncoder  = new HuffmanEncoder<>() {
@@ -272,7 +239,8 @@ public final class OsmTile {
       bos.assignBits( "dictionary way");
       nodeTagEncoder.init(bos);
       bos.assignBits( "dictionary node");
-      indexDeltaEncoder.init(bos);
+      indexDeltaEncoder1.init(bos);
+      indexDeltaEncoder2.init(bos);
       bos.assignBits( "dictionary delta");
       linkCountEncoder.init(bos);
       largeDiffEncoder.init(bos);
@@ -312,16 +280,17 @@ public final class OsmTile {
           if (isInternal && idx < nodeIndex) {
             continue; // do not encode internal backward links
           }
+          HuffmanEncoder<Integer> indexDeltaEncoder = isTransferNode ? indexDeltaEncoder1 : indexDeltaEncoder2;
           if (isInternal) {
             int delta = idx - nodeIndex;
             if (delta <= 0) throw new RuntimeException("ups: self ref?");
-            if ( delta< 31 ) {
+            if ( delta< 7 ) {
               indexDeltaEncoder.encodeObject( delta );
               bos.assignBits( "delta small");
             } else {
-              indexDeltaEncoder.encodeObject( 31 );
+              indexDeltaEncoder.encodeObject( 7 );
               bos.assignBits( "delta large marker");
-              largeDiffEncoder.encode(delta-31 );
+              largeDiffEncoder.encode(delta-7 );
               bos.assignBits( "delta large");
             }
             linksReceived[idx]++;
@@ -357,7 +326,7 @@ public final class OsmTile {
           while (tr != null) {
             bos.encodeUnsignedVarBits(2L );  // TR follows
             bos.encodeBit(tr.isPositive);
-            bos.encodeBounded(1023, tr.exceptions & 1023);
+            bos.encodeUnsignedVarBits(tr.exceptions, 10);
             bos.encodeSignedVarBits(tr.fromLon - node.iLon, 10);
             bos.encodeSignedVarBits(tr.fromLat - node.iLat, 10);
             bos.encodeSignedVarBits(tr.toLon - node.iLon, 10);
@@ -366,6 +335,7 @@ public final class OsmTile {
             bos.assignBits("turn restrictions");
           }
           bos.encodeUnsignedVarBits(0L );  // node features finished
+          bos.assignBits("feature stop");
         }
       }
       if (pass == 2) {
@@ -375,11 +345,12 @@ public final class OsmTile {
     }
   }
 
-  private SortedMap<Integer,OsmNode> sortNodes(List<OsmNode> nodes ) {
+  private SortedMap<Long,OsmNode> sortNodes(List<OsmNode> nodes ) {
     // sort via treemap
-    TreeMap<Integer, OsmNode> sortedList = new TreeMap<>();
+    TreeMap<Long, OsmNode> sortedList = new TreeMap<>();
     for (OsmNode n : nodes) {
-      sortedList.put(shrinkId(n.iLon,n.iLat), n);
+      long il = BitInterleavedConverter.xy2Interleaved(n.iLon-lonBase,n.iLat-latBase);
+      sortedList.put(il, n);
     }
     return sortedList;
   }

@@ -39,7 +39,7 @@ public class BitInputStream extends InputStream implements DataInput {
     /**
      * Construct a BitInputStream for the given Byte-Array.
      *
-     * @param is the underlying stream to read from
+     * @param ab the underlying byte array to read from
      */
     public BitInputStream(byte[] ab) throws IOException {
         in = new ByteArrayInputStream(ab);
@@ -266,7 +266,7 @@ public class BitInputStream extends InputStream implements DataInput {
     }
 
     /**
-     * Decoding twin to {@link BitOutputStream#encodeSizedByteArray( bte[] )}
+     * Decoding twin to {@link BitOutputStream#encodeSizedByteArray( byte[] )}
      *
      * @return the the decoded byte array
      */
@@ -324,43 +324,6 @@ public class BitInputStream extends InputStream implements DataInput {
     // **** Bitwise Variable Length Decoding ****
     // ******************************************
 
-    private static final int[] riceLookup = new int[256];
-    static {
-        for ( int i=0; i < 256; i++ ) {
-            int n = 0;
-            while ( n<8 && (i & (0x80>>n)) == 0 ) {
-                n++;
-            }
-            riceLookup[i] = n;
-        }
-    }
-
-    /**
-     * Basically a "rice code". Limited to 0..63 as an assertion.
-     * {@code 1 -> 0}<br>
-     * {@code 01 -> 1}<br>
-     * {@code 001 -> 2}<br>
-     * {@code 0001 -> 3}<br>
-     *
-     * @return the decoded value
-     */
-    private int decodeLengthPrefix() throws IOException {
-        int n = 0;
-        do {
-            fillBuffer();
-            int v = (int) (b >>> 56);
-            int count = riceLookup[v];
-            n += count;
-            int consumed = count < 8 ? count+1 : 8;
-            b <<= consumed;
-            bits -= consumed;
-            if ( count < 8 ) {
-                return n;
-            }
-        } while ( n < 64 );
-        throw new IllegalArgumentException( "unexpected length prefix, >= 64" );
-    }
-
 
     /**
      * Decoding twin to
@@ -380,7 +343,34 @@ public class BitInputStream extends InputStream implements DataInput {
     }
 
     public final long decodeUnsignedVarBits() throws IOException {
-        int nBits = decodeLengthPrefix();
+        fillBuffer();
+        int v = (int) (b >>> 56);
+        int codeLength = varBitLengthsArray[v];
+        if (codeLength < 8) {
+          b <<= codeLength;
+          bits -= codeLength;
+          return varBitValuesArray[v]; // short code fully decoded by lookup
+        }
+        int nBits = 0;
+        while (codeLength == 17) {
+          if ( (nBits +=8 ) == 64 ) {
+            throw new IllegalArgumentException( "unexpected length prefix, >= 64" );
+          }
+          codeLength = varBitLengthsArray[(int) (b >>> (56-nBits))];
+        }
+        nBits += codeLength >> 1;
+        int consumed = nBits+1;
+        b <<= consumed;
+        bits -= consumed;
+        long range = nBits > 0 ? 0xffffffffffffffffL >>> (64 - nBits): 0L;
+        return range + decodeBits(nBits);
+    }
+
+    public final long decodeUnsignedVarBitsSlow() throws IOException {
+        int nBits = 0;
+        while ( !decodeBit() ) {
+          nBits++;
+        }
         long range = nBits > 0 ? 0xffffffffffffffffL >>> (64 - nBits): 0L;
         return range + decodeBits(nBits);
     }
@@ -459,21 +449,39 @@ public class BitInputStream extends InputStream implements DataInput {
     private static final int[] boundLengthsArrays = new int[256];
     private static final int[] boundValuesArrays = new int[256];
     static {
-        BitInputStream bis = new BitInputStream((InputStream)null);
+        BitInputStream bis = new BitInputStream(InputStream.nullInputStream());
         for( int max=0; max<16; max++ ) {
             for(int v = 0; v<16; v++) {
                 int idx = max << 4 | v;
                 bis.b = ((long)v) << 60;
                 bis.bits = 64;
+                bis.eofBits = 0;
                 try {
                   boundValuesArrays[idx] = (int)bis.decodeBounded(max);
                 } catch( IOException ioe ) {
                     throw new RuntimeException( ioe );
                 }
-              boundLengthsArrays[idx] = 64-bis.bits;
+              boundLengthsArrays[idx] = 64+bis.eofBits-bis.bits;
             }
         }
     }
+
+  private static final int[] varBitLengthsArray = new int[256];
+  private static final int[] varBitValuesArray = new int[256];
+  static {
+    BitInputStream bis = new BitInputStream(InputStream.nullInputStream());
+    for(int v = 0; v<256; v++) {
+        bis.b = ((long)(2*v+1)) << 55;
+        bis.bits = 64;
+        bis.eofBits = 0;
+        try {
+          varBitValuesArray[v] = (int)bis.decodeUnsignedVarBitsSlow();
+        } catch( IOException ioe ) {
+          throw new RuntimeException( ioe );
+        }
+      varBitLengthsArray[v] = 64+bis.eofBits-bis.bits;
+    }
+  }
 
     /**
      * Decoding twin to {@link BitOutputStream#encodeString( String )}
