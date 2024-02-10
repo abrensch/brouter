@@ -353,13 +353,17 @@ public class BitInputStream extends InputStream implements DataInput {
         }
         int nBits = 0;
         while (codeLength == 17) {
+          b <<= 8;
+          bits -= 8;
           if ( (nBits +=8 ) == 64 ) {
             throw new IllegalArgumentException( "unexpected length prefix, >= 64" );
           }
-          codeLength = varBitLengthsArray[(int) (b >>> (56-nBits))];
+          fillBuffer();
+          codeLength = varBitLengthsArray[(int) (b >>> 56)];
         }
-        nBits += codeLength >> 1;
-        int consumed = nBits+1;
+        int remainingBits = codeLength >> 1;
+        nBits += remainingBits;
+        int consumed = remainingBits+1;
         b <<= consumed;
         bits -= consumed;
         long range = nBits > 0 ? 0xffffffffffffffffL >>> (64 - nBits): 0L;
