@@ -6,9 +6,7 @@
 
 package btools.expressions;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,8 +17,9 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.Locale;
 
+import btools.statcoding.BitInputStream;
+import btools.statcoding.BitOutputStream;
 import btools.statcoding.Crc64;
-import btools.util.BitCoderContext;
 import btools.util.IByteArrayUnifier;
 import btools.util.LruMap;
 
@@ -45,10 +44,6 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   private boolean lookupDataFrozen = false;
 
   private int[] lookupData = new int[0];
-
-  private byte[] abBuf = new byte[256];
-  private BitCoderContext ctxEndode = new BitCoderContext(abBuf);
-  private BitCoderContext ctxDecode = new BitCoderContext(new byte[0]);
 
   private Map<String, Integer> variableNumbers = new HashMap<>();
 
@@ -129,9 +124,17 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   }
 
   public byte[] encode(int[] ld) {
-    BitCoderContext ctx = ctxEndode;
-    ctx.reset();
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream(16);
+         BitOutputStream bos = new BitOutputStream(baos)) {
+      int nTags = encode(ld, bos);
+      bos.close();
+      return nTags > 0 ? baos.toByteArray() : null;
+    } catch (IOException ioe) {
+      throw new RuntimeException(ioe);
+    }
+  }
 
+  private int encode(int[] ld, BitOutputStream bos) throws IOException {
     int skippedTags = 0;
     int nonNullTags = 0;
 
@@ -144,33 +147,18 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
         skippedTags++;
         continue;
       }
-      ctx.encodeVarBits(skippedTags + 1);
+      bos.encodeUnsignedVarBits(skippedTags + 1);
       nonNullTags++;
       skippedTags = 0;
 
       // 0 excluded already, 1 (=unknown) we rotate up to 8
       // to have the good code space for the popular values
       int dd = d < 2 ? 7 : (d < 9 ? d - 2 : d - 1);
-      ctx.encodeVarBits(dd);
+      bos.encodeUnsignedVarBits(dd);
     }
-    ctx.encodeVarBits(0);
+    bos.encodeUnsignedVarBits(0);
 
-    if (nonNullTags == 0) return null;
-
-    int len = ctx.closeAndGetEncodedLength();
-    byte[] ab = new byte[len];
-    System.arraycopy(abBuf, 0, ab, 0, len);
-
-
-    // crosscheck: decode and compare
-    int[] ld2 = new int[lookupValues.size()];
-    decode(ld2, false, ab);
-    for (int inum = 1; inum < lookupValues.size(); inum++) { // loop over lookup names (except reverse dir)
-      if (ld2[inum] != ld[inum])
-        throw new RuntimeException("assertion failed encoding inum=" + inum + " val=" + ld[inum] + " " + getKeyValueDescription(false, ab));
-    }
-
-    return ab;
+    return nonNullTags;
   }
 
 
@@ -186,9 +174,16 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   /**
    * decode a byte-array into a lookup data array
    */
+
   private void decode(int[] ld, boolean inverseDirection, byte[] ab) {
-    BitCoderContext ctx = ctxDecode;
-    ctx.reset(ab);
+    try (BitInputStream bis = new BitInputStream(ab)) {
+      decode(ld, inverseDirection, bis);
+    } catch (IOException ioe) {
+      throw new RuntimeException(ioe);
+    }
+  }
+
+  private void decode(int[] ld, boolean inverseDirection, BitInputStream bis) throws IOException {
 
     // start with first bit hardwired ("reversedirection")
     ld[0] = inverseDirection ? 2 : 0;
@@ -196,14 +191,14 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     // all others are generic
     int inum = 1;
     for (; ; ) {
-      int delta = ctx.decodeVarBits();
+      int delta = (int)bis.decodeUnsignedVarBits();
       if (delta == 0) break;
       if (inum + delta > ld.length) break; // higher minor version is o.k.
 
       while (delta-- > 1) ld[inum++] = 0;
 
       // see encoder for value rotation
-      int dd = ctx.decodeVarBits();
+      int dd = (int)bis.decodeUnsignedVarBits();
       int d = dd == 7 ? 1 : (dd < 7 ? dd + 2 : dd + 1);
       if (d >= lookupValues.get(inum).length && d < 1000) d = 1; // map out-of-range to unknown
       ld[inum++] = d;

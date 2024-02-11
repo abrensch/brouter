@@ -26,4 +26,17 @@ public class SimpleByteArrayOutputStream extends OutputStream {
   public void write(int b) throws IOException {
     buf[pos++] = (byte) b;
   }
+
+  public int getSize() {
+    return pos;
+  }
+
+  public byte[] getBuffer() {
+    return buf;
+  }
+
+  public void reset() {
+    pos = 0;
+  }
+
 }

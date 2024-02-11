@@ -1,14 +1,15 @@
 package btools.mapaccess;
 
-import btools.util.BitCoderContext;
+import btools.statcoding.BitOutputStream;
+import btools.util.SimpleByteArrayOutputStream;
 
 /**
  * Container for some re-usable databuffers for the decoder
  */
 public final class DataBuffers {
-  public byte[] iobuffer;
-  public byte[] tagbuf1 = new byte[256];
-  public BitCoderContext bctx1 = new BitCoderContext(tagbuf1);
+  public byte[] ioBuffer;
+  public SimpleByteArrayOutputStream tagBuffer = new SimpleByteArrayOutputStream( new byte[512] );
+  public BitOutputStream tagEncoder = new BitOutputStream( tagBuffer );
 
   public DataBuffers() {
     this(new byte[102400]);
@@ -19,7 +20,7 @@ public final class DataBuffers {
    * for 'iobuffer', where the given array is used
    */
   public DataBuffers(byte[] iobuffer) {
-    this.iobuffer = iobuffer;
+    this.ioBuffer = iobuffer;
   }
 
 }

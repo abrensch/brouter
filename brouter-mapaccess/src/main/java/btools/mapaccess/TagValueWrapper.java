@@ -4,8 +4,6 @@ package btools.mapaccess;
 import btools.util.TagValueValidator;
 import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
-import btools.util.BitCoderContext;
-
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -32,22 +30,24 @@ public final class TagValueWrapper {
       bos.encodeUnsignedVarBits(0L);
       return;
     }
-    BitCoderContext src = new BitCoderContext(data);
-    for (; ; ) {
-      int delta = src.decodeVarBits();
-      bos.encodeUnsignedVarBits(delta);
-      if (delta == 0) {
-        break;
+    try ( BitInputStream src = new BitInputStream(data) ) {
+      for (; ; ) {
+        long delta = src.decodeUnsignedVarBits();
+        bos.encodeUnsignedVarBits(delta);
+        if (delta == 0) {
+          break;
+        }
+        long data = src.decodeUnsignedVarBits();
+        bos.encodeUnsignedVarBits(data);
       }
-      int data = src.decodeVarBits();
-      bos.encodeUnsignedVarBits(data);
     }
   }
 
   public static TagValueWrapper readFromBitStream(BitInputStream bis, DataBuffers buffers, TagValueValidator validator ) throws IOException {
-    byte[] buffer = buffers.tagbuf1;
-    BitCoderContext ctx = buffers.bctx1;
-    ctx.reset(buffer);
+
+    BitOutputStream bos = buffers.tagEncoder;
+    buffers.tagBuffer.reset();
+    bos.close(); // close also resets the bit-buffer (but not the byte-counter!)
 
     int inum = 0;
     int lastEncodedInum = 0;
@@ -61,7 +61,7 @@ public final class TagValueWrapper {
         }
       }
       if (delta == 0L) {
-        ctx.encodeVarBits(0);
+        bos.encodeUnsignedVarBits(0);
         break;
       }
       inum += (int)delta;
@@ -70,19 +70,20 @@ public final class TagValueWrapper {
 
       if (validator == null || validator.isLookupIdxUsed(inum)) {
         hasdata = true;
-        ctx.encodeVarBits(inum - lastEncodedInum);
-        ctx.encodeVarBits((int)data);
+        bos.encodeUnsignedVarBits(inum - lastEncodedInum);
+        bos.encodeUnsignedVarBits(data);
         lastEncodedInum = inum;
       }
     }
 
+    bos.close();
     byte[] res;
-    int len = ctx.closeAndGetEncodedLength();
+    int len = buffers.tagBuffer.getSize();
     if (validator == null) {
       res = new byte[len];
-      System.arraycopy(buffer, 0, res, 0, len);
+      System.arraycopy(buffers.tagBuffer.getBuffer(),0, res, 0, len );
     } else {
-      res = validator.unify(buffer, 0, len);
+      res = validator.unify(buffers.tagBuffer.getBuffer(), 0, len);
     }
 
     int accessType = validator == null ? 2 : validator.accessType(res);

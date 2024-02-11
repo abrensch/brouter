@@ -202,7 +202,7 @@ public final class OsmFile {
     try {
       int nTiles = 160*160;
       DataBuffers dataBuffers = new DataBuffers();
-      osmf = new OsmFile(f, 0, 0, dataBuffers.iobuffer );
+      osmf = new OsmFile(f, 0, 0, dataBuffers.ioBuffer);
       osmf.openForReading();
       for (int tileIdx = 0; tileIdx < nTiles; tileIdx++) {
         osmf.decodeTileForIndex(tileIdx, 0, 0, dataBuffers, null, null, false, null);

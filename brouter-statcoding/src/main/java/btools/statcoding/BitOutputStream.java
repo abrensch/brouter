@@ -21,7 +21,8 @@ public class BitOutputStream extends OutputStream implements DataOutput {
     private long bytesWritten;
     private boolean crcEnabled;
     private long currentCrc;
-
+    private Map<String,long[]> bitStatistics;
+    private long lastBitPos;
 
     protected final OutputStream out;
     private DataOutputStream dos; // created lazily if needed
@@ -155,6 +156,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
         flushBufferAndReAlign();
         out.close();
     }
+
 
     // ***************************************
     // **** METHODS of java.io.DataOutput ****
@@ -581,8 +583,7 @@ public class BitOutputStream extends OutputStream implements DataOutput {
         }
     }
 
-  private Map<String,long[]> bitStatistics;
-  private long lastBitPos;
+
 
   public void registerBitStatistics( Map<String,long[]> bitStatistics ) {
     this.bitStatistics = bitStatistics;
@@ -591,7 +592,6 @@ public class BitOutputStream extends OutputStream implements DataOutput {
 
   /**
    * assign the encoded bits since the last call assignBits to the given
-   * name. Used for encoding statistics
    *
    * @see #registerBitStatistics
    */

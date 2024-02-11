@@ -18,9 +18,6 @@ public final class MixCoderDataInputStream extends DataInputStream {
   private int bits; // bits left in buffer
   private int b; // buffer word
 
-  private static final int[] vl_values = BitCoderContext.vl_values;
-  private static final int[] vl_length = BitCoderContext.vl_length;
-
   public MixCoderDataInputStream(InputStream is) {
     super(is);
   }
@@ -45,7 +42,7 @@ public final class MixCoderDataInputStream extends DataInputStream {
     return value;
   }
 
-  public int decodeVarBits2() throws IOException {
+  public int decodeVarBits() throws IOException {
     int range = 0;
     while (!decodeBit()) {
       range = 2 * range + 1;
@@ -55,8 +52,6 @@ public final class MixCoderDataInputStream extends DataInputStream {
 
   /**
    * decode an integer in the range 0..max (inclusive).
-   *
-   * @see #encodeBounded
    */
   public int decodeBounded(int max) throws IOException {
     int value = 0;
@@ -70,46 +65,6 @@ public final class MixCoderDataInputStream extends DataInputStream {
     return value;
   }
 
-
-  /**
-   * @see #encodeVarBits
-   */
-
-  public int decodeVarBits() throws IOException {
-    fillBuffer();
-    int b12 = b & 0xfff;
-    int len = vl_length[b12];
-    if (len <= 12) {
-      b >>>= len;
-      bits -= len;
-      return vl_values[b12]; // full value lookup
-    }
-    if (len <= 23) { // // only length lookup
-      int len2 = len >> 1;
-      b >>>= (len2 + 1);
-      int mask = 0xffffffff >>> (32 - len2);
-      mask += b & mask;
-      b >>>= len2;
-      bits -= len;
-      return mask;
-    }
-    if ((b & 0xffffff) != 0) {
-      // here we just know len in [25..47]
-      // ( fillBuffer guarantees only 24 bits! )
-      b >>>= 12;
-      int len3 = 1 + (vl_length[b & 0xfff] >> 1);
-      b >>>= len3;
-      int len2 = 11 + len3;
-      bits -= len2 + 1;
-      fillBuffer();
-      int mask = 0xffffffff >>> (32 - len2);
-      mask += b & mask;
-      b >>>= len2;
-      bits -= len2;
-      return mask;
-    }
-    return decodeVarBits2(); // no chance, use the slow one
-  }
 
   private void fillBuffer() throws IOException {
     while (bits < 24) {
