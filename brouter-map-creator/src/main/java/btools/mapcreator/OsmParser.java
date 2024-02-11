@@ -122,7 +122,7 @@ public class OsmParser extends MapCreatorBase {
 
   public void addRelation(long rid, Map<String, String> tags, LongList wayIds, LongList fromWid, LongList toWid, LongList viaNid) {
     RelationData r = new RelationData(rid, wayIds);
-    r.setTags((HashMap<String, String>) tags);
+    r.setTags(tags);
 
     try {
       rListener.nextRelation(r);

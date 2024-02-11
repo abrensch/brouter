@@ -14,25 +14,23 @@ import java.io.FileInputStream;
  */
 public class WayIterator extends MapCreatorBase {
   private WayListener listener;
-  private boolean delete;
   private boolean descendingSize;
 
-  public WayIterator(WayListener wayListener, boolean deleteAfterReading) {
+  public WayIterator(WayListener wayListener) {
     listener = wayListener;
-    delete = deleteAfterReading;
   }
 
-  public WayIterator(WayListener wayListener, boolean deleteAfterReading, boolean descendingSize) {
-    this(wayListener, deleteAfterReading);
+  public WayIterator(boolean descendingSize, WayListener wayListener) {
+    this(wayListener);
     this.descendingSize = descendingSize;
   }
 
-  public void processDir(File indir, String inSuffix) throws Exception {
-    if (!indir.isDirectory()) {
-      throw new IllegalArgumentException("not a directory: " + indir);
+  public void processDir(File inDir, String inSuffix) throws Exception {
+    if (!inDir.isDirectory()) {
+      throw new IllegalArgumentException("not a directory: " + inDir);
     }
 
-    File[] af = sortBySizeAsc(indir.listFiles());
+    File[] af = sortBySizeAsc(inDir.listFiles());
     for (int i = 0; i < af.length; i++) {
       File wayfile = descendingSize ? af[af.length - 1 - i] : af[i];
       if (wayfile.getName().endsWith(inSuffix)) {
@@ -59,7 +57,7 @@ public class WayIterator extends MapCreatorBase {
       di.close();
     }
     listener.wayFileEnd(wayfile);
-    if (delete && "true".equals(System.getProperty("deletetmpfiles"))) {
+    if (Boolean.getBoolean("deletetmpfiles")) {
       wayfile.delete();
     }
   }

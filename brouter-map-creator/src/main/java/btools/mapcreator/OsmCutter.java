@@ -18,16 +18,13 @@ import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 
-public class OsmCutter extends MapCreatorBase {
+public class OsmCutter extends MapCreatorBase implements NodeListener, WayListener, RelationListener {
   private long recordCnt;
   private long nodesParsed;
   private long waysParsed;
-  private long relsParsed;
-  private long changesetsParsed;
+  private long relationsParsed;
 
-  private DataOutputStream wayDos;
-  private DataOutputStream cyclewayDos;
-  private DataOutputStream restrictionsDos;
+  private DataOutputStream relationsDos;
 
   public WayCutter wayCutter;
   public RestrictionCutter restrictionCutter;
@@ -35,30 +32,26 @@ public class OsmCutter extends MapCreatorBase {
 
   private DatabasePseudoTagProvider dbPseudoTagProvider;
 
-  private BExpressionContextWay _expctxWay;
-  private BExpressionContextNode _expctxNode;
+  private BExpressionContextWay expCtxWay;
+  private BExpressionContextNode expCtxNode;
 
-  public void process(File lookupFile, File outTileDir, File wayFile, File relFile, File resFile, File profileFile, File mapFile) throws Exception {
+  public void process(File lookupFile, File nodeTileDir, File relFile, File profileFile, File mapFile) throws Exception {
     if (!lookupFile.exists()) {
       throw new IllegalArgumentException("lookup-file: " + lookupFile + " does not exist");
     }
 
     BExpressionMetaData meta = new BExpressionMetaData();
 
-    _expctxWay = new BExpressionContextWay(meta);
-    _expctxNode = new BExpressionContextNode(meta);
+    expCtxWay = new BExpressionContextWay(meta);
+    expCtxNode = new BExpressionContextNode(meta);
     meta.readMetaData(lookupFile);
-    _expctxWay.parseFile(profileFile, "global");
+    expCtxWay.parseFile(profileFile, "global");
 
-    this.outTileDir = outTileDir;
-    if (!outTileDir.isDirectory())
-      throw new RuntimeException("out tile directory " + outTileDir + " does not exist");
+    this.outTileDir = nodeTileDir;
+    if (!nodeTileDir.isDirectory())
+      throw new RuntimeException("out tile directory " + nodeTileDir + " does not exist");
 
-    wayDos = wayFile == null ? null : new DataOutputStream(new BufferedOutputStream(new FileOutputStream(wayFile)));
-    cyclewayDos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(relFile)));
-    if (resFile != null) {
-      restrictionsDos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(resFile)));
-    }
+    relationsDos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(relFile)));
 
     // read the osm map into memory
     long t0 = System.currentTimeMillis();
@@ -69,13 +62,7 @@ public class OsmCutter extends MapCreatorBase {
 
     // close all files
     closeTileOutStreams();
-    if (wayDos != null) {
-      wayDos.close();
-    }
-    cyclewayDos.close();
-    if (restrictionsDos != null) {
-      restrictionsDos.close();
-    }
+    relationsDos.close();
 
 //    System.out.println( "-------- way-statistics -------- " );
 //    _expctxWayStat.dumpStatistics();
@@ -90,7 +77,7 @@ public class OsmCutter extends MapCreatorBase {
   }
 
   private String statsLine() {
-    return "records read: " + recordCnt + " nodes=" + nodesParsed + " ways=" + waysParsed + " rels=" + relsParsed + " changesets=" + changesetsParsed;
+    return "records read: " + recordCnt + " nodes=" + nodesParsed + " ways=" + waysParsed + " rels=" + relationsParsed;
   }
 
   public void setDbTagFilename(String filename) {
@@ -103,15 +90,15 @@ public class OsmCutter extends MapCreatorBase {
     checkStats();
 
     if (n.getTagsOrNull() != null) {
-      int[] lookupData = _expctxNode.createNewLookupData();
+      int[] lookupData = expCtxNode.createNewLookupData();
       for (Map.Entry<String, String> e : n.getTagsOrNull().entrySet()) {
-        _expctxNode.addLookupValue(e.getKey(), e.getValue(), lookupData);
+        expCtxNode.addLookupValue(e.getKey(), e.getValue(), lookupData);
         // _expctxNodeStat.addLookupValue( key, value, null );
       }
-      n.description = _expctxNode.encode(lookupData);
+      n.description = expCtxNode.encode(lookupData);
     }
     // write node to file
-    int tileIndex = getTileIndex(n.ilon, n.ilat);
+    int tileIndex = getTileIndex(n.iLon, n.iLat);
     if (tileIndex >= 0) {
       n.writeTo(getOutStreamForTile(tileIndex));
       if (wayCutter != null) {
@@ -119,7 +106,6 @@ public class OsmCutter extends MapCreatorBase {
       }
     }
   }
-
 
   private void generatePseudoTags(Map<String, String> map) {
     // add pseudo.tags for concrete:lanes and concrete:plates
@@ -158,40 +144,33 @@ public class OsmCutter extends MapCreatorBase {
 
     generatePseudoTags(w.getTagsOrNull());
 
-    int[] lookupData = _expctxWay.createNewLookupData();
+    int[] lookupData = expCtxWay.createNewLookupData();
     for (String key : w.getTagsOrNull().keySet()) {
       String value = w.getTag(key);
-      _expctxWay.addLookupValue(key, value.replace(' ', '_'), lookupData);
+      expCtxWay.addLookupValue(key, value.replace(' ', '_'), lookupData);
     }
-    w.description = _expctxWay.encode(lookupData);
+    w.description = expCtxWay.encode(lookupData);
 
     if (w.description == null) return;
 
     // filter according to profile
-    _expctxWay.evaluate(false, w.description);
-    boolean ok = _expctxWay.getCostfactor() < 10000.;
-    _expctxWay.evaluate(true, w.description);
-    ok |= _expctxWay.getCostfactor() < 10000.;
+    expCtxWay.evaluate(false, w.description);
+    boolean ok = expCtxWay.getCostfactor() < 10000.;
+    expCtxWay.evaluate(true, w.description);
+    ok |= expCtxWay.getCostfactor() < 10000.;
     if (!ok) return;
 
-    if (wayDos != null) {
-      w.writeTo(wayDos);
-    }
-    if (wayCutter != null) {
-      wayCutter.nextWay(w);
-    }
-    if (nodeFilter != null) {
-      nodeFilter.nextWay(w);
-    }
+    wayCutter.nextWay(w);
+    nodeFilter.nextWay(w);
   }
 
   @Override
   public void nextRelation(RelationData r) throws IOException {
-    relsParsed++;
+    relationsParsed++;
     checkStats();
 
     String route = r.getTag("route");
-    // filter out non-cycle relations
+    // filter out non-route relations
     if (route == null) {
       return;
     }
@@ -200,15 +179,15 @@ public class OsmCutter extends MapCreatorBase {
     if (network == null) network = "";
     String state = r.getTag("state");
     if (state == null) state = "";
-    writeId(cyclewayDos, r.rid);
-    cyclewayDos.writeUTF(route);
-    cyclewayDos.writeUTF(network);
-    cyclewayDos.writeUTF(state);
+    writeId(relationsDos, r.rid);
+    relationsDos.writeUTF(route);
+    relationsDos.writeUTF(network);
+    relationsDos.writeUTF(state);
     for (int i = 0; i < r.ways.size(); i++) {
       long wid = r.ways.get(i);
-      writeId(cyclewayDos, wid);
+      writeId(relationsDos, wid);
     }
-    writeId(cyclewayDos, -1);
+    writeId(relationsDos, -1);
   }
 
   @Override
@@ -242,12 +221,7 @@ public class OsmCutter extends MapCreatorBase {
       res.toWid = toWid;
       res.viaNid = viaNid;
 
-      if (restrictionsDos != null) {
-        res.writeTo(restrictionsDos);
-      }
-      if (restrictionCutter != null) {
-        restrictionCutter.nextRestriction(res);
-      }
+      restrictionCutter.nextRestriction(res);
     }
   }
 

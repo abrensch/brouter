@@ -22,7 +22,7 @@ import btools.util.FrozenLongSet;
  *
  * @author ab
  */
-public class PosUnifier extends MapCreatorBase {
+public class PosUnifier extends MapCreatorBase implements NodeListener {
   private DiffCoderDataOutputStream nodesOutStream;
   private DiffCoderDataOutputStream borderNodesOut;
   private File nodeTilesOut;
@@ -46,12 +46,12 @@ public class PosUnifier extends MapCreatorBase {
       double lat = Double.parseDouble(args[2]);
 
       NodeData n = new NodeData(1, lon, lat);
-      SrtmRaster srtm = posu.hgtForNode(n.ilon, n.ilat);
+      SrtmRaster srtm = posu.hgtForNode(n.iLon, n.iLat);
       short selev = Short.MIN_VALUE;
       if (srtm == null) {
-        srtm = posu.srtmForNode(n.ilon, n.ilat);
+        srtm = posu.srtmForNode(n.iLon, n.iLat);
       }
-      if (srtm != null) selev = srtm.getElevation(n.ilon, n.ilat);
+      if (srtm != null) selev = srtm.getElevation(n.iLon, n.iLat);
       posu.resetSrtm();
       System.out.println("-----> selv for " + lat + ", " + lon + " = " + selev + " = " + (selev / 4.));
       return;
@@ -97,7 +97,7 @@ public class PosUnifier extends MapCreatorBase {
 
   @Override
   public void nextNode(NodeData n) throws Exception {
-    n.selev = Short.MIN_VALUE;
+    n.sElev = Short.MIN_VALUE;
 
     // TODO: performance bottleneck from hgtForNode
 
@@ -106,9 +106,9 @@ public class PosUnifier extends MapCreatorBase {
       srtm = srtmForNode(n.ilon, n.ilat);
     } */
 
-    SrtmRaster srtm = srtmForNode(n.ilon, n.ilat);
+    SrtmRaster srtm = srtmForNode(n.iLon, n.iLat);
 
-    if (srtm != null) n.selev = srtm.getElevation(n.ilon, n.ilat);
+    if (srtm != null) n.sElev = srtm.getElevation(n.iLon, n.iLat);
     findUniquePos(n);
 
     n.writeTo(nodesOutStream);
@@ -139,29 +139,29 @@ public class PosUnifier extends MapCreatorBase {
 
 
   private void findUniquePos(NodeData n) {
-    if (!checkAdd(n.ilon, n.ilat)) {
+    if (!checkAdd(n.iLon, n.iLat)) {
       _findUniquePos(n);
     }
   }
 
   private void _findUniquePos(NodeData n) {
     // fix the position for uniqueness
-    int lonmod = n.ilon % 1000000;
+    int lonmod = n.iLon % 1000000;
     int londelta = lonmod < 500000 ? 1 : -1;
-    int latmod = n.ilat % 1000000;
+    int latmod = n.iLat % 1000000;
     int latdelta = latmod < 500000 ? 1 : -1;
     for (int latsteps = 0; latsteps < 100; latsteps++) {
       for (int lonsteps = 0; lonsteps <= latsteps; lonsteps++) {
-        int lon = n.ilon + lonsteps * londelta;
-        int lat = n.ilat + latsteps * latdelta;
+        int lon = n.iLon + lonsteps * londelta;
+        int lat = n.iLat + latsteps * latdelta;
         if (checkAdd(lon, lat)) {
-          n.ilon = lon;
-          n.ilat = lat;
+          n.iLon = lon;
+          n.iLat = lat;
           return;
         }
       }
     }
-    System.out.println("*** WARNING: cannot unify position for: " + n.ilon + " " + n.ilat);
+    System.out.println("*** WARNING: cannot unify position for: " + n.iLon + " " + n.iLat);
   }
 
   /**

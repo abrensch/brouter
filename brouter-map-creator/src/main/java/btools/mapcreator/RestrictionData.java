@@ -54,8 +54,8 @@ public class RestrictionData extends TurnRestriction {
     tr.exceptions = exceptions;
     tr.fromLon = fromLon;
     tr.fromLat = fromLat;
-    tr.toLon = fromLat;
-    tr.toLat = fromLat;
+    tr.toLon = toLon;
+    tr.toLat = toLat;
     return tr;
   }
 

@@ -13,7 +13,7 @@ import btools.util.TinyDenseLongMap;
  *
  * @author ab
  */
-public class WayCutter extends MapCreatorBase {
+public class WayCutter extends MapCreatorBase implements NodeListener, WayListener {
   private DenseLongMap tileIndexMap;
 
   public void init(File wayTilesOut) throws Exception {
@@ -29,7 +29,7 @@ public class WayCutter extends MapCreatorBase {
 
   @Override
   public void nextNode(NodeData n) throws Exception {
-    tileIndexMap.put(n.nid, getTileIndex(n.ilon, n.ilat));
+    tileIndexMap.put(n.nid, getTileIndex(n.iLon, n.iLat));
   }
 
   @Override

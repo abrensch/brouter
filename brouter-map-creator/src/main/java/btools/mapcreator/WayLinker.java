@@ -18,7 +18,7 @@ import btools.util.*;
  *
  * @author ab
  */
-public class WayLinker extends MapCreatorBase implements Runnable {
+public class WayLinker extends MapCreatorBase implements NodeListener, WayListener, Runnable {
   private File nodeTilesIn;
   private File wayTilesIn;
   private File dataTilesOut;
@@ -151,7 +151,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
   public void run() {
     try {
       // then process all segments
-      new WayIterator(this, true, !isSlave).processDir(wayTilesIn, ".wt5");
+      new WayIterator(!isSlave, this).processDir(wayTilesIn, ".wt5");
     } catch (Exception e) {
       System.out.println("******* thread (slave=" + isSlave + ") got Exception: " + e);
       throw new RuntimeException(e);
@@ -235,9 +235,9 @@ public class WayLinker extends MapCreatorBase implements Runnable {
   @Override
   public void nextNode(NodeData data) throws Exception {
     OsmNode n = new OsmNode();
-    n.iLon = data.ilon;
-    n.iLat = data.ilat;
-    n.sElev = data.selev;
+    n.iLon = data.iLon;
+    n.iLat = data.iLat;
+    n.sElev = data.sElev;
     n.nodeDescription = data.description;
 
     if (readingBorder || (!borderSet.contains(data.nid))) {

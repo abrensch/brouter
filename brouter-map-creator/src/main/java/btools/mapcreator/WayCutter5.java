@@ -18,12 +18,12 @@ import btools.util.TinyDenseLongMap;
  *
  * @author ab
  */
-public class WayCutter5 extends MapCreatorBase {
+public class WayCutter5 extends MapCreatorBase implements NodeListener, WayListener {
   private DataOutputStream borderNidsOutStream;
   private DenseLongMap tileIndexMap;
   private File nodeTilesIn;
-  private int lonoffset;
-  private int latoffset;
+  private int lonOffset;
+  private int latOffset;
 
   public RelationMerger relMerger;
   public NodeFilter nodeFilter;
@@ -36,7 +36,7 @@ public class WayCutter5 extends MapCreatorBase {
 
     borderNidsOutStream = createOutStream(borderNidsOut);
 
-    new WayIterator(this, true).processDir(wayTilesIn, ".wtl");
+    new WayIterator(this).processDir(wayTilesIn, ".wtl");
 
     borderNidsOutStream.close();
   }
@@ -49,13 +49,11 @@ public class WayCutter5 extends MapCreatorBase {
     File nodefile = new File(nodeTilesIn, nodefilename);
 
     tileIndexMap = Boolean.getBoolean("useDenseMaps") ? new DenseLongMap() : new TinyDenseLongMap();
-    lonoffset = -1;
-    latoffset = -1;
+    lonOffset = -1;
+    latOffset = -1;
 
-    if (nodeCutter != null) {
-      nodeCutter.nodeFileStart(null);
-    }
-    new NodeIterator(this, nodeCutter != null).processFile(nodefile);
+    nodeCutter.nodeFileStart(null);
+    new NodeIterator(this, true).processFile(nodefile);
 
     if (restrictionCutter5 != null) {
       String resfilename = name.substring(0, name.length() - 3) + "rtl";
@@ -91,7 +89,7 @@ public class WayCutter5 extends MapCreatorBase {
       nodeCutter.nextNode(n);
     }
 
-    tileIndexMap.put(n.nid, getTileIndex(n.ilon, n.ilat));
+    tileIndexMap.put(n.nid, getTileIndex(n.iLon, n.iLat));
   }
 
   @Override
@@ -150,22 +148,20 @@ public class WayCutter5 extends MapCreatorBase {
   private int getTileIndex(int ilon, int ilat) {
     int lonoff = (ilon / 45000000) * 45;
     int latoff = (ilat / 30000000) * 30;
-    if (lonoffset == -1) lonoffset = lonoff;
-    if (latoffset == -1) latoffset = latoff;
-    if (lonoff != lonoffset || latoff != latoffset)
+    if (lonOffset == -1) lonOffset = lonoff;
+    if (latOffset == -1) latOffset = latoff;
+    if (lonoff != lonOffset || latoff != latOffset)
       throw new IllegalArgumentException("inconsistent node: " + ilon + " " + ilat);
 
     int lon = (ilon / 5000000) % 9;
     int lat = (ilat / 5000000) % 6;
-    if (lon < 0 || lon > 8 || lat < 0 || lat > 5)
-      throw new IllegalArgumentException("illegal pos: " + ilon + "," + ilat);
     return lon * 6 + lat;
   }
 
 
   protected String getNameForTile(int tileIndex) {
-    int lon = (tileIndex / 6) * 5 + lonoffset - 180;
-    int lat = (tileIndex % 6) * 5 + latoffset - 90;
+    int lon = (tileIndex / 6) * 5 + lonOffset - 180;
+    int lat = (tileIndex % 6) * 5 + latOffset - 90;
     String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
     String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
     return slon + "_" + slat + ".wt5";

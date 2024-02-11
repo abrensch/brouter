@@ -18,16 +18,11 @@ import java.util.Map;
 
 import btools.util.DiffCoderDataOutputStream;
 
-public abstract class MapCreatorBase implements WayListener, NodeListener, RelationListener {
+public abstract class MapCreatorBase {
   private DiffCoderDataOutputStream[] tileOutStreams;
   protected File outTileDir;
 
   protected Map<String, String> tags;
-
-  public void putTag(String key, String value) {
-    if (tags == null) tags = new HashMap<>();
-    tags.put(key, value);
-  }
 
   public String getTag(String key) {
     return tags == null ? null : tags.get(key);
@@ -62,7 +57,7 @@ public abstract class MapCreatorBase implements WayListener, NodeListener, Relat
 
 
   protected static File[] sortBySizeAsc(File[] files) {
-    int n = files.length;
+    int n = files == null ? 0 : files.length;
     long[] sizes = new long[n];
     File[] sorted = new File[n];
     for (int i = 0; i < n; i++) sizes[i] = files[i].length();
@@ -119,41 +114,4 @@ public abstract class MapCreatorBase implements WayListener, NodeListener, Relat
       tileOutStreams[tileIndex] = null;
     }
   }
-
-
-  // interface dummys
-
-  @Override
-  public void nodeFileStart(File nodefile) throws Exception {
-  }
-
-  @Override
-  public void nextNode(NodeData n) throws Exception {
-  }
-
-  @Override
-  public void nodeFileEnd(File nodefile) throws Exception {
-  }
-
-  @Override
-  public boolean wayFileStart(File wayfile) throws Exception {
-    return true;
-  }
-
-  @Override
-  public void nextWay(WayData data) throws Exception {
-  }
-
-  @Override
-  public void wayFileEnd(File wayfile) throws Exception {
-  }
-
-  @Override
-  public void nextRelation(RelationData data) throws Exception {
-  }
-
-  @Override
-  public void nextRestriction(RelationData data, long fromWid, long toWid, long viaNid) throws Exception {
-  }
-
 }

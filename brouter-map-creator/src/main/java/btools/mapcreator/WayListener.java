@@ -8,9 +8,12 @@ import java.io.File;
  * @author ab
  */
 public interface WayListener {
-  boolean wayFileStart(File wayfile) throws Exception;
+  default boolean wayFileStart(File wayfile) throws Exception {
+    return false;
+  }
 
   void nextWay(WayData data) throws Exception;
 
-  void wayFileEnd(File wayfile) throws Exception;
+  default void wayFileEnd(File wayfile) throws Exception {
+  }
 }

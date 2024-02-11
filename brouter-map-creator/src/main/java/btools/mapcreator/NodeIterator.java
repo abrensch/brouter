@@ -22,16 +22,15 @@ public class NodeIterator extends MapCreatorBase {
     delete = deleteAfterReading;
   }
 
-  public void processDir(File indir, String inSuffix) throws Exception {
-    if (!indir.isDirectory()) {
-      throw new IllegalArgumentException("not a directory: " + indir);
+  public void processDir(File inDir, String inSuffix) throws Exception {
+    if (!inDir.isDirectory()) {
+      throw new IllegalArgumentException("not a directory: " + inDir);
     }
 
-    File[] af = sortBySizeAsc(indir.listFiles());
-    for (int i = 0; i < af.length; i++) {
-      File nodefile = af[i];
-      if (nodefile.getName().endsWith(inSuffix)) {
-        processFile(nodefile);
+    File[] af = sortBySizeAsc(inDir.listFiles());
+    for (File nodeFile : af) {
+      if (nodeFile.getName().endsWith(inSuffix)) {
+        processFile(nodeFile);
       }
     }
   }
@@ -52,7 +51,7 @@ public class NodeIterator extends MapCreatorBase {
       di.close();
     }
     listener.nodeFileEnd(nodefile);
-    if (delete && "true".equals(System.getProperty("deletetmpfiles"))) {
+    if (delete && Boolean.getBoolean("deletetmpfiles")) {
       nodefile.delete();
     }
   }

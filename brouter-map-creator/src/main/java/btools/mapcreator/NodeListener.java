@@ -8,9 +8,11 @@ import java.io.File;
  * @author ab
  */
 public interface NodeListener {
-  void nodeFileStart(File nodefile) throws Exception;
+  default void nodeFileStart(File nodefile) throws Exception {
+  }
 
   void nextNode(NodeData data) throws Exception;
 
-  void nodeFileEnd(File nodefile) throws Exception;
+  default void nodeFileEnd(File nodefile) throws Exception {
+  }
 }

@@ -19,7 +19,7 @@ import btools.util.FrozenLongSet;
  *
  * @author ab
  */
-public class RelationMerger extends MapCreatorBase {
+public class RelationMerger extends MapCreatorBase implements WayListener {
   private Map<String, CompactLongSet> routesets;
   private CompactLongSet routesetall;
   private BExpressionContextWay expctxReport;
@@ -91,7 +91,7 @@ public class RelationMerger extends MapCreatorBase {
 
     // *** finally process the way-file
     wayOutStream = createOutStream(wayFileOut);
-    new WayIterator(this, true).processFile(wayFileIn);
+    new WayIterator(this).processFile(wayFileIn);
     wayOutStream.close();
 
 //    System.out.println( "-------- route-statistics -------- " );

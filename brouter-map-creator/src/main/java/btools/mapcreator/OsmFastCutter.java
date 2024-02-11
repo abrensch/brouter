@@ -12,11 +12,9 @@ import java.io.File;
 public class OsmFastCutter extends MapCreatorBase {
   public static void main(String[] args) throws Exception {
     System.out.println("*** OsmFastCutter: cut an osm map in node-tiles + way-tiles");
-    if (args.length != 11 && args.length != 12 && args.length != 13) {
-      String common = "java OsmFastCutter <lookup-file> <node-dir> <way-dir> <node55-dir> <way55-dir> <border-file> <out-rel-file> <out-res-file> <filter-profile> <report-profile> <check-profile> <map-file> [db-tag-filename]";
-
-      System.out.println("usage: bzip2 -dc <map> | " + common);
-      System.out.println("or   : " + common + " <inputfile> ");
+    if (args.length != 11 && args.length != 12) {
+      String common = "java OsmFastCutter <lookup-file> <node-dir> <way-dir> <node55-dir> <way55-dir> <border-file> <out-rel-file> <filter-profile> <report-profile> <check-profile> <map-file> [db-tag-filename]";
+      System.out.println("usage: " + common);
       return;
     }
 
@@ -31,7 +29,7 @@ public class OsmFastCutter extends MapCreatorBase {
       , new File(args[7])
       , new File(args[8])
       , new File(args[9])
-      , args.length > 10 ? new File(args[10]) : null
+      , new File(args[10])
       , args.length > 11 ? args[11] : null
     );
   }
@@ -54,7 +52,7 @@ public class OsmFastCutter extends MapCreatorBase {
     nodeFilter.init();
     cutter.nodeFilter = nodeFilter;
 
-    cutter.process(lookupFile, nodeDir, null, relFile, null, profileAll, mapFile);
+    cutter.process(lookupFile, nodeDir, relFile, profileAll, mapFile);
     cutter.wayCutter.finish();
     cutter.restrictionCutter.finish();
     cutter = null;
