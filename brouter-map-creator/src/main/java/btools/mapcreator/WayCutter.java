@@ -2,9 +2,6 @@ package btools.mapcreator;
 
 import java.io.File;
 
-import btools.util.DenseLongMap;
-import btools.util.TinyDenseLongMap;
-
 /**
  * WayCutter does 2 step in map-processing:
  * <p>
@@ -13,23 +10,17 @@ import btools.util.TinyDenseLongMap;
  *
  * @author ab
  */
-public class WayCutter extends MapCreatorBase implements NodeListener, WayListener {
-  private DenseLongMap tileIndexMap;
+public class WayCutter extends ItemCutter implements WayListener {
 
-  public void init(File wayTilesOut) throws Exception {
-    this.outTileDir = wayTilesOut;
+  private final NodeCutter nodeCutter;
 
-    // *** read all nodes into tileIndexMap
-    tileIndexMap = Boolean.getBoolean("useDenseMaps") ? new DenseLongMap() : new TinyDenseLongMap();
+  public WayCutter(File tmpDir, NodeCutter nodeCutter) {
+    super( new File( tmpDir, "ways" ) );
+    this.nodeCutter = nodeCutter;
   }
 
   public void finish() throws Exception {
     closeTileOutStreams();
-  }
-
-  @Override
-  public void nextNode(NodeData n) throws Exception {
-    tileIndexMap.put(n.nid, getTileIndex(n.iLon, n.iLat));
   }
 
   @Override
@@ -39,7 +30,7 @@ public class WayCutter extends MapCreatorBase implements NodeListener, WayListen
 
     // determine the tile-index for each node
     for (int i = 0; i < nnodes; i++) {
-      int tileIndex = tileIndexMap.getInt(data.nodes.get(i));
+      int tileIndex = nodeCutter.getTileIndexForNid(data.nodes.get(i));
       if (tileIndex != -1) {
         waytileset |= (1L << tileIndex);
       }
@@ -54,25 +45,8 @@ public class WayCutter extends MapCreatorBase implements NodeListener, WayListen
     }
   }
 
-
-  public int getTileIndexForNid(long nid) {
-    return tileIndexMap.getInt(nid);
-  }
-
-  private int getTileIndex(int ilon, int ilat) {
-    int lon = ilon / 45000000;
-    int lat = ilat / 30000000;
-    if (lon < 0 || lon > 7 || lat < 0 || lat > 5)
-      throw new IllegalArgumentException("illegal pos: " + ilon + "," + ilat);
-    return lon * 6 + lat;
-  }
-
   public String getNameForTile(int tileIndex) {
-    int lon = (tileIndex / 6) * 45 - 180;
-    int lat = (tileIndex % 6) * 30 - 90;
-    String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
-    String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
-    return slon + "_" + slat + ".wtl";
+    return getBaseNameForTile(tileIndex) + ".wtl";
   }
 
 }

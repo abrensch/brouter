@@ -19,33 +19,18 @@ public class MapcreatorTest {
     File tmpdir = new File(workingDir, "tmp");
     tmpdir.mkdir();
 
-    File nodes = new File(tmpdir, "nodetiles");
-    nodes.mkdir();
-    File ways = new File(tmpdir, "waytiles");
-    ways.mkdir();
-    File nodes55 = new File(tmpdir, "nodes55");
-    nodes55.mkdir();
-    File ways55 = new File(tmpdir, "waytiles55");
-    ways55.mkdir();
     File lookupFile = new File(profileDir, "lookups.dat");
-    File relFile = new File(tmpdir, "cycleways.dat");
     File profileAll = new File(profileDir, "all.brf");
     File profileReport = new File(profileDir, "trekking.brf");
     File profileCheck = new File(profileDir, "softaccess.brf");
-    File borderFile = new File(tmpdir, "bordernids.dat");
 
-    OsmFastCutter.doCut(lookupFile, nodes, ways, nodes55, ways55, borderFile, relFile, profileAll, profileReport, profileCheck, mapFile, null);
+    OsmCutter.doCut(lookupFile, tmpdir, profileAll, profileReport, profileCheck, mapFile, null);
 
 
     // run PosUnifier
-    File unodes55 = new File(tmpdir, "unodes55");
-    File bordernodes = new File(tmpdir, "bordernodes.dat");
-    unodes55.mkdir();
-    new PosUnifier().process(nodes55, unodes55, borderFile, bordernodes, workingDir.getAbsolutePath());
+    new PosUnifier(tmpdir).process(tmpdir, workingDir.getAbsolutePath());
 
     // run WayLinker
-    File segments = new File(tmpdir, "segments");
-    segments.mkdir();
-    new WayLinker().process(unodes55, ways55, bordernodes, lookupFile, profileAll, segments, "rd5");
+    new WayLinker().process(tmpdir, lookupFile, profileAll, "rd5");
   }
 }

@@ -94,20 +94,19 @@ public class WayLinker extends MapCreatorBase implements NodeListener, WayListen
 
   public static void main(String[] args) throws Exception {
     System.out.println("*** WayLinker: Format a region of an OSM map for routing");
-    if (args.length != 7) {
+    if (args.length != 4) {
       System.out
-        .println("usage: java WayLinker <node-tiles-in> <way-tiles-in> <border-nodes> <lookup-file> <profile-file> <data-tiles-out> <data-tiles-suffix> ");
+        .println("usage: java WayLinker <tmpDir> <lookup-file> <profile-file> <data-tiles-suffix> ");
       return;
     }
 
-    new WayLinker().process(new File(args[0]), new File(args[1]), new File(args[2]), new File(args[3]), new File(args[4]), new File(args[5]), args[6]);
+    new WayLinker().process(new File(args[0]), new File(args[1]), new File(args[2]), args[3]);
 
     System.out.println("dumping bad TRs");
     RestrictionData.dumpBadTRs();
   }
 
-  public void process(File nodeTilesIn, File wayTilesIn, File borderFileIn, File lookupFile, File profileFile, File dataTilesOut,
-                      String dataTilesSuffix) throws Exception {
+  public void process(File tmpDir, File lookupFile, File profileFile, String dataTilesSuffix) throws Exception {
     WayLinker master = new WayLinker();
     WayLinker slave = new WayLinker();
     slave.isSlave = true;
@@ -117,8 +116,8 @@ public class WayLinker extends MapCreatorBase implements NodeListener, WayListen
     slave.tc = tc;
     master.tc = tc;
 
-    master._process(nodeTilesIn, wayTilesIn, borderFileIn, lookupFile, profileFile, dataTilesOut, dataTilesSuffix);
-    slave._process(nodeTilesIn, wayTilesIn, borderFileIn, lookupFile, profileFile, dataTilesOut, dataTilesSuffix);
+    master._process(tmpDir, lookupFile, profileFile, dataTilesSuffix);
+    slave._process(tmpDir, lookupFile, profileFile, dataTilesSuffix);
 
     Thread m = new Thread(master);
     Thread s = new Thread(slave);
@@ -128,13 +127,16 @@ public class WayLinker extends MapCreatorBase implements NodeListener, WayListen
     s.join();
   }
 
-  private void _process(File nodeTilesIn, File wayTilesIn, File borderFileIn, File lookupFile, File profileFile, File dataTilesOut,
-                        String dataTilesSuffix) throws Exception {
-    this.nodeTilesIn = nodeTilesIn;
-    this.wayTilesIn = wayTilesIn;
-    this.dataTilesOut = dataTilesOut;
-    this.borderFileIn = borderFileIn;
+  private void _process(File tmpDir, File lookupFile, File profileFile, String dataTilesSuffix) throws Exception {
+    this.nodeTilesIn = new File( tmpDir, "unodes55");
+    this.wayTilesIn = new File( tmpDir, "ways55");
+    this.dataTilesOut = new File( tmpDir, "segments");
+    this.borderFileIn = new File( tmpDir, "bordernodes.dat");;
     this.dataTilesSuffix = dataTilesSuffix;
+
+    if ( !dataTilesOut.exists() && !dataTilesOut.mkdir() ) {
+      throw new RuntimeException( "directory " + dataTilesOut + " cannot be created" );
+    }
 
     BExpressionMetaData meta = new BExpressionMetaData();
 

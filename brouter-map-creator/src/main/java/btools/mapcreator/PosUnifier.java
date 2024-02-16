@@ -25,7 +25,6 @@ import btools.util.FrozenLongSet;
 public class PosUnifier extends MapCreatorBase implements NodeListener {
   private DiffCoderDataOutputStream nodesOutStream;
   private DiffCoderDataOutputStream borderNodesOut;
-  private File nodeTilesOut;
   private CompactLongSet[] positionSets;
 
   private Map<String, SrtmRaster> srtmmap;
@@ -36,38 +35,30 @@ public class PosUnifier extends MapCreatorBase implements NodeListener {
 
   private CompactLongSet borderNids;
 
+  private File dataTilesOut;
+
   public static void main(String[] args) throws Exception {
     System.out.println("*** PosUnifier: Unify position values and enhance elevation");
-    if (args.length == 3) {
-      PosUnifier posu = new PosUnifier();
-      posu.srtmdir = (args[0]);
-      posu.srtmmap = new HashMap<>();
-      double lon = Double.parseDouble(args[1]);
-      double lat = Double.parseDouble(args[2]);
-
-      NodeData n = new NodeData(1, lon, lat);
-      SrtmRaster srtm = posu.hgtForNode(n.iLon, n.iLat);
-      short selev = Short.MIN_VALUE;
-      if (srtm == null) {
-        srtm = posu.srtmForNode(n.iLon, n.iLat);
-      }
-      if (srtm != null) selev = srtm.getElevation(n.iLon, n.iLat);
-      posu.resetSrtm();
-      System.out.println("-----> selv for " + lat + ", " + lon + " = " + selev + " = " + (selev / 4.));
-      return;
-    } else if (args.length != 5) {
-      System.out.println("usage: java PosUnifier <node-tiles-in> <node-tiles-out> <bordernids-in> <bordernodes-out> <srtm-data-dir>");
+    if (args.length != 2) {
+      System.out.println("usage: java PosUnifier <tmpDir> <srtm-data-dir>");
       return;
     }
-    new PosUnifier().process(new File(args[0]), new File(args[1]), new File(args[2]), new File(args[3]), args[4]);
+    new PosUnifier(new File(args[0])).process(new File(args[0]), args[1]);
   }
 
-  public void process(File nodeTilesIn, File nodeTilesOut, File bordernidsinfile, File bordernodesoutfile, String srtmdir) throws Exception {
-    this.nodeTilesOut = nodeTilesOut;
+  public PosUnifier(File tmpDir) {
+
+    dataTilesOut = new File( tmpDir, "unodes55" );
+    if ( !dataTilesOut.exists() && !dataTilesOut.mkdir() ) {
+      throw new RuntimeException( "directory " + dataTilesOut + " cannot be created" );
+    }
+  }
+
+  public void process(File tmpDir, String srtmdir) throws Exception {
     this.srtmdir = srtmdir;
 
     // read border nids set
-    DataInputStream dis = createInStream(bordernidsinfile);
+    DataInputStream dis = createInStream(new File( tmpDir, "bordernids.dat"));
     borderNids = new CompactLongSet();
     try {
       for (; ; ) {
@@ -81,17 +72,15 @@ public class PosUnifier extends MapCreatorBase implements NodeListener {
     borderNids = new FrozenLongSet(borderNids);
 
     // process all files
-    borderNodesOut = createOutStream(bordernodesoutfile);
-    new NodeIterator(this, true).processDir(nodeTilesIn, ".n5d");
+    borderNodesOut = createOutStream(new File( tmpDir, "bordernodes.dat"));
+    new NodeIterator(this, true).processDir(new File( tmpDir, "nodes55"), ".n5d");
     borderNodesOut.close();
   }
 
   @Override
   public void nodeFileStart(File nodefile) throws Exception {
     resetSrtm();
-
-    nodesOutStream = createOutStream(fileFromTemplate(nodefile, nodeTilesOut, "u5d"));
-
+    nodesOutStream = createOutStream(fileFromTemplate(nodefile, dataTilesOut, "u5d"));
     positionSets = new CompactLongSet[2500];
   }
 

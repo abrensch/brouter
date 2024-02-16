@@ -26,9 +26,7 @@ public class RelationMerger extends MapCreatorBase implements WayListener {
   private BExpressionContextWay expctxCheck;
   // private BExpressionContext expctxStat;
 
-  private DataOutputStream wayOutStream;
-
-  public void init(File relationFileIn, File lookupFile, File reportProfile, File checkProfile) throws Exception {
+  public RelationMerger(File tmpDir, File lookupFile, File reportProfile, File checkProfile) throws Exception {
     // read lookup + profile for relation access-check
     BExpressionMetaData metaReport = new BExpressionMetaData();
     expctxReport = new BExpressionContextWay(metaReport);
@@ -45,7 +43,7 @@ public class RelationMerger extends MapCreatorBase implements WayListener {
     // *** read the relation file into sets for each processed tag
     routesets = new HashMap<>();
     routesetall = new CompactLongSet();
-    DataInputStream dis = createInStream(relationFileIn);
+    DataInputStream dis = createInStream(new File( tmpDir, "relations.dat"));
     try {
       for (; ; ) {
         long rid = readId(dis);
@@ -86,18 +84,6 @@ public class RelationMerger extends MapCreatorBase implements WayListener {
     }
   }
 
-  public void process(File wayFileIn, File wayFileOut, File relationFileIn, File lookupFile, File reportProfile, File checkProfile) throws Exception {
-    init(relationFileIn, lookupFile, reportProfile, checkProfile);
-
-    // *** finally process the way-file
-    wayOutStream = createOutStream(wayFileOut);
-    new WayIterator(this).processFile(wayFileIn);
-    wayOutStream.close();
-
-//    System.out.println( "-------- route-statistics -------- " );
-//    expctxStat.dumpStatistics();
-  }
-
   @Override
   public void nextWay(WayData data) throws Exception {
     // propagate the route-bits
@@ -126,9 +112,6 @@ public class RelationMerger extends MapCreatorBase implements WayListener {
         }
         data.description = expctxReport.encode();
       }
-    }
-    if (wayOutStream != null) {
-      data.writeTo(wayOutStream);
     }
   }
 

@@ -39,6 +39,12 @@ public final class OsmFile {
     this.ioBuffer = ioBuffer;
   }
 
+  public static String getBaseName( int lon, int lat ) {
+    String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
+    String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
+    return slon + "_" + slat;
+  }
+
   /**
    * Opens the file for reading, parses the header and the tile index
    */

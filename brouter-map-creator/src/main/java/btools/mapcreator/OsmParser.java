@@ -19,7 +19,6 @@ import btools.util.LongList;
  * @author ab
  */
 public class OsmParser extends MapCreatorBase {
-  private BufferedReader _br;
 
   private NodeListener nListener;
   private WayListener wListener;

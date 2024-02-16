@@ -1,31 +1,39 @@
-package btools.mapcreator;
-
-import java.io.File;
-
 /**
- * NodeCutter does 1 step in map-processing:
- * <p>
- * - cuts the 45*30 node tiles into 5*5 pieces
+ * This program
+ * - reads an *.osm from stdin
+ * - writes 45*30 degree node tiles + a way file + a rel file
  *
  * @author ab
  */
-public class NodeCutter extends MapCreatorBase implements NodeListener {
-  private int lonOffset;
-  private int latOffset;
+package btools.mapcreator;
 
-  public void init(File nodeTilesOut) {
-    this.outTileDir = nodeTilesOut;
+import btools.util.DenseLongMap;
+import btools.util.TinyDenseLongMap;
+
+import java.io.*;
+
+public class NodeCutter extends ItemCutter implements NodeListener {
+  private final DenseLongMap tileIndexMap;
+
+  public NodeCutter(File tmpDir ) {
+    super( new File( tmpDir, "nodes" ) );
+
+    // *** read all nodes into tileIndexMap
+    tileIndexMap = Boolean.getBoolean("useDenseMaps") ? new DenseLongMap() : new TinyDenseLongMap();
   }
 
-  @Override
-  public void nodeFileStart(File nodefile) {
-    lonOffset = -1;
-    latOffset = -1;
+  public int getTileIndexForNid(long nid) {
+    return tileIndexMap.getInt(nid);
   }
 
   @Override
   public void nextNode(NodeData n) throws Exception {
-    n.writeTo(getOutStreamForTile(getTileIndex(n.iLon, n.iLat)));
+    // write node to file
+    int tileIndex = getTileIndex(n.iLon, n.iLat);
+    if (tileIndex >= 0) {
+      n.writeTo(getOutStreamForTile(tileIndex));
+      tileIndexMap.put(n.nid, tileIndex);
+    }
   }
 
   @Override
@@ -34,27 +42,16 @@ public class NodeCutter extends MapCreatorBase implements NodeListener {
   }
 
   private int getTileIndex(int ilon, int ilat) {
-    int lonoff = (ilon / 45000000) * 45;
-    int latoff = (ilat / 30000000) * 30;
-    if (lonOffset == -1) lonOffset = lonoff;
-    if (latOffset == -1) latOffset = latoff;
-    if (lonoff != lonOffset || latoff != latOffset)
-      throw new IllegalArgumentException("inconsistent node: " + ilon + " " + ilat);
-
-    int lon = (ilon / 5000000) % 9;
-    int lat = (ilat / 5000000) % 6;
-    if (lon < 0 || lon > 8 || lat < 0 || lat > 5)
-      throw new IllegalArgumentException("illegal pos: " + ilon + "," + ilat);
+    int lon = ilon / 45000000;
+    int lat = ilat / 30000000;
+    if (lon < 0 || lon > 7 || lat < 0 || lat > 5) {
+      System.out.println("warning: ignoring illegal pos: " + ilon + "," + ilat);
+      return -1;
+    }
     return lon * 6 + lat;
   }
 
-
   protected String getNameForTile(int tileIndex) {
-    int lon = (tileIndex / 6) * 5 + lonOffset - 180;
-    int lat = (tileIndex % 6) * 5 + latOffset - 90;
-    String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
-    String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
-    return slon + "_" + slat + ".n5d";
+    return getBaseNameForTile(tileIndex) +  ".ntl";
   }
-
 }

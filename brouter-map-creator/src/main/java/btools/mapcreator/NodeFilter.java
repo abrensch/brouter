@@ -14,7 +14,7 @@ public class NodeFilter implements WayListener {
 
   protected DenseLongMap nodeBitmap;
 
-  public void init() {
+  public NodeFilter() {
     nodeBitmap = Boolean.getBoolean("useDenseMaps") ? new DenseLongMap(512) : new TinyDenseLongMap();
   }
 

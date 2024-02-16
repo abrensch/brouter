@@ -200,9 +200,7 @@ public final class NodesCache {
     int iLatBase = (iLat / 5000000)*5000000;
     int lonBase5 = iLonBase / 1000000 - 180;
     int latBase5 = iLatBase / 1000000 -  90;
-    String slon = lonBase5 < 0 ? "W" + (-lonBase5) : "E" + lonBase5;
-    String slat = latBase5 < 0 ? "S" + (-latBase5) : "N" + latBase5;
-    String filenameBase = slon + "_" + slat;
+    String filenameBase = OsmFile.getBaseName(lonBase5, latBase5);
 
     currentFileName = filenameBase + ".rd5";
     if (fileCache.containsKey(filenameBase)) {

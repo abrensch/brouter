@@ -27,6 +27,7 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
   private DataOutputStream relationsDos;
 
   public WayCutter wayCutter;
+  public NodeCutter nodeCutter;
   public RestrictionCutter restrictionCutter;
   public NodeFilter nodeFilter;
 
@@ -35,7 +36,44 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
   private BExpressionContextWay expCtxWay;
   private BExpressionContextNode expCtxNode;
 
-  public void process(File lookupFile, File nodeTileDir, File relFile, File profileFile, File mapFile) throws Exception {
+  public static void main(String[] args) throws Exception {
+    System.out.println("*** OsmCutter: cut an osm map in node-tiles + way-tiles");
+    if (args.length != 6 && args.length != 7) {
+      String common = "java OsmCutter <lookup-file> <tmp-dir> <filter-profile> <report-profile> <check-profile> <map-file> [db-tag-filename]";
+      System.out.println("usage: " + common);
+      return;
+    }
+
+    doCut(
+      new File(args[0])
+      , new File(args[1])
+      , new File(args[2])
+      , new File(args[3])
+      , new File(args[4])
+      , new File(args[5])
+      , args.length > 6 ? args[6] : null
+    );
+  }
+
+  public static void doCut(File lookupFile, File tmpDir, File profileAll, File profileReport, File profileCheck, File mapFile, String dbTagFilename) throws Exception {
+
+    // first step: parse and cut to 45*30 degree tiles
+    NodeFilter nodeFilter = new OsmCutter().process(lookupFile, tmpDir, profileAll, mapFile, dbTagFilename);
+
+    // second step: cut to 5*5 degree tiles
+    new WayCutter5(tmpDir).process(nodeFilter, lookupFile, profileReport, profileCheck);
+  }
+
+  public NodeFilter process(File lookupFile, File tmpDir, File profileFile, File mapFile, String dbTagFilename ) throws Exception {
+
+    if (dbTagFilename != null) {
+      setDbTagFilename(dbTagFilename);
+    }
+    nodeCutter = new NodeCutter(tmpDir);
+    wayCutter = new WayCutter(tmpDir,nodeCutter);
+    restrictionCutter = new RestrictionCutter(tmpDir,nodeCutter);
+    nodeFilter = new NodeFilter();
+
     if (!lookupFile.exists()) {
       throw new IllegalArgumentException("lookup-file: " + lookupFile + " does not exist");
     }
@@ -46,12 +84,7 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
     expCtxNode = new BExpressionContextNode(meta);
     meta.readMetaData(lookupFile);
     expCtxWay.parseFile(profileFile, "global");
-
-    this.outTileDir = nodeTileDir;
-    if (!nodeTileDir.isDirectory())
-      throw new RuntimeException("out tile directory " + nodeTileDir + " does not exist");
-
-    relationsDos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(relFile)));
+    relationsDos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(new File( tmpDir, "relations.dat" ))));
 
     // read the osm map into memory
     long t0 = System.currentTimeMillis();
@@ -61,8 +94,10 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
     System.out.println("parsing time (ms) =" + (t1 - t0));
 
     // close all files
-    closeTileOutStreams();
+    nodeCutter.nodeFileEnd(null);
     relationsDos.close();
+    wayCutter.finish();
+    restrictionCutter.finish();
 
 //    System.out.println( "-------- way-statistics -------- " );
 //    _expctxWayStat.dumpStatistics();
@@ -70,6 +105,8 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
 //    _expctxNodeStat.dumpStatistics();
 
     System.out.println(statsLine());
+
+    return nodeFilter;
   }
 
   private void checkStats() {
@@ -98,13 +135,7 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
       n.description = expCtxNode.encode(lookupData);
     }
     // write node to file
-    int tileIndex = getTileIndex(n.iLon, n.iLat);
-    if (tileIndex >= 0) {
-      n.writeTo(getOutStreamForTile(tileIndex));
-      if (wayCutter != null) {
-        wayCutter.nextNode(n);
-      }
-    }
+    nodeCutter.nextNode(n);
   }
 
   private void generatePseudoTags(Map<String, String> map) {
@@ -227,23 +258,5 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
 
   private static short toBit(String tag, int bitpos, String s) {
     return (short) (s.indexOf(tag) < 0 ? 0 : 1 << bitpos);
-  }
-
-  private int getTileIndex(int ilon, int ilat) {
-    int lon = ilon / 45000000;
-    int lat = ilat / 30000000;
-    if (lon < 0 || lon > 7 || lat < 0 || lat > 5) {
-      System.out.println("warning: ignoring illegal pos: " + ilon + "," + ilat);
-      return -1;
-    }
-    return lon * 6 + lat;
-  }
-
-  protected String getNameForTile(int tileIndex) {
-    int lon = (tileIndex / 6) * 45 - 180;
-    int lat = (tileIndex % 6) * 30 - 90;
-    String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
-    String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
-    return slon + "_" + slat + ".ntl";
   }
 }

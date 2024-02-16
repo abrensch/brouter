@@ -13,14 +13,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 import btools.util.DiffCoderDataOutputStream;
 
 public abstract class MapCreatorBase {
-  private DiffCoderDataOutputStream[] tileOutStreams;
-  protected File outTileDir;
 
   protected Map<String, String> tags;
 
@@ -44,7 +41,7 @@ public abstract class MapCreatorBase {
     return i | offset;
   }
 
-  protected static void writeId(DataOutputStream o, long id) throws IOException {
+  public static void writeId(DataOutputStream o, long id) throws IOException {
     if (id == -1) {
       o.writeByte(32);
       return;
@@ -90,28 +87,4 @@ public abstract class MapCreatorBase {
     return new DiffCoderDataOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
   }
 
-  protected DiffCoderDataOutputStream getOutStreamForTile(int tileIndex) throws Exception {
-    if (tileOutStreams == null) {
-      tileOutStreams = new DiffCoderDataOutputStream[64];
-    }
-
-    if (tileOutStreams[tileIndex] == null) {
-      tileOutStreams[tileIndex] = createOutStream(new File(outTileDir, getNameForTile(tileIndex)));
-    }
-    return tileOutStreams[tileIndex];
-  }
-
-  protected String getNameForTile(int tileIndex) {
-    throw new IllegalArgumentException("getNameForTile not implemented");
-  }
-
-  protected void closeTileOutStreams() throws Exception {
-    if (tileOutStreams == null) {
-      return;
-    }
-    for (int tileIndex = 0; tileIndex < tileOutStreams.length; tileIndex++) {
-      if (tileOutStreams[tileIndex] != null) tileOutStreams[tileIndex].close();
-      tileOutStreams[tileIndex] = null;
-    }
-  }
 }

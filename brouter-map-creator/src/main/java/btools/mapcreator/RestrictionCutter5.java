@@ -9,13 +9,12 @@ import java.io.File;
  *
  * @author ab
  */
-public class RestrictionCutter5 extends MapCreatorBase {
-  private WayCutter5 wayCutter5;
+public class RestrictionCutter5 extends ItemCutter {
+  private NodeCutter5 nodeCutter5;
 
-  public void init(File outTileDir, WayCutter5 wayCutter5) throws Exception {
-    outTileDir.mkdir();
-    this.outTileDir = outTileDir;
-    this.wayCutter5 = wayCutter5;
+  public RestrictionCutter5(File tmpDir, NodeCutter5 nodeCutter5) {
+    super( new File( tmpDir, "restrictions55" ) );
+    this.nodeCutter5 = nodeCutter5;
   }
 
   public void finish() throws Exception {
@@ -24,14 +23,14 @@ public class RestrictionCutter5 extends MapCreatorBase {
 
 
   public void nextRestriction(RestrictionData data) throws Exception {
-    int tileIndex = wayCutter5.getTileIndexForNid(data.viaNid);
+    int tileIndex = nodeCutter5.getTileIndexForNid(data.viaNid);
     if (tileIndex != -1) {
+      System.out.println( "tileIndex=" + tileIndex);
       data.writeTo(getOutStreamForTile(tileIndex));
     }
   }
 
   protected String getNameForTile(int tileIndex) {
-    String name = wayCutter5.getNameForTile(tileIndex);
-    return name.substring(0, name.length() - 3) + "rt5";
+    return getBaseNameForTile55(tileIndex) + ".rt5";
   }
 }

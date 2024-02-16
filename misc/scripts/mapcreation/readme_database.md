@@ -34,7 +34,7 @@ Import new tags for noise, green and water feature
 
   - when using database and new tagging an other lookups.dat is needed, use lookups_db.dat and rename
 
-  - script needs a jdbc in the classpath (on UNIX and Linux use a colon `:` as delimiter) 
+  - script needs a jdbc in the classpath (on UNIX and Linux use a colon `:` as delimiter)
 
     `... -cp ../postgresql-42.6.0.jar;../brouter_fc.jar ...`
 
@@ -46,6 +46,6 @@ Import new tags for noise, green and water feature
 
     call it with OsmFastCutter as last parameter (behind pbf file)
 
-    `... btools.mapcreator.OsmFastCutter ... ../planet-new.osm.pbf $(JDBC)`
+    `... btools.mapcreator.OsmCutter ... ../planet-new.osm.pbf $(JDBC)`
 
 
