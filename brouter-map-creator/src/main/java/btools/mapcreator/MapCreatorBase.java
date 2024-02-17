@@ -7,15 +7,15 @@ package btools.mapcreator;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
-import btools.util.DiffCoderDataOutputStream;
+import btools.statcoding.BitInputStream;
+import btools.statcoding.BitOutputStream;
+import btools.util.SortedHeap;
 
 public abstract class MapCreatorBase {
 
@@ -33,44 +33,15 @@ public abstract class MapCreatorBase {
     this.tags = tags;
   }
 
-  protected static long readId(DataInputStream is) throws IOException {
-    int offset = is.readByte();
-    if (offset == 32) return -1;
-    long i = is.readInt();
-    i = i << 5;
-    return i | offset;
-  }
 
-  public static void writeId(DataOutputStream o, long id) throws IOException {
-    if (id == -1) {
-      o.writeByte(32);
-      return;
+  protected static void sortBySizeAsc(File[] files) {
+    SortedHeap<File> heap = new SortedHeap<>();
+    for( File file : files ) {
+      heap.add( file.length(), file );
     }
-    int offset = (int) (id & 0x1f);
-    int i = (int) (id >> 5);
-    o.writeByte(offset);
-    o.writeInt(i);
-  }
-
-
-  protected static File[] sortBySizeAsc(File[] files) {
-    int n = files == null ? 0 : files.length;
-    long[] sizes = new long[n];
-    File[] sorted = new File[n];
-    for (int i = 0; i < n; i++) sizes[i] = files[i].length();
-    for (int nf = 0; nf < n; nf++) {
-      int idx = -1;
-      long min = -1;
-      for (int i = 0; i < n; i++) {
-        if (sizes[i] != -1 && (idx == -1 || sizes[i] < min)) {
-          min = sizes[i];
-          idx = i;
-        }
-      }
-      sizes[idx] = -1;
-      sorted[nf] = files[idx];
+    for( int i=0; i< files.length; i++ ) {
+      files[i] = heap.popLowestKeyValue();
     }
-    return sorted;
   }
 
   protected File fileFromTemplate(File template, File dir, String suffix) {
@@ -79,12 +50,12 @@ public abstract class MapCreatorBase {
     return new File(dir, filename);
   }
 
-  protected DataInputStream createInStream(File inFile) throws IOException {
-    return new DataInputStream(new BufferedInputStream(new FileInputStream(inFile)));
+  protected BitInputStream createInStream(File inFile) throws IOException {
+    return new BitInputStream(new BufferedInputStream(new FileInputStream(inFile)));
   }
 
-  protected DiffCoderDataOutputStream createOutStream(File outFile) throws IOException {
-    return new DiffCoderDataOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
+  protected BitOutputStream createOutStream(File outFile) throws IOException {
+    return new BitOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
   }
 
 }

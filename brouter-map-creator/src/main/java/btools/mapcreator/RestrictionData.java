@@ -1,8 +1,6 @@
 package btools.mapcreator;
 
 import java.io.BufferedWriter;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
@@ -11,6 +9,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import btools.mapaccess.TurnRestriction;
+import btools.statcoding.BitInputStream;
+import btools.statcoding.BitOutputStream;
 import btools.util.CheapAngleMeter;
 
 /**
@@ -111,21 +111,21 @@ public class RestrictionData extends TurnRestriction {
     }
   }
 
-  public RestrictionData(DataInputStream di) throws Exception {
-    restrictionKey = unifyName(di.readUTF());
-    restriction = unifyName(di.readUTF());
-    exceptions = di.readShort();
-    fromWid = di.readLong();
-    toWid = di.readLong();
-    viaNid = di.readLong();
+  public RestrictionData(BitInputStream bis) throws Exception {
+    restrictionKey = unifyName(bis.readUTF());
+    restriction = unifyName(bis.readUTF());
+    exceptions = bis.readShort();
+    fromWid = bis.readLong();
+    toWid = bis.readLong();
+    viaNid = bis.readLong();
   }
 
-  public void writeTo(DataOutputStream dos) throws Exception {
-    dos.writeUTF(restrictionKey);
-    dos.writeUTF(restriction);
-    dos.writeShort(exceptions);
-    dos.writeLong(fromWid);
-    dos.writeLong(toWid);
-    dos.writeLong(viaNid);
+  public void writeTo(BitOutputStream bos) throws Exception {
+    bos.writeUTF(restrictionKey);
+    bos.writeUTF(restriction);
+    bos.writeShort(exceptions);
+    bos.writeLong(fromWid);
+    bos.writeLong(toWid);
+    bos.writeLong(viaNid);
   }
 }

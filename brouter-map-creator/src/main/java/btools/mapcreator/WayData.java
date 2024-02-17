@@ -1,8 +1,7 @@
 package btools.mapcreator;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-
+import btools.statcoding.BitInputStream;
+import btools.statcoding.BitOutputStream;
 import btools.util.LongList;
 
 /**
@@ -25,27 +24,24 @@ public class WayData extends MapCreatorBase {
     this.nodes = nodes;
   }
 
-  public WayData(DataInputStream di) throws Exception {
+  public WayData(BitInputStream bis) throws Exception {
     nodes = new LongList(16);
-    wid = readId(di);
-    int dlen = di.readByte();
-    description = new byte[dlen];
-    di.readFully(description);
+    wid = bis.decodeVarBytes();
+    description = bis.decodeSizedByteArray();
     for (; ; ) {
-      long nid = readId(di);
-      if (nid == -1) break;
+      long nid = bis.decodeVarBytes();
+      if (nid == -1L) break;
       nodes.add(nid);
     }
   }
 
-  public void writeTo(DataOutputStream dos) throws Exception {
-    writeId(dos, wid);
-    dos.writeByte(description.length);
-    dos.write(description);
+  public void writeTo(BitOutputStream bos) throws Exception {
+    bos.encodeVarBytes(wid);
+    bos.encodeSizedByteArray(description);
     int size = nodes.size();
     for (int i = 0; i < size; i++) {
-      writeId(dos, nodes.get(i));
+      bos.encodeVarBytes(nodes.get(i));
     }
-    writeId(dos, -1); // stopbyte
+    bos.encodeVarBytes(-1L); // stopbyte
   }
 }

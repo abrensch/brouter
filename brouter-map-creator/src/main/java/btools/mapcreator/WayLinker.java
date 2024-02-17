@@ -9,6 +9,7 @@ import java.util.Set;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.*;
+import btools.statcoding.BitInputStream;
 import btools.util.*;
 
 /**
@@ -210,11 +211,11 @@ public class WayLinker extends MapCreatorBase implements NodeListener, WayListen
       File restrictionFile = fileFromTemplate(wayfile, new File(nodeTilesIn.getParentFile(), "restrictions55"), "rt5");
       // read restrictions for nodes in nodesMap
       if (restrictionFile.exists()) {
-        DataInputStream di = new DataInputStream(new BufferedInputStream(new FileInputStream(restrictionFile)));
+        BitInputStream bis = new BitInputStream(new BufferedInputStream(new FileInputStream(restrictionFile)));
         int ntr = 0;
         try {
           for (; ; ) {
-            RestrictionData res = new RestrictionData(di);
+            RestrictionData res = new RestrictionData(bis);
             OsmNode n = nodesMap.get(res.viaNid);
             if (n != null) {
               res.viaLon = n.iLon;
@@ -224,7 +225,7 @@ public class WayLinker extends MapCreatorBase implements NodeListener, WayListen
             }
           }
         } catch (EOFException eof) {
-          di.close();
+          bis.close();
         }
         System.out.println("read " + ntr + " turn-restrictions");
       }

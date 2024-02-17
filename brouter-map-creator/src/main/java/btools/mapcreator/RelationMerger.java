@@ -1,7 +1,5 @@
 package btools.mapcreator;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.util.HashMap;
@@ -9,6 +7,7 @@ import java.util.Map;
 
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
+import btools.statcoding.BitInputStream;
 import btools.util.CompactLongSet;
 import btools.util.FrozenLongSet;
 
@@ -43,13 +42,12 @@ public class RelationMerger extends MapCreatorBase implements WayListener {
     // *** read the relation file into sets for each processed tag
     routesets = new HashMap<>();
     routesetall = new CompactLongSet();
-    DataInputStream dis = createInStream(new File( tmpDir, "relations.dat"));
-    try {
-      for (; ; ) {
-        long rid = readId(dis);
-        String route = dis.readUTF();
-        String network = dis.readUTF();
-        String state = dis.readUTF();
+    try ( BitInputStream bis = createInStream(new File( tmpDir, "relations.dat") ) ) {
+      while (bis.decodeVarBytes() == 1L) {
+        long rid = bis.decodeVarBytes();
+        String route = bis.readUTF();
+        String network = bis.readUTF();
+        String state = bis.readUTF();
         int value = "proposed".equals(state) ? 3 : 2; // 2=yes, 3=proposed
 
         String tagname = "route_" + route + "_" + network;
@@ -65,8 +63,8 @@ public class RelationMerger extends MapCreatorBase implements WayListener {
         }
 
         for (; ; ) {
-          long wid = readId(dis);
-          if (wid == -1) break;
+          long wid = bis.decodeVarBytes();
+          if (wid == -1L) break;
           // expctxStat.addLookupValue( tagname, "yes", null );
           if (routeset != null && !routeset.contains(wid)) {
             routeset.add(wid);
@@ -74,8 +72,6 @@ public class RelationMerger extends MapCreatorBase implements WayListener {
           }
         }
       }
-    } catch (EOFException eof) {
-      dis.close();
     }
     for (String key : routesets.keySet()) {
       CompactLongSet routeset = new FrozenLongSet(routesets.get(key));

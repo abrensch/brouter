@@ -1,5 +1,7 @@
 package btools.util;
 
+import java.util.Arrays;
+
 /**
  * dynamic list of primitive longs
  *
@@ -10,14 +12,12 @@ public class LongList {
   private int size;
 
   public LongList(int capacity) {
-    a = capacity < 4 ? new long[4] : new long[capacity];
+    a = new long[Math.max(4,capacity)];
   }
 
   public void add(long value) {
     if (size == a.length) {
-      long[] aa = new long[2 * size];
-      System.arraycopy(a, 0, aa, 0, size);
-      a = aa;
+      a = Arrays.copyOf( a, 2 * size );
     }
     a[size++] = value;
   }

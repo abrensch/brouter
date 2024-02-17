@@ -8,7 +8,6 @@
 package btools.mapcreator;
 
 import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -17,6 +16,9 @@ import java.util.Map;
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
+import btools.statcoding.BitOutputStream;
+import btools.util.DenseLongMap;
+import btools.util.TinyDenseLongMap;
 
 public class OsmCutter extends MapCreatorBase implements NodeListener, WayListener, RelationListener {
   private long recordCnt;
@@ -24,12 +26,12 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
   private long waysParsed;
   private long relationsParsed;
 
-  private DataOutputStream relationsDos;
+  private BitOutputStream relationsBos;
 
   public WayCutter wayCutter;
   public NodeCutter nodeCutter;
   public RestrictionCutter restrictionCutter;
-  public NodeFilter nodeFilter;
+  public DenseLongMap nodeFilter;
 
   private DatabasePseudoTagProvider dbPseudoTagProvider;
 
@@ -58,13 +60,13 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
   public static void doCut(File lookupFile, File tmpDir, File profileAll, File profileReport, File profileCheck, File mapFile, String dbTagFilename) throws Exception {
 
     // first step: parse and cut to 45*30 degree tiles
-    NodeFilter nodeFilter = new OsmCutter().process(lookupFile, tmpDir, profileAll, mapFile, dbTagFilename);
+    DenseLongMap nodeFilter = new OsmCutter().process(lookupFile, tmpDir, profileAll, mapFile, dbTagFilename);
 
     // second step: cut to 5*5 degree tiles
     new WayCutter5(tmpDir).process(nodeFilter, lookupFile, profileReport, profileCheck);
   }
 
-  public NodeFilter process(File lookupFile, File tmpDir, File profileFile, File mapFile, String dbTagFilename ) throws Exception {
+  public DenseLongMap process(File lookupFile, File tmpDir, File profileFile, File mapFile, String dbTagFilename ) throws Exception {
 
     if (dbTagFilename != null) {
       setDbTagFilename(dbTagFilename);
@@ -72,7 +74,7 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
     nodeCutter = new NodeCutter(tmpDir);
     wayCutter = new WayCutter(tmpDir,nodeCutter);
     restrictionCutter = new RestrictionCutter(tmpDir,nodeCutter);
-    nodeFilter = new NodeFilter();
+    nodeFilter = Boolean.getBoolean("useDenseMaps") ? new DenseLongMap(512) : new TinyDenseLongMap();
 
     if (!lookupFile.exists()) {
       throw new IllegalArgumentException("lookup-file: " + lookupFile + " does not exist");
@@ -84,20 +86,17 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
     expCtxNode = new BExpressionContextNode(meta);
     meta.readMetaData(lookupFile);
     expCtxWay.parseFile(profileFile, "global");
-    relationsDos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(new File( tmpDir, "relations.dat" ))));
+    relationsBos = new BitOutputStream(new BufferedOutputStream(new FileOutputStream(new File( tmpDir, "relations.dat" ))));
 
-    // read the osm map into memory
-    long t0 = System.currentTimeMillis();
+    // parse the osm map to create intermediate files for nodes, ways, relationa and restrictions
     new OsmParser().readMap(mapFile, this, this, this);
-    long t1 = System.currentTimeMillis();
-
-    System.out.println("parsing time (ms) =" + (t1 - t0));
 
     // close all files
-    nodeCutter.nodeFileEnd(null);
-    relationsDos.close();
-    wayCutter.finish();
-    restrictionCutter.finish();
+    nodeCutter.closeTileOutStreams();
+    relationsBos.encodeVarBytes(0L);
+    relationsBos.close();
+    wayCutter.closeTileOutStreams();
+    restrictionCutter.closeTileOutStreams();
 
 //    System.out.println( "-------- way-statistics -------- " );
 //    _expctxWayStat.dumpStatistics();
@@ -192,7 +191,11 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
     if (!ok) return;
 
     wayCutter.nextWay(w);
-    nodeFilter.nextWay(w);
+
+    int nNodes = w.nodes.size();
+    for (int i = 0; i < nNodes; i++) {
+      nodeFilter.put(w.nodes.get(i), 0);
+    }
   }
 
   @Override
@@ -210,15 +213,16 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
     if (network == null) network = "";
     String state = r.getTag("state");
     if (state == null) state = "";
-    writeId(relationsDos, r.rid);
-    relationsDos.writeUTF(route);
-    relationsDos.writeUTF(network);
-    relationsDos.writeUTF(state);
+    relationsBos.encodeVarBytes(1L);
+    relationsBos.encodeVarBytes(r.rid);
+    relationsBos.writeUTF(route);
+    relationsBos.writeUTF(network);
+    relationsBos.writeUTF(state);
     for (int i = 0; i < r.ways.size(); i++) {
       long wid = r.ways.get(i);
-      writeId(relationsDos, wid);
+      relationsBos.encodeVarBytes(wid);
     }
-    writeId(relationsDos, -1);
+    relationsBos.encodeVarBytes(-1L);
   }
 
   @Override

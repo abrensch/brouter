@@ -18,10 +18,6 @@ public class RestrictionCutter extends ItemCutter {
     this.nodeCutter = nodeCutter;
   }
 
-  public void finish() throws Exception {
-    closeTileOutStreams();
-  }
-
   public void nextRestriction(RestrictionData data) throws Exception {
     int tileIndex = nodeCutter.getTileIndexForNid(data.viaNid);
     if (tileIndex != -1) {

@@ -19,10 +19,6 @@ public class WayCutter extends ItemCutter implements WayListener {
     this.nodeCutter = nodeCutter;
   }
 
-  public void finish() throws Exception {
-    closeTileOutStreams();
-  }
-
   @Override
   public void nextWay(WayData data) throws Exception {
     long waytileset = 0;

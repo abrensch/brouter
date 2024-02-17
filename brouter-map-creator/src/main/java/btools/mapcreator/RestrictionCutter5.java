@@ -17,11 +17,6 @@ public class RestrictionCutter5 extends ItemCutter {
     this.nodeCutter5 = nodeCutter5;
   }
 
-  public void finish() throws Exception {
-    closeTileOutStreams();
-  }
-
-
   public void nextRestriction(RestrictionData data) throws Exception {
     int tileIndex = nodeCutter5.getTileIndexForNid(data.viaNid);
     if (tileIndex != -1) {
@@ -31,6 +26,6 @@ public class RestrictionCutter5 extends ItemCutter {
   }
 
   protected String getNameForTile(int tileIndex) {
-    return getBaseNameForTile55(tileIndex) + ".rt5";
+    return nodeCutter5.getBaseNameForTile55(tileIndex) + ".rt5";
   }
 }

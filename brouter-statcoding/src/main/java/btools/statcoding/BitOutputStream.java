@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -26,6 +27,8 @@ public class BitOutputStream extends OutputStream implements DataOutput {
 
     protected final OutputStream out;
     private DataOutputStream dos; // created lazily if needed
+    private long[] lastChannelValues; // used for writeDiffed, created lazily
+
 
     /**
      * Construct a BitOutputStream for the underlying OutputStream.
@@ -257,6 +260,27 @@ public class BitOutputStream extends OutputStream implements DataOutput {
             writeLowByte(v7 | 0x80L);
         }
     }
+
+  /**
+   * Encode a number by encoding the difference
+   * to the last number for that channel via
+   * encodeVarBytes
+   *
+   * @param value the long value to encode
+   * @param channel the channel number to use
+   *
+   * @see BitInputStream#readDiffed
+   */
+  public void writeDiffed(long value, int channel) throws IOException {
+      if ( lastChannelValues == null ) {
+          lastChannelValues = new long[channel+1];
+      } else if ( channel >= lastChannelValues.length ) {
+          lastChannelValues = Arrays.copyOf( lastChannelValues, channel+1 );
+      }
+      long diff = value - lastChannelValues[channel];
+      lastChannelValues[channel] = value;
+      encodeVarBytes(diff);
+  }
 
     // re-arrange the bits of a signed long to make it better suited for var-length
     // coding

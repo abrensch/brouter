@@ -7,7 +7,7 @@ package btools.util;
  */
 public final class SortedHeap<V> {
   private int size;
-  private int peaksize;
+  private int peakSize;
   private SortedBin first;
   private SortedBin second;
   private SortedBin firstNonEmpty;
@@ -20,7 +20,6 @@ public final class SortedHeap<V> {
    * @return the lowest key value, or null if none
    */
   public V popLowestKeyValue() {
-    SortedBin bin = firstNonEmpty;
     if (firstNonEmpty == null) {
       return null;
     }
@@ -33,30 +32,30 @@ public final class SortedHeap<V> {
     SortedHeap parent;
     SortedBin next;
     SortedBin nextNonEmpty;
-    int binsize;
-    int[] al; // key array
+    int binSize;
+    long[] al; // key array
     Object[] vla; // value array
-    int lv; // low value
+    long lv; // low value
     int lp; // low pointer
 
-    SortedBin(int binsize, SortedHeap parent) {
-      this.binsize = binsize;
+    SortedBin(int binSize, SortedHeap parent) {
+      this.binSize = binSize;
       this.parent = parent;
-      al = new int[binsize];
-      vla = new Object[binsize];
-      lp = binsize;
+      al = new long[binSize];
+      vla = new Object[binSize];
+      lp = binSize;
     }
 
     SortedBin next() {
       if (next == null) {
-        next = new SortedBin(binsize << 1, parent);
+        next = new SortedBin(binSize << 1, parent);
       }
       return next;
     }
 
     Object dropLowest() {
       int lpOld = lp;
-      if (++lp == binsize) {
+      if (++lp == binSize) {
         unlink();
       } else {
         lv = al[lp];
@@ -82,10 +81,10 @@ public final class SortedHeap<V> {
       }
     }
 
-    void add(int key, Object value) {
+    void add(long key, Object value) {
       int p = lp;
       for (; ; ) {
-        if (p == binsize || key < al[p]) {
+        if (p == binSize || key < al[p]) {
           al[p - 1] = key;
           vla[p - 1] = value;
           lv = al[--lp];
@@ -98,7 +97,7 @@ public final class SortedHeap<V> {
     }
 
     // unrolled version of above for binsize = 4
-    void add4(int key, Object value) {
+    void add4(long key, Object value) {
       int p = lp--;
       if (p == 4 || key < al[p]) {
         lv = al[p - 1] = key;
@@ -206,7 +205,7 @@ public final class SortedHeap<V> {
    * @param key   the key to insert
    * @param value the value to insert object
    */
-  public void add(int key, V value) {
+  public void add(long key, V value) {
     size++;
 
     if (first.lp == 0 && second.lp == 0) { // both full ?
@@ -230,8 +229,8 @@ public final class SortedHeap<V> {
   }
 
   private void sortUp() {
-    if (size > peaksize) {
-      peaksize = size;
+    if (size > peakSize) {
+      peakSize = size;
     }
 
     // determine the first array big enough to take them all
@@ -240,17 +239,17 @@ public final class SortedHeap<V> {
     SortedBin lastNonEmpty = second;
     do {
       tbin = tbin.next();
-      int nentries = tbin.binsize - tbin.lp;
+      int nentries = tbin.binSize - tbin.lp;
       if (nentries > 0) {
         cnt += nentries;
         lastNonEmpty = tbin;
       }
     }
-    while (cnt > tbin.binsize);
+    while (cnt > tbin.binSize);
 
-    int[] al_t = tbin.al;
+    long[] al_t = tbin.al;
     Object[] vla_t = tbin.vla;
-    int tp = tbin.binsize - cnt; // target pointer
+    int tp = tbin.binSize - cnt; // target pointer
 
     // unlink any higher, non-empty arrays
     SortedBin otherNonEmpty = lastNonEmpty.nextNonEmpty;
@@ -264,7 +263,7 @@ public final class SortedHeap<V> {
       vla_t[tp++] = minBin.dropLowest();
     }
 
-    tp = tbin.binsize - cnt;
+    tp = tbin.binSize - cnt;
     tbin.lp = tp; // new target low pointer
     tbin.lv = tbin.al[tp];
     tbin.nextNonEmpty = otherNonEmpty;
@@ -283,7 +282,7 @@ public final class SortedHeap<V> {
   }
 
   public int getPeakSize() {
-    return peaksize;
+    return peakSize;
   }
 
   public int getExtract(Object[] targetArray) {
@@ -296,7 +295,7 @@ public final class SortedHeap<V> {
     while (bin != null) {
       lpi += bin.lp;
       Object[] vlai = bin.vla;
-      int n = bin.binsize;
+      int n = bin.binSize;
       while (lpi < n) {
         targetArray[tp++] = vlai[lpi];
         lpi += div;

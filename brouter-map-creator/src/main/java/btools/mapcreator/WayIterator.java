@@ -1,7 +1,8 @@
 package btools.mapcreator;
 
+import btools.statcoding.BitInputStream;
+
 import java.io.BufferedInputStream;
-import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,11 +31,14 @@ public class WayIterator extends MapCreatorBase {
       throw new IllegalArgumentException("not a directory: " + inDir);
     }
 
-    File[] af = sortBySizeAsc(inDir.listFiles());
-    for (int i = 0; i < af.length; i++) {
-      File wayfile = descendingSize ? af[af.length - 1 - i] : af[i];
-      if (wayfile.getName().endsWith(inSuffix)) {
-        processFile(wayfile);
+    File[] af = inDir.listFiles();
+    if ( af != null ) {
+      sortBySizeAsc(af);
+      for (int i = 0; i < af.length; i++) {
+        File wayfile = descendingSize ? af[af.length - 1 - i] : af[i];
+        if (wayfile.getName().endsWith(inSuffix)) {
+          processFile(wayfile);
+        }
       }
     }
   }
@@ -47,14 +51,18 @@ public class WayIterator extends MapCreatorBase {
       return;
     }
 
-    DataInputStream di = new DataInputStream(new BufferedInputStream(new FileInputStream(wayfile)));
-    try {
-      for (; ; ) {
-        WayData w = new WayData(di);
-        listener.nextWay(w);
+    try ( BitInputStream bis = new BitInputStream(new BufferedInputStream(new FileInputStream(wayfile))) ) {
+      for(;;) {
+        long type = bis.decodeVarBytes();
+        if ( type == 0l) {
+          break;
+        } else if ( type == 1L ) {
+          WayData w = new WayData(bis);
+          listener.nextWay(w);
+        } else {
+          throw new IllegalArgumentException( "unknown object type: " + type );
+        }
       }
-    } catch (EOFException eof) {
-      di.close();
     }
     listener.wayFileEnd(wayfile);
     if (Boolean.getBoolean("deletetmpfiles")) {

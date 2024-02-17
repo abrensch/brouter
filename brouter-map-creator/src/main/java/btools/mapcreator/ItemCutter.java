@@ -6,16 +6,17 @@
 package btools.mapcreator;
 
 import btools.mapaccess.OsmFile;
-import btools.util.DiffCoderDataOutputStream;
+import btools.statcoding.BitOutputStream;
 
 import java.io.*;
+import java.util.Arrays;
 
 public abstract class ItemCutter {
-  private DiffCoderDataOutputStream[] tileOutStreams;
+  private final BitOutputStream[] tileOutStreams = new BitOutputStream[64];
   protected final File outTileDir;
 
-  private int lonOffset;
-  private int latOffset;
+  private int lonOffset = -1;
+  private int latOffset = -1;
 
   protected ItemCutter(File outTileDir) {
     if ( outTileDir != null && !outTileDir.exists() && !outTileDir.mkdir() ) {
@@ -24,18 +25,16 @@ public abstract class ItemCutter {
     this.outTileDir = outTileDir;
   }
 
-  protected DiffCoderDataOutputStream createOutStream(File outFile) throws IOException {
-    return new DiffCoderDataOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
+  protected BitOutputStream createOutStream(File outFile) throws IOException {
+    return new BitOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
   }
 
-  protected DiffCoderDataOutputStream getOutStreamForTile(int tileIndex) throws Exception {
-    if (tileOutStreams == null) {
-      tileOutStreams = new DiffCoderDataOutputStream[64];
-    }
-
+  protected BitOutputStream getOutStreamForTile(int tileIndex) throws Exception {
     if (tileOutStreams[tileIndex] == null) {
       tileOutStreams[tileIndex] = createOutStream(new File(outTileDir, getNameForTile(tileIndex)));
     }
+    BitOutputStream bos = tileOutStreams[tileIndex];
+    bos.encodeVarBytes(1L);
     return tileOutStreams[tileIndex];
   }
 
@@ -44,18 +43,12 @@ public abstract class ItemCutter {
   }
 
   protected void closeTileOutStreams() throws Exception {
-    if (tileOutStreams == null) {
-      return;
+    for (BitOutputStream bos : tileOutStreams) {
+      if (bos != null) {
+        bos.encodeVarBytes( 0L );
+        bos.close();
+      }
     }
-    for (int tileIndex = 0; tileIndex < tileOutStreams.length; tileIndex++) {
-      if (tileOutStreams[tileIndex] != null) tileOutStreams[tileIndex].close();
-      tileOutStreams[tileIndex] = null;
-    }
-  }
-
-  public void fileStart() {
-    lonOffset = -1;
-    latOffset = -1;
   }
 
   protected int getTile55Index(int ilon, int ilat) {

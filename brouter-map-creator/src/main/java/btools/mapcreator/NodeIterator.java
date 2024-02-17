@@ -5,7 +5,7 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 
-import btools.util.DiffCoderDataInputStream;
+import btools.statcoding.BitInputStream;
 
 /**
  * Iterate over a singe nodefile or a directory
@@ -27,10 +27,13 @@ public class NodeIterator extends MapCreatorBase {
       throw new IllegalArgumentException("not a directory: " + inDir);
     }
 
-    File[] af = sortBySizeAsc(inDir.listFiles());
-    for (File nodeFile : af) {
-      if (nodeFile.getName().endsWith(inSuffix)) {
-        processFile(nodeFile);
+    File[] af = inDir.listFiles();
+    if ( af != null ) {
+      sortBySizeAsc(af);
+      for (File nodeFile : af) {
+        if (nodeFile.getName().endsWith(inSuffix)) {
+          processFile(nodeFile);
+        }
       }
     }
   }
@@ -41,14 +44,18 @@ public class NodeIterator extends MapCreatorBase {
 
     listener.nodeFileStart(nodefile);
 
-    DiffCoderDataInputStream di = new DiffCoderDataInputStream(new BufferedInputStream(new FileInputStream(nodefile)));
-    try {
-      for (; ; ) {
-        NodeData n = new NodeData(di);
-        listener.nextNode(n);
+    try ( BitInputStream bis = new BitInputStream(new BufferedInputStream(new FileInputStream(nodefile))) ){
+      for(;;) {
+        long type = bis.decodeVarBytes();
+        if ( type == 0l) {
+          break;
+        } else if ( type == 1L ) {
+          NodeData n = new NodeData(bis);
+          listener.nextNode(n);
+        } else {
+          throw new IllegalArgumentException( "unknown object type: " + type );
+        }
       }
-    } catch (EOFException eof) {
-      di.close();
     }
     listener.nodeFileEnd(nodefile);
     if (delete && Boolean.getBoolean("deletetmpfiles")) {

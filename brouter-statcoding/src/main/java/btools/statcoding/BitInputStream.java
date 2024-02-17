@@ -6,6 +6,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 /**
  * BitInputStream is a replacement for java.io.DataInputStream extending it by
@@ -26,6 +27,7 @@ public class BitInputStream extends InputStream implements DataInput {
 
     protected InputStream in;
     private DataInputStream dis; // created lazily if needed
+    private long[] lastChannelValues; // used for readDiffed, created lazily
 
     /**
      * Construct a BitInputStream for the underlying InputStream.
@@ -259,6 +261,25 @@ public class BitInputStream extends InputStream implements DataInput {
             }
         }
         return restoreSignBit(v);
+    }
+
+    /**
+     * Decoding twin to {@link BitOutputStream#writeDiffed( long, int )}
+     *
+     * @param channel the channel number to use
+     *
+     * @return the decoded long value
+     */
+    public long readDiffed(int channel) throws IOException {
+        if ( lastChannelValues == null ) {
+            lastChannelValues = new long[channel+1];
+        } else if ( channel >= lastChannelValues.length ) {
+            lastChannelValues = Arrays.copyOf( lastChannelValues, channel+1 );
+        }
+        long d = decodeVarBytes();
+        long value = lastChannelValues[channel] + d;
+        lastChannelValues[channel] = value;
+        return value;
     }
 
     private long restoreSignBit(long value) {

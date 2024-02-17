@@ -1,7 +1,6 @@
 package btools.mapcreator;
 
 import java.io.BufferedInputStream;
-import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -10,8 +9,9 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import btools.statcoding.BitInputStream;
+import btools.statcoding.BitOutputStream;
 import btools.util.CompactLongSet;
-import btools.util.DiffCoderDataOutputStream;
 import btools.util.FrozenLongSet;
 
 /**
@@ -23,8 +23,8 @@ import btools.util.FrozenLongSet;
  * @author ab
  */
 public class PosUnifier extends MapCreatorBase implements NodeListener {
-  private DiffCoderDataOutputStream nodesOutStream;
-  private DiffCoderDataOutputStream borderNodesOut;
+  private BitOutputStream nodesOutStream;
+  private BitOutputStream borderNodesOut;
   private CompactLongSet[] positionSets;
 
   private Map<String, SrtmRaster> srtmmap;
@@ -58,22 +58,21 @@ public class PosUnifier extends MapCreatorBase implements NodeListener {
     this.srtmdir = srtmdir;
 
     // read border nids set
-    DataInputStream dis = createInStream(new File( tmpDir, "bordernids.dat"));
+    ;
     borderNids = new CompactLongSet();
-    try {
-      for (; ; ) {
-        long nid = readId(dis);
+    try ( BitInputStream bis = createInStream(new File( tmpDir, "bordernids.dat"))) {
+      while (bis.decodeVarBytes() == 1L) {
+        long nid = bis.decodeVarBytes();
         if (!borderNids.contains(nid))
           borderNids.fastAdd(nid);
       }
-    } catch (EOFException eof) {
-      dis.close();
     }
     borderNids = new FrozenLongSet(borderNids);
 
     // process all files
     borderNodesOut = createOutStream(new File( tmpDir, "bordernodes.dat"));
     new NodeIterator(this, true).processDir(new File( tmpDir, "nodes55"), ".n5d");
+    borderNodesOut.encodeVarBytes(0L);
     borderNodesOut.close();
   }
 
@@ -100,14 +99,17 @@ public class PosUnifier extends MapCreatorBase implements NodeListener {
     if (srtm != null) n.sElev = srtm.getElevation(n.iLon, n.iLat);
     findUniquePos(n);
 
+    nodesOutStream.encodeVarBytes(1L);
     n.writeTo(nodesOutStream);
     if (borderNids.contains(n.nid)) {
+      borderNodesOut.encodeVarBytes(1L);
       n.writeTo(borderNodesOut);
     }
   }
 
   @Override
   public void nodeFileEnd(File nodeFile) throws Exception {
+    nodesOutStream.encodeVarBytes(0L);
     nodesOutStream.close();
     resetSrtm();
   }

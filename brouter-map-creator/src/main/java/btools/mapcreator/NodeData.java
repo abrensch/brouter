@@ -1,7 +1,7 @@
 package btools.mapcreator;
 
-import btools.util.DiffCoderDataInputStream;
-import btools.util.DiffCoderDataOutputStream;
+import btools.statcoding.BitInputStream;
+import btools.statcoding.BitOutputStream;
 
 /**
  * Container for node data on the preprocessor level
@@ -21,29 +21,26 @@ public class NodeData extends MapCreatorBase {
     iLon = (int) ((lon + 180.) * 1000000. + 0.5);
   }
 
-  public NodeData(DiffCoderDataInputStream dis) throws Exception {
-    nid = dis.readDiffed(0);
-    iLon = (int) dis.readDiffed(1);
-    iLat = (int) dis.readDiffed(2);
-    int mode = dis.readByte();
+  public NodeData(BitInputStream bis) throws Exception {
+    nid = bis.readDiffed(0);
+    iLon = (int) bis.readDiffed(1);
+    iLat = (int) bis.readDiffed(2);
+    int mode = bis.readByte();
     if ((mode & 1) != 0) {
-      int dlen = dis.readShort();
-      description = new byte[dlen];
-      dis.readFully(description);
+      description = bis.decodeSizedByteArray();
     }
-    if ((mode & 2) != 0) sElev = dis.readShort();
+    if ((mode & 2) != 0) sElev = bis.readShort();
   }
 
-  public void writeTo(DiffCoderDataOutputStream dos) throws Exception {
-    dos.writeDiffed(nid, 0);
-    dos.writeDiffed(iLon, 1);
-    dos.writeDiffed(iLat, 2);
+  public void writeTo(BitOutputStream bos) throws Exception {
+    bos.writeDiffed(nid, 0);
+    bos.writeDiffed(iLon, 1);
+    bos.writeDiffed(iLat, 2);
     int mode = (description == null ? 0 : 1) | (sElev == Short.MIN_VALUE ? 0 : 2);
-    dos.writeByte((byte) mode);
+    bos.writeByte((byte) mode);
     if ((mode & 1) != 0) {
-      dos.writeShort(description.length);
-      dos.write(description);
+      bos.encodeSizedByteArray(description);
     }
-    if ((mode & 2) != 0) dos.writeShort(sElev);
+    if ((mode & 2) != 0) bos.writeShort(sElev);
   }
 }

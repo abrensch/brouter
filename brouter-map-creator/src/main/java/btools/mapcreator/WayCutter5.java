@@ -1,9 +1,10 @@
 package btools.mapcreator;
 
+import btools.statcoding.BitInputStream;
+import btools.statcoding.BitOutputStream;
+import btools.util.DenseLongMap;
+
 import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 
@@ -16,55 +17,51 @@ import java.io.FileInputStream;
  * @author ab
  */
 public class WayCutter5 extends ItemCutter implements WayListener {
-  private DataOutputStream borderNidsOutStream;
-  private File nodeTilesIn;
-
+  private BitOutputStream borderNidsOutStream;
   private File tmpDir;
+  private DenseLongMap nodeFilter;
   public RelationMerger relMerger;
   public NodeCutter5 nodeCutter5;
-  public RestrictionCutter5 restrictionCutter5;
 
   public WayCutter5(File tmpDir) {
     super(new File(tmpDir, "ways55"));
     this.tmpDir = tmpDir;
   }
 
-  public void process(NodeFilter nodeFilter, File lookupFile, File profileReport, File profileCheck) throws Exception {
-    nodeTilesIn = new File( tmpDir, "nodes" );
+  public void process(DenseLongMap nodeFilter, File lookupFile, File profileReport, File profileCheck) throws Exception {
+    this.nodeFilter = nodeFilter;
     relMerger = new RelationMerger(tmpDir, lookupFile, profileReport, profileCheck);
-    nodeCutter5 = new NodeCutter5(tmpDir,nodeFilter);
-    restrictionCutter5 = new RestrictionCutter5(tmpDir, nodeCutter5);
     borderNidsOutStream = createOutStream(new File( tmpDir, "bordernids.dat" ));
 
     new WayIterator(this).processDir(new File( tmpDir, "ways" ), ".wtl");
-
+    borderNidsOutStream.encodeVarBytes(0L);
     borderNidsOutStream.close();
   }
 
   @Override
   public boolean wayFileStart(File wayfile) throws Exception {
-    fileStart();
-    // read corresponding node-file into tileIndexMap
+
+    // cut the corresponding node-file, filtering the relevant nodes using nodeFilter
+    // (and nodeCutter5 populates it's tile-index-map needed to distribute the ways and restrictions)
     String name = wayfile.getName();
     String nodefilename = name.substring(0, name.length() - 3) + "ntl";
-    File nodefile = new File(nodeTilesIn, nodefilename);
-
+    File nodefile = new File( new File( tmpDir, "nodes" ), nodefilename);
+    nodeCutter5 = new NodeCutter5(tmpDir,nodeFilter);
     new NodeIterator(nodeCutter5, true).processFile(nodefile);
+    nodeCutter5.closeTileOutStreams();
 
+    // cut the corresponding restrictions-file
     String restrictionFilename = name.substring(0, name.length() - 3) + "rtl";
     File resfile = new File( new File(tmpDir, "restrictions"), restrictionFilename );
     if (resfile.exists()) {
-      // read restrictions for nodes in nodesMap
-      int ntr = 0;
-      try ( DataInputStream di = new DataInputStream(new BufferedInputStream(new FileInputStream(resfile))) ) {
-        for (; ; ) {
-          RestrictionData res = new RestrictionData(di);
+      RestrictionCutter5 restrictionCutter5 = new RestrictionCutter5(tmpDir, nodeCutter5);
+      try ( BitInputStream bis = new BitInputStream(new BufferedInputStream(new FileInputStream(resfile))) ) {
+        while (bis.decodeVarBytes() == 1L) {
+          RestrictionData res = new RestrictionData(bis);
           restrictionCutter5.nextRestriction(res);
-          ntr++;
         }
-      } catch (EOFException eof) { // expected
       }
-      System.out.println("read " + ntr + " turn-restrictions");
+      restrictionCutter5.closeTileOutStreams();
     }
     return true;
   }
@@ -99,7 +96,8 @@ public class WayCutter5 extends ItemCutter implements WayListener {
       int ti = tiForNode[i];
       if (ti != -1) {
         if ((i > 0 && tiForNode[i - 1] != ti) || (i + 1 < nnodes && tiForNode[i + 1] != ti)) {
-          MapCreatorBase.writeId(borderNidsOutStream, data.nodes.get(i));
+          borderNidsOutStream.encodeVarBytes(1L);
+          borderNidsOutStream.encodeVarBytes(data.nodes.get(i));
         }
       }
     }
@@ -108,8 +106,6 @@ public class WayCutter5 extends ItemCutter implements WayListener {
   @Override
   public void wayFileEnd(File wayFile) throws Exception {
     closeTileOutStreams();
-    nodeCutter5.nodeFileEnd(null);
-    restrictionCutter5.finish();
   }
 
   protected String getNameForTile(int tileIndex) {
