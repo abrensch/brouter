@@ -285,7 +285,10 @@ public final class OsmTrack {
           }
           dis.close();
         } catch (Exception e) {
-          throw new RuntimeException("Exception reading rawTrack: " + e);
+          t = null;
+          if (debugInfo != null) {
+            debugInfo.append("Error reading rawTrack: " + e);
+          }
         }
       }
     }
