@@ -17,19 +17,12 @@ import btools.util.LongList;
  *
  * @author ab
  */
-public class OsmParser extends MapCreatorBase {
+public class OsmParser {
 
-  private NodeListener nListener;
-  private WayListener wListener;
-  private RelationListener rListener;
+  private ItemListener listener;
 
-  public void readMap(File mapFile,
-                      NodeListener nListener,
-                      WayListener wListener,
-                      RelationListener rListener) throws Exception {
-    this.nListener = nListener;
-    this.wListener = wListener;
-    this.rListener = rListener;
+  public void readMap(File mapFile, ItemListener listener) throws Exception {
+    this.listener = listener;
 
     System.out.println("*** PBF Parsing: " + mapFile);
 
@@ -101,7 +94,7 @@ public class OsmParser extends MapCreatorBase {
     NodeData n = new NodeData(nid, lon, lat);
     n.setTags((HashMap<String, String>) tags);
     try {
-      nListener.nextNode(n);
+      listener.nextNode(n);
     } catch (Exception e) {
       throw new RuntimeException("error writing node: " + e, e);
     }
@@ -112,7 +105,7 @@ public class OsmParser extends MapCreatorBase {
     w.setTags((HashMap<String, String>) tags);
 
     try {
-      wListener.nextWay(w);
+      listener.nextWay(w);
     } catch (Exception e) {
       throw new RuntimeException("error writing way: " + e, e);
     }
@@ -123,17 +116,17 @@ public class OsmParser extends MapCreatorBase {
     r.setTags(tags);
 
     try {
-      rListener.nextRelation(r);
+      listener.nextRelation(r);
       if (fromWid == null || toWid == null || viaNid == null || viaNid.size() != 1) {
         // dummy-TR for each viaNid
         for (int vi = 0; vi < (viaNid == null ? 0 : viaNid.size()); vi++) {
-          rListener.nextRestriction(r, 0L, 0L, viaNid.get(vi));
+          listener.nextRestriction(r, 0L, 0L, viaNid.get(vi));
         }
         return;
       }
       for (int fi = 0; fi < fromWid.size(); fi++) {
         for (int ti = 0; ti < toWid.size(); ti++) {
-          rListener.nextRestriction(r, fromWid.get(fi), toWid.get(ti), viaNid.get(0));
+          listener.nextRestriction(r, fromWid.get(fi), toWid.get(ti), viaNid.get(0));
         }
       }
     } catch (Exception e) {

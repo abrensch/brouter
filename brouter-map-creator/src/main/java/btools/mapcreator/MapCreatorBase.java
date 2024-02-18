@@ -33,25 +33,10 @@ public abstract class MapCreatorBase {
     this.tags = tags;
   }
 
-
-  protected static void sortBySizeAsc(File[] files) {
-    SortedHeap<File> heap = new SortedHeap<>();
-    for( File file : files ) {
-      heap.add( file.length(), file );
-    }
-    for( int i=0; i< files.length; i++ ) {
-      files[i] = heap.popLowestKeyValue();
-    }
-  }
-
   protected File fileFromTemplate(File template, File dir, String suffix) {
     String filename = template.getName();
     filename = filename.substring(0, filename.length() - 3) + suffix;
     return new File(dir, filename);
-  }
-
-  protected BitInputStream createInStream(File inFile) throws IOException {
-    return new BitInputStream(new BufferedInputStream(new FileInputStream(inFile)));
   }
 
   protected BitOutputStream createOutStream(File outFile) throws IOException {

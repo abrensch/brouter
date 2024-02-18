@@ -19,7 +19,7 @@ import btools.util.*;
  *
  * @author ab
  */
-public class WayLinker extends MapCreatorBase implements NodeListener, WayListener, Runnable {
+public class WayLinker extends MapCreatorBase implements ItemListener, Runnable {
   private File nodeTilesIn;
   private File wayTilesIn;
   private File dataTilesOut;
@@ -154,7 +154,7 @@ public class WayLinker extends MapCreatorBase implements NodeListener, WayListen
   public void run() {
     try {
       // then process all segments
-      new WayIterator(!isSlave, this).processDir(wayTilesIn, ".wt5");
+      new ItemIterator(this).processDir(wayTilesIn, ".wt5", !isSlave);
     } catch (Exception e) {
       System.out.println("******* thread (slave=" + isSlave + ") got Exception: " + e);
       throw new RuntimeException(e);
@@ -166,7 +166,7 @@ public class WayLinker extends MapCreatorBase implements NodeListener, WayListen
   }
 
   @Override
-  public boolean wayFileStart(File wayfile) throws Exception {
+  public boolean itemFileStart(File wayfile) throws Exception {
 
     // master/slave logic:
     // total memory size should stay below a maximum
@@ -192,21 +192,22 @@ public class WayLinker extends MapCreatorBase implements NodeListener, WayListen
 
     // process corresponding node-file, if any
     File nodeFile = fileFromTemplate(wayfile, nodeTilesIn, "u5d");
+System.out.println( "****** processing nodeFile=" + nodeFile);
     if (nodeFile.exists()) {
       reset();
+      System.out.println( ".............. really processing nodeFile=" + nodeFile);
 
       // read the border file
       readingBorder = true;
-      new NodeIterator(this, false).processFile(borderFileIn);
+      new ItemIterator(this, false).processFile(borderFileIn);
       borderSet = new FrozenLongSet(borderSet);
 
       // read this tile's nodes
       readingBorder = false;
-      new NodeIterator(this, true).processFile(nodeFile);
+      new ItemIterator(this, true).processFile(nodeFile);
 
-      // freeze the nodes-map
-      FrozenLongMap<OsmNode> nodesMapFrozen = new FrozenLongMap<>(nodesMap);
-      nodesMap = nodesMapFrozen;
+      // freeze the nodes-map (=faster access, less memory)
+      nodesMap = new FrozenLongMap<>(nodesMap);
 
       File restrictionFile = fileFromTemplate(wayfile, new File(nodeTilesIn.getParentFile(), "restrictions55"), "rt5");
       // read restrictions for nodes in nodesMap
@@ -230,7 +231,7 @@ public class WayLinker extends MapCreatorBase implements NodeListener, WayListen
         System.out.println("read " + ntr + " turn-restrictions");
       }
 
-      nodesList = nodesMapFrozen.getValueList();
+      nodesList = ((FrozenLongMap)nodesMap).getValueList();
     }
     return true;
   }
@@ -341,7 +342,7 @@ public class WayLinker extends MapCreatorBase implements NodeListener, WayListen
   }
 
   @Override
-  public void wayFileEnd(File wayfile) throws Exception {
+  public void itemFileEnd(File wayfile) throws Exception {
 
     nodesMap = null;
     borderSet = null;

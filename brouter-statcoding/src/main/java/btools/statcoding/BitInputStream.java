@@ -1,10 +1,6 @@
 package btools.statcoding;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInput;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
@@ -253,7 +249,7 @@ public class BitInputStream extends InputStream implements DataInput {
         for (int shift = 0; shift < 64; shift += 7) {
             int nextByte = read();
             if (nextByte == -1) {
-                throw new IOException("unexpected EOF in decodeVarBytes");
+                throw new EOFException("unexpected EOF in decodeVarBytes");
             }
             v |= (nextByte & 0x7fL) << shift;
             if ((nextByte & 0x80) == 0) {

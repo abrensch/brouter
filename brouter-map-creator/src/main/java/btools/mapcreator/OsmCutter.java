@@ -20,7 +20,7 @@ import btools.statcoding.BitOutputStream;
 import btools.util.DenseLongMap;
 import btools.util.TinyDenseLongMap;
 
-public class OsmCutter extends MapCreatorBase implements NodeListener, WayListener, RelationListener {
+public class OsmCutter implements ItemListener {
   private long recordCnt;
   private long nodesParsed;
   private long waysParsed;
@@ -88,8 +88,8 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
     expCtxWay.parseFile(profileFile, "global");
     relationsBos = new BitOutputStream(new BufferedOutputStream(new FileOutputStream(new File( tmpDir, "relations.dat" ))));
 
-    // parse the osm map to create intermediate files for nodes, ways, relationa and restrictions
-    new OsmParser().readMap(mapFile, this, this, this);
+    // parse the osm map to create intermediate files for nodes, ways, relations and restrictions
+    new OsmParser().readMap(mapFile, this);
 
     // close all files
     nodeCutter.closeTileOutStreams();
@@ -203,26 +203,17 @@ public class OsmCutter extends MapCreatorBase implements NodeListener, WayListen
     relationsParsed++;
     checkStats();
 
-    String route = r.getTag("route");
+    r.route = r.getTag("route");
     // filter out non-route relations
-    if (route == null) {
+    if (r.route == null) {
       return;
     }
 
-    String network = r.getTag("network");
-    if (network == null) network = "";
-    String state = r.getTag("state");
-    if (state == null) state = "";
-    relationsBos.encodeVarBytes(1L);
-    relationsBos.encodeVarBytes(r.rid);
-    relationsBos.writeUTF(route);
-    relationsBos.writeUTF(network);
-    relationsBos.writeUTF(state);
-    for (int i = 0; i < r.ways.size(); i++) {
-      long wid = r.ways.get(i);
-      relationsBos.encodeVarBytes(wid);
-    }
-    relationsBos.encodeVarBytes(-1L);
+    r.network = r.getTag("network");
+    if (r.network == null) r.network = "";
+    r.state = r.getTag("state");
+    if (r.state == null) r.state = "";
+    r.writeTo(relationsBos);
   }
 
   @Override

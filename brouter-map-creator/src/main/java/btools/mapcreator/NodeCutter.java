@@ -7,12 +7,19 @@
  */
 package btools.mapcreator;
 
+import btools.mapaccess.OsmFile;
 import btools.util.DenseLongMap;
 import btools.util.TinyDenseLongMap;
 
 import java.io.*;
 
-public class NodeCutter extends ItemCutter implements NodeListener {
+/**
+ * NodeCutter does two step in map-processing:
+ * <p>
+ * - distribute nodes into 45*30 temp files
+ * - build a memory map with the tile index for each node
+ */
+public class NodeCutter extends ItemCutter {
   private final DenseLongMap tileIndexMap;
 
   public NodeCutter(File tmpDir ) {
@@ -26,7 +33,6 @@ public class NodeCutter extends ItemCutter implements NodeListener {
     return tileIndexMap.getInt(nid);
   }
 
-  @Override
   public void nextNode(NodeData n) throws Exception {
     // write node to file
     int tileIndex = getTileIndex(n.iLon, n.iLat);
@@ -34,11 +40,6 @@ public class NodeCutter extends ItemCutter implements NodeListener {
       n.writeTo(getOutStreamForTile(tileIndex));
       tileIndexMap.put(n.nid, tileIndex);
     }
-  }
-
-  @Override
-  public void nodeFileEnd(File nodeFile) throws Exception {
-    closeTileOutStreams();
   }
 
   private int getTileIndex(int ilon, int ilat) {
@@ -54,4 +55,11 @@ public class NodeCutter extends ItemCutter implements NodeListener {
   protected String getNameForTile(int tileIndex) {
     return getBaseNameForTile(tileIndex) +  ".ntl";
   }
+
+  public String getBaseNameForTile(int tileIndex) {
+    int lon = (tileIndex / 6) * 45 - 180;
+    int lat = (tileIndex % 6) * 30 - 90;
+    return OsmFile.getBaseName( lon,lat);
+  }
+
 }

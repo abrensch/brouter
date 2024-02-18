@@ -3,15 +3,12 @@ package btools.mapcreator;
 import java.io.File;
 
 /**
- * RestrictionCutter writes Restrictions to tiles
+ * RestrictionCutter does 1 step in map-processing:
  * <p>
- * - cut the way file into 45*30 - pieces
- * - enrich ways with relation information
- *
- * @author ab
+ * - distribute restrictions into 45*30 temp files
  */
 public class RestrictionCutter extends ItemCutter {
-  private NodeCutter nodeCutter;
+  private final NodeCutter nodeCutter;
 
   public RestrictionCutter(File tmpDir, NodeCutter nodeCutter)  {
     super( new File( tmpDir, "restrictions" ) );
@@ -26,8 +23,7 @@ public class RestrictionCutter extends ItemCutter {
   }
 
   protected String getNameForTile(int tileIndex) {
-    String name = nodeCutter.getNameForTile(tileIndex);
-    return name.substring(0, name.length() - 3) + "rtl";
+    return nodeCutter.getBaseNameForTile(tileIndex) + ".rtl";
   }
 
 }

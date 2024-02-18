@@ -19,6 +19,9 @@ import btools.util.CheapAngleMeter;
  * @author ab
  */
 public class RestrictionData extends TurnRestriction {
+
+  public static final long TYPE = 4L;
+
   public String restrictionKey;
   public String restriction;
   public long fromWid;

@@ -10,14 +10,10 @@ import btools.util.LongList;
  * @author ab
  */
 public class WayData extends MapCreatorBase {
+  public static final long TYPE = 2l;
   public long wid;
   public byte[] description;
   public LongList nodes;
-
-  public WayData(long id) {
-    wid = id;
-    nodes = new LongList(16);
-  }
 
   public WayData(long id, LongList nodes) {
     wid = id;
@@ -36,6 +32,7 @@ public class WayData extends MapCreatorBase {
   }
 
   public void writeTo(BitOutputStream bos) throws Exception {
+    bos.encodeVarBytes(TYPE);
     bos.encodeVarBytes(wid);
     bos.encodeSizedByteArray(description);
     int size = nodes.size();

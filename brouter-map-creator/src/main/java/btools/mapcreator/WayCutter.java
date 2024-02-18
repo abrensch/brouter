@@ -3,14 +3,11 @@ package btools.mapcreator;
 import java.io.File;
 
 /**
- * WayCutter does 2 step in map-processing:
+ * WayCutter does 1 step in map-processing:
  * <p>
- * - cut the way file into 45*30 - pieces
- * - enrich ways with relation information
- *
- * @author ab
+ * - distribute ways into 45*30 temp files
  */
-public class WayCutter extends ItemCutter implements WayListener {
+public class WayCutter extends ItemCutter {
 
   private final NodeCutter nodeCutter;
 
@@ -19,7 +16,6 @@ public class WayCutter extends ItemCutter implements WayListener {
     this.nodeCutter = nodeCutter;
   }
 
-  @Override
   public void nextWay(WayData data) throws Exception {
     long waytileset = 0;
     int nnodes = data.nodes.size();
@@ -42,7 +38,7 @@ public class WayCutter extends ItemCutter implements WayListener {
   }
 
   public String getNameForTile(int tileIndex) {
-    return getBaseNameForTile(tileIndex) + ".wtl";
+    return nodeCutter.getBaseNameForTile(tileIndex) + ".wtl";
   }
 
 }

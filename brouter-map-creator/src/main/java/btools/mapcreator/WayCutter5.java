@@ -9,14 +9,15 @@ import java.io.File;
 import java.io.FileInputStream;
 
 /**
- * WayCutter5 does 2 step in map-processing:
+ * WayCutter5 does some steps in map-processing:
  * <p>
- * - cut the 45*30 way files into 5*5 pieces
+ * - enrich way data with relation information
+ * - cut the 45*30 way files further into 5*5 pieces
+ * - do the same for nodes and restrictions by
+ *   calling NodeCutter5 and RestrictionCutter5
  * - create a file containing all border node ids
- *
- * @author ab
  */
-public class WayCutter5 extends ItemCutter implements WayListener {
+public class WayCutter5 extends ItemCutter implements ItemListener {
   private BitOutputStream borderNidsOutStream;
   private File tmpDir;
   private DenseLongMap nodeFilter;
@@ -33,13 +34,13 @@ public class WayCutter5 extends ItemCutter implements WayListener {
     relMerger = new RelationMerger(tmpDir, lookupFile, profileReport, profileCheck);
     borderNidsOutStream = createOutStream(new File( tmpDir, "bordernids.dat" ));
 
-    new WayIterator(this).processDir(new File( tmpDir, "ways" ), ".wtl");
+    new ItemIterator(this).processDir(new File( tmpDir, "ways" ), ".wtl", false);
     borderNidsOutStream.encodeVarBytes(0L);
     borderNidsOutStream.close();
   }
 
   @Override
-  public boolean wayFileStart(File wayfile) throws Exception {
+  public boolean itemFileStart(File wayfile) throws Exception {
 
     // cut the corresponding node-file, filtering the relevant nodes using nodeFilter
     // (and nodeCutter5 populates it's tile-index-map needed to distribute the ways and restrictions)
@@ -47,7 +48,7 @@ public class WayCutter5 extends ItemCutter implements WayListener {
     String nodefilename = name.substring(0, name.length() - 3) + "ntl";
     File nodefile = new File( new File( tmpDir, "nodes" ), nodefilename);
     nodeCutter5 = new NodeCutter5(tmpDir,nodeFilter);
-    new NodeIterator(nodeCutter5, true).processFile(nodefile);
+    new ItemIterator(nodeCutter5).processFile(nodefile);
     nodeCutter5.closeTileOutStreams();
 
     // cut the corresponding restrictions-file
@@ -81,7 +82,7 @@ public class WayCutter5 extends ItemCutter implements WayListener {
       tiForNode[i] = tileIndex;
     }
 
-    relMerger.nextWay(data);
+    relMerger.addRelationDataToWay(data);
 
     // now write way to all tiles hit
     for (int tileIndex = 0; tileIndex < 54; tileIndex++) {
@@ -96,7 +97,7 @@ public class WayCutter5 extends ItemCutter implements WayListener {
       int ti = tiForNode[i];
       if (ti != -1) {
         if ((i > 0 && tiForNode[i - 1] != ti) || (i + 1 < nnodes && tiForNode[i + 1] != ti)) {
-          borderNidsOutStream.encodeVarBytes(1L);
+          borderNidsOutStream.encodeVarBytes(5L);
           borderNidsOutStream.encodeVarBytes(data.nodes.get(i));
         }
       }
@@ -104,7 +105,7 @@ public class WayCutter5 extends ItemCutter implements WayListener {
   }
 
   @Override
-  public void wayFileEnd(File wayFile) throws Exception {
+  public void itemFileEnd(File wayFile) throws Exception {
     closeTileOutStreams();
   }
 

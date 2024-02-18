@@ -18,7 +18,7 @@ import btools.util.FrozenLongSet;
  *
  * @author ab
  */
-public class RelationMerger extends MapCreatorBase implements WayListener {
+public class RelationMerger implements ItemListener {
   private Map<String, CompactLongSet> routesets;
   private CompactLongSet routesetall;
   private BExpressionContextWay expctxReport;
@@ -42,37 +42,10 @@ public class RelationMerger extends MapCreatorBase implements WayListener {
     // *** read the relation file into sets for each processed tag
     routesets = new HashMap<>();
     routesetall = new CompactLongSet();
-    try ( BitInputStream bis = createInStream(new File( tmpDir, "relations.dat") ) ) {
-      while (bis.decodeVarBytes() == 1L) {
-        long rid = bis.decodeVarBytes();
-        String route = bis.readUTF();
-        String network = bis.readUTF();
-        String state = bis.readUTF();
-        int value = "proposed".equals(state) ? 3 : 2; // 2=yes, 3=proposed
 
-        String tagname = "route_" + route + "_" + network;
+    new ItemIterator(this).processFile(new File( tmpDir, "relations.dat") );
 
-        CompactLongSet routeset = null;
-        if (expctxCheck.getLookupNameIdx(tagname) >= 0) {
-          String key = tagname + "_" + value;
-          routeset = routesets.get(key);
-          if (routeset == null) {
-            routeset = new CompactLongSet();
-            routesets.put(key, routeset);
-          }
-        }
-
-        for (; ; ) {
-          long wid = bis.decodeVarBytes();
-          if (wid == -1L) break;
-          // expctxStat.addLookupValue( tagname, "yes", null );
-          if (routeset != null && !routeset.contains(wid)) {
-            routeset.add(wid);
-            routesetall.add(wid);
-          }
-        }
-      }
-    }
+    // freeze the routesets for faster access
     for (String key : routesets.keySet()) {
       CompactLongSet routeset = new FrozenLongSet(routesets.get(key));
       routesets.put(key, routeset);
@@ -81,7 +54,33 @@ public class RelationMerger extends MapCreatorBase implements WayListener {
   }
 
   @Override
-  public void nextWay(WayData data) throws Exception {
+  public void nextRelation(RelationData r) throws Exception {
+    int value = "proposed".equals(r.state) ? 3 : 2; // 2=yes, 3=proposed
+
+    String tagname = "route_" + r.route + "_" + r.network;
+
+    CompactLongSet routeset = null;
+    if (expctxCheck.getLookupNameIdx(tagname) >= 0) {
+      String key = tagname + "_" + value;
+      routeset = routesets.get(key);
+      if (routeset == null) {
+        routeset = new CompactLongSet();
+        routesets.put(key, routeset);
+      }
+    }
+
+    int size = r.ways.size();
+    for (int i = 0; i < size; i++) {
+      long wid = r.ways.get(i);
+      // expctxStat.addLookupValue( tagname, "yes", null );
+      if (routeset != null && !routeset.contains(wid)) {
+        routeset.add(wid);
+        routesetall.add(wid);
+      }
+    }
+  }
+
+  public void addRelationDataToWay(WayData data) throws Exception {
     // propagate the route-bits
     if (routesetall.contains(data.wid)) {
       boolean ok = true;

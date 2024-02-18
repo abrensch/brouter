@@ -22,7 +22,7 @@ import btools.util.FrozenLongSet;
  *
  * @author ab
  */
-public class PosUnifier extends MapCreatorBase implements NodeListener {
+public class PosUnifier extends MapCreatorBase implements ItemListener {
   private BitOutputStream nodesOutStream;
   private BitOutputStream borderNodesOut;
   private CompactLongSet[] positionSets;
@@ -58,29 +58,30 @@ public class PosUnifier extends MapCreatorBase implements NodeListener {
     this.srtmdir = srtmdir;
 
     // read border nids set
-    ;
     borderNids = new CompactLongSet();
-    try ( BitInputStream bis = createInStream(new File( tmpDir, "bordernids.dat"))) {
-      while (bis.decodeVarBytes() == 1L) {
-        long nid = bis.decodeVarBytes();
-        if (!borderNids.contains(nid))
-          borderNids.fastAdd(nid);
-      }
-    }
+    new ItemIterator(this).processFile(new File( tmpDir, "bordernids.dat"));
     borderNids = new FrozenLongSet(borderNids);
 
     // process all files
     borderNodesOut = createOutStream(new File( tmpDir, "bordernodes.dat"));
-    new NodeIterator(this, true).processDir(new File( tmpDir, "nodes55"), ".n5d");
+    new ItemIterator(this).processDir(new File( tmpDir, "nodes55"), ".n5d", false);
     borderNodesOut.encodeVarBytes(0L);
     borderNodesOut.close();
   }
 
   @Override
-  public void nodeFileStart(File nodefile) throws Exception {
+  public void nextNodeId(long nid) {
+    if (!borderNids.contains(nid)) {
+      borderNids.fastAdd(nid);
+    }
+  }
+
+  @Override
+  public boolean itemFileStart(File nodefile) throws Exception {
     resetSrtm();
     nodesOutStream = createOutStream(fileFromTemplate(nodefile, dataTilesOut, "u5d"));
     positionSets = new CompactLongSet[2500];
+    return true;
   }
 
   @Override
@@ -99,16 +100,14 @@ public class PosUnifier extends MapCreatorBase implements NodeListener {
     if (srtm != null) n.sElev = srtm.getElevation(n.iLon, n.iLat);
     findUniquePos(n);
 
-    nodesOutStream.encodeVarBytes(1L);
     n.writeTo(nodesOutStream);
     if (borderNids.contains(n.nid)) {
-      borderNodesOut.encodeVarBytes(1L);
       n.writeTo(borderNodesOut);
     }
   }
 
   @Override
-  public void nodeFileEnd(File nodeFile) throws Exception {
+  public void itemFileEnd(File nodeFile) throws Exception {
     nodesOutStream.encodeVarBytes(0L);
     nodesOutStream.close();
     resetSrtm();

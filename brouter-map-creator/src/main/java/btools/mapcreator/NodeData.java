@@ -9,6 +9,9 @@ import btools.statcoding.BitOutputStream;
  * @author ab
  */
 public class NodeData extends MapCreatorBase {
+
+  public static final long TYPE = 1L;
+  public static final long NID_TYPE = 5L;
   public long nid;
   public int iLon;
   public int iLat;
@@ -33,6 +36,7 @@ public class NodeData extends MapCreatorBase {
   }
 
   public void writeTo(BitOutputStream bos) throws Exception {
+    bos.encodeVarBytes(TYPE);
     bos.writeDiffed(nid, 0);
     bos.writeDiffed(iLon, 1);
     bos.writeDiffed(iLat, 2);
