@@ -54,7 +54,7 @@ public class RelationMerger implements ItemListener {
   }
 
   @Override
-  public void nextRelation(RelationData r) throws Exception {
+  public void nextRelation(RelationData r) {
     int value = "proposed".equals(r.state) ? 3 : 2; // 2=yes, 3=proposed
 
     String tagname = "route_" + r.route + "_" + r.network;
@@ -80,7 +80,7 @@ public class RelationMerger implements ItemListener {
     }
   }
 
-  public void addRelationDataToWay(WayData data) throws Exception {
+  public void addRelationDataToWay(WayData data) {
     // propagate the route-bits
     if (routesetall.contains(data.wid)) {
       boolean ok = true;

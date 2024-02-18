@@ -31,16 +31,24 @@ public abstract class ItemCutter {
     return new BitOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
   }
 
-  protected BitOutputStream getOutStreamForTile(int tileIndex) throws Exception {
+  protected BitOutputStream getOutStreamForTile(int tileIndex) throws IOException {
     if (tileOutStreams[tileIndex] == null) {
       tileOutStreams[tileIndex] = createOutStream(new File(outTileDir, getNameForTile(tileIndex)));
     }
     return tileOutStreams[tileIndex];
   }
 
-  protected abstract String getNameForTile(int tileIndex);
+  protected static File fileFromTemplate(File template, File dir, String suffix) {
+    String filename = template.getName();
+    filename = filename.substring(0, filename.length() - 3) + suffix;
+    return new File(dir, filename);
+  }
 
-  protected void closeTileOutStreams() throws Exception {
+  protected String getNameForTile(int tileIndex) {
+    throw new RuntimeException( "getNameForTile not implemented" );
+  }
+
+  protected void closeTileOutStreams() throws IOException {
     for (int i = 0; i<tileOutStreams.length; i++ ) {
       BitOutputStream bos = tileOutStreams[i];
       if (bos != null) {

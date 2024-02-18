@@ -1,6 +1,7 @@
 package btools.mapcreator;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * WayCutter does 1 step in map-processing:
@@ -16,7 +17,7 @@ public class WayCutter extends ItemCutter {
     this.nodeCutter = nodeCutter;
   }
 
-  public void nextWay(WayData data) throws Exception {
+  public void nextWay(WayData data) throws IOException {
     long waytileset = 0;
     int nnodes = data.nodes.size();
 

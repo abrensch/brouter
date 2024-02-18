@@ -19,7 +19,7 @@ import btools.util.*;
  *
  * @author ab
  */
-public class WayLinker extends MapCreatorBase implements ItemListener, Runnable {
+public class WayLinker extends ItemCutter implements ItemListener, Runnable {
   private File nodeTilesIn;
   private File wayTilesIn;
   private File dataTilesOut;
@@ -70,7 +70,7 @@ public class WayLinker extends MapCreatorBase implements ItemListener, Runnable 
       }
     }
 
-    synchronized boolean setCurrentSlaveSize(long size) throws Exception {
+    synchronized boolean setCurrentSlaveSize(long size) {
       if (size > currentMasterSize) {
         return false;
       }
@@ -78,7 +78,10 @@ public class WayLinker extends MapCreatorBase implements ItemListener, Runnable 
       while (size + currentMasterSize + 50000000L > maxFileSize) {
         System.out.println("****** slave thread waiting for permission to process file of size " + size
           + " currentMaster=" + currentMasterSize + " maxFileSize=" + maxFileSize);
-        wait(10000);
+        try {
+          wait(10000);
+        } catch( InterruptedException ie ) { // ignore
+        }
       }
       currentSlaveSize = size;
       return true;
@@ -105,6 +108,10 @@ public class WayLinker extends MapCreatorBase implements ItemListener, Runnable 
 
     System.out.println("dumping bad TRs");
     RestrictionData.dumpBadTRs();
+  }
+
+  public WayLinker() {
+    super(null);
   }
 
   public void process(File tmpDir, File lookupFile, File profileFile, String dataTilesSuffix) throws Exception {
@@ -166,7 +173,7 @@ public class WayLinker extends MapCreatorBase implements ItemListener, Runnable 
   }
 
   @Override
-  public boolean itemFileStart(File wayfile) throws Exception {
+  public boolean itemFileStart(File wayfile) throws IOException {
 
     // master/slave logic:
     // total memory size should stay below a maximum
@@ -237,7 +244,7 @@ System.out.println( "****** processing nodeFile=" + nodeFile);
   }
 
   @Override
-  public void nextNode(NodeData data) throws Exception {
+  public void nextNode(NodeData data) {
     OsmNode n = new OsmNode();
     n.iLon = data.iLon;
     n.iLat = data.iLat;
@@ -307,7 +314,7 @@ System.out.println( "****** processing nodeFile=" + nodeFile);
   }
 
   @Override
-  public void nextWay(WayData way) throws Exception {
+  public void nextWay(WayData way) {
     byte[] wayDescription = abUnifier.unify(way.description);
 
     // filter according to profile
@@ -342,7 +349,7 @@ System.out.println( "****** processing nodeFile=" + nodeFile);
   }
 
   @Override
-  public void itemFileEnd(File wayfile) throws Exception {
+  public void itemFileEnd(File wayfile) throws IOException {
 
     nodesMap = null;
     borderSet = null;

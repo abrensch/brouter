@@ -11,7 +11,7 @@ import java.io.IOException;
  *
  * @author ab
  */
-public class RelationData extends MapCreatorBase {
+public class RelationData extends ItemData {
   public static final long TYPE = 3L;
   public long rid;
   public String route;

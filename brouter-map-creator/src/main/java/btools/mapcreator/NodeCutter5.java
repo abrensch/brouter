@@ -5,6 +5,7 @@ import btools.util.DenseLongMap;
 import btools.util.TinyDenseLongMap;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * NodeCutter5 does 3 steps in map-processing:
@@ -29,7 +30,7 @@ public class NodeCutter5 extends ItemCutter implements ItemListener {
   }
 
   @Override
-  public void nextNode(NodeData n) throws Exception {
+  public void nextNode(NodeData n) throws IOException {
 
     boolean isRelevant = nodeFilter.getInt(n.nid) == 0; // 0 -> bit set, -1 -> unset
     if (!isRelevant) {

@@ -114,7 +114,7 @@ public class RestrictionData extends TurnRestriction {
     }
   }
 
-  public RestrictionData(BitInputStream bis) throws Exception {
+  public RestrictionData(BitInputStream bis) throws IOException {
     restrictionKey = unifyName(bis.readUTF());
     restriction = unifyName(bis.readUTF());
     exceptions = bis.readShort();
@@ -123,7 +123,7 @@ public class RestrictionData extends TurnRestriction {
     viaNid = bis.readLong();
   }
 
-  public void writeTo(BitOutputStream bos) throws Exception {
+  public void writeTo(BitOutputStream bos) throws IOException {
     bos.writeUTF(restrictionKey);
     bos.writeUTF(restriction);
     bos.writeShort(exceptions);

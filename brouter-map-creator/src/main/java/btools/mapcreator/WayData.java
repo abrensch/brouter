@@ -4,13 +4,15 @@ import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
 import btools.util.LongList;
 
+import java.io.IOException;
+
 /**
  * Container for waydata on the preprocessor level
  *
  * @author ab
  */
-public class WayData extends MapCreatorBase {
-  public static final long TYPE = 2l;
+public class WayData extends ItemData {
+  public static final long TYPE = 2L;
   public long wid;
   public byte[] description;
   public LongList nodes;
@@ -20,7 +22,7 @@ public class WayData extends MapCreatorBase {
     this.nodes = nodes;
   }
 
-  public WayData(BitInputStream bis) throws Exception {
+  public WayData(BitInputStream bis) throws IOException {
     nodes = new LongList(16);
     wid = bis.decodeVarBytes();
     description = bis.decodeSizedByteArray();
@@ -31,7 +33,7 @@ public class WayData extends MapCreatorBase {
     }
   }
 
-  public void writeTo(BitOutputStream bos) throws Exception {
+  public void writeTo(BitOutputStream bos) throws IOException {
     bos.encodeVarBytes(TYPE);
     bos.encodeVarBytes(wid);
     bos.encodeSizedByteArray(description);

@@ -121,7 +121,7 @@ public class OsmCutter implements ItemListener {
   }
 
   @Override
-  public void nextNode(NodeData n) throws Exception {
+  public void nextNode(NodeData n) throws IOException {
     nodesParsed++;
     checkStats();
 
@@ -161,7 +161,7 @@ public class OsmCutter implements ItemListener {
 
 
   @Override
-  public void nextWay(WayData w) throws Exception {
+  public void nextWay(WayData w) throws IOException {
     waysParsed++;
     checkStats();
 
@@ -217,7 +217,7 @@ public class OsmCutter implements ItemListener {
   }
 
   @Override
-  public void nextRestriction(RelationData r, long fromWid, long toWid, long viaNid) throws Exception {
+  public void nextRestriction(RelationData r, long fromWid, long toWid, long viaNid) throws IOException {
     String type = r.getTag("type");
     if (type == null || !"restriction".equals(type)) {
       return;

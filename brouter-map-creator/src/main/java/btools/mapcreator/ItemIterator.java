@@ -6,12 +6,12 @@ import btools.util.SortedHeap;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 
 /**
- * Iterate over a singe nodefile or a directory
- * of nodetiles and feed the nodes to the callback listener
- *
- * @author ab
+ * Iterate over a singe file or a directory
+ * of files containing OSM items and feed the
+ * items to the callback listener
  */
 public class ItemIterator {
   private ItemListener listener;
@@ -48,7 +48,7 @@ public class ItemIterator {
   }
 
 
-  public void processFile(File file) throws Exception {
+  public void processFile(File file) throws IOException {
     System.out.println("*** ItemIterator reading: " + file);
 
     try ( BitInputStream bis = new BitInputStream(new BufferedInputStream(new FileInputStream(file))) ){
@@ -87,5 +87,4 @@ public class ItemIterator {
       files[i] = heap.popLowestKeyValue();
     }
   }
-
 }

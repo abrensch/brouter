@@ -33,7 +33,7 @@ public class NodeCutter extends ItemCutter {
     return tileIndexMap.getInt(nid);
   }
 
-  public void nextNode(NodeData n) throws Exception {
+  public void nextNode(NodeData n) throws IOException {
     // write node to file
     int tileIndex = getTileIndex(n.iLon, n.iLat);
     if (tileIndex >= 0) {

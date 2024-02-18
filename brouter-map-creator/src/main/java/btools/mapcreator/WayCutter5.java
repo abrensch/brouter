@@ -7,6 +7,7 @@ import btools.util.DenseLongMap;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 
 /**
  * WayCutter5 does some steps in map-processing:
@@ -40,7 +41,7 @@ public class WayCutter5 extends ItemCutter implements ItemListener {
   }
 
   @Override
-  public boolean itemFileStart(File wayfile) throws Exception {
+  public boolean itemFileStart(File wayfile) throws IOException {
 
     // cut the corresponding node-file, filtering the relevant nodes using nodeFilter
     // (and nodeCutter5 populates it's tile-index-map needed to distribute the ways and restrictions)
@@ -68,7 +69,7 @@ public class WayCutter5 extends ItemCutter implements ItemListener {
   }
 
   @Override
-  public void nextWay(WayData data) throws Exception {
+  public void nextWay(WayData data) throws IOException {
     long waytileset = 0;
     int nnodes = data.nodes.size();
     int[] tiForNode = new int[nnodes];
@@ -105,7 +106,7 @@ public class WayCutter5 extends ItemCutter implements ItemListener {
   }
 
   @Override
-  public void itemFileEnd(File wayFile) throws Exception {
+  public void itemFileEnd(File wayFile) throws IOException {
     closeTileOutStreams();
   }
 

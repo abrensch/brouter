@@ -1,10 +1,6 @@
 package btools.mapcreator;
 
-import java.io.BufferedInputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -22,7 +18,7 @@ import btools.util.FrozenLongSet;
  *
  * @author ab
  */
-public class PosUnifier extends MapCreatorBase implements ItemListener {
+public class PosUnifier extends ItemCutter implements ItemListener {
   private BitOutputStream nodesOutStream;
   private BitOutputStream borderNodesOut;
   private CompactLongSet[] positionSets;
@@ -35,8 +31,6 @@ public class PosUnifier extends MapCreatorBase implements ItemListener {
 
   private CompactLongSet borderNids;
 
-  private File dataTilesOut;
-
   public static void main(String[] args) throws Exception {
     System.out.println("*** PosUnifier: Unify position values and enhance elevation");
     if (args.length != 2) {
@@ -47,11 +41,7 @@ public class PosUnifier extends MapCreatorBase implements ItemListener {
   }
 
   public PosUnifier(File tmpDir) {
-
-    dataTilesOut = new File( tmpDir, "unodes55" );
-    if ( !dataTilesOut.exists() && !dataTilesOut.mkdir() ) {
-      throw new RuntimeException( "directory " + dataTilesOut + " cannot be created" );
-    }
+    super( new File( tmpDir, "unodes55" ) );
   }
 
   public void process(File tmpDir, String srtmdir) throws Exception {
@@ -77,15 +67,15 @@ public class PosUnifier extends MapCreatorBase implements ItemListener {
   }
 
   @Override
-  public boolean itemFileStart(File nodefile) throws Exception {
+  public boolean itemFileStart(File nodefile) throws IOException {
     resetSrtm();
-    nodesOutStream = createOutStream(fileFromTemplate(nodefile, dataTilesOut, "u5d"));
+    nodesOutStream = createOutStream(fileFromTemplate(nodefile, outTileDir, "u5d"));
     positionSets = new CompactLongSet[2500];
     return true;
   }
 
   @Override
-  public void nextNode(NodeData n) throws Exception {
+  public void nextNode(NodeData n) throws IOException {
     n.sElev = Short.MIN_VALUE;
 
     // TODO: performance bottleneck from hgtForNode
@@ -107,7 +97,7 @@ public class PosUnifier extends MapCreatorBase implements ItemListener {
   }
 
   @Override
-  public void itemFileEnd(File nodeFile) throws Exception {
+  public void itemFileEnd(File nodeFile) throws IOException {
     nodesOutStream.encodeVarBytes(0L);
     nodesOutStream.close();
     resetSrtm();
@@ -158,7 +148,7 @@ public class PosUnifier extends MapCreatorBase implements ItemListener {
    * get the srtm data set for a position srtm coords are
    * srtm_<srtmLon>_<srtmLat> where srtmLon = 180 + lon, srtmLat = 60 - lat
    */
-  private SrtmRaster srtmForNode(int ilon, int ilat) throws Exception {
+  private SrtmRaster srtmForNode(int ilon, int ilat) {
     int srtmLonIdx = (ilon + 5000000) / 5000000;
     int srtmLatIdx = (654999999 - ilat) / 5000000 - 100; // ugly negative rounding...
 

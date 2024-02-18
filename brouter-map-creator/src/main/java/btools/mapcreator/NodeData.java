@@ -3,12 +3,14 @@ package btools.mapcreator;
 import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
 
+import java.io.IOException;
+
 /**
  * Container for node data on the preprocessor level
  *
  * @author ab
  */
-public class NodeData extends MapCreatorBase {
+public class NodeData extends ItemData {
 
   public static final long TYPE = 1L;
   public static final long NID_TYPE = 5L;
@@ -24,7 +26,7 @@ public class NodeData extends MapCreatorBase {
     iLon = (int) ((lon + 180.) * 1000000. + 0.5);
   }
 
-  public NodeData(BitInputStream bis) throws Exception {
+  public NodeData(BitInputStream bis) throws IOException {
     nid = bis.readDiffed(0);
     iLon = (int) bis.readDiffed(1);
     iLat = (int) bis.readDiffed(2);
@@ -35,7 +37,7 @@ public class NodeData extends MapCreatorBase {
     if ((mode & 2) != 0) sElev = bis.readShort();
   }
 
-  public void writeTo(BitOutputStream bos) throws Exception {
+  public void writeTo(BitOutputStream bos) throws IOException {
     bos.encodeVarBytes(TYPE);
     bos.writeDiffed(nid, 0);
     bos.writeDiffed(iLon, 1);

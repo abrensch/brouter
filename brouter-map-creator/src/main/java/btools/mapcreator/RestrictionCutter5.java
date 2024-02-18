@@ -1,6 +1,7 @@
 package btools.mapcreator;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * RestrictionCutter5 does 1 step in map-processing:
@@ -15,7 +16,7 @@ public class RestrictionCutter5 extends ItemCutter {
     this.nodeCutter5 = nodeCutter5;
   }
 
-  public void nextRestriction(RestrictionData data) throws Exception {
+  public void nextRestriction(RestrictionData data) throws IOException {
     int tileIndex = nodeCutter5.getTileIndexForNid(data.viaNid);
     if (tileIndex != -1) {
       data.writeTo(getOutStreamForTile(tileIndex));
