@@ -29,8 +29,6 @@ public class RasterCoder {
   }
 
   public SrtmRaster decodeRaster(BitInputStream bis) throws IOException {
-    long t0 = System.currentTimeMillis();
-
     SrtmRaster raster = new SrtmRaster();
     int befMagic =  bis.readInt();
     if ( befMagic != 51423 ) {
@@ -48,9 +46,6 @@ public class RasterCoder {
     decodeRasterData(raster, bis);
 
     raster.usingWeights = raster.ncols > 6001;
-
-    long t1 = System.currentTimeMillis();
-    System.out.println("finished decoding in " + (t1 - t0) + " ms ncols=" + raster.ncols + " nrows=" + raster.nrows);
     return raster;
   }
 
@@ -116,7 +111,7 @@ public class RasterCoder {
     for (int row = 0; row < nrows; row++) {
       for (int col = 0; col < ncols; col += colstep) {
 
-        // deocde from a repcount/delta format
+        // decode from a repcount/delta format
         if (repCount == 0) {
           boolean negative = bis.decodeBit();
           int d = diffshift + (int)bis.decodeUnsignedVarBits();

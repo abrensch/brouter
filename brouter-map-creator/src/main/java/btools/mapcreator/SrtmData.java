@@ -3,6 +3,7 @@ package btools.mapcreator;
 /**
  * This is a wrapper for a 5*5 degree srtm file in ascii/zip-format
  */
+import btools.mapaccess.OsmFile;
 import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
 
@@ -120,7 +121,16 @@ public class SrtmData {
 
       long zipTime = t1 - t0;
 
-      File fbef = new File(new File(toDir), name.substring(0, name.length() - 3) + "bef");
+      String srtmName = f.getName();
+      int srtmLonIdx = Integer.parseInt(srtmName.substring(5, 7).toLowerCase());
+      int srtmLatIdx = Integer.parseInt(srtmName.substring(8, 10).toLowerCase());
+
+      int ilon_base = (srtmLonIdx - 1) * 5 - 180;
+      int ilat_base = 150 - srtmLatIdx * 5 - 90;
+
+      String befName = OsmFile.getBaseName(ilon_base,ilat_base) + ".bef";
+
+      File fbef = new File(new File(toDir), befName);
       System.out.println("recoding: " + f + " to " + fbef);
 
       try ( BitOutputStream bos = new BitOutputStream( new BufferedOutputStream(new FileOutputStream(fbef)))) {
