@@ -23,7 +23,6 @@ public class RelationMerger implements ItemListener {
   private CompactLongSet routesetall;
   private BExpressionContextWay expctxReport;
   private BExpressionContextWay expctxCheck;
-  // private BExpressionContext expctxStat;
 
   public RelationMerger(File tmpDir, File lookupFile, File reportProfile, File checkProfile) throws Exception {
     // read lookup + profile for relation access-check
@@ -37,7 +36,6 @@ public class RelationMerger implements ItemListener {
 
     expctxReport.parseFile(reportProfile, "global");
     expctxCheck.parseFile(checkProfile, "global");
-    // expctxStat = new BExpressionContext("way");
 
     // *** read the relation file into sets for each processed tag
     routesets = new HashMap<>();

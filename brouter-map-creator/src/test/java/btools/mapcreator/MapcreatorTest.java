@@ -16,21 +16,18 @@ public class MapcreatorTest {
     File mapFile = new File(mapurl.getFile());
     File workingDir = mapFile.getParentFile();
     File profileDir = new File(workingDir, "/../../../../misc/profiles2");
-    File tmpdir = new File(workingDir, "tmp");
-    tmpdir.mkdir();
+    File tmpDir = new File(workingDir, "tmp");
+    tmpDir.mkdir();
 
     File lookupFile = new File(profileDir, "lookups.dat");
     File profileAll = new File(profileDir, "all.brf");
     File profileReport = new File(profileDir, "trekking.brf");
     File profileCheck = new File(profileDir, "softaccess.brf");
 
-    OsmCutter.doCut(lookupFile, tmpdir, profileAll, profileReport, profileCheck, mapFile, null);
+    OsmParser.doParse(lookupFile, tmpDir, profileAll, profileReport, profileCheck, mapFile, null);
 
+    new NodeEnhancer(tmpDir).process(workingDir);
 
-    // run PosUnifier
-    new PosUnifier(tmpdir).process(tmpdir, workingDir.getAbsolutePath());
-
-    // run WayLinker
-    new WayLinker().process(tmpdir, lookupFile, profileAll, "rd5");
+    new WayLinker(tmpDir).process(lookupFile, profileAll, "rd5");
   }
 }

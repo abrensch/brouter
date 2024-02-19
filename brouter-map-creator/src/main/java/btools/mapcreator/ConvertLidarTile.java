@@ -1,5 +1,8 @@
 package btools.mapcreator;
 
+import btools.statcoding.BitInputStream;
+import btools.statcoding.BitOutputStream;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -132,14 +135,15 @@ public class ConvertLidarTile {
     raster.eval_array = imagePixels;
 
     // encode the raster
-    OutputStream os = new BufferedOutputStream(new FileOutputStream(outputFile));
-    new RasterCoder().encodeRaster(raster, os);
-    os.close();
+    try ( BitOutputStream bos = new BitOutputStream( new BufferedOutputStream(new FileOutputStream(outputFile)))) {
+      new RasterCoder().encodeRaster(raster, bos);
+    }
 
     // decode the raster
-    InputStream is = new BufferedInputStream(new FileInputStream(outputFile));
-    SrtmRaster raster2 = new RasterCoder().decodeRaster(is);
-    is.close();
+    SrtmRaster raster2;
+    try ( BitInputStream bis = new BitInputStream( new BufferedInputStream(new FileInputStream(outputFile)))) {
+      raster2 = new RasterCoder().decodeRaster(bis);
+    }
 
     short[] pix2 = raster2.eval_array;
     if (pix2.length != imagePixels.length)

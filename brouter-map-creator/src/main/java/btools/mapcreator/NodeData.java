@@ -13,7 +13,7 @@ import java.io.IOException;
 public class NodeData extends ItemData {
 
   public static final long TYPE = 1L;
-  public static final long NID_TYPE = 5L;
+  public static final long NID_TYPE = 2L;
   public long nid;
   public int iLon;
   public int iLat;

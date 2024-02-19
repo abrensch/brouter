@@ -14,32 +14,19 @@ import btools.util.*;
 
 /**
  * WayLinker finally puts the pieces together to create the rd5 files. For each
- * 5*5 tile, the corresponding nodefile and wayfile is read, plus the (global)
- * bordernodes file, and an rd5 is written
- *
- * @author ab
+ * 5*5 tile, the corresponding files for nodes, turn-restictions and ways are read,
+ * plus the (global) bordernodes file, and an rd5 datafile is created
  */
 public class WayLinker extends ItemCutter implements ItemListener, Runnable {
-  private File nodeTilesIn;
-  private File wayTilesIn;
-  private File dataTilesOut;
-  private File borderFileIn;
-
+  private File tmpDir;
   private String dataTilesSuffix;
-
   private boolean readingBorder;
-
   private CompactLongMap<OsmNode> nodesMap;
-  private List<OsmNode> nodesList;
   private CompactLongSet borderSet;
-
   private BExpressionContextWay expCtxWay;
-
   private ByteArrayUnifier abUnifier;
-
   private int minLon;
   private int minLat;
-
   private boolean isSlave;
   private ThreadController tc;
 
@@ -104,19 +91,20 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
       return;
     }
 
-    new WayLinker().process(new File(args[0]), new File(args[1]), new File(args[2]), args[3]);
+    new WayLinker(new File(args[0])).process(new File(args[1]), new File(args[2]), args[3]);
 
     System.out.println("dumping bad TRs");
     RestrictionData.dumpBadTRs();
   }
 
-  public WayLinker() {
-    super(null);
+  public WayLinker(File tmpDir) {
+    super(new File( tmpDir, "segments"));
+    this.tmpDir = tmpDir;
   }
 
-  public void process(File tmpDir, File lookupFile, File profileFile, String dataTilesSuffix) throws Exception {
-    WayLinker master = new WayLinker();
-    WayLinker slave = new WayLinker();
+  public void process(File lookupFile, File profileFile, String dataTilesSuffix) throws Exception {
+    WayLinker master = new WayLinker(tmpDir);
+    WayLinker slave = new WayLinker(tmpDir);
     slave.isSlave = true;
     master.isSlave = false;
 
@@ -136,15 +124,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
   }
 
   private void _process(File tmpDir, File lookupFile, File profileFile, String dataTilesSuffix) throws Exception {
-    this.nodeTilesIn = new File( tmpDir, "unodes55");
-    this.wayTilesIn = new File( tmpDir, "ways55");
-    this.dataTilesOut = new File( tmpDir, "segments");
-    this.borderFileIn = new File( tmpDir, "bordernodes.dat");;
     this.dataTilesSuffix = dataTilesSuffix;
-
-    if ( !dataTilesOut.exists() && !dataTilesOut.mkdir() ) {
-      throw new RuntimeException( "directory " + dataTilesOut + " cannot be created" );
-    }
 
     BExpressionMetaData meta = new BExpressionMetaData();
 
@@ -161,7 +141,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
   public void run() {
     try {
       // then process all segments
-      new ItemIterator(this).processDir(wayTilesIn, ".wt5", !isSlave);
+      new ItemIterator(this).processDir(new File( tmpDir, "ways55"), ".wt5", !isSlave);
     } catch (Exception e) {
       System.out.println("******* thread (slave=" + isSlave + ") got Exception: " + e);
       throw new RuntimeException(e);
@@ -178,7 +158,6 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
     // master/slave logic:
     // total memory size should stay below a maximum
     // and no file should be processed twice
-
     long fileSize = wayfile.length();
 
     System.out.println("**** wayFileStart() for isSlave=" + isSlave + " size=" + fileSize);
@@ -192,54 +171,31 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
         return false;
       }
     }
-
     if ( !tc.registerFileProcessed( wayfile.getName()) ) {
       return false;
     }
 
-    // process corresponding node-file, if any
-    File nodeFile = fileFromTemplate(wayfile, nodeTilesIn, "u5d");
-System.out.println( "****** processing nodeFile=" + nodeFile);
-    if (nodeFile.exists()) {
-      reset();
-      System.out.println( ".............. really processing nodeFile=" + nodeFile);
+    reset();
 
-      // read the border file
-      readingBorder = true;
-      new ItemIterator(this, false).processFile(borderFileIn);
-      borderSet = new FrozenLongSet(borderSet);
+    // read the border file
+    readingBorder = true;
+    File borderNodeFile = new File( tmpDir, "bordernodes.dat");
+    new ItemIterator(this, false).processFile(borderNodeFile);
+    borderSet = new FrozenLongSet(borderSet);
 
-      // read this tile's nodes
-      readingBorder = false;
-      new ItemIterator(this, true).processFile(nodeFile);
+    // read this tile's nodes
+    readingBorder = false;
+    File nodeFile = fileFromTemplate(wayfile, new File( tmpDir, "unodes55"), "u5d");
+    new ItemIterator(this, true).processFile(nodeFile);
 
-      // freeze the nodes-map (=faster access, less memory)
-      nodesMap = new FrozenLongMap<>(nodesMap);
+    // freeze the nodes-map (=faster access, less memory)
+    borderSet = null;
+    nodesMap = new FrozenLongMap<>(nodesMap);
 
-      File restrictionFile = fileFromTemplate(wayfile, new File(nodeTilesIn.getParentFile(), "restrictions55"), "rt5");
-      // read restrictions for nodes in nodesMap
-      if (restrictionFile.exists()) {
-        BitInputStream bis = new BitInputStream(new BufferedInputStream(new FileInputStream(restrictionFile)));
-        int ntr = 0;
-        try {
-          for (; ; ) {
-            RestrictionData res = new RestrictionData(bis);
-            OsmNode n = nodesMap.get(res.viaNid);
-            if (n != null) {
-              res.viaLon = n.iLon;
-              res.viaLat = n.iLat;
-              n.addTurnRestriction(res);
-              ntr++;
-            }
-          }
-        } catch (EOFException eof) {
-          bis.close();
-        }
-        System.out.println("read " + ntr + " turn-restrictions");
-      }
+    // read turn restrictions and attach to nodes in nodesMap
+    File restrictionFile = fileFromTemplate(wayfile, new File(tmpDir, "restrictions55"), "rt5");
+    new ItemIterator(this).processFile(restrictionFile);
 
-      nodesList = ((FrozenLongMap)nodesMap).getValueList();
-    }
     return true;
   }
 
@@ -270,6 +226,16 @@ System.out.println( "****** processing nodeFile=" + nodeFile);
       minLat = min_lat;
     if (minLat != min_lat || minLon != min_lon)
       throw new IllegalArgumentException("inconsistent node: " + n.iLon + " " + n.iLat);
+  }
+
+  @Override
+  public void nextRestriction(RestrictionData res) {
+    OsmNode n = nodesMap.get(res.viaNid);
+    if (n != null) {
+      res.viaLon = n.iLon;
+      res.viaLat = n.iLat;
+      n.addTurnRestriction(res);
+    }
   }
 
   // check if one of the nodes has a turn-restriction with
@@ -351,9 +317,9 @@ System.out.println( "****** processing nodeFile=" + nodeFile);
   @Override
   public void itemFileEnd(File wayfile) throws IOException {
 
+    // strip down the nodes-map to it's value-list
+    List<OsmNode> nodesList = ((FrozenLongMap)nodesMap).getValueList();
     nodesMap = null;
-    borderSet = null;
-
 
     int maxLon = minLon + 5000000;
     int maxLat = minLat + 5000000;
@@ -381,11 +347,10 @@ System.out.println( "****** processing nodeFile=" + nodeFile);
         }
       }
     }
-    nodesList = null;
     filteredNodesList.trimToSize();
 
     // and write the filtered nodes to a file
-    File outFile = fileFromTemplate(wayfile, dataTilesOut, dataTilesSuffix);
+    File outFile = fileFromTemplate(wayfile, outTileDir, dataTilesSuffix);
     new OsmFile( outFile, minLon, minLat, new byte[10*1024*1024]).createWithNodes( filteredNodesList );
   }
 }

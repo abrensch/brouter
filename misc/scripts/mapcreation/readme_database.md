@@ -46,6 +46,6 @@ Import new tags for noise, green and water feature
 
     call it with OsmFastCutter as last parameter (behind pbf file)
 
-    `... btools.mapcreator.OsmCutter ... ../planet-new.osm.pbf $(JDBC)`
+    `... btools.mapcreator.OsmParser ... ../planet-new.osm.pbf $(JDBC)`
 
 

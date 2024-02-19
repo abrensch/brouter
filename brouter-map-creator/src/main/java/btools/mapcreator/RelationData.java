@@ -12,7 +12,7 @@ import java.io.IOException;
  * @author ab
  */
 public class RelationData extends ItemData {
-  public static final long TYPE = 3L;
+  public static final long TYPE = 4L;
   public long rid;
   public String route;
   public String network;

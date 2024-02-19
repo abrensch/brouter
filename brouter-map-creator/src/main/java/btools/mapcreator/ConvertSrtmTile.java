@@ -1,5 +1,8 @@
 package btools.mapcreator;
 
+import btools.statcoding.BitInputStream;
+import btools.statcoding.BitOutputStream;
+
 import java.io.*;
 import java.util.zip.*;
 
@@ -50,7 +53,7 @@ public class ConvertSrtmTile {
         int i1 = dis.read();
 
         if (i0 == -1 || i1 == -1)
-          throw new RuntimeException("unexcepted end of file reading bil entry!");
+          throw new RuntimeException("unexpected end of file reading bil entry!");
 
         short val = (short) ((i1 << 8) | i0);
 
@@ -176,15 +179,14 @@ public class ConvertSrtmTile {
     raster.eval_array = imagePixels;
 
     // encode the raster
-    OutputStream os = new BufferedOutputStream(new FileOutputStream(outputFile));
-    new RasterCoder().encodeRaster(raster, os);
-    os.close();
-
+    try ( BitOutputStream bos = new BitOutputStream( new BufferedOutputStream(new FileOutputStream(outputFile)))) {
+      new RasterCoder().encodeRaster(raster, bos);
+    }
     // decode the raster
-    InputStream is = new BufferedInputStream(new FileInputStream(outputFile));
-    SrtmRaster raster2 = new RasterCoder().decodeRaster(is);
-    is.close();
-
+    SrtmRaster raster2;
+    try ( BitInputStream bis = new BitInputStream( new BufferedInputStream(new FileInputStream(outputFile)))) {
+      raster2 = new RasterCoder().decodeRaster(bis);
+    }
     short[] pix2 = raster2.eval_array;
     if (pix2.length != imagePixels.length)
       throw new RuntimeException("length mismatch!");
@@ -209,29 +211,6 @@ public class ConvertSrtmTile {
 
     for (int i = 1; i < 100; i++) System.out.println("diff[" + (i - 50) + "] = " + diffs[i]);
     System.out.println("datacells=" + datacells + " mismatch%=" + (100. * mismatches) / datacells);
-    btools.util.MixCoderDataOutputStream.stats();
-    // test( raster );
-    // raster.calcWeights( 50. );
-    // test( raster );
-    // 39828330 &lon=3115280&layer=OpenStreetMap
-  }
-
-  private static void test(SrtmRaster raster) {
-    int lat0 = 39828330;
-    int lon0 = 3115280;
-
-    for (int iy = -9; iy <= 9; iy++) {
-      StringBuilder sb = new StringBuilder();
-      for (int ix = -9; ix <= 9; ix++) {
-        int lat = lat0 + 90000000 - 100 * iy;
-        int lon = lon0 + 180000000 + 100 * ix;
-        int ival = (int) (raster.getElevation(lon, lat) / 4.);
-        String sval = "     " + ival;
-        sb.append(sval.substring(sval.length() - 4));
-      }
-      System.out.println(sb);
-      System.out.println();
-    }
   }
 
   private static String formatLon(int lon) {

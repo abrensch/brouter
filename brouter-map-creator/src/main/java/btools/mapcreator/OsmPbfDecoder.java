@@ -5,7 +5,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.openstreetmap.osmosis.osmbinary.Fileformat;
 import org.openstreetmap.osmosis.osmbinary.Osmformat;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,39 +18,93 @@ import java.util.zip.Inflater;
 import btools.util.LongList;
 
 /**
- * Converts PBF block data into decoded entities ready to be passed into an Osmosis pipeline. This
- * class is designed to be passed into a pool of worker threads to allow multi-threaded decoding.
- * <p/>
+ * OsmPbfDecoder decodes a .osm.pbf file containing OSM data
  *
- * @author Brett Henderson
+ * The code ist mostly copied from the Osmmosis project
+ * (see PbfBlobDecoder/PbfFieldDecoder in https://github.com/openstreetmap/osmosis )
+ * and adapted for the needs of our MapCreator.
+ * It needs the dependency to the osmosis project, which implies a transient
+ * dependency to Google protobuf
+ *
+ * OsmPbfDecoder contains additional logic for reading from a file
+ * while it is written, to support pipelining in BRouter map creation.
  */
-public class BPbfBlobDecoder {
+public class OsmPbfDecoder {
   private String blobType;
   private byte[] rawBlob;
 
   private OsmParser parser;
 
-  /**
-   * Creates a new instance.
-   * <p/>
-   *
-   * @param blobType The type of blob.
-   * @param rawBlob  The raw data of the blob.
-   * @param listener The listener for receiving decoding results.
-   */
-  public BPbfBlobDecoder(String blobType, byte[] rawBlob, OsmParser parser) {
-    this.blobType = blobType;
-    this.rawBlob = rawBlob;
+  public void readMap(File mapFile, OsmParser parser) throws Exception {
     this.parser = parser;
+
+    System.out.println("*** PBF Parsing: " + mapFile);
+
+    long bytesRead = 0L;
+    boolean avoidMapPolling = Boolean.getBoolean("avoidMapPolling");
+
+    if (!avoidMapPolling) {
+      // wait for file to become available
+      while (!mapFile.exists()) {
+        System.out.println("--- waiting for " + mapFile + " to become available");
+        Thread.sleep(10000);
+      }
+    }
+
+    long currentSize = mapFile.length();
+    long currentSizeTime = System.currentTimeMillis();
+
+    DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(mapFile)));
+
+
+    for (; ; ) {
+      if (!avoidMapPolling) {
+        // continue reading if either more then a 100 MB unread, or the current-size is known for more than 2 Minutes
+        while (currentSize - bytesRead < 100000000L) {
+          long newSize = mapFile.length();
+          if (newSize != currentSize) {
+            currentSize = newSize;
+            currentSizeTime = System.currentTimeMillis();
+          } else if (System.currentTimeMillis() - currentSizeTime > 120000) {
+            break;
+          }
+          if (currentSize - bytesRead < 100000000L) {
+            System.out.println("--- waiting for more data, currentSize=" + currentSize + " bytesRead=" + bytesRead);
+            Thread.sleep(10000);
+          }
+        }
+      }
+
+      int headerLength;
+      try {
+        headerLength = dis.readInt();
+        bytesRead += 4;
+      } catch (EOFException e) {
+        break;
+      }
+
+      byte[] headerBuffer = new byte[headerLength];
+      dis.readFully(headerBuffer);
+      bytesRead += headerLength;
+      Fileformat.BlobHeader blobHeader = Fileformat.BlobHeader.parseFrom(headerBuffer);
+
+      byte[] blobData = new byte[blobHeader.getDatasize()];
+      dis.readFully(blobData);
+      bytesRead += blobData.length;
+
+      blobType = blobHeader.getType();
+      rawBlob = blobData;
+
+      processBlob();
+    }
+    dis.close();
   }
 
-  public void process() throws Exception {
+  public void processBlob() throws Exception {
     if ("OSMHeader".equals(blobType)) {
       processOsmHeader(readBlobContent());
-
     } else if ("OSMData".equals(blobType)) {
       processOsmPrimitives(readBlobContent());
-
     } else {
       System.out.println("Skipping unrecognised blob type " + blobType);
     }
@@ -82,27 +136,20 @@ public class BPbfBlobDecoder {
   }
 
   private void processOsmHeader(byte[] data) throws InvalidProtocolBufferException {
-    Osmformat.HeaderBlock header = Osmformat.HeaderBlock.parseFrom(data);
-
-    // Build the list of active and unsupported features in the file.
+    // look for unsupported features in the file.
     List<String> supportedFeatures = Arrays.asList("OsmSchema-V0.6", "DenseNodes");
-    List<String> activeFeatures = new ArrayList<>();
     List<String> unsupportedFeatures = new ArrayList<>();
-    for (String feature : header.getRequiredFeaturesList()) {
-      if (supportedFeatures.contains(feature)) {
-        activeFeatures.add(feature);
-      } else {
+    for (String feature : Osmformat.HeaderBlock.parseFrom(data).getRequiredFeaturesList()) {
+      if (!supportedFeatures.contains(feature)) {
         unsupportedFeatures.add(feature);
       }
     }
-
     // We can't continue if there are any unsupported features. We wait
     // until now so that we can display all unsupported features instead of
     // just the first one we encounter.
-    if (unsupportedFeatures.size() > 0) {
+    if (!unsupportedFeatures.isEmpty()) {
       throw new RuntimeException("PBF file contains unsupported features " + unsupportedFeatures);
     }
-
   }
 
   private Map<String, String> buildTags(List<Integer> keys, List<Integer> values, BPbfFieldDecoder fieldDecoder) {
@@ -121,16 +168,20 @@ public class BPbfBlobDecoder {
     return null;
   }
 
-  private void processNodes(List<Osmformat.Node> nodes, BPbfFieldDecoder fieldDecoder) {
+  private void processNodes(List<Osmformat.Node> nodes, BPbfFieldDecoder fieldDecoder) throws IOException {
     for (Osmformat.Node node : nodes) {
       Map<String, String> tags = buildTags(node.getKeysList(), node.getValsList(), fieldDecoder);
 
-      parser.addNode(node.getId(), tags, fieldDecoder.decodeLatitude(node
-        .getLat()), fieldDecoder.decodeLatitude(node.getLon()));
+      NodeData n = new NodeData(node.getId(),
+        fieldDecoder.decodeLongitude(node.getLat()), fieldDecoder.decodeLatitude(node.getLon()));
+      n.setTags(tags);
+
+
+      parser.addNode(n);
     }
   }
 
-  private void processNodes(Osmformat.DenseNodes nodes, BPbfFieldDecoder fieldDecoder) {
+  private void processNodes(Osmformat.DenseNodes nodes, BPbfFieldDecoder fieldDecoder) throws IOException {
     List<Long> idList = nodes.getIdList();
     List<Long> latList = nodes.getLatList();
     List<Long> lonList = nodes.getLonList();
@@ -165,11 +216,14 @@ public class BPbfBlobDecoder {
         tags.put(fieldDecoder.decodeString(keyIndex), fieldDecoder.decodeString(valueIndex));
       }
 
-      parser.addNode(nodeId, tags, ((double) latitude) / 10000000, ((double) longitude) / 10000000);
+      NodeData n = new NodeData(nodeId,
+        ((double) longitude) / 10000000, ((double) latitude) / 10000000);
+      n.setTags(tags);
+      parser.addNode(n);
     }
   }
 
-  private void processWays(List<Osmformat.Way> ways, BPbfFieldDecoder fieldDecoder) {
+  private void processWays(List<Osmformat.Way> ways, BPbfFieldDecoder fieldDecoder) throws IOException {
     for (Osmformat.Way way : ways) {
       Map<String, String> tags = buildTags(way.getKeysList(), way.getValsList(), fieldDecoder);
 
@@ -182,8 +236,9 @@ public class BPbfBlobDecoder {
         nodeId += nodeIdOffset;
         wayNodes.add(nodeId);
       }
-
-      parser.addWay(way.getId(), tags, wayNodes);
+      WayData w = new WayData(way.getId(), wayNodes);
+      w.setTags(tags);
+      parser.addWay(w);
     }
   }
 
@@ -243,7 +298,7 @@ public class BPbfBlobDecoder {
     }
   }
 
-  private void processOsmPrimitives(byte[] data) throws InvalidProtocolBufferException {
+  private void processOsmPrimitives(byte[] data) throws Exception {
     Osmformat.PrimitiveBlock block = Osmformat.PrimitiveBlock.parseFrom(data);
     BPbfFieldDecoder fieldDecoder = new BPbfFieldDecoder(block);
 
@@ -255,4 +310,56 @@ public class BPbfBlobDecoder {
     }
   }
 
+  private static class BPbfFieldDecoder {
+    private static final double COORDINATE_SCALING_FACTOR = 0.000000001;
+    private final String[] strings;
+    private final int coordGranularity;
+    private final long coordLatitudeOffset;
+    private final long coordLongitudeOffset;
+
+    /**
+     * @param primitiveBlock The primitive block containing the fields to be decoded.
+     */
+    public BPbfFieldDecoder(Osmformat.PrimitiveBlock primitiveBlock) {
+      this.coordGranularity = primitiveBlock.getGranularity();
+      this.coordLatitudeOffset = primitiveBlock.getLatOffset();
+      this.coordLongitudeOffset = primitiveBlock.getLonOffset();
+
+      Osmformat.StringTable stringTable = primitiveBlock.getStringtable();
+      strings = new String[stringTable.getSCount()];
+      for (int i = 0; i < strings.length; i++) {
+        strings[i] = stringTable.getS(i).toStringUtf8();
+      }
+    }
+
+    /**
+     * Decodes a raw latitude value into degrees.
+     *
+     * @param rawLatitude The PBF encoded value.
+     * @return The latitude in degrees.
+     */
+    public double decodeLatitude(long rawLatitude) {
+      return COORDINATE_SCALING_FACTOR * (coordLatitudeOffset + (coordGranularity * rawLatitude));
+    }
+
+    /**
+     * Decodes a raw longitude value into degrees.
+     *
+     * @param rawLongitude The PBF encoded value.
+     * @return The longitude in degrees.
+     */
+    public double decodeLongitude(long rawLongitude) {
+      return COORDINATE_SCALING_FACTOR * (coordLongitudeOffset + (coordGranularity * rawLongitude));
+    }
+
+    /**
+     * Decodes a raw string into a String.
+     *
+     * @param rawString The PBF encoding string.
+     * @return The string as a String.
+     */
+    public String decodeString(int rawString) {
+      return strings[rawString];
+    }
+  }
 }

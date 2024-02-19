@@ -2,13 +2,9 @@ package btools.mapcreator;
 
 /**
  * This is a wrapper for a 5*5 degree srtm file in ascii/zip-format
- * <p>
- * - filter out unused nodes according to the way file
- * - enhance with SRTM elevation data
- * - split further in smaller (5*5 degree) tiles
- *
- * @author ab
  */
+import btools.statcoding.BitInputStream;
+import btools.statcoding.BitOutputStream;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -18,7 +14,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.util.StringTokenizer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -127,16 +122,17 @@ public class SrtmData {
 
       File fbef = new File(new File(toDir), name.substring(0, name.length() - 3) + "bef");
       System.out.println("recoding: " + f + " to " + fbef);
-      OutputStream osbef = new BufferedOutputStream(new FileOutputStream(fbef));
-      new RasterCoder().encodeRaster(raster, osbef);
-      osbef.close();
+
+      try ( BitOutputStream bos = new BitOutputStream( new BufferedOutputStream(new FileOutputStream(fbef)))) {
+        new RasterCoder().encodeRaster(raster, bos);
+      }
 
       System.out.println("*** re-reading: " + fbef);
-
       long t2 = System.currentTimeMillis();
-      InputStream isc = new BufferedInputStream(new FileInputStream(fbef));
-      SrtmRaster raster2 = new RasterCoder().decodeRaster(isc);
-      isc.close();
+      SrtmRaster raster2;
+      try ( BitInputStream bis = new BitInputStream( new BufferedInputStream(new FileInputStream(fbef)))) {
+        raster2 = new RasterCoder().decodeRaster(bis);
+      }
       long t3 = System.currentTimeMillis();
 
       long befTime = t3 - t2;

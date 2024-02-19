@@ -20,7 +20,7 @@ import btools.util.CheapAngleMeter;
  */
 public class RestrictionData extends TurnRestriction {
 
-  public static final long TYPE = 4L;
+  public static final long TYPE = 5L;
 
   public String restrictionKey;
   public String restriction;
@@ -124,6 +124,7 @@ public class RestrictionData extends TurnRestriction {
   }
 
   public void writeTo(BitOutputStream bos) throws IOException {
+    bos.encodeVarBytes(TYPE);
     bos.writeUTF(restrictionKey);
     bos.writeUTF(restriction);
     bos.writeShort(exceptions);

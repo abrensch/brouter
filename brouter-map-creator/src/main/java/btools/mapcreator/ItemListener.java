@@ -28,7 +28,7 @@ public interface ItemListener {
     throw new RuntimeException( "nextRelation not implemented");
   }
 
-  default void nextRestriction(RelationData data, long fromWid, long toWid, long viaNid) throws IOException {
+  default void nextRestriction(RestrictionData data) throws IOException {
     throw new RuntimeException( "nextRestriction not implemented");
   }
 

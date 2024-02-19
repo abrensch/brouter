@@ -49,8 +49,12 @@ public class ItemIterator {
 
 
   public void processFile(File file) throws IOException {
-    System.out.println("*** ItemIterator reading: " + file);
-
+    if ( file.exists() ) {
+      System.out.println("*** ItemIterator reading: " + file);
+    } else {
+      System.out.println("*** ItemIterator skipping non-existing file: " + file);
+      return;
+    }
     try ( BitInputStream bis = new BitInputStream(new BufferedInputStream(new FileInputStream(file))) ){
       for(;;) {
         long type = bis.decodeVarBytes();
@@ -59,15 +63,18 @@ public class ItemIterator {
         } else if ( type == NodeData.TYPE ) {
           NodeData n = new NodeData(bis);
           listener.nextNode(n);
+        } else if ( type == NodeData.NID_TYPE ) {
+          long nid = bis.decodeVarBytes();
+          listener.nextNodeId(nid);
         } else if ( type == WayData.TYPE ) {
           WayData w = new WayData(bis);
           listener.nextWay(w);
         } else if ( type == RelationData.TYPE ) {
           RelationData r = new RelationData(bis);
           listener.nextRelation(r);
-        } else if ( type == NodeData.NID_TYPE ) {
-          long nid = bis.decodeVarBytes();
-          listener.nextNodeId(nid);
+        } else if ( type == RestrictionData.TYPE ) {
+          RestrictionData r = new RestrictionData(bis);
+          listener.nextRestriction(r);
         } else {
           throw new IllegalArgumentException( "unknown object type: " + type );
         }

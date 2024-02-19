@@ -45,26 +45,17 @@ public class WayCutter5 extends ItemCutter implements ItemListener {
 
     // cut the corresponding node-file, filtering the relevant nodes using nodeFilter
     // (and nodeCutter5 populates it's tile-index-map needed to distribute the ways and restrictions)
-    String name = wayfile.getName();
-    String nodefilename = name.substring(0, name.length() - 3) + "ntl";
-    File nodefile = new File( new File( tmpDir, "nodes" ), nodefilename);
+    File nodefile = fileFromTemplate(wayfile, new File(tmpDir, "nodes"), "ntl");
     nodeCutter5 = new NodeCutter5(tmpDir,nodeFilter);
     new ItemIterator(nodeCutter5).processFile(nodefile);
     nodeCutter5.closeTileOutStreams();
 
     // cut the corresponding restrictions-file
-    String restrictionFilename = name.substring(0, name.length() - 3) + "rtl";
-    File resfile = new File( new File(tmpDir, "restrictions"), restrictionFilename );
-    if (resfile.exists()) {
-      RestrictionCutter5 restrictionCutter5 = new RestrictionCutter5(tmpDir, nodeCutter5);
-      try ( BitInputStream bis = new BitInputStream(new BufferedInputStream(new FileInputStream(resfile))) ) {
-        while (bis.decodeVarBytes() == 1L) {
-          RestrictionData res = new RestrictionData(bis);
-          restrictionCutter5.nextRestriction(res);
-        }
-      }
-      restrictionCutter5.closeTileOutStreams();
-    }
+    File restrictionFile = fileFromTemplate(wayfile, new File(tmpDir, "restrictions"), "rtl");
+    RestrictionCutter5 restrictionCutter5 = new RestrictionCutter5(tmpDir, nodeCutter5);
+    new ItemIterator(restrictionCutter5).processFile(restrictionFile);
+    restrictionCutter5.closeTileOutStreams();
+
     return true;
   }
 
@@ -98,7 +89,7 @@ public class WayCutter5 extends ItemCutter implements ItemListener {
       int ti = tiForNode[i];
       if (ti != -1) {
         if ((i > 0 && tiForNode[i - 1] != ti) || (i + 1 < nnodes && tiForNode[i + 1] != ti)) {
-          borderNidsOutStream.encodeVarBytes(5L);
+          borderNidsOutStream.encodeVarBytes(NodeData.NID_TYPE);
           borderNidsOutStream.encodeVarBytes(data.nodes.get(i));
         }
       }

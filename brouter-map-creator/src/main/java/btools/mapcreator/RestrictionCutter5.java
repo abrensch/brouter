@@ -8,7 +8,7 @@ import java.io.IOException;
  * <p>
  * - cut the 45*30 restriction files into 5*5 pieces
  */
-public class RestrictionCutter5 extends ItemCutter {
+public class RestrictionCutter5 extends ItemCutter implements ItemListener {
   private NodeCutter5 nodeCutter5;
 
   public RestrictionCutter5(File tmpDir, NodeCutter5 nodeCutter5) {
@@ -16,6 +16,7 @@ public class RestrictionCutter5 extends ItemCutter {
     this.nodeCutter5 = nodeCutter5;
   }
 
+  @Override
   public void nextRestriction(RestrictionData data) throws IOException {
     int tileIndex = nodeCutter5.getTileIndexForNid(data.viaNid);
     if (tileIndex != -1) {

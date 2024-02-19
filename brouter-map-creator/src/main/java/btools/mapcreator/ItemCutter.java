@@ -21,7 +21,7 @@ public abstract class ItemCutter {
   protected final File outTileDir;
 
   protected ItemCutter(File outTileDir) {
-    if ( outTileDir != null && !outTileDir.exists() && !outTileDir.mkdir() ) {
+    if ( !outTileDir.exists() && !outTileDir.mkdir() ) {
       throw new RuntimeException( "directory " + outTileDir + " cannot be created" );
     }
     this.outTileDir = outTileDir;

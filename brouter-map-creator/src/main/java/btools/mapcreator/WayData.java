@@ -12,7 +12,7 @@ import java.io.IOException;
  * @author ab
  */
 public class WayData extends ItemData {
-  public static final long TYPE = 2L;
+  public static final long TYPE = 3L;
   public long wid;
   public byte[] description;
   public LongList nodes;
