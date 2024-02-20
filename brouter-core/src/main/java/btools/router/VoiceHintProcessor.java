@@ -83,10 +83,21 @@ public final class VoiceHintProcessor {
       if (explicitRoundabouts && input.oldWay.isRoundabout()) {
         if (roundaboudStartIdx == -1) roundaboudStartIdx = hintIdx;
         roundAboutTurnAngle += sumNonConsumedWithinCatchingRange(inputs, hintIdx);
+        if (roundaboudStartIdx == hintIdx) {
+          if (input.badWays != null) {
+            // remove goodWay
+            roundAboutTurnAngle -= input.goodWay.turnangle;
+            // add a badWay
+            for (MessageData badWay : input.badWays) {
+              if (!badWay.isBadOneway()) roundAboutTurnAngle += badWay.turnangle;
+            }
+          }
+        }
         boolean isExit = roundaboutExit == 0; // exit point is always exit
         if (input.badWays != null) {
           for (MessageData badWay : input.badWays) {
-            if (!badWay.isBadOneway() && badWay.isGoodForCars() && Math.abs(badWay.turnangle) < 120.) {
+            if (!badWay.isBadOneway() &&
+              badWay.isGoodForCars()) {
               isExit = true;
             }
           }
@@ -97,12 +108,35 @@ public final class VoiceHintProcessor {
         continue;
       }
       if (roundaboutExit > 0) {
-        roundAboutTurnAngle += sumNonConsumedWithinCatchingRange(inputs, hintIdx);
-        double startTurn = (roundaboudStartIdx != -1 ? inputs.get(roundaboudStartIdx + 1).goodWay.turnangle : turnAngle);
+        //roundAboutTurnAngle += sumNonConsumedWithinCatchingRange(inputs, hintIdx);
+        //double startTurn = (roundaboudStartIdx != -1 ? inputs.get(roundaboudStartIdx + 1).goodWay.turnangle : turnAngle);
         input.angle = roundAboutTurnAngle;
+        input.goodWay.turnangle = roundAboutTurnAngle;
         input.distanceToNext = distance;
-        input.roundaboutExit = startTurn < 0 ? roundaboutExit : -roundaboutExit;
+        //input.roundaboutExit = startTurn < 0 ? roundaboutExit : -roundaboutExit;
+        input.roundaboutExit = roundAboutTurnAngle < 0 ? roundaboutExit : -roundaboutExit;
+        float tmpangle = 0;
+        VoiceHint tmpRndAbt = new VoiceHint();
+        tmpRndAbt.badWays = new ArrayList<>();
+        for (int i = hintIdx-1; i > roundaboudStartIdx; i--) {
+          VoiceHint vh = inputs.get(i);
+          tmpangle += inputs.get(i).goodWay.turnangle;
+          if (vh.badWays != null) {
+            for (MessageData badWay : vh.badWays) {
+              if (!badWay.isBadOneway()) {
+                MessageData md = new MessageData();
+                md.linkdist = vh.goodWay.linkdist;
+                md.priorityclassifier = vh.goodWay.priorityclassifier;
+                md.turnangle = tmpangle;
+                tmpRndAbt.badWays.add(md);
+              }
+            }
+          }
+        }
         distance = 0.;
+
+        input.badWays = tmpRndAbt.badWays;
+
         results.add(input);
         roundAboutTurnAngle = 0.f;
         roundaboutExit = 0;
