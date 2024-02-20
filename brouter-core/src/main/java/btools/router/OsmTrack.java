@@ -23,8 +23,7 @@ import btools.util.CompactLongMap;
 import btools.util.FrozenLongMap;
 
 public final class OsmTrack {
-  final public static String version = "1.7.3";
-  final public static String versionDate = "19082023";
+  final private static String version = OsmTrack.class.getPackage().getImplementationVersion();
 
   // csv-header-line
   private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy";
