@@ -19,13 +19,13 @@ public class DPFilter {
   /**
    * A Transfer-Node has 2 links only (one forwrad/one reverse)
    * with the same way-tags, no node tags, no turn-restrictions,
-   * and is not part of the global border
+   * is not a TR target and is not part of the global border
    *
    * @return true if this is a transfer node
    */
   private static boolean isTransferNode(OsmNode n) {
     if (n.nodeDescription != null || n.firstRestriction != null
-        || n.hasBits(OsmNode.BORDER_BIT) || n.linkCount() != 2) {
+        || n.hasBits(OsmNode.BORDER_BIT) || n.hasBits(OsmNode.TR_TARGET_BIT) || n.linkCount() != 2) {
       return false;
     }
     OsmLink l1 = n.getFirstLink();

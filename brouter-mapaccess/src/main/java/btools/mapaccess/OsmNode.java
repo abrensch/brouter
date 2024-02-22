@@ -36,8 +36,8 @@ public class OsmNode extends OsmLink implements OsmPos {
   public final static int NO_TUNNEL_BIT = 2;
   public final static int BORDER_BIT = 4;
   public final static int TRANSFERNODE_BIT = 8;
+  public final static int TR_TARGET_BIT = 16;
   public final static int DP_SURVIVOR_BIT = 64;
-  public final static int DP_CANDIDATE_BIT = 128;
 
   public boolean hasBits( int mask ) {
     return (visitID & mask ) != 0;

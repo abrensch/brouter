@@ -110,7 +110,7 @@ public class OsmParser {
   }
 
   private void checkStats() {
-    if ((++recordCnt % 100000) == 0) System.out.println(statsLine());
+    if ((++recordCnt % 1000000) == 0) System.out.println(statsLine());
   }
 
   private String statsLine() {

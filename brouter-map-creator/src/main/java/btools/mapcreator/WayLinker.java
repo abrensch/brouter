@@ -257,6 +257,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
         if (r.fromLon == 0 || checkFrom) {
           r.fromLon = n1.iLon;
           r.fromLat = n1.iLat;
+          n1.setBits(OsmNode.TR_TARGET_BIT);
           if (isInnerNode(n2, w)) {
             r.badWayMatch = true;
           }
@@ -266,6 +267,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
         if (r.toLon == 0 || !checkFrom) {
           r.toLon = n1.iLon;
           r.toLat = n1.iLat;
+          n1.setBits(OsmNode.TR_TARGET_BIT);
           if (isInnerNode(n2, w)) {
             r.badWayMatch = true;
           }
@@ -347,6 +349,8 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
         }
       }
     }
+
+    TwoNodeLoopResolver.resolveTwoNodeLoops( filteredNodesList );
     filteredNodesList.trimToSize();
 
     // and write the filtered nodes to a file
