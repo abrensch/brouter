@@ -323,38 +323,51 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
     List<OsmNode> nodesList = ((FrozenLongMap)nodesMap).getValueList();
     nodesMap = null;
 
-    int maxLon = minLon + 5000000;
-    int maxLat = minLat + 5000000;
-
     // do Douglas Peuker elimination of too dense transfer nodes
     DPFilter.doDPFilter(nodesList);
 
-    // filter out irrelevant nodes (also those that where dropped in DP-elimination)
-    ArrayList<OsmNode> filteredNodesList = new ArrayList<>(nodesList.size());
-    for (OsmNode n : nodesList) {
-      if (n.linkCount() == 0)
-        continue;
-      if (n.iLon < minLon || n.iLon >= maxLon || n.iLat < minLat || n.iLat >= maxLat)
-        continue;
-      filteredNodesList.add(n);
+    long turnRestrictionsTotal = 0;
+    long turnRestrictionsValid = 0;
 
-      // filter-out invalid TRs
+    // filter out irrelevant nodes (also those that where dropped in DP-elimination)
+    nodesList = filterNodes( nodesList );
+
+    // filter-out invalid TRs
+    for (OsmNode n : nodesList) {
       TurnRestriction rd = n.firstRestriction;
       n.firstRestriction = null;
       while (rd != null) {
+        turnRestrictionsTotal++;
         TurnRestriction tr = ((RestrictionData) rd).validate();
         rd = rd.next;
         if (tr != null) {
           n.addTurnRestriction(tr);
+          turnRestrictionsValid++;
         }
       }
     }
+    System.out.println( "TRs (total/valid): " + turnRestrictionsTotal + "/" + turnRestrictionsValid );
 
-    TwoNodeLoopResolver.resolveTwoNodeLoops( filteredNodesList );
-    filteredNodesList.trimToSize();
+
+    new TwoNodeLoopResolver( nodesList ).resolve();
+    nodesList = filterNodes( nodesList ); // filter again
 
     // and write the filtered nodes to a file
     File outFile = fileFromTemplate(wayfile, outTileDir, dataTilesSuffix);
-    new OsmFile( outFile, minLon, minLat, new byte[10*1024*1024]).createWithNodes( filteredNodesList );
+    new OsmFile( outFile, minLon, minLat, new byte[10*1024*1024]).createWithNodes( nodesList );
+  }
+
+  private List<OsmNode> filterNodes( List<OsmNode> nodes ) {
+    int maxLon = minLon + 5000000;
+    int maxLat = minLat + 5000000;
+    ArrayList<OsmNode> filtered = new ArrayList<>(nodes.size());
+    for (OsmNode n : nodes) {
+      if (n.linkCount() == 0 || n.iLon < minLon || n.iLon >= maxLon || n.iLat < minLat || n.iLat >= maxLat) {
+        continue;
+      }
+      filtered.add(n);
+    }
+    filtered.trimToSize();
+    return filtered;
   }
 }

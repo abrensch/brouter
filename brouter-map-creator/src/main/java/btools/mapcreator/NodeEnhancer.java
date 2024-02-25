@@ -1,8 +1,6 @@
 package btools.mapcreator;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
 
 import btools.statcoding.BitInputStream;
 import btools.statcoding.BitInterleavedConverter;
@@ -22,7 +20,7 @@ public class NodeEnhancer extends ItemCutter implements ItemListener {
   private BitOutputStream borderNodesOut;
   private CompactLongSet[] positionSets;
 
-  private SrtmRaster srtmRaster;
+  private ElevationRaster elevationRaster;
   private File tmpDir;
   private File srtmDir;
 
@@ -66,12 +64,12 @@ public class NodeEnhancer extends ItemCutter implements ItemListener {
 
   @Override
   public boolean itemFileStart(File nodefile) throws IOException {
-    srtmRaster = null;
+    elevationRaster = null;
     File demFile = fileFromTemplate( nodefile, srtmDir, "bef" );
     if (demFile.exists()) {
       System.out.println("*** reading: " + demFile);
       try ( BitInputStream bis = new BitInputStream( new BufferedInputStream(new FileInputStream(demFile))) ){
-        srtmRaster = new RasterCoder().decodeRaster(bis);
+        elevationRaster = new ElevationRasterCoder().decodeRaster(bis);
       }
     } else {
       System.out.println("*** DEM file not found: " + demFile);
@@ -83,7 +81,7 @@ public class NodeEnhancer extends ItemCutter implements ItemListener {
 
   @Override
   public void nextNode(NodeData n) throws IOException {
-    n.sElev = srtmRaster == null ? Short.MIN_VALUE : srtmRaster.getElevation(n.iLon, n.iLat);
+    n.sElev = elevationRaster == null ? Short.MIN_VALUE : elevationRaster.getElevation(n.iLon, n.iLat);
     unifyPosition(n);
     n.writeTo(nodesOutStream);
     if (borderNids.contains(n.nid)) {

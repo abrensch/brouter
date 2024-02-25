@@ -52,6 +52,17 @@ public class TurnRestriction {
     return !hasPositive && (hasAnyPositive || hasNegative);
   }
 
+  public TurnRestriction createCopy() {
+    TurnRestriction tr = new TurnRestriction();
+    tr.isPositive = isPositive;
+    tr.exceptions = exceptions;
+    tr.fromLon = fromLon;
+    tr.fromLat = fromLat;
+    tr.toLon = toLon;
+    tr.toLat = toLat;
+    return tr;
+  }
+
   @Override
   public String toString() {
     return "pos=" + isPositive + " fromLon=" + fromLon + " fromLat=" + fromLat + " toLon=" + toLon + " toLat=" + toLat;

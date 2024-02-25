@@ -47,6 +47,9 @@ public class DPFilter {
     OsmLink l2 = l1.getNext( n );
     OsmNode n1 = l1.getTarget( n );
     OsmNode n2 = l2.getTarget( n );
+    if ( n1.linkForTarget( n2.iLon, n2.iLat ) != null ) {
+      return; // do not create a new 2-node loop
+    }
     byte[] wayDescription = l1.wayDescription;
     boolean reverse = l2.isReverse(n);
     n.vanish();

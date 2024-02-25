@@ -9,8 +9,8 @@ import btools.statcoding.BitOutputStream;
 // Encode/decode a raster
 //
 
-public class RasterCoder {
-  public void encodeRaster(SrtmRaster raster, BitOutputStream bos) throws IOException {
+public class ElevationRasterCoder {
+  public void encodeRaster(ElevationRaster raster, BitOutputStream bos) throws IOException {
     long t0 = System.currentTimeMillis();
 
     bos.writeInt(51423); // magic word BEF version 2
@@ -28,8 +28,8 @@ public class RasterCoder {
     System.out.println("finished encoding in " + (t1 - t0) + " ms");
   }
 
-  public SrtmRaster decodeRaster(BitInputStream bis) throws IOException {
-    SrtmRaster raster = new SrtmRaster();
+  public ElevationRaster decodeRaster(BitInputStream bis) throws IOException {
+    ElevationRaster raster = new ElevationRaster();
     int befMagic =  bis.readInt();
     if ( befMagic != 51423 ) {
       throw new IllegalArgumentException( "this is not a BRouter Elevation File in BEF Version 2" );
@@ -50,7 +50,7 @@ public class RasterCoder {
   }
 
 
-  private void encodeRasterData(SrtmRaster raster, BitOutputStream bos) throws IOException {
+  private void encodeRasterData(ElevationRaster raster, BitOutputStream bos) throws IOException {
     int nrows = raster.nrows;
     int ncols = raster.ncols;
     short[] pixels = raster.eval_array;
@@ -98,7 +98,7 @@ public class RasterCoder {
     bos.encodeUnsignedVarBits(repCount - 1);
   }
 
-  private void decodeRasterData(SrtmRaster raster, BitInputStream bis) throws IOException {
+  private void decodeRasterData(ElevationRaster raster, BitInputStream bis) throws IOException {
     int nrows = raster.nrows;
     int ncols = raster.ncols;
     short[] pixels = raster.eval_array;

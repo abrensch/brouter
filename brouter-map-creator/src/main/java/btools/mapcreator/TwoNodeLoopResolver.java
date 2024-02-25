@@ -9,6 +9,7 @@ import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.TurnRestriction;
 import btools.util.CheapRuler;
+import btools.util.CompactLongSet;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,10 +17,21 @@ import java.util.List;
 
 public class TwoNodeLoopResolver {
 
+
+  private List<OsmNode> nodes;
+  private CompactLongSet positionSet = new CompactLongSet();
+
+  public TwoNodeLoopResolver(List<OsmNode> nodes) {
+    this.nodes = nodes;
+    for( OsmNode n : nodes ) {
+      positionSet.fastAdd( n.getIdFromPos() );
+    }
+  }
+
   /*
    * check each node for duplicate targets and eventually split a link
    */
-  public static void resolveTwoNodeLoops(List<OsmNode> nodes) {
+  public void resolve() {
 
     // loop over network nodes and follow forward links
     int initialNodeCount = nodes.size();
@@ -30,13 +42,14 @@ public class TwoNodeLoopResolver {
       if (duplicate == null) {
         i++;
       } else {
-        splitDuplicateLink(n, duplicate, nodes);
+        splitDuplicateLink(n, duplicate);
       }
     }
+System.out.println( "resolving done for tile, drops=" + drops + " splits=" + splits );
   }
 
   // check a node for duplicate targets
-  private static OsmLink checkNode(OsmNode n) {
+  private OsmLink checkNode(OsmNode n) {
     for(OsmLink l = n.firstLink; l != null; l = l.getNext(n)) {
       OsmNode t = l.getTarget(n);
       if ( t.hasBits(OsmNode.BORDER_BIT) && n.hasBits(OsmNode.BORDER_BIT) ) {
@@ -50,8 +63,10 @@ public class TwoNodeLoopResolver {
     }
     return null;
   }
+private long drops;
+private long splits;
 
-  private static void splitDuplicateLink(OsmNode n, OsmLink link, List<OsmNode> nodes) {
+  private void splitDuplicateLink(OsmNode n, OsmLink link) {
 
     OsmNode t = link.getTarget(n);
     boolean reverse = link.isReverse(n);
@@ -80,10 +95,11 @@ public class TwoNodeLoopResolver {
     }
 
     if ( justDrop ) {
+      drops++;
       return;
     }
 
-    System.out.println( "*** INFO: splitting duplicate link " + n + " --> " + t );
+    splits++;
 
     OsmNode splitNode = null;
 
@@ -96,8 +112,9 @@ public class TwoNodeLoopResolver {
       double deltaLat = n.iLat - t.iLat;
       int iLon = t.iLon + (int)((deltaLon*pos)/distance);
       int iLat = t.iLat + (int)((deltaLat*pos)/distance);
-      if  ( !positionOccupied(iLon,iLat,nodes) ) {
-        splitNode = new OsmNode(iLon,iLat);
+      OsmNode testNode = new OsmNode(iLon,iLat);
+      if ( !positionSet.add( testNode.getIdFromPos() ) ) {
+        splitNode = testNode;
         splitNode.sElev = n.sElev;
         break;
       }
@@ -106,7 +123,7 @@ public class TwoNodeLoopResolver {
     }
 
     if ( splitNode == null ) {
-      System.out.println( "*** ERROR: cannot create splitNode for duplicate link: " + n + " --> " + t );
+      System.out.println( "*** ERROR: cannot create splitNode for duplicate link: " + n + " --> " + t + " distance=" + distance );
       return;
     }
 
@@ -120,25 +137,27 @@ public class TwoNodeLoopResolver {
     }
 
     // check if we tampered with a TR (just report for now)
-    checkTrPairing( n, t);
-    checkTrPairing( t, n);
+    checkTrPairing( n, t, splitNode );
+    checkTrPairing( t, n, splitNode );
   }
 
-  private static void checkTrPairing( OsmNode n1, OsmNode n2 ) {
+  private void checkTrPairing( OsmNode n1, OsmNode n2, OsmNode n3 ) {
     for(TurnRestriction tr = n1.firstRestriction; tr != null; tr = tr.next ) {
-      if ( ( tr.fromLon == n2.iLon && tr.fromLat == n2.iLat )
-        || ( tr.toLon == n2.iLon && tr.toLat == n2.iLat ) ) {
-        System.out.println( "****** WARNING: TR affected by split ! ******" );
+      boolean fromMatch = tr.fromLon == n2.iLon && tr.fromLat == n2.iLat;
+      boolean toMatch = tr.toLon == n2.iLon && tr.toLat == n2.iLat;
+      if ( fromMatch || toMatch ) {
+        TurnRestriction c = tr.createCopy();
+        if ( fromMatch ) {
+          c.fromLon = n3.iLon;
+          c.fromLat = n3.iLat;
+        }
+        if ( toMatch ) {
+          c.toLat = n3.iLon;
+          c.toLat = n3.iLat;
+        }
+        n1.addTurnRestriction(c);
+        System.out.println( "****** WARNING: TR affected by split (copied) " + n1 + " --> " + n2 );
       }
     }
-  }
-
-  private static boolean positionOccupied( int iLon, int iLat, List<OsmNode> nodes ) {
-    for( OsmNode nn : nodes ) {
-      if ( nn.iLat == iLat && nn.iLon == iLon ) {
-        return true;
-      }
-    }
-    return false;
   }
 }

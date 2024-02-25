@@ -40,6 +40,8 @@ public class RestrictionData extends TurnRestriction {
   }
 
   public TurnRestriction validate() {
+    isPositive = restriction.startsWith("only_");
+
     boolean valid = fromLon != 0 && toLon != 0 && (restriction.startsWith("only_") || restriction.startsWith("no_"));
     valid &= restriction.indexOf("on_red") < 0; // filter out on-red restrictions
     if ((!valid) || badWayMatch || !(checkGeometry())) {
@@ -47,19 +49,14 @@ public class RestrictionData extends TurnRestriction {
         badTRs.add(((long) viaLon) << 32 | viaLat);
       }
     }
+    boolean trivialNoUturn  = !isPositive && fromLon == toLon && fromLat == toLat;
+    valid &= !trivialNoUturn; // don't need direct no-uturns, they are implicit
+
     valid &= "restriction".equals(restrictionKey);
     if ( !valid ) {
       return null;
     }
-
-    TurnRestriction tr = new TurnRestriction();
-    tr.isPositive = restriction.startsWith("only_");;
-    tr.exceptions = exceptions;
-    tr.fromLon = fromLon;
-    tr.fromLat = fromLat;
-    tr.toLon = toLon;
-    tr.toLat = toLat;
-    return tr;
+    return createCopy();
   }
 
   private boolean checkGeometry() {
