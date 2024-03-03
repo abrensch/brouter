@@ -194,6 +194,10 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       if (wplist.size() < 10) {
         SuspectManager.nearRecentWps.add(wplist);
       }
+      if (params.containsKey("profile")) {
+        // already handled in readRoutingContext
+        params.remove("profile");
+      }
       int engineMode = 0;
       if (params.containsKey("engineMode")) {
         engineMode = Integer.parseInt(params.get("engineMode"));
