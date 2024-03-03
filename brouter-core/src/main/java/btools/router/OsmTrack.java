@@ -500,7 +500,8 @@ public final class OsmTrack {
       node = node.origin;
     }
 
-    VoiceHintProcessor vproc = new VoiceHintProcessor(rc.turnInstructionCatchingRange, rc.turnInstructionRoundabouts);
+    int transportMode = voiceHints.transportMode();
+    VoiceHintProcessor vproc = new VoiceHintProcessor(rc.turnInstructionCatchingRange, rc.turnInstructionRoundabouts, transportMode);
     List<VoiceHint> results = vproc.process(inputs);
 
     double minDistance = getMinDistance();
@@ -513,13 +514,12 @@ public final class OsmTrack {
 
   int getMinDistance() {
     if (voiceHints != null) {
-      switch (voiceHints.getTransportMode()) {
-        case "car":
+      switch (voiceHints.transportMode()) {
+        case VoiceHintList.TRANS_MODE_CAR:
           return 20;
-        case "bike":
-          return 5;
-        case "foot":
+        case VoiceHintList.TRANS_MODE_FOOT:
           return 3;
+        case VoiceHintList.TRANS_MODE_BIKE:
         default:
           return 5;
       }
