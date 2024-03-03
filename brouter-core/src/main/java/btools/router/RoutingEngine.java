@@ -20,6 +20,8 @@ import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmNodePairSet;
+import btools.util.CheapAngleMeter;
+import btools.util.CheapRuler;
 import btools.util.CompactLongMap;
 import btools.util.SortedHeap;
 import btools.util.StackSampler;
@@ -29,6 +31,8 @@ public class RoutingEngine extends Thread {
   public final static int BROUTER_ENGINEMODE_ROUTING = 0;
   public final static int BROUTER_ENGINEMODE_SEED = 1;
   public final static int BROUTER_ENGINEMODE_GETELEV = 2;
+
+  public final static int BROUTER_ENGINEMODE_PREPARE_REROUTE = 6;
 
   private NodesCache nodesCache;
   private SortedHeap<OsmPath> openSet = new SortedHeap<>();
@@ -158,6 +162,7 @@ public class RoutingEngine extends Thread {
 
     switch (engineMode) {
       case BROUTER_ENGINEMODE_ROUTING:
+      case BROUTER_ENGINEMODE_PREPARE_REROUTE:
         if (waypoints.size() < 2) {
           throw new IllegalArgumentException("we need two lat/lon points at least!");
         }
@@ -189,6 +194,9 @@ public class RoutingEngine extends Thread {
       ArrayList<String> messageList = new ArrayList<>();
       for (int i = 0; ; i++) {
         track = findTrack(refTracks, lastTracks);
+
+        if (engineMode==BROUTER_ENGINEMODE_PREPARE_REROUTE) break; // no output for rerouting prepare
+
         track.message = "track-length = " + track.distance + " filtered ascend = " + track.ascend
           + " plain-ascend = " + track.plainAscend + " cost=" + track.cost;
         if (track.energy != 0) {
@@ -575,6 +583,10 @@ public class RoutingEngine extends Thread {
         boolean dirty = found && nearbyTrack.isDirty;
         logInfo("read referenceTrack, found=" + found + " dirty=" + dirty + " " + debugInfo);
       }
+      if (nearbyTrack != null &&
+          engineMode==BROUTER_ENGINEMODE_PREPARE_REROUTE) {
+        return null; // already rerouting prepared
+      }
     }
 
     if (matchedWaypoints == null) { // could exist from the previous alternative level
@@ -587,6 +599,22 @@ public class RoutingEngine extends Thread {
         matchedWaypoints.add(mwp);
       }
       matchWaypointsToNodes(matchedWaypoints);
+      if (routingContext.startDirection != null) {
+        // add a nogo not to turn back
+        double angle = CheapAngleMeter.normalize(180 + routingContext.startDirection);
+        int[] np = CheapRuler.destination(matchedWaypoints.get(0).crosspoint.ilon, matchedWaypoints.get(0).crosspoint.ilat, 10, angle);
+        OsmNodeNamed n = new OsmNodeNamed();
+        n.name = "nogo8";
+        n.ilon = np[0];
+        n.ilat = np[1];
+        n.isNogo = true;
+        n.radius = 8;
+        n.nogoWeight = 9999;
+        if (routingContext.nogopoints == null) {
+          routingContext.nogopoints = new ArrayList<>();
+        }
+        routingContext.nogopoints.add(n);
+      }
 
       routingContext.checkMatchedWaypointAgainstNogos(matchedWaypoints);
 
@@ -631,7 +659,8 @@ public class RoutingEngine extends Thread {
         routingContext.inverseDirection = false;
         wptIndex = i + 1;
       } else {
-        seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), i == matchedWaypoints.size() - 2 ? nearbyTrack : null, refTracks[i]);
+        //seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), i == matchedWaypoints.size() - 2 ? nearbyTrack : null, refTracks[i]);
+        seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), nearbyTrack, refTracks[i]);
         wptIndex = i;
       }
       if (seg == null)
@@ -1048,7 +1077,18 @@ public class RoutingEngine extends Thread {
       track.nogoChecksums = routingContext.getNogoChecksums();
       track.profileTimestamp = routingContext.profileTimestamp;
       track.isDirty = isDirty;
-      foundRawTrack = track;
+      if (foundRawTrack == null) {
+        foundRawTrack = track;
+      } else {
+        for (OsmPathElement n : track.nodes) {
+          foundRawTrack.nodes.add(n);
+        }
+        foundRawTrack.endPoint = endWp;
+      }
+      if (engineMode==BROUTER_ENGINEMODE_PREPARE_REROUTE) {
+        return null; // rerouting prepared
+      }
+
     }
 
     if (!wasClean && isDirty) {
