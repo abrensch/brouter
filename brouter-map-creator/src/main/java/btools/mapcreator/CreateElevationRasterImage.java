@@ -4,9 +4,11 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,14 +27,24 @@ public class CreateElevationRasterImage {
   Map<String, ElevationRaster> srtmmap;
   int lastSrtmLonIdx;
   int lastSrtmLatIdx;
+  short maxElev = Short.MIN_VALUE;
+  short minElev = Short.MAX_VALUE;
   String srtmdir;
   boolean missingData;
   Map<Short, Color> colorMap;
 
-  private void createImage(double lon, double lat, String dir, String imageName, int maxX, int maxY, int downscale, String format) throws Exception {
+
+  private void createImage(double lon, double lat, String dir, String imageName, int maxX, int maxY, int downscale, String format, String colors) throws Exception {
     srtmdir = dir;
+    if (colors != null) {
+      loadColors(colors);
+    }
     if (format.equals("hgt")) {
       createImageFromHgt(lon, lat, dir, imageName, maxX, maxY);
+      return;
+    }
+    if (!format.equals("bef")) {
+      System.out.println("wrong format (bef|hgt)");
       return;
     }
     srtmmap = new HashMap<>();
@@ -41,10 +53,14 @@ public class CreateElevationRasterImage {
     lastSrtmRaster = null;
     NodeData n = new NodeData(1, lon, lat);
     ElevationRaster srtm = srtmForNode(n.ilon, n.ilat);
+    if (srtm == null) {
+      System.out.println("no data");
+      return;
+    }
     System.out.println("srtm " + srtm.toString());
     //System.out.println("srtm elev " + srtm.getElevation(n.ilon, n.ilat));
     double[] pos = getElevationPos(srtm, n.ilon, n.ilat);
-    System.out.println("srtm pos " + pos[0] + " " + pos[1]); // Arrays.toString(pos));
+    //System.out.println("srtm pos " + Math.round(pos[0]) + " "  + Math.round(pos[1]));
     short[] raster = srtm.eval_array;
     int rasterX = srtm.ncols;
     int rasterY = srtm.nrows;
@@ -53,11 +69,12 @@ public class CreateElevationRasterImage {
     int sizeX = (maxX);
     int sizeY = (maxY);
     int[] imgraster = new int[sizeX * sizeY];
-    System.out.println("srtm target " + sizeX + " " + sizeY + " (" + rasterX + " " + rasterY + ")");
     for (int y = 0; y < sizeY; y++) {
       for (int x = 0; x < sizeX; x++) {
-        //short e = getElevationXY(srtm, /*pos[0] + */(sizeY - y) * downscale, /*pos[1] +*/ (x * downscale));
-        short e = get(srtm, sizeY - y, x);
+        //short e = getElevationXY(srtm, pos[0] + (sizeY - y) * downscale, pos[1] + (x * downscale));
+        short e = get(srtm, (int) Math.round(pos[0]) + (sizeY - y), x + (int) Math.round(pos[1]));
+        if (e != Short.MIN_VALUE && e < minElev) minElev = e;
+        if (e != Short.MIN_VALUE && e > maxElev) maxElev = e;
 
         if (e == Short.MIN_VALUE) {
           imgraster[sizeY * y + x] = 0xffff;
@@ -67,6 +84,8 @@ public class CreateElevationRasterImage {
         }
       }
     }
+    System.out.println("srtm target " + sizeX + " " + sizeY + " (" + rasterX + " " + rasterY + ")" + "  min " + minElev + " max " + maxElev);
+
     if (DEBUG) {
       String out = "short ";
       for (int i = 0; i < 100; i++) {
@@ -97,9 +116,13 @@ public class CreateElevationRasterImage {
   private void createImageFromHgt(double lon, double lat, String dir, String imageName, int maxX, int maxY) throws Exception {
     HgtReader rdr = new HgtReader(dir);
     short[] data = rdr.getElevationDataFromHgt(lat, lon);
+    if (data == null) {
+      System.out.println("no data");
+      return;
+    }
+
     int size = (data != null ? data.length : 0);
     int rowlen = (int) Math.sqrt(size);
-    System.out.println("hgt size " + rowlen);
     int sizeX = (maxX);
     int sizeY = (maxY);
     int[] imgraster = new int[sizeX * sizeY];
@@ -107,15 +130,19 @@ public class CreateElevationRasterImage {
     for (int y = 0; y < sizeY; y++) {
       for (int x = 0; x < sizeX; x++) {
         short e = data[(rowlen * y) + x];
+        if (e != HgtReader.HGT_VOID && e < minElev) minElev = e;
+        if (e != HgtReader.HGT_VOID && e > maxElev) maxElev = e;
+
         if (e == HgtReader.HGT_VOID) {
           imgraster[sizeY * y + x] = 0xffff;
         } else if (e == 0) {
           imgraster[sizeY * y + x] = 0xffff;
         } else {
-          imgraster[sizeY * y + x] = getColorForHeight((short) (e)); //(int)(e/4.);
+          imgraster[sizeY * y + x] = getColorForHeight((short) (e));
         }
       }
     }
+    System.out.println("hgt size " + rowlen + " x " + rowlen + "  min " + minElev + " max " + maxElev);
     if (DEBUG) {
       String out = "short ";
       for (int i = 0; i < 100; i++) {
@@ -141,6 +168,47 @@ public class CreateElevationRasterImage {
 
     ImageIO.write(argbImage, "png", new FileOutputStream(imageName));
 
+  }
+
+  private void loadColors(String colors) {
+    if (DEBUG) System.out.println("colors=" + colors);
+    File colFile = new File(colors);
+    if (colFile.exists()) {
+      BufferedReader reader = null;
+      colorMap = new TreeMap<>();
+      try {
+        reader = new BufferedReader(new FileReader(colors));
+        String line = reader.readLine();
+
+        while (line != null) {
+          if (DEBUG) System.out.println(line);
+          String[] sa = line.split(",");
+          if (!line.startsWith("#") && sa.length == 4) {
+            short e = Short.valueOf(sa[0].trim());
+            short r = Short.valueOf(sa[1].trim());
+            short g = Short.valueOf(sa[2].trim());
+            short b = Short.valueOf(sa[3].trim());
+            colorMap.put(e, new Color(r, g, b));
+          }
+          // read next line
+          line = reader.readLine();
+        }
+
+      } catch (Exception e) {
+        e.printStackTrace();
+        colorMap = null;
+      } finally {
+        if (reader != null) {
+          try {
+            reader.close();
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    } else {
+      System.out.println("color file " + colors + " not found");
+    }
   }
 
   public double[] getElevationPos(ElevationRaster srtm, int ilon, int ilat) {
@@ -255,12 +323,13 @@ public class CreateElevationRasterImage {
 
   public static void main(String[] args) throws Exception {
     if (args.length < 6) {
-      System.out.println("usage: java CreateLidarImage <lon> <lat> <srtm-folder> <imageFileName> <maxX> <maxY> <downscale> [type]");
+      System.out.println("usage: java CreateLidarImage <lon> <lat> <srtm-folder> <imageFileName> <maxX> <maxY> <downscale> [type] [color_file]");
       System.out.println("\nwhere: type = [bef|hgt] downscale = [1|2|4|..]");
       return;
     }
-    String format = args.length == 8 ? args[7] : "bef";
+    String format = args.length >= 8 ? args[7] : "bef";
+    String colors = args.length == 9 ? args[8] : null;
     new CreateElevationRasterImage().createImage(Double.parseDouble(args[0]), Double.parseDouble(args[1]), args[2], args[3],
-      Integer.parseInt(args[4]), Integer.parseInt(args[5]), Integer.parseInt(args[6]), format);
+      Integer.parseInt(args[4]), Integer.parseInt(args[5]), Integer.parseInt(args[6]), format, colors);
   }
 }
