@@ -105,7 +105,8 @@ public class BRouter {
       if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_GETELEV) {
         re = new RoutingEngine("testinfo", null, new File(args[0]), wplist, rc, engineMode);
       } else {
-        rc.rawTrackPath = "testtrack.raw";
+        // use this to generate a raw track for CLI
+        // rc.rawTrackPath = "testtrack.raw";
         re = new RoutingEngine("testtrack", null, new File(args[0]), wplist, rc, engineMode);
       }
       re.doRun(0);
@@ -114,7 +115,7 @@ public class BRouter {
           engineMode == RoutingEngine.BROUTER_ENGINEMODE_PREPARE_REROUTE) {
         // store new reference track if any
         // (can exist for timed-out search)
-        if (re.getFoundRawTrack() != null) {
+        if (rc.rawTrackPath != null && re.getFoundRawTrack() != null) {
           try {
             re.getFoundRawTrack().writeBinary(rc.rawTrackPath);
           } catch (Exception e) {
