@@ -346,6 +346,12 @@ public final class OsmTrack {
       if (i > 0 || ourSize == 0) {
         e.setTime(e.getTime() + t0);
         e.setEnergy(e.getEnergy() + e0);
+        if (e.message != null){
+          if (!(e.message.lon == e.getILon() && e.message.lat == e.getILat())) {
+            e.message.lon = e.getILon();
+            e.message.lat = e.getILat();
+          }
+        }
         nodes.add(e);
       }
     }
