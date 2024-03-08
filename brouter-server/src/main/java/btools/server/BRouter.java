@@ -105,29 +105,13 @@ public class BRouter {
       if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_GETELEV) {
         re = new RoutingEngine("testinfo", null, new File(args[0]), wplist, rc, engineMode);
       } else {
-        // use this to generate a raw track for CLI
-        // rc.rawTrackPath = "testtrack.raw";
         re = new RoutingEngine("testtrack", null, new File(args[0]), wplist, rc, engineMode);
       }
       re.doRun(0);
-
-      if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING ||
-          engineMode == RoutingEngine.BROUTER_ENGINEMODE_PREPARE_REROUTE) {
-        // store new reference track if any
-        // (can exist for timed-out search)
-        if (rc.rawTrackPath != null && re.getFoundRawTrack() != null) {
-          try {
-            re.getFoundRawTrack().writeBinary(rc.rawTrackPath);
-          } catch (Exception e) {
-            e.printStackTrace();
-          }
-        }
-      }
-
     } catch (Exception e) {
       System.out.println(e.getMessage());
     }
-
+    
   }
 
 
