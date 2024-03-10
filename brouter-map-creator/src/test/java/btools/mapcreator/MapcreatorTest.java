@@ -42,7 +42,7 @@ public class MapcreatorTest {
     File unodes55 = new File(tmpdir, "unodes55");
     File bordernodes = new File(tmpdir, "bordernodes.dat");
     unodes55.mkdir();
-    new PosUnifier().process(nodes55, unodes55, borderFile, bordernodes, workingDir.getAbsolutePath());
+    new PosUnifier().process(nodes55, unodes55, borderFile, bordernodes, workingDir.getAbsolutePath(), null);
 
     // run WayLinker
     File segments = new File(tmpdir, "segments");

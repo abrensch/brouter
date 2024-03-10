@@ -20,6 +20,7 @@ import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmNodePairSet;
+import btools.mapaccess.OsmPos;
 import btools.util.CompactLongMap;
 import btools.util.SortedHeap;
 import btools.util.StackSampler;
@@ -907,11 +908,12 @@ public class RoutingEngine extends Thread {
         if (ele_last != Short.MIN_VALUE) {
           ehb = ehb + (ele_last - ele) * eleFactor;
         }
+        double filter = elevationFilter(n);
         if (ehb > 0) {
           ascend += ehb;
           ehb = 0;
-        } else if (ehb < -10) {
-          ehb = -10;
+        } else if (ehb < filter) {
+          ehb = filter;
         }
       }
 
@@ -946,6 +948,21 @@ public class RoutingEngine extends Thread {
 
     logInfo("track-length total = " + t.distance);
     logInfo("filtered ascend = " + t.ascend);
+  }
+
+  /**
+   * find the elevation type for position
+   * to determine the filter value
+   *
+   * @param n  the point
+   * @return  the filter value for 1sec / 3sec elevation source
+   */
+  double elevationFilter(OsmPos n) {
+    if (nodesCache != null) {
+      int r = nodesCache.getElevationType(n.getILon(), n.getILat());
+      if (r == 1) return -5.;
+    }
+    return -10.;
   }
 
   // geometric position matching finding the nearest routable way-section

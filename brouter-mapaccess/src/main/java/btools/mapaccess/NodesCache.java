@@ -385,4 +385,20 @@ public final class NodesCache {
       }
     }
   }
+
+  public int getElevationType(int ilon, int ilat) {
+    int lonDegree = ilon / 1000000;
+    int latDegree = ilat / 1000000;
+    OsmFile[] fileRow = fileRows[latDegree];
+    int ndegrees = fileRow == null ? 0 : fileRow.length;
+    for (int i = 0; i < ndegrees; i++) {
+      if (fileRow[i].lonDegree == lonDegree) {
+        OsmFile osmf = fileRow[i];
+        if (osmf != null) return osmf.elevationType;
+        break;
+      }
+    }
+    return 3;
+  }
+
 }

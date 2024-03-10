@@ -24,6 +24,7 @@ final public class PhysicalFile {
   String fileName;
 
   public int divisor = 80;
+  public byte elevationType = 3;
 
   public static void main(String[] args) {
     MicroCache.debug = true;
@@ -113,6 +114,10 @@ final public class PhysicalFile {
 
     if (len == pos) return; // old format o.k.
 
+    if ((len-pos) > extraLen) {
+      extraLen++;
+    }
+
     if (len < pos + extraLen) { // > is o.k. for future extensions!
       throw new IOException("file of size " + len + " too short, should be " + (pos + extraLen));
     }
@@ -134,5 +139,8 @@ final public class PhysicalFile {
     for (int i = 0; i < 25; i++) {
       fileHeaderCrcs[i] = dis.readInt();
     }
+    try {
+      elevationType = dis.readByte();
+    } catch (Exception e) {}
   }
 }

@@ -3,11 +3,11 @@ package btools.mapcreator;
 import btools.util.ReducedMedianFilter;
 
 /**
- * Container for a srtm-raster + it's meta-data
+ * Container for a elevation raster + it's meta-data
  *
  * @author ab
  */
-public class SrtmRaster {
+public class ElevationRaster {
   public int ncols;
   public int nrows;
   public boolean halfcol;
