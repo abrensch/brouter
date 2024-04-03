@@ -184,10 +184,10 @@ public class CreateElevationRasterImage {
           if (DEBUG) System.out.println(line);
           String[] sa = line.split(",");
           if (!line.startsWith("#") && sa.length == 4) {
-            short e = Short.valueOf(sa[0].trim());
-            short r = Short.valueOf(sa[1].trim());
-            short g = Short.valueOf(sa[2].trim());
-            short b = Short.valueOf(sa[3].trim());
+            short e = Short.parseShort(sa[0].trim());
+            short r = Short.parseShort(sa[1].trim());
+            short g = Short.parseShort(sa[2].trim());
+            short b = Short.parseShort(sa[3].trim());
             colorMap.put(e, new Color(r, g, b));
           }
           // read next line

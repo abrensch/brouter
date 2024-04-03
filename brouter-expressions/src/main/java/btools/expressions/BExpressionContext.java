@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
@@ -227,7 +228,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   }
 
   public List<String> getKeyValueList(boolean inverseDirection, byte[] ab) {
-    ArrayList<String> res = new ArrayList<>();
+    List<String> res = new ArrayList<>();
     decode(lookupData, inverseDirection, ab);
     for (int inum = 0; inum < lookupValues.size(); inum++) { // loop over lookup names
       BExpressionLookupValue[] va = lookupValues.get(inum);
@@ -433,7 +434,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
 
 
   public void dumpStatistics() {
-    TreeMap<String, String> counts = new TreeMap<>();
+    NavigableMap<String, String> counts = new TreeMap<>();
     // first count
     for (String name : lookupNumbers.keySet()) {
       int cnt = 0;

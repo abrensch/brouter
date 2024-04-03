@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * WayCutter does 2 step in map-processing:
@@ -25,7 +26,7 @@ public class RelationStatistics extends MapCreatorBase {
   }
 
   public void process(File relationFileIn) throws Exception {
-    HashMap<String, long[]> relstats = new HashMap<>();
+    Map<String, long[]> relstats = new HashMap<>();
 
     DataInputStream dis = createInStream(relationFileIn);
     try {

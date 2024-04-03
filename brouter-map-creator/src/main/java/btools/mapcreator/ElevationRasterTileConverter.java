@@ -90,7 +90,6 @@ public class ElevationRasterTileConverter {
     } else {
       System.out.println("usage: java <srtm-filename> <hgt-data-dir> <srtm-output-dir> [arc seconds (1 or 3,default=3)] [hgt-fallback-data-dir]");
       System.out.println("or     java all <hgt-data-dir> <srtm-output-dir> [arc seconds (1 or 3, default=3)] [hgt-fallback-data-dir]");
-      return;
     }
   }
 

@@ -21,7 +21,7 @@ public class OsmNodePairSet {
     n2a = new long[maxTempNodes];
   }
 
-  private static class OsmNodePair {
+  private static final class OsmNodePair {
     public long node2;
     public OsmNodePair next;
   }

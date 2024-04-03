@@ -37,7 +37,7 @@ public class ProfileUploadHandler {
       String id;
       if (profileId != null) {
         // update existing file when id appended
-        id = profileId.substring(ProfileUploadHandler.CUSTOM_PREFIX.length());
+        id = profileId.substring(CUSTOM_PREFIX.length());
       } else {
         id = "" + System.currentTimeMillis();
       }
