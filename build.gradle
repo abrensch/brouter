@@ -52,7 +52,7 @@ allprojects {
 
     pmd {
         consoleOutput = true
-        toolVersion = "6.51.0"
+        toolVersion = "7.0.0"
         rulesMinimumPriority = 5
         ruleSetFiles = files("${rootProject.rootDir}/config/pmd/pmd-ruleset.xml")
         ruleSets = []

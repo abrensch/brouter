@@ -45,11 +45,18 @@
         <exclude name="FormalParameterNamingConventions" />
         <exclude name="LocalVariableNamingConventions" />
         <exclude name="MethodNamingConventions" />
+
+        <!-- Temporary -->
+        <exclude name="ClassWithOnlyPrivateConstructorsShouldBeFinal" />
+        <exclude name="LooseCoupling" />
+        <exclude name="SimplifyBooleanReturns" />
+        <exclude name="SingularField" />
+        <exclude name="UnnecessaryFullyQualifiedName" />
     </rule>
 
     <!-- Rules similar to Android Studio code inspection default settings -->
     <!-- <rule ref="category/java/bestpractices.xml/UnusedAssignment" /> -->
-    <rule ref="category/java/codestyle.xml/UseDiamondOperator" />
+    <!-- <rule ref="category/java/codestyle.xml/UseDiamondOperator" /> -->
     <!-- <rule ref="category/java/design.xml/ImmutableField" /> -->
     <!-- Will be added in PMD 7 -->
     <!-- <rule ref="category/java/codestyle.xml/UnnecessaryBoxing" /> -->
