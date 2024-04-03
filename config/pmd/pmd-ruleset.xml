@@ -52,7 +52,6 @@
     <!-- <rule ref="category/java/bestpractices.xml/UnusedAssignment" /> -->
     <rule ref="category/java/codestyle.xml/UseDiamondOperator" />
     <!-- <rule ref="category/java/design.xml/ImmutableField" /> -->
-    <!-- Will be added in PMD 7 -->
-    <!-- <rule ref="category/java/codestyle.xml/UnnecessaryBoxing" /> -->
+    <rule ref="category/java/codestyle.xml/UnnecessaryBoxing" />
 
 </ruleset>
