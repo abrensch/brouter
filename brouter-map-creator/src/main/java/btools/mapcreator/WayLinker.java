@@ -51,6 +51,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
   private short lookupMinorVersion;
 
   private long creationTimeStamp;
+  private byte elevationType;
 
   private BExpressionContextWay expctxWay;
 
@@ -217,7 +218,14 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     File trafficFile = fileFromTemplate(wayfile, trafficTilesIn, "trf");
 
     // process corresponding node-file, if any
-    File nodeFile = fileFromTemplate(wayfile, nodeTilesIn, "u5d");
+    elevationType = 3;
+    File nodeFile = fileFromTemplate(wayfile, nodeTilesIn, "u5d_1");
+    if (nodeFile.exists()) {
+      elevationType = 1;
+    } else {
+      nodeFile = fileFromTemplate(wayfile, nodeTilesIn, "u5d_3");
+      if (!nodeFile.exists()) nodeFile = fileFromTemplate(wayfile, nodeTilesIn, "u5d");
+    }
     if (nodeFile.exists()) {
       reset();
 
@@ -539,6 +547,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
       for (int i55 = 0; i55 < 25; i55++) {
         os.writeInt(fileHeaderCrcs[i55]);
       }
+      os.writeByte(elevationType);
 
       os.close();
 
