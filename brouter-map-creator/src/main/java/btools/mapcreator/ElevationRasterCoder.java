@@ -1,15 +1,20 @@
 package btools.mapcreator;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
-import btools.util.*;
+import btools.util.MixCoderDataInputStream;
+import btools.util.MixCoderDataOutputStream;
 
 //
 // Encode/decode a raster
 //
 
-public class RasterCoder {
-  public void encodeRaster(SrtmRaster raster, OutputStream os) throws IOException {
+public class ElevationRasterCoder {
+  public void encodeRaster(ElevationRaster raster, OutputStream os) throws IOException {
     DataOutputStream dos = new DataOutputStream(os);
 
     long t0 = System.currentTimeMillis();
@@ -28,12 +33,12 @@ public class RasterCoder {
     System.out.println("finished encoding in " + (t1 - t0) + " ms");
   }
 
-  public SrtmRaster decodeRaster(InputStream is) throws IOException {
+  public ElevationRaster decodeRaster(InputStream is) throws IOException {
     DataInputStream dis = new DataInputStream(is);
 
     long t0 = System.currentTimeMillis();
 
-    SrtmRaster raster = new SrtmRaster();
+    ElevationRaster raster = new ElevationRaster();
     raster.ncols = dis.readInt();
     raster.nrows = dis.readInt();
     raster.halfcol = dis.readBoolean();
@@ -45,7 +50,7 @@ public class RasterCoder {
 
     _decodeRaster(raster, is);
 
-    raster.usingWeights = raster.ncols > 6001;
+    raster.usingWeights = false; // raster.ncols > 6001;
 
     long t1 = System.currentTimeMillis();
     System.out.println("finished decoding in " + (t1 - t0) + " ms ncols=" + raster.ncols + " nrows=" + raster.nrows);
@@ -53,7 +58,7 @@ public class RasterCoder {
   }
 
 
-  private void _encodeRaster(SrtmRaster raster, OutputStream os) throws IOException {
+  private void _encodeRaster(ElevationRaster raster, OutputStream os) throws IOException {
     MixCoderDataOutputStream mco = new MixCoderDataOutputStream(os);
     int nrows = raster.nrows;
     int ncols = raster.ncols;
@@ -78,7 +83,7 @@ public class RasterCoder {
     mco.flush();
   }
 
-  private void _decodeRaster(SrtmRaster raster, InputStream is) throws IOException {
+  private void _decodeRaster(ElevationRaster raster, InputStream is) throws IOException {
     MixCoderDataInputStream mci = new MixCoderDataInputStream(is);
     int nrows = raster.nrows;
     int ncols = raster.ncols;
