@@ -34,7 +34,7 @@ public class DenseLongMapTest {
       long k = (long) (rand.nextDouble() * keyrange);
       Long KK = k;
       Integer VV = hmap.get(KK);
-      int hvalue = VV == null ? -1 : VV.intValue();
+      int hvalue = VV == null ? -1 : VV;
       int dvalue = dmap.getInt(k);
 
       if (hvalue != dvalue) {

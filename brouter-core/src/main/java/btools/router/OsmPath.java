@@ -296,7 +296,7 @@ abstract class OsmPath implements OsmLinkHolder {
       // apply a start-direction if appropriate (by faking the origin position)
       if (isStartpoint) {
         if (rc.startDirectionValid) {
-          double dir = rc.startDirection.intValue() * CheapRuler.DEG_TO_RAD;
+          double dir = rc.startDirection * CheapRuler.DEG_TO_RAD;
           double[] lonlat2m = CheapRuler.getLonLatToMeterScales((lon0 + lat1) >> 1);
           lon0 = lon1 - (int) (1000. * Math.sin(dir) / lonlat2m[0]);
           lat0 = lat1 - (int) (1000. * Math.cos(dir) / lonlat2m[1]);

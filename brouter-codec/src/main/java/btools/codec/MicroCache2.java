@@ -419,7 +419,7 @@ public final class MicroCache2 extends MicroCache {
           nlinks++;
 
           if (isInternal) {
-            int nodeIdx = idx.intValue();
+            int nodeIdx = idx;
             if (dodebug) System.out.println("*** target nodeIdx=" + nodeIdx);
             if (nodeIdx == n) throw new RuntimeException("ups: self ref?");
             nodeIdxDiff.encodeSignedValue(nodeIdx - n);
