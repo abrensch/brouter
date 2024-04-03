@@ -9,6 +9,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
@@ -244,7 +245,7 @@ public class SuspectManager extends Thread {
       bw.write("<table>\n");
       File countryParent = new File("worldpolys" + country);
       File[] files = countryParent.listFiles();
-      TreeSet<String> names = new TreeSet<>();
+      Set<String> names = new TreeSet<>();
       for (File f : files) {
         String name = f.getName();
         if (name.endsWith(".poly")) {

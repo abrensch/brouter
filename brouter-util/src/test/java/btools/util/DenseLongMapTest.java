@@ -5,7 +5,9 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 public class DenseLongMapTest {
   @Test
@@ -16,7 +18,7 @@ public class DenseLongMapTest {
 
   private void hashMapComparison(int mapsize, int trycount, long keyrange) {
     Random rand = new Random(12345);
-    HashMap<Long, Integer> hmap = new HashMap<>();
+    Map<Long, Integer> hmap = new HashMap<>();
     DenseLongMap dmap = new DenseLongMap(512);
 
     for (int i = 0; i < mapsize; i++) {
@@ -48,7 +50,7 @@ public class DenseLongMapTest {
     int trycount = 100000;
 
     Random rand = new Random(12345);
-    HashSet<Long> hset = new HashSet<>();
+    Set<Long> hset = new HashSet<>();
 
     DenseLongMap dmap = new DenseLongMap(512);
     for (int i = 0; i < mapputs; i++) {

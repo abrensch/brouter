@@ -8,6 +8,8 @@ package btools.mapcreator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import btools.codec.MicroCache;
 import btools.codec.MicroCache2;
@@ -105,7 +107,7 @@ public class OsmNodeP extends OsmLinkP {
   }
 
   public void checkDuplicateTargets() {
-    HashMap<OsmNodeP, OsmLinkP> targets = new HashMap<>();
+    Map<OsmNodeP, OsmLinkP> targets = new HashMap<>();
 
     for (OsmLinkP link0 = getFirstLink(); link0 != null; link0 = link0.getNext(this)) {
       OsmLinkP link = link0;
@@ -165,14 +167,14 @@ public class OsmNodeP extends OsmLinkP {
     mc.writeVarBytes(getNodeDecsription());
 
     // buffer internal reverse links
-    ArrayList<OsmNodeP> internalReverse = new ArrayList<>();
+    List<OsmNodeP> internalReverse = new ArrayList<>();
 
     for (OsmLinkP link0 = getFirstLink(); link0 != null; link0 = link0.getNext(this)) {
       OsmLinkP link = link0;
       OsmNodeP origin = this;
       OsmNodeP target = null;
 
-      ArrayList<OsmNodeP> linkNodes = new ArrayList<>();
+      List<OsmNodeP> linkNodes = new ArrayList<>();
       linkNodes.add(this);
 
       // first pass just to see if that link is consistent
@@ -226,7 +228,7 @@ public class OsmNodeP extends OsmLinkP {
         origin = this;
         for (int i = 1; i < linkNodes.size() - 1; i++) {
           OsmNodeP tranferNode = linkNodes.get(i);
-          if ((tranferNode.bits & OsmNodeP.DP_SURVIVOR_BIT) != 0) {
+          if ((tranferNode.bits & DP_SURVIVOR_BIT) != 0) {
             mc.writeVarLengthSigned(tranferNode.ilon - origin.ilon);
             mc.writeVarLengthSigned(tranferNode.ilat - origin.ilat);
             mc.writeVarLengthSigned(tranferNode.getSElev() - origin.getSElev());

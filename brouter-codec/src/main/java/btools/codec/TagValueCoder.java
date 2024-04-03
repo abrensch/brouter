@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Queue;
 
 import btools.util.BitCoderContext;
 
@@ -58,7 +59,7 @@ public final class TagValueCoder {
         TagValueSet dummy = new TagValueSet(nextTagValueSetId++);
         identityMap.put(dummy, dummy);
       }
-      PriorityQueue<TagValueSet> queue = new PriorityQueue<>(2 * identityMap.size(), new TagValueSet.FrequencyComparator());
+      Queue<TagValueSet> queue = new PriorityQueue<>(2 * identityMap.size(), new TagValueSet.FrequencyComparator());
       queue.addAll(identityMap.values());
       while (queue.size() > 1) {
         TagValueSet node = new TagValueSet(nextTagValueSetId++);

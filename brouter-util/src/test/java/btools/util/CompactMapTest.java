@@ -4,6 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 public class CompactMapTest {
@@ -22,7 +23,7 @@ public class CompactMapTest {
 
   private void hashMapComparison(int mapsize, int trycount) {
     Random rand = new Random(12345);
-    HashMap<Long, String> hmap = new HashMap<>();
+    Map<Long, String> hmap = new HashMap<>();
     CompactLongMap<String> cmap_slow = new CompactLongMap<>();
     CompactLongMap<String> cmap_fast = new CompactLongMap<>();
 

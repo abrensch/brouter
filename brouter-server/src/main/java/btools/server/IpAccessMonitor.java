@@ -31,7 +31,7 @@ public class IpAccessMonitor {
   }
 
   private static void cleanup(long t) {
-    HashMap<String, Long> newMap = new HashMap<>(ipAccess.size());
+    Map<String, Long> newMap = new HashMap<>(ipAccess.size());
     for (Map.Entry<String, Long> e : ipAccess.entrySet()) {
       if (t - e.getValue().longValue() <= MAX_IDLE) {
         newMap.put(e.getKey(), e.getValue());

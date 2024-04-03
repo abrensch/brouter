@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.RandomAccessFile;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 
 import btools.codec.DataBuffers;
@@ -481,7 +482,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
                 MicroCache mc = new MicroCache2(size, abBuf2, lonIdxDiv, latIdxDiv, divisor);
 
                 // sort via treemap
-                TreeMap<Integer, OsmNodeP> sortedList = new TreeMap<>();
+                Map<Integer, OsmNodeP> sortedList = new TreeMap<>();
                 for (OsmNodeP n : subList) {
                   long longId = n.getIdFromPos();
                   int shrinkid = mc.shrinkId(longId);
