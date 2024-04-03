@@ -51,7 +51,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             debuggable false
             if (project.hasProperty("RELEASE_STORE_FILE") && RELEASE_STORE_FILE.length() > 0) {
                 signingConfig signingConfigs.release
@@ -73,6 +73,10 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+    }
+    buildFeatures {
+        aidl true
+        buildConfig true
     }
 
     applicationVariants.all {
