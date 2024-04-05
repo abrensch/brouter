@@ -1,7 +1,6 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-
     repositories {
         mavenCentral()
         google()
@@ -9,54 +8,8 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:8.3.1'
 
-
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
-    }
-}
-
-allprojects {
-    // NOTE:
-    // there are four places to change the version number
-    // this file
-    // app: build.gradle (versionCode only)
-    // OsmTrack (version and versionDate)
-    // docs revisions.md (version and versionDate)
-    project.version  "1.7.3"
-    group 'org.btools'
-
-    repositories {
-        mavenCentral()
-        google()
-    }
-
-    apply plugin: "maven-publish"
-    publishing {
-        repositories {
-            maven {
-                name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/$System.env.REPO")
-                credentials {
-                    username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-                    password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
-                }
-            }
-        }
-        publications {
-            gpr(MavenPublication)
-        }
-    }
-
-    apply plugin: "checkstyle"
-    apply plugin: "pmd"
-
-    pmd {
-        consoleOutput = true
-        toolVersion = "7.0.0"
-        rulesMinimumPriority = 5
-        ruleSetFiles = files("${rootProject.rootDir}/config/pmd/pmd-ruleset.xml")
-        ruleSets = []
-        // ignoreFailures = true
     }
 }
 

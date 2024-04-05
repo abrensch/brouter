@@ -1,5 +1,5 @@
 plugins {
-    id 'java-library'
+    id 'brouter.application-conventions'
 }
 
 dependencies {
@@ -8,6 +8,4 @@ dependencies {
     implementation project(':brouter-expressions')
 
     implementation group: 'org.openstreetmap.osmosis', name: 'osmosis-osm-binary', version: '0.48.3'
-
-    testImplementation('junit:junit:4.13.1')
 }
