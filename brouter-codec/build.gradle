@@ -1,8 +1,7 @@
 plugins {
-    id 'java-library'
+    id 'brouter.library-conventions'
 }
 
 dependencies {
     implementation project(':brouter-util')
-	testImplementation  'junit:junit:4.13.1'
 }

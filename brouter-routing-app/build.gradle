@@ -2,6 +2,8 @@ import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 plugins {
     id 'com.android.application'
+    id 'checkstyle'
+    id 'brouter.version-conventions'
 }
 
 android {
@@ -86,6 +88,11 @@ android {
                 tasks["merge${variant.name.capitalize()}Assets"].dependsOn(generateReadmesZip)
             }
     }
+}
+
+repositories {
+    mavenCentral()
+    google()
 }
 
 dependencies {

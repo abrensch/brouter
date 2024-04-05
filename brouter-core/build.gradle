@@ -1,5 +1,5 @@
 plugins {
-    id 'java-library'
+    id 'brouter.library-conventions'
 }
 
 dependencies {
@@ -7,7 +7,6 @@ dependencies {
     implementation project(':brouter-util')
     implementation project(':brouter-expressions')
     implementation project(':brouter-codec')
-    testImplementation 'junit:junit:4.13.2'
 }
 
 // MapcreatorTest generates segments which are used in tests
