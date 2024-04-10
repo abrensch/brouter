@@ -535,6 +535,14 @@ class:bicycle;0000000245 -3
 class:bicycle;0000000170 0
 class:bicycle;0000000108 3 +3
 
+bicycle:forward;0000000001 yes
+bicycle:forward;0000000001 use_sidepath
+bicycle:forward;0000000001 no
+
+bicycle:backward;0000000001 yes
+bicycle:backward;0000000001 use_sidepath
+bicycle:backward;0000000001 no
+
 route_bicycle_icn;0000088753 yes
 route_bicycle_icn;0000000001 proposed
 route_bicycle_ncn;0000268180 yes
