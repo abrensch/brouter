@@ -2,7 +2,31 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### [brouter-1.7.3.zip](../brouter_bin/brouter-1.7.3.zip) (current revision, 19.08.2023)
+
+### [brouter-1.7.4.zip](../brouter_bin/brouter-1.7.4.zip) (current revision, 09.04.2024)
+
+Library
+
+- new "DIVIDE" command for profile calculation
+- new "maxslope" and "maxslopecost" parameters
+- new parameter collector
+- new output logic
+- rework on voice hints and roundabouts
+- enabled elevation raster files with 1 asec
+
+
+Android
+
+- BRouter translations
+- fallback on certificate problems
+
+
+- Minor bug fixes
+
+[Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.7.4%22+is%3Aclosed)
+
+
+### [brouter-1.7.3.zip](../brouter_bin/brouter-1.7.3.zip) (19.08.2023)
 
 - Minor bug fixes
 
