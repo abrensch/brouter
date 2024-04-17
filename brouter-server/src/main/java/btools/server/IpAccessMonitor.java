@@ -15,7 +15,7 @@ public class IpAccessMonitor {
     synchronized (sync) {
       Long lastTime = ipAccess.get(ip);
       ipAccess.put(ip, t);
-      return lastTime == null || t - lastTime.longValue() > MAX_IDLE;
+      return lastTime == null || t - lastTime > MAX_IDLE;
     }
   }
 
@@ -31,9 +31,9 @@ public class IpAccessMonitor {
   }
 
   private static void cleanup(long t) {
-    HashMap<String, Long> newMap = new HashMap<>(ipAccess.size());
+    Map<String, Long> newMap = new HashMap<>(ipAccess.size());
     for (Map.Entry<String, Long> e : ipAccess.entrySet()) {
-      if (t - e.getValue().longValue() <= MAX_IDLE) {
+      if (t - e.getValue() <= MAX_IDLE) {
         newMap.put(e.getKey(), e.getValue());
       }
     }

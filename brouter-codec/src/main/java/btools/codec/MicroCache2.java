@@ -1,6 +1,7 @@
 package btools.codec;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import btools.util.ByteDataReader;
 import btools.util.IByteArrayUnifier;
@@ -287,7 +288,7 @@ public final class MicroCache2 extends MicroCache {
 
   @Override
   public int encodeMicroCache(byte[] buffer) {
-    HashMap<Long, Integer> idMap = new HashMap<>();
+    Map<Long, Integer> idMap = new HashMap<>();
     for (int n = 0; n < size; n++) { // loop over nodes
       idMap.put(expandId(faid[n]), n);
     }
@@ -418,7 +419,7 @@ public final class MicroCache2 extends MicroCache {
           nlinks++;
 
           if (isInternal) {
-            int nodeIdx = idx.intValue();
+            int nodeIdx = idx;
             if (dodebug) System.out.println("*** target nodeIdx=" + nodeIdx);
             if (nodeIdx == n) throw new RuntimeException("ups: self ref?");
             nodeIdxDiff.encodeSignedValue(nodeIdx - n);

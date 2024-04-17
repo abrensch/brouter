@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.StringTokenizer;
 import java.util.zip.GZIPOutputStream;
 
@@ -299,7 +300,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
     ProfileCache.setSize(2 * maxthreads);
 
-    PriorityQueue<RouteServer> threadQueue = new PriorityQueue<>();
+    Queue<RouteServer> threadQueue = new PriorityQueue<>();
 
     ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]), 100, InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
 
@@ -364,7 +365,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
 
   private static Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
-    HashMap<String, String> params = new HashMap<>();
+    Map<String, String> params = new HashMap<>();
     String decoded = URLDecoder.decode(url, "UTF-8");
     StringTokenizer tk = new StringTokenizer(decoded, "?&");
     while (tk.hasMoreTokens()) {
@@ -417,7 +418,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
     bw.write("\n");
   }
 
-  private static void cleanupThreadQueue(PriorityQueue<RouteServer> threadQueue) {
+  private static void cleanupThreadQueue(Queue<RouteServer> threadQueue) {
     for (; ; ) {
       boolean removedItem = false;
       for (RouteServer t : threadQueue) {

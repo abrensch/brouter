@@ -3,6 +3,7 @@ package btools.server;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.StringTokenizer;
 
 public class Polygon {
@@ -15,7 +16,7 @@ public class Polygon {
   private int maxy = Integer.MIN_VALUE;
 
   public Polygon(BufferedReader br) throws IOException {
-    ArrayList<String> lines = new ArrayList<>();
+    List<String> lines = new ArrayList<>();
 
     for (; ; ) {
       String line = br.readLine();

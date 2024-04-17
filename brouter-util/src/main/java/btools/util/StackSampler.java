@@ -51,12 +51,12 @@ public class StackSampler extends Thread {
     try {
       int wait1 = rand.nextInt(interval);
       int wait2 = interval - wait1;
-      Thread.sleep(wait1);
+      sleep(wait1);
       StringBuilder sb = new StringBuilder(df.format(new Date()) + " THREADDUMP\n");
-      Map<Thread, StackTraceElement[]> allThreads = Thread.getAllStackTraces();
+      Map<Thread, StackTraceElement[]> allThreads = getAllStackTraces();
       for (Map.Entry<Thread, StackTraceElement[]> e : allThreads.entrySet()) {
         Thread t = e.getKey();
-        if (t == Thread.currentThread()) {
+        if (t == currentThread()) {
           continue; // not me
         }
 
@@ -76,7 +76,7 @@ public class StackSampler extends Thread {
         flushCnt = 0;
         bw.flush();
       }
-      Thread.sleep(wait2);
+      sleep(wait2);
     } catch (Exception e) {
       // ignore
     }

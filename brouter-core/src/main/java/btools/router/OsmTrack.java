@@ -166,7 +166,7 @@ public final class OsmTrack {
   }
 
   public List<String> aggregateMessages() {
-    ArrayList<String> res = new ArrayList<>();
+    List<String> res = new ArrayList<>();
     MessageData current = null;
     for (OsmPathElement n : nodes) {
       if (n.message != null && n.message.wayKeyValues != null) {
@@ -188,7 +188,7 @@ public final class OsmTrack {
   }
 
   public List<String> aggregateSpeedProfile() {
-    ArrayList<String> res = new ArrayList<>();
+    List<String> res = new ArrayList<>();
     int vmax = -1;
     int vmaxe = -1;
     int vmin = -1;

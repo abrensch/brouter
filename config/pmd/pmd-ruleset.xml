@@ -29,6 +29,7 @@
         <exclude name="OverrideBothEqualsAndHashcode" />
         <exclude name="PreserveStackTrace" />
         <exclude name="ReturnEmptyCollectionRatherThanNull" />
+        <exclude name="SimplifyBooleanReturns" />
         <exclude name="UncommentedEmptyConstructor" />
         <exclude name="UncommentedEmptyMethodBody" />
         <exclude name="UnusedFormalParameter" />
@@ -51,7 +52,6 @@
     <!-- <rule ref="category/java/bestpractices.xml/UnusedAssignment" /> -->
     <rule ref="category/java/codestyle.xml/UseDiamondOperator" />
     <!-- <rule ref="category/java/design.xml/ImmutableField" /> -->
-    <!-- Will be added in PMD 7 -->
-    <!-- <rule ref="category/java/codestyle.xml/UnnecessaryBoxing" /> -->
+    <rule ref="category/java/codestyle.xml/UnnecessaryBoxing" />
 
 </ruleset>

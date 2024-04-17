@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+    id 'checkstyle'
+    id 'pmd'
+    id 'brouter.version-conventions'
+}
+
+group 'org.btools'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+}
+
+compileJava {
+    options.release = 11
+}
+
+pmd {
+    consoleOutput = true
+    toolVersion = '7.0.0'
+    rulesMinimumPriority = 5
+    ruleSetFiles = files("${rootProject.rootDir}/config/pmd/pmd-ruleset.xml")
+    ruleSets = []
+    // ignoreFailures = true
+}

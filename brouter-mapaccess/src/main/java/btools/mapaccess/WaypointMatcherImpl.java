@@ -51,7 +51,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
     }
 
     // sort result list
-    comparator = new Comparator<MatchedWaypoint>() {
+    comparator = new Comparator<>() {
       @Override
       public int compare(MatchedWaypoint mw1, MatchedWaypoint mw2) {
         int cmpDist = Double.compare(mw1.radius, mw2.radius);

@@ -9,6 +9,7 @@ import java.util.List;
  *
  * @author ab
  */
+@SuppressWarnings("PMD.LooseCoupling")
 public class LazyArrayOfLists<E> {
   private List<ArrayList<E>> lists;
 
