@@ -187,7 +187,7 @@ public class RoutingEngine extends Thread {
       OsmTrack[] refTracks = new OsmTrack[nsections]; // used ways for alternatives
       OsmTrack[] lastTracks = new OsmTrack[nsections];
       OsmTrack track = null;
-      ArrayList<String> messageList = new ArrayList<>();
+      List<String> messageList = new ArrayList<>();
       for (int i = 0; ; i++) {
         track = findTrack(refTracks, lastTracks);
         track.message = "track-length = " + track.distance + " filtered ascend = " + track.ascend
@@ -690,9 +690,9 @@ public class RoutingEngine extends Thread {
             return false;
         }
       }
-      ArrayList<OsmPathElement> removeBackList = new ArrayList<>();
-      ArrayList<OsmPathElement> removeForeList = new ArrayList<>();
-      ArrayList<Integer> removeVoiceHintList = new ArrayList<>();
+      List<OsmPathElement> removeBackList = new ArrayList<>();
+      List<OsmPathElement> removeForeList = new ArrayList<>();
+      List<Integer> removeVoiceHintList = new ArrayList<>();
       OsmPathElement last = null;
       OsmPathElement lastJunction = null;
       CompactLongMap<OsmTrack.OsmPathElementHolder> lastJunctions = new CompactLongMap<>();
@@ -1246,7 +1246,7 @@ public class RoutingEngine extends Thread {
       addToOpenset(startPath1);
       addToOpenset(startPath2);
     }
-    ArrayList<OsmPath> openBorderList = new ArrayList<>(4096);
+    List<OsmPath> openBorderList = new ArrayList<>(4096);
     boolean memoryPanicMode = false;
     boolean needNonPanicProcessing = false;
 

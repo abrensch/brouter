@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 public class CompactSetTest {
   @Test
@@ -22,7 +23,7 @@ public class CompactSetTest {
 
   private void hashSetComparison(int setsize, int trycount) {
     Random rand = new Random(12345);
-    HashSet<Long> hset = new HashSet<>();
+    Set<Long> hset = new HashSet<>();
     CompactLongSet cset_slow = new CompactLongSet();
     CompactLongSet cset_fast = new CompactLongSet();
 

@@ -1,12 +1,9 @@
 plugins {
-    id 'application'
+    id 'brouter.application-conventions'
 }
-
 
 application {
     mainClass.set('btools.server.BRouter')
-
-    distTar.enabled = false
 
     jar {
         manifest {
@@ -35,6 +32,7 @@ application {
 
 distZip {
     dependsOn fatJar
+    if (file('../local.properties').exists()) dependsOn (':brouter-routing-app:assemble')
     archiveFileName = 'brouter-' + project.version + '.zip'
 }
 
@@ -77,6 +75,5 @@ dependencies {
     implementation project(':brouter-mapaccess')
     implementation project(':brouter-util')
 
-    testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20180813'
 }

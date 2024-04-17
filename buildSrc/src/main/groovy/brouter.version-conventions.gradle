@@ -1,0 +1,7 @@
+// NOTE:
+// there are four places to change the version number
+// this file
+// app: build.gradle (versionCode only)
+// OsmTrack (version and versionDate)
+// docs revisions.md (version and versionDate)
+version '1.7.4'
