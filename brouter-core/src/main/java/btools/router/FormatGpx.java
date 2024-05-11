@@ -524,7 +524,7 @@ public class FormatGpx extends Formatter {
         idx2 += 6;
         int idx3 = line.indexOf('"', idx2);
         int ilat = (int) ((Double.parseDouble(line.substring(idx2, idx3)) + 90.) * 1000000. + 0.5);
-        track.nodes.add(OsmPathElement.create(ilon, ilat, (short) 0, null, false));
+        track.nodes.add(OsmPathElement.create(ilon, ilat, (short) 0, null));
       }
     }
     br.close();
