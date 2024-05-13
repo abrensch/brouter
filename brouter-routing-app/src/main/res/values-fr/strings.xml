@@ -11,7 +11,7 @@
     <string name="action_update">Mettre à jour %s</string>
     <string name="action_select">Sélectionner les segments</string>
     <string name="action_cancel">Arrêter le téléchargement</string>
-    <string name="summary_segments">Taille=%1$s\nGratuit=%2$s</string>
+    <string name="summary_segments">Taille=%1$s\nLibre=%2$s</string>
     <string name="notification_title">Télécharger les segments</string>
 
     <string name="action_choose_folder">Choisissez le répertoire de la base de données brouter:</string>
@@ -39,11 +39,11 @@
          lorsqu\'il est démarré à partir de votre outil cartographique. Si vous répétez la même demande de votre
          maptool, avec exactement le même point de destination et un point de départ à proximité,
          il est garanti que cette requête n\'expirera pas.</string>
-    <string name="title_sdcard">Entrez le répertoire de base de la SDCARD:</string>
+    <string name="title_sdcard">Entrez le répertoire de base de la SDCARD :</string>
     <string name="title_action">Sélectionner une action</string>
 
-    <string name="action_via_select">Vérifier la sélection VIA:</string>
-    <string name="action_nogo_select">Vérifier la sélection NoGo:</string>
+    <string name="action_via_select">Vérifier la sélection VIA :</string>
+    <string name="action_nogo_select">Vérifier la sélection NoGo :</string>
     <string name="action_servermode">Mode serveur</string>
     <string name="action_info">Informations</string>
     <string name="action_calc_route">Calculer l\'itinéraire</string>
@@ -56,7 +56,7 @@
     <string name="msg_no_used_profile">, aucun profil utilisé</string>
     <string name="msg_too_much_data">Trop de données à télécharger. Veuillez réduire.</string>
     <string name="msg_download_start">Téléchargement planifié. Vérifiez la connexion Internet si elle ne démarre pas.</string>
-    <string name="msg_wpt_selection">sélection actuelle du waypoint:\n</string>
+    <string name="msg_wpt_selection">sélection actuelle du waypoint :\n</string>
     <string name="msg_no_wpt_selection">Sélection de waypoint en attente\n</string>
     <string name="msg_alternative">Alternative</string>
     <string name="msg_status_result">version = BRouter-%1$s \n
@@ -66,21 +66,21 @@
         montée simple = %5$s m\n
         temps estimé = %6$s</string>
     <string name="msg_read_wpt_error">Erreur lors de la lecture des waypoints</string>
-    <string name="msg_no_wpt">la source de coordonnées ne contient aucun waypoint!</string>
+    <string name="msg_no_wpt">la source de coordonnées ne contient aucun waypoint !</string>
     <string name="msg_too_much_wpts">la source de coordonnées contient trop de waypoints: %1$d (veuillez utiliser les noms de/vers/via)</string>
 
     <string name="no">Non</string>
     <string name="yes">Oui</string>
 
     <string name="title_delete">Confirmer la suppression</string>
-    <string name="summary_delete">Vraiment supprimer?</string>
+    <string name="summary_delete">Vraiment supprimer ?</string>
     <string name="title_version">Problème de version</string>
-    <string name="summary_version">La version de base des vignettes a changé. Que faire?</string>
+    <string name="summary_version">La version de base des vignettes a changé. Que faire ?</string>
     <string name="action_version1">Continuer le téléchargement en cours, supprimer les autres anciennes données</string>
     <string name="action_version2">Sélectionnez tout pour télécharger et démarrer</string>
-    <string name="action_version3">Annuler maintenant, terminer un autre jour</string>
+    <string name="action_version3">Annuler maintenant, terminer une autre fois</string>
     <string name="title_version_diff">Différences de version</string>
-    <string name="summary_version_diff">La version de base de certaines vignettes est différente. Que faire?</string>
+    <string name="summary_version_diff">La version de base de certaines vignettes est différente. Que faire ?</string>
     <string name="action_version_diff1">Télécharger toutes les différentes vignettes</string>
     <string name="action_version_diff2">Supprimez toutes les différentes vignettes</string>
     <string name="action_version_diff3">Annuler maintenant, terminer un autre jour</string>
