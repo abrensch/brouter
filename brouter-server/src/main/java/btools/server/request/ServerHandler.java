@@ -107,7 +107,7 @@ public class ServerHandler extends RequestHandler {
       } else if ("kml".equals(format)) {
         result = "application/vnd.google-earth.kml+xml";
       } else if ("geojson".equals(format)) {
-        result = "application/vnd.geo+json";
+        result = "application/geo+json";
       } else if ("csv".equals(format)) {
         result = "text/tab-separated-values";
       }
