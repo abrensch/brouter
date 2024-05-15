@@ -1279,7 +1279,6 @@ public class RoutingEngine extends Thread {
         }
 
         if (path.airdistance == -1) {
-          path.unregisterUpTree(routingContext);
           continue;
         }
 
@@ -1347,7 +1346,6 @@ public class RoutingEngine extends Thread {
         OsmNode currentNode = path.getTargetNode();
 
         if (currentLink.isLinkUnused()) {
-          path.unregisterUpTree(routingContext);
           continue;
         }
 
@@ -1390,7 +1388,7 @@ public class RoutingEngine extends Thread {
                 + path.elevationCorrection()
                 + (costCuttingTrack.cost - pe.cost);
               if (costEstimate <= maxTotalCost) {
-                matchPath = OsmPathElement.create(path, routingContext.countTraffic);
+                matchPath = OsmPathElement.create(path);
               }
               if (costEstimate < maxTotalCost) {
                 logInfo("maxcost " + maxTotalCost + " -> " + costEstimate);
@@ -1400,7 +1398,6 @@ public class RoutingEngine extends Thread {
           }
         }
 
-        int keepPathAirdistance = path.airdistance;
         OsmLinkHolder firstLinkHolder = currentLink.getFirstLinkHolder(sourceNode);
         for (OsmLinkHolder linkHolder = firstLinkHolder; linkHolder != null; linkHolder = linkHolder.getNextForLink()) {
           ((OsmPath) linkHolder).airdistance = -1; // invalidate the entry in the open set;
@@ -1419,7 +1416,6 @@ public class RoutingEngine extends Thread {
         // recheck cutoff before doing expensive stuff
         int addDiff = 100;
         if (path.cost + path.airdistance > maxTotalCost + addDiff) {
-          path.unregisterUpTree(routingContext);
           continue;
         }
 
@@ -1474,7 +1470,7 @@ public class RoutingEngine extends Thread {
               if (routingContext.turnInstructionMode > 0) {
                 OsmPath detour = routingContext.createPath(path, link, refTrack, true);
                 if (detour.cost >= 0. && nextId != startNodeId1 && nextId != startNodeId2) {
-                  guideTrack.registerDetourForId(currentNode.getIdFromPos(), OsmPathElement.create(detour, false));
+                  guideTrack.registerDetourForId(currentNode.getIdFromPos(), OsmPathElement.create(detour));
                 }
               }
               continue;
@@ -1510,16 +1506,14 @@ public class RoutingEngine extends Thread {
             }
           }
           if (bestPath != null) {
-            boolean trafficSim = endPos == null;
-
-            bestPath.airdistance = trafficSim ? keepPathAirdistance : (isFinalLink ? 0 : nextNode.calcDistance(endPos));
+            bestPath.airdistance = isFinalLink ? 0 : nextNode.calcDistance(endPos);
 
             boolean inRadius = boundary == null || boundary.isInBoundary(nextNode, bestPath.cost);
 
             if (inRadius && (isFinalLink || bestPath.cost + bestPath.airdistance <= (lastAirDistanceCostFactor != 0. ? maxTotalCost * lastAirDistanceCostFactor : maxTotalCost) + addDiff)) {
               // add only if this may beat an existing path for that link
               OsmLinkHolder dominator = link.getFirstLinkHolder(currentNode);
-              while (!trafficSim && dominator != null) {
+              while (dominator != null) {
                 OsmPath dp = (OsmPath) dominator;
                 if (dp.airdistance != -1 && bestPath.definitlyWorseThan(dp)) {
                   break;
@@ -1528,9 +1522,6 @@ public class RoutingEngine extends Thread {
               }
 
               if (dominator == null) {
-                if (trafficSim && boundary != null && path.cost == 0 && bestPath.cost > 0) {
-                  bestPath.airdistance += boundary.getBoundaryDistance(nextNode);
-                }
                 bestPath.treedepth = path.treedepth + 1;
                 link.addLinkHolder(bestPath, currentNode);
                 addToOpenset(bestPath);
@@ -1538,8 +1529,6 @@ public class RoutingEngine extends Thread {
             }
           }
         }
-
-        path.unregisterUpTree(routingContext);
       }
     }
 
@@ -1553,12 +1542,11 @@ public class RoutingEngine extends Thread {
   private void addToOpenset(OsmPath path) {
     if (path.cost >= 0) {
       openSet.add(path.cost + (int) (path.airdistance * airDistanceCostFactor), path);
-      path.registerUpTree();
     }
   }
 
   private OsmTrack compileTrack(OsmPath path, boolean verbose) {
-    OsmPathElement element = OsmPathElement.create(path, false);
+    OsmPathElement element = OsmPathElement.create(path);
 
     // for final track, cut endnode
     if (guideTrack != null && element.origin != null) {
