@@ -137,6 +137,27 @@ The API endpoints exposed by this HTTP server are documented in the
 [`brouter-server/src/main/java/btools/server/request/ServerHandler.java`](brouter-server/src/main/java/btools/server/request/ServerHandler.java)
 file.
 
+The server emits log data for each routing request on stdout. For each routing
+request a line with the following eight fields is printed. The fields are
+separated by whitespace.
+
+- timestamp, in ISO8601 format, e.g. `2024-05-14T21:11:26.499+02:00`
+- current server session count (integer number 1-999) or "new" when a new
+  IP address is detected
+- IP address (IPv4 or IPv6), prefixed by `ip=`
+- duration of routing request in ms, prefixed by `ms=`
+- divider `->`
+- HTTP request method
+- HTTP request URL
+- HTTP request version
+
+Example log output:
+
+```
+2024-05-14T21:11:26.499+02:00 new ip=127.0.0.1 ms=189 -> GET /brouter?lonlats=13.377485,52.516247%7C13.351221,52.515004&profile=trekking&alternativeidx=0&format=geojson HTTP/1.1
+2024-05-14T21:11:33.229+02:00   1 ip=127.0.0.1 ms=65 -> GET /brouter?lonlats=13.377485,52.516247%7C13.351221,52.515004&profile=trekking&alternativeidx=0&format=geojson HTTP/1.1
+```
+
 ## BRouter with Docker
 
 To build the Docker image run (in the project's top level directory):
