@@ -62,22 +62,6 @@ ${JAVA} -cp ${BROUTER_JAR} -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapc
 mkdir segments
 ${JAVA} -cp ${BROUTER_JAR} -DuseDenseMaps=true btools.mapcreator.WayLinker unodes55 waytiles55 bordernodes.dat restrictions.dat ${BROUTER_PROFILES}/lookups.dat ${BROUTER_PROFILES}/all.brf segments rd5
 
-mkdir traffic
-
-${JAVA} -jar ${BROUTER_JAR} segments 8.593025 49.724868 seed 0 ${BROUTER_PROFILES}/car-traffic_analysis.brf
-
-${JAVA} -jar ${BROUTER_JAR} segments 8.609011 50.527861 seed 0 ${BROUTER_PROFILES}/car-traffic_analysis.brf
-
-${JAVA} -jar ${BROUTER_JAR} segments 12.867994 51.239889 seed 0 ${BROUTER_PROFILES}/car-traffic_analysis.brf
-
-${JAVA} -jar ${BROUTER_JAR} segments 11.128099 49.501845 seed 0 ${BROUTER_PROFILES}/car-traffic_analysis.brf
-
-${JAVA} -jar ${BROUTER_JAR} segments 16.532815 49.169541 seed 0 ${BROUTER_PROFILES}/car-traffic_analysis.brf
-
-${JAVA} -jar ${BROUTER_JAR} segments 16.917636 51.040949 seed 0 ${BROUTER_PROFILES}/car-traffic_analysis.brf
-
-${JAVA} -cp ${BROUTER_JAR} -DuseDenseMaps=true btools.mapcreator.WayLinker unodes55 waytiles55 bordernodes.dat restrictions.dat ${BROUTER_PROFILES}/lookups.dat ${BROUTER_PROFILES}/all.brf segments rd5
-
 cd ..
 rm -rf segments
 mv tmp/segments segments
