@@ -59,7 +59,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
     if (e != null) e.terminate();
   }
 
-  private static DateFormat tsFormat = new SimpleDateFormat("dd.MM.yy HH:mm", new Locale("en", "US"));
+  private static DateFormat tsFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", new Locale("en", "US"));
 
   private static String formattedTimeStamp(long t) {
     synchronized (tsFormat) {
