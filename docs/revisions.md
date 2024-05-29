@@ -17,6 +17,9 @@ Profiles
 
 - update gravel profile
 
+
+- Minor bug fixes
+
 [Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.7.5%22+is%3Aclosed)
 
 
