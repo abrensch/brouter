@@ -224,7 +224,9 @@ public class BRouterView extends View {
       // add a "last timeout" dummy profile
       File lastTimeoutFile = new File(modesDir + "/timeoutdata.txt");
       long lastTimeoutTime = lastTimeoutFile.lastModified();
-      if (lastTimeoutTime > 0 && System.currentTimeMillis() - lastTimeoutTime < 1800000) {
+      if (lastTimeoutTime > 0 &&
+        lastTimeoutFile.length() > 0 &&
+        System.currentTimeMillis() - lastTimeoutTime < 1800000) {
         BufferedReader br = new BufferedReader(new FileReader(lastTimeoutFile));
         String repeatProfile = br.readLine();
         br.close();

@@ -214,10 +214,14 @@ public class BRouterWorker {
   }
 
   private void writeWPList(BufferedWriter bw, List<OsmNodeNamed> wps) throws Exception {
-    bw.write(wps.size() + "\n");
-    for (OsmNodeNamed wp : wps) {
-      bw.write(wp.toString());
-      bw.write("\n");
+    if (wps == null) {
+      bw.write("0\n");
+    } else {
+      bw.write(wps.size() + "\n");
+      for (OsmNodeNamed wp : wps) {
+        bw.write(wp.toString());
+        bw.write("\n");
+      }
     }
   }
 }

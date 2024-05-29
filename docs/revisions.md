@@ -2,6 +2,23 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
+### next version
+
+Android
+
+- bug fix for repeat last route <repeat:...>
+
+Library
+
+- ISO8601 compatible timestamps in log
+- Update MIME type for GeoJSON responses
+
+Profiles
+
+- update gravel profile
+
+[Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.7.5%22+is%3Aclosed)
+
 
 ### [brouter-1.7.4.zip](../brouter_bin/brouter-1.7.4.zip) (current revision, 09.04.2024)
 
