@@ -73,13 +73,19 @@ public class BImportActivity extends AppCompatActivity {
     // URI example ==>  dat=content://me.bluemail.mail.attachmentprovider/a2939069-76b5-44e4-8cbd-94485d0fd4ff/cc32b61d-97a6-4871-b67f-945d1d1d43c8/VIEW
     String filename = null;
     long filesize = 0L;
+
     try (Cursor cursor = this.getContentResolver().query(intent.getData(), new String[]{
       OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE}, null, null, null)) {
       if (cursor != null && cursor.moveToFirst()) {
         filename = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
         filesize = cursor.getLong(cursor.getColumnIndexOrThrow(OpenableColumns.SIZE));
       }
+    } catch (Exception e) {
+      resultMessage.append("ERROR: File not accessible\n");
+      displayMessage(resultMessage.toString());
+      return;
     }
+
     // is the file extention ".brf" in the file name
     if (filename == null || isInvalidProfileFilename(filename)) {
       resultMessage.append("ERROR: File extention must be \".brf\"\n");
