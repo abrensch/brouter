@@ -2,7 +2,16 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### [brouter-1.7.5.zip](../brouter_bin/brouter-1.7.5.zip) (current revision, 05.06.2024)
+### [brouter-1.7.6.zip](../brouter_bin/brouter-1.7.6.zip) (current revision, 20.06.2024)
+
+Android
+
+- bug fix for car profiles
+
+[Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.7.6%22+is%3Aclosed)
+
+
+### [brouter-1.7.5.zip](../brouter_bin/brouter-1.7.5.zip) (05.06.2024)
 
 Android
 
