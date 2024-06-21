@@ -19,3 +19,11 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+-keep class btools.codec.** { *; }
+-keep class btools.router.** { *; }
+-keep class btools.expressions.** { *; }
+-keep class btools.mapaccess.** { *; }
+-keep class btools.server.** { *; }
+-keep class btools.util.** { *; }
+-keep class btools.routingapp.** { *; }
