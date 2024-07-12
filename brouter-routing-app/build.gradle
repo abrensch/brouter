@@ -1,6 +1,7 @@
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 plugins {
+    id 'base'
     id 'com.android.application'
     id 'checkstyle'
     id 'brouter.version-conventions'
@@ -8,6 +9,10 @@ plugins {
 
 android {
     compileSdk 34
+
+    base {
+        archivesName = "BRouterApp."  + project.version
+    }
 
     defaultConfig {
         namespace 'btools.routingapp'
@@ -17,7 +22,6 @@ android {
         versionName project.version
 
         resValue('string', 'app_version', defaultConfig.versionName)
-        setProperty("archivesBaseName", "BRouterApp." + defaultConfig.versionName)
 
         minSdkVersion 21
         targetSdkVersion 35
