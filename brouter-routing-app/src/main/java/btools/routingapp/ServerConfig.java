@@ -2,6 +2,7 @@ package btools.routingapp;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -13,6 +14,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class ServerConfig {
+
+  private static final String TAG = "ServerConfig";
+
   private static String mServerConfigName = "serverconfig.txt";
 
   private String mSegmentUrl = "https://brouter.de/brouter/segments4/";
@@ -52,7 +56,7 @@ public class ServerConfig {
           }
         }
       } catch (IOException e) {
-        e.printStackTrace();
+        Log.e(TAG, Log.getStackTraceString(e));
       } finally {
         try {
           if (br != null) br.close();
