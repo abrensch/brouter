@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    compileSdkVersion 33
+    compileSdk 34
 
     defaultConfig {
         namespace 'btools.routingapp'
@@ -19,8 +19,8 @@ android {
         resValue('string', 'app_version', defaultConfig.versionName)
         setProperty("archivesBaseName", "BRouterApp." + defaultConfig.versionName)
 
-        minSdkVersion 14
-        targetSdkVersion 33
+        minSdkVersion 21
+        targetSdkVersion 35
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
