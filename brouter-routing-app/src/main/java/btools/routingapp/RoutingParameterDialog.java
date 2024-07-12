@@ -240,6 +240,7 @@ public class RoutingParameterDialog extends AppCompatActivity {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void onCreate(Bundle savedInstanceState) {
       super.onCreate(savedInstanceState);
 
@@ -262,10 +263,10 @@ public class RoutingParameterDialog extends AppCompatActivity {
 
         if (i.hasExtra("PARAMS")) {
           List<?> result;
-          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            result = (List<?>) i.getExtras().getSerializable("PARAMS", ArrayList.class);
-          } else {
+          if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             result = (List<?>) i.getExtras().getSerializable("PARAMS");
+          } else {
+            result = (List<?>) i.getExtras().getSerializable("PARAMS", ArrayList.class);
           }
           if (result instanceof ArrayList) {
             for (Object o : result) {
