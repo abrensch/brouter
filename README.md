@@ -170,15 +170,24 @@ Download the segment files as described in the previous chapter. The folder cont
 segment files can be mounted into the container. Run BRouter as follows:
 
 ```
-docker run --rm -v ./misc/scripts/segments4:/segments4 brouter
+docker run --rm \
+  -v ./misc/scripts/segments4:/segments4 \
+  -p 17777:17777 \
+  --name brouter \
+  brouter
 ```
 
-This will start brouter with a set of default routing profiles.
+This will start brouter with a set of default routing profiles. It will be accessible on port 17777.
 
 If you want to provide your own routing profiles, you can also mount the folder containing the custom profiles:
 
 ```
-docker run --rm -v ./misc/scripts/segments4:/segments4 -v /path/to/custom/profiles:/profiles2 brouter
+docker run --rm \
+  -v ./misc/scripts/segments4:/segments4 \
+  -v /path/to/custom/profiles:/profiles2 \
+  -p 17777:17777 \
+  --name brouter \
+  brouter
 ```
 
 ## Documentation
