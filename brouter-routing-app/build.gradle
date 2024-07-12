@@ -159,3 +159,8 @@ task generateReadmesZip(type: Zip) {
     }
     destinationDirectory = layout.buildDirectory.dir("assets")
 }
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ['-Xlint:unchecked']
+    options.compilerArgs += ['-Xlint:deprecation']
+}
