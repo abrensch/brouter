@@ -46,6 +46,8 @@ import btools.router.RoutingHelper;
 
 public class BInstallerActivity extends AppCompatActivity {
 
+  private static final String TAG = "BInstallerActivity";
+
   private static final int DIALOG_CONFIRM_DELETE_ID = 1;
   private static final int DIALOG_CONFIRM_NEXTSTEPS_ID = 2;
   private static final int DIALOG_CONFIRM_GETDIFFS_ID = 3;
@@ -216,7 +218,7 @@ public class BInstallerActivity extends AppCompatActivity {
       Object data;
       Toast.makeText(this, R.string.msg_too_much_data, Toast.LENGTH_LONG).show();
 
-      e.printStackTrace();
+      Log.e(TAG, Log.getStackTraceString(e));
       return;
     }
 
@@ -242,10 +244,9 @@ public class BInstallerActivity extends AppCompatActivity {
         //WorkManager.getInstance(getApplicationContext()).cancelWorkById(downloadWorkRequest.getId());
       }
     } catch (ExecutionException e) {
-      e.printStackTrace();
+      Log.e(TAG, Log.getStackTraceString(e));
     } catch (InterruptedException e) {
-      Log.d("worker", "canceled " + e.getMessage());
-      //e.printStackTrace();
+      Log.d(TAG, "canceled " + e.getMessage());
     }
 
     workManager
@@ -516,10 +517,10 @@ public class BInstallerActivity extends AppCompatActivity {
       }
       return running;
     } catch (ExecutionException e) {
-      e.printStackTrace();
+      Log.e(TAG, Log.getStackTraceString(e));
       return false;
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      Log.e(TAG, Log.getStackTraceString(e));
       return false;
     }
   }

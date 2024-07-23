@@ -2,7 +2,12 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### [brouter-1.7.6.zip](../brouter_bin/brouter-1.7.6.zip) (current revision, 20.06.2024)
+### [brouter-1.7.7.zip](../brouter_bin/brouter-1.7.7.zip) (current revision, 23.07.2024)
+
+- new Android API 34
+
+
+### [brouter-1.7.6.zip](../brouter_bin/brouter-1.7.6.zip) (20.06.2024)
 
 Android
 

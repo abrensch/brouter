@@ -1,9 +1,9 @@
 package btools.routingapp;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
 
 import android.os.Build;
 import android.os.Environment;
