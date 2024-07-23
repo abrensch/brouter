@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
 
@@ -146,7 +147,7 @@ public class RoutingParameterDialog extends AppCompatActivity {
               list.add(p);
             }
           } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, Log.getStackTraceString(e));
           }
         }
       } while (line != null);
@@ -240,6 +241,7 @@ public class RoutingParameterDialog extends AppCompatActivity {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void onCreate(Bundle savedInstanceState) {
       super.onCreate(savedInstanceState);
 
@@ -262,10 +264,10 @@ public class RoutingParameterDialog extends AppCompatActivity {
 
         if (i.hasExtra("PARAMS")) {
           List<?> result;
-          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            result = (List<?>) i.getExtras().getSerializable("PARAMS", ArrayList.class);
-          } else {
+          if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             result = (List<?>) i.getExtras().getSerializable("PARAMS");
+          } else {
+            result = (List<?>) i.getExtras().getSerializable("PARAMS", ArrayList.class);
           }
           if (result instanceof ArrayList) {
             for (Object o : result) {
@@ -277,7 +279,7 @@ public class RoutingParameterDialog extends AppCompatActivity {
           sparams = i.getExtras().getString("PARAMS_VALUES", "");
         }
       } catch (Exception e) {
-        e.printStackTrace();
+        Log.e(TAG, Log.getStackTraceString(e));
       }
 
       getPreferenceManager().setSharedPreferencesName("prefs_profile_" + profile_hash);

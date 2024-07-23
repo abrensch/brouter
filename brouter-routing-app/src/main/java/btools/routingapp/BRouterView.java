@@ -48,6 +48,8 @@ import btools.util.CheapRuler;
 
 public class BRouterView extends View {
 
+  private static final String TAG = "BRouterView";
+
   private final int memoryClass;
   RoutingEngine cr;
   private int imgw;
@@ -148,8 +150,8 @@ public class BRouterView extends View {
       try {
         td.mkdirs();
       } catch (Exception e) {
-        Log.d("BRouterView", "Error creating base directory: " + e.getMessage());
-        e.printStackTrace();
+        Log.d(TAG, "Error creating base directory: " + e.getMessage());
+        Log.e(TAG, Log.getStackTraceString(e));
       }
 
       if (!td.isDirectory()) {
@@ -173,7 +175,7 @@ public class BRouterView extends View {
 
       // new init is done move old files
       if (waitingForMigration) {
-        Log.d("BR", "path " + oldMigrationPath + " " + basedir);
+        Log.d(TAG, "path " + oldMigrationPath + " " + basedir);
         Thread t = new Thread(new Runnable() {
           @Override
           public void run() {
@@ -184,7 +186,7 @@ public class BRouterView extends View {
         try {
           t.join(500);
         } catch (InterruptedException e) {
-          e.printStackTrace();
+          Log.e(TAG, Log.getStackTraceString(e));
         }
         waitingForMigration = false;
       }
@@ -333,9 +335,9 @@ public class BRouterView extends View {
       out.close();
 
     } catch (FileNotFoundException fileNotFoundException) {
-      Log.e("tag", fileNotFoundException.getMessage());
+      Log.e(TAG, fileNotFoundException.getMessage());
     } catch (Exception e) {
-      Log.e("tag", e.getMessage());
+      Log.e(TAG, e.getMessage());
     }
   }
 
