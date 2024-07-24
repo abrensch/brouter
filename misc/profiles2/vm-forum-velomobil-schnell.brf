@@ -459,3 +459,4 @@ assign initialcost
  switch footaccess
   dismount_cost # Kosten fürs Aussteigen
  1000000 #Kosten für verbotene oder private Wege
+
