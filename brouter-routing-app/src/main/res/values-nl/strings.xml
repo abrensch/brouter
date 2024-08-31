@@ -53,7 +53,6 @@
     <string name="action_select_to">Selecteer naar/via</string>
 
     <string name="msg_no_profile">geen profiel data</string>
-    <string name="msg_no_used_profile">, geen gebruikt profiel</string>
     <string name="msg_too_much_data">Te veel gegevens om te downloaden. Verminder a.u.b.</string>
     <string name="msg_download_start">Download is gepland. Controleer de internetverbinding als deze  niet start.</string>
     <string name="msg_wpt_selection">huidige waypointselectie:\n</string>
