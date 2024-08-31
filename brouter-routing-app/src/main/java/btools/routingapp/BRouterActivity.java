@@ -78,6 +78,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private String title;
   private int wpCount;
   private boolean startSilent;
+  private String configuredParams = null;
 
   ActivityResultLauncher<Intent> someActivityResultLauncher;
 
@@ -108,7 +109,12 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
             if (data != null && data.hasExtra("PROFILE_HASH")) {
               profile_hash = data.getExtras().getString("PROFILE_HASH", "");
             }
-            mBRouterView.configureServiceParams(profile, sparams);
+
+            if (mBRouterView.getConfigureServiceParams(profile) == null) {
+              mBRouterView.startConfigureService(sparams);
+            } else {
+              mBRouterView.configureServiceParams(profile, sparams);
+            }
           }
 
         }
@@ -203,6 +209,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
         return builder.create();
          */
       case DIALOG_ROUTINGMODES_ID:
+        String configuredParams = this.configuredParams;
         builder.setTitle(message);
         builder.setMultiChoiceItems(routingModes, routingModesChecked,
           new DialogInterface.OnMultiChoiceClickListener() {
@@ -213,7 +220,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
           });
         builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
-            mBRouterView.configureService(routingModes, routingModesChecked);
+            mBRouterView.configureService(routingModes, routingModesChecked, configuredParams);
           }
         });
         return builder.create();
@@ -345,7 +352,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
             public void onClick(DialogInterface dialog, int item) {
               if (slist.size() > 1 && item == 0) {
                 if (wpCount == 0) {
-                  mBRouterView.startConfigureService();
+                  mBRouterView.startConfigureService(null);
                 } else if (wpCount == -3) {
                   showRepeatTimeoutHelp();
                 } else if (wpCount >= 2) {
@@ -456,21 +463,20 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     }
 
     String sparams = mBRouterView.getConfigureServiceParams(selectedProfile);
-    if (sparams != null) {
-      if (listParams.size() > 0) {
-        Intent i = new Intent(BRouterActivity.this, RoutingParameterDialog.class);
-        i.putExtra("PROFILE", selectedProfile);
-        i.putExtra("PROFILE_HASH", String.format("B%X", profile.getAbsolutePath().hashCode()));
-        i.putExtra("PARAMS", (Serializable) listParams);
-        i.putExtra("PARAMS_VALUES", sparams);
-        //startActivityForResult(i, 100);
-        someActivityResultLauncher.launch(i);
-      } else {
-        Toast.makeText(this, R.string.msg_no_profile, Toast.LENGTH_LONG).show();
-        finish();
-      }
+    if (sparams == null) {
+      // profile is not used yet
+      sparams = "";
+    }
+    if (listParams.size() > 0) {
+      Intent i = new Intent(BRouterActivity.this, RoutingParameterDialog.class);
+      i.putExtra("PROFILE", selectedProfile);
+      i.putExtra("PROFILE_HASH", String.format("B%X", profile.getAbsolutePath().hashCode()));
+      i.putExtra("PARAMS", (Serializable) listParams);
+      i.putExtra("PARAMS_VALUES", sparams);
+      //startActivityForResult(i, 100);
+      someActivityResultLauncher.launch(i);
     } else {
-      Toast.makeText(this, selectedProfile + getString(R.string.msg_no_used_profile), Toast.LENGTH_LONG).show();
+      Toast.makeText(this, R.string.msg_no_profile, Toast.LENGTH_LONG).show();
       finish();
     }
   }
@@ -539,10 +545,11 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     }
   }
 
-  public void selectRoutingModes(String[] modes, boolean[] modesChecked, String message) {
+  public void selectRoutingModes(String[] modes, boolean[] modesChecked, String message, String sparams) {
     routingModes = modes;
     routingModesChecked = modesChecked;
     this.message = message;
+    this.configuredParams = sparams;
     showADialog(DIALOG_ROUTINGMODES_ID);
   }
 
@@ -666,7 +673,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private void onItemClick(AdapterView<?> adapterView, View view, int which, long l) {
     if (which == 0) {
       if (wpCount == 0) {
-        mBRouterView.startConfigureService();
+        mBRouterView.startConfigureService(null);
       } else if (wpCount == -3) {
         showRepeatTimeoutHelp();
       } else if (wpCount >= 2) {
