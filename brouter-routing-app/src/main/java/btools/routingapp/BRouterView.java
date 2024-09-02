@@ -250,11 +250,12 @@ public class BRouterView extends View {
       };
 
       if (!RoutingHelper.hasDirectoryAnyDatafiles(segmentDir)) {
+        ((BRouterActivity) getContext()).selectProfile(profiles.toArray(new String[0]), false);
         ((BRouterActivity) getContext()).startDownloadManager();
         waitingForSelection = true;
         return;
       }
-      ((BRouterActivity) getContext()).selectProfile(profiles.toArray(new String[0]));
+      ((BRouterActivity) getContext()).selectProfile(profiles.toArray(new String[0]), true);
     } catch (Exception e) {
       String msg = e instanceof IllegalArgumentException ? e.getMessage()
         + (cor == null ? "" : " (coordinate-source: " + cor.basedir + cor.rootdir + ")") : e.toString();
