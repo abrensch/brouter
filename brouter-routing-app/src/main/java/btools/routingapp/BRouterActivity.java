@@ -487,12 +487,12 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
     return checked;
   }
 
-  public void selectProfile(String[] items) {
+  public void selectProfile(String[] items, boolean showDialog) {
     availableProfiles = items;
     Arrays.sort(availableProfiles);
 
     // show main dialog
-    showADialog(DIALOG_MAINACTION_ID);
+    if (showDialog) showADialog(DIALOG_MAINACTION_ID);
   }
 
   public void startDownloadManager() {
