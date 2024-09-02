@@ -53,7 +53,6 @@
     <string name="action_select_to">Wybierz do/przez</string>
 
     <string name="msg_no_profile">brak danych profilu</string>
-    <string name="msg_no_used_profile">, brak używanego profilu</string>
     <string name="msg_too_much_data">Za dużo danych do pobrania. Proszę ogranicz.</string>
     <string name="msg_download_start">Pobieranie zaplanowane. Jeśli się nie rozpocznie, sprawdź połączenie internetowe.</string>
     <string name="msg_wpt_selection">bieżący wybór punktu trasy:\n</string>

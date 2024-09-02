@@ -53,7 +53,6 @@
     <string name="action_select_to">Seleccionar a/via</string>
 
     <string name="msg_no_profile">no hi ha dades al perfil</string>
-    <string name="msg_no_used_profile">, cap perfil utilitzat</string>
     <string name="msg_too_much_data">Massa dades per baixar. Si us plau, redueix-les.</string>
     <string name="msg_download_start">Baixada programada. Comprovar la connexió a internet si no comença.</string>
     <string name="msg_wpt_selection">selecció actual de fita:\n</string>

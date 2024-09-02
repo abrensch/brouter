@@ -817,17 +817,17 @@ public class BRouterView extends View {
     }
   }
 
-  public void startConfigureService() {
+  public void startConfigureService(String sparams) {
     String[] modes = new String[]
       {"foot_short", "foot_fast", "bicycle_short", "bicycle_fast", "motorcar_short", "motorcar_fast"};
     boolean[] modesChecked = new boolean[6];
 
     String msg = "Choose service-modes to configure (" + profileName + " [" + nogoVetoList.size() + "])";
 
-    ((BRouterActivity) getContext()).selectRoutingModes(modes, modesChecked, msg);
+    ((BRouterActivity) getContext()).selectRoutingModes(modes, modesChecked, msg, sparams);
   }
 
-  public void configureService(String[] routingModes, boolean[] checkedModes) {
+  public void configureService(String[] routingModes, boolean[] checkedModes, String sparams) {
     // read in current config
     TreeMap<String, ServiceModeConfig> map = new TreeMap<>();
     BufferedReader br = null;
@@ -861,7 +861,8 @@ public class BRouterView extends View {
           s = sm.params;
           p = sm.profile;
         }
-        if (s == null || !p.equals(profileName)) s = "noparams";
+        if (!p.equals(profileName)) s = sparams;
+        if (s == null || s.equals("")) s = "noparams";
         ServiceModeConfig smc = new ServiceModeConfig(routingModes[i], profileName, s);
         for (OsmNodeNamed nogo : nogoVetoList) {
           smc.nogoVetos.add(nogo.ilon + "," + nogo.ilat);
