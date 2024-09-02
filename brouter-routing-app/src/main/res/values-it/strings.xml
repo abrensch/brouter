@@ -53,7 +53,6 @@
     <string name="action_select_to">Seleziona a/via</string>
 
     <string name="msg_no_profile">nessun dato del profilo</string>
-    <string name="msg_no_used_profile">, nessun profilo utilizzato</string>
     <string name="msg_too_much_data">Troppi dati per il download. Per favore riduci.</string>
     <string name="msg_download_start">Download programmato. Controlla la connessione Internet se non si avvia.</string>
     <string name="msg_wpt_selection">selezione del waypoint corrente:\n</string>

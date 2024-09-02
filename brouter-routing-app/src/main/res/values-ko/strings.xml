@@ -53,7 +53,6 @@
     <string name="action_select_to">선택 ~로/경유하여</string>
 
     <string name="msg_no_profile">프로필 데이터 없음</string>
-    <string name="msg_no_used_profile">, 사용된 프로필 없음</string>
     <string name="msg_too_much_data">다운로드 하기에 너무 많은 데이터. 줄이도록 하세요.</string>
     <string name="msg_download_start">다운로드 계획되어 있음. 인터넷 연결 체크 그렇지 않다면 시작.</string>
     <string name="msg_wpt_selection">현재 장소 선택:\n</string>
