@@ -2,6 +2,13 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
+### next version
+
+Android
+
+- enable edit for unused profiles
+
+
 ### [brouter-1.7.7.zip](../brouter_bin/brouter-1.7.7.zip) (current revision, 23.07.2024)
 
 - new Android API 34
