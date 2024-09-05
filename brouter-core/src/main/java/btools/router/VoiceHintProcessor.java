@@ -11,7 +11,8 @@ import java.util.List;
 public final class VoiceHintProcessor {
 
   double SIGNIFICANT_ANGLE = 22.5;
-  double INTERNAL_CATCHING_RANGE = 2.;
+  double INTERNAL_CATCHING_RANGE_NEAR = 2.;
+  double INTERNAL_CATCHING_RANGE_WIDE = 10.;
 
   // private double catchingRange; // range to catch angles and merge turns
   private boolean explicitRoundabouts;
@@ -23,10 +24,10 @@ public final class VoiceHintProcessor {
     this.transportMode = transportMode;
   }
 
-  private float sumNonConsumedWithinCatchingRange(List<VoiceHint> inputs, int offset) {
+  private float sumNonConsumedWithinCatchingRange(List<VoiceHint> inputs, int offset, double range) {
     double distance = 0.;
     float angle = 0.f;
-    while (offset >= 0 && distance < INTERNAL_CATCHING_RANGE) {
+    while (offset >= 0 && distance < range) {
       VoiceHint input = inputs.get(offset--);
       if (input.turnAngleConsumed) {
         break;
@@ -82,7 +83,7 @@ public final class VoiceHintProcessor {
 
       if (explicitRoundabouts && input.oldWay.isRoundabout()) {
         if (roundaboudStartIdx == -1) roundaboudStartIdx = hintIdx;
-        roundAboutTurnAngle += sumNonConsumedWithinCatchingRange(inputs, hintIdx);
+        roundAboutTurnAngle += sumNonConsumedWithinCatchingRange(inputs, hintIdx, INTERNAL_CATCHING_RANGE_NEAR);
         if (roundaboudStartIdx == hintIdx) {
           if (input.badWays != null) {
             // remove goodWay
@@ -171,10 +172,12 @@ public final class VoiceHintProcessor {
           }
 
           if (badWay.isBadOneway()) {
+            if (minAbsAngeRaw == 180f) minAbsAngeRaw = turnAngle; // disable hasSomethingMoreStraight
             continue; // ignore wrong oneways
           }
 
           if (Math.abs(badTurn) - Math.abs(turnAngle) > 80.f) {
+            if (minAbsAngeRaw == 180f) minAbsAngeRaw = turnAngle; // disable hasSomethingMoreStraight
             continue; // ways from the back should not trigger a slight turn
           }
 
@@ -228,13 +231,13 @@ public final class VoiceHintProcessor {
           }
         }
 
-        input.angle = sumNonConsumedWithinCatchingRange(inputs, hintIdx);
+        input.angle = sumNonConsumedWithinCatchingRange(inputs, hintIdx, INTERNAL_CATCHING_RANGE_WIDE);
         input.distanceToNext = distance;
         distance = 0.;
         results.add(input);
       }
-      if (results.size() > 0 && distance < INTERNAL_CATCHING_RANGE) { //catchingRange
-        results.get(results.size() - 1).angle += sumNonConsumedWithinCatchingRange(inputs, hintIdx);
+      if (results.size() > 0 && distance < INTERNAL_CATCHING_RANGE_NEAR) { //catchingRange
+        results.get(results.size() - 1).angle += sumNonConsumedWithinCatchingRange(inputs, hintIdx, INTERNAL_CATCHING_RANGE_NEAR);
       }
     }
 
@@ -251,7 +254,7 @@ public final class VoiceHintProcessor {
       if (!(hint.needsRealTurn && (hint.cmd == VoiceHint.C || hint.cmd == VoiceHint.BL))) {
         double dist = hint.distanceToNext;
         // sum up other hints within the catching range (e.g. 40m)
-        while (dist < INTERNAL_CATCHING_RANGE && i > 0) {
+        while (dist < INTERNAL_CATCHING_RANGE_NEAR && i > 0) {
           VoiceHint h2 = results.get(i - 1);
           dist = h2.distanceToNext;
           hint.distanceToNext += dist;
@@ -292,7 +295,10 @@ public final class VoiceHintProcessor {
       }
 
       if (nextInput == null) {
-        if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
+        if ((input.cmd == VoiceHint.C ||
+             input.cmd == VoiceHint.KR ||
+             input.cmd == VoiceHint.KL)
+             && !input.goodWay.isLinktType()) {
           if (input.goodWay.getPrio() < input.maxBadPrio && (inputLastSaved != null && inputLastSaved.distanceToNext > catchingRange)) {
             results.add(input);
           } else {
@@ -306,10 +312,15 @@ public final class VoiceHintProcessor {
         }
       } else {
         if ((inputLastSaved != null && inputLastSaved.distanceToNext > catchingRange) || input.distanceToNext > catchingRange) {
-          if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
-            if (input.goodWay.getPrio() < input.maxBadPrio
-                && (inputLastSaved != null && inputLastSaved.distanceToNext > minRange)
-                && (input.distanceToNext > minRange)) {
+          if ((input.cmd == VoiceHint.C ||
+               input.cmd == VoiceHint.KR ||
+               input.cmd == VoiceHint.KL)
+               && !input.goodWay.isLinktType()) {
+            if (((Math.abs(input.lowerBadWayAngle) < 35.f ||
+                 input.higherBadWayAngle < 35.f)
+                 || input.goodWay.getPrio() < input.maxBadPrio)
+                 && (inputLastSaved != null && inputLastSaved.distanceToNext > minRange)
+                 && (input.distanceToNext > minRange)) {
               // add only on prio
               results.add(input);
               inputLastSaved = input;
@@ -343,7 +354,10 @@ public final class VoiceHintProcessor {
           dist += nextInput.distanceToNext;
           angles += nextInput.angle;
 
-          if (input.cmd == VoiceHint.C && !input.goodWay.isLinktType()) {
+          if ((input.cmd == VoiceHint.C ||
+               input.cmd == VoiceHint.KR ||
+               input.cmd == VoiceHint.KL)
+               && !input.goodWay.isLinktType()) {
             if (input.goodWay.getPrio() < input.maxBadPrio) {
               if (inputLastSaved != null && inputLastSaved.cmd != VoiceHint.C
                   && (inputLastSaved != null && inputLastSaved.distanceToNext > minRange)
