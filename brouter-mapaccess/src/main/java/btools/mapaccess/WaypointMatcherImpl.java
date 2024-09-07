@@ -28,6 +28,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
   private boolean anyUpdate;
   private int lonLast;
   private int latLast;
+  boolean useAsStartWay = true;
 
   private Comparator<MatchedWaypoint> comparator;
 
@@ -78,6 +79,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
 
     //for ( MatchedWaypoint mwp : waypoints )
     for (int i = 0; i < waypoints.size(); i++) {
+      if (!useAsStartWay && i==0) continue;
       MatchedWaypoint mwp = waypoints.get(i);
 
       if (mwp.direct &&
@@ -141,7 +143,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
   }
 
   @Override
-  public boolean start(int ilonStart, int ilatStart, int ilonTarget, int ilatTarget) {
+  public boolean start(int ilonStart, int ilatStart, int ilonTarget, int ilatTarget, boolean useAsStartWay) {
     if (islandPairs.size() > 0) {
       long n1 = ((long) ilonStart) << 32 | ilatStart;
       long n2 = ((long) ilonTarget) << 32 | ilatTarget;
@@ -154,6 +156,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
     lonTarget = ilonTarget;
     latTarget = ilatTarget;
     anyUpdate = false;
+    this.useAsStartWay = useAsStartWay;
     return true;
   }
 

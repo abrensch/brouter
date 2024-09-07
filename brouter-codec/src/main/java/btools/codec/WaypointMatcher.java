@@ -6,7 +6,7 @@ package btools.codec;
  * matches to the waypoints
  */
 public interface WaypointMatcher {
-  boolean start(int ilonStart, int ilatStart, int ilonTarget, int ilatTarget);
+  boolean start(int ilonStart, int ilatStart, int ilonTarget, int ilatTarget, boolean useAsStartWay);
 
   void transferNode(int ilon, int ilat);
 
