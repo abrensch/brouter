@@ -122,7 +122,7 @@ public class FormatJson extends Formatter {
         .append(sele).append("],\n");
       nn = n;
     }
-    sb.deleteCharAt(sb.lastIndexOf(","));
+    if (t.nodes != null && !t.nodes.isEmpty()) sb.deleteCharAt(sb.lastIndexOf(","));
 
     sb.append("        ]\n");
     sb.append("      }\n");
