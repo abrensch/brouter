@@ -116,7 +116,8 @@ public final class DirectWeaver extends ByteDataWriter {
           int ilontarget = ilon + dlon_remaining;
           int ilattarget = ilat + dlat_remaining;
           if (matcher != null) {
-            if (!matcher.start(ilon, ilat, ilontarget, ilattarget)) {
+            boolean useAsStartWay = wayTags==null || wayValidator.checkStartWay(wayTags.data);
+            if (!matcher.start(ilon, ilat, ilontarget, ilattarget, useAsStartWay)) {
               matcher = null;
             }
           }

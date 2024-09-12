@@ -161,7 +161,8 @@ public final class MicroCache2 extends MicroCache {
           int ilontarget = ilon + dlon_remaining;
           int ilattarget = ilat + dlat_remaining;
           if (matcher != null) {
-            if (!matcher.start(ilon, ilat, ilontarget, ilattarget)) {
+            boolean useAsStartWay = wayValidator.checkStartWay(wayTags.data);
+            if (!matcher.start(ilon, ilat, ilontarget, ilattarget, useAsStartWay)) {
               matcher = null;
             }
           }

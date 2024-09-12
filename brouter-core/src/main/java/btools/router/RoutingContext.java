@@ -167,6 +167,10 @@ public final class RoutingContext {
     defaultC_r = expctxGlobal.getVariableValue("C_r", 0.01f);
     // Constant power of the biker (in W)
     bikerPower = expctxGlobal.getVariableValue("bikerPower", 100.f);
+
+    boolean test = expctxGlobal.getVariableValue("check_start_way", 1f) == 1f;
+    if (!test) expctxGlobal.freeNoWays();
+
   }
 
   public List<OsmNodeNamed> poipoints;
