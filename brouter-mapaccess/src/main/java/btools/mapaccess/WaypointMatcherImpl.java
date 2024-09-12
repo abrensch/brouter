@@ -29,6 +29,8 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
   private int lonLast;
   private int latLast;
   boolean useAsStartWay = true;
+  public boolean useDynamicRange;
+  private int maxWptIdx;
 
   private Comparator<MatchedWaypoint> comparator;
 
@@ -36,6 +38,11 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
     this.waypoints = waypoints;
     this.islandPairs = islandPairs;
     MatchedWaypoint last = null;
+    this.useDynamicRange = maxDistance < 0;
+    if (maxDistance < 0.) {
+      maxDistance *= -1;
+    }
+
     for (MatchedWaypoint mwp : waypoints) {
       mwp.radius = maxDistance;
       if (last != null && mwp.directionToNext == -1) {
@@ -50,6 +57,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
     } else {
       last.directionToNext = CheapAngleMeter.getDirection(last.waypoint.ilon, last.waypoint.ilat, waypoints.get(lastidx).waypoint.ilon, waypoints.get(lastidx).waypoint.ilat);
     }
+    maxWptIdx = waypoints.size() - 1;
 
     // sort result list
     comparator = new Comparator<>() {
@@ -105,7 +113,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
       double r22 = x2 * x2 + y2 * y2;
       double radius = Math.abs(r12 < r22 ? y1 * dx - x1 * dy : y2 * dx - x2 * dy) / d;
 
-      if (radius <= mwp.radius) {
+      if (radius <= mwp.radius || (this.useDynamicRange && (i == 0 || i == maxWptIdx))) {
         double s1 = x1 * dx + y1 * dy;
         double s2 = x2 * dx + y2 * dy;
 

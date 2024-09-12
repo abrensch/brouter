@@ -177,7 +177,8 @@ public final class NodesCache {
       }
 
       MicroCache segment = osmf.getMicroCache(ilon, ilat);
-      if (segment == null) {
+      // needed for a second chance
+      if (segment == null || (waypointMatcher != null && ((WaypointMatcherImpl) waypointMatcher).useDynamicRange)) {
         checkEnableCacheCleaning();
         segment = osmf.createMicroCache(ilon, ilat, dataBuffers, expCtxWay, waypointMatcher, directWeaving ? nodesMap : null);
 
@@ -282,15 +283,15 @@ public final class NodesCache {
     return existing;
   }
 
-  public void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints, double maxDistance, OsmNodePairSet islandNodePairs) {
+  public boolean matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints, double maxDistance, OsmNodePairSet islandNodePairs) {
     waypointMatcher = new WaypointMatcherImpl(unmatchedWaypoints, maxDistance, islandNodePairs);
     for (MatchedWaypoint mwp : unmatchedWaypoints) {
       int cellsize = 12500;
-      preloadPosition(mwp.waypoint, cellsize);
+      preloadPosition(mwp.waypoint, cellsize, 1);
       // get a second chance
       if (mwp.crosspoint == null) {
         cellsize = 1000000 / 32;
-        preloadPosition(mwp.waypoint, cellsize);
+        preloadPosition(mwp.waypoint, cellsize, maxDistance < 0 ? 5 : 2);
       }
     }
 
@@ -305,7 +306,8 @@ public final class NodesCache {
           mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
           mwp.direct = true;
         } else {
-          throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
+          // do not break here throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
+          return false;
         }
       }
       if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
@@ -313,17 +315,18 @@ public final class NodesCache {
         mwp.direct = true;
       }
     }
+    return true;
   }
 
-  private void preloadPosition(OsmNode n, int d) {
+  private void preloadPosition(OsmNode n, int d, int scale) {
     first_file_access_failed = false;
     first_file_access_name = null;
     loadSegmentFor(n.ilon, n.ilat);
     if (first_file_access_failed) {
       throw new IllegalArgumentException("datafile " + first_file_access_name + " not found");
     }
-    for (int idxLat = -1; idxLat <= 1; idxLat++)
-      for (int idxLon = -1; idxLon <= 1; idxLon++) {
+    for (int idxLat = -scale; idxLat <= scale; idxLat++)
+      for (int idxLon = -scale; idxLon <= scale; idxLon++) {
         if (idxLon != 0 || idxLat != 0) {
           loadSegmentFor(n.ilon + d * idxLon, n.ilat + d * idxLat);
         }
