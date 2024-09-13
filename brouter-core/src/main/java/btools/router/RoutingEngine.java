@@ -982,9 +982,10 @@ public class RoutingEngine extends Thread {
       resetCache(false);
       range = -range;
       List<MatchedWaypoint> tmp = new ArrayList<>();
-      // only first or last checked
-      if (unmatchedWaypoints.get(0).crosspoint == null) tmp.add(unmatchedWaypoints.get(0));
-      if (unmatchedWaypoints.get(unmatchedWaypoints.size()-1).crosspoint == null) tmp.add(unmatchedWaypoints.get(unmatchedWaypoints.size()-1));
+      // only w/o crosspoint check
+      for (MatchedWaypoint mwp: unmatchedWaypoints) {
+        if (mwp.crosspoint == null) tmp.add(mwp);
+      }
 
       ok = nodesCache.matchWaypointsToNodes(tmp, range, islandNodePairs);
     }
@@ -1012,11 +1013,23 @@ public class RoutingEngine extends Thread {
             nmw.direct = true;
             wp.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
           }
-          nmw.name = wp.name;
+          nmw.name = wp.name + "_1";
           waypoints.add(nmw);
-          wp.name = wp.name + "_add";
+          waypoints.add(wp);
+          if (wp.name.startsWith("via")) {
+            wp.direct = true;
+            MatchedWaypoint emw = new MatchedWaypoint();
+            emw.waypoint = new OsmNode(nmw.crosspoint.ilon, nmw.crosspoint.ilat);
+            emw.crosspoint = new OsmNode(nmw.crosspoint.ilon, nmw.crosspoint.ilat);
+            emw.node1 = new OsmNode(nmw.node1.ilon, nmw.node1.ilat);
+            emw.node2 = new OsmNode(nmw.node2.ilon, nmw.node2.ilat);
+            emw.direct = false;
+            emw.name = wp.name + "_2";
+            waypoints.add(emw);
+          }
+        } else {
+          waypoints.add(wp);
         }
-        waypoints.add(wp);
       }
       unmatchedWaypoints.clear();
       unmatchedWaypoints.addAll(waypoints);

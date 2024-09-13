@@ -113,7 +113,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
       double r22 = x2 * x2 + y2 * y2;
       double radius = Math.abs(r12 < r22 ? y1 * dx - x1 * dy : y2 * dx - x2 * dy) / d;
 
-      if (radius <= mwp.radius || (this.useDynamicRange && (i == 0 || i == maxWptIdx))) {
+      if (radius <= mwp.radius || this.useDynamicRange) {
         double s1 = x1 * dx + y1 * dy;
         double s2 = x2 * dx + y2 * dy;
 
