@@ -503,6 +503,10 @@ smoothness;0000000057 medium Medium average
 smoothness;0000000048 poor
 smoothness;0000000039 rough
 
+obstacle:0000000001 vegetation
+obstacle:0000000001 fallen_tree
+obstacle:0000000001 bridge
+
 rcn;0000014518 yes
 rcn;0000002862 proposed
 
