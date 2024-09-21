@@ -459,8 +459,6 @@ public final class OsmTrack {
     int i = nodeNr;
     OsmPathElement node = nodes.get(nodeNr);
     while (node != null) {
-      if (node.origin != null) {
-      }
       node = node.origin;
     }
 
@@ -497,11 +495,12 @@ public final class OsmTrack {
             input.addBadWay(startSection(e, node.origin));
             h = h.nextHolder;
           }
-        } else if (nodeNr == 0 && detours != null) {
+        }
+        /* else if (nodeNr == 0 && detours != null) {
           OsmPathElementHolder h = detours;
           OsmPathElement e = h.node;
           input.addBadWay(startSection(e, e));
-        }
+        } */
       }
       node = node.origin;
     }
