@@ -199,7 +199,7 @@ public final class VoiceHintProcessor {
       }
 
       // boolean hasSomethingMoreStraight = (Math.abs(turnAngle) - minAbsAngeRaw) > 20.;
-      boolean hasSomethingMoreStraight = (Math.abs(turnAngle - minAbsAngeRaw)) > 20. && input.badWays != null; // && !ignoreBadway;
+      boolean hasSomethingMoreStraight = (Math.abs(turnAngle) - minAbsAngeRaw) > 20. && input.badWays != null; // && !ignoreBadway;
 
       // unconditional triggers are all junctions with
       // - higher detour prios than the minimum route prio (except link->highway junctions)
