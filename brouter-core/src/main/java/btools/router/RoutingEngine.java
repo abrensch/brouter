@@ -981,13 +981,7 @@ public class RoutingEngine extends Thread {
       logInfo("second check for way points");
       resetCache(false);
       range = -range;
-      List<MatchedWaypoint> tmp = new ArrayList<>();
-      // only w/o crosspoint check
-      for (MatchedWaypoint mwp: unmatchedWaypoints) {
-        if (mwp.crosspoint == null) tmp.add(mwp);
-      }
-
-      ok = nodesCache.matchWaypointsToNodes(tmp, range, islandNodePairs);
+      ok = nodesCache.matchWaypointsToNodes(unmatchedWaypoints, range, islandNodePairs);
     }
     if (!ok)  {
       for (MatchedWaypoint mwp :unmatchedWaypoints) {
