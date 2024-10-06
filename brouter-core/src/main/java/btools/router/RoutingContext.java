@@ -76,6 +76,7 @@ public final class RoutingContext {
   public double waypointCatchingRange;
   public boolean correctMisplacedViaPoints;
   public double correctMisplacedViaPointsDistance;
+  public boolean useDynamicDistance;
 
   private void setModel(String className) {
     if (className == null) {
@@ -167,6 +168,8 @@ public final class RoutingContext {
     defaultC_r = expctxGlobal.getVariableValue("C_r", 0.01f);
     // Constant power of the biker (in W)
     bikerPower = expctxGlobal.getVariableValue("bikerPower", 100.f);
+
+    useDynamicDistance = expctxGlobal.getVariableValue("use_dynamic_range", 0f) == 1f;
 
     boolean test = expctxGlobal.getVariableValue("check_start_way", 1f) == 1f;
     if (!test) expctxGlobal.freeNoWays();

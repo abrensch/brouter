@@ -587,7 +587,13 @@ public class RoutingEngine extends Thread {
         mwp.direct = waypoints.get(i).direct;
         matchedWaypoints.add(mwp);
       }
+      int startSize = matchedWaypoints.size();
       matchWaypointsToNodes(matchedWaypoints);
+      if (startSize < matchedWaypoints.size()) {
+        refTracks = new OsmTrack[matchedWaypoints.size()]; // used ways for alternatives
+        lastTracks = new OsmTrack[matchedWaypoints.size()];
+        hasDirectRouting = true;
+      }
 
       routingContext.checkMatchedWaypointAgainstNogos(matchedWaypoints);
 
@@ -968,7 +974,65 @@ public class RoutingEngine extends Thread {
   // geometric position matching finding the nearest routable way-section
   private void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints) {
     resetCache(false);
-    nodesCache.matchWaypointsToNodes(unmatchedWaypoints, routingContext.waypointCatchingRange, islandNodePairs);
+    boolean useDynamicDistance = routingContext.useDynamicDistance;
+    double range = routingContext.waypointCatchingRange;
+    boolean ok = nodesCache.matchWaypointsToNodes(unmatchedWaypoints, range, islandNodePairs);
+    if (!ok && useDynamicDistance) {
+      logInfo("second check for way points");
+      resetCache(false);
+      range = -range;
+      List<MatchedWaypoint> tmp = new ArrayList<>();
+      for (MatchedWaypoint mwp : unmatchedWaypoints) {
+        if (mwp.crosspoint == null) tmp.add(mwp);
+      }
+      ok = nodesCache.matchWaypointsToNodes(tmp, range, islandNodePairs);
+    }
+    if (!ok) {
+      for (MatchedWaypoint mwp : unmatchedWaypoints) {
+        if (mwp.crosspoint == null)
+          throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
+      }
+    }
+    if (useDynamicDistance) {
+      List<MatchedWaypoint> waypoints = new ArrayList<>();
+      for (int i = 0; i < unmatchedWaypoints.size(); i++) {
+        MatchedWaypoint wp = unmatchedWaypoints.get(i);
+        if (wp.waypoint.calcDistance(wp.crosspoint) > routingContext.waypointCatchingRange) {
+          MatchedWaypoint nmw = new MatchedWaypoint();
+          if (i == 0) {
+            nmw.waypoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
+            nmw.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
+            nmw.direct = true;
+            wp.waypoint = new OsmNode(wp.crosspoint.ilon, wp.crosspoint.ilat);
+          } else {
+            nmw.waypoint = new OsmNode(wp.crosspoint.ilon, wp.crosspoint.ilat);
+            nmw.crosspoint = new OsmNode(wp.crosspoint.ilon, wp.crosspoint.ilat);
+            nmw.node1 = new OsmNode(wp.node1.ilon, wp.node1.ilat);
+            nmw.node2 = new OsmNode(wp.node2.ilon, wp.node2.ilat);
+            nmw.direct = true;
+            wp.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
+          }
+          nmw.name = wp.name + "_1";
+          waypoints.add(nmw);
+          waypoints.add(wp);
+          if (wp.name.startsWith("via")) {
+            wp.direct = true;
+            MatchedWaypoint emw = new MatchedWaypoint();
+            emw.waypoint = new OsmNode(nmw.crosspoint.ilon, nmw.crosspoint.ilat);
+            emw.crosspoint = new OsmNode(nmw.crosspoint.ilon, nmw.crosspoint.ilat);
+            emw.node1 = new OsmNode(nmw.node1.ilon, nmw.node1.ilat);
+            emw.node2 = new OsmNode(nmw.node2.ilon, nmw.node2.ilat);
+            emw.direct = false;
+            emw.name = wp.name + "_2";
+            waypoints.add(emw);
+          }
+        } else {
+          waypoints.add(wp);
+        }
+      }
+      unmatchedWaypoints.clear();
+      unmatchedWaypoints.addAll(waypoints);
+    }
   }
 
   private OsmTrack searchTrack(MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack) {
