@@ -47,7 +47,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
     }
 
     for (MatchedWaypoint mwp : waypoints) {
-      mwp.radius = maxDistance;
+      mwp.radius = useDynamicRange ? mwp.radius != maxDistance ? mwp.radius : -1 : maxDistance;
       if (last != null && mwp.directionToNext == -1) {
         last.directionToNext = CheapAngleMeter.getDirection(last.waypoint.ilon, last.waypoint.ilat, mwp.waypoint.ilon, mwp.waypoint.ilat);
       }
@@ -116,7 +116,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
       double r22 = x2 * x2 + y2 * y2;
       double radius = Math.abs(r12 < r22 ? y1 * dx - x1 * dy : y2 * dx - x2 * dy) / d;
 
-      if (radius <= mwp.radius || (this.maxDistance == -1d && (i == 0 || i == maxWptIdx))) {
+      if (radius < mwp.radius || (this.maxDistance == -1d)) {
         double s1 = x1 * dx + y1 * dy;
         double s2 = x2 * dx + y2 * dy;
 
@@ -127,8 +127,9 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
         if (s2 > 0.) {
           radius = Math.sqrt(s1 < s2 ? r12 : r22);
 
-          if (radius > mwp.radius && this.maxDistance != -1)
+          if (radius > mwp.radius && mwp.radius != -1) {
             continue;
+          }
         }
         // new match for that waypoint
         mwp.radius = radius; // shortest distance to way

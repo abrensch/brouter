@@ -289,9 +289,9 @@ public final class NodesCache {
       int cellsize = 12500;
       preloadPosition(mwp.waypoint, cellsize, 1);
       // get a second chance
-      if (mwp.crosspoint == null) {
+      if (mwp.crosspoint == null || mwp.radius > Math.abs(maxDistance)) {
         cellsize = 1000000 / 32;
-        preloadPosition(mwp.waypoint, cellsize, maxDistance < 0 ? 5 : 2);
+        preloadPosition(mwp.waypoint, cellsize, maxDistance < 0 ? 15 : 2);
       }
     }
 
