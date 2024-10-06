@@ -981,11 +981,16 @@ public class RoutingEngine extends Thread {
       logInfo("second check for way points");
       resetCache(false);
       range = -range;
-      ok = nodesCache.matchWaypointsToNodes(unmatchedWaypoints, range, islandNodePairs);
+      List<MatchedWaypoint> tmp = new ArrayList<>();
+      for (MatchedWaypoint mwp : unmatchedWaypoints) {
+        if (mwp.crosspoint == null) tmp.add(mwp);
+      }
+      ok = nodesCache.matchWaypointsToNodes(tmp, range, islandNodePairs);
     }
-    if (!ok)  {
-      for (MatchedWaypoint mwp :unmatchedWaypoints) {
-        if (mwp.crosspoint == null) throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
+    if (!ok) {
+      for (MatchedWaypoint mwp : unmatchedWaypoints) {
+        if (mwp.crosspoint == null)
+          throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
       }
     }
     if (useDynamicDistance) {
@@ -994,7 +999,7 @@ public class RoutingEngine extends Thread {
         MatchedWaypoint wp = unmatchedWaypoints.get(i);
         if (wp.waypoint.calcDistance(wp.crosspoint) > routingContext.waypointCatchingRange) {
           MatchedWaypoint nmw = new MatchedWaypoint();
-          if (i==0) {
+          if (i == 0) {
             nmw.waypoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
             nmw.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
             nmw.direct = true;
