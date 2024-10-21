@@ -41,13 +41,13 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
     MatchedWaypoint last = null;
     this.maxDistance = maxDistance;
     if (maxDistance < 0.) {
-      this.maxDistance = -1;
+      this.maxDistance *= -1;
       maxDistance *= -1;
       useDynamicRange = true;
     }
 
     for (MatchedWaypoint mwp : waypoints) {
-      mwp.radius = useDynamicRange ? mwp.radius != maxDistance ? mwp.radius : -1 : maxDistance;
+      mwp.radius = maxDistance;
       if (last != null && mwp.directionToNext == -1) {
         last.directionToNext = CheapAngleMeter.getDirection(last.waypoint.ilon, last.waypoint.ilat, mwp.waypoint.ilon, mwp.waypoint.ilat);
       }
@@ -116,7 +116,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
       double r22 = x2 * x2 + y2 * y2;
       double radius = Math.abs(r12 < r22 ? y1 * dx - x1 * dy : y2 * dx - x2 * dy) / d;
 
-      if (radius < mwp.radius || (this.maxDistance == -1d)) {
+      if (radius < mwp.radius) {
         double s1 = x1 * dx + y1 * dy;
         double s2 = x2 * dx + y2 * dy;
 
@@ -127,7 +127,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
         if (s2 > 0.) {
           radius = Math.sqrt(s1 < s2 ? r12 : r22);
 
-          if (radius > mwp.radius && mwp.radius != -1) {
+          if (radius > mwp.radius) {
             continue;
           }
         }
@@ -237,6 +237,17 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
         }
       }
     }
+  }
+
+  @Override
+  public boolean hasMatch(int lon, int lat) {
+    for (MatchedWaypoint mwp : waypoints) {
+      if (mwp.waypoint.ilon == lon && mwp.waypoint.ilat == lat &&
+        (mwp.radius < this.maxDistance || mwp.crosspoint != null)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // check limit of list size (avoid long runs)
