@@ -17,6 +17,9 @@ import btools.codec.WaypointMatcher;
 import btools.expressions.BExpressionContextWay;
 
 public final class NodesCache {
+
+  private int MAX_DYNAMIC_CATCHES = 20; // used with RoutingEngiine MAX_DYNAMIC_RANGE = 60000m
+
   private File segmentDir;
   private File secondarySegmentsDir = null;
 
@@ -287,11 +290,11 @@ public final class NodesCache {
     waypointMatcher = new WaypointMatcherImpl(unmatchedWaypoints, maxDistance, islandNodePairs);
     for (MatchedWaypoint mwp : unmatchedWaypoints) {
       int cellsize = 12500;
-      preloadPosition(mwp.waypoint, cellsize, 1);
+      preloadPosition(mwp.waypoint, cellsize, 1, false);
       // get a second chance
       if (mwp.crosspoint == null || mwp.radius > Math.abs(maxDistance)) {
         cellsize = 1000000 / 32;
-        preloadPosition(mwp.waypoint, cellsize, maxDistance < 0 ? 15 : 2);
+        preloadPosition(mwp.waypoint, cellsize, maxDistance < 0 ? MAX_DYNAMIC_CATCHES : 2, maxDistance < 0);
       }
     }
 
@@ -318,19 +321,24 @@ public final class NodesCache {
     return true;
   }
 
-  private void preloadPosition(OsmNode n, int d, int scale) {
+  private void preloadPosition(OsmNode n, int d, int maxscale, boolean bUseDynamicRange) {
     first_file_access_failed = false;
     first_file_access_name = null;
     loadSegmentFor(n.ilon, n.ilat);
     if (first_file_access_failed) {
       throw new IllegalArgumentException("datafile " + first_file_access_name + " not found");
     }
-    for (int idxLat = -scale; idxLat <= scale; idxLat++)
-      for (int idxLon = -scale; idxLon <= scale; idxLon++) {
-        if (idxLon != 0 || idxLat != 0) {
-          loadSegmentFor(n.ilon + d * idxLon, n.ilat + d * idxLat);
+    int scale = 1;
+    while (scale < maxscale) {
+      for (int idxLat = -scale; idxLat <= scale; idxLat++)
+        for (int idxLon = -scale; idxLon <= scale; idxLon++) {
+          if (idxLon != 0 || idxLat != 0) {
+            loadSegmentFor(n.ilon + d * idxLon, n.ilat + d * idxLat);
+          }
         }
-      }
+      if (bUseDynamicRange && waypointMatcher.hasMatch(n.ilon, n.ilat)) break;
+      scale++;
+    }
   }
 
   private OsmFile fileForSegment(int lonDegree, int latDegree) throws Exception {
