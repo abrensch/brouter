@@ -623,6 +623,12 @@ public class RoutingEngine extends Thread {
       if (nearbyTrack != null) {
         matchedWaypoints.add(nearbyTrack.endPoint);
       }
+    } else {
+      if (lastTracks.length < matchedWaypoints.size()) {
+        refTracks = new OsmTrack[matchedWaypoints.size()]; // used ways for alternatives
+        lastTracks = new OsmTrack[matchedWaypoints.size()];
+        hasDirectRouting = true;
+      }
     }
 
     OsmPath.seg = 1; // set segment counter
