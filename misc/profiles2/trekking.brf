@@ -15,6 +15,8 @@ assign   ignore_cycleroutes       = false  # %ignore_cycleroutes% | Set true for
 assign   stick_to_cycleroutes     = false  # %stick_to_cycleroutes% | Set true to just follow cycleroutes | boolean
 assign   avoid_unsafe             = false  # %avoid_unsafe% | Set true to avoid standard highways | boolean
 
+assign   use_dynamic_range        = false  # %use_dynamic_range% | Enable distant start/end points | boolean
+
 assign   consider_noise           = false  # %consider_noise% | Activate to prefer a low-noise route | boolean
 assign   consider_river           = false  # %consider_river% | Activate to prefer a route along rivers, lakes, etc. | boolean
 assign   consider_forest          = false  # %consider_forest% | Activate to prefer a route in forest or parks | boolean

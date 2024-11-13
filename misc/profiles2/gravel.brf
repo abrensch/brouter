@@ -8,6 +8,8 @@ assign turnInstructionRoundabouts true # %turnInstructionRoundabouts% | Special 
 assign considerTurnRestrictions true
 assign turnInstructionMode 1 # %turnInstructionMode% | Mode for the generated turn-by-turn directions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=oruxmaps-style]
 
+assign use_dynamic_range   = false   # %use_dynamic_range% | Enable distant start/end points | boolean
+
 #assign processUnusedTags true
 assign pass1coefficient 4
 assign validForBikes true
@@ -48,7 +50,7 @@ assign uphillcutoff   switch bad_when_steep ( min 1.5 uphillcutoff   ) uphillcut
 assign any_cycleway or cycleway=track|lane|shared_lane|shared
                     or and cycleway:right=track|lane|shared_lane reversedirection=
                        and  cycleway:left=track|lane|shared_lane reversedirection=yes
-                    
+
 assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
 
 assign turncost switch junction=roundabout 15 65
@@ -166,7 +168,7 @@ assign is_paved
 
 assign initialcost
     multiply initialcost ( switch and prefer_unpaved_paths is_paved 2 1 )
-    
+
 assign smoothnesspenalty
     multiply smoothnesspenalty ( switch and prefer_unpaved_paths is_paved 2 1 )
 
@@ -231,7 +233,7 @@ assign noforestpenalty
         switch estimated_forest_class=6  1.0 1 1
 
 assign townpenalty
-    switch avoid_towns 
+    switch avoid_towns
         switch estimated_town_class=   1.0
         switch estimated_town_class=1  1.2
         switch estimated_town_class=2  1.4

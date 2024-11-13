@@ -17,6 +17,8 @@ assign avoid_toll          = false  # %avoid_toll% | Avoid paid roads | boolean
 assign avoid_unpaved       = false  # %avoid_unpaved% | Avoid unpaved roads, if possible | boolean
 assign avoid_motorways     = false  # %avoid_motorways% | Avoid motorways | boolean
 
+assign use_dynamic_range   = false  # %use_dynamic_range% | Enable distant start/end points | boolean
+
 # Kinematic model parameters
 assign vmax             = 90     # %vmax% | Target speed (in km/h) | number
 assign recup_efficiency = 0.7    # %recup_efficiency% | (ratio) | number
