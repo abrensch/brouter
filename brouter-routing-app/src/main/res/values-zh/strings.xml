@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d 片段</item>
+        <item quantity="other">%d 片段</item>
+    </plurals>
+    <string name="cancel_download">取消下载</string>
+    <string name="import_profile">导入配置文件</string>
+    <string name="action_download">下载 %s</string>
+    <string name="action_delete">删除 %s</string>
+    <string name="action_update">更新 %s</string>
+    <string name="action_select">选择片段</string>
+    <string name="action_cancel">停止下载</string>
+    <string name="summary_segments">容量=%1$s\n免费=%2$s</string>
+    <string name="notification_title">下载片段</string>
+
+    <string name="action_choose_folder">选择 BRouter 数据库目录:</string>
+    <string name="action_select_profile">选择路线配置文件</string>
+    <string name="main_action">选择主要操作</string>
+    <string name="main_action_1">下载管理器</string>
+    <string name="main_action_2">BRouter 应用程序</string>
+
+    <string name="cancel">取消</string>
+    <string name="i_know">我知道</string>
+    <string name="close">关闭</string>
+    <string name="exit">退出</string>
+    <string name="ok">确认</string>
+    <string name="success">成功</string>
+    <string name="error">发生错误</string>
+
+    <string name="title_download">BRouter 下载管理器</string>
+    <string name="summary_download">***注意:***
+        \n\nT下载管理器用于下载路线数据文件，每个文件最大可达170MB。在没有数据套餐的蜂窝数据连接上，请勿启动下载管理器！下载速度限制为16 MBit/s。</string>
+    <string name="title_timeoutfree">成功准备了一个无超时的计算</string>
+    <string name="summary_timeoutfree">您成功地重复了之前因超时而未完成的计算。当您从地图工具重新发起相同的请求时，只要目标点不变，且起点接近，系统将保证该请求不会超时。</string>
+    <string name="title_sdcard">输入 SD 卡根目录:</string>
+    <string name="title_action">选择操作</string>
+
+    <string name="action_via_select">检查选择途经地:</string>
+    <string name="action_nogo_select">检查选择禁止通行:</string>
+    <string name="action_servermode">服务器模式</string>
+    <string name="action_info">信息</string>
+    <string name="action_calc_route">计算路线</string>
+    <string name="action_profile_settings">配置文件设置</string>
+    <string name="action_share">分享 GPX</string>
+    <string name="action_select_from">选择出发地</string>
+    <string name="action_select_to">选择目的地/途经地</string>
+
+    <string name="msg_no_profile">没有配置文件数据</string>
+    <string name="msg_too_much_data">下载的数据过多，请减少.</string>
+    <string name="msg_download_start">下载已计划。如果未开始，请检查网络连接.</string>
+    <string name="msg_wpt_selection">当前航点选择:\n</string>
+    <string name="msg_no_wpt_selection">请选取航点\n</string>
+    <string name="msg_alternative">其他选项</string>
+    <string name="msg_status_result">版本 = BRouter-%1$s \n
+        内存 = %2$s \n
+        距离 = %3$s km\n
+        筛选的上升 = %4$s m\n
+        平缓上升 = %5$s m\n
+        预计时间 = %6$s</string>
+    <string name="msg_read_wpt_error">读取航点时出错</string>
+    <string name="msg_no_wpt">坐标来源不包含任何航点!</string>
+    <string name="msg_too_much_wpts">坐标来源包含过多的航点 %1$d (请使用出发地/目的地/途经地名称)</string>
+
+    <string name="no">否</string>
+    <string name="yes">是</string>
+
+    <string name="title_delete">确认删除</string>
+    <string name="summary_delete">是否删除?</string>
+    <string name="title_version">版本问题</string>
+    <string name="summary_version">图块的基础版本已更改，如何操作?</string>
+    <string name="action_version1">继续当前下载，删除其他旧数据</string>
+    <string name="action_version2">全部选择下载并开始</string>
+    <string name="action_version3">改日完成</string>
+    <string name="title_version_diff">版本差异</string>
+    <string name="summary_version_diff">部分图块的基础版本不同，如何操作?</string>
+    <string name="action_version_diff1">下载所有不同的图块</string>
+    <string name="action_version_diff2">移除所有不同的图块</string>
+    <string name="action_version_diff3">改日完成</string>
+    <string name="summary_new_version">新的数据版本需要一个新的应用程序。请先更新 BRouter</string>
+
+    <string name="msg_download_failed">下载失败</string>
+    <string name="msg_download_cancel">取消下载</string>
+    <string name="msg_download_succeed">下载成功</string>
+    <string name="msg_download_started">下载中…</string>
+
+
+</resources>
