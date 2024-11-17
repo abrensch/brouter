@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.App" parent="Theme.App.Base">
+        <item name="android:fitsSystemWindows">true</item>
+        <item name="android:enforceNavigationBarContrast">true</item>
+        <item name="android:enforceStatusBarContrast">true</item>
+    </style>
+
+</resources>
