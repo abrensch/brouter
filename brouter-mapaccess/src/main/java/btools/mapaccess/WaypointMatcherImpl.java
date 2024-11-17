@@ -1,12 +1,12 @@
 package btools.mapaccess;
 
-import java.util.List;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 
 import btools.codec.WaypointMatcher;
-import btools.util.CheapRuler;
 import btools.util.CheapAngleMeter;
+import btools.util.CheapRuler;
 
 /**
  * the WaypointMatcher is feeded by the decoder with geoemtries of ways that are
@@ -29,6 +29,9 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
   private int lonLast;
   private int latLast;
   boolean useAsStartWay = true;
+  private int maxWptIdx;
+  private double maxDistance;
+  public boolean useDynamicRange = false;
 
   private Comparator<MatchedWaypoint> comparator;
 
@@ -36,6 +39,13 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
     this.waypoints = waypoints;
     this.islandPairs = islandPairs;
     MatchedWaypoint last = null;
+    this.maxDistance = maxDistance;
+    if (maxDistance < 0.) {
+      this.maxDistance *= -1;
+      maxDistance *= -1;
+      useDynamicRange = true;
+    }
+
     for (MatchedWaypoint mwp : waypoints) {
       mwp.radius = maxDistance;
       if (last != null && mwp.directionToNext == -1) {
@@ -50,6 +60,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
     } else {
       last.directionToNext = CheapAngleMeter.getDirection(last.waypoint.ilon, last.waypoint.ilat, waypoints.get(lastidx).waypoint.ilon, waypoints.get(lastidx).waypoint.ilat);
     }
+    maxWptIdx = waypoints.size() - 1;
 
     // sort result list
     comparator = new Comparator<>() {
@@ -79,7 +90,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
 
     //for ( MatchedWaypoint mwp : waypoints )
     for (int i = 0; i < waypoints.size(); i++) {
-      if (!useAsStartWay && i==0) continue;
+      if (!useAsStartWay && i == 0) continue;
       MatchedWaypoint mwp = waypoints.get(i);
 
       if (mwp.direct &&
@@ -105,7 +116,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
       double r22 = x2 * x2 + y2 * y2;
       double radius = Math.abs(r12 < r22 ? y1 * dx - x1 * dy : y2 * dx - x2 * dy) / d;
 
-      if (radius <= mwp.radius) {
+      if (radius < mwp.radius) {
         double s1 = x1 * dx + y1 * dy;
         double s2 = x2 * dx + y2 * dy;
 
@@ -115,8 +126,10 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
         }
         if (s2 > 0.) {
           radius = Math.sqrt(s1 < s2 ? r12 : r22);
-          if (radius > mwp.radius)
+
+          if (radius > mwp.radius) {
             continue;
+          }
         }
         // new match for that waypoint
         mwp.radius = radius; // shortest distance to way
@@ -224,6 +237,17 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
         }
       }
     }
+  }
+
+  @Override
+  public boolean hasMatch(int lon, int lat) {
+    for (MatchedWaypoint mwp : waypoints) {
+      if (mwp.waypoint.ilon == lon && mwp.waypoint.ilat == lat &&
+        (mwp.radius < this.maxDistance || mwp.crosspoint != null)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // check limit of list size (avoid long runs)

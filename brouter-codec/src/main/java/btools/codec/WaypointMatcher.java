@@ -11,4 +11,6 @@ public interface WaypointMatcher {
   void transferNode(int ilon, int ilat);
 
   void end();
+
+  boolean hasMatch(int lon, int lat);
 }
