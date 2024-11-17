@@ -40,6 +40,8 @@ public class ServerHandler extends RequestHandler {
 
   private RoutingContext rc;
 
+  private static boolean useRFCMimeType = Boolean.getBoolean("useRFCMimeType");
+
   public ServerHandler(ServiceContext serviceContext, Map<String, String> params) {
     super(serviceContext, params);
   }
@@ -107,7 +109,10 @@ public class ServerHandler extends RequestHandler {
       } else if ("kml".equals(format)) {
         result = "application/vnd.google-earth.kml+xml";
       } else if ("geojson".equals(format)) {
-        result = "application/geo+json";
+        if (useRFCMimeType)
+          result = "application/geo+json";
+        else
+          result = "application/vnd.geo+json";
       } else if ("csv".equals(format)) {
         result = "text/tab-separated-values";
       }
