@@ -42,6 +42,9 @@ public class VoiceHint {
   }
 
   float angle = Float.MAX_VALUE;
+  float lowerBadWayAngle = -181;
+  float higherBadWayAngle = 181;
+
   boolean turnAngleConsumed;
   boolean needsRealTurn;
   int maxBadPrio = -1;
@@ -470,8 +473,6 @@ public class VoiceHint {
   }
 
   public void calcCommand() {
-    float lowerBadWayAngle = -181;
-    float higherBadWayAngle = 181;
     if (badWays != null) {
       for (MessageData badWay : badWays) {
         if (badWay.isBadOneway()) {

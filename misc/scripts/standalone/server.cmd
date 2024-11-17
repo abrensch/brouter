@@ -6,7 +6,7 @@ REM java -cp brouter.jar btools.brouter.RouteServer <segmentdir> <profile-map> <
 pushd %~dp0
 
 REM maxRunningTime is the request timeout in seconds, set to 0 to disable timeout
-set JAVA_OPTS=-Xmx128M -Xms128M -Xmn8M -DmaxRunningTime=300
+set JAVA_OPTS=-Xmx128M -Xms128M -Xmn8M -DmaxRunningTime=300 -DuseRFCMimeType=false
 
 REM First search in locations matching the directory structure as found in the official BRouter zip archive
 set CLASSPATH=../brouter.jar
