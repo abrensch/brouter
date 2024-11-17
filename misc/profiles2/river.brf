@@ -2,6 +2,8 @@
 
 # the elevation parameters
 
+assign use_dynamic_range   = false   # %use_dynamic_range% | Enable distant start/end points | boolean
+
 assign downhillcost 0
 assign downhillcutoff 1.5
 assign uphillcost 0

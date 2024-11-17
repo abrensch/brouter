@@ -47,6 +47,8 @@ public class RoutingEngine extends Thread {
 
   private int MAX_STEPS_CHECK = 10;
 
+  private int MAX_DYNAMIC_RANGE = 60000;
+
   protected OsmTrack foundTrack = new OsmTrack();
   private OsmTrack foundRawTrack = null;
   private int alternativeIndex = 0;
@@ -587,7 +589,13 @@ public class RoutingEngine extends Thread {
         mwp.direct = waypoints.get(i).direct;
         matchedWaypoints.add(mwp);
       }
+      int startSize = matchedWaypoints.size();
       matchWaypointsToNodes(matchedWaypoints);
+      if (startSize < matchedWaypoints.size()) {
+        refTracks = new OsmTrack[matchedWaypoints.size()]; // used ways for alternatives
+        lastTracks = new OsmTrack[matchedWaypoints.size()];
+        hasDirectRouting = true;
+      }
 
       routingContext.checkMatchedWaypointAgainstNogos(matchedWaypoints);
 
@@ -614,6 +622,12 @@ public class RoutingEngine extends Thread {
 
       if (nearbyTrack != null) {
         matchedWaypoints.add(nearbyTrack.endPoint);
+      }
+    } else {
+      if (lastTracks.length < matchedWaypoints.size()) {
+        refTracks = new OsmTrack[matchedWaypoints.size()]; // used ways for alternatives
+        lastTracks = new OsmTrack[matchedWaypoints.size()];
+        hasDirectRouting = true;
       }
     }
 
@@ -968,7 +982,60 @@ public class RoutingEngine extends Thread {
   // geometric position matching finding the nearest routable way-section
   private void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints) {
     resetCache(false);
-    nodesCache.matchWaypointsToNodes(unmatchedWaypoints, routingContext.waypointCatchingRange, islandNodePairs);
+    boolean useDynamicDistance = routingContext.useDynamicDistance;
+    double range = routingContext.waypointCatchingRange;
+    boolean ok = nodesCache.matchWaypointsToNodes(unmatchedWaypoints, range, islandNodePairs);
+    if (!ok && useDynamicDistance) {
+      logInfo("second check for way points");
+      resetCache(false);
+      range = -MAX_DYNAMIC_RANGE;
+      List<MatchedWaypoint> tmp = new ArrayList<>();
+      for (MatchedWaypoint mwp : unmatchedWaypoints) {
+        if (mwp.crosspoint == null) tmp.add(mwp);
+      }
+      ok = nodesCache.matchWaypointsToNodes(tmp, range, islandNodePairs);
+    }
+    if (!ok) {
+      for (MatchedWaypoint mwp : unmatchedWaypoints) {
+        if (mwp.crosspoint == null)
+          throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
+      }
+    }
+    if (useDynamicDistance) {
+      List<MatchedWaypoint> waypoints = new ArrayList<>();
+      for (int i = 0; i < unmatchedWaypoints.size(); i++) {
+        MatchedWaypoint wp = unmatchedWaypoints.get(i);
+        if (wp.waypoint.calcDistance(wp.crosspoint) > routingContext.waypointCatchingRange) {
+          MatchedWaypoint nmw = new MatchedWaypoint();
+          if (i == 0) {
+            OsmNodeNamed onn = new OsmNodeNamed(wp.waypoint);
+            onn.name = "from";
+            nmw.waypoint = onn;
+            nmw.name = onn.name;
+            nmw.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
+            nmw.direct = true;
+            onn = new OsmNodeNamed(wp.crosspoint);
+            onn.name = wp.name + "_add";
+            wp.waypoint = onn;
+          } else {
+            OsmNodeNamed onn = new OsmNodeNamed(wp.crosspoint);
+            onn.name = wp.name + "_add";
+            nmw.waypoint = onn;
+            nmw.crosspoint = new OsmNode(wp.crosspoint.ilon, wp.crosspoint.ilat);
+            nmw.node1 = new OsmNode(wp.node1.ilon, wp.node1.ilat);
+            nmw.node2 = new OsmNode(wp.node2.ilon, wp.node2.ilat);
+            nmw.direct = true;
+            wp.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
+          }
+          if (wp.name != null) nmw.name = wp.name;
+          waypoints.add(nmw);
+          wp.name = wp.name + "_add";
+        }
+        waypoints.add(wp);
+      }
+      unmatchedWaypoints.clear();
+      unmatchedWaypoints.addAll(waypoints);
+    }
   }
 
   private OsmTrack searchTrack(MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack) {
