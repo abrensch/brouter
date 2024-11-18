@@ -294,6 +294,11 @@ public final class VoiceHintProcessor {
         nextInput = inputs.get(hintIdx + 1);
       }
 
+      if (input.cmd == VoiceHint.BL) {
+        results.add(input);
+        continue;
+      }
+
       if (nextInput == null) {
         if ((input.cmd == VoiceHint.C ||
              input.cmd == VoiceHint.KR ||

@@ -452,7 +452,8 @@ public final class OsmTrack {
     voiceHints.setTransportMode(rc.carMode, rc.bikeMode);
     voiceHints.turnInstructionMode = rc.turnInstructionMode;
 
-    if (detourMap == null) {
+    if (detourMap == null && !rc.hasDirectRouting) {
+      // only when no direct way points
       return;
     }
     int nodeNr = nodes.size() - 1;
@@ -487,13 +488,15 @@ public final class OsmTrack {
             input.distanceToNext = node.calcDistance(node.origin);
           }
         }
-        OsmPathElementHolder detours = detourMap.get(node.origin.getIdFromPos());
-        if (nodeNr >= 0 && detours != null) {
-          OsmPathElementHolder h = detours;
-          while (h != null) {
-            OsmPathElement e = h.node;
-            input.addBadWay(startSection(e, node.origin));
-            h = h.nextHolder;
+        if (detourMap != null) {
+          OsmPathElementHolder detours = detourMap.get(node.origin.getIdFromPos());
+          if (nodeNr >= 0 && detours != null) {
+            OsmPathElementHolder h = detours;
+            while (h != null) {
+              OsmPathElement e = h.node;
+              input.addBadWay(startSection(e, node.origin));
+              h = h.nextHolder;
+            }
           }
         }
         /* else if (nodeNr == 0 && detours != null) {

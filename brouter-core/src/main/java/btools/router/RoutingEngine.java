@@ -631,6 +631,8 @@ public class RoutingEngine extends Thread {
       }
     }
 
+    routingContext.hasDirectRouting = hasDirectRouting;
+
     OsmPath.seg = 1; // set segment counter
     for (int i = 0; i < matchedWaypoints.size() - 1; i++) {
       if (lastTracks[i] != null) {
