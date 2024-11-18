@@ -203,6 +203,7 @@ public final class RoutingContext {
   public boolean showSpeedProfile;
   public boolean inverseRouting;
   public boolean showTime;
+  public boolean hasDirectRouting;
 
   public String outputFormat = "gpx";
   public boolean exportWaypoints = false;
