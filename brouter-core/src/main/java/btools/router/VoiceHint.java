@@ -26,8 +26,8 @@ public class VoiceHint {
   static final int RNLB = 14; // Roundabout left
   static final int TU = 15; // 180 degree u-turn
   static final int BL = 16; // Beeline routing
-  static final int EL = 17; // Beeline routing
-  static final int ER = 18; // Beeline routing
+  static final int EL = 17; // exit left
+  static final int ER = 18; // exit right
 
   int ilon;
   int ilat;
