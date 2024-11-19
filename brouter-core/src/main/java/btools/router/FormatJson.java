@@ -41,13 +41,13 @@ public class FormatJson extends Formatter {
       for (VoiceHint hint : t.voiceHints.list) {
         sb.append("          [");
         sb.append(hint.indexInTrack);
-        sb.append(',').append(hint.getJsonCommandIndex());
+        sb.append(',').append(hint.getJsonCommandIndex(turnInstructionMode));
         sb.append(',').append(hint.getExitNumber());
         sb.append(',').append(hint.distanceToNext);
         sb.append(',').append((int) hint.angle);
 
         // not always include geometry because longer and only needed for comment style
-        if (turnInstructionMode == 4) { // comment style
+        if (turnInstructionMode == 4 || turnInstructionMode == 9) { // comment style
           sb.append(",\"").append(hint.formatGeometry()).append("\"");
         }
 
@@ -122,7 +122,7 @@ public class FormatJson extends Formatter {
         .append(sele).append("],\n");
       nn = n;
     }
-    if (t.nodes != null && !t.nodes.isEmpty()) sb.deleteCharAt(sb.lastIndexOf(","));
+    sb.deleteCharAt(sb.lastIndexOf(","));
 
     sb.append("        ]\n");
     sb.append("      }\n");
