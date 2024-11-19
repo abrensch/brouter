@@ -25,6 +25,7 @@ And there are other rules
 * merge two hints when near to each other - e.g. left, left to u-turn left
 * marker when highway exit and continue nearly same direction
 * beeline goes direct from via to via point
+* junction on motorway via motorway_link and next way less then motorway_link is a motorway exit
 
 There are some variables in the profiles that affect on the voice hint generation:
 * considerTurnRestrictions -
@@ -51,4 +52,6 @@ Voice hint variables
 | RNDB     | roundabout |
 | RNLB     | roundabout left |
 | BL       | beeline routing |
+| EL       | exit left |
+| ER       | exit right |
 

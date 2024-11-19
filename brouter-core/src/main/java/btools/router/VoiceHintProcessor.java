@@ -334,6 +334,17 @@ public final class VoiceHintProcessor {
                 inputLastSaved.distanceToNext += input.distanceToNext;
               }
             }
+          } else if ((input.goodWay.getPrio() == 29 && input.maxBadPrio == 30) &&
+                     ((hintIdx + 1 < inputs.size() && inputs.get(hintIdx+1).goodWay.getPrio() < 29) ||
+                      (hintIdx + 2 < inputs.size() && inputs.get(hintIdx+2).goodWay.getPrio() < 29))) {
+            // leave motorway
+            if (input.cmd == VoiceHint.KR || input.cmd == VoiceHint.TSLR) {
+              input.cmd = VoiceHint.ER;
+            } else if (input.cmd == VoiceHint.KL || input.cmd == VoiceHint.TSLL) {
+              input.cmd = VoiceHint.EL;
+            }
+            results.add(input);
+            inputLastSaved = input;
           } else {
             // add all others
             // ignore motorway / primary continue
@@ -384,6 +395,14 @@ public final class VoiceHintProcessor {
                 inputLastSaved.distanceToNext += input.distanceToNext;
               }
             }
+          } else if ((input.goodWay.getPrio() == 29 && input.maxBadPrio == 30)) {
+            // leave motorway
+            if (input.cmd == VoiceHint.KR || input.cmd == VoiceHint.TSLR) {
+              input.cmd = VoiceHint.ER;
+            } else if (input.cmd == VoiceHint.KL || input.cmd == VoiceHint.TSLL) {
+              input.cmd = VoiceHint.EL;
+            }
+            save = true;
           } else if (VoiceHint.is180DegAngle(input.angle)) {
             // add u-turn, 180 degree
             save = true;
