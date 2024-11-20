@@ -29,6 +29,8 @@ public class VoiceHint {
   static final int EL = 17; // exit left
   static final int ER = 18; // exit right
 
+  static final int END = 100; // end point
+
   int ilon;
   int ilat;
   short selev;
@@ -155,6 +157,8 @@ public class VoiceHint {
         return timode == 2 || timode == 9 ? "ER" : "KR";
       case OFFR:
         return "OFFR";
+      case END:
+        return "END";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
     }
