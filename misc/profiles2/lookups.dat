@@ -256,6 +256,12 @@ footway;0000003966 no
 footway;0000001093 yes
 footway;0000000558 separate
 
+shoulder;0000000001 yes
+shoulder;0000000001 no
+shoulder;0000000001 right
+shoulder;0000000001 left
+shoulder;0000000001 both
+
 conveying;0000000001 yes reversible
 conveying;0000000001 backward
 conveying;0000000001 forward
