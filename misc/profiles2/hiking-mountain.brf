@@ -164,9 +164,9 @@ assign bikeaccess
 
 assign footaccess     or any_hiking_route
                       or issidewalk
-                      or and bikeaccess  not foot=no
+                      or and bikeaccess  not foot=no|use_sidepath
                       or bicycle=dismount
-                      switch foot=      defaultaccess    not foot=private|no
+                      switch foot=      defaultaccess    not foot=private|no|use_sidepath
 
 assign accesspenalty switch footaccess 0 switch bikeaccess 4 100000
 
