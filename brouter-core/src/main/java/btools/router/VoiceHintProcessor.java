@@ -74,6 +74,7 @@ public final class VoiceHintProcessor {
       }
       if (hintIdx == 0) {
         input.cmd = VoiceHint.END;
+        input.distanceToNext = input.goodWay.linkdist;
         results.add(input);
         continue;
       }
