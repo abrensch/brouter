@@ -469,6 +469,17 @@ public final class OsmTrack {
     List<VoiceHint> inputs = new ArrayList<>();
     while (node != null) {
       if (node.origin != null) {
+        if (nodeNr == nodes.size() - 1) {
+          VoiceHint input = new VoiceHint();
+          inputs.add(0, input);
+          input.ilat = node.getILat();
+          input.ilon = node.getILon();
+          input.selev = node.getSElev();
+          input.goodWay = node.message;
+          input.oldWay = node.message;
+          input.indexInTrack = nodes.size() - 1;
+          input.cmd = VoiceHint.END;
+        }
         VoiceHint input = new VoiceHint();
         inputs.add(input);
         input.ilat = node.origin.getILat();
