@@ -592,8 +592,8 @@ public class RoutingEngine extends Thread {
       int startSize = matchedWaypoints.size();
       matchWaypointsToNodes(matchedWaypoints);
       if (startSize < matchedWaypoints.size()) {
-        refTracks = new OsmTrack[matchedWaypoints.size()]; // used ways for alternatives
-        lastTracks = new OsmTrack[matchedWaypoints.size()];
+        refTracks = new OsmTrack[matchedWaypoints.size()-1]; // used ways for alternatives
+        lastTracks = new OsmTrack[matchedWaypoints.size()-1];
         hasDirectRouting = true;
       }
 
@@ -624,9 +624,9 @@ public class RoutingEngine extends Thread {
         matchedWaypoints.add(nearbyTrack.endPoint);
       }
     } else {
-      if (lastTracks.length < matchedWaypoints.size()) {
-        refTracks = new OsmTrack[matchedWaypoints.size()]; // used ways for alternatives
-        lastTracks = new OsmTrack[matchedWaypoints.size()];
+      if (lastTracks.length < matchedWaypoints.size()-1) {
+        refTracks = new OsmTrack[matchedWaypoints.size()-1]; // used ways for alternatives
+        lastTracks = new OsmTrack[matchedWaypoints.size()-1];
         hasDirectRouting = true;
       }
     }
