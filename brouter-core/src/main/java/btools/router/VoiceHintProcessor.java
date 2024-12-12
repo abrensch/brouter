@@ -29,7 +29,7 @@ public final class VoiceHintProcessor {
     float angle = 0.f;
     while (offset >= 0 && distance < range) {
       VoiceHint input = inputs.get(offset--);
-      if (input.turnAngleConsumed) {
+      if (input.turnAngleConsumed || input.cmd == VoiceHint.BL || input.cmd == VoiceHint.END) {
         break;
       }
       angle += input.goodWay.turnangle;
@@ -72,15 +72,10 @@ public final class VoiceHintProcessor {
         results.add(input);
         continue;
       }
-      if (hintIdx == 0) {
-        input.cmd = VoiceHint.END;
-        input.distanceToNext = input.goodWay.linkdist;
-        results.add(input);
-        continue;
-      }
 
       float turnAngle = input.goodWay.turnangle;
-      distance += input.goodWay.linkdist;
+      if (hintIdx != 0) distance += input.goodWay.linkdist;
+      //  System.out.println("range " + distance);
       int currentPrio = input.goodWay.getPrio();
       int oldPrio = input.oldWay.getPrio();
       int minPrio = Math.min(oldPrio, currentPrio);
@@ -259,6 +254,10 @@ public final class VoiceHintProcessor {
       VoiceHint hint = results.get(--i);
       if (hint.cmd == 0) {
         hint.calcCommand();
+      }
+      if (hint.cmd == VoiceHint.END) {
+        results2.add(hint);
+        continue;
       }
       if (!(hint.needsRealTurn && (hint.cmd == VoiceHint.C || hint.cmd == VoiceHint.BL))) {
         double dist = hint.distanceToNext;
@@ -454,6 +453,10 @@ public final class VoiceHintProcessor {
         }
       }
       inputLast = input;
+    }
+    if (results.size() > 0) {
+      // don't use END tag
+      if (results.get(results.size()-1).cmd == VoiceHint.END) results.remove(results.size()-1);
     }
 
     return results;
