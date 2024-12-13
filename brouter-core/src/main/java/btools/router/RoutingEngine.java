@@ -36,12 +36,14 @@ public class RoutingEngine extends Thread {
   private boolean finished = false;
 
   protected List<OsmNodeNamed> waypoints = null;
+  List<OsmNodeNamed> extraWaypoints = null;
   protected List<MatchedWaypoint> matchedWaypoints;
   private int linksProcessed = 0;
 
   private int nodeLimit; // used for target island search
   private int MAXNODES_ISLAND_CHECK = 500;
   private OsmNodePairSet islandNodePairs = new OsmNodePairSet(MAXNODES_ISLAND_CHECK);
+  private boolean useNodePoints = false; // use the start/end nodes  instead of crosspoint
 
   private int engineMode = 0;
 
@@ -548,6 +550,20 @@ public class RoutingEngine extends Thread {
       try {
         return tryFindTrack(refTracks, lastTracks);
       } catch (RoutingIslandException rie) {
+        if (routingContext.useDynamicDistance) {
+          useNodePoints = true;
+          boolean useNodeOne = true;
+          if (extraWaypoints != null) useNodeOne = false;
+          extraWaypoints = new ArrayList<>();
+          for (MatchedWaypoint mwp : matchedWaypoints) {
+            if (mwp.name.contains("_add")) {
+              OsmNodeNamed wp = new OsmNodeNamed(useNodeOne ? mwp.node1 : mwp.node1);
+              wp.name = mwp.name;
+              wp.direct = mwp.direct;
+              extraWaypoints.add(wp);
+            }
+          }
+        }
         islandNodePairs.freezeTempPairs();
         nodesCache.clean(true);
         matchedWaypoints = null;
@@ -560,6 +576,26 @@ public class RoutingEngine extends Thread {
     int nUnmatched = waypoints.size();
     boolean hasDirectRouting = false;
 
+    if (useNodePoints && extraWaypoints != null) {
+      // add extra waypoints from the last broken round
+      for (OsmNodeNamed wp : extraWaypoints) {
+        if (wp.direct) hasDirectRouting = true;
+        if (wp.name.startsWith("from"))  {
+          waypoints.add(1, wp);
+          waypoints.get(0).direct = true;
+          nUnmatched++;
+        } else {
+          waypoints.add(waypoints.size()-1, wp);
+          waypoints.get(waypoints.size()-2).direct = true;
+          nUnmatched++;
+        }
+      }
+    }
+    if (lastTracks.length < waypoints.size()-1) {
+      refTracks = new OsmTrack[waypoints.size()-1]; // used ways for alternatives
+      lastTracks = new OsmTrack[waypoints.size()-1];
+      hasDirectRouting = true;
+    }
     for (OsmNodeNamed wp : waypoints) {
       if (hasInfo()) logInfo("wp=" + wp + (wp.direct ? " direct" : ""));
       if (wp.direct) hasDirectRouting = true;
