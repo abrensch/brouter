@@ -26,6 +26,10 @@ public class VoiceHint {
   static final int RNLB = 14; // Roundabout left
   static final int TU = 15; // 180 degree u-turn
   static final int BL = 16; // Beeline routing
+  static final int EL = 17; // exit left
+  static final int ER = 18; // exit right
+
+  static final int END = 100; // end point
 
   int ilon;
   int ilat;
@@ -65,7 +69,7 @@ public class VoiceHint {
     badWays.add(badWay);
   }
 
-  public int getJsonCommandIndex() {
+  public int getJsonCommandIndex(int timode) {
     switch (cmd) {
       case TLU:
         return 10;
@@ -97,6 +101,10 @@ public class VoiceHint {
         return 14;
       case BL:
         return 16;
+      case EL:
+        return timode == 2 || timode == 9 ? 17 : 8;
+      case ER:
+        return timode == 2 || timode == 9 ? 18 : 9;
       case OFFR:
         return 12;
       default:
@@ -111,7 +119,7 @@ public class VoiceHint {
   /*
    * used by comment style, osmand style
    */
-  public String getCommandString() {
+  public String getCommandString(int timode) {
     switch (cmd) {
       case TLU:
         return "TU";  // should be changed to TLU when osmand uses new voice hint constants
@@ -143,8 +151,14 @@ public class VoiceHint {
         return "RNLB" + (-roundaboutExit);
       case BL:
         return "BL";
+      case EL:
+        return timode == 2 || timode == 9 ? "EL" : "KL";
+      case ER:
+        return timode == 2 || timode == 9 ? "ER" : "KR";
       case OFFR:
         return "OFFR";
+      case END:
+        return "END";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
     }
@@ -153,7 +167,7 @@ public class VoiceHint {
   /*
    * used by trkpt/sym style
    */
-  public String getCommandString(int c) {
+  public String getCommandString(int c, int timode) {
     switch (c) {
       case TLU:
         return "TLU";
@@ -185,6 +199,10 @@ public class VoiceHint {
         return "RNLB" + (-roundaboutExit);
       case BL:
         return "BL";
+      case EL:
+        return timode == 2 || timode == 9 ? "EL" : "KL";
+      case ER:
+        return timode == 2 || timode == 9 ? "ER" : "KR";
       case OFFR:
         return "OFFR";
       default:
@@ -195,7 +213,7 @@ public class VoiceHint {
   /*
    * used by gpsies style
    */
-  public String getSymbolString() {
+  public String getSymbolString(int timode) {
     switch (cmd) {
       case TLU:
         return "TU";
@@ -227,6 +245,10 @@ public class VoiceHint {
         return "RNLB" + (-roundaboutExit);
       case BL:
         return "BL";
+      case EL:
+        return timode == 2 || timode == 9 ? "EL" : "KL";
+      case ER:
+        return timode == 2 || timode == 9 ? "ER" : "KR";
       case OFFR:
         return "OFFR";
       default:
@@ -269,6 +291,10 @@ public class VoiceHint {
         return "roundabout_e" + (-roundaboutExit);
       case BL:
         return "beeline";
+      case EL:
+        return "exit_left";
+      case ER:
+        return "exit_right";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
     }
@@ -277,7 +303,7 @@ public class VoiceHint {
   /*
    * used by osmand style
    */
-  public String getMessageString() {
+  public String getMessageString(int timode) {
     switch (cmd) {
       case TLU:
         return "u-turn"; // should be changed to u-turn-left when osmand uses new voice hint constants
@@ -307,6 +333,10 @@ public class VoiceHint {
         return "Take exit " + roundaboutExit;
       case RNLB:
         return "Take exit " + (-roundaboutExit);
+      case EL:
+        return timode == 2 || timode == 9 ? "exit left" : "keep left";
+      case ER:
+        return timode == 2 || timode == 9 ? "exit right" : "keep right";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
     }
@@ -345,6 +375,10 @@ public class VoiceHint {
         return 26 + roundaboutExit;
       case RNLB:
         return 26 - roundaboutExit;
+      case EL:
+        return 9;
+      case ER:
+        return 10;
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
     }
@@ -383,6 +417,10 @@ public class VoiceHint {
         return 1008 + roundaboutExit;
       case RNLB:
         return 1008 + roundaboutExit;
+      case EL:
+        return 1015;
+      case ER:
+        return 1014;
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
     }
@@ -423,6 +461,10 @@ public class VoiceHint {
         return "RNLB" + (-roundaboutExit);
       case BL:
         return "BL";
+      case EL:
+        return "EL";
+      case ER:
+        return "ER";
       case OFFR:
         return "OFFR";
       default:
@@ -465,6 +507,10 @@ public class VoiceHint {
         return "take exit " + (-roundaboutExit);
       case BL:
         return "beeline";
+      case EL:
+        return "exit left";
+      case ER:
+        return "exit right";
       case OFFR:
         return "offroad";
       default:

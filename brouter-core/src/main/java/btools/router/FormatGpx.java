@@ -49,7 +49,7 @@ public class FormatGpx extends Formatter {
       sb.append("<!--          cmd    idx        lon        lat d2next  geometry -->\n");
       sb.append("<!-- $turn-instruction-start$\n");
       for (VoiceHint hint : t.voiceHints.list) {
-        sb.append(String.format("     $turn$%6s;%6d;%10s;%10s;%6d;%s$\n", hint.getCommandString(), hint.indexInTrack,
+        sb.append(String.format("     $turn$%6s;%6d;%10s;%10s;%6d;%s$\n", hint.getCommandString(turnInstructionMode), hint.indexInTrack,
           formatILon(hint.ilon), formatILat(hint.ilat), (int) (hint.distanceToNext), hint.formatGeometry()));
       }
       sb.append("    $turn-instruction-end$ -->\n");
@@ -121,7 +121,7 @@ public class FormatGpx extends Formatter {
         sb.append("  <rtept lat=\"").append(formatILat(hint.ilat)).append("\" lon=\"")
           .append(formatILon(hint.ilon)).append("\">\n")
           .append("   <desc>")
-          .append(turnInstructionMode == 3 ? hint.getMessageString() : hint.getCruiserMessageString())
+          .append(turnInstructionMode == 3 ? hint.getMessageString(turnInstructionMode) : hint.getCruiserMessageString())
           .append("</desc>\n   <extensions>\n");
 
         rteTime = t.getVoiceHintTime(i + 1);
@@ -132,7 +132,7 @@ public class FormatGpx extends Formatter {
           lastRteTime = rteTime;
         }
         sb.append("    <turn>")
-          .append(turnInstructionMode == 3 ? hint.getCommandString() : hint.getCruiserCommandString())
+          .append(turnInstructionMode == 3 ? hint.getCommandString(turnInstructionMode) : hint.getCruiserCommandString())
           .append("</turn>\n    <turn-angle>").append("" + (int) hint.angle)
           .append("</turn-angle>\n    <offset>").append("" + hint.indexInTrack).append("</offset>\n  </extensions>\n </rtept>\n");
       }
@@ -154,7 +154,7 @@ public class FormatGpx extends Formatter {
           .append(formatILat(hint.ilat)).append("\">")
           .append(hint.selev == Short.MIN_VALUE ? "" : "<ele>" + (hint.selev / 4.) + "</ele>")
           .append("<name>")
-          .append(hint.getMessageString())
+          .append(hint.getMessageString(turnInstructionMode))
           .append("</name>")
           .append("<extensions><locus:rteDistance>").append("" + hint.distanceToNext).append("</locus:rteDistance>");
         float rteTime = t.getVoiceHintTime(i + 1);
@@ -173,9 +173,9 @@ public class FormatGpx extends Formatter {
       for (VoiceHint hint : t.voiceHints.list) {
         sb.append(" <wpt lon=\"").append(formatILon(hint.ilon)).append("\" lat=\"")
           .append(formatILat(hint.ilat)).append("\">")
-          .append("<name>").append(hint.getMessageString()).append("</name>")
-          .append("<sym>").append(hint.getSymbolString().toLowerCase()).append("</sym>")
-          .append("<type>").append(hint.getSymbolString()).append("</type>")
+          .append("<name>").append(hint.getMessageString(turnInstructionMode)).append("</name>")
+          .append("<sym>").append(hint.getSymbolString(turnInstructionMode).toLowerCase()).append("</sym>")
+          .append("<type>").append(hint.getSymbolString(turnInstructionMode)).append("</type>")
           .append("</wpt>\n");
       }
     }
@@ -270,7 +270,7 @@ public class FormatGpx extends Formatter {
             sele += "<name>" + mwpt.name + "</name>";
           }
           sele += "<desc>" + hint.getCruiserMessageString() + "</desc>";
-          sele += "<sym>" + hint.getCommandString(hint.cmd) + "</sym>";
+          sele += "<sym>" + hint.getCommandString(hint.cmd, turnInstructionMode) + "</sym>";
           if (mwpt != null) {
             sele += "<type>Via</type>";
           }
@@ -287,7 +287,7 @@ public class FormatGpx extends Formatter {
             sele += "<brouter:speed>" + (((int) (speed * 10)) / 10.f) + "</brouter:speed>";
           }
 
-          sele += "<brouter:voicehint>" + hint.getCommandString() + ";" + (int) (hint.distanceToNext) + "," + hint.formatGeometry() + "</brouter:voicehint>";
+          sele += "<brouter:voicehint>" + hint.getCommandString(turnInstructionMode) + ";" + (int) (hint.distanceToNext) + "," + hint.formatGeometry() + "</brouter:voicehint>";
           if (n.message != null && n.message.wayKeyValues != null && !n.message.wayKeyValues.equals(lastway)) {
             sele += "<brouter:way>" + n.message.wayKeyValues + "</brouter:way>";
             lastway = n.message.wayKeyValues;
