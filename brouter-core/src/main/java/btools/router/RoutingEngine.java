@@ -1039,7 +1039,8 @@ public class RoutingEngine extends Thread {
           throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
       }
     }
-    if (useDynamicDistance) {
+    // add beeline points when not already done
+    if (useDynamicDistance && !useNodePoints) {
       List<MatchedWaypoint> waypoints = new ArrayList<>();
       for (int i = 0; i < unmatchedWaypoints.size(); i++) {
         MatchedWaypoint wp = unmatchedWaypoints.get(i);
