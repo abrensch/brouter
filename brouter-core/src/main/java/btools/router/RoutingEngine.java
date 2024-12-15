@@ -550,7 +550,7 @@ public class RoutingEngine extends Thread {
       try {
         return tryFindTrack(refTracks, lastTracks);
       } catch (RoutingIslandException rie) {
-        if (routingContext.useDynamicDistance) {
+        if (routingContext.useDynamicDistance && !useNodePoints) {
           useNodePoints = true;
           boolean useNodeOne = true;
           if (extraWaypoints != null) useNodeOne = false;
@@ -590,6 +590,7 @@ public class RoutingEngine extends Thread {
           nUnmatched++;
         }
       }
+      extraWaypoints = null;
     }
     if (lastTracks.length < waypoints.size()-1) {
       refTracks = new OsmTrack[waypoints.size()-1]; // used ways for alternatives
