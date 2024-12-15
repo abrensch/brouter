@@ -55,15 +55,17 @@ assign caraccess
               switch motor_vehicle=
                      switch vehicle=
                             switch access=
-                                   switch highway=motorway|motorway_link    1
-                                   switch highway=trunk|trunk_link          1
-                                   switch highway=primary|primary_link      1
-                                   switch highway=secondary|secondary_link  1
-                                   switch highway=tertiary|tertiary_link    1
-                                   switch highway=unclassified              1
-                                   switch route=ferry                       1
-                                   switch isresidentialorliving             1
-                                   switch highway=service                   1
+                                   switch highway=motorway|motorway_link       1
+                                   switch highway=trunk|trunk_link             1
+                                   switch highway=primary|primary_link         1
+                                   switch highway=secondary|secondary_link     1
+                                   switch highway=tertiary|tertiary_link       1
+                                   switch highway=unclassified                 1
+                                   switch and highway=track use_dynamic_range  1
+                                   switch and highway=road use_dynamic_range   1
+                                   switch route=ferry                          1
+                                   switch isresidentialorliving                1
+                                   switch highway=service                      1
                                    0
                                    access=yes|permissive|designated|destination
                             vehicle=yes|designated|destination
