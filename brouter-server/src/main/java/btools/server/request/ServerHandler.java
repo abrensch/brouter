@@ -11,6 +11,7 @@ import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.server.ServiceContext;
 
+
 /**
  * URL query parameter handler for web and standalone server. Supports all
  * BRouter features without restrictions.
@@ -20,7 +21,7 @@ import btools.server.ServiceContext;
  * lonlats = lon,lat|... (unlimited list of lon,lat waypoints separated by |)
  * nogos = lon,lat,radius,weight|... (optional, list of lon, lat, radius in meters, weight (optional) separated by |)
  * polylines = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
- * polygons        = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
+ * polygons = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
  * profile = profile file name without .brf
  * alternativeidx = [0|1|2|3] (optional, default 0)
  * format = [kml|gpx|geojson] (optional, default gpx)
@@ -31,10 +32,14 @@ import btools.server.ServiceContext;
  * heading = angle (optional to give a route a start direction)
  * profile:xxx = parameter in profile (optional)
  * straight = idx1,idx2,.. (optional, minimum one value, index of a direct routing point in the waypoint list)
+ * getprofiles = returns a list of available profiles in JSON format
+ * getprofiles/profilename = returns the content of the specified profile
  * <p>
  * Example URLs:
  * {@code http://localhost:17777/brouter?lonlats=8.799297,49.565883|8.811764,49.563606&nogos=&profile=trekking&alternativeidx=0&format=gpx}
  * {@code http://localhost:17777/brouter?lonlats=1.1,1.2|2.1,2.2|3.1,3.2|4.1,4.2&nogos=-1.1,-1.2,1|-2.1,-2.2,2&profile=shortest&alternativeidx=1&format=kml&trackname=Ride&pois=1.1,2.1,Barner Bar}
+ * {@code http://localhost:17777/brouter/getprofiles}
+ * {@code http://localhost:17777/brouter/getprofiles/trekking.brf}
  */
 public class ServerHandler extends RequestHandler {
 
