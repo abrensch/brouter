@@ -38,6 +38,7 @@ import btools.util.StackSampler;
 
 public class RouteServer extends Thread implements Comparable<RouteServer> {
   public static final String PROFILE_UPLOAD_URL = "/brouter/profile";
+  public static final String PROFILES_URL = "/brouter/getprofiles";
   static final String HTTP_STATUS_OK = "200 OK";
   static final String HTTP_STATUS_BAD_REQUEST = "400 Bad Request";
   static final String HTTP_STATUS_FORBIDDEN = "403 Forbidden";
@@ -180,6 +181,9 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
           bw.flush();
           return;
         }
+      } else if (url.startsWith(PROFILES_URL)) {
+        handleProfilesRequest(url, bw);
+        return;
       } else if (url.startsWith("/brouter/suspects")) {
         writeHttpHeader(bw, url.endsWith(".json") ? "application/json" : "text/html", HTTP_STATUS_OK);
         SuspectManager.process(url, bw);
@@ -278,6 +282,45 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
     }
   }
 
+  private void handleProfilesRequest(String url, BufferedWriter bw) throws IOException {
+    File profileDir = new File(serviceContext.profileDir);
+    File[] profiles = profileDir.listFiles((dir, name) -> name.endsWith(".brf"));
+    if (profiles == null) {
+      writeHttpHeader(bw, HTTP_STATUS_INTERNAL_SERVER_ERROR);
+      bw.write("Could not list profiles");
+      bw.flush();
+      return;
+    }
+
+    if (url.equals(PROFILES_URL)) {
+      writeHttpHeader(bw, "application/json", HTTP_STATUS_OK);
+      bw.write("[");
+      for (int i = 0; i < profiles.length; i++) {
+        if (i > 0) {
+          bw.write(",");
+        }
+        bw.write("\"" + profiles[i].getName() + "\"");
+      }
+      bw.write("]");
+    } else {
+      String profileName = url.substring(PROFILES_URL.length() + 1);
+      File profileFile = new File(profileDir, profileName);
+      if (!profileFile.exists() || !profileFile.isFile()) {
+        writeHttpHeader(bw, HTTP_STATUS_NOT_FOUND);
+        bw.write("Profile not found: " + profileName);
+      } else {
+        writeHttpHeader(bw, "text/plain", HTTP_STATUS_OK);
+        BufferedReader profileReader = new BufferedReader(new InputStreamReader(new FileInputStream(profileFile), "UTF-8"));
+        String line;
+        while ((line = profileReader.readLine()) != null) {
+          bw.write(line);
+          bw.write("\n");
+        }
+        profileReader.close();
+      }
+    }
+    bw.flush();
+  }
 
   public static void main(String[] args) throws Exception {
     System.out.println("BRouter " + OsmTrack.version + " / " + OsmTrack.versionDate);
