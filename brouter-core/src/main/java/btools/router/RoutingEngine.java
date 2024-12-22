@@ -550,17 +550,12 @@ public class RoutingEngine extends Thread {
       try {
         return tryFindTrack(refTracks, lastTracks);
       } catch (RoutingIslandException rie) {
-        if (routingContext.useDynamicDistance && !useNodePoints) {
-          useNodePoints = true;
-          boolean useNodeOne = true;
-          if (extraWaypoints != null) useNodeOne = false;
-          extraWaypoints = new ArrayList<>();
+        if (routingContext.useDynamicDistance) {
           for (MatchedWaypoint mwp : matchedWaypoints) {
             if (mwp.name.contains("_add")) {
-              OsmNodeNamed wp = new OsmNodeNamed(useNodeOne ? mwp.node1 : mwp.node1);
-              wp.name = mwp.name;
-              wp.direct = mwp.direct;
-              extraWaypoints.add(wp);
+              long n1 = mwp.node1.getIdFromPos();
+              long n2 = mwp.node2.getIdFromPos();
+              islandNodePairs.addTempPair(n1, n2);
             }
           }
         }
@@ -632,6 +627,10 @@ public class RoutingEngine extends Thread {
         refTracks = new OsmTrack[matchedWaypoints.size()-1]; // used ways for alternatives
         lastTracks = new OsmTrack[matchedWaypoints.size()-1];
         hasDirectRouting = true;
+      }
+
+      for (MatchedWaypoint mwp : matchedWaypoints) {
+        if (hasInfo()) logInfo("new wp=" + mwp.waypoint + " "  + mwp.crosspoint + (mwp.direct ? " direct" : ""));
       }
 
       routingContext.checkMatchedWaypointAgainstNogos(matchedWaypoints);
@@ -1030,7 +1029,7 @@ public class RoutingEngine extends Thread {
       range = -MAX_DYNAMIC_RANGE;
       List<MatchedWaypoint> tmp = new ArrayList<>();
       for (MatchedWaypoint mwp : unmatchedWaypoints) {
-        if (mwp.crosspoint == null) tmp.add(mwp);
+        if (mwp.crosspoint == null || mwp.radius >= routingContext.waypointCatchingRange) tmp.add(mwp);
       }
       ok = nodesCache.matchWaypointsToNodes(tmp, range, islandNodePairs);
     }
@@ -1057,6 +1056,9 @@ public class RoutingEngine extends Thread {
             onn = new OsmNodeNamed(wp.crosspoint);
             onn.name = wp.name + "_add";
             wp.waypoint = onn;
+            waypoints.add(nmw);
+            wp.name = wp.name + "_add";
+            waypoints.add(wp);
           } else {
             OsmNodeNamed onn = new OsmNodeNamed(wp.crosspoint);
             onn.name = wp.name + "_add";
@@ -1065,13 +1067,30 @@ public class RoutingEngine extends Thread {
             nmw.node1 = new OsmNode(wp.node1.ilon, wp.node1.ilat);
             nmw.node2 = new OsmNode(wp.node2.ilon, wp.node2.ilat);
             nmw.direct = true;
+
+            if (wp.name != null) nmw.name = wp.name;
+            waypoints.add(nmw);
+            wp.name = wp.name + "_add";
+            waypoints.add(wp);
+            if (wp.name.startsWith("via")) {
+              wp.direct = true;
+              MatchedWaypoint emw = new MatchedWaypoint();
+              OsmNodeNamed onn2 = new OsmNodeNamed(wp.crosspoint);
+              onn2.name = wp.name + "_2";
+              emw.name = onn2.name;
+              emw.waypoint = onn2;
+              emw.crosspoint = new OsmNode(nmw.crosspoint.ilon, nmw.crosspoint.ilat);
+              emw.node1 = new OsmNode(nmw.node1.ilon, nmw.node1.ilat);
+              emw.node2 = new OsmNode(nmw.node2.ilon, nmw.node2.ilat);
+              emw.direct = false;
+              waypoints.add(emw);
+            }
             wp.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
           }
-          if (wp.name != null) nmw.name = wp.name;
-          waypoints.add(nmw);
-          wp.name = wp.name + "_add";
+
+        } else {
+          waypoints.add(wp);
         }
-        waypoints.add(wp);
       }
       unmatchedWaypoints.clear();
       unmatchedWaypoints.addAll(waypoints);
