@@ -171,7 +171,7 @@ assign onewaypenalty =
          else if ( oneway:bicycle=no                         ) then 0
          else if ( cycleway:left:oneway=no                   ) then 0
          else if ( cycleway:right:oneway=no                  ) then 0
-         else if ( not footaccess                            ) then 10000
+         else if ( not footaccess                            ) then 100
          else if ( junction=roundabout|circular              ) then 60
          else if ( highway=primary|primary_link              ) then 50
          else if ( highway=secondary|secondary_link          ) then 30
