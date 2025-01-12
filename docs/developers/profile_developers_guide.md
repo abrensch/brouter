@@ -116,6 +116,18 @@ Some variable names are pre-defined and accessed by the routing engine:
        table exported as CSV. Setting it to true/1, Brouter-web Data page will
        list all tags present in the RD5 file.
 
+    - `use_dynamic_range` default=false
+
+       To find the start / end points for a route, BRouter normally uses the
+       variable `waypointCatchingRange` with a default value of 250 m. In some
+       situations, adding a few meters here is not enough to find a point.
+       With this new variable, it goes deeper and could reach a radius of about 50 km.
+       From this point, the more distant road connection is established as the beeline
+       and included in the calculation.
+       This is helpful in areas with less road coverage like in the Arabic world or
+       similar areas.
+
+
 - for the way section these are
 
   - `turncost`
