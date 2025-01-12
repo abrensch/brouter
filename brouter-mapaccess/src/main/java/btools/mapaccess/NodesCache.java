@@ -18,7 +18,10 @@ import btools.expressions.BExpressionContextWay;
 
 public final class NodesCache {
 
+  final static int RETRY_RANGE = 250;
+
   private int MAX_DYNAMIC_CATCHES = 20; // used with RoutingEngiine MAX_DYNAMIC_RANGE = 60000m
+
 
   private File segmentDir;
   private File secondarySegmentsDir = null;
@@ -292,7 +295,7 @@ public final class NodesCache {
       int cellsize = 12500;
       preloadPosition(mwp.waypoint, cellsize, 1, false);
       // get a second chance
-      if (mwp.crosspoint == null || mwp.radius > Math.abs(maxDistance)) {
+      if (mwp.crosspoint == null || mwp.radius > RETRY_RANGE) {
         cellsize = 1000000 / 32;
         preloadPosition(mwp.waypoint, cellsize, maxDistance < 0 ? MAX_DYNAMIC_CATCHES : 2, maxDistance < 0);
       }
