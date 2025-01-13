@@ -197,10 +197,7 @@ public class FormatGpx extends Formatter {
 
     for (int i = 0; i <= t.pois.size() - 1; i++) {
       OsmNodeNamed poi = t.pois.get(i);
-      sb.append(" <wpt lon=\"").append(formatILon(poi.ilon)).append("\" lat=\"")
-        .append(formatILat(poi.ilat)).append("\">\n")
-        .append("  <name>").append(StringUtils.escapeXml10(poi.name)).append("</name>\n")
-        .append(" </wpt>\n");
+      formatWaypointGpx(sb, poi);
     }
 
     if (t.exportWaypoints) {

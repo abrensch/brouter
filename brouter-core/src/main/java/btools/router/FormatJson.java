@@ -130,8 +130,8 @@ public class FormatJson extends Formatter {
       sb.append("    },\n");
       for (int i = 0; i <= t.pois.size() - 1; i++) {
         OsmNodeNamed poi = t.pois.get(i);
-        addFeature(sb, "poi", poi.name, poi.ilat, poi.ilon);
-        if (i < t.matchedWaypoints.size() - 1) {
+        addFeature(sb, "poi", poi.name, poi.ilat, poi.ilon, poi.getSElev());
+        if (i < t.pois.size() - 1) {
           sb.append(",");
         }
         sb.append("    \n");
@@ -148,7 +148,7 @@ public class FormatJson extends Formatter {
           }
 
           MatchedWaypoint wp = t.matchedWaypoints.get(i);
-          addFeature(sb, type, wp.name, wp.waypoint.ilat, wp.waypoint.ilon);
+          addFeature(sb, type, wp.name, wp.waypoint.ilat, wp.waypoint.ilon, wp.waypoint.getSElev());
           if (i < t.matchedWaypoints.size() - 1) {
             sb.append(",");
           }
@@ -164,7 +164,7 @@ public class FormatJson extends Formatter {
     return sb.toString();
   }
 
-  private void addFeature(StringBuilder sb, String type, String name, int ilat, int ilon) {
+  private void addFeature(StringBuilder sb, String type, String name, int ilat, int ilon, short selev) {
     sb.append("    {\n");
     sb.append("      \"type\": \"Feature\",\n");
     sb.append("      \"properties\": {\n");
@@ -175,7 +175,7 @@ public class FormatJson extends Formatter {
     sb.append("        \"type\": \"Point\",\n");
     sb.append("        \"coordinates\": [\n");
     sb.append("          " + formatILon(ilon) + ",\n");
-    sb.append("          " + formatILat(ilat) + "\n");
+    sb.append("          " + formatILat(ilat) + (selev != Short.MIN_VALUE ? ",\n          " + selev / 4. : "") + "\n");
     sb.append("        ]\n");
     sb.append("      }\n");
     sb.append("    }");

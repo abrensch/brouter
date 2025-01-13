@@ -30,6 +30,7 @@ public class RoutingEngine extends Thread {
   public final static int BROUTER_ENGINEMODE_ROUTING = 0;
   public final static int BROUTER_ENGINEMODE_SEED = 1;
   public final static int BROUTER_ENGINEMODE_GETELEV = 2;
+  public final static int BROUTER_ENGINEMODE_GETINFO = 3;
 
   private NodesCache nodesCache;
   private SortedHeap<OsmPath> openSet = new SortedHeap<>();
@@ -171,10 +172,11 @@ public class RoutingEngine extends Thread {
       case BROUTER_ENGINEMODE_SEED: /* do nothing, handled the old way */
         throw new IllegalArgumentException("not a valid engine mode");
       case BROUTER_ENGINEMODE_GETELEV:
+      case BROUTER_ENGINEMODE_GETINFO:
         if (waypoints.size() < 1) {
           throw new IllegalArgumentException("we need one lat/lon point at least!");
         }
-        doGetElev();
+        doGetInfo();
         break;
       default:
         throw new IllegalArgumentException("not a valid engine mode");
@@ -321,11 +323,10 @@ public class RoutingEngine extends Thread {
     }
   }
 
-  public void doGetElev() {
+  public void doGetInfo() {
     try {
       startTime = System.currentTimeMillis();
 
-      routingContext.turnInstructionMode = 9;
       MatchedWaypoint wpt1 = new MatchedWaypoint();
       wpt1.waypoint = waypoints.get(0);
       wpt1.name = "wpt_info";
@@ -336,44 +337,105 @@ public class RoutingEngine extends Thread {
       resetCache(true);
       nodesCache.nodesMap.cleanupMode = 0;
 
-      int dist_cn1 = listOne.get(0).crosspoint.calcDistance(listOne.get(0).node1);
-      int dist_cn2 = listOne.get(0).crosspoint.calcDistance(listOne.get(0).node2);
+      OsmNode start1 = nodesCache.getGraphNode(listOne.get(0).node1);
+      boolean b = nodesCache.obtainNonHollowNode(start1);
 
-      OsmNode startNode;
-      if (dist_cn1 < dist_cn2) {
-        startNode = nodesCache.getStartNode(listOne.get(0).node1.getIdFromPos());
-      } else {
-        startNode = nodesCache.getStartNode(listOne.get(0).node2.getIdFromPos());
-      }
+      guideTrack = new OsmTrack();
+      guideTrack.addNode(OsmPathElement.create(wpt1.node2.ilon, wpt1.node2.ilat, (short) 0, null));
+      guideTrack.addNode(OsmPathElement.create(wpt1.node1.ilon, wpt1.node1.ilat, (short) 0, null));
 
-      OsmNodeNamed n = new OsmNodeNamed(listOne.get(0).crosspoint);
-      n.selev = startNode != null ? startNode.getSElev() : Short.MIN_VALUE;
+      matchedWaypoints = new ArrayList<>();
+      MatchedWaypoint wp1 = new MatchedWaypoint();
+      wp1.crosspoint = new OsmNode(wpt1.node1.ilon, wpt1.node1.ilat);
+      wp1.node1 = new OsmNode(wpt1.node1.ilon, wpt1.node1.ilat);
+      wp1.node2 = new OsmNode(wpt1.node2.ilon, wpt1.node2.ilat);
+      matchedWaypoints.add(wp1);
+      MatchedWaypoint wp2 = new MatchedWaypoint();
+      wp2.crosspoint = new OsmNode(wpt1.node2.ilon, wpt1.node2.ilat);
+      wp2.node1 = new OsmNode(wpt1.node1.ilon, wpt1.node1.ilat);
+      wp2.node2 = new OsmNode(wpt1.node2.ilon, wpt1.node2.ilat);
+      matchedWaypoints.add(wp2);
 
-      switch (routingContext.outputFormat) {
-        case "gpx":
-          outputMessage = new FormatGpx(routingContext).formatAsWaypoint(n);
-          break;
-        case "geojson":
-        case "json":
-          outputMessage = new FormatJson(routingContext).formatAsWaypoint(n);
-          break;
-        case "kml":
-        case "csv":
-        default:
-          outputMessage = null;
-          break;
-      }
-      if (outfileBase != null) {
-        String filename = outfileBase + "." + routingContext.outputFormat;
-        File out = new File(filename);
-        FileWriter fw = new FileWriter(filename);
-        fw.write(outputMessage);
-        fw.close();
-        outputMessage = null;
-      } else {
-        if (!quite && outputMessage != null) {
-          System.out.println(outputMessage);
+      OsmTrack t = findTrack("getinfo", wp1, wp2, null, null, false);
+      if (t != null) {
+        t.messageList = new ArrayList<>();
+        t.matchedWaypoints = matchedWaypoints;
+        t.name = (outfileBase == null ? "getinfo" : outfileBase);
+
+        // find nearest point
+        int mindist = 99999;
+        int minIdx = -1;
+        for (int i = 0; i < t.nodes.size(); i++) {
+          OsmPathElement ope = t.nodes.get(i);
+          int dist = ope.calcDistance(listOne.get(0).crosspoint);
+          if (mindist > dist) {
+            mindist = dist;
+            minIdx = i;
+          }
         }
+        int otherIdx = 0;
+        if (minIdx == t.nodes.size()-1) {
+          otherIdx = minIdx-1;
+        } else {
+          otherIdx = minIdx+1;
+        }
+        int otherdist = t.nodes.get(otherIdx).calcDistance(listOne.get(0).crosspoint);
+        int minSElev = t.nodes.get(minIdx).getSElev();
+        int otherSElev = t.nodes.get(otherIdx).getSElev();
+        int diffSElev = 0;
+        diffSElev = otherSElev - minSElev;
+        double diff = (double) mindist/(mindist + otherdist) * diffSElev;
+
+
+        OsmNodeNamed n = new OsmNodeNamed(listOne.get(0).crosspoint);
+        n.name = wpt1.name;
+        n.selev = minIdx != -1 ? (short) (minSElev + (int) diff) : Short.MIN_VALUE;
+        if (engineMode == BROUTER_ENGINEMODE_GETINFO) {
+          n.nodeDescription = (start1 != null && start1.firstlink!=null ? start1.firstlink.descriptionBitmap : null);
+          t.pois.add(n);
+          //t.message = "get_info";
+          //t.messageList.add(t.message);
+          t.matchedWaypoints = listOne;
+          t.exportWaypoints = routingContext.exportWaypoints;
+        }
+
+        switch (routingContext.outputFormat) {
+          case "gpx":
+            if (engineMode == BROUTER_ENGINEMODE_GETELEV) {
+              outputMessage = new FormatGpx(routingContext).formatAsWaypoint(n);
+            } else {
+              outputMessage = new FormatGpx(routingContext).format(t);
+            }
+            break;
+          case "geojson":
+          case "json":
+            if (engineMode == BROUTER_ENGINEMODE_GETELEV) {
+              outputMessage = new FormatJson(routingContext).formatAsWaypoint(n);
+            } else {
+              outputMessage = new FormatJson(routingContext).format(t);
+            }
+            break;
+          case "kml":
+          case "csv":
+          default:
+            outputMessage = null;
+            break;
+        }
+        if (outfileBase != null) {
+          String filename = outfileBase + "." + routingContext.outputFormat;
+          File out = new File(filename);
+          FileWriter fw = new FileWriter(filename);
+          fw.write(outputMessage);
+          fw.close();
+          outputMessage = null;
+        } else {
+          if (!quite && outputMessage != null) {
+            System.out.println(outputMessage);
+          }
+        }
+
+      } else {
+        if (errorMessage == null) errorMessage = "no track found";
       }
       long endTime = System.currentTimeMillis();
       logInfo("execution time = " + (endTime - startTime) / 1000. + " seconds");
@@ -630,7 +692,7 @@ public class RoutingEngine extends Thread {
       }
 
       for (MatchedWaypoint mwp : matchedWaypoints) {
-        if (hasInfo()) logInfo("new wp=" + mwp.waypoint + " "  + mwp.crosspoint + (mwp.direct ? " direct" : ""));
+        if (hasInfo() && matchedWaypoints.size() != nUnmatched) logInfo("new wp=" + mwp.waypoint + " "  + mwp.crosspoint + (mwp.direct ? " direct" : ""));
       }
 
       routingContext.checkMatchedWaypointAgainstNogos(matchedWaypoints);
