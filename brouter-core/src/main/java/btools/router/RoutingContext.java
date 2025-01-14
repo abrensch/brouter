@@ -172,8 +172,13 @@ public final class RoutingContext {
     useDynamicDistance = expctxGlobal.getVariableValue("use_dynamic_range", 0f) == 1f;
 
     boolean test = expctxGlobal.getVariableValue("check_start_way", 1f) == 1f;
-    if (!test) expctxGlobal.freeNoWays();
+    if (!test) freeNoWays();
 
+  }
+
+  public void freeNoWays() {
+    BExpressionContext expctxGlobal = expctxWay;
+    if (expctxGlobal != null) expctxGlobal.freeNoWays();
   }
 
   public List<OsmNodeNamed> poipoints;

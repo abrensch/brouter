@@ -327,6 +327,8 @@ public class RoutingEngine extends Thread {
     try {
       startTime = System.currentTimeMillis();
 
+      routingContext.freeNoWays();
+
       MatchedWaypoint wpt1 = new MatchedWaypoint();
       wpt1.waypoint = waypoints.get(0);
       wpt1.name = "wpt_info";
