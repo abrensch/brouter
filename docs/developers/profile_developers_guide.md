@@ -127,6 +127,21 @@ Some variable names are pre-defined and accessed by the routing engine:
        This is helpful in areas with less road coverage like in the Arabic world or
        similar areas.
 
+    - `check_start_way`  default=false
+
+       This could help to find a better starting point for a route. Some ways, such as
+       highways or ferries, may be excluded as a starting point.
+
+       This needs new defines in profile:
+
+       `assign check_start_way     = true   # %check_start_way% | Activate a test for the starting way | boolean | noStartWay=route,ferry;highway,motorway;highway,motorway_link`
+
+       The first is standard: define a variable and its value, then the block for
+       description and variable type.
+       New is an additional block with information on the excluded ways, a list with
+       name `noStartWay` and `name,value;...` entries.
+
+
 
 - for the way section these are
 
