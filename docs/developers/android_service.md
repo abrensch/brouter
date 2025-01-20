@@ -131,4 +131,8 @@ This suppress the first question after installation for the BRouter path, genera
 
 ### get elevation
 
-"engineMode=2" allows a client to only request an elevation for a point. This can be restricted with "waypointCatchingRange".
+"engineMode=2" allows a client to request only an elevation for a point. This can be restricted with "waypointCatchingRange".
+
+### get info
+
+"engineMode=3" allows a client to request the description tags for  a segment. This can be restricted with "waypointCatchingRange".
