@@ -191,6 +191,9 @@ public final class RoutingContext {
   public Integer startDirection;
   public boolean startDirectionValid;
   public boolean forceUseStartDirection;
+  public Integer roundtripDistance;
+  public Integer roundtripDirectionAdd;
+  public boolean allowSamewayback;
 
   public CheapAngleMeter anglemeter = new CheapAngleMeter();
 

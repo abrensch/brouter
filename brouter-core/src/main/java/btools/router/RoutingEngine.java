@@ -21,6 +21,7 @@ import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmNodePairSet;
 import btools.mapaccess.OsmPos;
+import btools.util.CheapRuler;
 import btools.util.CompactLongMap;
 import btools.util.SortedHeap;
 import btools.util.StackSampler;
@@ -31,6 +32,7 @@ public class RoutingEngine extends Thread {
   public final static int BROUTER_ENGINEMODE_SEED = 1;
   public final static int BROUTER_ENGINEMODE_GETELEV = 2;
   public final static int BROUTER_ENGINEMODE_GETINFO = 3;
+  public final static int BROUTER_ENGINEMODE_ROUNDTRIP = 4;
 
   private NodesCache nodesCache;
   private SortedHeap<OsmPath> openSet = new SortedHeap<>();
@@ -48,7 +50,7 @@ public class RoutingEngine extends Thread {
 
   private int engineMode = 0;
 
-  private int MAX_STEPS_CHECK = 10;
+  private int MAX_STEPS_CHECK = 20;
 
   private int MAX_DYNAMIC_RANGE = 60000;
 
@@ -177,6 +179,11 @@ public class RoutingEngine extends Thread {
           throw new IllegalArgumentException("we need one lat/lon point at least!");
         }
         doGetInfo();
+        break;
+      case BROUTER_ENGINEMODE_ROUNDTRIP:
+        if (waypoints.size() < 1)
+          throw new IllegalArgumentException("we need one lat/lon point at least!");
+        doRoundTrip();
         break;
       default:
         throw new IllegalArgumentException("not a valid engine mode");
@@ -445,6 +452,69 @@ public class RoutingEngine extends Thread {
       e.getStackTrace();
       logException(e);
     }
+  }
+
+  public void doRoundTrip() {
+    try {
+      startTime = System.currentTimeMillis();
+      MatchedWaypoint wpt1 = new MatchedWaypoint();
+      wpt1.waypoint = waypoints.get(0);
+      wpt1.name = "roundtrip";
+
+      routingContext.useDynamicDistance = true;
+      double searchRadius = (routingContext.roundtripDistance == null ? 1500 :routingContext.roundtripDistance);
+      double direction = (routingContext.startDirection == null ? -1 :routingContext.startDirection);
+      if (direction == -1) direction = (int) (Math.random()*360);
+      double directionAdd = (routingContext.roundtripDirectionAdd == null ? 20 :routingContext.roundtripDirectionAdd);
+
+      //direction = 59;
+      if (routingContext.allowSamewayback) {
+        int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction);
+        MatchedWaypoint wpt2 = new MatchedWaypoint();
+        wpt2.waypoint = new OsmNode(pos[0], pos[1]);
+        wpt2.name = "rt1_" + (direction);
+
+        OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
+        onn.name = "via1";
+        onn.radius = 1000;
+        waypoints.add(onn);
+      } else {
+        int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction-directionAdd);
+        MatchedWaypoint wpt2 = new MatchedWaypoint();
+        wpt2.waypoint = new OsmNode(pos[0], pos[1]);
+        wpt2.name = "rt1_" + (direction);
+
+        OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
+        onn.name = "via1";
+        onn.radius = 1000;
+        waypoints.add(onn);
+
+
+        pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction+directionAdd);
+        MatchedWaypoint wpt3 = new MatchedWaypoint();
+        wpt3.waypoint = new OsmNode(pos[0], pos[1]);
+        wpt3.name = "rt2_" + (direction);
+
+        onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
+        onn.name = "via2";
+        onn.radius = 1000;
+        waypoints.add(onn);
+      }
+      OsmNodeNamed onn = new OsmNodeNamed(waypoints.get(0));
+      onn.name = "rt_end";
+      waypoints.add(onn);
+
+      routingContext.waypointCatchingRange = 1000;
+
+      doRouting(0);
+
+      long endTime = System.currentTimeMillis();
+      logInfo("execution time = " + (endTime - startTime) / 1000. + " seconds");
+    } catch (Exception e) {
+      e.getStackTrace();
+      logException(e);
+    }
+
   }
 
   private void postElevationCheck(OsmTrack track) {
