@@ -136,7 +136,8 @@ public class BRouterWorker {
     cr.quite = true;
     cr.doRun(maxRunningTime);
 
-    if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING) {
+    if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING ||
+        engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP) {
       // store new reference track if any
       // (can exist for timed-out search)
       if (cr.getFoundRawTrack() != null) {
