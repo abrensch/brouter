@@ -50,7 +50,9 @@ public class RoutingEngine extends Thread {
 
   private int engineMode = 0;
 
-  private int MAX_STEPS_CHECK = 20;
+  private int MAX_STEPS_CHECK = 250;
+
+  private int ROUNDTRIP_DEFAULT_DIRECTIONADD = 45;
 
   private int MAX_DYNAMIC_RANGE = 60000;
 
@@ -196,6 +198,28 @@ public class RoutingEngine extends Thread {
       startTime = System.currentTimeMillis();
       long startTime0 = startTime;
       this.maxRunningTime = maxRunningTime;
+
+      if (routingContext.allowSamewayback) {
+        if (waypoints.size() == 2) {
+          OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(waypoints.get(0).ilon, waypoints.get(0).ilat));
+          onn.name = "to";
+          onn.radius = 1000;
+          waypoints.add(onn);
+        } else {
+          waypoints.get(waypoints.size()-1).name = "via" + (waypoints.size()-1) + "_center";
+          List<OsmNodeNamed> newpoints = new ArrayList<>();
+          for (int i = waypoints.size()-2; i >= 0; i--) {
+            // System.out.println("back " + waypoints.get(i));
+            OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(waypoints.get(i).ilon, waypoints.get(i).ilat));
+            onn.name = "via";
+            onn.radius = 1000;
+            newpoints.add(onn);
+          }
+          newpoints.get(newpoints.size()-1).name = "to";
+          waypoints.addAll(newpoints);
+        }
+      }
+
       int nsections = waypoints.size() - 1;
       OsmTrack[] refTracks = new OsmTrack[nsections]; // used ways for alternatives
       OsmTrack[] lastTracks = new OsmTrack[nsections];
@@ -465,14 +489,13 @@ public class RoutingEngine extends Thread {
       double searchRadius = (routingContext.roundtripDistance == null ? 1500 :routingContext.roundtripDistance);
       double direction = (routingContext.startDirection == null ? -1 :routingContext.startDirection);
       if (direction == -1) direction = (int) (Math.random()*360);
-      double directionAdd = (routingContext.roundtripDirectionAdd == null ? 20 :routingContext.roundtripDirectionAdd);
+      double directionAdd = (routingContext.roundtripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD :routingContext.roundtripDirectionAdd);
 
-      //direction = 59;
       if (routingContext.allowSamewayback) {
         int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction);
         MatchedWaypoint wpt2 = new MatchedWaypoint();
         wpt2.waypoint = new OsmNode(pos[0], pos[1]);
-        wpt2.name = "rt1_" + (direction);
+        wpt2.name = "rt1_" + direction;
 
         OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
         onn.name = "via1";
@@ -482,7 +505,7 @@ public class RoutingEngine extends Thread {
         int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction-directionAdd);
         MatchedWaypoint wpt2 = new MatchedWaypoint();
         wpt2.waypoint = new OsmNode(pos[0], pos[1]);
-        wpt2.name = "rt1_" + (direction);
+        wpt2.name = "via1_" + (int) (direction-directionAdd);
 
         OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
         onn.name = "via1";
@@ -493,16 +516,27 @@ public class RoutingEngine extends Thread {
         pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction+directionAdd);
         MatchedWaypoint wpt3 = new MatchedWaypoint();
         wpt3.waypoint = new OsmNode(pos[0], pos[1]);
-        wpt3.name = "rt2_" + (direction);
+        wpt3.name = "via2_" + (int) (direction+directionAdd);
 
         onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
         onn.name = "via2";
         onn.radius = 1000;
         waypoints.add(onn);
+
+        pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius/2, direction);
+        OsmNodeNamed n = new OsmNodeNamed();
+        n.name = "nogo" + (int) (searchRadius/3);
+        n.ilon = pos[0];
+        n.ilat = pos[1];
+        n.isNogo = true;
+        n.radius = (int) (searchRadius/3);
+        n.nogoWeight = Double.NaN;
+        routingContext.setWaypoint(n, false);
+
+        onn = new OsmNodeNamed(waypoints.get(0));
+        onn.name = "to_rt";
+        waypoints.add(onn);
       }
-      OsmNodeNamed onn = new OsmNodeNamed(waypoints.get(0));
-      onn.name = "rt_end";
-      waypoints.add(onn);
 
       routingContext.waypointCatchingRange = 1000;
 
@@ -825,7 +859,7 @@ public class RoutingEngine extends Thread {
         return null;
 
       boolean changed = false;
-      if (routingContext.correctMisplacedViaPoints && !matchedWaypoints.get(i).direct) {
+      if (routingContext.correctMisplacedViaPoints && !matchedWaypoints.get(i).direct && !routingContext.allowSamewayback) {
         changed = snappPathConnection(totaltrack, seg, routingContext.inverseRouting ? matchedWaypoints.get(i + 1) : matchedWaypoints.get(i));
       }
       if (wptIndex > 0)
@@ -946,15 +980,11 @@ public class RoutingEngine extends Thread {
         }
         indexback--;
         indexfore++;
+
+        if (routingContext.correctMisplacedViaPointsDistance > 0 &&
+            wayDistance > routingContext.correctMisplacedViaPointsDistance) break;
       }
 
-      if (routingContext.correctMisplacedViaPointsDistance > 0 &&
-        wayDistance > routingContext.correctMisplacedViaPointsDistance) {
-        removeVoiceHintList.clear();
-        removeBackList.clear();
-        removeForeList.clear();
-        return false;
-      }
 
       // time hold
       float atime = 0;
