@@ -203,7 +203,6 @@ public class RoutingEngine extends Thread {
         if (waypoints.size() == 2) {
           OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(waypoints.get(0).ilon, waypoints.get(0).ilat));
           onn.name = "to";
-          onn.radius = 1000;
           waypoints.add(onn);
         } else {
           waypoints.get(waypoints.size()-1).name = "via" + (waypoints.size()-1) + "_center";
@@ -212,7 +211,6 @@ public class RoutingEngine extends Thread {
             // System.out.println("back " + waypoints.get(i));
             OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(waypoints.get(i).ilon, waypoints.get(i).ilat));
             onn.name = "via";
-            onn.radius = 1000;
             newpoints.add(onn);
           }
           newpoints.get(newpoints.size()-1).name = "to";
@@ -499,7 +497,6 @@ public class RoutingEngine extends Thread {
 
         OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
         onn.name = "via1";
-        onn.radius = 1000;
         waypoints.add(onn);
       } else {
         int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction-directionAdd);
@@ -509,7 +506,6 @@ public class RoutingEngine extends Thread {
 
         OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
         onn.name = "via1";
-        onn.radius = 1000;
         waypoints.add(onn);
 
 
@@ -520,7 +516,6 @@ public class RoutingEngine extends Thread {
 
         onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
         onn.name = "via2";
-        onn.radius = 1000;
         waypoints.add(onn);
 
         pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius/2, direction);
