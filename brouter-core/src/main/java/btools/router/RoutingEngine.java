@@ -1204,49 +1204,52 @@ public class RoutingEngine extends Thread {
       for (int i = 0; i < unmatchedWaypoints.size(); i++) {
         MatchedWaypoint wp = unmatchedWaypoints.get(i);
         if (wp.waypoint.calcDistance(wp.crosspoint) > routingContext.waypointCatchingRange) {
-          MatchedWaypoint nmw = new MatchedWaypoint();
-          if (i == 0) {
-            OsmNodeNamed onn = new OsmNodeNamed(wp.waypoint);
-            onn.name = "from";
-            nmw.waypoint = onn;
-            nmw.name = onn.name;
-            nmw.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
-            nmw.direct = true;
-            onn = new OsmNodeNamed(wp.crosspoint);
-            onn.name = wp.name + "_add";
-            wp.waypoint = onn;
-            waypoints.add(nmw);
-            wp.name = wp.name + "_add";
-            waypoints.add(wp);
-          } else {
-            OsmNodeNamed onn = new OsmNodeNamed(wp.crosspoint);
-            onn.name = wp.name + "_add";
-            nmw.waypoint = onn;
-            nmw.crosspoint = new OsmNode(wp.crosspoint.ilon, wp.crosspoint.ilat);
-            nmw.node1 = new OsmNode(wp.node1.ilon, wp.node1.ilat);
-            nmw.node2 = new OsmNode(wp.node2.ilon, wp.node2.ilat);
-            nmw.direct = true;
+          if (engineMode != BROUTER_ENGINEMODE_ROUNDTRIP) {
+            MatchedWaypoint nmw = new MatchedWaypoint();
+            if (i == 0) {
+              OsmNodeNamed onn = new OsmNodeNamed(wp.waypoint);
+              onn.name = "from";
+              nmw.waypoint = onn;
+              nmw.name = onn.name;
+              nmw.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
+              nmw.direct = true;
+              onn = new OsmNodeNamed(wp.crosspoint);
+              onn.name = wp.name + "_add";
+              wp.waypoint = onn;
+              waypoints.add(nmw);
+              wp.name = wp.name + "_add";
+              waypoints.add(wp);
+            } else {
+              OsmNodeNamed onn = new OsmNodeNamed(wp.crosspoint);
+              onn.name = wp.name + "_add";
+              nmw.waypoint = onn;
+              nmw.crosspoint = new OsmNode(wp.crosspoint.ilon, wp.crosspoint.ilat);
+              nmw.node1 = new OsmNode(wp.node1.ilon, wp.node1.ilat);
+              nmw.node2 = new OsmNode(wp.node2.ilon, wp.node2.ilat);
+              nmw.direct = true;
 
-            if (wp.name != null) nmw.name = wp.name;
-            waypoints.add(nmw);
-            wp.name = wp.name + "_add";
-            waypoints.add(wp);
-            if (wp.name.startsWith("via")) {
-              wp.direct = true;
-              MatchedWaypoint emw = new MatchedWaypoint();
-              OsmNodeNamed onn2 = new OsmNodeNamed(wp.crosspoint);
-              onn2.name = wp.name + "_2";
-              emw.name = onn2.name;
-              emw.waypoint = onn2;
-              emw.crosspoint = new OsmNode(nmw.crosspoint.ilon, nmw.crosspoint.ilat);
-              emw.node1 = new OsmNode(nmw.node1.ilon, nmw.node1.ilat);
-              emw.node2 = new OsmNode(nmw.node2.ilon, nmw.node2.ilat);
-              emw.direct = false;
-              waypoints.add(emw);
+              if (wp.name != null) nmw.name = wp.name;
+              waypoints.add(nmw);
+              wp.name = wp.name + "_add";
+              waypoints.add(wp);
+              if (wp.name.startsWith("via")) {
+                wp.direct = true;
+                MatchedWaypoint emw = new MatchedWaypoint();
+                OsmNodeNamed onn2 = new OsmNodeNamed(wp.crosspoint);
+                onn2.name = wp.name + "_2";
+                emw.name = onn2.name;
+                emw.waypoint = onn2;
+                emw.crosspoint = new OsmNode(nmw.crosspoint.ilon, nmw.crosspoint.ilat);
+                emw.node1 = new OsmNode(nmw.node1.ilon, nmw.node1.ilat);
+                emw.node2 = new OsmNode(nmw.node2.ilon, nmw.node2.ilat);
+                emw.direct = false;
+                waypoints.add(emw);
+              }
+              wp.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
             }
-            wp.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
+          } else {
+            waypoints.add(wp);
           }
-
         } else {
           waypoints.add(wp);
         }
