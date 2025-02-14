@@ -77,6 +77,7 @@ public final class RoutingContext {
   public boolean correctMisplacedViaPoints;
   public double correctMisplacedViaPointsDistance;
   public boolean useDynamicDistance;
+  public int roundTripPoints;
 
   private void setModel(String className) {
     if (className == null) {
@@ -170,6 +171,11 @@ public final class RoutingContext {
     bikerPower = expctxGlobal.getVariableValue("bikerPower", 100.f);
 
     useDynamicDistance = expctxGlobal.getVariableValue("use_dynamic_range", 0f) == 1f;
+
+    roundTripPoints = (int) expctxGlobal.getVariableValue("roundTripPoints", 5.f);
+    if (roundTripPoints < 3 || roundTripPoints > 20) {
+      roundTripPoints = 5;
+    }
 
     boolean test = expctxGlobal.getVariableValue("check_start_way", 1f) == 1f;
     if (!test) freeNoWays();

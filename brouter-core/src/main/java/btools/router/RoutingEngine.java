@@ -500,7 +500,7 @@ public class RoutingEngine extends Thread {
         waypoints.add(onn);
       } else {
         //buildPointsFromAngle(waypoints, direction, directionAdd, searchRadius, true);
-        buildPointsFromCircle(waypoints, direction, searchRadius, 5);
+        buildPointsFromCircle(waypoints, direction, searchRadius, routingContext.roundTripPoints);
       }
 
       routingContext.waypointCatchingRange = 1000;
