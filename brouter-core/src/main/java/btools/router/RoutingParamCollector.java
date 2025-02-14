@@ -202,6 +202,12 @@ public class RoutingParamCollector {
           rctx.forceUseStartDirection = true;
         } else if (key.equals("direction")) {
           rctx.startDirection = Integer.valueOf(value);
+        } else if (key.equals("roundtripDistance")) {
+          rctx.roundtripDistance = Integer.valueOf(value);
+        } else if (key.equals("roundtripDirectionAdd")) {
+          rctx.roundtripDirectionAdd = Integer.valueOf(value);
+        } else if (key.equals("allowSamewayback")) {
+          rctx.allowSamewayback = Integer.parseInt(value)==1;
         } else if (key.equals("alternativeidx")) {
           rctx.setAlternativeIdx(Integer.parseInt(value));
         } else if (key.equals("turnInstructionMode")) {
