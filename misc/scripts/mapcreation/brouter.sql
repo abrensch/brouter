@@ -1,6 +1,5 @@
 --  calculation of new tags (estimated_noise_class, estimated_river_class,estimated_forest_class, estimated_town_class, estimated_traffic_class)
 --  formatted by https://sqlformat.darold.net/
-
 SET client_encoding TO UTF8;
 
 SELECT
@@ -23,10 +22,12 @@ LANGUAGE plpgsql
 SECURITY INVOKER;
 
 -- create new tables for tuning
+--
 SELECT
     osm_id::bigint,
     highway,
     waterway,
+    li.natural,
     width,
     maxspeed,
     CASE WHEN maxspeed IS NULL THEN
@@ -44,12 +45,15 @@ SELECT
     --  "buffer radius" was initially created with 50 meters at a lat 50 degrees....  ==> ST_Buffer(way,50)
     -- but, using geometry "projection", to get same results by a calculation of the planet (latitude between -80, +85) this value should be adapted to the latitude of the highways...
 ,
+    --
     ST_Buffer (way, 32.15 * st_length (ST_Transform (way, 3857)) / st_length (ST_Transform (way, 4326)::geography)) AS way INTO TABLE osm_line_buf_50
 FROM
-    lines
+    lines li
 WHERE
     highway IS NOT NULL
-    OR waterway IN ('river', 'canal');
+    OR waterway IN ('river', 'canal', 'fairway')
+    OR (li.natural = 'coastline'
+        AND st_length (way) < 100000);
 
 SELECT
     now();
@@ -63,7 +67,8 @@ WHERE
     waterway = 'river'
     AND width IS NOT NULL
     AND (width ~ '^[0-9\.]+$')
-    AND width::numeric > 15;
+    AND width::numeric > 15
+    AND width::numeric < 2500;
 
 SELECT
     osm_id::bigint,
@@ -76,11 +81,12 @@ FROM
     polygons p
 WHERE
     -- do not consider small surfaces
-    st_area (st_transform (p.way, 4326)::geography) > 1000
-    AND p.natural IN ('water')
-    OR (p.landuse IN ('forest', 'allotments', 'flowerbed', 'orchard', 'vineyard', 'recreation_ground', 'village_green')
+    st_area (p.way) > 1000
+    AND (p.natural IN ('water', 'bay', 'beach', 'wetland')
+        OR p.landuse IN ('forest', 'allotments', 'flowerbed', 'orchard', 'vineyard', 'recreation_ground', 'village_green')
         OR p.leisure IN ('garden', 'park', 'nature_reserve'));
 
+-- by forest no buffer !
 SELECT
     osm_id::bigint,
     leisure,
@@ -92,9 +98,9 @@ FROM
     polygons p
 WHERE
     -- do not consider small surfaces
-    st_area (st_transform (p.way, 4326)::geography) > 1000
-    AND p.natural IN ('water')
-    OR (p.landuse IN ('forest', 'allotments', 'flowerbed', 'orchard', 'vineyard', 'recreation_ground', 'village_green')
+    st_area (p.way) > 1000
+    AND (p.natural IN ('water', 'bay', 'beach', 'costline', 'wetland')
+        OR p.landuse IN ('forest', 'allotments', 'flowerbed', 'orchard', 'vineyard', 'recreation_ground', 'village_green')
         OR p.leisure IN ('garden', 'park', 'nature_reserve'));
 
 SELECT
@@ -106,6 +112,33 @@ SELECT
     ST_Buffer (way, 45 * st_length (ST_Transform (st_makeline (st_startpoint (way), st_centroid (way)), 3857)) / st_length (ST_Transform (st_makeline (st_startpoint (way), st_centroid (way)), 4326)::geography)) AS way INTO TABLE osm_poly_buf_120
 FROM
     osm_poly_buf_50 p;
+
+--  for coastline special case
+SELECT
+    osm_id::bigint,
+    leisure,
+    landuse,
+    p.natural,
+    p.water,
+    ST_Buffer (ST_ExteriorRing (way), 64 * st_length (ST_Transform (st_makeline (st_startpoint (way), st_centroid (way)), 3857)) / st_length (ST_Transform (st_makeline (st_startpoint (way), st_centroid (way)), 4326)::geography)) AS way INTO TABLE osm_poly_coastline_buf_100
+FROM
+    polygons p
+WHERE
+    -- do not consider small surfaces
+    st_area (p.way) > 1000
+    AND (p.natural IN ('coastline')
+        AND st_length (way) < 100000);
+
+--CREATE INDEX osm_poly_coastline_ind ON public.osm_poly_coastline_buf_100 USING gist (way) WITH (fillfactor='100');
+SELECT
+    * INTO TABLE osm_line_water
+FROM
+    osm_line_buf_50 q
+WHERE
+    q.waterway IN ('river', 'canal', 'fairway')
+    OR q.natural IN ('coastline');
+
+CREATE INDEX osm_line_water_ind ON public.osm_line_water USING gist (way) WITH (fillfactor = '100');
 
 SELECT
     now();
@@ -140,7 +173,7 @@ SELECT
 -- clean the cities table (when population is null or population is not numeric or unusable)
 SELECT
     a.name,
-    REPLACE(a.population, '.', '')::bigint population,
+    replace(a.population, '.', '')::bigint population,
     a.way INTO cities_ok
 FROM
     cities a
@@ -162,13 +195,16 @@ SELECT
     END AS population,
     a.way INTO cities_rel_ok
 FROM
-    cities_rel a;
+    cities_rel a
+WHERE
+    boundary = 'administrative';
 
 CREATE INDEX cities_ok_idx ON public.cities_ok USING gist (way) WITH (fillfactor = '100');
 
 CREATE INDEX cities_rel_ok_idx ON public.cities_rel_ok USING gist (way) WITH (fillfactor = '100');
 
 -- select town + population + way starting with cities_ok .... (to catch specials cases as ex. "Berlin" which is tagged with "admin_level=4")
+--
 SELECT
     a.name AS name,
     st_x (a.way),
@@ -181,7 +217,8 @@ SELECT
             way
         FROM
             cities_rel_ok b
-        WHERE (b.admin_level = '8'
+        WHERE (st_area (b.way) / 1000000 < 10000
+            AND b.admin_level = '8'
             AND a.name = b.name
             AND st_intersects (a.way, b.way))
     LIMIT 1) IS NOT NULL THEN
@@ -190,7 +227,8 @@ SELECT
         way
     FROM
         cities_rel_ok b
-    WHERE (b.admin_level = '8'
+    WHERE (st_area (b.way) / 1000000 < 10000
+        AND b.admin_level = '8'
         AND a.name = b.name
         AND st_intersects (a.way, b.way))
 LIMIT 1)
@@ -200,7 +238,8 @@ LIMIT 1)
             way
         FROM
             cities_rel_ok b
-        WHERE (b.admin_level = '7'
+        WHERE (st_area (b.way) / 1000000 < 10000
+            AND b.admin_level = '7'
             AND a.name = b.name
             AND st_intersects (a.way, b.way))
     LIMIT 1) IS NOT NULL THEN
@@ -209,17 +248,19 @@ LIMIT 1)
         way
     FROM
         cities_rel_ok b
-    WHERE (b.admin_level = '7'
+    WHERE (st_area (b.way) / 1000000 < 10000
+        AND b.admin_level = '7'
         AND a.name = b.name
         AND st_intersects (a.way, b.way))
 LIMIT 1)
--- Paris admin_level=6
+-- Paris admin_level=6 (old !)
     WHEN (
         SELECT
             way
         FROM
             cities_rel_ok b
-        WHERE (b.admin_level = '6'
+        WHERE (st_area (b.way) / 1000000 < 10000
+            AND b.admin_level = '6'
             AND a.name = b.name
             AND st_intersects (a.way, b.way))
     LIMIT 1) IS NOT NULL THEN
@@ -228,17 +269,19 @@ LIMIT 1)
         way
     FROM
         cities_rel_ok b
-    WHERE (b.admin_level = '6'
+    WHERE (st_area (b.way) / 1000000 < 10000
+        AND b.admin_level = '6'
         AND a.name = b.name
         AND st_intersects (a.way, b.way))
 LIMIT 1)
--- Berlin admin_level=4
+-- Bengkulu admin_level=5!
     WHEN (
         SELECT
             way
         FROM
             cities_rel_ok b
-        WHERE (b.admin_level = '4'
+        WHERE (st_area (b.way) / 1000000 < 10000
+            AND b.admin_level = '5'
             AND a.name = b.name
             AND st_intersects (a.way, b.way))
     LIMIT 1) IS NOT NULL THEN
@@ -247,7 +290,29 @@ LIMIT 1)
         way
     FROM
         cities_rel_ok b
-    WHERE (b.admin_level = '4'
+    WHERE (st_area (b.way) / 1000000 < 10000
+        AND b.admin_level = '5'
+        AND a.name = b.name
+        AND st_intersects (a.way, b.way))
+LIMIT 1)
+-- Berlin admin_level=4!
+    WHEN (
+        SELECT
+            way
+        FROM
+            cities_rel_ok b
+        WHERE (st_area (b.way) / 1000000 < 10000
+            AND b.admin_level = '4'
+            AND a.name = b.name
+            AND st_intersects (a.way, b.way))
+    LIMIT 1) IS NOT NULL THEN
+(
+    SELECT
+        way
+    FROM
+        cities_rel_ok b
+    WHERE (st_area (b.way) / 1000000 < 10000
+        AND b.admin_level = '4'
         AND a.name = b.name
         AND st_intersects (a.way, b.way))
 LIMIT 1)
@@ -257,7 +322,8 @@ LIMIT 1)
             way
         FROM
             cities_rel_ok b
-        WHERE (b.admin_level IS NULL
+        WHERE (st_area (b.way) / 1000000 < 10000
+            AND b.admin_level IS NULL
             AND b.place IN ('city', 'town')
             AND a.name = b.name
             AND st_intersects (a.way, b.way))
@@ -267,7 +333,31 @@ LIMIT 1)
         way
     FROM
         cities_rel_ok b
-    WHERE (b.admin_level IS NULL
+    WHERE (st_area (b.way) / 1000000 < 10000
+        AND b.admin_level IS NULL
+        AND b.place IN ('city', 'town')
+        AND a.name = b.name
+        AND st_intersects (a.way, b.way))
+LIMIT 1)
+-- Singapore admin_level is 2, place=city in cities_rel
+    WHEN (
+        SELECT
+            way
+        FROM
+            cities_rel_ok b
+        WHERE (st_area (b.way) / 1000000 < 10000
+            AND b.admin_level = '2'
+            AND b.place IN ('city', 'town')
+            AND a.name = b.name
+            AND st_intersects (a.way, b.way))
+    LIMIT 1) IS NOT NULL THEN
+(
+    SELECT
+        way
+    FROM
+        cities_rel_ok b
+    WHERE (st_area (b.way) / 1000000 < 10000
+        AND b.admin_level = '2'
         AND b.place IN ('city', 'town')
         AND a.name = b.name
         AND st_intersects (a.way, b.way))
@@ -277,8 +367,8 @@ LIMIT 1)
 -- else  st_buffer(way, (10 *sqrt(a.population)))
 -- else null
 -- at least the "traffic" can be estimated (not "town)
-ELSE
-    st_buffer (a.way, 10)
+    ELSE
+        st_buffer (a.way, 10)
     END AS way,
     a.way AS way0 INTO cities_intermed3
 FROM
@@ -364,32 +454,30 @@ SELECT
 --     when several highways-segments are producing noise, aggregate the noises using the "ST_Union" of the segments!
 --     (better as using "sum" or "max" that do not deliver good factors)
 SELECT
+    * INTO TABLE osm_line_noise
+FROM
+    osm_line_buf_50 q
+WHERE
+    q.highway IN ('motorway', 'motorway_link', 'trunk', 'trunk_link', 'primary', 'primary_link', 'secondary');
+
+CREATE INDEX osm_line_noise_ind ON public.osm_line_noise USING gist (way) WITH (fillfactor = '100');
+
+SELECT
+    now();
+
+SELECT
     m.osm_id losmid,
     m.highway lhighway,
     q.highway AS qhighway,
     q.maxspeed_class,
-    CASE WHEN q.highway IN ('motorway', 'motorway_link', 'trunk', 'trunk_link')
-        AND q.maxspeed_class < 1.1 THEN
-        st_area (st_intersection (m.way, ST_Union (q.way))) / st_area (m.way)
-    WHEN q.highway IN ('motorway', 'motorway_link', 'trunk', 'trunk_link') THEN
-        st_area (st_intersection (m.way, ST_Union (q.way))) / (1.5 * st_area (m.way))
-    WHEN q.highway IN ('primary', 'primary_link')
-        AND q.maxspeed_class < 2.1 THEN
-        st_area (st_intersection (m.way, ST_Union (q.way))) / (2 * st_area (m.way))
-    WHEN q.highway IN ('primary', 'primary_link') THEN
-        st_area (st_intersection (m.way, ST_Union (q.way))) / (3 * st_area (m.way))
-    WHEN q.highway IN ('secondary')
-        AND q.maxspeed_class < 2.1 THEN
-        st_area (st_intersection (m.way, ST_Union (q.way))) / (3 * st_area (m.way))
-    WHEN q.highway IN ('secondary') THEN
-        st_area (st_intersection (m.way, ST_Union (q.way))) / (5 * st_area (m.way))
-    END AS noise_factor INTO TABLE noise_tmp
+    st_area (st_intersection (m.way, ST_Union (q.way))) / st_area (m.way) AS noise_factor INTO TABLE noise_part0
 FROM
     osm_line_buf_50 AS m
-    INNER JOIN osm_line_buf_50 AS q ON ST_Intersects (m.way, q.way)
+    INNER JOIN osm_line_noise AS q ON ST_Intersects (m.way, q.way)
 WHERE
     m.highway IS NOT NULL
-    AND q.highway IN ('motorway', 'motorway_link', 'trunk', 'trunk_link', 'primary', 'primary_link', 'secondary')
+    AND q.highway IN ('motorway', 'motorway_link', 'trunk', 'trunk_link')
+    AND q.maxspeed_class < 1.1
 GROUP BY
     losmid,
     lhighway,
@@ -402,20 +490,178 @@ ORDER BY
 SELECT
     now();
 
--- aggregate data:
--- on "maxspeed_class take the sum of several highways (having different maxspeed-class) union is then not done, but not very frequent
--- on "phighway"      take the sum of several highways (as probably several highways are producing noise at the point!
 SELECT
-    losmid,
-    lhighway,
-    sum(noise_factor) AS sum_noise_factor INTO TABLE noise_tmp2
+    m.osm_id losmid,
+    m.highway lhighway,
+    q.highway AS qhighway,
+    q.maxspeed_class,
+    st_area (st_intersection (m.way, ST_Union (q.way))) / (1.5 * st_area (m.way)) AS noise_factor INTO TABLE noise_part1
 FROM
-    noise_tmp
+    osm_line_buf_50 AS m
+    INNER JOIN osm_line_noise AS q ON ST_Intersects (m.way, q.way)
+WHERE
+    m.highway IS NOT NULL
+    AND q.highway IN ('motorway', 'motorway_link', 'trunk', 'trunk_link')
+    AND q.maxspeed_class >= 1.1
 GROUP BY
     losmid,
-    lhighway
+    lhighway,
+    m.way,
+    q.highway,
+    q.maxspeed_class
+ORDER BY
+    noise_factor DESC;
+
+SELECT
+    now();
+
+SELECT
+    m.osm_id losmid,
+    m.highway lhighway,
+    q.highway AS qhighway,
+    q.maxspeed_class,
+    st_area (st_intersection (m.way, ST_Union (q.way))) / (2 * st_area (m.way)) AS noise_factor INTO TABLE noise_part2
+FROM
+    osm_line_buf_50 AS m
+    INNER JOIN osm_line_noise AS q ON ST_Intersects (m.way, q.way)
+WHERE
+    m.highway IS NOT NULL
+    AND q.highway IN ('primary', 'primary_link')
+    AND q.maxspeed_class < 2.1
+GROUP BY
+    losmid,
+    lhighway,
+    m.way,
+    q.highway,
+    q.maxspeed_class
+ORDER BY
+    noise_factor DESC;
+
+SELECT
+    now();
+
+SELECT
+    m.osm_id losmid,
+    m.highway lhighway,
+    q.highway AS qhighway,
+    q.maxspeed_class,
+    st_area (st_intersection (m.way, ST_Union (q.way))) / (3 * st_area (m.way)) AS noise_factor INTO TABLE noise_part3
+FROM
+    osm_line_buf_50 AS m
+    INNER JOIN osm_line_noise AS q ON ST_Intersects (m.way, q.way)
+WHERE
+    m.highway IS NOT NULL
+    AND q.highway IN ('primary', 'primary_link')
+    AND q.maxspeed_class >= 2.1
+GROUP BY
+    losmid,
+    lhighway,
+    m.way,
+    q.highway,
+    q.maxspeed_class
+ORDER BY
+    noise_factor DESC;
+
+SELECT
+    now();
+
+SELECT
+    m.osm_id losmid,
+    m.highway lhighway,
+    q.highway AS qhighway,
+    q.maxspeed_class,
+    st_area (st_intersection (m.way, ST_Union (q.way))) / (3 * st_area (m.way)) AS noise_factor INTO TABLE noise_part4
+FROM
+    osm_line_buf_50 AS m
+    INNER JOIN osm_line_noise AS q ON ST_Intersects (m.way, q.way)
+WHERE
+    m.highway IS NOT NULL
+    AND q.highway IN ('secondary')
+    AND q.maxspeed_class < 2.1
+GROUP BY
+    losmid,
+    lhighway,
+    m.way,
+    q.highway,
+    q.maxspeed_class
+ORDER BY
+    noise_factor DESC;
+
+SELECT
+    now();
+
+SELECT
+    m.osm_id losmid,
+    m.highway lhighway,
+    q.highway AS qhighway,
+    q.maxspeed_class,
+    st_area (st_intersection (m.way, ST_Union (q.way))) / (5 * st_area (m.way)) AS noise_factor INTO TABLE noise_part5
+FROM
+    osm_line_buf_50 AS m
+    INNER JOIN osm_line_noise AS q ON ST_Intersects (m.way, q.way)
+WHERE
+    m.highway IS NOT NULL
+    AND q.highway IN ('secondary')
+    AND q.maxspeed_class >= 2.1
+GROUP BY
+    losmid,
+    lhighway,
+    m.way,
+    q.highway,
+    q.maxspeed_class
+ORDER BY
+    noise_factor DESC;
+
+SELECT
+    now();
+
+-- MERGE
+SELECT
+    losmid,
+    sum(noise_factor) AS sum_noise_factor INTO TABLE noise_tmp2
+FROM (
+    SELECT
+        losmid,
+        noise_factor
+    FROM
+        noise_part0
+    UNION
+    SELECT
+        losmid,
+        noise_factor
+    FROM
+        noise_part1
+    UNION
+    SELECT
+        losmid,
+        noise_factor
+    FROM
+        noise_part2
+    UNION
+    SELECT
+        losmid,
+        noise_factor
+    FROM
+        noise_part3
+    UNION
+    SELECT
+        losmid,
+        noise_factor
+    FROM
+        noise_part4
+    UNION
+    SELECT
+        losmid,
+        noise_factor
+    FROM
+        noise_part5) AS abcd
+GROUP BY
+    losmid
 ORDER BY
     sum_noise_factor DESC;
+
+SELECT
+    now();
 
 -- noise coming from airports
 SELECT
@@ -513,9 +759,10 @@ FROM (
     WHERE
         m.highway IS NOT NULL
         -- and st_area(q.way) > 90746  !!! filter on very small surfaces was set above !!!!!!!!!
-        AND q.natural IN ('water')
+        AND q.natural IN ('water', 'bay', 'beach', 'wetland')
         AND (q.water IS NULL
             OR q.water NOT IN ('wastewater'))
+        AND (st_area (ST_Transform (q.way, 4326)::geography) / 1000000) < 5000
     GROUP BY
         m.osm_id,
         m.way
@@ -525,10 +772,23 @@ FROM (
         st_area (st_intersection (m.way, ST_Union (q.way))) / st_area (m.way) AS water_river_see
     FROM
         osm_line_buf_50 AS m
-        INNER JOIN osm_line_buf_50 AS q ON ST_Intersects (m.way, q.way)
+        INNER JOIN osm_poly_coastline_buf_100 AS q ON ST_Intersects (m.way, q.way)
     WHERE
         m.highway IS NOT NULL
-        AND q.waterway IN ('river', 'canal')
+        -- and st_area(q.way) > 90746  !!! filter on very small surfaces was set above !!!!!!!!!
+    GROUP BY
+        m.osm_id,
+        m.way
+    UNION
+    SELECT
+        m.osm_id AS xid,
+        st_area (st_intersection (m.way, ST_Union (q.way))) / st_area (m.way) AS water_river_see
+    FROM
+        osm_line_buf_50 AS m
+        INNER JOIN osm_line_water AS q ON ST_Intersects (m.way, q.way)
+    WHERE
+        m.highway IS NOT NULL
+        AND (st_area (ST_Transform (q.way, 4326)::geography) / 1000000) < 5000
     GROUP BY
         m.osm_id,
         m.way) AS abcd
@@ -637,7 +897,7 @@ SELECT
     now();
 
 --  create "town" tags
--- get the highways which intersect the town
+-- get the highways within the town
 SELECT
     m.osm_id losmid,
     m.highway lhighway,
@@ -656,7 +916,8 @@ SELECT
     END AS town_factor INTO TABLE town_tmp
 FROM
     osm_line_buf_50 AS m
-    INNER JOIN cities_all AS q ON ST_Intersects (m.way, q.way)
+    --INNER JOIN cities_all AS q ON ST_Intersects(m.way, q.way)
+    INNER JOIN cities_all AS q ON ST_Within (m.way, q.way)
 WHERE
     m.highway IS NOT NULL
     AND q.population > '50000'
@@ -789,6 +1050,13 @@ SELECT
 -- prepare some special tables
 --  the intersections motorway_link with primary/secondary/tertiary deliver the motorway acccesses....
 SELECT
+    * INTO TABLE lines_link
+FROM
+    lines
+WHERE
+    highway IN ('motorway_link', 'trunk_link');
+
+SELECT
     m.osm_id losmid,
     m.highway,
     m.way,
@@ -797,10 +1065,9 @@ SELECT
     st_length (ST_Transform (m.way, 3857)) / st_length (ST_Transform (m.way, 4326)::geography) AS merca_coef INTO TABLE motorway_access
 FROM
     lines AS m
-    INNER JOIN lines AS q ON ST_Intersects (m.way, q.way)
+    INNER JOIN lines_link AS q ON ST_Intersects (m.way, q.way)
 WHERE
-    q.highway IN ('motorway_link', 'trunk_link')
-    AND m.highway IN ('primary', 'secondary', 'tertiary')
+    m.highway IN ('primary', 'secondary', 'tertiary')
 GROUP BY
     m.osm_id,
     m.highway,
@@ -978,7 +1245,7 @@ SELECT
     id,
     geom
 FROM
-    generate_grid((ST_GeomFromText('POLYGON((0 9000000, -18000000 9000000, -18000000 -9000000, 0 -9000000, 0  9000000))')),10000,3857);
+    generate_grid((ST_GeomFromText('POLYGON((0 9000000, -18000000 9000000, -18000000 -9000000, 0 -9000000, 0  9000000))')), 10000, 3857);
 
 SELECT
     geom INTO TABLE grid
