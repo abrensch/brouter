@@ -12,7 +12,7 @@
   # bstart /global
   ---context:global
 
-  assign use_dynamic_range   = false   # %use_dynamic_range% | Enable distant start/end points | boolean
+  assign   add_beeline            false  # %add_beeline% | Enable beeline on distant start/end points | boolean
 
   assign   iswet                  0 # 0 as default, *) flag for weather conditions
   assign   turnInstructionMode  = 1 # 0=none, 1=auto-choose, 2=locus-style, 3=osmand-style
