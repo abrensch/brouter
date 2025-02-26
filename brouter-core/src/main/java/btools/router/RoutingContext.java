@@ -78,6 +78,8 @@ public final class RoutingContext {
   public double correctMisplacedViaPointsDistance;
   public boolean useDynamicDistance;
 
+  public AreaInfo ai;
+
   private void setModel(String className) {
     if (className == null) {
       pm = new StdModel();
@@ -120,7 +122,7 @@ public final class RoutingContext {
     considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue("considerTurnRestrictions", footMode ? 0.f : 1.f);
 
     correctMisplacedViaPoints = 0.f != expctxGlobal.getVariableValue("correctMisplacedViaPoints", 1.f);
-    correctMisplacedViaPointsDistance = expctxGlobal.getVariableValue("correctMisplacedViaPointsDistance", 40.f);
+    correctMisplacedViaPointsDistance = expctxGlobal.getVariableValue("correctMisplacedViaPointsDistance", 0.f); // 0 == don't use distance
 
     // process tags not used in the profile (to have them in the data-tab)
     processUnusedTags = 0.f != expctxGlobal.getVariableValue("processUnusedTags", 0.f);
