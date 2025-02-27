@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -225,6 +226,10 @@ public class RoutingEngine extends Thread {
       List<String> messageList = new ArrayList<>();
       for (int i = 0; ; i++) {
         track = findTrack(refTracks, lastTracks);
+
+        // we are only looking for info
+        if (routingContext.ai != null) return;
+
         track.message = "track-length = " + track.distance + " filtered ascend = " + track.ascend
           + " plain-ascend = " + track.plainAscend + " cost=" + track.cost;
         if (track.energy != 0) {
@@ -478,7 +483,7 @@ public class RoutingEngine extends Thread {
 
   public void doRoundTrip() {
     try {
-      startTime = System.currentTimeMillis();
+      long startTime = System.currentTimeMillis();
       MatchedWaypoint wpt1 = new MatchedWaypoint();
       wpt1.waypoint = waypoints.get(0);
       wpt1.name = "roundtrip";
@@ -486,8 +491,8 @@ public class RoutingEngine extends Thread {
       routingContext.useDynamicDistance = true;
       double searchRadius = (routingContext.roundtripDistance == null ? 1500 : routingContext.roundtripDistance);
       double direction = (routingContext.startDirection == null ? -1 : routingContext.startDirection);
-      if (direction == -1) direction = (int) (Math.random() * 360);
       double directionAdd = (routingContext.roundtripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD : routingContext.roundtripDirectionAdd);
+      if (direction == -1) direction = getRandomDirectionByRouting(waypoints.get(0), searchRadius);
 
       if (routingContext.allowSamewayback) {
         int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction);
@@ -500,15 +505,15 @@ public class RoutingEngine extends Thread {
         waypoints.add(onn);
       } else {
         //buildPointsFromAngle(waypoints, direction, directionAdd, searchRadius, true);
-        buildPointsFromCircle(waypoints, direction, searchRadius, routingContext.roundTripPoints);
+        buildPointsFromCircle(waypoints, direction, searchRadius, routingContext.roundTripPoints == null ? 5 : routingContext.roundTripPoints);
       }
 
-      routingContext.waypointCatchingRange = 1000;
+      routingContext.waypointCatchingRange = 250;
 
       doRouting(0);
 
       long endTime = System.currentTimeMillis();
-      logInfo("execution time = " + (endTime - startTime) / 1000. + " seconds");
+      logInfo("round trip execution time = " + (endTime - startTime) / 1000. + " seconds");
     } catch (Exception e) {
       e.getStackTrace();
       logException(e);
@@ -559,6 +564,126 @@ public class RoutingEngine extends Thread {
     waypoints.add(onn);
   }
 
+  int getRandomDirectionByRouting(OsmNodeNamed wp, double searchRadius) {
+
+    long start = System.currentTimeMillis();
+
+    int preferredRandomType = 0;
+    boolean consider_elevation = routingContext.expctxWay.getVariableValue("consider_elevation", 0f) == 1f;
+    boolean consider_forest = routingContext.expctxWay.getVariableValue("consider_forest", 0f) == 1f;
+    boolean consider_river = routingContext.expctxWay.getVariableValue("consider_river", 0f) == 1f;
+    if (consider_elevation) {
+      preferredRandomType = AreaInfo.RESULT_TYPE_ELEV50;
+    } else if (consider_forest) {
+      preferredRandomType = AreaInfo.RESULT_TYPE_GREEN;
+    } else if (consider_river) {
+      preferredRandomType = AreaInfo.RESULT_TYPE_RIVER;
+    } else {
+      return (int) (Math.random()*360);
+    }
+
+    MatchedWaypoint wpt1 = new MatchedWaypoint();
+    wpt1.waypoint = wp;
+    wpt1.name = "start_info";
+    List<MatchedWaypoint> listStart = new ArrayList<>();
+    listStart.add(wpt1);
+
+    List<OsmNodeNamed> wpliststart = new ArrayList<>();
+    wpliststart.add(wp);
+
+    List<OsmNodeNamed> listSearch = new ArrayList<>();
+
+    for (int a = 45; a < 360; a +=90) {
+      int[] pos = CheapRuler.destination(wp.ilon, wp.ilat, searchRadius * 2, a);
+      OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
+      onn.name = "via" + a;
+
+      MatchedWaypoint wpt = new MatchedWaypoint();
+      wpt.waypoint = onn;
+      wpt.name = onn.name;
+      listStart.add(wpt);
+    }
+
+    for (int a = 0; a < 360; a +=90) {
+      int[] pos = CheapRuler.destination(wp.ilon, wp.ilat, searchRadius, a);
+      OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
+      onn.name = "via" + a;
+      listSearch.add(onn);
+    }
+
+    RoutingEngine re = null;
+    RoutingContext rc = new RoutingContext();
+    rc.localFunction = "dummy";
+
+    re = new RoutingEngine(null, null, segmentDir, wpliststart, rc, BROUTER_ENGINEMODE_ROUNDTRIP);
+    rc.useDynamicDistance = true;
+    re.matchWaypointsToNodes(listStart);
+    re.resetCache(true);
+
+    int numForest = rc.expctxWay.getLookupKey("estimated_forest_class");
+    int numRiver = rc.expctxWay.getLookupKey("estimated_river_class");
+
+    OsmNode start1 = re.nodesCache.getStartNode(listStart.get(0).node1.getIdFromPos());
+
+    double elev = (start1 == null ? 0 : start1.getElev());
+
+    List<AreaInfo> ais = new ArrayList<>();
+
+    listStart.remove(0);
+    for (int a = 0; a < 4; a++) {
+      rc.ai = new AreaInfo(a * 90 +90);
+      rc.ai.elevStart = elev;
+      rc.ai.numForest = numForest;
+      rc.ai.numRiver = numRiver;
+
+      List<OsmNodeNamed> wplist = new ArrayList<>();
+      wplist.add(new OsmNodeNamed(listStart.get(a).waypoint));
+      if (a == 3) wplist.add(new OsmNodeNamed(listStart.get(0).waypoint));
+      else        wplist.add(new OsmNodeNamed(listStart.get(a+1).waypoint));
+
+      rc.ai.polygon = new OsmNogoPolygon(true);
+      rc.ai.polygon.addVertex(wp.ilon, wp.ilat);
+      rc.ai.polygon.addVertex(wplist.get(0).ilon, wplist.get(0).ilat);
+      rc.ai.polygon.addVertex(wplist.get(1).ilon, wplist.get(1).ilat);
+
+      List<OsmNodeNamed> wpsearchlist = new ArrayList<>();
+      wpsearchlist.add(listSearch.get(a));
+      if (a == 3) wpsearchlist.add(listSearch.get(0));
+      else        wpsearchlist.add(listSearch.get(a+1));
+
+      rc.useDynamicDistance = true;
+      re = new RoutingEngine(null, null, segmentDir, wpsearchlist, rc, 0);
+      rc.processUnusedTags = true;
+      rc.turnInstructionMode = 9;
+      re.doRun(0);
+
+      ais.add(rc.ai);
+    }
+
+    logInfo("execution time get area = " + (System.currentTimeMillis() - start) / 1000. + " seconds");
+
+
+    // for (AreaInfo ai: ais) {
+    //  System.out.println("\n" + ai.toString());
+    //}
+
+    switch (preferredRandomType) {
+      case AreaInfo.RESULT_TYPE_ELEV50:
+        ais.sort(Comparator.comparingInt(AreaInfo::getElev50Weight));
+        break;
+      case AreaInfo.RESULT_TYPE_GREEN:
+        ais.sort(Comparator.comparingInt(AreaInfo::getGreen));
+        break;
+      case AreaInfo.RESULT_TYPE_RIVER:
+        ais.sort(Comparator.comparingInt(AreaInfo::getRiver));
+        break;
+      default:
+        return (int) (Math.random()*360);
+    }
+
+    int angle = ais.get(ais.size()-1).direction;
+    return angle - 45 + (int) (Math.random()*90);
+  }
 
   private void postElevationCheck(OsmTrack track) {
     OsmPathElement lastPt = null;
@@ -867,6 +992,8 @@ public class RoutingEngine extends Thread {
       }
       if (seg == null)
         return null;
+
+      if (routingContext.ai != null) return null;
 
       boolean changed = false;
       if (routingContext.correctMisplacedViaPoints && !matchedWaypoints.get(i).direct && !routingContext.allowSamewayback) {
@@ -1271,15 +1398,6 @@ public class RoutingEngine extends Thread {
       unmatchedWaypoints.addAll(waypoints);
     }
 
-    // round trip cross point to way point
-    if (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) {
-      for (int i = 1; i < unmatchedWaypoints.size()-1; i++) {
-        MatchedWaypoint wp = unmatchedWaypoints.get(i);
-        wp.waypoint.ilon = wp.crosspoint.ilon;
-        wp.waypoint.ilat = wp.crosspoint.ilat;
-      }
-    }
-
   }
 
   private OsmTrack searchTrack(MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack) {
@@ -1341,6 +1459,7 @@ public class RoutingEngine extends Thread {
         OsmTrack t;
         try {
           t = findTrack(cfi == 0 ? "pass0" : "pass1", startWp, endWp, track, refTrack, false);
+          if (routingContext.ai != null) return t;
         } catch (IllegalArgumentException iae) {
           if (!terminated && matchPath != null) { // timeout, but eventually prepare a dirty ref track
             logInfo("supplying dirty reference track after timeout");
