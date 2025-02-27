@@ -26,7 +26,7 @@ public class AreaInfo {
     direction = dir;
   }
 
-  void checkGreeness(BExpressionContext expctxWay, double elev, byte[] ab) {
+  void checkAreaInfo(BExpressionContext expctxWay, double elev, byte[] ab) {
     ways++;
 
     double test = elevStart - elev;
@@ -39,7 +39,7 @@ public class AreaInfo {
       greenWays++;
     }
 
-    if (numRiver != -1 && ld2[numForest] > 1) {
+    if (numRiver != -1 && ld2[numRiver] > 1) {
       riverWays++;
     }
 
