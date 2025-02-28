@@ -489,9 +489,9 @@ public class RoutingEngine extends Thread {
       wpt1.name = "roundtrip";
 
       routingContext.useDynamicDistance = true;
-      double searchRadius = (routingContext.roundtripDistance == null ? 1500 : routingContext.roundtripDistance);
+      double searchRadius = (routingContext.roundTripDistance == null ? 1500 : routingContext.roundTripDistance);
       double direction = (routingContext.startDirection == null ? -1 : routingContext.startDirection);
-      double directionAdd = (routingContext.roundtripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD : routingContext.roundtripDirectionAdd);
+      double directionAdd = (routingContext.roundTripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD : routingContext.roundTripDirectionAdd);
       if (direction == -1) direction = getRandomDirectionByRouting(waypoints.get(0), searchRadius);
 
       if (routingContext.allowSamewayback) {

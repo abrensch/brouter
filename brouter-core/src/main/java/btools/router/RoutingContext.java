@@ -193,8 +193,8 @@ public final class RoutingContext {
   public Integer startDirection;
   public boolean startDirectionValid;
   public boolean forceUseStartDirection;
-  public Integer roundtripDistance;
-  public Integer roundtripDirectionAdd;
+  public Integer roundTripDistance;
+  public Integer roundTripDirectionAdd;
   public Integer roundTripPoints;
   public boolean allowSamewayback;
 
