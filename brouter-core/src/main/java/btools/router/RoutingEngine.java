@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -669,13 +670,13 @@ public class RoutingEngine extends Thread {
 
     switch (preferredRandomType) {
       case AreaInfo.RESULT_TYPE_ELEV50:
-        ais.sort(Comparator.comparingInt(AreaInfo::getElev50Weight));
+        Collections.sort(ais, Comparator.comparingInt(AreaInfo::getElev50Weight));
         break;
       case AreaInfo.RESULT_TYPE_GREEN:
-        ais.sort(Comparator.comparingInt(AreaInfo::getGreen));
+        Collections.sort(ais, Comparator.comparingInt(AreaInfo::getGreen));
         break;
       case AreaInfo.RESULT_TYPE_RIVER:
-        ais.sort(Comparator.comparingInt(AreaInfo::getRiver));
+        Collections.sort(ais, Comparator.comparingInt(AreaInfo::getRiver));
         break;
       default:
         return (int) (Math.random()*360);
