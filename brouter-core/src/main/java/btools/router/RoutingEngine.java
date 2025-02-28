@@ -670,13 +670,25 @@ public class RoutingEngine extends Thread {
 
     switch (preferredRandomType) {
       case AreaInfo.RESULT_TYPE_ELEV50:
-        Collections.sort(ais, Comparator.comparingInt(AreaInfo::getElev50Weight));
+        Collections.sort(ais, new Comparator<AreaInfo>() {
+          public int compare(AreaInfo o1, AreaInfo o2) {
+            return o2.getElev50Weight() - o1.getElev50Weight();
+          }
+        });
         break;
       case AreaInfo.RESULT_TYPE_GREEN:
-        Collections.sort(ais, Comparator.comparingInt(AreaInfo::getGreen));
+        Collections.sort(ais, new Comparator<AreaInfo>() {
+          public int compare(AreaInfo o1, AreaInfo o2) {
+            return o2.getGreen() - o1.getGreen();
+          }
+        });
         break;
       case AreaInfo.RESULT_TYPE_RIVER:
-        Collections.sort(ais, Comparator.comparingInt(AreaInfo::getRiver));
+        Collections.sort(ais, new Comparator<AreaInfo>() {
+          public int compare(AreaInfo o1, AreaInfo o2) {
+            return o2.getRiver() - o1.getRiver();
+          }
+        });
         break;
       default:
         return (int) (Math.random()*360);
