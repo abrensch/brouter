@@ -1085,6 +1085,7 @@ public class RoutingEngine extends Thread {
   private void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints) {
     resetCache(false);
     boolean useDynamicDistance = routingContext.useDynamicDistance;
+    boolean bAddBeeline = routingContext.buildBeelineOnRange;
     double range = routingContext.waypointCatchingRange;
     boolean ok = nodesCache.matchWaypointsToNodes(unmatchedWaypoints, range, islandNodePairs);
     if (!ok && useDynamicDistance) {
@@ -1093,7 +1094,8 @@ public class RoutingEngine extends Thread {
       range = -MAX_DYNAMIC_RANGE;
       List<MatchedWaypoint> tmp = new ArrayList<>();
       for (MatchedWaypoint mwp : unmatchedWaypoints) {
-        if (mwp.crosspoint == null || mwp.radius >= routingContext.waypointCatchingRange) tmp.add(mwp);
+        if (mwp.crosspoint == null || mwp.radius >= routingContext.waypointCatchingRange)
+          tmp.add(mwp);
       }
       ok = nodesCache.matchWaypointsToNodes(tmp, range, islandNodePairs);
     }
@@ -1104,7 +1106,7 @@ public class RoutingEngine extends Thread {
       }
     }
     // add beeline points when not already done
-    if (useDynamicDistance && !useNodePoints) {
+    if (useDynamicDistance && !useNodePoints && bAddBeeline) {
       List<MatchedWaypoint> waypoints = new ArrayList<>();
       for (int i = 0; i < unmatchedWaypoints.size(); i++) {
         MatchedWaypoint wp = unmatchedWaypoints.get(i);
