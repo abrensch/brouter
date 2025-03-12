@@ -15,7 +15,7 @@ assign   ignore_cycleroutes       = false  # %ignore_cycleroutes% | Set true for
 assign   stick_to_cycleroutes     = false  # %stick_to_cycleroutes% | Set true to just follow cycleroutes | boolean
 assign   avoid_unsafe             = false  # %avoid_unsafe% | Set true to avoid standard highways | boolean
 
-assign   use_dynamic_range        = false  # %use_dynamic_range% | Enable distant start/end points | boolean
+assign   add_beeline              = false  # %add_beeline% | Enable beeline on distant start/end points | boolean
 
 assign   consider_noise           = false  # %consider_noise% | Activate to prefer a low-noise route | boolean
 assign   consider_river           = false  # %consider_river% | Activate to prefer a route along rivers, lakes, etc. | boolean
@@ -135,10 +135,9 @@ assign bikeaccess =
 # calculate logical foot access
 #
 assign footaccess =
-       if bikeaccess then true
-       else if bicycle=dismount then true
+       if bicycle=dismount then true
        else if foot= then defaultaccess
-       else not foot=private|no
+       else not foot=private|no|use_sidepath
 
 #
 # if not bike-, but foot-acess, just a moderate penalty,
@@ -172,6 +171,7 @@ assign onewaypenalty =
          else if ( oneway:bicycle=no                         ) then 0
          else if ( cycleway:left:oneway=no                   ) then 0
          else if ( cycleway:right:oneway=no                  ) then 0
+         else if ( not footaccess                            ) then 100
          else if ( junction=roundabout|circular              ) then 60
          else if ( highway=primary|primary_link              ) then 50
          else if ( highway=secondary|secondary_link          ) then 30
