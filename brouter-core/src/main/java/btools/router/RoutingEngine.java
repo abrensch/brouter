@@ -1140,6 +1140,18 @@ public class RoutingEngine extends Thread {
       } else {
         seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), i == matchedWaypoints.size() - 2 ? nearbyTrack : null, refTracks[i]);
         wptIndex = i;
+        if (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) {
+          if (i < matchedWaypoints.size() - 2) {
+            OsmNode lastPoint = seg.containsNode(matchedWaypoints.get(i+1).node1) ? matchedWaypoints.get(i+1).node1 : matchedWaypoints.get(i+1).node2;
+            OsmNodeNamed nogo = new OsmNodeNamed(lastPoint);
+            nogo.radius = 5;
+            nogo.name = "nogo" + (i+1);
+            nogo.nogoWeight = 9999.;
+            nogo.isNogo = true;
+            if (routingContext.nogopoints == null) routingContext.nogopoints = new ArrayList<>();
+            routingContext.nogopoints.add(nogo);
+          }
+        }
       }
       if (seg == null)
         return null;
