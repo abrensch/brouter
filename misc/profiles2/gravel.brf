@@ -8,7 +8,7 @@ assign turnInstructionRoundabouts true # %turnInstructionRoundabouts% | Special 
 assign considerTurnRestrictions true
 assign turnInstructionMode 1 # %turnInstructionMode% | Mode for the generated turn-by-turn directions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=oruxmaps-style]
 
-assign use_dynamic_range   = false   # %use_dynamic_range% | Enable distant start/end points | boolean
+assign add_beeline         false  # %add_beeline% | Enable beeline on distant start/end points | boolean
 
 #assign processUnusedTags true
 assign pass1coefficient 4
