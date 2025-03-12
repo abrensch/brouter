@@ -77,6 +77,7 @@ public final class RoutingContext {
   public boolean correctMisplacedViaPoints;
   public double correctMisplacedViaPointsDistance;
   public boolean useDynamicDistance;
+  public boolean buildBeelineOnRange;
 
   public AreaInfo ai;
 
@@ -171,7 +172,8 @@ public final class RoutingContext {
     // Constant power of the biker (in W)
     bikerPower = expctxGlobal.getVariableValue("bikerPower", 100.f);
 
-    useDynamicDistance = expctxGlobal.getVariableValue("use_dynamic_range", 0f) == 1f;
+    useDynamicDistance = expctxGlobal.getVariableValue("use_dynamic_range", 1f) == 1f;
+    buildBeelineOnRange = expctxGlobal.getVariableValue("add_beeline", 0f) == 1f;
 
     boolean test = expctxGlobal.getVariableValue("check_start_way", 1f) == 1f;
     if (!test) freeNoWays();

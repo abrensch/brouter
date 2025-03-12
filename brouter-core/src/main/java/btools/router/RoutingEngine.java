@@ -1473,6 +1473,7 @@ public class RoutingEngine extends Thread {
   private void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints) {
     resetCache(false);
     boolean useDynamicDistance = routingContext.useDynamicDistance;
+    boolean bAddBeeline = routingContext.buildBeelineOnRange;
     double range = routingContext.waypointCatchingRange;
     boolean ok = nodesCache.matchWaypointsToNodes(unmatchedWaypoints, range, islandNodePairs);
     if (!ok && useDynamicDistance) {
@@ -1493,7 +1494,7 @@ public class RoutingEngine extends Thread {
       }
     }
     // add beeline points when not already done
-    if (useDynamicDistance && !useNodePoints && engineMode != BROUTER_ENGINEMODE_ROUNDTRIP) {
+    if (useDynamicDistance && !useNodePoints && bAddBeeline) {
       List<MatchedWaypoint> waypoints = new ArrayList<>();
       for (int i = 0; i < unmatchedWaypoints.size(); i++) {
         MatchedWaypoint wp = unmatchedWaypoints.get(i);
