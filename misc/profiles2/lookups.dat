@@ -176,6 +176,16 @@ motorcycle;0000003936 private
 motorcycle;0000002209 permissive
 motorcycle;0000000001 permit
 
+moped;0000000001 no
+moped;0000000001 yes
+moped;0000000001 designated
+moped;0000000001 use_sidepath
+
+mofa;0000000001 no
+mofa;0000000001 yes
+mofa;0000000001 designated
+mofa;0000000001 use_sidepath
+
 atv;0000000001 no
 atv;0000000001 yes
 atv;0000000001 designated official
