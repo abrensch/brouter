@@ -606,7 +606,9 @@ public class RoutingEngine extends Thread {
 
     RoutingEngine re = null;
     RoutingContext rc = new RoutingContext();
-    rc.localFunction = "dummy";
+    String name = routingContext.localFunction;
+    int idx = name.lastIndexOf(File.separator);
+    rc.localFunction = idx == -1 ? "dummy" : name.substring(0, idx+1) + "dummy.brf";
 
     re = new RoutingEngine(null, null, segmentDir, wpliststart, rc, BROUTER_ENGINEMODE_ROUNDTRIP);
     rc.useDynamicDistance = true;
@@ -746,7 +748,9 @@ public class RoutingEngine extends Thread {
 
     RoutingEngine re = null;
     RoutingContext rc = new RoutingContext();
-    rc.localFunction = "dummy";
+    String name = routingContext.localFunction;
+    int idx = name.lastIndexOf(File.separator);
+    rc.localFunction = idx == -1 ? "dummy" : name.substring(0, idx+1) + "dummy.brf";
 
     re = new RoutingEngine(null, null, segmentDir, wpliststart, rc, BROUTER_ENGINEMODE_ROUNDTRIP);
     rc.useDynamicDistance = true;
