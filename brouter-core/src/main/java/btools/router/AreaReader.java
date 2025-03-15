@@ -26,16 +26,17 @@ public class AreaReader {
     int used = 0;
     for (int idxLat = -scale; idxLat <= scale; idxLat++) {
       for (int idxLon = -scale; idxLon <= scale; idxLon++) {
+        if (ignoreCenter(maxscale, idxLon, idxLat)) continue;
         int tmplon = wp.ilon + cellsize * idxLon;
         int tmplat = wp.ilat + cellsize * idxLat;
-        if (getDirectData(tmplon, tmplat, rc, expctxWay, searchRect, ais)) used++;
+        if (getDirectData(tmplon, tmplat, rc, expctxWay, searchRect, ais, maxscale > 7)) used++;
         count++;
       }
     }
 
   }
 
-  public boolean getDirectData(int inlon, int inlat, RoutingContext rc, BExpressionContextWay expctxWay, OsmNogoPolygon searchRect, List<AreaInfo> ais) {
+  public boolean getDirectData(int inlon, int inlat, RoutingContext rc, BExpressionContextWay expctxWay, OsmNogoPolygon searchRect, List<AreaInfo> ais, boolean checkBorder) {
     int lonDegree = inlon / 1000000;
     int latDegree = inlat / 1000000;
     int lonMod5 = (int) lonDegree % 5;
@@ -96,7 +97,13 @@ public class AreaReader {
         tmplat2 = lat + cellsize * (subLatIdx + 1);
         dataRect.addVertex(tmplon2, tmplat2);
 
-        boolean intersects = searchRect.intersects(dataRect.points.get(0).x, dataRect.points.get(0).y, dataRect.points.get(2).x, dataRect.points.get(2).y);
+        // check for quadrant border
+        boolean intersects = checkBorder && dataRect.intersects(searchRect.points.get(0).x, searchRect.points.get(0).y, searchRect.points.get(2).x, searchRect.points.get(2).y);
+        if (!intersects && checkBorder) intersects = dataRect.intersects(searchRect.points.get(1).x, searchRect.points.get(1).y, searchRect.points.get(2).x, searchRect.points.get(3).y);
+        if (intersects) {
+          return false;
+        }
+        intersects = searchRect.intersects(dataRect.points.get(0).x, dataRect.points.get(0).y, dataRect.points.get(2).x, dataRect.points.get(2).y);
         if (!intersects)
           intersects = searchRect.intersects(dataRect.points.get(1).x, dataRect.points.get(1).y, dataRect.points.get(3).x, dataRect.points.get(3).y);
         if (!intersects)
@@ -148,6 +155,14 @@ public class AreaReader {
       nodesCache.close();
       nodesCache = null;
     }
+    return false;
+  }
+
+  boolean ignoreCenter(int maxscale, int idxLon, int idxLat) {
+    int centerScale = (int) Math.round(maxscale * .2) -1;
+    if (centerScale < 0) return false;
+    if (idxLon >= -centerScale && idxLon <= centerScale &&
+        idxLat >= -centerScale && idxLat <= centerScale) return true;
     return false;
   }
 
