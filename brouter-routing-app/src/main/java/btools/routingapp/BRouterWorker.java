@@ -46,6 +46,7 @@ public class BRouterWorker {
 
     RoutingContext rc = new RoutingContext();
     rc.rawTrackPath = rawTrackPath;
+    rc.rawAreaPath = rawTrackPath.substring(0, rawTrackPath.lastIndexOf(File.separator)+1) + "rawAreaInfo.dat";
     rc.localFunction = profilePath;
 
     RoutingParamCollector routingParamCollector = new RoutingParamCollector();
