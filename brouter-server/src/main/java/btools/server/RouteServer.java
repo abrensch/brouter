@@ -222,7 +222,8 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         }
         String headers = encodings == null || encodings.indexOf("gzip") < 0 ? null : "Content-Encoding: gzip\n";
         writeHttpHeader(bw, handler.getMimeType(), handler.getFileName(), headers, HTTP_STATUS_OK);
-        if (engineMode == 0) {
+        if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING ||
+            engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP) {
           if (track != null) {
             if (headers != null) { // compressed
               ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -235,7 +236,8 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
               bw.write(handler.formatTrack(track));
             }
           }
-        } else if (engineMode == 2) {
+        } else if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_GETELEV ||
+                   engineMode == RoutingEngine.BROUTER_ENGINEMODE_GETINFO) {
           String s = cr.getFoundInfo();
           if (s != null) {
             bw.write(s);
