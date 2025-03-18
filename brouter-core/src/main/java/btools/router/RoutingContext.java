@@ -36,6 +36,7 @@ public final class RoutingContext {
   public Map<String, String> keyValues;
 
   public String rawTrackPath;
+  public String rawAreaPath;
 
   public String getProfileName() {
     String name = localFunction == null ? "unknown" : localFunction;
