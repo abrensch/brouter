@@ -1,11 +1,19 @@
 package btools.router;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 import btools.codec.DataBuffers;
 import btools.codec.MicroCache;
 import btools.expressions.BExpressionContextWay;
+import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.NodesCache;
 import btools.mapaccess.OsmFile;
 import btools.mapaccess.OsmLink;
@@ -99,7 +107,8 @@ public class AreaReader {
 
         // check for quadrant border
         boolean intersects = checkBorder && dataRect.intersects(searchRect.points.get(0).x, searchRect.points.get(0).y, searchRect.points.get(2).x, searchRect.points.get(2).y);
-        if (!intersects && checkBorder) intersects = dataRect.intersects(searchRect.points.get(1).x, searchRect.points.get(1).y, searchRect.points.get(2).x, searchRect.points.get(3).y);
+        if (!intersects && checkBorder)
+          intersects = dataRect.intersects(searchRect.points.get(1).x, searchRect.points.get(1).y, searchRect.points.get(2).x, searchRect.points.get(3).y);
         if (intersects) {
           return false;
         }
@@ -159,10 +168,10 @@ public class AreaReader {
   }
 
   boolean ignoreCenter(int maxscale, int idxLon, int idxLat) {
-    int centerScale = (int) Math.round(maxscale * .2) -1;
+    int centerScale = (int) Math.round(maxscale * .2) - 1;
     if (centerScale < 0) return false;
     if (idxLon >= -centerScale && idxLon <= centerScale &&
-        idxLat >= -centerScale && idxLat <= centerScale) return true;
+      idxLat >= -centerScale && idxLat <= centerScale) return true;
     return false;
   }
 
@@ -173,4 +182,55 @@ public class AreaReader {
     return searchRect.isWithin((long) p1x, (long) p1y) &&
       searchRect.isWithin(p2x, p2y);
   }
+
+  public void writeAreaInfo(String filename, MatchedWaypoint wp, List<AreaInfo> ais) throws Exception {
+    DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(filename)));
+
+    wp.writeToStream(dos);
+    for (AreaInfo ai : ais) {
+      dos.writeInt(ai.direction);
+      dos.writeDouble(ai.elevStart);
+      dos.writeInt(ai.ways);
+      dos.writeInt(ai.greenWays);
+      dos.writeInt(ai.riverWays);
+      dos.writeInt(ai.elev50);
+    }
+    dos.close();
+  }
+
+  public void readAreaInfo(File fai, MatchedWaypoint wp, List<AreaInfo> ais) {
+    DataInputStream dis = null;
+    MatchedWaypoint ep = null;
+    try {
+      dis = new DataInputStream(new BufferedInputStream(new FileInputStream(fai)));
+      ep = MatchedWaypoint.readFromStream(dis);
+      if (Math.abs(ep.waypoint.ilon - wp.waypoint.ilon) > 500 &&
+        Math.abs(ep.waypoint.ilat - wp.waypoint.ilat) > 500) {
+        return;
+      }
+      if (Math.abs(ep.radius - wp.radius) > 500) {
+        return;
+      }
+      for (int i = 0; i < 4; i++) {
+        int direction = dis.readInt();
+        AreaInfo ai = new AreaInfo(direction);
+        ai.elevStart = dis.readDouble();
+        ai.ways = dis.readInt();
+        ai.greenWays = dis.readInt();
+        ai.riverWays = dis.readInt();
+        ai.elev50 = dis.readInt();
+        ais.add(ai);
+      }
+    } catch (IOException e) {
+      ais.clear();
+    } finally {
+      if (dis != null) {
+        try {
+          dis.close();
+        } catch (IOException e) {
+        }
+      }
+    }
+  }
+
 }

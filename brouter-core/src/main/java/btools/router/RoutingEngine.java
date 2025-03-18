@@ -583,87 +583,109 @@ public class RoutingEngine extends Thread {
 
     MatchedWaypoint wpt1 = new MatchedWaypoint();
     wpt1.waypoint = wp;
-    wpt1.name = "start_info";
-    List<MatchedWaypoint> listStart = new ArrayList<>();
-    listStart.add(wpt1);
-
-    List<OsmNodeNamed> wpliststart = new ArrayList<>();
-    wpliststart.add(wp);
-
-    List<OsmNodeNamed> listOne = new ArrayList<>();
-
-    for (int a = 45; a < 360; a +=90) {
-      int[] pos = CheapRuler.destination(wp.ilon, wp.ilat, searchRadius * 1.5, a);
-      OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
-      onn.name = "via" + a;
-      listOne.add(onn);
-
-      MatchedWaypoint wpt = new MatchedWaypoint();
-      wpt.waypoint = onn;
-      wpt.name = onn.name;
-      listStart.add(wpt);
-    }
-
-    RoutingEngine re = null;
-    RoutingContext rc = new RoutingContext();
-    String name = routingContext.localFunction;
-    int idx = name.lastIndexOf(File.separator);
-    rc.localFunction = idx == -1 ? "dummy" : name.substring(0, idx+1) + "dummy.brf";
-
-    re = new RoutingEngine(null, null, segmentDir, wpliststart, rc, BROUTER_ENGINEMODE_ROUNDTRIP);
-    rc.useDynamicDistance = true;
-    re.matchWaypointsToNodes(listStart);
-    re.resetCache(true);
-
-    int numForest = rc.expctxWay.getLookupKey("estimated_forest_class");
-    int numRiver = rc.expctxWay.getLookupKey("estimated_river_class");
-
-    OsmNode start1 = re.nodesCache.getStartNode(listStart.get(0).node1.getIdFromPos());
-
-    double elev = (start1 == null ? 0 : start1.getElev()); // listOne.get(0).crosspoint.getElev();
+    wpt1.name = "info";
+    wpt1.radius = searchRadius * 1.5;
 
     List<AreaInfo> ais = new ArrayList<>();
-    int maxlon = Integer.MIN_VALUE;
-    int minlon = Integer.MAX_VALUE;
-    int maxlat = Integer.MIN_VALUE;
-    int minlat = Integer.MAX_VALUE;
-    for (OsmNodeNamed on: listOne) {
-      maxlon = Math.max(on.ilon, maxlon);
-      minlon = Math.min(on.ilon, minlon);
-      maxlat = Math.max(on.ilat, maxlat);
-      minlat = Math.min(on.ilat, minlat);
-    }
-    OsmNogoPolygon searchRect = new OsmNogoPolygon(true);
-    searchRect.addVertex(maxlon, maxlat);
-    searchRect.addVertex(maxlon, minlat);
-    searchRect.addVertex(minlon, minlat);
-    searchRect.addVertex(minlon, maxlat);
-
-    for (int a = 0; a < 4; a++) {
-      rc.ai = new AreaInfo(a * 90 +90);
-      rc.ai.elevStart = elev;
-      rc.ai.numForest = numForest;
-      rc.ai.numRiver = numRiver;
-
-      rc.ai.polygon = new OsmNogoPolygon(true);
-      rc.ai.polygon.addVertex(wp.ilon, wp.ilat);
-      rc.ai.polygon.addVertex(listOne.get(a).ilon, listOne.get(a).ilat);
-      if (a==3)
-        rc.ai.polygon.addVertex(listOne.get(0).ilon, listOne.get(0).ilat);
-      else
-        rc.ai.polygon.addVertex(listOne.get(a+1).ilon, listOne.get(a+1).ilat);
-
-      ais.add(rc.ai);
+    AreaReader areareader = new AreaReader();
+    if (routingContext.rawAreaPath != null) {
+      File fai = new File(routingContext.rawAreaPath);
+      if (fai.exists()) {
+        areareader.readAreaInfo(fai, wpt1, ais);
+      }
     }
 
-    int maxscale = Math.abs(searchRect.points.get(2).x -  searchRect.points.get(0).x);
-    maxscale = Math.max(1, Math.round(maxscale/31250f/2)+1);
+    if (ais.isEmpty()) {
+      List<MatchedWaypoint> listStart = new ArrayList<>();
+      listStart.add(wpt1);
 
-    new AreaReader().getDirectAllData(segmentDir, rc, wp, maxscale, rc.expctxWay, searchRect, ais);
+      List<OsmNodeNamed> wpliststart = new ArrayList<>();
+      wpliststart.add(wp);
+
+      List<OsmNodeNamed> listOne = new ArrayList<>();
+
+      for (int a = 45; a < 360; a += 90) {
+        int[] pos = CheapRuler.destination(wp.ilon, wp.ilat, searchRadius * 1.5, a);
+        OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
+        onn.name = "via" + a;
+        listOne.add(onn);
+
+        MatchedWaypoint wpt = new MatchedWaypoint();
+        wpt.waypoint = onn;
+        wpt.name = onn.name;
+        listStart.add(wpt);
+      }
+
+      RoutingEngine re = null;
+      RoutingContext rc = new RoutingContext();
+      String name = routingContext.localFunction;
+      int idx = name.lastIndexOf(File.separator);
+      rc.localFunction = idx == -1 ? "dummy" : name.substring(0, idx + 1) + "dummy.brf";
+
+      re = new RoutingEngine(null, null, segmentDir, wpliststart, rc, BROUTER_ENGINEMODE_ROUNDTRIP);
+      rc.useDynamicDistance = true;
+      re.matchWaypointsToNodes(listStart);
+      re.resetCache(true);
+
+      int numForest = rc.expctxWay.getLookupKey("estimated_forest_class");
+      int numRiver = rc.expctxWay.getLookupKey("estimated_river_class");
+
+      OsmNode start1 = re.nodesCache.getStartNode(listStart.get(0).node1.getIdFromPos());
+
+      double elev = (start1 == null ? 0 : start1.getElev()); // listOne.get(0).crosspoint.getElev();
+
+      int maxlon = Integer.MIN_VALUE;
+      int minlon = Integer.MAX_VALUE;
+      int maxlat = Integer.MIN_VALUE;
+      int minlat = Integer.MAX_VALUE;
+      for (OsmNodeNamed on : listOne) {
+        maxlon = Math.max(on.ilon, maxlon);
+        minlon = Math.min(on.ilon, minlon);
+        maxlat = Math.max(on.ilat, maxlat);
+        minlat = Math.min(on.ilat, minlat);
+      }
+      OsmNogoPolygon searchRect = new OsmNogoPolygon(true);
+      searchRect.addVertex(maxlon, maxlat);
+      searchRect.addVertex(maxlon, minlat);
+      searchRect.addVertex(minlon, minlat);
+      searchRect.addVertex(minlon, maxlat);
+
+      for (int a = 0; a < 4; a++) {
+        rc.ai = new AreaInfo(a * 90 + 90);
+        rc.ai.elevStart = elev;
+        rc.ai.numForest = numForest;
+        rc.ai.numRiver = numRiver;
+
+        rc.ai.polygon = new OsmNogoPolygon(true);
+        rc.ai.polygon.addVertex(wp.ilon, wp.ilat);
+        rc.ai.polygon.addVertex(listOne.get(a).ilon, listOne.get(a).ilat);
+        if (a == 3)
+          rc.ai.polygon.addVertex(listOne.get(0).ilon, listOne.get(0).ilat);
+        else
+          rc.ai.polygon.addVertex(listOne.get(a + 1).ilon, listOne.get(a + 1).ilat);
+
+        ais.add(rc.ai);
+      }
+
+      int maxscale = Math.abs(searchRect.points.get(2).x - searchRect.points.get(0).x);
+      maxscale = Math.max(1, Math.round(maxscale / 31250f / 2) + 1);
+
+      areareader.getDirectAllData(segmentDir, rc, wp, maxscale, rc.expctxWay, searchRect, ais);
+
+      if (routingContext.rawAreaPath != null) {
+        try {
+          wpt1.radius = searchRadius * 1.5;
+          areareader.writeAreaInfo(routingContext.rawAreaPath, wpt1, ais);
+        } catch (Exception e) {
+        }
+      }
+      rc.ai = null;
+
+    }
 
     logInfo("round trip execution time = " + (System.currentTimeMillis() - start) / 1000. + " seconds");
 
-    //for (AreaInfo ai: ais) {
+    // for (AreaInfo ai: ais) {
     //  System.out.println("\n" + ai.toString());
     //}
 
@@ -692,8 +714,6 @@ public class RoutingEngine extends Thread {
       default:
         return (int) (Math.random()*360);
     }
-
-    rc.ai = null;
 
     int angle = ais.get(0).direction;
     return angle - 45 + (int) (Math.random()*90);
