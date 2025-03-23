@@ -8,7 +8,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import btools.codec.DataBuffers;
 import btools.codec.MicroCache;
@@ -28,57 +33,30 @@ public class AreaReader {
   public void getDirectAllData(File folder, RoutingContext rc, OsmNodeNamed wp, int maxscale, BExpressionContextWay expctxWay, OsmNogoPolygon searchRect, List<AreaInfo> ais) {
     this.segmentFolder = folder;
 
-    int cellsize = 1000000 / 32;
+    int div = 32;
+    int cellsize = 1000000 / div;
     int scale = maxscale;
     int count = 0;
     int used = 0;
+    boolean checkBorder = maxscale > 7;
+
+    Map<Long, String> tiles = new TreeMap<>();
     for (int idxLat = -scale; idxLat <= scale; idxLat++) {
       for (int idxLon = -scale; idxLon <= scale; idxLon++) {
         if (ignoreCenter(maxscale, idxLon, idxLat)) continue;
         int tmplon = wp.ilon + cellsize * idxLon;
         int tmplat = wp.ilat + cellsize * idxLat;
-        if (getDirectData(tmplon, tmplat, rc, expctxWay, searchRect, ais, maxscale > 7)) used++;
-        count++;
-      }
-    }
+        int lonDegree = tmplon / 1000000;
+        int latDegree = tmplat / 1000000;
+        int lonMod5 = (int) lonDegree % 5;
+        int latMod5 = (int) latDegree % 5;
 
-  }
+        int lon = (int) lonDegree - 180 - lonMod5;
+        String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
+        int lat = (int) latDegree - 90 - latMod5;
+        String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
+        String filenameBase = slon + "_" + slat;
 
-  public boolean getDirectData(int inlon, int inlat, RoutingContext rc, BExpressionContextWay expctxWay, OsmNogoPolygon searchRect, List<AreaInfo> ais, boolean checkBorder) {
-    int lonDegree = inlon / 1000000;
-    int latDegree = inlat / 1000000;
-    int lonMod5 = (int) lonDegree % 5;
-    int latMod5 = (int) latDegree % 5;
-
-    int lon = (int) lonDegree - 180 - lonMod5;
-    String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
-
-    int lat = (int) latDegree - 90 - latMod5;
-    String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
-    lon = 180000000 + (int) (lon * 1000000 + 0.5);
-    lat = 90000000 + (int) (lat * 1000000 + 0.5);
-
-    String filenameBase = slon + "_" + slat;
-
-    File file = new File(segmentFolder, filenameBase + ".rd5");
-    PhysicalFile pf = null;
-
-    long maxmem = rc.memoryclass * 1024L * 1024L; // in MB
-    NodesCache nodesCache = new NodesCache(segmentFolder, expctxWay, rc.forceSecondaryData, maxmem, null, false);
-
-    OsmNodesMap nodesMap = new OsmNodesMap();
-
-    try {
-
-      DataBuffers dataBuffers = new DataBuffers();
-      pf = new PhysicalFile(file, dataBuffers, -1, -1);
-      int div = pf.divisor;
-
-      OsmFile osmf = new OsmFile(pf, lonDegree, latDegree, dataBuffers);
-      if (osmf.hasData()) {
-        int cellsize = 1000000 / div;
-        int tmplon = inlon; // + cellsize * idxLon;
-        int tmplat = inlat; // + cellsize * idxLat;
         int lonIdx = tmplon / cellsize;
         int latIdx = tmplat / cellsize;
         int subIdx = (latIdx - div * latDegree) * div + (lonIdx - div * lonDegree);
@@ -105,13 +83,13 @@ public class AreaReader {
         tmplat2 = lat + cellsize * (subLatIdx + 1);
         dataRect.addVertex(tmplon2, tmplat2);
 
-        // check for quadrant border
         boolean intersects = checkBorder && dataRect.intersects(searchRect.points.get(0).x, searchRect.points.get(0).y, searchRect.points.get(2).x, searchRect.points.get(2).y);
         if (!intersects && checkBorder)
           intersects = dataRect.intersects(searchRect.points.get(1).x, searchRect.points.get(1).y, searchRect.points.get(2).x, searchRect.points.get(3).y);
         if (intersects) {
-          return false;
+          continue;
         }
+
         intersects = searchRect.intersects(dataRect.points.get(0).x, dataRect.points.get(0).y, dataRect.points.get(2).x, dataRect.points.get(2).y);
         if (!intersects)
           intersects = searchRect.intersects(dataRect.points.get(1).x, dataRect.points.get(1).y, dataRect.points.get(3).x, dataRect.points.get(3).y);
@@ -119,8 +97,72 @@ public class AreaReader {
           intersects = containsRect(searchRect, dataRect.points.get(0).x, dataRect.points.get(0).y, dataRect.points.get(2).x, dataRect.points.get(2).y);
 
         if (!intersects) {
-          return false;
+          continue;
         }
+
+        tiles.put(((long) tmplon) << 32 | tmplat, filenameBase);
+        count++;
+      }
+    }
+
+    List<Map.Entry<Long, String>> list = new ArrayList<>(tiles.entrySet());
+    Collections.sort(list, new Comparator<>() {
+      @Override
+      public int compare(Map.Entry<Long, String> e1, Map.Entry<Long, String> e2) {
+        return e1.getValue().compareTo(e2.getValue());
+      }
+    });
+
+    long maxmem = rc.memoryclass * 1024L * 1024L; // in MB
+    NodesCache nodesCache = new NodesCache(segmentFolder, expctxWay, rc.forceSecondaryData, maxmem, null, false);
+    PhysicalFile pf = null;
+    String lastFilenameBase = "";
+    DataBuffers dataBuffers = null;
+    try {
+      for (Map.Entry<Long, String> entry : list) {
+        OsmNode n = new OsmNode(entry.getKey());
+        // System.out.println("areareader set " + n.getILon() + "_" + n.getILat() + " " + entry.getValue());
+        String filenameBase = entry.getValue();
+        if (!filenameBase.equals(lastFilenameBase)) {
+          if (pf != null) pf.close();
+          lastFilenameBase = filenameBase;
+          File file = new File(segmentFolder, filenameBase + ".rd5");
+          dataBuffers = new DataBuffers();
+
+          pf = new PhysicalFile(file, dataBuffers, -1, -1);
+        }
+        if (getDirectData(pf, dataBuffers, n.getILon(), n.getILat(), rc, expctxWay, ais))
+          used++;
+      }
+    } catch (Exception e) {
+      System.err.println(e.getMessage());
+    } finally {
+      if (pf != null)
+        try {
+          pf.close();
+        } catch (Exception ee) {
+        }
+      nodesCache.close();
+    }
+  }
+
+  public boolean getDirectData(PhysicalFile pf, DataBuffers dataBuffers, int inlon, int inlat, RoutingContext rc, BExpressionContextWay expctxWay, List<AreaInfo> ais) {
+
+    int lonDegree = inlon / 1000000;
+    int latDegree = inlat / 1000000;
+
+    OsmNodesMap nodesMap = new OsmNodesMap();
+
+    try {
+      int div = pf.divisor;
+
+      OsmFile osmf = new OsmFile(pf, lonDegree, latDegree, dataBuffers);
+      if (osmf.hasData()) {
+        int cellsize = 1000000 / div;
+        int tmplon = inlon; // + cellsize * idxLon;
+        int tmplat = inlat; // + cellsize * idxLat;
+        int lonIdx = tmplon / cellsize;
+        int latIdx = tmplat / cellsize;
 
         MicroCache segment = osmf.createMicroCache(lonIdx, latIdx, dataBuffers, expctxWay, null, true, null);
 
@@ -154,15 +196,8 @@ public class AreaReader {
         return true;
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      System.err.println(e.getMessage());
     } finally {
-      if (pf != null)
-        try {
-          pf.close();
-        } catch (Exception ee) {
-        }
-      nodesCache.close();
-      nodesCache = null;
     }
     return false;
   }
