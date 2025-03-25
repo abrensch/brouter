@@ -716,7 +716,7 @@ public class RoutingEngine extends Thread {
     }
 
     int angle = ais.get(0).direction;
-    return angle - 45 + (int) (Math.random()*90);
+    return angle - 30 + (int) (Math.random() * 60);
   }
 
   int getRandomDirectionFromRouting(OsmNodeNamed wp, double searchRadius) {
