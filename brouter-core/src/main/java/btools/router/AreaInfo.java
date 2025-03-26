@@ -19,8 +19,6 @@ public class AreaInfo {
   public int riverWays = 0;
   public double elevStart = 0;
   public int elev50 = 0;
-  public int elev100 = 0;
-  public int elevMore = 0;
 
   public AreaInfo(int dir) {
     direction = dir;
@@ -43,7 +41,6 @@ public class AreaInfo {
       riverWays++;
     }
 
-
   }
 
   public int getElev50Weight() {
@@ -65,9 +62,9 @@ public class AreaInfo {
     StringBuilder sb = new StringBuilder();
     sb.append("Area ").append(direction).append(" ").append(elevStart).append("m ways ").append(ways);
     if (ways > 0) {
-      sb.append("\nArea ways <50m  " + elev50 + " " + getElev50Weight() + "%");
-      sb.append("\nArea ways green " + greenWays + " " + getGreen() + "% " /*+ (greenWaysWeight/greenWays)*/);
-      sb.append("\nArea ways river " + riverWays + " " + getRiver() + "% " /*+ (greenWaysWeight/greenWays)*/);
+      sb.append("\nArea ways <50m  ").append(elev50).append(" ").append(getElev50Weight()).append("%");
+      sb.append("\nArea ways green ").append(greenWays).append(" ").append(getGreen()).append("%");
+      sb.append("\nArea ways river ").append(riverWays).append(" ").append(getRiver()).append("%");
     }
     return sb.toString();
   }

@@ -135,7 +135,8 @@ public class AreaReader {
           used++;
       }
     } catch (Exception e) {
-      System.err.println(e.getMessage());
+      System.err.println("AreaReader: after " + used + "/" + count + " " + e.getMessage());
+      ais.clear();
     } finally {
       if (pf != null)
         try {
@@ -159,14 +160,14 @@ public class AreaReader {
       OsmFile osmf = new OsmFile(pf, lonDegree, latDegree, dataBuffers);
       if (osmf.hasData()) {
         int cellsize = 1000000 / div;
-        int tmplon = inlon; // + cellsize * idxLon;
-        int tmplat = inlat; // + cellsize * idxLat;
+        int tmplon = inlon;
+        int tmplat = inlat;
         int lonIdx = tmplon / cellsize;
         int latIdx = tmplat / cellsize;
 
         MicroCache segment = osmf.createMicroCache(lonIdx, latIdx, dataBuffers, expctxWay, null, true, null);
 
-        if (segment != null /*&& segment.getDataSize()>0*/) {
+        if (segment != null) {
           int size = segment.getSize();
           for (int i = 0; i < size; i++) {
             long id = segment.getIdForIndex(i);
@@ -196,8 +197,7 @@ public class AreaReader {
         return true;
       }
     } catch (Exception e) {
-      System.err.println(e.getMessage());
-    } finally {
+      System.err.println("AreaReader: " + e.getMessage());
     }
     return false;
   }
@@ -205,9 +205,8 @@ public class AreaReader {
   boolean ignoreCenter(int maxscale, int idxLon, int idxLat) {
     int centerScale = (int) Math.round(maxscale * .2) - 1;
     if (centerScale < 0) return false;
-    if (idxLon >= -centerScale && idxLon <= centerScale &&
-      idxLat >= -centerScale && idxLat <= centerScale) return true;
-    return false;
+    return idxLon >= -centerScale && idxLon <= centerScale &&
+      idxLat >= -centerScale && idxLat <= centerScale;
   }
 
   /*
