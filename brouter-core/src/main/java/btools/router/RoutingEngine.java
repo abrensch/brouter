@@ -490,7 +490,6 @@ public class RoutingEngine extends Thread {
       double searchRadius = (routingContext.roundTripDistance == null ? 1500 :routingContext.roundTripDistance);
       double direction = (routingContext.startDirection == null ? -1 :routingContext.startDirection);
       double directionAdd = (routingContext.roundTripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD :routingContext.roundTripDirectionAdd);
-      //if (direction == -1) direction = getRandomDirectionFromRouting(waypoints.get(0), searchRadius);
       if (direction == -1) direction = getRandomDirectionFromData(waypoints.get(0), searchRadius);
 
       if (routingContext.allowSamewayback) {
@@ -503,7 +502,6 @@ public class RoutingEngine extends Thread {
         onn.name = "rt1";
         waypoints.add(onn);
       } else {
-        //buildPointsFromAngle(waypoints, direction, directionAdd, searchRadius, true);
         buildPointsFromCircle(waypoints, direction, searchRadius, routingContext.roundTripPoints == null ? 5 : routingContext.roundTripPoints);
       }
 
@@ -518,34 +516,6 @@ public class RoutingEngine extends Thread {
       logException(e);
     }
 
-  }
-
-  void buildPointsFromAngle(List<OsmNodeNamed> waypoints, double startAngle, double addAngle, double searchRadius, boolean withNogoCenter) {
-    int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, startAngle - addAngle);
-    OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
-    onn.name = "rt1";
-    waypoints.add(onn);
-
-    pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, startAngle + addAngle);
-    onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
-    onn.name = "rt2";
-    waypoints.add(onn);
-
-    onn = new OsmNodeNamed(waypoints.get(0));
-    onn.name = "to_rt";
-    waypoints.add(onn);
-
-    if (withNogoCenter) { // add a nogo area
-      pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius/2, startAngle);
-      OsmNodeNamed n = new OsmNodeNamed();
-      n.name = "nogo" + (int) (searchRadius/3);
-      n.ilon = pos[0];
-      n.ilat = pos[1];
-      n.isNogo = true;
-      n.radius = (int) (searchRadius/3);
-      n.nogoWeight = Double.NaN;
-      routingContext.setWaypoint(n, false);
-    }
   }
 
   void buildPointsFromCircle(List<OsmNodeNamed> waypoints, double startAngle, double searchRadius, int points) {
@@ -717,141 +687,6 @@ public class RoutingEngine extends Thread {
 
     int angle = ais.get(0).direction;
     return angle - 30 + (int) (Math.random() * 60);
-  }
-
-  int getRandomDirectionFromRouting(OsmNodeNamed wp, double searchRadius) {
-
-    long start = System.currentTimeMillis();
-
-    int preferredRandomType = 0;
-    boolean consider_elevation = routingContext.expctxWay.getVariableValue("consider_elevation", 0f) == 1f;
-    boolean consider_forest = routingContext.expctxWay.getVariableValue("consider_forest", 0f) == 1f;
-    boolean consider_river = routingContext.expctxWay.getVariableValue("consider_river", 0f) == 1f;
-    if (consider_elevation) {
-      preferredRandomType = AreaInfo.RESULT_TYPE_ELEV50;
-    } else if (consider_forest) {
-      preferredRandomType = AreaInfo.RESULT_TYPE_GREEN;
-    } else if (consider_river) {
-      preferredRandomType = AreaInfo.RESULT_TYPE_RIVER;
-    } else {
-      return (int) (Math.random()*360);
-    }
-
-    MatchedWaypoint wpt1 = new MatchedWaypoint();
-    wpt1.waypoint = wp;
-    wpt1.name = "start_info";
-    List<MatchedWaypoint> listStart = new ArrayList<>();
-    listStart.add(wpt1);
-
-    List<OsmNodeNamed> wpliststart = new ArrayList<>();
-    wpliststart.add(wp);
-
-    List<OsmNodeNamed> listSearch = new ArrayList<>();
-
-    for (int a = 45; a < 360; a +=90) {
-      int[] pos = CheapRuler.destination(wp.ilon, wp.ilat, searchRadius * 2, a);
-      OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
-      onn.name = "via" + a;
-
-      MatchedWaypoint wpt = new MatchedWaypoint();
-      wpt.waypoint = onn;
-      wpt.name = onn.name;
-      listStart.add(wpt);
-    }
-
-    for (int a = 0; a < 360; a +=90) {
-      int[] pos = CheapRuler.destination(wp.ilon, wp.ilat, searchRadius, a);
-      OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
-      onn.name = "via" + a;
-      listSearch.add(onn);
-    }
-
-    RoutingEngine re = null;
-    RoutingContext rc = new RoutingContext();
-    String name = routingContext.localFunction;
-    int idx = name.lastIndexOf(File.separator);
-    rc.localFunction = idx == -1 ? "dummy" : name.substring(0, idx+1) + "dummy.brf";
-
-    re = new RoutingEngine(null, null, segmentDir, wpliststart, rc, BROUTER_ENGINEMODE_ROUNDTRIP);
-    rc.useDynamicDistance = true;
-    re.matchWaypointsToNodes(listStart);
-    re.resetCache(true);
-
-    int numForest = rc.expctxWay.getLookupKey("estimated_forest_class");
-    int numRiver = rc.expctxWay.getLookupKey("estimated_river_class");
-
-    OsmNode start1 = re.nodesCache.getStartNode(listStart.get(0).node1.getIdFromPos());
-
-    double elev = (start1 == null ? 0 : start1.getElev());
-
-    List<AreaInfo> ais = new ArrayList<>();
-
-    listStart.remove(0);
-    for (int a = 0; a < 4; a++) {
-      rc.ai = new AreaInfo(a * 90 +90);
-      rc.ai.elevStart = elev;
-      rc.ai.numForest = numForest;
-      rc.ai.numRiver = numRiver;
-
-      List<OsmNodeNamed> wplist = new ArrayList<>();
-      wplist.add(new OsmNodeNamed(listStart.get(a).waypoint));
-      if (a == 3) wplist.add(new OsmNodeNamed(listStart.get(0).waypoint));
-      else        wplist.add(new OsmNodeNamed(listStart.get(a+1).waypoint));
-
-      rc.ai.polygon = new OsmNogoPolygon(true);
-      rc.ai.polygon.addVertex(wp.ilon, wp.ilat);
-      rc.ai.polygon.addVertex(wplist.get(0).ilon, wplist.get(0).ilat);
-      rc.ai.polygon.addVertex(wplist.get(1).ilon, wplist.get(1).ilat);
-
-      List<OsmNodeNamed> wpsearchlist = new ArrayList<>();
-      wpsearchlist.add(listSearch.get(a));
-      if (a == 3) wpsearchlist.add(listSearch.get(0));
-      else        wpsearchlist.add(listSearch.get(a+1));
-
-      rc.useDynamicDistance = true;
-      re = new RoutingEngine(null, null, segmentDir, wpsearchlist, rc, 0);
-      rc.processUnusedTags = true;
-      rc.turnInstructionMode = 9;
-      re.doRun(0);
-
-      ais.add(rc.ai);
-    }
-
-    logInfo("execution time get area = " + (System.currentTimeMillis() - start) / 1000. + " seconds");
-
-
-    // for (AreaInfo ai: ais) {
-    //  System.out.println("\n" + ai.toString());
-    //}
-
-    switch (preferredRandomType) {
-      case AreaInfo.RESULT_TYPE_ELEV50:
-        Collections.sort(ais, new Comparator<>() {
-          public int compare(AreaInfo o1, AreaInfo o2) {
-            return o2.getElev50Weight() - o1.getElev50Weight();
-          }
-        });
-        break;
-      case AreaInfo.RESULT_TYPE_GREEN:
-        Collections.sort(ais, new Comparator<>() {
-          public int compare(AreaInfo o1, AreaInfo o2) {
-            return o2.getGreen() - o1.getGreen();
-          }
-        });
-        break;
-      case AreaInfo.RESULT_TYPE_RIVER:
-        Collections.sort(ais, new Comparator<>() {
-          public int compare(AreaInfo o1, AreaInfo o2) {
-            return o2.getRiver() - o1.getRiver();
-          }
-        });
-        break;
-      default:
-        return (int) (Math.random()*360);
-    }
-
-    int angle = ais.get(ais.size()-1).direction;
-    return angle - 45 + (int) (Math.random()*90);
   }
 
 
