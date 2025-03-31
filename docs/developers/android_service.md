@@ -87,7 +87,7 @@ Another variant is to send parameters for an existing profile that are different
 With the version  1.7.1 it is possible to collect parameters from the profile.
 The variable parameters are defined like this
 ```
-assign avoid_path            = false  # %avoid_path% | Set to true to avoid pathes | boolean
+assign avoid_path            = false  # %avoid_path% | Set to true to avoid paths | boolean
 ```
 You probably know that from the web client, it builds an option dialog for this.
 Now you could do that with an calling app.

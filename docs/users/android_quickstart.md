@@ -8,7 +8,7 @@ nav_order: 1
 ### Choosing and installing a map tool
 
 BRouter just calculates tracks as GPX or GeoJSON files. It does not display maps
-or give any navigation instuctions. Therefore you need a map-tool in order for
+or give any navigation instructions. Therefore you need a map-tool in order for
 BRouter to be useful.
 
 Several map tools support routing with BRouter:
@@ -44,7 +44,6 @@ Since Android 11 apps can only write to their app-specific storage so BRouter
 can only use `<...>/Android/media/btools.routingapp/` as base directory. The
 app-specific storage can be located on internal or external storage.
 
-
 ### Download routing segments
 
 BRouter requires routing data which is independent of the displayed map of a map
@@ -67,7 +66,7 @@ BRouter as navigation service.
   Note: OsmAnd only displays BRouter as navigation service if BRouter is
   installed. You have to install BRouter before configuring OsmAnd.
 
-The _service interface_ allows specifing either a _routing-mode_ (used by OsmAnd
+The _service interface_ allows specifying either a _routing-mode_ (used by OsmAnd
 and OruxMaps) or a _routing-profile_ (used by LocusMap). When using a
 _routing-mode_ BRouter selects the _routing-profile_ according to a mapping.
 

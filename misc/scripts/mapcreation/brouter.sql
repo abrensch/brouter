@@ -42,7 +42,7 @@ SELECT
     ELSE
         3
     END AS maxspeed_class
-    --  "buffer radius" was initially created with 50 meters at a lat 50 degrees....  ==> ST_Buffer(way,50)
+    -- "buffer radius" was initially created with 50 meters at a latitude of 50 degrees...  ==> ST_Buffer(way,50)
     -- but, using geometry "projection", to get same results by a calculation of the planet (latitude between -80, +85) this value should be adapted to the latitude of the highways...
 ,
     --
@@ -58,7 +58,7 @@ WHERE
 SELECT
     now();
 
--- modify "way" by large waterways !!" (example Rhein ==> width = 400 ....) enlarge a bit the "50 meter" buffer
+-- modify "way" by large waterways !!" (example Rhein ==> width = 400 ...) enlarge a bit the "50 meter" buffer
 UPDATE
     osm_line_buf_50
 SET
@@ -203,7 +203,7 @@ CREATE INDEX cities_ok_idx ON public.cities_ok USING gist (way) WITH (fillfactor
 
 CREATE INDEX cities_rel_ok_idx ON public.cities_rel_ok USING gist (way) WITH (fillfactor = '100');
 
--- select town + population + way starting with cities_ok .... (to catch specials cases as ex. "Berlin" which is tagged with "admin_level=4")
+-- select town + population + way starting with cities_ok ... (to catch special cases as ex. "Berlin" which is tagged with "admin_level=4")
 --
 SELECT
     a.name AS name,
@@ -376,7 +376,7 @@ FROM
 ORDER BY
     name;
 
--- select town + population + way starting with cities_rel_ok ....
+-- select town + population + way starting with cities_rel_ok ...
 SELECT
     a.name AS name,
     st_area (a.way) st_area,
@@ -965,7 +965,7 @@ ORDER BY
     town_class;
 
 --
---  substract the ways from town with a green tag (because administrative surface are some times too large)
+--  subtract the ways from town with a green tag (because administrative surface are sometimes too large)
 --
 DELETE FROM town_tags
 WHERE losmid IN (
@@ -1048,7 +1048,7 @@ SELECT
     now();
 
 -- prepare some special tables
---  the intersections motorway_link with primary/secondary/tertiary deliver the motorway acccesses....
+--  the intersections motorway_link with primary/secondary/tertiary deliver the motorway accesses...
 SELECT
     * INTO TABLE lines_link
 FROM
@@ -1363,7 +1363,7 @@ GROUP BY
 SELECT
     now();
 
---  Do not apply the positiv effect of "motorway density" in proximity of motorway accesses!!!!
+--  Do not apply the positive effect of "motorway density" in proximity of motorway accesses!!!!
 UPDATE
     except_all
 SET
@@ -1375,7 +1375,7 @@ WHERE
         FROM
             motorway_access_2000);
 
--- quite direct at motorway accesses set a negativ effect !!!!
+-- quite direct at motorway accesses set a negative effect !!!!
 UPDATE
     except_all
 SET
