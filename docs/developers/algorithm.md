@@ -50,7 +50,7 @@ The reason that `c=0` (=Dijkstra) is used in the second pass and not `c=1`
 (=A-Star) is simply that for `c=0` the open-set is smaller, because many paths
 run into the cutoff at an early time and do not have to be managed in the
 open-set anymore. And because the size of the open-set has an impact on
-performance and memory consumption, c=0 is choosen for the second pass. The
+performance and memory consumption, c=0 is chosen for the second pass. The
 open-set is what's displayed in the graphical app-animation of the brouter-app.
 
 However, you can change the coefficients of both passes in the routing-profile
@@ -72,7 +72,7 @@ assign pass2coefficient=-1
 ```
 
 Some more words on the conditions that the path-cost-funtion g(x) has to
-fullfill. Mathematically it reads that you need *non-negative edge costs*, but
+fulfill. Mathematically it reads that you need *non-negative edge costs*, but
 the meaning is that at the time you reach a node you must be sure that no other
 path reaching this node at a later time can lead to a better result over all.
 
@@ -94,5 +94,5 @@ realized later, or maybe not.
 
 Strictly speaking, neither Dijkstra nor A-Star can handle that. And in BRouter,
 there's no real solution. There's a mechanism to delay the node-decision one
-step further and so to reduce the probablity of glitches from that dirtyness,
+step further and so to reduce the probability of glitches from that dirtiness,
 but mainly the solution is *don't care*.

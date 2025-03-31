@@ -54,7 +54,7 @@ assign   elevationmaxbuffer         10   # 10 as default
 assign   elevationbufferreduce      1.0  # 0.0 as default
 
 assign   turnInstructionMode  =   1       # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style]
-assign   turnInstructionCatchingRange  20 # V1.8.5 / default=40, but foot paths may be more distingushed, especially in cities.
+assign   turnInstructionCatchingRange  20 # V1.8.5 / default=40, but foot paths may be more distinguished, especially in cities.
 
 
 # as initial point, considered flat speed 4 km/h, climbing speed 600 m /h
@@ -542,7 +542,7 @@ assign initialcost switch or bikeaccess footaccess 0 1000000
 # 2014-10-10 v1.1 - changed hiking route preference logic
 # 1.2 - fixed preference counting bug
 # 2014-10-11 1.3 - adding foot route to hiking routes,
-# fixed ferry cost to respect initial cost triggerring.
+# fixed ferry cost to respect initial cost triggering.
 #      added bikeaccess,  added shortest way mode,  code cleanup
 # 2014-10-12: v1.4 - involving turncosts and way/node initial costs as orientation/decision penalties,
 #           but turning them off for sticking to hiking routes as extra preference,

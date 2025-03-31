@@ -3,7 +3,7 @@
 # But also at night or in rainy weather you might want
 # to fallback to this one.
 #
-# Structure is similar to trekking.brf, see this for documenation.
+# Structure is similar to trekking.brf, see this for documentation.
 #
 # With default configuration (tested for Europe), trunks are
 # strongly avoided even if there's no bike restriction
