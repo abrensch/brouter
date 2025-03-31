@@ -17,7 +17,7 @@ import btools.codec.WaypointMatcher;
 import btools.util.ByteDataReader;
 import btools.util.Crc32;
 
-final class OsmFile {
+final public class OsmFile {
   private RandomAccessFile is = null;
   private long fileOffset;
 

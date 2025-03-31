@@ -64,7 +64,8 @@ public class BRouterService extends Service {
       worker.segmentDir = new File(baseDir, "brouter/segments4");
       String errMsg = null;
 
-      if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING) {
+      if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING ||
+          engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP) {
         String remoteProfile = params.getString("remoteProfile", null);
 
         if (remoteProfile == null) {

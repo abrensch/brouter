@@ -46,6 +46,7 @@ public class BRouterWorker {
 
     RoutingContext rc = new RoutingContext();
     rc.rawTrackPath = rawTrackPath;
+    rc.rawAreaPath = (rawTrackPath != null ? rawTrackPath.substring(0, rawTrackPath.lastIndexOf(File.separator)+1) + "rawAreaInfo.dat" : null);
     rc.localFunction = profilePath;
 
     RoutingParamCollector routingParamCollector = new RoutingParamCollector();
@@ -136,7 +137,8 @@ public class BRouterWorker {
     cr.quite = true;
     cr.doRun(maxRunningTime);
 
-    if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING) {
+    if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING ||
+        engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP) {
       // store new reference track if any
       // (can exist for timed-out search)
       if (cr.getFoundRawTrack() != null) {
