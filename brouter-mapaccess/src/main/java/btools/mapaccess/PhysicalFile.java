@@ -143,4 +143,14 @@ final public class PhysicalFile {
       elevationType = dis.readByte();
     } catch (Exception e) {}
   }
+
+  public void close(){
+    if (ra != null) {
+      try {
+        ra.close();
+      } catch (Exception ee) {
+      }
+    }
+  }
+
 }

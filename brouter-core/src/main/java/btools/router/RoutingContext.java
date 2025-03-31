@@ -36,6 +36,7 @@ public final class RoutingContext {
   public Map<String, String> keyValues;
 
   public String rawTrackPath;
+  public String rawAreaPath;
 
   public String getProfileName() {
     String name = localFunction == null ? "unknown" : localFunction;
@@ -78,7 +79,9 @@ public final class RoutingContext {
   public double correctMisplacedViaPointsDistance;
   public boolean useDynamicDistance;
   public boolean buildBeelineOnRange;
-  
+
+  public AreaInfo ai;
+
   private void setModel(String className) {
     if (className == null) {
       pm = new StdModel();
@@ -193,6 +196,10 @@ public final class RoutingContext {
   public Integer startDirection;
   public boolean startDirectionValid;
   public boolean forceUseStartDirection;
+  public Integer roundTripDistance;
+  public Integer roundTripDirectionAdd;
+  public Integer roundTripPoints;
+  public boolean allowSamewayback;
 
   public CheapAngleMeter anglemeter = new CheapAngleMeter();
 
