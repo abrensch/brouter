@@ -995,7 +995,7 @@ public class RoutingEngine extends Thread {
       } else {
         seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), i == matchedWaypoints.size() - 2 ? nearbyTrack : null, refTracks[i]);
         wptIndex = i;
-        if (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) {
+        if (routingContext.continueStraight) {
           if (i < matchedWaypoints.size() - 2) {
             OsmNode lastPoint = seg.containsNode(matchedWaypoints.get(i+1).node1) ? matchedWaypoints.get(i+1).node1 : matchedWaypoints.get(i+1).node2;
             OsmNodeNamed nogo = new OsmNodeNamed(lastPoint);
