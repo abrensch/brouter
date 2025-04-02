@@ -77,6 +77,7 @@ public final class RoutingContext {
   public double waypointCatchingRange;
   public boolean correctMisplacedViaPoints;
   public double correctMisplacedViaPointsDistance;
+  public boolean continueStraight;
   public boolean useDynamicDistance;
   public boolean buildBeelineOnRange;
 
@@ -125,6 +126,8 @@ public final class RoutingContext {
 
     correctMisplacedViaPoints = 0.f != expctxGlobal.getVariableValue("correctMisplacedViaPoints", 1.f);
     correctMisplacedViaPointsDistance = expctxGlobal.getVariableValue("correctMisplacedViaPointsDistance", 0.f); // 0 == don't use distance
+
+    continueStraight = 0.f != expctxGlobal.getVariableValue("continueStraight", 0.f);
 
     // process tags not used in the profile (to have them in the data-tab)
     processUnusedTags = 0.f != expctxGlobal.getVariableValue("processUnusedTags", 0.f);
