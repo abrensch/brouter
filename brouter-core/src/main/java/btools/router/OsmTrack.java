@@ -61,7 +61,9 @@ public final class OsmTrack {
   public String name = "unset";
 
   protected List<MatchedWaypoint> matchedWaypoints;
+  protected List<OsmNodeNamed> correctedWaypoints;
   public boolean exportWaypoints = false;
+  public boolean exportCorrectedWaypoints = false;
 
   public void addNode(OsmPathElement node) {
     nodes.add(0, node);

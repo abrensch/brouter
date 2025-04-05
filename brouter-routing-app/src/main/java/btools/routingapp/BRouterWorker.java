@@ -161,6 +161,7 @@ public class BRouterWorker {
       track = cr.getFoundTrack();
       if (track != null) {
         track.exportWaypoints = rc.exportWaypoints;
+        track.exportCorrectedWaypoints = rc.exportCorrectedWaypoints;
         if (pathToFileResult == null) {
           switch (writeFromat) {
             case OUTPUT_FORMAT_KML:
