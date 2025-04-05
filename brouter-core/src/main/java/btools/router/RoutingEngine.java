@@ -1137,7 +1137,12 @@ public class RoutingEngine extends Thread {
         indexfore++;
 
         if (routingContext.correctMisplacedViaPointsDistance > 0 &&
-          wayDistance > routingContext.correctMisplacedViaPointsDistance) break;
+          wayDistance > routingContext.correctMisplacedViaPointsDistance) {
+          removeVoiceHintList.clear();
+          removeBackList.clear();
+          removeForeList.clear();
+          return false;
+        }
       }
 
 
