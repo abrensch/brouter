@@ -221,6 +221,7 @@ public final class RoutingContext {
 
   public String outputFormat = "gpx";
   public boolean exportWaypoints = false;
+  public boolean exportCorrectedWaypoints = false;
 
   public OsmPrePath firstPrePath;
 

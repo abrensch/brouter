@@ -227,6 +227,8 @@ public class RoutingParamCollector {
           }
         } else if (key.equals("exportWaypoints")) {
           rctx.exportWaypoints = (Integer.parseInt(value) == 1);
+        } else if (key.equals("exportCorrectedWaypoints")) {
+          rctx.exportCorrectedWaypoints = (Integer.parseInt(value) == 1);
         } else if (key.equals("format")) {
           rctx.outputFormat = ((String) value).toLowerCase();
         } else if (key.equals("trackFormat")) {
