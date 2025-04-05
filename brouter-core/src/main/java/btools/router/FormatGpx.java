@@ -197,25 +197,28 @@ public class FormatGpx extends Formatter {
 
     for (int i = 0; i <= t.pois.size() - 1; i++) {
       OsmNodeNamed poi = t.pois.get(i);
-      formatWaypointGpx(sb, poi);
+      formatWaypointGpx(sb, poi, "poi");
     }
 
     if (t.exportWaypoints) {
       for (int i = 0; i <= t.matchedWaypoints.size() - 1; i++) {
         MatchedWaypoint wt = t.matchedWaypoints.get(i);
-        sb.append(" <wpt lon=\"").append(formatILon(wt.waypoint.ilon)).append("\" lat=\"")
-          .append(formatILat(wt.waypoint.ilat)).append("\">\n")
-          .append("  <name>").append(StringUtils.escapeXml10(wt.name)).append("</name>\n");
         if (i == 0) {
-          sb.append("  <type>from</type>\n");
+          formatWaypointGpx(sb, wt, "from");
         } else if (i == t.matchedWaypoints.size() - 1) {
-          sb.append("  <type>to</type>\n");
+          formatWaypointGpx(sb, wt, "to");
         } else {
-          sb.append("  <type>via</type>\n");
+          formatWaypointGpx(sb, wt, "via");
         }
-        sb.append(" </wpt>\n");
       }
     }
+    if (t.exportCorrectedWaypoints && t.correctedWaypoints != null) {
+      for (int i = 0; i <= t.correctedWaypoints.size() - 1; i++) {
+        OsmNodeNamed n = t.correctedWaypoints.get(i);
+        formatWaypointGpx(sb, n, "via_corr");
+      }
+    }
+
     sb.append(" <trk>\n");
     if (turnInstructionMode == 9
       || turnInstructionMode == 2
@@ -454,7 +457,7 @@ public class FormatGpx extends Formatter {
       StringWriter sw = new StringWriter(8192);
       BufferedWriter bw = new BufferedWriter(sw);
       formatGpxHeader(bw);
-      formatWaypointGpx(bw, n);
+      formatWaypointGpx(bw, n, null);
       formatGpxFooter(bw);
       bw.close();
       sw.close();
@@ -477,7 +480,7 @@ public class FormatGpx extends Formatter {
     sb.append("</gpx>\n");
   }
 
-  public void formatWaypointGpx(BufferedWriter sb, OsmNodeNamed n) throws IOException {
+  public void formatWaypointGpx(BufferedWriter sb, OsmNodeNamed n, String type) throws IOException {
     sb.append(" <wpt lon=\"").append(formatILon(n.ilon)).append("\" lat=\"")
       .append(formatILat(n.ilat)).append("\">");
     if (n.getSElev() != Short.MIN_VALUE) {
@@ -488,6 +491,24 @@ public class FormatGpx extends Formatter {
     }
     if (n.nodeDescription != null && rc != null) {
       sb.append("<desc>").append(rc.expctxWay.getKeyValueDescription(false, n.nodeDescription)).append("</desc>");
+    }
+    if (type != null) {
+      sb.append("<type>").append(type).append("</type>");
+    }
+    sb.append("</wpt>\n");
+  }
+
+  public void formatWaypointGpx(BufferedWriter sb, MatchedWaypoint wp, String type) throws IOException {
+    sb.append(" <wpt lon=\"").append(formatILon(wp.waypoint.ilon)).append("\" lat=\"")
+      .append(formatILat(wp.waypoint.ilat)).append("\">");
+    if (wp.waypoint.getSElev() != Short.MIN_VALUE) {
+      sb.append("<ele>").append("" + wp.waypoint.getElev()).append("</ele>");
+    }
+    if (wp.name != null) {
+      sb.append("<name>").append(StringUtils.escapeXml10(wp.name)).append("</name>");
+    }
+    if (type != null) {
+      sb.append("<type>").append(type).append("</type>");
     }
     sb.append("</wpt>\n");
   }

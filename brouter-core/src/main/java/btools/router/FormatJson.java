@@ -126,7 +126,7 @@ public class FormatJson extends Formatter {
 
     sb.append("        ]\n");
     sb.append("      }\n");
-    if (t.exportWaypoints || !t.pois.isEmpty()) {
+    if (t.exportWaypoints || t.exportCorrectedWaypoints || !t.pois.isEmpty()) {
       sb.append("    },\n");
       for (int i = 0; i <= t.pois.size() - 1; i++) {
         OsmNodeNamed poi = t.pois.get(i);
@@ -137,6 +137,7 @@ public class FormatJson extends Formatter {
         sb.append("    \n");
       }
       if (t.exportWaypoints) {
+        if (!t.pois.isEmpty()) sb.append("    ,\n");
         for (int i = 0; i <= t.matchedWaypoints.size() - 1; i++) {
           String type;
           if (i == 0) {
@@ -150,6 +151,19 @@ public class FormatJson extends Formatter {
           MatchedWaypoint wp = t.matchedWaypoints.get(i);
           addFeature(sb, type, wp.name, wp.waypoint.ilat, wp.waypoint.ilon, wp.waypoint.getSElev());
           if (i < t.matchedWaypoints.size() - 1) {
+            sb.append(",");
+          }
+          sb.append("    \n");
+        }
+      }
+      if (t.exportCorrectedWaypoints) {
+        if (t.exportWaypoints) sb.append("    ,\n");
+        for (int i = 0; i <= t.correctedWaypoints.size() - 1; i++) {
+          String type = "via_corr";
+
+          OsmNodeNamed wp = t.correctedWaypoints.get(i);
+          addFeature(sb, type, wp.name, wp.ilat, wp.ilon, wp.getSElev());
+          if (i < t.correctedWaypoints.size() - 1) {
             sb.append(",");
           }
           sb.append("    \n");
