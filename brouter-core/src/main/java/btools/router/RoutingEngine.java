@@ -41,6 +41,7 @@ public class RoutingEngine extends Thread {
   private boolean finished = false;
 
   protected List<OsmNodeNamed> waypoints = null;
+  protected List<OsmNodeNamed> correctedWaypoints = null;
   List<OsmNodeNamed> extraWaypoints = null;
   protected List<MatchedWaypoint> matchedWaypoints;
   private int linksProcessed = 0;
@@ -262,6 +263,7 @@ public class RoutingEngine extends Thread {
           }
           oldTrack = null;
           track.exportWaypoints = routingContext.exportWaypoints;
+          track.exportCorrectedWaypoints = routingContext.exportCorrectedWaypoints;
           filename = outfileBase + i + "." + routingContext.outputFormat;
           switch (routingContext.outputFormat) {
             case "gpx":
@@ -975,6 +977,10 @@ public class RoutingEngine extends Thread {
         hasDirectRouting = true;
       }
     }
+    for (MatchedWaypoint mwp : matchedWaypoints) {
+      //System.out.println(FormatGpx.getWaypoint(mwp.waypoint.ilon, mwp.waypoint.ilat, mwp.name, null));
+      //System.out.println(FormatGpx.getWaypoint(mwp.crosspoint.ilon, mwp.crosspoint.ilat, mwp.name+"_cp", null));
+    }
 
     routingContext.hasDirectRouting = hasDirectRouting;
 
@@ -1030,6 +1036,7 @@ public class RoutingEngine extends Thread {
 
     matchedWaypoints.get(matchedWaypoints.size() - 1).indexInTrack = totaltrack.nodes.size() - 1;
     totaltrack.matchedWaypoints = matchedWaypoints;
+    totaltrack.correctedWaypoints = correctedWaypoints;
     totaltrack.processVoiceHints(routingContext);
     totaltrack.prepareSpeedProfile(routingContext);
 
@@ -1187,6 +1194,13 @@ public class RoutingEngine extends Thread {
       newTarget = t.nodes.get(1);
 
       setNewVoiceHint(t, last, lastJunctions, newJunction, newTarget);
+
+      if (correctedWaypoints == null) correctedWaypoints = new ArrayList<>();
+      OsmNodeNamed n = new OsmNodeNamed();
+      n.ilon = newJunction.getILon();
+      n.ilat = newJunction.getILat();
+      n.name = startWp.name + "_corr";
+      correctedWaypoints.add(n);
 
       return true;
     }
