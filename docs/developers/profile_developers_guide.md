@@ -145,6 +145,18 @@ Some variable names are pre-defined and accessed by the routing engine:
        New is an additional block with information on the excluded ways, a list with
        name `noStartWay` and `name,value;...` entries.
 
+    - `correctMisplacedViaPoints`  default = true
+
+       Searches for incorrectly placed via points and removes the detours.
+       With the parameter `exportCorrectedWaypoints` adds these points to the output formats.
+
+    - `correctMisplacedViaPointsDistance`  default=0
+
+       The default setting 0 removes the entire path, with a tolerance limit BRouter finds and removes only paths within this distance.
+
+    - `continueStraight` default = false
+
+       After a via point this goes on in the straight direction. This could avoid u-turns on misplaced via points.
 
 
 - for the way section these are
