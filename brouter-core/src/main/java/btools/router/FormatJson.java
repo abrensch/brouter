@@ -158,15 +158,19 @@ public class FormatJson extends Formatter {
       }
       if (t.exportCorrectedWaypoints) {
         if (t.exportWaypoints) sb.append("    ,\n");
-        for (int i = 0; i <= t.correctedWaypoints.size() - 1; i++) {
+        boolean hasCorrPoints = false;
+        for (int i = 0; i <= t.matchedWaypoints.size() - 1; i++) {
           String type = "via_corr";
 
-          OsmNodeNamed wp = t.correctedWaypoints.get(i);
-          addFeature(sb, type, wp.name, wp.ilat, wp.ilon, wp.getSElev());
-          if (i < t.correctedWaypoints.size() - 1) {
-            sb.append(",");
+          MatchedWaypoint wp = t.matchedWaypoints.get(i);
+          if (wp.correctedpoint != null) {
+            if (hasCorrPoints) {
+              sb.append(",");
+            }
+            addFeature(sb, type, wp.name + "_corr", wp.correctedpoint.ilat, wp.correctedpoint.ilon, wp.correctedpoint.getSElev());
+            sb.append("    \n");
+            hasCorrPoints = true;
           }
-          sb.append("    \n");
         }
       }
     } else {

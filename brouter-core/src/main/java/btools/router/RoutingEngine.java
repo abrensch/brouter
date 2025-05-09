@@ -41,7 +41,6 @@ public class RoutingEngine extends Thread {
   private boolean finished = false;
 
   protected List<OsmNodeNamed> waypoints = null;
-  protected List<OsmNodeNamed> correctedWaypoints = null;
   List<OsmNodeNamed> extraWaypoints = null;
   protected List<MatchedWaypoint> matchedWaypoints;
   private int linksProcessed = 0;
@@ -1036,7 +1035,6 @@ public class RoutingEngine extends Thread {
 
     matchedWaypoints.get(matchedWaypoints.size() - 1).indexInTrack = totaltrack.nodes.size() - 1;
     totaltrack.matchedWaypoints = matchedWaypoints;
-    totaltrack.correctedWaypoints = correctedWaypoints;
     totaltrack.processVoiceHints(routingContext);
     totaltrack.prepareSpeedProfile(routingContext);
 
@@ -1195,12 +1193,8 @@ public class RoutingEngine extends Thread {
 
       setNewVoiceHint(t, last, lastJunctions, newJunction, newTarget);
 
-      if (correctedWaypoints == null) correctedWaypoints = new ArrayList<>();
-      OsmNodeNamed n = new OsmNodeNamed();
-      n.ilon = newJunction.getILon();
-      n.ilat = newJunction.getILat();
-      n.name = startWp.name + "_corr";
-      correctedWaypoints.add(n);
+      // fill to correctedpoint
+      startWp.correctedpoint = new OsmNode(newJunction.getILon(), newJunction.getILat());
 
       return true;
     }
