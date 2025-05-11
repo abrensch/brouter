@@ -339,6 +339,7 @@ public final class OsmTrack {
     }
     float t0 = ourSize > 0 ? nodes.get(ourSize - 1).getTime() : 0;
     float e0 = ourSize > 0 ? nodes.get(ourSize - 1).getEnergy() : 0;
+    int c0 = ourSize > 0 ? nodes.get(ourSize - 1).cost : 0;
     for (i = 0; i < t.nodes.size(); i++) {
       OsmPathElement e = t.nodes.get(i);
       if (i == 0 && ourSize > 0 && nodes.get(ourSize - 1).getSElev() == Short.MIN_VALUE)
@@ -346,6 +347,7 @@ public final class OsmTrack {
       if (i > 0 || ourSize == 0) {
         e.setTime(e.getTime() + t0);
         e.setEnergy(e.getEnergy() + e0);
+        e.cost = e.cost + c0;
         if (e.message != null){
           if (!(e.message.lon == e.getILon() && e.message.lat == e.getILat())) {
             e.message.lon = e.getILon();

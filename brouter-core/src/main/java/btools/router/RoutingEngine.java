@@ -23,6 +23,7 @@ import btools.mapaccess.OsmLinkHolder;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmNodePairSet;
 import btools.mapaccess.OsmPos;
+import btools.util.CheapAngleMeter;
 import btools.util.CheapRuler;
 import btools.util.CompactLongMap;
 import btools.util.SortedHeap;
@@ -1020,7 +1021,7 @@ public class RoutingEngine extends Thread {
 
       boolean changed = false;
       if (routingContext.correctMisplacedViaPoints && !matchedWaypoints.get(i).direct && !routingContext.allowSamewayback) {
-        changed = snappPathConnection(totaltrack, seg, routingContext.inverseRouting ? matchedWaypoints.get(i + 1) : matchedWaypoints.get(i));
+        changed = snapPathConnection(totaltrack, seg, routingContext.inverseRouting ? matchedWaypoints.get(i + 1) : matchedWaypoints.get(i));
       }
       if (wptIndex > 0)
         matchedWaypoints.get(wptIndex).indexInTrack = totaltrack.nodes.size() - 1;
@@ -1043,12 +1044,198 @@ public class RoutingEngine extends Thread {
 
     if (routingContext.poipoints != null)
       totaltrack.pois = routingContext.poipoints;
-    totaltrack.matchedWaypoints = matchedWaypoints;
+
     return totaltrack;
   }
 
+  OsmTrack getExtraSegment(OsmPathElement start, OsmPathElement end) {
+
+    List<MatchedWaypoint> wptlist = new ArrayList<>();
+    MatchedWaypoint wpt1 = new MatchedWaypoint();
+    wpt1.waypoint = new OsmNode(start.getILon(), start.getILat());
+    wpt1.name = "wptx1";
+    wpt1.crosspoint = new OsmNode(start.getILon(), start.getILat());
+    wpt1.node1 = new OsmNode(start.getILon(), start.getILat());
+    wpt1.node2 = new OsmNode(end.getILon(), end.getILat());
+    wptlist.add(wpt1);
+    MatchedWaypoint wpt2 = new MatchedWaypoint();
+    wpt2.waypoint = new OsmNode(end.getILon(), end.getILat());
+    wpt2.name = "wptx2";
+    wpt2.crosspoint = new OsmNode(end.getILon(), end.getILat());
+    wpt2.node2 = new OsmNode(start.getILon(), start.getILat());
+    wpt2.node1 = new OsmNode(end.getILon(), end.getILat());
+    wptlist.add(wpt2);
+
+    MatchedWaypoint mwp1 = wptlist.get(0);
+    MatchedWaypoint mwp2 = wptlist.get(1);
+
+    OsmTrack mid = null;
+
+    boolean corr = routingContext.correctMisplacedViaPoints;
+    routingContext.correctMisplacedViaPoints = false;
+
+    guideTrack = new OsmTrack();
+    guideTrack.addNode(start);
+    guideTrack.addNode(end);
+
+    mid = findTrack("getinfo", mwp1, mwp2, null, null, false);
+
+    guideTrack = null;
+    routingContext.correctMisplacedViaPoints = corr;
+
+    return mid;
+  }
+
+  private int snapRoundaboutConnection(OsmTrack tt, OsmTrack t, int indexStart, int indexEnd, int indexMeeting, MatchedWaypoint startWp) {
+
+    int indexMeetingBack = (indexMeeting == -1 ? tt.nodes.size() - 1 : indexMeeting);
+    int indexMeetingFore = 0;
+    int indexStartBack = indexStart;
+    int indexStartFore = 0;
+
+    OsmPathElement ptStart = tt.nodes.get(indexStartBack);
+    OsmPathElement ptMeeting = tt.nodes.get(indexMeetingBack);
+    OsmPathElement ptEnd = t.nodes.get(indexEnd);
+
+    boolean bMeetingIsOnRoundabout = ptMeeting.message.isRoundabout();
+    boolean bMeetsRoundaboutStart = false;
+
+    int i;
+    for (i = 0; i < indexEnd; i++) {
+      OsmPathElement n = t.nodes.get(i);
+      if (n.positionEquals(ptStart)) {
+        indexStartFore = i;
+        bMeetsRoundaboutStart = true;
+      }
+      if (n.positionEquals(ptMeeting)) {
+        indexMeetingFore = i;
+      }
+
+    }
+
+    if (!bMeetsRoundaboutStart && bMeetingIsOnRoundabout) {
+      indexEnd = indexMeetingFore;
+    }
+    if (bMeetsRoundaboutStart && bMeetingIsOnRoundabout) {
+      indexEnd = indexStartFore;
+    }
+
+    List<OsmPathElement> removeList = new ArrayList<>();
+    if (!bMeetsRoundaboutStart) {
+      indexStartBack = indexMeetingBack;
+      while (!tt.nodes.get(indexStartBack).message.isRoundabout()) {
+        indexStartBack--;
+        if (indexStartBack == 2) break;
+      }
+    }
+
+    for (i = indexStartBack + 1; i < tt.nodes.size(); i++) {
+      OsmPathElement n = tt.nodes.get(i);
+      OsmTrack.OsmPathElementHolder detours = tt.getFromDetourMap(n.getIdFromPos());
+      OsmTrack.OsmPathElementHolder h = detours;
+      while (h != null) {
+        h = h.nextHolder;
+      }
+      removeList.add(n);
+    }
+
+    OsmPathElement ttend = null;
+    OsmPathElement ttend_next = null;
+    if (!bMeetingIsOnRoundabout && !bMeetsRoundaboutStart) {
+      ttend = tt.nodes.get(indexStartBack);
+      ttend_next = tt.nodes.get(indexStartBack + 1);
+      OsmTrack.OsmPathElementHolder ttend_detours = tt.getFromDetourMap(ttend.getIdFromPos());
+
+      tt.registerDetourForId(ttend.getIdFromPos(), null);
+    }
+
+    for (OsmPathElement e : removeList) {
+      tt.nodes.remove(e);
+    }
+    removeList.clear();
+
+
+    for (i = 0; i < indexEnd; i++) {
+      OsmPathElement n = t.nodes.get(i);
+      if (n.positionEquals(bMeetsRoundaboutStart ? ptStart : ptEnd)) break;
+      if (!bMeetingIsOnRoundabout && !bMeetsRoundaboutStart && n.message.isRoundabout()) break;
+
+      OsmTrack.OsmPathElementHolder detours = t.getFromDetourMap(n.getIdFromPos());
+      OsmTrack.OsmPathElementHolder h = detours;
+      while (h != null) {
+        h = h.nextHolder;
+      }
+      removeList.add(n);
+    }
+
+    // time hold
+    float atime = 0;
+    float aenergy = 0;
+    int acost = 0;
+    if (i > 1) {
+      atime = t.nodes.get(i).getTime();
+      aenergy = t.nodes.get(i).getEnergy();
+      acost = t.nodes.get(i).cost;
+    }
+
+    for (OsmPathElement e : removeList) {
+      t.nodes.remove(e);
+    }
+    removeList.clear();
+
+    if (atime > 0f) {
+      for (OsmPathElement e : t.nodes) {
+        e.setTime(e.getTime() - atime);
+        e.setEnergy(e.getEnergy() - aenergy);
+        e.cost = e.cost - acost;
+      }
+    }
+
+    if (!bMeetingIsOnRoundabout && !bMeetsRoundaboutStart) {
+
+      OsmPathElement tstart = t.nodes.get(0);
+      OsmPathElement tstart_next = null;
+      OsmTrack.OsmPathElementHolder tstart_detours = t.getFromDetourMap(tstart.getIdFromPos());
+      OsmTrack.OsmPathElementHolder ttend_detours = tt.getFromDetourMap(ttend.getIdFromPos());
+
+      OsmTrack mid = getExtraSegment(ttend, ttend_detours.node);
+      OsmPathElement tt_end = tt.nodes.get(tt.nodes.size() - 1);
+
+      int last_cost = tt_end.cost;
+      int tmp_cost = 0;
+
+      if (mid != null) {
+        boolean start = false;
+        for (OsmPathElement e : mid.nodes) {
+          if (start) {
+            if (e.positionEquals(ttend_detours.node)) {
+              tmp_cost = e.cost;
+              break;
+            }
+            e.cost = last_cost + e.cost;
+            tt.nodes.add(e);
+          }
+          if (e.positionEquals(tt_end)) start = true;
+        }
+
+      }
+
+      ttend_detours.node.cost = last_cost + tmp_cost;
+      tt.nodes.add(ttend_detours.node);
+      t.nodes.add(0, ttend_detours.node);
+
+    }
+
+    tt.cost = tt.nodes.get(tt.nodes.size()-1).cost;
+    t.cost = t.nodes.get(t.nodes.size()-1).cost;
+
+    startWp.correctedpoint = new OsmNode(ptStart.getILon(), ptStart.getILat());
+
+    return (t.nodes.size());
+  }
+
   // check for way back on way point
-  private boolean snappPathConnection(OsmTrack tt, OsmTrack t, MatchedWaypoint startWp) {
+  private boolean snapPathConnection(OsmTrack tt, OsmTrack t, MatchedWaypoint startWp) {
     if (!startWp.name.startsWith("via") && !startWp.name.startsWith("rt"))
       return false;
 
@@ -1080,29 +1267,88 @@ public class RoutingEngine extends Thread {
       OsmPathElement newTarget = null;
       OsmPathElement tmpback = null;
       OsmPathElement tmpfore = null;
+      OsmPathElement tmpStart = null;
       int indexback = ourSize - 1;
       int indexfore = 0;
       int stop = (indexback - MAX_STEPS_CHECK > 1 ? indexback - MAX_STEPS_CHECK : 1);
       double wayDistance = 0;
       double nextDist = 0;
+      boolean bCheckRoundAbout = false;
+      boolean bBackRoundAbout = false;
+      boolean bForeRoundAbout = false;
+      int indexBackFound = 0;
+      int indexForeFound = 0;
+      int differentLanePoints = 0;
+      int indexMeeting = -1;
+      while (indexback >= 1 && indexback >= stop && indexfore < t.nodes.size()) {
+        tmpback = tt.nodes.get(indexback);
+        tmpfore = t.nodes.get(indexfore);
+        if (!bBackRoundAbout && tmpback.message != null && tmpback.message.isRoundabout()) {
+          bBackRoundAbout = true;
+          indexBackFound = indexfore;
+        }
+        if (!bForeRoundAbout &&
+           tmpfore.message != null && tmpfore.message.isRoundabout() ||
+          (tmpback.positionEquals(tmpfore) && tmpback.message.isRoundabout())) {
+          bForeRoundAbout = true;
+          indexForeFound = indexfore;
+        }
+        if (indexfore == 0) {
+          tmpStart = t.nodes.get(0);
+        } else {
+          double dirback = CheapAngleMeter.getDirection(tmpStart.getILon(), tmpStart.getILat(), tmpback.getILon(), tmpback.getILat());
+          double dirfore = CheapAngleMeter.getDirection(tmpStart.getILon(), tmpStart.getILat(), tmpfore.getILon(), tmpfore.getILat());
+          double dirdiff = CheapAngleMeter.getDifferenceFromDirection(dirback, dirfore);
+          // walking wrong direction
+          if (dirdiff > 60 && !bBackRoundAbout && !bForeRoundAbout) break;
+        }
+        // seems no roundabout, only on one end
+        if (bBackRoundAbout != bForeRoundAbout && indexfore - Math.abs(indexForeFound - indexBackFound) > 8) break;
+        if (!tmpback.positionEquals(tmpfore)) differentLanePoints++;
+        if (tmpback.positionEquals(tmpfore)) indexMeeting = indexback;
+        bCheckRoundAbout = bBackRoundAbout && bForeRoundAbout;
+        if (bCheckRoundAbout) break;
+        indexback--;
+        indexfore++;
+      }
+      //System.out.println("snap round result " + indexback + ": " + bBackRoundAbout + " - " + indexfore + "; " + bForeRoundAbout + " pts " + differentLanePoints);
+      if (bCheckRoundAbout) {
+
+        tmpback = tt.nodes.get(--indexback);
+        while (tmpback.message != null && tmpback.message.isRoundabout()) {
+          tmpback = tt.nodes.get(--indexback);
+        }
+
+        int ifore = ++indexfore;
+        OsmPathElement testfore = t.nodes.get(ifore);
+        while (ifore < t.nodes.size() && testfore.message != null && testfore.message.isRoundabout()) {
+          testfore = t.nodes.get(ifore);
+          ifore++;
+        }
+
+        snapRoundaboutConnection(tt, t, indexback, --ifore, indexMeeting, startWp);
+
+        // remove filled arrays
+        removeVoiceHintList.clear();
+        removeBackList.clear();
+        removeForeList.clear();
+        return true;
+      }
+      indexback = ourSize - 1;
+      indexfore = 0;
       while (indexback >= 1 && indexback >= stop && indexfore < t.nodes.size()) {
         int junctions = 0;
         tmpback = tt.nodes.get(indexback);
         tmpfore = t.nodes.get(indexfore);
         if (tmpback.message != null && tmpback.message.isRoundabout()) {
-          removeBackList.clear();
-          removeForeList.clear();
-          removeVoiceHintList.clear();
-          return false;
+          bCheckRoundAbout = true;
         }
         if (tmpfore.message != null && tmpfore.message.isRoundabout()) {
-          removeBackList.clear();
-          removeForeList.clear();
-          removeVoiceHintList.clear();
-          return false;
+          bCheckRoundAbout = true;
         }
-        int dist = tmpback.calcDistance(tmpfore);
-        if (1 == 1) {
+        {
+
+          int dist = tmpback.calcDistance(tmpfore);
           OsmTrack.OsmPathElementHolder detours = tt.getFromDetourMap(tmpback.getIdFromPos());
           OsmTrack.OsmPathElementHolder h = detours;
           while (h != null) {
@@ -1110,43 +1356,44 @@ public class RoutingEngine extends Thread {
             lastJunctions.put(h.node.getIdFromPos(), h);
             h = h.nextHolder;
           }
-        }
-        if (dist == 1 && indexfore > 0) {
-          if (indexfore == 1) {
-            removeBackList.add(tt.nodes.get(tt.nodes.size() - 1)); // last and first should be equal, so drop only on second also equal
-            removeForeList.add(t.nodes.get(0));
-            removeBackList.add(tmpback);
-            removeForeList.add(tmpfore);
-            removeVoiceHintList.add(tt.nodes.size() - 1);
-            removeVoiceHintList.add(indexback);
-          } else {
-            removeBackList.add(tmpback);
-            removeForeList.add(tmpfore);
-            removeVoiceHintList.add(indexback);
-          }
-          nextDist = t.nodes.get(indexfore - 1).calcDistance(tmpfore);
-          wayDistance += nextDist;
 
-        }
-        if (dist > 1 || indexback == 1) {
-          if (removeBackList.size() != 0) {
-            // recover last - should be the cross point
-            removeBackList.remove(removeBackList.get(removeBackList.size() - 1));
-            removeForeList.remove(removeForeList.get(removeForeList.size() - 1));
-            break;
-          } else {
+          if (dist == 1 && indexfore > 0) {
+            if (indexfore == 1) {
+              removeBackList.add(tt.nodes.get(tt.nodes.size() - 1)); // last and first should be equal, so drop only on second also equal
+              removeForeList.add(t.nodes.get(0));
+              removeBackList.add(tmpback);
+              removeForeList.add(tmpfore);
+              removeVoiceHintList.add(tt.nodes.size() - 1);
+              removeVoiceHintList.add(indexback);
+            } else {
+              removeBackList.add(tmpback);
+              removeForeList.add(tmpfore);
+              removeVoiceHintList.add(indexback);
+            }
+            nextDist = t.nodes.get(indexfore - 1).calcDistance(tmpfore);
+            wayDistance += nextDist;
+
+          }
+          if (dist > 1 || indexback == 1) {
+            if (removeBackList.size() != 0) {
+              // recover last - should be the cross point
+              removeBackList.remove(removeBackList.get(removeBackList.size() - 1));
+              removeForeList.remove(removeForeList.get(removeForeList.size() - 1));
+              break;
+            } else {
+              return false;
+            }
+          }
+          indexback--;
+          indexfore++;
+
+          if (routingContext.correctMisplacedViaPointsDistance > 0 &&
+            wayDistance > routingContext.correctMisplacedViaPointsDistance) {
+            removeVoiceHintList.clear();
+            removeBackList.clear();
+            removeForeList.clear();
             return false;
           }
-        }
-        indexback--;
-        indexfore++;
-
-        if (routingContext.correctMisplacedViaPointsDistance > 0 &&
-          wayDistance > routingContext.correctMisplacedViaPointsDistance) {
-          removeVoiceHintList.clear();
-          removeBackList.clear();
-          removeForeList.clear();
-          return false;
         }
       }
 
@@ -1154,9 +1401,11 @@ public class RoutingEngine extends Thread {
       // time hold
       float atime = 0;
       float aenergy = 0;
+      int acost = 0;
       if (removeForeList.size() > 1) {
-        atime = t.nodes.get(removeForeList.size() - 2).getTime();
-        aenergy = t.nodes.get(removeForeList.size() - 2).getEnergy();
+        atime = t.nodes.get(indexfore -1).getTime();
+        aenergy = t.nodes.get(indexfore -1).getEnergy();
+        acost = t.nodes.get(indexfore -1).cost;
       }
 
       for (OsmPathElement e : removeBackList) {
@@ -1176,6 +1425,7 @@ public class RoutingEngine extends Thread {
         for (OsmPathElement e : t.nodes) {
           e.setTime(e.getTime() - atime);
           e.setEnergy(e.getEnergy() - aenergy);
+          e.cost = e.cost - acost;
         }
       }
 
@@ -1191,7 +1441,8 @@ public class RoutingEngine extends Thread {
       newJunction = t.nodes.get(0);
       newTarget = t.nodes.get(1);
 
-      setNewVoiceHint(t, last, lastJunctions, newJunction, newTarget);
+      tt.cost = tt.nodes.get(tt.nodes.size()-1).cost;
+      t.cost = t.nodes.get(t.nodes.size()-1).cost;
 
       // fill to correctedpoint
       startWp.correctedpoint = new OsmNode(newJunction.getILon(), newJunction.getILat());
@@ -1199,28 +1450,6 @@ public class RoutingEngine extends Thread {
       return true;
     }
     return false;
-  }
-
-  private void setNewVoiceHint(OsmTrack t, OsmPathElement last, CompactLongMap<OsmTrack.OsmPathElementHolder> lastJunctiona, OsmPathElement newJunction, OsmPathElement newTarget) {
-
-    if (last == null || newJunction == null || newTarget == null)
-      return;
-    int lon0,
-      lat0,
-      lon1,
-      lat1,
-      lon2,
-      lat2;
-    lon0 = last.getILon();
-    lat0 = last.getILat();
-    lon1 = newJunction.getILon();
-    lat1 = newJunction.getILat();
-    lon2 = newTarget.getILon();
-    lat2 = newTarget.getILat();
-    // get a new angle
-    double angle = routingContext.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
-
-    newTarget.message.turnangle = (float) angle;
   }
 
   private void recalcTrack(OsmTrack t) {
@@ -1566,7 +1795,7 @@ public class RoutingEngine extends Thread {
     OsmPath p = getStartPath(n1, n2, new OsmNodeNamed(mwp.crosspoint), endPos, sameSegmentSearch);
 
     // special case: start+end on same segment
-    if (p.cost >= 0 && sameSegmentSearch && endPos != null && endPos.radius < 1.5) {
+    if (p != null && p.cost >= 0 && sameSegmentSearch && endPos != null && endPos.radius < 1.5) {
       p.treedepth = 0; // hack: mark for the final-check
     }
     return p;
@@ -1605,7 +1834,7 @@ public class RoutingEngine extends Thread {
       if (bestLink != null) {
         bestLink.addLinkHolder(bestPath, n1);
       }
-      bestPath.treedepth = 1;
+      if (bestPath != null) bestPath.treedepth = 1;
 
       return bestPath;
     } finally {
@@ -1702,6 +1931,9 @@ public class RoutingEngine extends Thread {
       if (firstMatchCost < 1000000000)
         logInfo("firstMatchCost from initial match=" + firstMatchCost);
     }
+
+    if (startPath1 == null) return null;
+    if (startPath2 == null) return null;
 
     synchronized (openSet) {
       openSet.clear();
