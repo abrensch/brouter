@@ -32,9 +32,9 @@ Import new tags for noise, green and water feature
 
 - prepare generation of pbf
 
-  - when using database and new tagging an other lookups.dat is needed, use lookups_db.dat and rename
+  - lookups.dat has to contain the new tags from the database
 
-  - script needs a jdbc in the classpath (on UNIX and Linux use a colon `:` as delimiter) 
+  - script needs a jdbc in the classpath (on UNIX and Linux use a colon `:` as delimiter)
 
     `... -cp ../postgresql-42.6.0.jar;../brouter_fc.jar ...`
 
@@ -44,8 +44,12 @@ Import new tags for noise, green and water feature
 
     `JDBC="jdbc:postgresql://localhost/osm?user=postgres&password=xyz&ssl=false"`
 
-    call it with OsmFastCutter as last parameter (behind pbf file)
+  - export the tags from database to filesystem
 
-    `... btools.mapcreator.OsmFastCutter ... ../planet-new.osm.pbf $(JDBC)`
+    `java -Xmx6144M -Xms6144M -Xms6144M -cp %CLASSPATH% btools.mapcreator.DatabasePseudoTagProvider $(JDBC) db_tags.csv.gz`
+
+  - call it with OsmFastCutter as last parameter (behind pbf file)
+
+    `... btools.mapcreator.OsmFastCutter ... ../planet-new.osm.pbf db_tags.csv.gz`
 
 

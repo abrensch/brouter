@@ -9,6 +9,18 @@ Android
 - enable edit for unused profiles
 
 
+Library
+
+- round trip function (engineMode = 4)
+- get way info (engineMode = 3)
+- voice hint for motorway exit
+- dynamic range for searching way points
+- enable a check for the start way
+- avoid u-turns on via points (if not corrected)
+- enable export of the corrected way points
+
+
+
 ### [brouter-1.7.7.zip](../brouter_bin/brouter-1.7.7.zip) (current revision, 23.07.2024)
 
 - new Android API 34
