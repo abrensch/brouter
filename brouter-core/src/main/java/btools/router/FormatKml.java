@@ -1,5 +1,6 @@
 package btools.router;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import btools.mapaccess.MatchedWaypoint;
@@ -63,8 +64,17 @@ public class FormatKml extends Formatter {
         createFolder(sb, "end", t.matchedWaypoints.subList(size - 1, size));
       }
       if (t.exportCorrectedWaypoints) {
-        int size = t.correctedWaypoints.size();
-        createViaFolder(sb, "via_cor", t.correctedWaypoints.subList(0, size));
+        List<OsmNodeNamed> list = new ArrayList<>();
+        for (int i = 0; i < t.matchedWaypoints.size(); i++) {
+          MatchedWaypoint wp = t.matchedWaypoints.get(i);
+          if (wp.correctedpoint != null) {
+            OsmNodeNamed n = new OsmNodeNamed(wp.correctedpoint);
+            n.name = wp.name + "_corr";
+            list.add(n);
+          }
+        }
+        int size = list.size();
+        createViaFolder(sb, "via_corr", list.subList(0, size));
       }
     }
     sb.append("  </Document>\n");
@@ -84,6 +94,7 @@ public class FormatKml extends Formatter {
   }
 
   private void createViaFolder(StringBuilder sb, String type, List<OsmNodeNamed> waypoints) {
+    if (waypoints.isEmpty()) return;
     sb.append("    <Folder>\n");
     sb.append("      <name>" + type + "</name>\n");
     for (int i = 0; i < waypoints.size(); i++) {

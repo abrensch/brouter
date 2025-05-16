@@ -212,10 +212,14 @@ public class FormatGpx extends Formatter {
         }
       }
     }
-    if (t.exportCorrectedWaypoints && t.correctedWaypoints != null) {
-      for (int i = 0; i <= t.correctedWaypoints.size() - 1; i++) {
-        OsmNodeNamed n = t.correctedWaypoints.get(i);
-        formatWaypointGpx(sb, n, "via_corr");
+    if (t.exportCorrectedWaypoints) {
+      for (int i = 0; i <= t.matchedWaypoints.size() - 1; i++) {
+        MatchedWaypoint wt = t.matchedWaypoints.get(i);
+        if (wt.correctedpoint != null) {
+          OsmNodeNamed n = new OsmNodeNamed(wt.correctedpoint);
+          n.name = wt.name + "_corr";
+          formatWaypointGpx(sb, n, "via_corr");
+        }
       }
     }
 
