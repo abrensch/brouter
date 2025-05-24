@@ -269,13 +269,11 @@ motorcycle;0000002209 permissive
 motorcycle;0000000001 permit
 
 moped;0000000001 no
-moped;0000000001 yes
-moped;0000000001 designated
+moped;0000000001 yes designated
 moped;0000000001 use_sidepath
 
 mofa;0000000001 no
-mofa;0000000001 yes
-mofa;0000000001 designated
+mofa;0000000001 yes designated
 mofa;0000000001 use_sidepath
 
 atv;0000000001 no
@@ -555,13 +553,18 @@ class:bicycle;0000000245 -3
 class:bicycle;0000000170 0
 class:bicycle;0000000108 3 +3
 
-bicycle:forward;0000000001 yes
+bicycle:forward;0000000001 yes designated
 bicycle:forward;0000000001 use_sidepath
 bicycle:forward;0000000001 no
 
-bicycle:backward;0000000001 yes
+bicycle:backward;0000000001 yes designated
 bicycle:backward;0000000001 use_sidepath
 bicycle:backward;0000000001 no
+
+speed_pedelec;0000000001 yes designated
+speed_pedelec;0000000001 use_sidepath
+speed_pedelec;0000000001 no
+
 
 route_bicycle_icn;0000088753 yes
 route_bicycle_icn;0000000001 proposed
