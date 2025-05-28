@@ -148,6 +148,7 @@ estimated_traffic_class;0000000001 6
 estimated_traffic_class;0000000001 7
 
 lit;0000809223 yes
+lit;0000000001 no
 lit;0000800001 sunset-sunrise dusk-dawn
 lit;0000800001 24/7
 lit;0000800001 automatic
