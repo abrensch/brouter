@@ -1001,5 +1001,10 @@ traffic_sign:direction;0000000001 forward
 traffic_sign:direction;0000000001 backward
 traffic_sign:direction;0000000001 both forward;backward backward;forward
 
+give_way:direction;0000000001 forward
+give_way:direction;0000000001 backward
+
+stop:direction;0000000001 forward
+stop:direction;0000000001 backward
 
 monitoring:bicycle;0000000001 yes induction_loop
