@@ -7,7 +7,7 @@
 Android
 
 - enable edit for unused profiles
-
+- enable check for none inbuilt profiles after lookups.dat version change
 
 Library
 
@@ -17,8 +17,11 @@ Library
 - dynamic range for searching way points
 - enable a check for the start way
 - avoid u-turns on via points (if not corrected)
+- correct via points on or near roundabouds
 - enable export of the corrected way points
+- new method for pseudo-tags generation
 
+[Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.7.8%22+is%3Aclosed)
 
 
 ### [brouter-1.7.7.zip](../brouter_bin/brouter-1.7.7.zip) (current revision, 23.07.2024)
