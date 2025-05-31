@@ -17,15 +17,20 @@ import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -55,6 +60,7 @@ public class DownloadWorker extends Worker {
   private static final int NOTIFICATION_ID = new Random().nextInt();
   public static final String PROFILES_DIR = "profiles2/";
   private static final String SEGMENTS_DIR = "segments4/";
+  private static final String MODES_DIR = "modes/";
   private static final String SEGMENT_DIFF_SUFFIX = ".df5";
   private static final String SEGMENT_SUFFIX = ".rd5";
   private static final String LOG_TAG = "DownloadWorker";
@@ -324,6 +330,9 @@ public class DownloadWorker extends Worker {
         }
       }
     }
+    if (checkCustomProfiles(profiles)) {
+      if (DEBUG) Log.d("modes", "Settings changed");
+    }
   }
 
   private void downloadSegment(String segmentBaseUrl, String segmentName) throws IOException, InterruptedException {
@@ -381,6 +390,104 @@ public class DownloadWorker extends Worker {
     }
   }
 
+  /*
+  allow only inbuilt profiles on lookup change
+  control serviceconfig and timeoutdata for none inbuilt profile
+   */
+  private boolean checkCustomProfiles(String[] inBuiltProfiles) {
+    boolean changed = false;
+    List<ServiceModeConfig> map = new ArrayList<>();
+    List<String> aProfiles = new ArrayList<>(Arrays.asList(inBuiltProfiles));
+    BufferedReader br = null;
+    //String modesFile = baseDir.getAbsolutePath() + MODES_DIR + "serviceconfig.dat";
+    File modesFile = new File(baseDir, MODES_DIR + "serviceconfig.dat");
+    try {
+      br = new BufferedReader(new FileReader(modesFile));
+      for (; ; ) {
+        String line = br.readLine();
+        if (line == null)
+          break;
+        ServiceModeConfig smc = new ServiceModeConfig(line);
+        if (!aProfiles.contains(smc.profile + ".brf")) {
+          switch(smc.mode) {
+            case "bicycle_fast":
+              smc.profile = "fastbike";
+              smc.nogoVetos.clear();
+              smc.params = "noparams";
+              break;
+            case "bicycle_short":
+              smc.profile = "trekking";
+              smc.nogoVetos.clear();
+              smc.params = "noparams";
+              break;
+            case "foot_fast":
+            case "foot_short":
+              smc.profile = "hiking-mountain";
+              smc.nogoVetos.clear();
+              smc.params = "noparams";
+              break;
+            case "motorcar_fast":
+              smc.profile = "car-fast";
+              smc.nogoVetos.clear();
+              smc.params = "noparams";
+              break;
+            case "motorcar_short":
+              smc.profile = "car-eco";
+              smc.nogoVetos.clear();
+              smc.params = "noparams";
+              break;
+          }
+          changed = true;
+        }
+        map.add(smc);
+      }
+    } catch (Exception ignored) {
+    } finally {
+      if (br != null)
+        try {
+          br.close();
+        } catch (Exception ignored) {
+        }
+    }
+    if (changed) {
+      modesFile.delete();
+      BufferedWriter bw = null;
+      try {
+        bw = new BufferedWriter(new FileWriter(modesFile));
+        for (ServiceModeConfig smc : map) {
+          bw.write(smc.toLine());
+          bw.write('\n');
+        }
+      } catch (Exception ignored) {
+      } finally {
+        if (bw != null)
+          try {
+            bw.close();
+          } catch (Exception ignored) {
+          }
+      }
+      File tmpFile = new File(baseDir, MODES_DIR + "timeoutdata.txt");
+      boolean isInbuiltProfile = true;
+      try {
+        br = new BufferedReader(new FileReader(tmpFile));
+        String line = br.readLine();
+        if (!aProfiles.contains(line + ".brf")) {
+          isInbuiltProfile = false;
+        }
+
+      } catch (Exception ignored) {
+      } finally {
+        if (br != null)
+          try {
+            br.close();
+            if (!isInbuiltProfile) tmpFile.delete();
+          } catch (Exception ignored) {
+          }
+      }
+    }
+    return changed;
+  }
+
   private boolean httpFileExists(URL downloadUrl) throws IOException {
     HttpURLConnection connection = null;
     try {
@@ -435,14 +542,14 @@ public class DownloadWorker extends Worker {
         throw new IOException("HTTP Request failed: " + downloadUrl + " returned " + connection.getResponseCode());
       }
       int dataLength = connection.getContentLength();
-      // no need of download when size equal
+      // no need of download when size equal and the version has not changed
       // file size not the best coice but easy to handle, date is not available
       switch (type) {
         case LOOKUP:
           if (fileSize == dataLength) return false;
           break;
         case PROFILE:
-          if (fileSize == dataLength) return false;
+          if (fileSize == dataLength && !versionChanged) return false;
           break;
         default:
           break;
