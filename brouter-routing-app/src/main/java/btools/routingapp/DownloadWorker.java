@@ -399,7 +399,6 @@ public class DownloadWorker extends Worker {
     List<ServiceModeConfig> map = new ArrayList<>();
     List<String> aProfiles = new ArrayList<>(Arrays.asList(inBuiltProfiles));
     BufferedReader br = null;
-    //String modesFile = baseDir.getAbsolutePath() + MODES_DIR + "serviceconfig.dat";
     File modesFile = new File(baseDir, MODES_DIR + "serviceconfig.dat");
     try {
       br = new BufferedReader(new FileReader(modesFile));
