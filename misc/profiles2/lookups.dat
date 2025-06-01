@@ -325,6 +325,16 @@ agricultural;0000000001 yes designated official permissive
 agricultural;0000000001 private
 agricultural;0000000001 destination delivery
 
+cycleway:both;0000000001 lane
+cycleway:both;0000000001 shared_lane
+cycleway:both;0000000001 no none
+cycleway:both;0000000001 track
+cycleway:both;0000000001 separate
+cycleway:both;0000000001 share_busway
+cycleway:both;0000000001 shared
+cycleway:both;0000000001 yes
+cycleway:both;0000000001 shoulder
+
 cycleway;0000137526 no
 cycleway;0000001883 none
 cycleway;0000124777 lane
@@ -347,18 +357,11 @@ cycleway;0000000326 designated
 cycleway;0000000247 proposed planned virtual
 cycleway;0000000154 sidewalk
 
-shoulder;0000000001 yes
-shoulder;0000000001 no
-shoulder;0000000001 right
-shoulder;0000000001 left
-shoulder;0000000001 both
-
 conveying;0000000001 yes reversible
 conveying;0000000001 backward
 conveying;0000000001 forward
 
 path;0000000001 crossing
-
 
 segregated;0000224960 no
 segregated;0000051124 yes
@@ -434,14 +437,13 @@ cycleway:left;0000000130 opposite_track
 cycleway:left;0000000053 opposite
 cycleway:left;0000000014 yes
 
-cycleway:both;0000000001 lane
-cycleway:both;0000000001 shared_lane
-cycleway:both;0000000001 no none
-cycleway:both;0000000001 track
-cycleway:both;0000000001 separate
-cycleway:both;0000000001 share_busway
-cycleway:both;0000000001 shared
-cycleway:both;0000000001 yes
+shoulder;0000000001 yes
+shoulder;0000000001 no
+shoulder;0000000001 right
+shoulder;0000000001 left
+shoulder;0000000001 both
+
+shoulder:right;0000000001 yes
 
 cycleway:lane;0000000001 advisory
 cycleway:lane;0000000001 exclusive
@@ -930,12 +932,13 @@ motor_vehicle;0000000136 private
 motor_vehicle;0000000469 no
 motor_vehicle;0000000001 permit
 
-motorcycle;0000028697 yes permissive
+motorcycle;0000028697 yes
 motorcycle;0000007061 no
 motorcycle;0000000243 private
 motorcycle;0000000237 designated
 motorcycle;0000000117 destination
 motorcycle;0000000029 agricultural forestry
+motorcycle;0000000001 permissive
 
 vehicle;0000002176 no
 vehicle;0000000576 yes
