@@ -387,6 +387,7 @@ sac_scale;0000004549 alpine_hiking
 sac_scale;0000001620 demanding_alpine_hiking
 sac_scale;0000000831 yes
 sac_scale;0000000712 difficult_alpine_hiking
+sac_scale;0000000001 T1-hiking
 
 noexit;0000118665 yes
 
