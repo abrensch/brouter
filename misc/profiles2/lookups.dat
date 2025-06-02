@@ -270,11 +270,13 @@ motorcycle;0000002209 permissive
 motorcycle;0000000001 permit
 
 moped;0000000001 no
-moped;0000000001 yes designated
+moped;0000000001 yes
+moped;0000000001 designated
 moped;0000000001 use_sidepath
 
 mofa;0000000001 no
-mofa;0000000001 yes designated
+mofa;0000000001 yes
+mofa;0000000001 designated
 mofa;0000000001 use_sidepath
 
 atv;0000000001 no
@@ -321,7 +323,9 @@ hgv;0000000320 unsuitable
 hgv;0000000306 permissive
 
 agricultural;0000000001 no
-agricultural;0000000001 yes designated official permissive
+agricultural;0000000001 yes
+agricultural;0000000001 designated official
+agricultural;0000000001 permissive
 agricultural;0000000001 private
 agricultural;0000000001 destination delivery
 
@@ -557,15 +561,18 @@ class:bicycle;0000000245 -3
 class:bicycle;0000000170 0
 class:bicycle;0000000108 3 +3
 
-bicycle:forward;0000000001 yes designated
+bicycle:forward;0000000001 yes
+bicycle:forward;0000000001 designated
 bicycle:forward;0000000001 use_sidepath
 bicycle:forward;0000000001 no
 
-bicycle:backward;0000000001 yes designated
+bicycle:backward;0000000001 yes
+bicycle:backward;0000000001 designated
 bicycle:backward;0000000001 use_sidepath
 bicycle:backward;0000000001 no
 
-speed_pedelec;0000000001 yes designated
+speed_pedelec;0000000001 yes
+speed_pedelec;0000000001 designated
 speed_pedelec;0000000001 use_sidepath
 speed_pedelec;0000000001 no
 
@@ -733,23 +740,31 @@ embedded_rails;0000000003 rail
 
 living_street;0000000404 yes
 
-sidewalk:bicycle;0000000439 yes designated
-sidewalk:left:bicycle;0000001722 yes designated
-sidewalk:right:bicycle;0000002667 yes designated
+sidewalk:bicycle;0000000439 yes
+sidewalk:bicycle;0000000439 designated
+
+sidewalk:left:bicycle;0000001722 yes
+sidewalk:left:bicycle;0000001722 designated
+sidewalk:right:bicycle;0000002667 yes
+sidewalk:right:bicycle;0000002667 designated
 
 sidewalk:left;0000000001 no
 sidewalk:left;0000000001 separate
-sidewalk:left;0000000001 yes designated
+sidewalk:left;0000000001 yes
+sidewalk:left;0000000001 designated
 sidewalk:right;0000000001 no
 sidewalk:right;0000000001 separate
-sidewalk:right;0000000001 yes designated
+sidewalk:right;0000000001 yes
+sidewalk:right;0000000001 designated
 sidewalk:both;0000000001 no
 sidewalk:both;0000000001 yes
 sidewalk:both;0000000001 separate
 
-bicycle_road;0000006521 yes designated
+bicycle_road;0000006521 yes
+bicycle_road;0000006521 designated
 
-cyclestreet;0000000001 yes designated
+cyclestreet;0000000001 yes
+cyclestreet;0000000001 designated
 
 construction;0000144871 yes
 construction;0000008214 minor
@@ -770,7 +785,7 @@ construction;0000442502 steps
 construction;0000360177 road highway
 
 
- ---context:node
+---context:node
 
 highway;0001314954 bus_stop
 highway;0001130090 crossing
