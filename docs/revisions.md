@@ -7,7 +7,6 @@
 Android
 
 - enable edit for unused profiles
-- enable check for none inbuilt profiles after lookups.dat version change
 
 Library
 
