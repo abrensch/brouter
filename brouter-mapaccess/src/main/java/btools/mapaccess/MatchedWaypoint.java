@@ -16,6 +16,7 @@ public final class MatchedWaypoint {
   public OsmNode node2;
   public OsmNode crosspoint;
   public OsmNode waypoint;
+  public OsmNode correctedpoint;
   public String name;  // waypoint name used in error messages
   public double radius;  // distance in meter between waypoint and crosspoint
   public boolean direct;  // from this point go direct to next = beeline routing
