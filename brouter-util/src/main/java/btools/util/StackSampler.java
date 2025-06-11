@@ -1,5 +1,7 @@
 package btools.util;
 
+import android.os.Build;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -12,7 +14,7 @@ import java.util.Map;
 import java.util.Random;
 
 public class StackSampler extends Thread {
-  private DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", new Locale("en", "US"));
+  private DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", new Locale.Builder().setLanguage("en").setRegion("US").build());
   private BufferedWriter bw;
   private Random rand = new Random();
 
@@ -47,6 +49,7 @@ public class StackSampler extends Thread {
     }
   }
 
+  @SuppressWarnings("deprecation")
   public void dumpThreads() {
     try {
       int wait1 = rand.nextInt(interval);
@@ -65,7 +68,8 @@ public class StackSampler extends Thread {
           continue;
         }
 
-        sb.append(" (ID=").append(t.getId()).append(" \"").append(t.getName()).append("\" ").append(t.getState()).append("\n");
+        final long threadId = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA ? t.threadId() : t.getId();
+        sb.append(" (ID=").append(threadId).append(" \"").append(t.getName()).append("\" ").append(t.getState()).append("\n");
         for (StackTraceElement line : stack) {
           sb.append("    ").append(line.toString()).append("\n");
         }
