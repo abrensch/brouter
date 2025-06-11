@@ -1,7 +1,5 @@
 package btools.util;
 
-import android.os.Build;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -49,7 +47,6 @@ public class StackSampler extends Thread {
     }
   }
 
-  @SuppressWarnings("deprecation")
   public void dumpThreads() {
     try {
       int wait1 = rand.nextInt(interval);
@@ -68,8 +65,7 @@ public class StackSampler extends Thread {
           continue;
         }
 
-        final long threadId = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA ? t.threadId() : t.getId();
-        sb.append(" (ID=").append(threadId).append(" \"").append(t.getName()).append("\" ").append(t.getState()).append("\n");
+        sb.append(" (ID=").append(t.getId()).append(" \"").append(t.getName()).append("\" ").append(t.getState()).append("\n");
         for (StackTraceElement line : stack) {
           sb.append("    ").append(line.toString()).append("\n");
         }
