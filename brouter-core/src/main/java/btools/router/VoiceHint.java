@@ -580,7 +580,11 @@ public class VoiceHint {
       } else if (lowerBadWayAngle >= -100.f && higherBadWayAngle < 45.f) {
         cmd = KL;
       } else {
-        cmd = C;
+        if (lowerBadWayAngle > -35.f && higherBadWayAngle > 55.f) {
+          cmd = KR;
+        } else {
+          cmd = C;
+        }
       }
     } else if (cmdAngle < 5.f) {
       if (lowerBadWayAngle > -30.f) {
@@ -597,7 +601,11 @@ public class VoiceHint {
       } else if (lowerBadWayAngle > -45.f && higherBadWayAngle <= 100.f) {
         cmd = KR;
       } else {
-        cmd = C;
+        if (lowerBadWayAngle < -55.f && higherBadWayAngle < 35.f) {
+          cmd = KL;
+        } else {
+          cmd = C;
+        }
       }
     } else if (cmdAngle < 45.f) {
       cmd = TSLR;
