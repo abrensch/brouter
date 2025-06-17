@@ -314,7 +314,13 @@ public final class VoiceHintProcessor {
           input.cmd == VoiceHint.KR ||
           input.cmd == VoiceHint.KL)
           && !input.goodWay.isLinktType()) {
-          if (input.goodWay.getPrio() < input.maxBadPrio && (inputLastSaved != null && inputLastSaved.distanceToNext > catchingRange)) {
+          if (
+            ((Math.abs(input.lowerBadWayAngle) < 35.f ||
+              input.higherBadWayAngle < 35.f)
+              || input.goodWay.getPrio() < input.maxBadPrio)
+              && (inputLastSaved != null && inputLastSaved.distanceToNext > minRange)
+              && (input.distanceToNext > minRange)
+              ) {
             results.add(input);
           } else {
             if (inputLast != null) { // when drop add distance to last
