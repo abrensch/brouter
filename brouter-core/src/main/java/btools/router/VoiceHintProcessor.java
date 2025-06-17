@@ -116,6 +116,7 @@ public final class VoiceHintProcessor {
         input.angle = roundAboutTurnAngle;
         input.goodWay.turnangle = roundAboutTurnAngle;
         input.distanceToNext = distance;
+        input.turnAngleConsumed = true;
         //input.roundaboutExit = startTurn < 0 ? roundaboutExit : -roundaboutExit;
         input.roundaboutExit = roundAboutTurnAngle < 0 ? roundaboutExit : -roundaboutExit;
         float tmpangle = 0;
