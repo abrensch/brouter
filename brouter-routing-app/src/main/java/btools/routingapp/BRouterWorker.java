@@ -100,11 +100,19 @@ public class BRouterWorker {
     }
     routingParamCollector.setParams(rc, waypoints, theParams);
 
+    Map<String, String> profileParamsCollection = null;
+    try {
+      if (profileParams != null) {
+        profileParamsCollection = routingParamCollector.getUrlParams(profileParams);
+        routingParamCollector.setProfileParams(rc, profileParamsCollection);
+      }
+    } catch (UnsupportedEncodingException e) {
+      // ignore
+    }
     if (params.containsKey("extraParams")) {
-      Map<String, String> profileparams = null;
       try {
-        profileparams = routingParamCollector.getUrlParams(params.getString("extraParams"));
-        routingParamCollector.setProfileParams(rc, profileparams);
+        profileParamsCollection = routingParamCollector.getUrlParams(params.getString("extraParams"));
+        routingParamCollector.setProfileParams(rc, profileParamsCollection);
       } catch (UnsupportedEncodingException e) {
         // ignore
       }
