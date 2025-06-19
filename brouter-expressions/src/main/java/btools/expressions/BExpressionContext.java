@@ -782,7 +782,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
 
   public void parseFile(File file, String readOnlyContext, Map<String, String> keyValues) {
     if (!file.exists()) {
-      throw new IllegalArgumentException("profile " + file + " does not exist");
+      throw new IllegalArgumentException("profile " + file.getName() + " does not exist");
     }
     try {
       if (readOnlyContext != null) {
@@ -813,12 +813,12 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
         variableData[i] = readOnlyData[i];
       }
     } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("ParseException " + file + " at line " + linenr + ": " + e.getMessage());
+      throw new IllegalArgumentException("ParseException " + file.getName() + " at line " + linenr + ": " + e.getMessage());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
     if (expressionList.size() == 0) {
-      throw new IllegalArgumentException(file.getAbsolutePath()
+      throw new IllegalArgumentException(file.getName()
         + " does not contain expressions for context " + context + " (old version?)");
     }
   }
