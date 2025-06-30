@@ -18,6 +18,7 @@ tables.lines = osm2pgsql.define_way_table('lines', {
    { column = 'waterway', type = 'text' },
    { column = 'natural', type = 'text' },
    { column = 'width', type = 'text' },
+   { column = 'oneway', type = 'text' },
    { column = 'way', type = 'linestring', projection = srid, not_null = true },
 })
 
@@ -43,6 +44,7 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
 
 tables.cities = osm2pgsql.define_node_table('cities', {
    { column = 'name', type = 'text' },
+   { column = 'name_en', type = 'text' },
    { column = 'place', type = 'text' },
    { column = 'admin_level', type = 'text' },
    { column = 'osm_id', type = 'text' },
@@ -56,6 +58,7 @@ tables.cities_rel = osm2pgsql.define_relation_table('cities_rel', {
    { column = 'admin_level', type = 'text' },
    { column = 'boundary', type = 'text' },
    { column = 'name', type = 'text' },
+   { column = 'name_en', type = 'text' },
    { column = 'place', type = 'text' },
    { column = 'osm_id', type = 'text' },
    { column = 'population', type = 'text' },
@@ -114,10 +117,11 @@ end
 
 function osm2pgsql.process_node(object)
 
-   if (object.tags.place == 'city' or object.tags.place == 'town' or object.tags.place == 'municipality') and has_area_tags(object.tags)  then
+if (object.tags.place == 'city' or object.tags.place == 'town' or object.tags.place == 'village' or object.tags.place == 'municipality') and has_area_tags(object.tags)  then
       tables.cities:insert({
          osm_id = object.id,
          name = object.tags.name,
+         name_en = object.tags['name:en'],
          place = object.tags.place,
          admin_level = object.tags.admin_level,
          population = object.tags.population,
@@ -166,6 +170,7 @@ function osm2pgsql.process_way(object)
          natural = object.tags.natural,
          width = object.tags.width,
          maxspeed = object.tags.maxspeed,
+         oneway = object.tags.oneway, 
          way = object:as_linestring()
       })
    end
@@ -202,6 +207,7 @@ function osm2pgsql.process_relation(object)
          boundary = object.tags.boundary,
          admin_level = object.tags.admin_level,
          name     = object.tags.name,
+         name_en  = object.tags['name:en'],
          place    = object.tags.place,
          population = object.tags.population,
          osm_id = object.id,
