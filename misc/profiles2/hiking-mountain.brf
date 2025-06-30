@@ -15,7 +15,6 @@ assign   consider_noise         = false   # %consider_noise% | Activate to prefe
 assign   consider_river         = false   # %consider_river% | Activate to prefer a route along rivers, lakes, etc. | boolean
 assign   consider_forest        = false   # %consider_forest% | Activate to prefer a route in forest or green areas| boolean
 assign   consider_town          = false   # %consider_town% | Activate to bypass cities / big towns as far as possible | boolean
-assign   consider_traffic       = 1       # %consider_traffic% | how do you plan to drive the tour? |  [1=as cyclist alone in the week, 0.5=as cyclist alone at weekend, 0.3 =with a group of cyclists, 0.1=with a group of cyclists at week-end]
 
 assign   shortest_way             0    # 0 as default, duplicate shortest standard profile, SAC access limit ignored for now
 
@@ -359,36 +358,7 @@ assign town_penalty
      switch estimated_town_class=5  1.4
      switch estimated_town_class=6  1.6 99 0
 
-assign trafficpenalty =
-#	if any_cycleway then   0
-#	else
-if highway=primary|primary_link then
-    (
-      if   estimated_traffic_class=1|2  then 0
-      else if estimated_traffic_class=3 then multiply  0.4  consider_traffic
-      else if estimated_traffic_class=4 then multiply 0.8   consider_traffic
-      else if estimated_traffic_class=5 then multiply 1     consider_traffic
-      else if estimated_traffic_class=6|7 then multiply 2   consider_traffic
-      else   multiply 0.6  consider_traffic
-    )
-    else if highway=secondary|secondary_link then
-    (
-      if   estimated_traffic_class=1|2  then multiply 0.1   consider_traffic
-      else if estimated_traffic_class=3 then multiply 0.3   consider_traffic
-      else if estimated_traffic_class=4 then multiply 0.7   consider_traffic
-      else if estimated_traffic_class=5 then multiply 1     consider_traffic
-      else if estimated_traffic_class=6|7 then multiply 1.5 consider_traffic
-      else  multiply 0.2 consider_traffic
-    )
-    else if highway=tertiary|tertiary_link then
-    (
-      if      estimated_traffic_class=1|2 then multiply 0.1 consider_traffic
-      else if estimated_traffic_class=3 then multiply 0.2   consider_traffic
-      else if estimated_traffic_class=4 then multiply 0.5   consider_traffic
-      else   multiply  if estimated_traffic_class=5|6|7 then multiply 1 consider_traffic
-      else 0.1 consider_traffic
-    )
-    else 0
+assign trafficpenalty = 0
 
 assign costfactor
 add town_penalty

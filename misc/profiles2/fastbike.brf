@@ -23,7 +23,7 @@ assign allow_steps           = true   # %allow_steps% | Set to false to disallow
 assign allow_ferries         = true   # %allow_ferries% | set to false to disallow ferries | boolean
 assign allow_motorways       = false  # %allow_motorways% | Set to true to allow motorways (useful in Asia / Oceania for example) | boolean
 
-assign consider_traffic      = false  # %consider_traffic% | Activate to avoid traffic | boolean
+assign consider_traffic      = 1      # %consider_traffic% | how do you plan to drive the tour? |  [1=as cyclist alone in the week, 0.5=as cyclist alone at weekend, 0.3 =with a group of cyclists, 0.1=with a group of cyclists at week-end, 0.0=do not consider traffic]
 assign consider_noise        = false  # %consider_noise% | Activate to prefer a low-noise route | boolean
 assign consider_river        = false  # %consider_river% | Activate to prefer a route along rivers, lakes, etc. | boolean
 assign consider_forest       = false  # %consider_forest% | Activate to prefer a route in forest or parks | boolean
@@ -154,43 +154,14 @@ assign onewaypenalty =
 assign hascycleway = not
   and ( or cycleway= cycleway=no|none ) and ( or cycleway:left= cycleway:left=no ) ( or cycleway:right= cycleway:right=no )
 
-assign trafficpenalty0 =
-  if consider_traffic then
-  (
-    if highway=primary|primary_link then
-    (
-      if      estimated_traffic_class=4 then 0.2
-      else if estimated_traffic_class=5 then 0.4
-      else if estimated_traffic_class=6|7 then 0.6
-      else 0
-    )
-    else if highway=secondary|secondary_link then
-    (
-      if      estimated_traffic_class=3 then 0.2
-      else if estimated_traffic_class=4 then 0.4
-      else if estimated_traffic_class=5 then 0.6
-      else if estimated_traffic_class=6|7 then 1
-      else 0
-    )
-    else if highway=tertiary|tertiary_link then
-    (
-      if      estimated_traffic_class=2 then 0.1
-      else if estimated_traffic_class=3 then 0.3
-      else if estimated_traffic_class=4 then 0.5
-      else if estimated_traffic_class=5|6|7 then 1
-      else 0
-    )
-    else 0
-  )
-  else 0
 
 assign trafficpenalty =
-  if consider_traffic then
-  (
-    if hascycleway then min 0.3 trafficpenalty0
-    else trafficpenalty0
-  )
-  else 0
+      if   estimated_traffic_class=|1|2  then 0
+      else if estimated_traffic_class=3 then multiply   0.3   consider_traffic
+      else if estimated_traffic_class=4 then multiply   0.6   consider_traffic
+      else if estimated_traffic_class=5 then multiply   0.9   consider_traffic
+      else if estimated_traffic_class=6|7 then multiply 1.5   consider_traffic
+      else 0
 
 assign isresidentialorliving = or highway=residential|living_street living_street=yes
 
