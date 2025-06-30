@@ -221,6 +221,14 @@ public class BRouterWorker {
     bw.write("\n");
     writeWPList(bw, waypoints);
     writeWPList(bw, rc.nogopoints);
+    if (rc.keyValues != null) {
+      StringBuilder sb = new StringBuilder();
+      for (Map.Entry<String, String> e : rc.keyValues.entrySet()) {
+        sb.append(sb.length()>0 ? "&" : "").append(e.getKey()).append("=").append(e.getValue());
+      }
+      bw.write(sb.toString());
+      bw.write("\n");
+    }
     bw.close();
   }
 
