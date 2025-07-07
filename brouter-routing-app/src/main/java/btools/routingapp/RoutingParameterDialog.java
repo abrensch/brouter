@@ -377,8 +377,8 @@ public class RoutingParameterDialog extends AppCompatActivity {
             for (String tmp : sa) {
               // Add the name and address to the ListPreference enties and entyValues
               //L.v("AFTrack", "device: "+device.getName() + " -- " + device.getAddress());
-              entryValues[i] = "" + i;
               entries[i] = tmp.trim();
+              entryValues[i] = entries[i].split("=")[0].trim();
               if (entryValues[i].equals(s)) ii = i;
               i++;
             }
@@ -394,11 +394,14 @@ public class RoutingParameterDialog extends AppCompatActivity {
             listPref.setSummary(p.description);
             listPref.setOnPreferenceChangeListener((Preference preference, Object newValue) -> {
               p.value = (String) newValue;
-              int iii = Integer.decode(p.value);
-              listPref.setTitle(p.name + ": " + entries[iii]);
-
+              for (int iii = 0; iii < entryValues.length; iii++) {
+                String entryValue = entryValues[iii];
+                if (entryValue.equals(p.value)) {
+                  listPref.setTitle(p.name + ": " + entries[iii]);
+                  break;
+                }
+              }
               return true;
-
             });
 
             gpsPrefCat.addPreference(listPref);
