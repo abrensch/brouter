@@ -116,6 +116,7 @@ public final class VoiceHintProcessor {
         input.angle = roundAboutTurnAngle;
         input.goodWay.turnangle = roundAboutTurnAngle;
         input.distanceToNext = distance;
+        input.turnAngleConsumed = true;
         //input.roundaboutExit = startTurn < 0 ? roundaboutExit : -roundaboutExit;
         input.roundaboutExit = roundAboutTurnAngle < 0 ? roundaboutExit : -roundaboutExit;
         float tmpangle = 0;
@@ -314,7 +315,13 @@ public final class VoiceHintProcessor {
           input.cmd == VoiceHint.KR ||
           input.cmd == VoiceHint.KL)
           && !input.goodWay.isLinktType()) {
-          if (input.goodWay.getPrio() < input.maxBadPrio && (inputLastSaved != null && inputLastSaved.distanceToNext > catchingRange)) {
+          if (
+            ((Math.abs(input.lowerBadWayAngle) < 35.f ||
+              input.higherBadWayAngle < 35.f)
+              || input.goodWay.getPrio() < input.maxBadPrio)
+              && (inputLastSaved != null && inputLastSaved.distanceToNext > minRange)
+              && (input.distanceToNext > minRange)
+              ) {
             results.add(input);
           } else {
             if (inputLast != null) { // when drop add distance to last
