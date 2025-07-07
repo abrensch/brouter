@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.zip.ZipEntry;
@@ -44,6 +45,8 @@ import btools.router.OsmTrack;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
 import btools.router.RoutingHelper;
+import btools.router.RoutingParamCollector;
+
 import btools.util.CheapRuler;
 
 public class BRouterView extends View {
@@ -437,6 +440,7 @@ public class BRouterView extends View {
 
   public void startProcessing(String profile) {
     rawTrackPath = null;
+    String params = null;
     if (profile.startsWith("<repeat")) {
       needsViaSelection = needsNogoSelection = needsWaypointSelection = false;
       try {
@@ -446,6 +450,7 @@ public class BRouterView extends View {
         rawTrackPath = br.readLine();
         wpList = readWpList(br, false);
         nogoList = readWpList(br, true);
+        params = br.readLine();
         br.close();
       } catch (Exception e) {
         AppLogger.log(AppLogger.formatThrowable(e));
@@ -493,6 +498,15 @@ public class BRouterView extends View {
 
       rc.localFunction = profilePath;
       rc.turnInstructionMode = cor.getTurnInstructionMode();
+
+      if (params != null && params.length() > 2) {
+        try {
+          Map<String, String> profileParamsCollection = null;
+          RoutingParamCollector routingParamCollector = new RoutingParamCollector();
+          profileParamsCollection = routingParamCollector.getUrlParams(params);
+          routingParamCollector.setProfileParams(rc, profileParamsCollection);
+        } catch (Exception e) {}
+      }
 
       int plain_distance = 0;
       int maxlon = Integer.MIN_VALUE;
