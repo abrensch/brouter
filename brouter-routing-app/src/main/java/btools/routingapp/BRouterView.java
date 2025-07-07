@@ -499,7 +499,7 @@ public class BRouterView extends View {
       rc.localFunction = profilePath;
       rc.turnInstructionMode = cor.getTurnInstructionMode();
 
-      if (params != null || params.length() > 2) {
+      if (params != null && params.length() > 2) {
         try {
           Map<String, String> profileParamsCollection = null;
           RoutingParamCollector routingParamCollector = new RoutingParamCollector();
