@@ -10,6 +10,8 @@ Android
 - use parameter changed in the BRouter app
 - reuse parameter for repeat:profile function
 - use unordered values for profile listbox (e.g. fastbike profile)
+- Android 16
+
 
 Library
 
