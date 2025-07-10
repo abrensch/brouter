@@ -24,7 +24,7 @@ android {
         resValue('string', 'app_version', defaultConfig.versionName)
 
         minSdkVersion 21
-        targetSdkVersion 34
+        targetSdkVersion 36
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
