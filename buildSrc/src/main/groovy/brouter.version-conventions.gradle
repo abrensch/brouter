@@ -4,4 +4,4 @@
 // app: build.gradle (versionCode only)
 // OsmTrack (version and versionDate)
 // docs revisions.md (version and versionDate)
-version '1.7.7'
+version '1.7.8'
