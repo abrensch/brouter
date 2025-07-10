@@ -30,13 +30,18 @@ interface IBRouterService {
     //  "profile"         = profile file name without .brf
     //  "alternativeidx"  = [0|1|2|3] (optional, default 0)
     //  "exportWaypoints" = 1 to export them (optional, default is no export)
+    //  "exportCorrectedWaypoints" = 1 to export them (optional, default is no export)
     //  "pois"            = lon,lat,name|... (optional)
     //  "extraParams"     = Bundle key=value list for a profile setup (like "profile:")
     //  "timode"          = turnInstructionMode [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style] default 0
     //  "heading"         = angle (optional to give a route a start direction)
-    //  "direction"       = angle (optional, used like "heading" on a recalculation request by Locus as start direction)
-    //  "engineMode"      = 0 (optional, default 0, 2 = get elevation, 3 = get segment info)
-
+    //  "direction"       = angle (optional, used like "heading" on a recalculation request by Locus as start direction, is also used for round trip as start direction - on value = -1, BRouter uses a random direction)
+    //  "engineMode"      = 0 (optional, default 0, 2 = get elevation, 3 = get segment info, 4 = round trip)
+    //
+    //  extra round trip parameter
+    //  "roundTripDistance" = distance to the round trip points (default 1500)
+    //  "roundTripPoints"   = number of used points (default 5)
+    //
     // return null if all ok and no path given, the track if ok and path given, an error message if it was wrong
     //        the resultas string when 'pathToFileResult' is null, this should be default when Android Q or later
     // call in a background thread, heavy task!

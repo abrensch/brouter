@@ -7,6 +7,25 @@
 Android
 
 - enable edit for unused profiles
+- use parameter changed in the BRouter app
+- reuse parameter for repeat:profile function
+- use unordered values for profile listbox (e.g. fastbike profile)
+- Android 16
+
+
+Library
+
+- round trip function (engineMode = 4)
+- get way info (engineMode = 3)
+- voice hint for motorway exit
+- dynamic range for searching way points
+- enable a check for the start way
+- avoid u-turns on via points (if not corrected)
+- correct via points on or near roundabouds
+- enable export of the corrected way points
+- new method for pseudo-tags generation
+
+[Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.7.8%22+is%3Aclosed)
 
 
 ### [brouter-1.7.7.zip](../brouter_bin/brouter-1.7.7.zip) (current revision, 23.07.2024)
