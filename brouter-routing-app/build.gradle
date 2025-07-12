@@ -18,7 +18,7 @@ android {
         namespace 'btools.routingapp'
         applicationId "btools.routingapp"
 
-        versionCode 54
+        versionCode 55
         versionName project.version
 
         resValue('string', 'app_version', defaultConfig.versionName)

@@ -2,7 +2,7 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### next version
+### [brouter-1.7.8.zip](../brouter_bin/brouter-1.7.8.zip) (current revision, 12.07.2025)
 
 Android
 
@@ -28,7 +28,7 @@ Library
 [Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.7.8%22+is%3Aclosed)
 
 
-### [brouter-1.7.7.zip](../brouter_bin/brouter-1.7.7.zip) (current revision, 23.07.2024)
+### [brouter-1.7.7.zip](../brouter_bin/brouter-1.7.7.zip) (23.07.2024)
 
 - new Android API 34
 
