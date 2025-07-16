@@ -766,6 +766,16 @@ bicycle_road;0000006521 designated
 cyclestreet;0000000001 yes
 cyclestreet;0000000001 designated
 
+traffic_calming;0000000001 bump
+traffic_calming;0000000001 hump
+traffic_calming;0000000001 table
+traffic_calming;0000000001 yes
+traffic_calming;0000000001 cushion
+traffic_calming;0000000001 rumble_strip
+traffic_calming;0000000001 choker
+traffic_calming;0000000001 chicane
+traffic_calming;0000000001 choked_table
+
 construction;0000144871 yes
 construction;0000008214 minor
 construction;0029035962 residential
@@ -896,25 +906,13 @@ access;0000000973 agricultural forestry
 access;0000000942 designated official
 access;0000000001 permit
 
-traffic_calming;0000045987 bump bump;choker mini_bumps
-traffic_calming;0000040022 hump hump;choker
-traffic_calming;0000012499 table table;choker choked_table
-traffic_calming;0000006808 yes
-traffic_calming;0000005754 cushion cushion;choker
-traffic_calming;0000005466 choker choker;cushion choker;hump choker;table choker;bump
-traffic_calming;0000005305 island
-traffic_calming;0000004686 chicane
-traffic_calming;0000004032 rumble_strip
-traffic_calming;0000000186 dip
-
-traffic_signals:direction;0000062645 forward
-traffic_signals:direction;0000033961 backward
-traffic_signals:direction;0000007309 both forward;backward backward;forward
-
-traffic_signals;0000000001 signal traffic_lights pedestrian_crossing yes crossing junction level_crossing crossing_only pedestrian normal signals on_demand crossing_on_demand
-traffic_signals;0000000001 blinker emergency no blink_mode continuous_green blink emergency_priority
-traffic_signals;0000000001 tram_priority bus_priority stop tram_priority;blinker
-traffic_signals;0000000001 ramp_meter
+bicycle;0000267569 yes
+bicycle;0000067796 no
+bicycle;0000004075 designated official
+bicycle;0000002596 dismount
+bicycle;0000000498 permissive
+bicycle;0000000359 private
+bicycle;0000000075 destination
 
 foot;0000272169 yes
 foot;0000036271 no
@@ -923,13 +921,28 @@ foot;0000000960 private
 foot;0000000833 permissive
 foot;0000000127 destination customers
 
-bicycle;0000267569 yes
-bicycle;0000067796 no
-bicycle;0000004075 designated official
-bicycle;0000002596 dismount
-bicycle;0000000498 permissive
-bicycle;0000000359 private
-bicycle;0000000075 destination
+noexit;0000195286 yes
+
+traffic_signals:direction;0000062645 forward
+traffic_signals:direction;0000033961 backward
+traffic_signals:direction;0000007309 both forward;backward backward;forward
+
+traffic_calming;0000045987 bump bump;choker mini_bumps
+traffic_calming;0000040022 hump hump;choker
+traffic_calming;0000012499 table table;choker
+traffic_calming;0000006808 yes
+traffic_calming;0000005754 cushion cushion;choker
+traffic_calming;0000005466 choker choker;cushion choker;hump choker;table choker;bump
+traffic_calming;0000005305 island
+traffic_calming;0000004686 chicane
+traffic_calming;0000004032 rumble_strip
+traffic_calming;0000000186 dip double_dip
+traffic_calming;0000000001 choked_table
+
+traffic_signals;0000000001 signal traffic_lights pedestrian_crossing yes crossing junction level_crossing crossing_only pedestrian normal signals on_demand crossing_on_demand
+traffic_signals;0000000001 blinker emergency no blink_mode continuous_green blink emergency_priority
+traffic_signals;0000000001 tram_priority bus_priority stop tram_priority;blinker
+traffic_signals;0000000001 ramp_meter
 
 motorcar;0000038901 yes
 motorcar;0000009323 no
@@ -1007,7 +1020,9 @@ waterway;0000001647 lock_gate
 waterway;0000000425 waterfall
 waterway;0000000170 lock
 
-noexit;0000195286 yes
+surface;0000000001 asphalt
+surface;0000000001 paved paving_stones sett cobblestone
+surface;0000000001 unpaved compacted gravel grass ground
 
 ford;0000037927 yes
 ford;0000000310 stepping_stones
