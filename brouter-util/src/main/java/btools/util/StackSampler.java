@@ -47,6 +47,7 @@ public class StackSampler extends Thread {
     }
   }
 
+  @SuppressWarnings({"deprecation", "RedundantSuppression"}) // Android
   public void dumpThreads() {
     try {
       int wait1 = rand.nextInt(interval);
