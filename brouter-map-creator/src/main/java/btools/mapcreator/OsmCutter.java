@@ -113,7 +113,11 @@ public class OsmCutter extends MapCreatorBase {
   }
 
   public void setDbTagFilename(String filename) {
-    dbPseudoTagProvider = new DatabasePseudoTagProvider(filename);
+    dbPseudoTagProvider = new DatabasePseudoTagProvider(filename, null);
+  }
+
+  public void setDbTagDatabase(String jdbcurl) {
+    dbPseudoTagProvider = new DatabasePseudoTagProvider(null, jdbcurl);
   }
 
   @Override
