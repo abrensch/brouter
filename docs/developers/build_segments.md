@@ -49,6 +49,8 @@ _Note:_ It is possible that you encounter an error complaining about not being
 able to run `bash^M` on Linux/Mac OS. You can fix this one by running
 `sed -i -e 's/\r$//' process_pbf_planet.sh`.
 
+_Note:_ The file 'process_pbf_planet_production.sh' makes a more compact process and allows the integration of pseudo tags.
+
 
 ## Run a generation for elevation data tiles
 
