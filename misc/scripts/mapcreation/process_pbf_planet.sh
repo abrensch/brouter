@@ -35,8 +35,8 @@ PLANET_FILE=${PLANET_FILE:-$(realpath "./planet-latest.osm.pbf")}
 # https://cgiarcsi.community/data/srtm-90m-digital-elevation-database-v4-1/
 # (use the "ArcInfo ASCII" version) and put the ZIP files directly in this
 # folder:
-SRTM_PATH="/private-backup/srtm1"
-SRTM_FALLBACK_PATH="/private-backup/srtm3"
+SRTM_PATH="/private-backup/srtm1_bef"
+SRTM_FALLBACK_PATH="/private-backup/srtm3_bef"
 
 mkdir tmp
 cd tmp
