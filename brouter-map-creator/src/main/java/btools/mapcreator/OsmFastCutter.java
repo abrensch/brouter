@@ -13,7 +13,7 @@ public class OsmFastCutter extends MapCreatorBase {
   public static void main(String[] args) throws Exception {
     System.out.println("*** OsmFastCutter: cut an osm map in node-tiles + way-tiles");
     if (args.length != 11 && args.length != 12 && args.length != 13) {
-      String common = "java OsmFastCutter <lookup-file> <node-dir> <way-dir> <node55-dir> <way55-dir> <border-file> <out-rel-file> <out-res-file> <filter-profile> <report-profile> <check-profile> <map-file> [db-tag-filename]";
+      String common = "java OsmFastCutter <lookup-file> <node-dir> <way-dir> <node55-dir> <way55-dir> <border-file> <out-rel-file> <out-res-file> <filter-profile> <report-profile> <check-profile> <map-file> [db-tag-filename | db-tag-jdbcurl]";
 
       System.out.println("usage: bzip2 -dc <map> | " + common);
       System.out.println("or   : " + common + " <inputfile> ");
@@ -37,10 +37,16 @@ public class OsmFastCutter extends MapCreatorBase {
     );
   }
 
-  public static void doCut(File lookupFile, File nodeDir, File wayDir, File node55Dir, File way55Dir, File borderFile, File relFile, File resFile, File profileAll, File profileReport, File profileCheck, File mapFile, String dbTagFilename) throws Exception {
+  public static void doCut(File lookupFile, File nodeDir, File wayDir, File node55Dir, File way55Dir, File borderFile, File relFile, File resFile, File profileAll, File profileReport, File profileCheck, File mapFile, String dbTagInfo) throws Exception {
     // **** run OsmCutter ****
     OsmCutter cutter = new OsmCutter();
-    if (dbTagFilename != null) cutter.setDbTagFilename(dbTagFilename);
+    if (dbTagInfo != null) {
+      if (dbTagInfo.toLowerCase().startsWith("jdbc")) {
+        cutter.setDbTagDatabase(dbTagInfo);
+      } else {
+        cutter.setDbTagFilename(dbTagInfo);
+      }
+    }
 
     // ... inject WayCutter
     cutter.wayCutter = new WayCutter();
