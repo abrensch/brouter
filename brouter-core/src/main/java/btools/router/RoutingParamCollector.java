@@ -1,5 +1,8 @@
 package btools.router;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -9,14 +12,13 @@ import java.util.Map;
 import java.util.StringTokenizer;
 
 public class RoutingParamCollector {
-
-  final static boolean DEBUG = false;
+  private Logger logger = LoggerFactory.getLogger(RoutingParamCollector.class);
 
   /**
    * get a list of points and optional extra info for the points
    *
-   * @param lonLats  linked list separated by ';' or '|'
-   * @return         a list
+   * @param lonLats linked list separated by ';' or '|'
+   * @return a list
    */
   public List<OsmNodeNamed> getWayPointList(String lonLats) {
     if (lonLats == null) throw new IllegalArgumentException("lonlats parameter not set");
@@ -51,9 +53,9 @@ public class RoutingParamCollector {
   /**
    * get a list of points (old style, positions only)
    *
-   * @param lons  array with longitudes
-   * @param lats  array with latitudes
-   * @return      a list
+   * @param lons array with longitudes
+   * @param lats array with latitudes
+   * @return a list
    */
   public List<OsmNodeNamed> readPositions(double[] lons, double[] lats) {
     List<OsmNodeNamed> wplist = new ArrayList<>();
@@ -96,9 +98,9 @@ public class RoutingParamCollector {
   /**
    * read a url like parameter list linked with '&'
    *
-   * @param url  parameter list
-   * @return     a hashmap of the parameter
-   * @throws     UnsupportedEncodingException
+   * @param url parameter list
+   * @return a hashmap of the parameter
+   * @throws UnsupportedEncodingException
    */
   public Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
     Map<String, String> params = new HashMap<>();
@@ -121,9 +123,9 @@ public class RoutingParamCollector {
   /**
    * fill a parameter map into the routing context
    *
-   * @param rctx    the context
-   * @param wplist  the list of way points needed for 'straight' parameter
-   * @param params  the list of parameters
+   * @param rctx   the context
+   * @param wplist the list of way points needed for 'straight' parameter
+   * @param params the list of parameters
    */
   public void setParams(RoutingContext rctx, List<OsmNodeNamed> wplist, Map<String, String> params) {
     if (params != null) {
@@ -183,7 +185,7 @@ public class RoutingParamCollector {
       for (Map.Entry<String, String> e : params.entrySet()) {
         String key = e.getKey();
         String value = e.getValue();
-        if (DEBUG) System.out.println("params " + key + " " + value);
+        logger.debug("params key={} value={}", key, value);
 
         if (key.equals("straight")) {
           try {
@@ -193,7 +195,7 @@ public class RoutingParamCollector {
               if (wplist.size() > v) wplist.get(v).direct = true;
             }
           } catch (Exception ex) {
-            System.err.println("error " + ex.getStackTrace()[0].getLineNumber() + " " + ex.getStackTrace()[0] + "\n" + ex);
+            logger.error("error {}", ex.getStackTrace()[0].getLineNumber(), ex);
           }
         } else if (key.equals("pois")) {
           rctx.poipoints = readPoisList(value);
@@ -212,7 +214,7 @@ public class RoutingParamCollector {
             rctx.roundTripPoints = 5;
           }
         } else if (key.equals("allowSamewayback")) {
-          rctx.allowSamewayback = Integer.parseInt(value)==1;
+          rctx.allowSamewayback = Integer.parseInt(value) == 1;
         } else if (key.equals("alternativeidx")) {
           rctx.setAlternativeIdx(Integer.parseInt(value));
         } else if (key.equals("turnInstructionMode")) {
@@ -245,8 +247,8 @@ public class RoutingParamCollector {
   /**
    * fill profile parameter list
    *
-   * @param rctx    the routing context
-   * @param params  the list of parameters
+   * @param rctx   the routing context
+   * @param params the list of parameters
    */
   public void setProfileParams(RoutingContext rctx, Map<String, String> params) {
     if (params != null) {
@@ -255,7 +257,7 @@ public class RoutingParamCollector {
       for (Map.Entry<String, String> e : params.entrySet()) {
         String key = e.getKey();
         String value = e.getValue();
-        if (DEBUG) System.out.println("params " + key + " " + value);
+        logger.debug("params key={} value={}", key, value);
         rctx.keyValues.put(key, value);
       }
     }

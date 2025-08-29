@@ -73,7 +73,7 @@ public class RoutingEngineTest {
 
     RoutingEngine re = new RoutingEngine(
       wd + "/" + trackname,
-      wd + "/" + trackname,
+      null,
       new File(wd, "/../../../../brouter-map-creator/build/resources/test/tmp/segments"),
       wplist,
       rctx);

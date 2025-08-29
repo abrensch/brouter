@@ -1,5 +1,8 @@
 package btools.router;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -27,6 +30,7 @@ import btools.mapaccess.OsmNodesMap;
 import btools.mapaccess.PhysicalFile;
 
 public class AreaReader {
+  private Logger logger = LoggerFactory.getLogger(AreaReader.class);
 
   File segmentFolder;
 
@@ -135,7 +139,7 @@ public class AreaReader {
           used++;
       }
     } catch (Exception e) {
-      System.err.println("AreaReader: after " + used + "/" + count + " " + e.getMessage());
+      logger.error("error after used={} / count={}", used, count, e);
       ais.clear();
     } finally {
       if (pf != null)

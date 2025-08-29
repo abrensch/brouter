@@ -6,3 +6,7 @@ plugins {
 application {
     distTar.enabled = false
 }
+
+dependencies {
+    implementation 'ch.qos.logback:logback-classic:1.5.18'
+}
