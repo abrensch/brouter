@@ -399,7 +399,7 @@ assign footaccess =
        else not foot=private|no
 
 assign initialcost =
-       if highway=traffic_signals then 20
+       if or highway=traffic_signals and highway=crossing crossing=traffic_signals then 20
        else
        if bikeaccess then 0
        else ( if footaccess then 100 else 1000000 )
