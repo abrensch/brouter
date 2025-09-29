@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d segment</item>
+        <item quantity="other">%d segmenter</item>
+    </plurals>
+    <string name="cancel_download">Annuller download</string>
+    <string name="import_profile">Importer profil</string>
+    <string name="action_download">Download %s</string>
+    <string name="action_delete">Slet %s</string>
+    <string name="action_update">Opdater %s</string>
+    <string name="action_select">Vælg segmenter</string>
+    <string name="action_cancel">Stop download</string>
+    <string name="summary_segments">Størrelse=%1$s\nFri=%2$s</string>
+    <string name="notification_title">Download segmenter</string>
+
+    <string name="action_choose_folder">Vælg browsedatabasemappe:</string>
+    <string name="action_select_profile">Vælg en routingprofil</string>
+    <string name="main_action">Vælg hovedhandling</string>
+    <string name="main_action_1">Download Manager</string>
+    <string name="main_action_2">BRouter App</string>
+
+    <string name="cancel">Annuller</string>
+    <string name="i_know">Jeg ved</string>
+    <string name="close">Luk</string>
+    <string name="exit">Afslut</string>
+    <string name="ok">OK</string>
+    <string name="success">Succes</string>
+    <string name="error">Der opstod en fejl</string>
+
+    <string name="title_download">BRouter Download Manager</string>
+    <string name="summary_download">*** Bemærk:***
+        \n\nDownload Manager bruges til at downloade routingdata filer,
+        som kan være op til 170 MB hver. Start ikke Download Manager
+        på en mobildataforbindelse uden et dataabonnement!
+        Downloadhastigheden er begrænset til 16 MBit/s.</string>
+    <string name="title_timeoutfree">En timeoutfri beregning er udarbejdet</string>
+    <string name="summary_timeoutfree">Du har gentaget en beregning, der tidligere løb ind i en timeout,
+        da den blev startet fra dit kortværktøj. Hvis du gentager den samme anmodning fra dit kortværktøj,
+        med præcis det samme destinationspunkt og et startpunkt i nærheden, er det garanteret,
+        at denne anmodning ikke får timeout.</string>
+    <string name="title_sdcard">Indtast SDCARD-basismappe:</string>
+    <string name="title_action">Vælg handling</string>
+
+    <string name="action_via_select">Kontroller VIA-valg:</string>
+    <string name="action_nogo_select">Kontroller NoGo-valg:</string>
+    <string name="action_servermode">Servertilstand</string>
+    <string name="action_info">Info</string>
+    <string name="action_calc_route">Beregn rute</string>
+    <string name="action_profile_settings">Profilindstillinger</string>
+    <string name="action_share">Del GPX</string>
+    <string name="action_select_from">Vælg fra</string>
+    <string name="action_select_to">Vælg til/via</string>
+
+    <string name="msg_no_profile">nej profildata</string>
+    <string name="msg_too_much_data">For meget data til download. Reducer venligst.</string>
+    <string name="msg_download_start">Download planlagt. Tjek internetforbindelsen, hvis den ikke starter.</string>
+    <string name="msg_wpt_selection">aktuelt valg af waypoint:\n</string>
+    <string name="msg_no_wpt_selection">Forventer valg af waypoint\n</string>
+    <string name="msg_alternative">Alternativ</string>
+    <string name="msg_status_result">version = BRouter-%1$s \n
+        mem = %2$s \n
+        distance = %3$s km\n
+        filteret stigning = %4$s m\n
+        almindelig stigning = %5$s m\n
+        estimeret tid = %6$s</string>
+    <string name="msg_read_wpt_error">Fejl ved læsning af waypoints</string>
+    <string name="msg_no_wpt">koordinatkilden indeholder ingen waypoints!</string>
+    <string name="msg_too_much_wpts">koordinatkilden indeholder for meget waypoints: %1$d (brug venligst fra/til/via navne)</string>
+
+    <string name="no">Nej</string>
+    <string name="yes">Ja</string>
+
+    <string name="title_delete">Bekræft sletning</string>
+    <string name="summary_delete">Vil du virkelig slette?</string>
+    <string name="title_version">Versionsproblem</string>
+    <string name="summary_version">Basisversionen for fliser er ændret. Hvad skal man gøre?</string>
+    <string name="action_version1">Fortsæt med den aktuelle download, slet andre gamle data</string>
+    <string name="action_version2">Vælg alle til download og start</string>
+    <string name="action_version3">Annuller nu, fuldfør på en anden dag</string>
+    <string name="title_version_diff">Versionsforskelle</string>
+    <string name="summary_version_diff">Basisversionen for nogle fliser er anderledes. Hvad skal man gøre?</string>
+    <string name="action_version_diff1">Download alle forskellige felter</string>
+    <string name="action_version_diff2">Fjern alle forskellige felter</string>
+    <string name="action_version_diff3">Annuller nu, fuldfør på en anden dag</string>
+    <string name="summary_new_version">Den nye dataversion kræver en ny app. Opdater venligst BRouter først</string>
+
+    <string name="msg_download_failed">Download mislykkedes</string>
+    <string name="msg_download_cancel">Download annulleret</string>
+    <string name="msg_download_succeed">Download lykkedes</string>
+    <string name="msg_download_started">Downloader…</string>
+
+
+</resources>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d segment</item>
+        <item quantity="other">%d segment</item>
+    </plurals>
+    <string name="cancel_download">Avbryt nedladdning</string>
+    <string name="import_profile">Importera profil</string>
+    <string name="action_download">Ladda ner %s</string>
+    <string name="action_delete">Ta bort %s</string>
+    <string name="action_update">Uppdatera %s</string>
+    <string name="action_select">Välj segment</string>
+    <string name="action_cancel">Stoppa nedladdning</string>
+    <string name="summary_segments">Storlek=%1$s\nFri=%2$s</string>
+    <string name="notification_title">Ladda ner segment</string>
+
+    <string name="action_choose_folder">Välj webbläsarens databaskatalog:</string>
+    <string name="action_select_profile">Välj en routingprofil</string>
+    <string name="main_action">Välj huvudåtgärd</string>
+    <string name="main_action_1">Nedladdningshanteraren</string>
+    <string name="main_action_2">BRouter-app</string>
+
+    <string name="cancel">Avbryt</string>
+    <string name="i_know">Jag vet</string>
+    <string name="close">Stäng</string>
+    <string name="exit">Avsluta</string>
+    <string name="ok">OK</string>
+    <string name="success">Lyckades</string>
+    <string name="error">Ett fel uppstod</string>
+
+    <string name="title_download">BRouter Nedladdningshanteraren</string>
+    <string name="summary_download">*** Observera:***
+        \n\nNedladdningshanteraren används för att ladda ner routingdatafiler
+        som kan vara upp till 170 MB vardera. Starta inte Nedladdningshanteraren
+        på en mobildataanslutning utan ett dataabonnemang!
+        Nedladdningshastigheten är begränsad till 16 MBit/s.</string>
+    <string name="title_timeoutfree">En timeout-fri beräkning har förberetts</string>
+    <string name="summary_timeoutfree">Du har upprepat en beräkning som tidigare stötte på en timeout
+        när den startades från ditt kartverktyg. Om du upprepar samma begäran från ditt kartverktyg,
+        med exakt samma destinationspunkt och en närliggande startpunkt,
+        garanteras att denna begäran inte får timeout.</string>
+    <string name="title_sdcard">Ange SDCARD-baskatalog:</string>
+    <string name="title_action">Välj åtgärd</string>
+
+    <string name="action_via_select">Kontrollera VIA-val:</string>
+    <string name="action_nogo_select">Kontrollera NoGo-val:</string>
+    <string name="action_servermode">Serverläge</string>
+    <string name="action_info">Info</string>
+    <string name="action_calc_route">Beräkna rutt</string>
+    <string name="action_profile_settings">Profilinställningar</string>
+    <string name="action_share">Dela GPX</string>
+    <string name="action_select_from">Välj från</string>
+    <string name="action_select_to">Välj till/via</string>
+
+    <string name="msg_no_profile">nej profildata</string>
+    <string name="msg_too_much_data">För mycket data för nedladdning. Minska.</string>
+    <string name="msg_download_start">Nedladdning schemalagd. Kontrollera internetanslutningen om den inte startar.</string>
+    <string name="msg_wpt_selection">aktuellt val av waypoint:\n</string>
+    <string name="msg_no_wpt_selection">Förväntar val av waypoint\n</string>
+    <string name="msg_alternative">Alternativ</string>
+    <string name="msg_status_result">version = BRouter-%1$s \n
+        mem = %2$s \n
+        avstånd = %3$s km\n
+        filtrerad uppstigning = %4$s m\n
+        vanlig uppstigning = %5$s m\n
+        uppskattad tid = %6$s</string>
+    <string name="msg_read_wpt_error">Fel vid läsning av waypoints</string>
+    <string name="msg_no_wpt">koordinatkällan innehåller inga waypoints!</string>
+    <string name="msg_too_much_wpts">koordinatkällan innehåller för mycket vägpunkter: %1$d (använd från/till/via-namn)</string>
+
+    <string name="no">Nej</string>
+    <string name="yes">Ja</string>
+
+    <string name="title_delete">Bekräfta borttagning</string>
+    <string name="summary_delete">Vill du verkligen ta bort?</string>
+    <string name="title_version">Versionsproblem</string>
+    <string name="summary_version">Basversionen för kakel har ändrats. Vad ska man göra?</string>
+    <string name="action_version1">Fortsätt med aktuell nedladdning, ta bort annan gammal data</string>
+    <string name="action_version2">Markera alla för nedladdning och starta</string>
+    <string name="action_version3">Avbryt nu, slutför en annan dag</string>
+    <string name="title_version_diff">Versionsskillnader</string>
+    <string name="summary_version_diff">Basversionen för vissa kakel är annorlunda. Vad ska man göra?</string>
+    <string name="action_version_diff1">Ladda ner alla olika rutor</string>
+    <string name="action_version_diff2">Ta bort alla olika rutor</string>
+    <string name="action_version_diff3">Avbryt nu, slutför en annan dag</string>
+    <string name="summary_new_version">Den nya dataversionen behöver en ny app. Uppdatera BRouter först</string>
+
+    <string name="msg_download_failed">Nedladdningen misslyckades</string>
+    <string name="msg_download_cancel">Nedladdningen avbröts</string>
+    <string name="msg_download_succeed">Nedladdningen lyckades</string>
+    <string name="msg_download_started">Nedladdning…</string>
+
+
+</resources>
