@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d segmento</item>
+        <item quantity="other">%d segmentos</item>
+    </plurals>
+    <string name="cancel_download">Cancelar download</string>
+    <string name="import_profile">Importar perfil</string>
+    <string name="action_download">Download %s</string>
+    <string name="action_delete">Apagar %s</string>
+    <string name="action_update">Actualizar %s</string>
+    <string name="action_select">Selecionar segmentos</string>
+    <string name="action_cancel">Parar download</string>
+    <string name="summary_segments">Tamanho=%1$s\nGrátis=%2$s</string>
+    <string name="notification_title">Descarregar segmentos</string>
+
+    <string name="action_choose_folder">Escolher separador diretório da base de dados:</string>
+    <string name="action_select_profile">Selecionar um perfil de encaminhamento</string>
+    <string name="main_action">Selecionar Ação Principal</string>
+    <string name="main_action_1">Gestor de downloads</string>
+    <string name="main_action_2">Aplicação BRouter</string>
+
+    <string name="cancel">Cancelar</string>
+    <string name="i_know">Eu sei</string>
+    <string name="close">Fechar</string>
+    <string name="exit">Sair</string>
+    <string name="ok">OK</string>
+    <string name="success">Sucesso</string>
+    <string name="error">Ocorreu um erro</string>
+
+    <string name="title_download">Gestor de Downloads BRouter</string>
+    <string name="summary_download">*** Atenção:***
+        \n\nO Gestor de Downloads é utilizado para descarregar ficheiros de dados de encaminhamento
+        que podem ter até 170 MB cada. Não inicie o Gestor de Downloads
+        numa ligação de dados móveis sem um plano de dados!
+        A velocidade de download está limitada a 16 MBit/s.</string>
+    <string name="title_timeoutfree">Cálculo sem tempo limite preparado com sucesso</string>
+    <string name="summary_timeoutfree">Repetiu com sucesso um cálculo que anteriormente atingiu o tempo limite
+        ao ser iniciado a partir da sua ferramenta de mapa. Se repetir a mesma solicitação da sua
+        ferramenta de mapa, com exatamente o mesmo ponto de destino e um ponto de partida próximo,
+        esta solicitação certamente não expirará.</string>
+    <string name="title_sdcard">Introduza o directório base do SDCARD:</string>
+    <string name="title_action">Selecionar Ação</string>
+
+    <string name="action_via_select">Verificar Seleção VIA:</string>
+    <string name="action_nogo_select">Verificar Seleção NoGo:</string>
+    <string name="action_servermode">Modo Servidor</string>
+    <string name="action_info">Informações</string>
+    <string name="action_calc_route">Calcular Rota</string>
+    <string name="action_profile_settings">Definições de Perfil</string>
+    <string name="action_share">Partilhar GPX</string>
+    <string name="action_select_from">Selecionar de</string>
+    <string name="action_select_to">Selecionar para/via</string>
+
+    <string name="msg_no_profile">sem dados de perfil</string>
+    <string name="msg_too_much_data">Muitos dados para download. Reduza.</string>
+    <string name="msg_download_start">Download agendado. Verifique a ligação à internet se não iniciar.</string>
+    <string name="msg_wpt_selection">seleção atual dos pontos de passagem:\n</string>
+    <string name="msg_no_wpt_selection">Aguarda seleção de waypoints\n</string>
+    <string name="msg_alternative">Alternativa</string>
+    <string name="msg_status_result">versão = BRouter-%1$s \n
+        mem = %2$s \n
+        distância = %3$s km\n
+        ascendência filtrada = %4$s m\n
+        ascendência simples = %5$s m\n
+        tempo estimado = %6$s</string>
+    <string name="msg_read_wpt_error">Erro ao ler waypoints</string>
+    <string name="msg_no_wpt">a origem das coordenadas não contém nenhum waypoint!</string>
+    <string name="msg_too_much_wpts">a fonte da coordenada contém muitos pontos de referência: %1$d (utilizar nomes de/para/via)</string>
+
+    <string name="no">Não</string>
+    <string name="yes">Sim</string>
+
+    <string name="title_delete">Confirmar eliminação</string>
+    <string name="summary_delete">Deseja realmente eliminar?</string>
+    <string name="title_version">Problema de versão</string>
+    <string name="summary_version">A versão base dos blocos foi alterada. O que fazer?</string>
+    <string name="action_version1">Continuar com o download atual, eliminar outros dados antigos</string>
+    <string name="action_version2">Selecionar tudo para download e iniciar</string>
+    <string name="action_version3">Cancelar agora, concluir noutro dia</string>
+    <string name="title_version_diff">Diferenças de versão</string>
+    <string name="summary_version_diff">A versão base de alguns blocos é diferente. O que fazer?</string>
+    <string name="action_version_diff1">Descarregar todos os blocos diferentes</string>
+    <string name="action_version_diff2">Remover todos os blocos diferentes</string>
+    <string name="action_version_diff3">Cancelar agora, concluir noutro dia</string>
+    <string name="summary_new_version">A nova versão de dados necessita de uma nova aplicação. Atualize o BRouter primeiro</string>
+
+    <string name="msg_download_failed">Falha no download</string>
+    <string name="msg_download_cancel">Download cancelado</string>
+    <string name="msg_download_succeed">Download concluído</string>
+    <string name="msg_download_started">A descarregar…</string>
+
+
+</resources>
