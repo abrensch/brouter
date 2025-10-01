@@ -76,7 +76,28 @@ assign is_ldcr =
      if ignore_cycleroutes then false
      else any_cycleroute
 
-assign isbike = or bicycle_road=yes or bicycle=yes or or bicycle=permissive bicycle=designated lcn=yes
+assign badoneway =
+       if reversedirection=yes then
+         if oneway:bicycle=yes then true
+         else if oneway= then junction=roundabout
+         else oneway=yes|true|1
+       else oneway=-1
+
+# set isbike considering access, local cycle route or the presence of a usable cycleway on the highway
+assign isbike =
+       or or bicycle_road=yes or bicycle=yes or or bicycle=permissive bicycle=designated lcn=yes
+       or cycleway=lane|track|shared_lane|share_busway
+       or and badoneway cycleway=opposite|opposite_lane|opposite_track
+       or
+         and cycleway:left=lane|track|shared_lane|share_busway
+           switch badoneway
+             cycleway:left:oneway=no|-1
+             true
+         and cycleway:right=lane|track|shared_lane|share_busway
+           switch badoneway
+             cycleway:right:oneway=no|-1
+             true
+
 assign ispaved = or surface=paved|asphalt|concrete|paving_stones|sett smoothness=excellent|good
 assign isunpaved = not or surface= or ispaved or surface=fine_gravel|cobblestone smoothness=intermediate|bad
 assign probablyGood = or ispaved and ( or isbike highway=footway ) not isunpaved
@@ -155,13 +176,6 @@ assign accesspenalty =
 # 4 to the costfactor (making it at least 5 - you are allowed
 # to push your bike)
 #
-assign badoneway =
-       if reversedirection=yes then
-         if oneway:bicycle=yes then true
-         else if oneway= then junction=roundabout
-         else oneway=yes|true|1
-       else oneway=-1
-
 assign onewaypenalty =
        if ( badoneway ) then
        (
@@ -230,24 +244,6 @@ assign town_penalty
      switch estimated_town_class=4  1.3
      switch estimated_town_class=5  1.4
      switch estimated_town_class=6  1.6 99 0
-
-#
-# re-assign isbike considering the presence of a usable cycleway on the highway
-#
-assign isbike = 
-       or isbike
-       or cycleway=lane|track|shared_lane|share_busway
-       or and badoneway cycleway=opposite|opposite_lane|opposite_track
-       or 
-         and cycleway:left=lane|track|shared_lane|share_busway
-           switch badoneway
-             cycleway:left:oneway=no|-1
-             true
-         and cycleway:right=lane|track|shared_lane|share_busway
-           switch badoneway
-             cycleway:right:oneway=no|-1
-             true
-
 
 #
 # calculate the cost-factor, which is the factor
