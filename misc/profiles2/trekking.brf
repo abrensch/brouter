@@ -85,7 +85,7 @@ assign badoneway =
 
 # set isbike considering access, local cycle route or the presence of a usable cycleway on the highway
 assign isbike =
-       or or bicycle_road=yes or cyclestreet=yes or bicycle=yes|permissive|designated lcn=yes
+       or or bicycle_road=yes or bicycle=yes|permissive|designated lcn=yes  # also add cyclestreet=yes when lookup has it
        or cycleway=lane|track|shared_lane|share_busway
        or and badoneway cycleway=opposite|opposite_lane|opposite_track
        or
