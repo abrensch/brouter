@@ -39,17 +39,25 @@ public class RoutingEngineTest {
     Assert.assertTrue(msg, msg != null && msg.contains("not found"));
   }
 
+  // check that a new route (not alternative) is computed when a profile parameter is set
+  // if the set param does makes difference in routing, the new route should replace the noparam route
   @Test
   public void overrideParam() {
     RoutingContext rctx = new RoutingContext();
     rctx.keyValues = new HashMap<>();
-    rctx.keyValues.put("avoid_unsafe", "1.0");
+    // original route computing (no param)
     String msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "paramTrack", rctx);
-    Assert.assertNull("routing failed: " + msg, msg);
+    Assert.assertNull("routing failed (paramTrack 1st route): " + msg, msg);
+    // new route computing (with param)
+    rctx.keyValues.put("avoid_unsafe", "1.0");
+    msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "paramTrack", rctx);
+    Assert.assertNull("routing failed (paramTrack 2nd route): " + msg, msg);
 
-    File trackFile = new File(workingDir, "paramTrack1.gpx");
+    File trackFile = new File(workingDir, "paramTrack0.gpx");
     trackFile.deleteOnExit();
-    Assert.assertTrue("result content mismatch", trackFile.exists());
+    trackFile = new File(workingDir, "paramTrack1.gpx");
+    trackFile.deleteOnExit();
+    Assert.assertFalse("result content mismatch", trackFile.exists());
   }
 
   private String calcRoute(double flon, double flat, double tlon, double tlat, String trackname, RoutingContext rctx) {
