@@ -23,7 +23,7 @@ assign allow_steps           = true   # %allow_steps% | Set to false to disallow
 assign allow_ferries         = true   # %allow_ferries% | set to false to disallow ferries | boolean
 assign allow_motorways       = false  # %allow_motorways% | Set to true to allow motorways (useful in Asia / Oceania for example) | boolean
 
-assign consider_traffic      = 0.1      # %consider_traffic% | how do you plan to drive the tour? |  [1=as cyclist alone in the week, 0.5=as cyclist alone at weekend, 0.3 =with a group of cyclists, 0.1=with a group of cyclists at week-end, 0.0=do not consider traffic]
+assign consider_traffic      = 0.1      # %consider_traffic% | avoiding roads that usually have traffic is? | [1=very important, 0.5=pretty important, 0.3=important, 0.1=slightly preferred, 0.0=do not consider traffic]
 assign consider_noise        = false  # %consider_noise% | Activate to prefer a low-noise route | boolean
 assign consider_river        = false  # %consider_river% | Activate to prefer a route along rivers, lakes, etc. | boolean
 assign consider_forest       = false  # %consider_forest% | Activate to prefer a route in forest or parks | boolean
