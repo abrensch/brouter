@@ -154,8 +154,10 @@ assign onewaypenalty =
 assign hascycleway = not
   and ( or cycleway= cycleway=no|none ) and ( or cycleway:left= cycleway:left=no ) ( or cycleway:right= cycleway:right=no )
 
-
 assign trafficpenalty =
+      if not consider_traffic then 0
+      else
+      min switch hascycleway 0.3 100   # trafficpenalty not above 0.3 if a cycleway is present
       if   estimated_traffic_class=|1|2  then 0
       else if estimated_traffic_class=3 then multiply   0.3   consider_traffic
       else if estimated_traffic_class=4 then multiply   0.6   consider_traffic
