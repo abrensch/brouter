@@ -66,7 +66,7 @@
         estimated time = %6$s</string>
     <string name="msg_read_wpt_error">Error reading waypoints</string>
     <string name="msg_no_wpt">coordinate source does not contain any waypoints!</string>
-    <string name="msg_too_much_wpts">coordinate source contains too much waypoints: %1$d (please use from/to/via names)</string>
+    <string name="msg_too_much_wpts">coordinate source contains too many waypoints: %1$d (please use from/to/via names)</string>
 
     <string name="no">No</string>
     <string name="yes">Yes</string>
