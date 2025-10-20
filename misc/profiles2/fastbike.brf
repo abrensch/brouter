@@ -324,6 +324,7 @@ assign footaccess
                         1
 
 assign initialcost
+    switch or highway=traffic_signals and highway=crossing crossing=traffic_signals 20
        switch bikeaccess
               0
               switch footaccess
