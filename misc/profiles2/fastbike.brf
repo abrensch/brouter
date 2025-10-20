@@ -59,8 +59,8 @@ assign processUnusedTags            = false # %processUnusedTags% | Set to true 
 assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
 assign nodeaccessgranted or any_cycleroute lcn=yes
 
-assign ispaved or surface=paved or surface=asphalt or surface=concrete or surface=paving_stones surface=sett
-assign isunpaved not or surface= or ispaved or surface=fine_gravel surface=cobblestone
+assign ispaved or surface=paved or surface=asphalt or surface=concrete or surface=paving_stones or surface=sett or smoothness=excellent smoothness=good
+assign isunpaved not or surface= or ispaved or surface=fine_gravel or surface=cobblestone smoothness=intermediate
 
 assign turncost = if junction=roundabout then 0
                   else 90
