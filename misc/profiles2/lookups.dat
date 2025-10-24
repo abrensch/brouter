@@ -62,6 +62,12 @@ surface;0000003760 metal
 surface;0000000001 rock rocks rocky
 surface;0000000001 stone
 
+lit;0000809223 yes
+lit;0000000001 no
+lit;0000800001 sunset-sunrise dusk-dawn
+lit;0000800001 24/7
+lit;0000800001 automatic
+
 estimated_forest_class;0000000001 1
 estimated_forest_class;0000000001 2
 estimated_forest_class;0000000001 3
@@ -147,11 +153,6 @@ estimated_traffic_class;0000000001 5
 estimated_traffic_class;0000000001 6
 estimated_traffic_class;0000000001 7
 
-lit;0000809223 yes
-lit;0000000001 no
-lit;0000800001 sunset-sunrise dusk-dawn
-lit;0000800001 24/7
-lit;0000800001 automatic
 
 lanes;0002838405 2
 lanes;0000718138 1
@@ -239,6 +240,7 @@ railway;0000002982 subway
 railway;0000002422 narrow_gauge
 railway;0000001859 preserved
 railway;0000000001 funicular
+railway;0000000001 monorail
 
 motor_vehicle;0000212692 no
 motor_vehicle;0000184982 yes
@@ -654,6 +656,26 @@ psv;0000072077 yes
 psv;0000007456 no
 psv;0000007428 designated official
 
+piste:type;0000000001 downhill
+piste:type;0000000001 nordic
+piste:type;0000000001 skitour
+piste:type;0000000001 sled
+piste:type;0000000001 hiking
+piste:type;0000000001 sleigh
+piste:type;0000000001 connection
+
+piste:grooming;0000000001 classic skating classic;skating classic+skating
+piste:grooming;0000000001 backcountry
+piste:grooming;0000000001 scooter
+piste:grooming;0000000001 mogul
+
+piste:difficulty;0000000001 novice
+piste:difficulty;0000000001 easy
+piste:difficulty;0000000001 intermediate
+piste:difficulty;0000000001 advanced
+piste:difficulty;0000000001 expert
+piste:difficulty;0000000001 freeride
+
 hov;0000006684 lane
 hov;0000003258 designated
 hov;0000002162 no
@@ -830,6 +852,13 @@ highway;0000002967 traffic_mirror
 highway;0000001724 priority
 highway;0000000001 toll_gantry
 
+estimated_crossing_class;0000000001 1
+estimated_crossing_class;0000000001 2
+estimated_crossing_class;0000000001 3
+estimated_crossing_class;0000000001 4
+estimated_crossing_class;0000000001 5
+estimated_crossing_class;0000000001 6
+
 barrier;0000606512 gate wicket_gate
 barrier;0000164120 bollard
 barrier;0000112184 lift_gate
@@ -877,15 +906,6 @@ barrier;0000000108 rope
 barrier;0000000001 height_restrictor
 barrier;0000000001 sliding_gate slide_gate
 
-crossing;0000251032 uncontrolled
-crossing;0000200387 traffic_signals traffic_signals;marked
-crossing;0000029717 unmarked
-crossing;0000022119 island
-crossing;0000006981 zebra
-crossing;0000003897 no
-crossing;0000002166 yes
-crossing;0000000001 marked
-
 entrance;0000301732 yes entrance
 entrance;0000159853 main main_entrance
 entrance;0000025621 staircase
@@ -896,6 +916,16 @@ entrance;0000001144 exit
 entrance;0000000620 garage
 entrance;0000000285 shop
 entrance;0000000001 secondary
+
+crossing;0000251032 uncontrolled
+crossing;0000200387 traffic_signals traffic_signals;marked
+crossing;0000029717 unmarked
+crossing;0000022119 island
+crossing;0000006981 zebra
+crossing;0000003897 no
+crossing;0000002166 yes
+crossing;0000000001 marked
+
 
 access;0000078544 private
 access;0000014933 yes public
