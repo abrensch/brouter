@@ -884,14 +884,14 @@ public class RoutingEngine extends Thread {
     if (useNodePoints && extraWaypoints != null) {
       // add extra waypoints from the last broken round
       for (OsmNodeNamed wp : extraWaypoints) {
-        if (wp.direct) hasDirectRouting = true;
+        if (wp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) hasDirectRouting = true;
         if (wp.name.startsWith("from")) {
           waypoints.add(1, wp);
-          waypoints.get(0).direct = true;
+          waypoints.get(0).wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
           nUnmatched++;
         } else {
           waypoints.add(waypoints.size() - 1, wp);
-          waypoints.get(waypoints.size() - 2).direct = true;
+          waypoints.get(waypoints.size() - 2).wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
           nUnmatched++;
         }
       }
@@ -903,8 +903,8 @@ public class RoutingEngine extends Thread {
       hasDirectRouting = true;
     }
     for (OsmNodeNamed wp : waypoints) {
-      if (hasInfo()) logInfo("wp=" + wp + (wp.direct ? " direct" : ""));
-      if (wp.direct) hasDirectRouting = true;
+      if (hasInfo()) logInfo("wp=" + wp + (wp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT ? " beeline" : (wp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_MEETING ? " via" : "")));
+      if (wp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) hasDirectRouting = true;
     }
 
     // check for a track for that target
@@ -928,7 +928,7 @@ public class RoutingEngine extends Thread {
         MatchedWaypoint mwp = new MatchedWaypoint();
         mwp.waypoint = waypoints.get(i);
         mwp.name = waypoints.get(i).name;
-        mwp.direct = waypoints.get(i).direct;
+        mwp.wpttype = waypoints.get(i).wpttype;
         matchedWaypoints.add(mwp);
       }
       int startSize = matchedWaypoints.size();
@@ -941,7 +941,7 @@ public class RoutingEngine extends Thread {
 
       for (MatchedWaypoint mwp : matchedWaypoints) {
         if (hasInfo() && matchedWaypoints.size() != nUnmatched)
-          logInfo("new wp=" + mwp.waypoint + " " + mwp.crosspoint + (mwp.direct ? " direct" : ""));
+          logInfo("new wp=" + mwp.waypoint + " " + mwp.crosspoint + (mwp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT ? " beeline" : (mwp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_MEETING ? " via" : "")));
       }
 
       routingContext.checkMatchedWaypointAgainstNogos(matchedWaypoints);
@@ -951,7 +951,7 @@ public class RoutingEngine extends Thread {
       airDistanceCostFactor = 0.;
       for (int i = 0; i < matchedWaypoints.size() - 1; i++) {
         nodeLimit = MAXNODES_ISLAND_CHECK;
-        if (matchedWaypoints.get(i).direct) continue;
+        if (matchedWaypoints.get(i).wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) continue;
         if (routingContext.inverseRouting) {
           OsmTrack seg = findTrack("start-island-check", matchedWaypoints.get(i), matchedWaypoints.get(i + 1), null, null, false);
           if (seg == null && nodeLimit > 0) {
@@ -1020,7 +1020,10 @@ public class RoutingEngine extends Thread {
       if (routingContext.ai != null) return null;
 
       boolean changed = false;
-      if (routingContext.correctMisplacedViaPoints && !matchedWaypoints.get(i).direct && !routingContext.allowSamewayback) {
+      if (routingContext.correctMisplacedViaPoints &&
+          matchedWaypoints.get(i).wpttype != MatchedWaypoint.WAYPOINT_TYPE_DIRECT &&
+          matchedWaypoints.get(i).wpttype != MatchedWaypoint.WAYPOINT_TYPE_MEETING &&
+          !routingContext.allowSamewayback) {
         changed = snapPathConnection(totaltrack, seg, routingContext.inverseRouting ? matchedWaypoints.get(i + 1) : matchedWaypoints.get(i));
       }
       if (wptIndex > 0)
@@ -1616,7 +1619,7 @@ public class RoutingEngine extends Thread {
             nmw.waypoint = onn;
             nmw.name = onn.name;
             nmw.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
-            nmw.direct = true;
+            nmw.wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
             onn = new OsmNodeNamed(wp.crosspoint);
             onn.name = wp.name + "_add";
             wp.waypoint = onn;
@@ -1630,14 +1633,14 @@ public class RoutingEngine extends Thread {
             nmw.crosspoint = new OsmNode(wp.crosspoint.ilon, wp.crosspoint.ilat);
             nmw.node1 = new OsmNode(wp.node1.ilon, wp.node1.ilat);
             nmw.node2 = new OsmNode(wp.node2.ilon, wp.node2.ilat);
-            nmw.direct = true;
+            nmw.wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
 
             if (wp.name != null) nmw.name = wp.name;
             waypoints.add(nmw);
             wp.name = wp.name + "_add";
             waypoints.add(wp);
             if (wp.name.startsWith("via")) {
-              wp.direct = true;
+              wp.wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
               MatchedWaypoint emw = new MatchedWaypoint();
               OsmNodeNamed onn2 = new OsmNodeNamed(wp.crosspoint);
               onn2.name = wp.name + "_2";
@@ -1646,7 +1649,7 @@ public class RoutingEngine extends Thread {
               emw.crosspoint = new OsmNode(nmw.crosspoint.ilon, nmw.crosspoint.ilat);
               emw.node1 = new OsmNode(nmw.node1.ilon, nmw.node1.ilat);
               emw.node2 = new OsmNode(nmw.node2.ilon, nmw.node2.ilat);
-              emw.direct = false;
+              emw.wpttype = MatchedWaypoint.WAYPOINT_TYPE_SHAPING;
               waypoints.add(emw);
             }
             wp.crosspoint = new OsmNode(wp.waypoint.ilon, wp.waypoint.ilat);
@@ -1664,7 +1667,7 @@ public class RoutingEngine extends Thread {
   private OsmTrack searchTrack(MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack nearbyTrack, OsmTrack refTrack) {
     // remove nogos with waypoints inside
     try {
-      boolean calcBeeline = startWp.direct;
+      boolean calcBeeline = startWp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
 
       if (!calcBeeline)
         return searchRoutedTrack(startWp, endWp, nearbyTrack, refTrack);

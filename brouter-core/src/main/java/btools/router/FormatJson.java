@@ -139,16 +139,13 @@ public class FormatJson extends Formatter {
       if (t.exportWaypoints) {
         if (!t.pois.isEmpty()) sb.append("    ,\n");
         for (int i = 0; i <= t.matchedWaypoints.size() - 1; i++) {
-          String type;
-          if (i == 0) {
-            type = "from";
-          } else if (i == t.matchedWaypoints.size() - 1) {
-            type = "to";
-          } else {
-            type = "via";
-          }
-
           MatchedWaypoint wp = t.matchedWaypoints.get(i);
+          String type;
+          switch (wp.wpttype) {
+            case MatchedWaypoint.WAYPOINT_TYPE_DIRECT: type = "beeline"; break;
+            case MatchedWaypoint.WAYPOINT_TYPE_MEETING: type = "via"; break;
+            default: type = "shaping";
+          }
           addFeature(sb, type, wp.name, wp.waypoint.ilat, wp.waypoint.ilon, wp.waypoint.getSElev());
           if (i < t.matchedWaypoints.size() - 1) {
             sb.append(",");

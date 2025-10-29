@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import btools.mapaccess.MatchedWaypoint;
+
 public class RoutingParamCollector {
 
   final static boolean DEBUG = false;
@@ -33,9 +35,10 @@ public class RoutingParamCollector {
       wplist.add(readPosition(lonLat[0], lonLat[1], "via" + i));
       if (lonLat.length > 2) {
         if (lonLat[2].equals("d")) {
-          wplist.get(wplist.size() - 1).direct = true;
+          wplist.get(wplist.size() - 1).wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
         } else {
           wplist.get(wplist.size() - 1).name = lonLat[2];
+          wplist.get(wplist.size() - 1).wpttype = MatchedWaypoint.WAYPOINT_TYPE_MEETING;
         }
       }
     }
@@ -190,7 +193,7 @@ public class RoutingParamCollector {
             String[] sa = value.split(",");
             for (int i = 0; i < sa.length; i++) {
               int v = Integer.parseInt(sa[i]);
-              if (wplist.size() > v) wplist.get(v).direct = true;
+              if (wplist.size() > v) wplist.get(v).wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
             }
           } catch (Exception ex) {
             System.err.println("error " + ex.getStackTrace()[0].getLineNumber() + " " + ex.getStackTrace()[0] + "\n" + ex);

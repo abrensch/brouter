@@ -308,17 +308,17 @@ public final class NodesCache {
     for (int i = 0; i < len; i++) {
       MatchedWaypoint mwp = unmatchedWaypoints.get(i);
       if (mwp.crosspoint == null) {
-        if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
+        if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
           mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
-          mwp.direct = true;
+          mwp.wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
         } else {
           // do not break here throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
           return false;
         }
       }
-      if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
+      if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
         mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
-        mwp.direct = true;
+        mwp.wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
       }
     }
     return true;
