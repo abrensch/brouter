@@ -107,7 +107,7 @@ public class FormatGpx extends Formatter {
         first.append("    <offset>0</offset>\n  </extensions>\n </rtept>\n");
       }
       if (turnInstructionMode == 8) {
-        if (t.matchedWaypoints.get(0).direct && t.voiceHints.list.get(0).indexInTrack == 0) {
+        if (t.matchedWaypoints.get(0).wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT && t.voiceHints.list.get(0).indexInTrack == 0) {
           // has a voice hint do nothing, voice hint will do
         } else {
           sb.append(first.toString());
@@ -204,23 +204,31 @@ public class FormatGpx extends Formatter {
       for (int i = 0; i <= t.matchedWaypoints.size() - 1; i++) {
         MatchedWaypoint wt = t.matchedWaypoints.get(i);
         if (i == 0) {
-          formatWaypointGpx(sb, wt, "from");
+          formatWaypointGpx(sb, wt, wt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT ? "beeline" :"via");
         } else if (i == t.matchedWaypoints.size() - 1) {
-          formatWaypointGpx(sb, wt, "to");
-        } else {
           formatWaypointGpx(sb, wt, "via");
+        } else {
+          if (wt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
+            formatWaypointGpx(sb, wt, "beeline");
+          } else if (wt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_MEETING) {
+            formatWaypointGpx(sb, wt, "via");
+          } else {
+            formatWaypointGpx(sb, wt, "shaping");
+          }
         }
       }
     }
     if (t.exportCorrectedWaypoints) {
+      sb.append("\n");
       for (int i = 0; i <= t.matchedWaypoints.size() - 1; i++) {
         MatchedWaypoint wt = t.matchedWaypoints.get(i);
         if (wt.correctedpoint != null) {
           OsmNodeNamed n = new OsmNodeNamed(wt.correctedpoint);
           n.name = wt.name + "_corr";
-          formatWaypointGpx(sb, n, "via_corr");
+          formatWaypointGpx(sb, n, "shaping");
         }
       }
+      sb.append("\n");
     }
 
     sb.append(" <trk>\n");
@@ -276,7 +284,11 @@ public class FormatGpx extends Formatter {
           sele += "<desc>" + hint.getCruiserMessageString() + "</desc>";
           sele += "<sym>" + hint.getCommandString(hint.cmd, turnInstructionMode) + "</sym>";
           if (mwpt != null) {
-            sele += "<type>Via</type>";
+            if (mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_MEETING) {
+              sele += "<type>via</type>";
+            } else {
+              sele += "<type>shaping</type>";
+            }
           }
           sele += "<extensions>";
           if (t.showspeed) {
@@ -303,27 +315,31 @@ public class FormatGpx extends Formatter {
 
         }
         if (idx == 0 && hint == null) {
-          if (mwpt != null && mwpt.direct) {
+          if (mwpt != null && mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
             sele += "<desc>beeline</desc>";
           } else {
             sele += "<desc>start</desc>";
           }
-          sele += "<type>Via</type>";
+          sele += "<type>via</type>";
 
         } else if (idx == t.nodes.size() - 1 && hint == null) {
 
           sele += "<desc>end</desc>";
-          sele += "<type>Via</type>";
+          sele += "<type>via</type>";
 
         } else {
           if (mwpt != null && hint == null) {
-            if (mwpt.direct) {
+            if (mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
               // bNextDirect = true;
               sele += "<desc>beeline</desc>";
             } else {
               sele += "<desc>" + mwpt.name + "</desc>";
             }
-            sele += "<type>Via</type>";
+            if (mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_MEETING) {
+              sele += "<type>via</type>";
+            } else {
+              sele += "<type>shaping</type>";
+            }
             bNextDirect = false;
           }
         }
@@ -360,13 +376,13 @@ public class FormatGpx extends Formatter {
       if (turnInstructionMode == 2) { // locus style new
         if (hint != null) {
           if (mwpt != null) {
-            if (!mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
+            if (!mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to") && !mwpt.name.startsWith("rt")) {
               sele += "<name>" + mwpt.name + "</name>";
             }
-            if (mwpt.direct && bNextDirect) {
+            if (mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT && bNextDirect) {
               sele += "<src>" + hint.getLocusSymbolString() + "</src><sym>pass_place</sym><type>Shaping</type>";
               // bNextDirect = false;
-            } else if (mwpt.direct) {
+            } else if (mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
               if (idx == 0)
                 sele += "<sym>pass_place</sym><type>Via</type>";
               else
@@ -390,7 +406,7 @@ public class FormatGpx extends Formatter {
             }
             if (mwpt != null && !mwpt.name.startsWith("from"))
               sele += "<name>" + mwpt.name + "</name>";
-            if (mwpt != null && mwpt.direct) {
+            if (mwpt != null && mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
               bNextDirect = true;
             }
             sele += "<sym>pass_place</sym>";
@@ -412,12 +428,12 @@ public class FormatGpx extends Formatter {
 
           } else {
             if (mwpt != null) {
-              if (!mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
+              if (!mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to") && !mwpt.name.startsWith("rt")) {
                 sele += "<name>" + mwpt.name + "</name>";
               }
-              if (mwpt.direct && bNextDirect) {
+              if (mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT && bNextDirect) {
                 sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
-              } else if (mwpt.direct) {
+              } else if (mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
                 if (idx == 0)
                   sele += "<sym>pass_place</sym><type>Via</type>";
                 else
@@ -428,11 +444,12 @@ public class FormatGpx extends Formatter {
                 bNextDirect = false;
               } else if (mwpt.name.startsWith("via") ||
                 mwpt.name.startsWith("from") ||
-                mwpt.name.startsWith("to")) {
+                mwpt.name.startsWith("to") ||
+                mwpt.name.startsWith("rt")) {
                 if (bNextDirect) {
                   sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
                 } else {
-                  sele += "<sym>pass_place</sym><type>Via</type>";
+                  sele += "<sym>pass_place</sym><type>Shaping</type>";
                 }
                 bNextDirect = false;
               } else {

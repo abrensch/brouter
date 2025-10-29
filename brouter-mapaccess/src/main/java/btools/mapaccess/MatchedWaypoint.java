@@ -12,6 +12,11 @@ import java.util.List;
 import java.util.ArrayList;
 
 public final class MatchedWaypoint {
+
+  public static final byte WAYPOINT_TYPE_SHAPING = 1;  // route next to this point
+  public static final byte WAYPOINT_TYPE_MEETING = 2;  // visit this point
+  public static final byte WAYPOINT_TYPE_DIRECT  = 3;  // from this point go direct to next = beeline routing
+
   public OsmNode node1;
   public OsmNode node2;
   public OsmNode crosspoint;
@@ -19,7 +24,7 @@ public final class MatchedWaypoint {
   public OsmNode correctedpoint;
   public String name;  // waypoint name used in error messages
   public double radius;  // distance in meter between waypoint and crosspoint
-  public boolean direct;  // from this point go direct to next = beeline routing
+  public byte wpttype = WAYPOINT_TYPE_SHAPING;
   public int indexInTrack = 0;
   public double directionToNext = -1;
   public double directionDiff = 361;

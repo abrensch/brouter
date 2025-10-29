@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 public class RouteParamTest {
 
   @Test(expected = IllegalArgumentException.class)
@@ -42,7 +41,12 @@ public class RouteParamTest {
     data = "1.0,1.2,d;2.0,2.2";
     map = rpc.getWayPointList(data);
 
-    Assert.assertTrue("result content 4 ", map.get(0).direct);
+    Assert.assertEquals("result content 4 ", map.get(0).wpttype, 3); // 3 = MatchedWaypoint.WAYPOINT_TYPE_DIRECT
+
+    data = "1.0,1.2,m;2.0,2.2";
+    map = rpc.getWayPointList(data);
+
+    Assert.assertEquals("result content 4 ", map.get(0).wpttype, 2); // 2 = MatchedWaypoint.WAYPOINT_TYPE_MEETING
   }
 
   @Test

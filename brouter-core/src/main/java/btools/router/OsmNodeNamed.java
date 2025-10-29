@@ -5,6 +5,7 @@
  */
 package btools.router;
 
+import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.OsmNode;
 import btools.util.CheapRuler;
 
@@ -13,7 +14,7 @@ public class OsmNodeNamed extends OsmNode {
   public double radius; // radius of nogopoint (in meters)
   public double nogoWeight;  // weight for nogopoint
   public boolean isNogo = false;
-  public boolean direct = false; // mark direct routing
+  public byte wpttype = MatchedWaypoint.WAYPOINT_TYPE_SHAPING; // set default type
 
   public OsmNodeNamed() {
   }
