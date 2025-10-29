@@ -93,9 +93,9 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
       if (!useAsStartWay && i == 0) continue;
       MatchedWaypoint mwp = waypoints.get(i);
 
-      if (mwp.direct &&
+      if (mwp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT &&
         (i == 0 ||
-          waypoints.get(i - 1).direct)
+          waypoints.get(i - 1).wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT)
       ) {
         if (mwp.crosspoint == null) {
           mwp.crosspoint = new OsmNode();
