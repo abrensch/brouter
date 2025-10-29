@@ -36,6 +36,8 @@ public class RoutingParamCollector {
       if (lonLat.length > 2) {
         if (lonLat[2].equals("d")) {
           wplist.get(wplist.size() - 1).wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
+        } else if (lonLat[2].equals("m")) {
+          wplist.get(wplist.size() - 1).wpttype = MatchedWaypoint.WAYPOINT_TYPE_MEETING;
         } else {
           wplist.get(wplist.size() - 1).name = lonLat[2];
           wplist.get(wplist.size() - 1).wpttype = MatchedWaypoint.WAYPOINT_TYPE_MEETING;
