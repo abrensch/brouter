@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d セグメント</item>
+        <item quantity="other">%d セグメント</item>
+    </plurals>
+    <string name="cancel_download">ダウンロードをキャンセル</string>
+    <string name="import_profile">プロファイルをインポート</string>
+    <string name="action_download">%s をダウンロード</string>
+    <string name="action_delete">%s を削除</string>
+    <string name="action_update">%s を更新</string>
+    <string name="action_select">セグメントを選択</string>
+    <string name="action_cancel">ダウンロードを停止</string>
+    <string name="summary_segments">サイズ=%1$s\n空き容量=%2$s</string>
+    <string name="notification_title">セグメントをダウンロード</string>
+
+    <string name="action_choose_folder">選択ルーターデータベースディレクトリ:</string>
+    <string name="action_select_profile">ルーティングプロファイルを選択</string>
+    <string name="main_action">メインアクションを選択</string>
+    <string name="main_action_1">ダウンロードマネージャー</string>
+    <string name="main_action_2">ルーターアプリ</string>
+
+    <string name="cancel">キャンセル</string>
+    <string name="i_know">了解しました</string>
+    <string name="close">閉じる</string>
+    <string name="exit">終了</string>
+    <string name="ok">OK</string>
+    <string name="success">成功</string>
+    <string name="error">エラーが発生しました</string>
+
+    <string name="title_download">BRouter ダウンロード マネージャー</string>
+    <string name="summary_download">*** 注意:***
+        \n\nダウンロード マネージャーは、ルーティングデータ ファイルのダウンロードに使用されます。
+        ファイルのサイズはそれぞれ最大 170MB です。
+        データプランに加入していない携帯電話のデータ接続では、ダウンロード マネージャーを起動しないでください。
+        ダウンロード速度は 16 MBit/s に制限されています。</string>
+    <string name="title_timeoutfree">タイムアウトのない計算の準備に成功しました</string>
+    <string name="summary_timeoutfree">マップツールから開始した際にタイムアウトになった計算を、再度実行できました。
+        マップツールから同じリクエストを、
+        目的地と開始地点を同じにして再度実行すると、
+        タイムアウトしないことが保証されます。</string>
+    <string name="title_sdcard">SD カードのベースディレクトリを入力:</string>
+    <string name="title_action">アクションを選択</string>
+
+    <string name="action_via_select">VIA選択を確認:</string>
+    <string name="action_nogo_select">NoGo選択を確認:</string>
+    <string name="action_servermode">サーバーモード</string>
+    <string name="action_info">情報</string>
+    <string name="action_calc_route">ルート計算</string>
+    <string name="action_profile_settings">プロファイル設定</string>
+    <string name="action_share">GPXを共有</string>
+    <string name="action_select_from">選択</string>
+    <string name="action_select_to">経由地を選択</string>
+
+    <string name="msg_no_profile">プロファイルデータがありません</string>
+    <string name="msg_too_much_data">ダウンロードデータが多すぎます。データ量を減らしてください。</string>
+    <string name="msg_download_start">ダウンロードがスケジュールされました。起動しない場合は、インターネット接続を確認してください。</string>
+    <string name="msg_wpt_selection">現在のウェイポイント選択:\n</string>
+    <string name="msg_no_wpt_selection">ウェイポイントを選択する必要があります\n</string>
+    <string name="msg_alternative">代替</string>
+    <string name="msg_status_result">バージョン = BRouter-%1$s \n
+        メモリ = %2$s \n
+        距離 = %3$s km\n
+        フィルター済み上昇距離 = %4$s m\n
+        通常上昇距離 = %5$s m\n
+        推定所要時間 = %6$s</string>
+    <string name="msg_read_wpt_error">ウェイポイントの読み取りエラー</string>
+    <string name="msg_no_wpt">座標ソースにウェイポイントが含まれていません！</string>
+    <string name="msg_too_much_wpts">座標ソースにウェイポイントが多すぎます: %1$d (出発地/目的地/経由地名を使用してください)</string>
+
+    <string name="no">いいえ</string>
+    <string name="yes">はい</string>
+
+    <string name="title_delete">削除を確認</string>
+    <string name="summary_delete">本当に削除しますか？</string>
+    <string name="title_version">バージョンの問題</string>
+    <string name="summary_version">タイルのベースバージョンが変更されました。どうすればよいですか？</string>
+    <string name="action_version1">現在のダウンロードを続行し、その他の古いデータを削除する</string>
+    <string name="action_version2">ダウンロード対象をすべて選択して開始する</string>
+    <string name="action_version3">今すぐキャンセルし、別の日に完了する</string>
+    <string name="title_version_diff">バージョンの差異</string>
+    <string name="summary_version_diff">一部のタイルのベースバージョンが異なります。どうすればいいですか？</string>
+    <string name="action_version_diff1">すべての異なるタイルをダウンロードする</string>
+    <string name="action_version_diff2">すべての異なるタイルを削除する</string>
+    <string name="action_version_diff3">今すぐキャンセルして、別の日に完了する</string>
+    <string name="summary_new_version">新しいデータバージョンには新しいアプリが必要です。まずBRouterを更新してください</string>
+
+    <string name="msg_download_failed">ダウンロードに失敗しました</string>
+    <string name="msg_download_cancel">ダウンロードをキャンセルしました</string>
+    <string name="msg_download_succeed">ダウンロードに成功しました</string>
+    <string name="msg_download_started">ダウンロード中…</string>
+
+
+</resources>
