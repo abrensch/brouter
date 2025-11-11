@@ -25,10 +25,11 @@ The profile parameter 'correctMisplacedViaPoints' tries to avoid this situation.
 On the other hand, it would be fatal if this point is not reached when you want to go there.
 There are to choices to manage that:
 - add a poi to the 'pois' list
-- name the point in lonlats list
+- name the point in lonlats list (...|x,y,"stop here"|...)
+- add an unnamed point (...|x,y,m|...)
 
 Another feature of BRouter is routing via beelines.
-Define a straight starting point in the 'lonlats' list with a 'd' (direct). The second point needs no declaration.
+Define a straight starting point in the 'lonlats' list with a 'd' (direct) like (...|x,y,d|...). The second point needs no declaration.
 
 This contradicts the naming rules in 'lonlats'. If the point is to be given a name, the router parameter 'straight' can be used instead and filled with the index of the point.
 

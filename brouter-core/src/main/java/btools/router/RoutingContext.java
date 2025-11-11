@@ -317,8 +317,8 @@ public final class RoutingContext {
       if (isInsideNogo) {
         boolean useAnyway = false;
         if (prevMwp == null) useAnyway = true;
-        else if (mwp.direct) useAnyway = true;
-        else if (prevMwp.direct) useAnyway = true;
+        else if (mwp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) useAnyway = true;
+        else if (prevMwp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) useAnyway = true;
         else if (prevMwpIsInside) useAnyway = true;
         else if (i == theSize-1) {
           throw new IllegalArgumentException("last wpt in restricted area ");
