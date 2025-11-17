@@ -39,16 +39,28 @@ public class RoutingEngineTest {
     Assert.assertTrue(msg, msg != null && msg.contains("not found"));
   }
 
+  // check that a (short) route and an alternative route can be computed
+  // while explicitely overriding a routing profile parameter
   @Test
   public void overrideParam() {
+    // 1st route computing (with param)
     RoutingContext rctx = new RoutingContext();
     rctx.keyValues = new HashMap<>();
     rctx.keyValues.put("avoid_unsafe", "1.0");
     String msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "paramTrack", rctx);
-    Assert.assertNull("routing failed: " + msg, msg);
+    Assert.assertNull("routing failed (paramTrack 1st route): " + msg, msg);
+    // 2nd route computing (same from/to & same param)
+    rctx = new RoutingContext();
+    rctx.keyValues = new HashMap<>();
+    rctx.keyValues.put("avoid_unsafe", "1.0");
+    msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "paramTrack", rctx);
+    Assert.assertNull("routing failed (paramTrack 2nd route): " + msg, msg);
 
-    File trackFile = new File(workingDir, "paramTrack1.gpx");
+    File trackFile = new File(workingDir, "paramTrack0.gpx");
     trackFile.deleteOnExit();
+    trackFile = new File(workingDir, "paramTrack1.gpx");
+    trackFile.deleteOnExit();
+    // checks if a gpx file has been created for the alternative route
     Assert.assertTrue("result content mismatch", trackFile.exists());
   }
 
