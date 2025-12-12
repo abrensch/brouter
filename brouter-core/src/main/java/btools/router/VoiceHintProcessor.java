@@ -75,7 +75,7 @@ public final class VoiceHintProcessor {
 
       float turnAngle = input.goodWay.turnangle;
       if (hintIdx != 0) distance += input.goodWay.linkdist;
-      //  System.out.println("range " + distance);
+
       int currentPrio = input.goodWay.getPrio();
       int oldPrio = input.oldWay.getPrio();
       int minPrio = Math.min(oldPrio, currentPrio);
@@ -315,13 +315,7 @@ public final class VoiceHintProcessor {
           input.cmd == VoiceHint.KR ||
           input.cmd == VoiceHint.KL)
           && !input.goodWay.isLinktType()) {
-          if (
-            ((Math.abs(input.lowerBadWayAngle) < 35.f ||
-              input.higherBadWayAngle < 35.f)
-              || input.goodWay.getPrio() < input.maxBadPrio)
-              && (inputLastSaved != null && inputLastSaved.distanceToNext > minRange)
-              && (input.distanceToNext > minRange)
-              ) {
+          if (checkStraightHold(input, inputLastSaved, minRange)) {
             results.add(input);
           } else {
             if (inputLast != null) { // when drop add distance to last
@@ -338,11 +332,7 @@ public final class VoiceHintProcessor {
             input.cmd == VoiceHint.KR ||
             input.cmd == VoiceHint.KL)
             && !input.goodWay.isLinktType()) {
-            if (((Math.abs(input.lowerBadWayAngle) < 35.f ||
-              input.higherBadWayAngle < 35.f)
-              || input.goodWay.getPrio() < input.maxBadPrio)
-              && (inputLastSaved != null && inputLastSaved.distanceToNext > minRange)
-              && (input.distanceToNext > minRange)) {
+            if (checkStraightHold(input, inputLastSaved, minRange)) {
               // add only on prio
               results.add(input);
               inputLastSaved = input;
@@ -476,6 +466,18 @@ public final class VoiceHintProcessor {
       if (prio == 30) return false;
     }
     return false;
+  }
+
+  boolean checkStraightHold(VoiceHint input, VoiceHint inputLastSaved, double minRange) {
+    if (input.indexInTrack == 0) return false;
+
+    return
+          ((Math.abs(input.lowerBadWayAngle) < 35.f || input.higherBadWayAngle < 35.f)
+           || input.goodWay.getPrio() < input.maxBadPrio
+           || input.goodWay.getPrio() > input.oldWay.getPrio())
+          && (inputLastSaved == null || inputLastSaved.distanceToNext > minRange)
+          && (input.distanceToNext > minRange)
+      ;
   }
 
 
