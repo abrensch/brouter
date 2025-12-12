@@ -170,6 +170,10 @@ public final class VoiceHintProcessor {
             input.maxBadPrio = Math.max(input.maxBadPrio, badPrio);
           }
 
+          if (badWay.costfactor < 20.f && Math.abs(badTurn) < minAbsAngeRaw) {
+            minAbsAngeRaw = Math.abs(badTurn);
+          }
+
           if (badPrio < minPrio) {
             continue; // ignore low prio ways
           }
@@ -184,10 +188,6 @@ public final class VoiceHintProcessor {
             if (minAbsAngeRaw == 180f)
               minAbsAngeRaw = turnAngle; // disable hasSomethingMoreStraight
             continue; // ways from the back should not trigger a slight turn
-          }
-
-          if (badWay.costfactor < 20.f && Math.abs(badTurn) < minAbsAngeRaw) {
-            minAbsAngeRaw = Math.abs(badTurn);
           }
 
           if (badPrio > maxPrioCandidates) {
