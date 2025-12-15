@@ -1104,10 +1104,15 @@ public class RoutingEngine extends Thread {
 
     boolean bMeetingIsOnRoundabout = ptMeeting.message.isRoundabout();
     boolean bMeetsRoundaboutStart = false;
+    int wayDistance = 0;
 
     int i;
+    OsmPathElement last_n = null;
+
     for (i = 0; i < indexEnd; i++) {
       OsmPathElement n = t.nodes.get(i);
+      if (last_n != null) wayDistance += n.calcDistance(last_n);
+      last_n = n;
       if (n.positionEquals(ptStart)) {
         indexStartFore = i;
         bMeetsRoundaboutStart = true;
@@ -1116,6 +1121,11 @@ public class RoutingEngine extends Thread {
         indexMeetingFore = i;
       }
 
+    }
+
+    if (routingContext.correctMisplacedViaPointsDistance > 0 &&
+      wayDistance > routingContext.correctMisplacedViaPointsDistance) {
+      return 0;
     }
 
     if (!bMeetsRoundaboutStart && bMeetingIsOnRoundabout) {
