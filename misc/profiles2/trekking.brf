@@ -76,27 +76,14 @@ assign is_ldcr =
      if ignore_cycleroutes then false
      else any_cycleroute
 
-assign badoneway =
-       if reversedirection=yes then
-         if oneway:bicycle=yes then true
-         else if oneway= then junction=roundabout
-         else oneway=yes|true|1
-       else oneway=-1
+# set isbike considering access, local cycle route or the presence of a cycleway on the highway
+assign hasbikerouteoraccess =
+       or bicycle_road=yes or bicycle=yes|permissive|designated lcn=yes  # also add cyclestreet=yes when lookup has it
 
-# set isbike considering access, local cycle route or the presence of a usable cycleway on the highway
-assign isbike =
-       or or bicycle_road=yes or bicycle=yes|permissive|designated lcn=yes  # also add cyclestreet=yes when lookup has it
-       or cycleway=lane|track|shared_lane|share_busway
-       or and badoneway cycleway=opposite|opposite_lane|opposite_track
-       or
-         and cycleway:left=lane|track|shared_lane|share_busway
-           switch badoneway
-             cycleway:left:oneway=no|-1
-             true
-         and cycleway:right=lane|track|shared_lane|share_busway
-           switch badoneway
-             cycleway:right:oneway=no|-1
-             true
+assign hascycleway = not
+  and ( or cycleway= cycleway=no|none ) and ( or cycleway:left= cycleway:left=no ) ( or cycleway:right= cycleway:right=no )  # also add cycleway:both when lookup has it
+
+assign isbike = or hasbikerouteoraccess hascycleway
 
 assign ispaved = or surface=paved|asphalt|concrete|paving_stones|sett smoothness=excellent|good
 assign isunpaved = not or surface= or ispaved or surface=fine_gravel|cobblestone smoothness=intermediate|bad
@@ -175,16 +162,29 @@ assign accesspenalty =
 # be close to forbidden, while on other ways we just add
 # 4 to the costfactor (making it at least 5 - you are allowed
 # to push your bike)
-#
+
+# are we against legal direction on a oneway?
+assign badoneway =
+       if reversedirection=yes then
+         if oneway:bicycle=yes then true
+         else if oneway= then junction=roundabout
+         else oneway=yes|true|1
+       else oneway=-1
+
 assign onewaypenalty =
        if ( badoneway ) then
        (
-         if      ( cycleway=opposite|opposite_lane|opposite_track       ) then 0
-         else if ( cycleway:left=opposite|opposite_lane|opposite_track  ) then 0
-         else if ( cycleway:right=opposite|opposite_lane|opposite_track ) then 0
+         if (
+           and hascycleway
+           or and cycleway:left=lane|track|shared_lane|share_busway
+                  cycleway:left:oneway=no|-1
+           or and cycleway:right=lane|track|shared_lane|share_busway
+                  cycleway:right:oneway=no|-1
+           or cycleway=opposite|opposite_lane|opposite_track
+           or cycleway:left=opposite|opposite_lane|opposite_track
+              cycleway:right=opposite|opposite_lane|opposite_track
+                                                             ) then 0
          else if ( oneway:bicycle=no                         ) then 0
-         else if ( cycleway:left:oneway=no                   ) then 0
-         else if ( cycleway:right:oneway=no                  ) then 0
          else if ( not footaccess                            ) then 100
          else if ( junction=roundabout|circular              ) then 60
          else if ( highway=primary|primary_link              ) then 50
