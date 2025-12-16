@@ -99,7 +99,7 @@ assign isbike =
              true
 
 assign ispaved = or surface=paved|asphalt|concrete|paving_stones|sett smoothness=excellent|good
-assign isunpaved = not or surface= or ispaved or surface=fine_gravel|cobblestone smoothness=intermediate|bad
+assign isunpaved = not or ispaved or ( and surface= smoothness= ) or surface=fine_gravel|cobblestone smoothness=intermediate|bad
 assign probablyGood = or ispaved and ( or isbike highway=footway ) not isunpaved
 
 
