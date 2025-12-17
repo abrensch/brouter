@@ -95,17 +95,16 @@ assign bikeaccess =
                  switch vehicle=
                         ( if highway=footway then false else defaultaccess )
                         not vehicle=private|no
-              not or bicycle=private or bicycle=no bicycle=dismount
+              not or bicycle=private or bicycle=no or bicycle=dismount bicycle=use_sidepath
 
 #
 # calculate logical foot access
 #
 assign footaccess =
-       or bikeaccess
-          or bicycle=dismount
-             switch foot=
-                    defaultaccess
-                    not or foot=private foot=no
+       or bicycle=dismount
+          switch foot=
+                 defaultaccess
+                 not or foot=private or foot=no foot=use_sidepath
 
 #
 # if not bike-, but foot-acess, just a moderate penalty,
@@ -150,6 +149,7 @@ assign onewaypenalty =
               cycleway:right=opposite|opposite_lane|opposite_track
                                                              ) then 0
          else if ( oneway:bicycle=no                         ) then 0
+         else if ( not footaccess                            ) then 100
          else if ( junction=roundabout|circular              ) then 60
          else if ( highway=primary|primary_link              ) then 50
          else if ( highway=secondary|secondary_link          ) then 30
