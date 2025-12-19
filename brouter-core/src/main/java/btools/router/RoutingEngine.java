@@ -1053,6 +1053,8 @@ public class RoutingEngine extends Thread {
 
   OsmTrack getExtraSegment(OsmPathElement start, OsmPathElement end) {
 
+    if (start == null || end == null) return null;
+
     List<MatchedWaypoint> wptlist = new ArrayList<>();
     MatchedWaypoint wpt1 = new MatchedWaypoint();
     wpt1.waypoint = new OsmNode(start.getILon(), start.getILat());
@@ -1102,10 +1104,15 @@ public class RoutingEngine extends Thread {
 
     boolean bMeetingIsOnRoundabout = ptMeeting.message.isRoundabout();
     boolean bMeetsRoundaboutStart = false;
+    int wayDistance = 0;
 
     int i;
+    OsmPathElement last_n = null;
+
     for (i = 0; i < indexEnd; i++) {
       OsmPathElement n = t.nodes.get(i);
+      if (last_n != null) wayDistance += n.calcDistance(last_n);
+      last_n = n;
       if (n.positionEquals(ptStart)) {
         indexStartFore = i;
         bMeetsRoundaboutStart = true;
@@ -1114,6 +1121,11 @@ public class RoutingEngine extends Thread {
         indexMeetingFore = i;
       }
 
+    }
+
+    if (routingContext.correctMisplacedViaPointsDistance > 0 &&
+      wayDistance > routingContext.correctMisplacedViaPointsDistance) {
+      return 0;
     }
 
     if (!bMeetsRoundaboutStart && bMeetingIsOnRoundabout) {
@@ -1135,21 +1147,22 @@ public class RoutingEngine extends Thread {
     for (i = indexStartBack + 1; i < tt.nodes.size(); i++) {
       OsmPathElement n = tt.nodes.get(i);
       OsmTrack.OsmPathElementHolder detours = tt.getFromDetourMap(n.getIdFromPos());
-      OsmTrack.OsmPathElementHolder h = detours;
-      while (h != null) {
-        h = h.nextHolder;
+      if (detours != null) {
+        OsmTrack.OsmPathElementHolder h = detours;
+        while (h != null) {
+          h = h.nextHolder;
+        }
       }
       removeList.add(n);
     }
 
     OsmPathElement ttend = null;
-    OsmPathElement ttend_next = null;
     if (!bMeetingIsOnRoundabout && !bMeetsRoundaboutStart) {
       ttend = tt.nodes.get(indexStartBack);
-      ttend_next = tt.nodes.get(indexStartBack + 1);
       OsmTrack.OsmPathElementHolder ttend_detours = tt.getFromDetourMap(ttend.getIdFromPos());
-
-      tt.registerDetourForId(ttend.getIdFromPos(), null);
+      if (ttend_detours != null) {
+        tt.registerDetourForId(ttend.getIdFromPos(), null);
+      }
     }
 
     for (OsmPathElement e : removeList) {
@@ -1164,9 +1177,11 @@ public class RoutingEngine extends Thread {
       if (!bMeetingIsOnRoundabout && !bMeetsRoundaboutStart && n.message.isRoundabout()) break;
 
       OsmTrack.OsmPathElementHolder detours = t.getFromDetourMap(n.getIdFromPos());
-      OsmTrack.OsmPathElementHolder h = detours;
-      while (h != null) {
-        h = h.nextHolder;
+      if (detours != null) {
+        OsmTrack.OsmPathElementHolder h = detours;
+        while (h != null) {
+          h = h.nextHolder;
+        }
       }
       removeList.add(n);
     }
@@ -1196,16 +1211,20 @@ public class RoutingEngine extends Thread {
 
     if (!bMeetingIsOnRoundabout && !bMeetsRoundaboutStart) {
 
-      OsmPathElement tstart = t.nodes.get(0);
-      OsmPathElement tstart_next = null;
-      OsmTrack.OsmPathElementHolder tstart_detours = t.getFromDetourMap(tstart.getIdFromPos());
       OsmTrack.OsmPathElementHolder ttend_detours = tt.getFromDetourMap(ttend.getIdFromPos());
 
-      OsmTrack mid = getExtraSegment(ttend, ttend_detours.node);
+      OsmTrack mid = null;
+      if (ttend_detours != null && ttend_detours.node != null) {
+        mid = getExtraSegment(ttend, ttend_detours.node);
+      }
       OsmPathElement tt_end = tt.nodes.get(tt.nodes.size() - 1);
 
       int last_cost = tt_end.cost;
+      float last_time = tt_end.getTime();
+      float last_energy = tt_end.getEnergy();
       int tmp_cost = 0;
+      float tmp_time = 0f;
+      float tmp_energy = 0f;
 
       if (mid != null) {
         boolean start = false;
@@ -1213,19 +1232,24 @@ public class RoutingEngine extends Thread {
           if (start) {
             if (e.positionEquals(ttend_detours.node)) {
               tmp_cost = e.cost;
+              tmp_time = e.getTime();
+              tmp_energy = e.getEnergy();
               break;
             }
             e.cost = last_cost + e.cost;
+            e.setTime(last_time + e.getTime());
+            e.setEnergy(last_energy + e.getEnergy());
             tt.nodes.add(e);
           }
           if (e.positionEquals(tt_end)) start = true;
         }
 
+        ttend_detours.node.cost = last_cost + tmp_cost;
+        ttend_detours.node.setTime(last_time + tmp_time);
+        ttend_detours.node.setEnergy(last_energy + tmp_energy);
+        tt.nodes.add(ttend_detours.node);
+        t.nodes.add(0, ttend_detours.node);
       }
-
-      ttend_detours.node.cost = last_cost + tmp_cost;
-      tt.nodes.add(ttend_detours.node);
-      t.nodes.add(0, ttend_detours.node);
 
     }
 
