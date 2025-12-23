@@ -654,4 +654,15 @@ public class VoiceHint {
     sb.append("(").append((int) (msg.turnangle + 0.5)).append(")").append((int) (msg.priorityclassifier));
   }
 
+  public boolean hasGiveWay() {
+    if (oldWay != null && oldWay.nodeKeyValues != null) {
+      if (oldWay.wayKeyValues.contains("reversedirection=yes")) {
+        return (oldWay.nodeKeyValues.contains("highway=give_way") || oldWay.nodeKeyValues.contains("highway=stop")) && oldWay.nodeKeyValues.contains("direction=backward");
+      } else {
+        return (oldWay.nodeKeyValues.contains("highway=give_way") || oldWay.nodeKeyValues.contains("highway=stop")) && !oldWay.nodeKeyValues.contains("direction=backward");
+      }
+    }
+    return false;
+
+  }
 }
