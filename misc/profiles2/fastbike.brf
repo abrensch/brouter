@@ -29,6 +29,12 @@ assign consider_river        = false  # %consider_river% | Activate to prefer a 
 assign consider_forest       = false  # %consider_forest% | Activate to prefer a route in forest or parks | boolean
 assign consider_town         = false  # %consider_town% | Activate to bypass cities / big towns as far as possible | boolean
 
+# Water point filtering
+assign enable_water_point_filter = false  # %enable_water_point_filter% | Enable water point filtering (min 4km between points) | boolean
+
+# Camping rules (country-specific)
+assign enable_camping_rules = false  # %enable_camping_rules% | Enable country-specific camping rules | boolean
+
 # Change elevation parameters
 assign consider_elevation = true  # %consider_elevation% | Set to false to ignore elevation in routing | boolean
 assign downhillcost       = 60    # %downhillcost% | Cost for going downhill | number
@@ -86,9 +92,17 @@ assign defaultaccess
                      true
 
 #
+# Forbidden access restrictions
+# Note: landuse, protect_class, and designation tags are not in lookup table
+# These checks are handled in Java code (LanduseRestrictionChecker, ProtectedAreaChecker)
+#
+assign forbidden_access = or access=private access=no
+
+#
 # calculate logical bike access
 #
 assign bikeaccess =
+       switch forbidden_access false
        switch bicycle=
               switch bicycle_road=yes
                  true
@@ -101,6 +115,7 @@ assign bikeaccess =
 # calculate logical foot access
 #
 assign footaccess =
+       switch forbidden_access false
        or bicycle=dismount
           switch foot=
                  defaultaccess

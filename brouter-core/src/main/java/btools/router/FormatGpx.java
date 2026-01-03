@@ -32,6 +32,15 @@ public class FormatGpx extends Formatter {
 
   public String formatAsGpx(BufferedWriter sb, OsmTrack t) throws IOException {
     int turnInstructionMode = t.voiceHints != null ? t.voiceHints.turnInstructionMode : 0;
+    
+    // Recalculate hiking rest stops if missing and conditions are met
+    // Check if rest stops need to be calculated (they should already be set, but recalculate if missing)
+    if (t.hikingRestStops == null && t.nodes != null && !t.nodes.isEmpty() && t.distance > 0) {
+      double totalDistance = (double) t.distance;
+      boolean useAlternative = (rc != null && rc.useAlternativeHikingRest);
+      t.hikingRestStops = HikingRestCalculator.calculateRestStops(totalDistance, useAlternative);
+      t.hikingDailySegments = HikingRestCalculator.calculateDailySegments(totalDistance);
+    }
 
     sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     if (turnInstructionMode != 9) {
@@ -198,6 +207,77 @@ public class FormatGpx extends Formatter {
     for (int i = 0; i <= t.pois.size() - 1; i++) {
       OsmNodeNamed poi = t.pois.get(i);
       formatWaypointGpx(sb, poi, "poi");
+    }
+
+    // Add hiking rest stops as waypoints - ALWAYS add them if calculated
+    // Always recalculate if missing (don't rely on RoutingContext flags which may not be set in formatter)
+    if (t.hikingRestStops == null && t.nodes != null && !t.nodes.isEmpty() && t.distance > 0) {
+      double totalDistance = (double) t.distance;
+      t.hikingRestStops = HikingRestCalculator.calculateRestStops(totalDistance, false);
+      t.hikingDailySegments = HikingRestCalculator.calculateDailySegments(totalDistance);
+    }
+    
+    // Add hiking rest stops as waypoints
+    // Always recalculate if missing or empty (don't rely on RoutingContext flags which may not be set in formatter)
+    if ((t.hikingRestStops == null || t.hikingRestStops.isEmpty()) && t.nodes != null && !t.nodes.isEmpty() && t.distance > 0) {
+      double totalDistance = (double) t.distance;
+      t.hikingRestStops = HikingRestCalculator.calculateRestStops(totalDistance, false);
+      t.hikingDailySegments = HikingRestCalculator.calculateDailySegments(totalDistance);
+    }
+    
+    // Add rest stop waypoints if available
+    if (t.hikingRestStops != null && !t.hikingRestStops.isEmpty() && t.nodes != null && t.nodes.size() > 1) {
+      try {
+      int restIndex = 1;
+      for (HikingRestCalculator.HikingRestStop restStop : t.hikingRestStops) {
+        // Find the node closest to the rest stop position
+        double accumulatedDistance = 0;
+        boolean found = false;
+        
+        for (int i = 0; i < t.nodes.size() - 1; i++) {
+          OsmPathElement node1 = t.nodes.get(i);
+          OsmPathElement node2 = t.nodes.get(i + 1);
+          double segmentDistance = node1.calcDistance(node2);
+          
+          if (accumulatedDistance + segmentDistance >= restStop.distanceFromStart) {
+            // Interpolate position along this segment
+            double ratio = segmentDistance > 0 ? (restStop.distanceFromStart - accumulatedDistance) / segmentDistance : 0.5;
+            if (ratio < 0) ratio = 0;
+            if (ratio > 1) ratio = 1;
+            
+            int ilon = (int)(node1.getILon() + (node2.getILon() - node1.getILon()) * ratio);
+            int ilat = (int)(node1.getILat() + (node2.getILat() - node1.getILat()) * ratio);
+            
+            OsmNodeNamed restWaypoint = new OsmNodeNamed();
+            restWaypoint.ilon = ilon;
+            restWaypoint.ilat = ilat;
+            restWaypoint.name = "Rest Stop " + restIndex + 
+                               " (" + String.format("%.1f", restStop.distanceFromStart / 1000.0) + " km)";
+            formatWaypointGpx(sb, restWaypoint, "rest_stop");
+            found = true;
+            break;
+          }
+          
+          accumulatedDistance += segmentDistance;
+        }
+        
+        // If not found by distance, use the last node
+        if (!found && !t.nodes.isEmpty()) {
+          OsmPathElement lastNode = t.nodes.get(t.nodes.size() - 1);
+          OsmNodeNamed restWaypoint = new OsmNodeNamed();
+          restWaypoint.ilon = lastNode.getILon();
+          restWaypoint.ilat = lastNode.getILat();
+          restWaypoint.name = "Rest Stop " + restIndex + 
+                             " (" + String.format("%.1f", restStop.distanceFromStart / 1000.0) + " km)";
+          formatWaypointGpx(sb, restWaypoint, "rest_stop");
+        }
+        
+        restIndex++;
+      }
+      } catch (Exception e) {
+        // Log error but don't fail - waypoints are optional
+        e.printStackTrace();
+      }
     }
 
     if (t.exportWaypoints) {
