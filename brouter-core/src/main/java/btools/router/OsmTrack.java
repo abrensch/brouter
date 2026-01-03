@@ -75,6 +75,10 @@ public final class OsmTrack {
   public List<HikingRestCalculator.HikingRestStop> hikingRestStops;
   public List<HikingRestCalculator.DailySegment> hikingDailySegments;
   
+  // Cycling rest suggestions (trekking cyclists)
+  public List<CyclingRestCalculator.CyclingRestStop> cyclingRestStops;
+  public List<CyclingRestCalculator.DailySegment> cyclingDailySegments;
+  
   // Camping rules
   public boolean campingRulesEnabled;
   

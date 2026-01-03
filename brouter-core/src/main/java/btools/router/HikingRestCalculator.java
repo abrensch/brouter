@@ -99,6 +99,7 @@ public class HikingRestCalculator {
     public double position; // Position along route in meters
     public double distanceFromStart; // Distance from start in meters
     public boolean isAlternative; // Whether using alternative (shorter) distance
+    public RestStopPOISearcher.RestStopPOIs nearbyPOIs; // Water points and cabins nearby
   }
   
   /**

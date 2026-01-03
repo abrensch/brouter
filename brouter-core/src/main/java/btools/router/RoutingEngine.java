@@ -258,6 +258,14 @@ public class RoutingEngine extends Thread {
           }
         }
         
+        // Process cycling rest suggestions (trekking cyclists)
+        if (routingContext.enableCyclingRest && routingContext.bikeMode) {
+          // Only recalculate if not already set (to avoid overwriting)
+          if (track.cyclingRestStops == null) {
+            processCyclingRest(track);
+          }
+        }
+        
         // Process camping rules if enabled
         if (routingContext.enableCampingRules) {
           processCampingRules(track);
@@ -2564,6 +2572,12 @@ public class RoutingEngine extends Thread {
     
     List<HikingRestCalculator.HikingRestStop> restStops = 
         HikingRestCalculator.calculateRestStops(totalDistance, useAlternative);
+    
+    // Search for POIs (water points, cabins) near each rest stop
+    if (routingContext.enableWaterPointFilter && restStops != null && !restStops.isEmpty()) {
+      searchPOIsForRestStops(track, restStops);
+    }
+    
     track.hikingRestStops = restStops;
     
     List<HikingRestCalculator.DailySegment> dailySegments = 
@@ -2576,6 +2590,41 @@ public class RoutingEngine extends Thread {
         track.message += " daily-segments=" + dailySegments.size();
       }
       logInfo("Hiking rest: " + restStops.size() + " rest stops, " + 
+              dailySegments.size() + " daily segments");
+    }
+  }
+  
+  /**
+   * Process cycling rest suggestions (trekking cyclists)
+   */
+  private void processCyclingRest(OsmTrack track) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty()) {
+      return;
+    }
+    
+    double totalDistance = (double) track.distance;
+    boolean useAlternative = routingContext.useAlternativeCyclingRest;
+    
+    List<CyclingRestCalculator.CyclingRestStop> restStops = 
+        CyclingRestCalculator.calculateRestStops(totalDistance, useAlternative);
+    
+    // Search for POIs (water points, cabins) near each rest stop
+    if (routingContext.enableWaterPointFilter && restStops != null && !restStops.isEmpty()) {
+      searchPOIsForCyclingRestStops(track, restStops);
+    }
+    
+    track.cyclingRestStops = restStops;
+    
+    List<CyclingRestCalculator.DailySegment> dailySegments = 
+        CyclingRestCalculator.calculateDailySegments(totalDistance);
+    track.cyclingDailySegments = dailySegments;
+    
+    if (!restStops.isEmpty() || !dailySegments.isEmpty()) {
+      if (track.message != null) {
+        track.message += " cycling-rest-stops=" + restStops.size();
+        track.message += " daily-segments=" + dailySegments.size();
+      }
+      logInfo("Cycling rest: " + restStops.size() + " rest stops, " + 
               dailySegments.size() + " daily segments");
     }
   }
@@ -2614,5 +2663,91 @@ public class RoutingEngine extends Thread {
       track.message += " water-point-filter=enabled";
     }
     logInfo("Water point filter: Enabled (min 4km between points, 2km search radius)");
+  }
+  
+  /**
+   * Search for POIs (water points, cabins) near hiking rest stops
+   */
+  private void searchPOIsForRestStops(OsmTrack track, List<HikingRestCalculator.HikingRestStop> restStops) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty() || restStops == null) {
+      return;
+    }
+    
+    // Use RoutingEngine's nodesCache (may be null if not initialized)
+    btools.mapaccess.NodesCache nodesCache = this.nodesCache;
+    
+    if (nodesCache == null || routingContext == null) {
+      return; // Cannot search without nodes cache or routing context
+    }
+    
+    for (HikingRestCalculator.HikingRestStop restStop : restStops) {
+      // Find the node closest to the rest stop position
+      OsmPathElement restNode = findNodeAtDistance(track, restStop.distanceFromStart);
+      if (restNode != null) {
+        // OsmPathElement implements OsmPos, so we can use it directly
+        RestStopPOISearcher.RestStopPOIs pois = 
+            RestStopPOISearcher.searchPOIsNearRestStop(restNode, nodesCache, routingContext);
+        restStop.nearbyPOIs = pois;
+      }
+    }
+  }
+  
+  /**
+   * Search for POIs (water points, cabins) near cycling rest stops
+   */
+  private void searchPOIsForCyclingRestStops(OsmTrack track, List<CyclingRestCalculator.CyclingRestStop> restStops) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty() || restStops == null) {
+      return;
+    }
+    
+    // Use RoutingEngine's nodesCache (may be null if not initialized)
+    btools.mapaccess.NodesCache nodesCache = this.nodesCache;
+    
+    if (nodesCache == null || routingContext == null) {
+      return; // Cannot search without nodes cache or routing context
+    }
+    
+    for (CyclingRestCalculator.CyclingRestStop restStop : restStops) {
+      // Find the node closest to the rest stop position
+      OsmPathElement restNode = findNodeAtDistance(track, restStop.distanceFromStart);
+      if (restNode != null) {
+        // OsmPathElement implements OsmPos, so we can use it directly
+        RestStopPOISearcher.RestStopPOIs pois = 
+            RestStopPOISearcher.searchPOIsNearRestStop(restNode, nodesCache, routingContext);
+        restStop.nearbyPOIs = pois;
+      }
+    }
+  }
+  
+  /**
+   * Find the node closest to a given distance along the track
+   */
+  private OsmPathElement findNodeAtDistance(OsmTrack track, double targetDistance) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty()) {
+      return null;
+    }
+    
+    double accumulatedDistance = 0;
+    
+    for (int i = 0; i < track.nodes.size() - 1; i++) {
+      OsmPathElement node1 = track.nodes.get(i);
+      OsmPathElement node2 = track.nodes.get(i + 1);
+      double segmentDistance = node1.calcDistance(node2);
+      
+      if (accumulatedDistance + segmentDistance >= targetDistance) {
+        // Return the node closest to the target distance
+        double ratio = segmentDistance > 0 ? (targetDistance - accumulatedDistance) / segmentDistance : 0.5;
+        if (ratio < 0.5) {
+          return node1;
+        } else {
+          return node2;
+        }
+      }
+      
+      accumulatedDistance += segmentDistance;
+    }
+    
+    // If not found, return the last node
+    return track.nodes.isEmpty() ? null : track.nodes.get(track.nodes.size() - 1);
   }
 }

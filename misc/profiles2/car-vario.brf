@@ -21,7 +21,7 @@ assign add_beeline         = false  # %add_beeline% | Enable beeline on distant 
 assign use_offroad         = false  # %use_offroad% | Enable additional roads | boolean
 
 # Suggested breaks for cars (non-mandatory, but recommended)
-assign enable_car_breaks   = false  # %enable_car_breaks% | Enable suggested breaks every 4.5 hours | boolean
+assign enable_car_breaks   = true   # %enable_car_breaks% | Enable suggested breaks every 4.5 hours | boolean
 
 # Camping rules (country-specific)
 assign enable_camping_rules = false  # %enable_camping_rules% | Enable country-specific camping rules | boolean

@@ -210,6 +210,13 @@ java -jar brouter.jar <segmentdir> <profiledir> 0 hiking-mountain \
 
 The rest stops will appear as `<wpt>` elements in the GPX file with names like "Rest Stop 1 (11.3 km)" and type "rest_stop", making them easy to identify in GPX readers and navigation apps.
 
+When POI search is enabled (for hiking and cycling routes), nearby water points and cabins/huts are automatically found and included in the waypoint names:
+- Water points within 2 km: `"Rest Stop 1 (11.3 km) | Water: 450m"`
+- Cabins/huts within 5 km: `"Main Rest 1 (28.24 km) | Cabin: 1200m"`
+- Spring warnings: `"Rest Stop 2 (22.6 km) | Water: 800m (spring)"`
+
+See the [`test-routing/README.md`](test-routing/README.md) for example routes demonstrating these features.
+
 **Historical Background:** The rest stop distances are based on traditional Norwegian measurement units. The default distance of 11.295 km corresponds to one old Norwegian mile (mil), while the alternative distance of 2.275 km is one quarter of an old Norwegian mile. A full day's walk was traditionally considered to be 40 km. Rest periods for hikers and cyclists are based on these historical measurements.
 
 ### Additional Routing Features
@@ -232,6 +239,9 @@ BRouter supports various routing modes and features:
 
 #### Bicycle Routing
 - **Elevation awareness**: Considers uphill/downhill costs
+- **Rest stop suggestions**: For trekking cyclists, main rest every 28.24 km (scaled from hiking distances), alternative rest every 5.69 km
+- **Daily segments**: Maximum 100 km per day for trekking cyclists
+- **POI search**: Automatically searches for water points (2 km radius) and cabins/huts (5 km radius) near rest stops
 - **Camping rules**: Country-specific rules for Nordic countries
 - **Water point filtering**: Minimum 4 km between water points with spring warnings
 
@@ -239,6 +249,7 @@ BRouter supports various routing modes and features:
 - **Path validation**: Validates routes against forbidden highways (motorways, trunk, primary roads)
 - **Rest suggestions**: Every 11.295 km (old Norwegian mile) or 2.275 km (1/4 mile) alternative
 - **Daily segments**: Maximum 40 km per day
+- **POI search**: Automatically searches for water points (2 km radius) and cabins/huts (5 km radius) near rest stops
 - **Path priority**: Prioritizes `trailblazed=yes` and `route=hiking` paths, avoids `fixme` tagged paths
 - **Path enforcement**: Automatically adds waypoints to avoid forbidden highways and enforce path usage
 - **Guide requirements**: Detects when a guide is needed based on route difficulty and hazards
@@ -248,6 +259,11 @@ BRouter supports various routing modes and features:
 - **Protected area checks**: Validates access through IUCN protection classes and designations
 
 #### Common Features
+- **POI search**: Automatic search for water points and cabins/huts near rest stops (hiking and cycling routes)
+  - Water points: Searches for `amenity=drinking_water`, `amenity=fountain`, `natural=spring` within 2 km
+  - Cabins/Huts: Searches for `tourism=alpine_hut`, `tourism=wilderness_hut`, `tourism=hut`, `tourism=cabin` within 5 km
+  - POI information included in GPX waypoint names with distances
+  - Spring warnings included for natural springs
 - **Camping rules**: Detailed country-specific information for Norway, Sweden, Denmark, and Finland
 - **Water point filtering**: Distance-based filtering (minimum 4 km) with warnings for natural springs
 - **Protected area checks**: IUCN protection class validation and designation checks
@@ -259,10 +275,7 @@ BRouter supports various routing modes and features:
 - **PathEnforcementEngine**: Framework for enforcing path usage by adding waypoints to avoid forbidden highways
 - **CountryBorderFilter**: Coordinate-based country detection for major countries (can be extended with OSM boundary data)
 
-For detailed information about these features, see the documentation files:
-- [`ROUTING_INVESTIGATION.md`](ROUTING_INVESTIGATION.md) - Technical details about routing modes
-- [`TRUCK_SUPPORT.md`](TRUCK_SUPPORT.md) - Truck routing features
-- [`ENHANCED_FEATURES.md`](ENHANCED_FEATURES.md) - Additional routing enhancements
+For example routes demonstrating these features, see [`test-routing/README.md`](test-routing/README.md).
 
 ## Documentation
 

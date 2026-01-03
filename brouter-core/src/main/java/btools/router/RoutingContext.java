@@ -193,6 +193,10 @@ public final class RoutingContext {
     enableHikingRest = 0.f != expctxGlobal.getVariableValue("enable_hiking_rest", 0.f);
     useAlternativeHikingRest = 0.f != expctxGlobal.getVariableValue("use_alternative_hiking_rest", 0.f);
     
+    // Cycling rest suggestions (trekking cyclists)
+    enableCyclingRest = 0.f != expctxGlobal.getVariableValue("enable_cycling_rest", 0.f);
+    useAlternativeCyclingRest = 0.f != expctxGlobal.getVariableValue("use_alternative_cycling_rest", 0.f);
+    
     // Camping rules
     enableCampingRules = 0.f != expctxGlobal.getVariableValue("enable_camping_rules", 0.f);
     
@@ -266,6 +270,10 @@ public final class RoutingContext {
   // Hiking rest suggestions
   public boolean enableHikingRest;
   public boolean useAlternativeHikingRest;
+  
+  // Cycling rest suggestions (trekking cyclists)
+  public boolean enableCyclingRest;
+  public boolean useAlternativeCyclingRest;
   
   // Camping rules
   public boolean enableCampingRules;

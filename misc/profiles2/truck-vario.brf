@@ -20,8 +20,8 @@ assign add_beeline         = false  # %add_beeline% | Enable beeline on distant 
 assign use_offroad         = false  # %use_offroad% | Enable additional roads | boolean
 
 # Rest period support (EU Regulation EC 561/2006)
-assign enable_rest_periods = false  # %enable_rest_periods% | Enable automatic rest period compliance | boolean
-assign auto_insert_rest_stops = false  # %auto_insert_rest_stops% | Automatically insert rest stops as waypoints | boolean
+assign enable_rest_periods = true   # %enable_rest_periods% | Enable automatic rest period compliance | boolean
+assign auto_insert_rest_stops = true   # %auto_insert_rest_stops% | Automatically insert rest stops as waypoints | boolean
 assign prefer_rest_areas   = true   # %prefer_rest_areas% | Prefer routes passing rest areas | boolean
 
 # Truck physical dimensions (user-configurable)
