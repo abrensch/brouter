@@ -4,6 +4,16 @@
 
 assign   validForBikes        1
 
+# Hiking rest suggestions (for trekking cyclists)
+assign   enable_hiking_rest        = true   # %enable_hiking_rest% | Enable hiking rest suggestions | boolean
+assign   use_alternative_hiking_rest = false # %use_alternative_hiking_rest% | Use alternative (2.275 km) instead of standard (11.295 km) rest distance | boolean
+
+# Water point filtering (enables water points and hut search)
+assign   enable_water_point_filter = true   # %enable_water_point_filter% | Enable water point filtering (min 4km between points) and hut search | boolean
+
+# Camping rules (country-specific)
+assign   enable_camping_rules      = true   # %enable_camping_rules% | Enable country-specific camping rules | boolean
+
 ---context:way   # following code refers to way-tags
 
 assign costfactor

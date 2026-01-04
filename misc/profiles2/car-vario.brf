@@ -24,7 +24,7 @@ assign use_offroad         = false  # %use_offroad% | Enable additional roads | 
 assign enable_car_breaks   = true   # %enable_car_breaks% | Enable suggested breaks every 4.5 hours | boolean
 
 # Camping rules (country-specific)
-assign enable_camping_rules = false  # %enable_camping_rules% | Enable country-specific camping rules | boolean
+assign enable_camping_rules = true  # %enable_camping_rules% | Enable country-specific camping rules | boolean
 
 # Parking at intersections
 assign allow_intersection_parking = true  # %allow_intersection_parking% | Allow parking at intersections of specific road types | boolean

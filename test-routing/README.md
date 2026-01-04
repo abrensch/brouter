@@ -17,6 +17,13 @@ This directory contains test routes and scripts for validating BRouter's enhance
   - Cycling routing profile (`fastbike`)
   - POI search for water points and cabins/huts near rest stops
 
+- **`trekking-test-route.gpx`**: A trekking route from 61.8937872, 9.4865861 to 61.8842863, 10.0113469 via 61.8788128, 9.7959691. This route demonstrates:
+  - Hiking rest stops (every 11.295 km, old Norwegian mile)
+  - Distance-based rest suggestions for trekking cyclists
+  - Trekking routing profile (`trekking`)
+  - POI search for water points and cabins/huts near rest stops
+  - Country-specific camping rules
+
 - **`testtrack1.gpx`** and **`testtrack2.gpx`**: Additional test routes for validation.
 
 ### Generation Scripts
@@ -37,6 +44,15 @@ This directory contains test routes and scripts for validating BRouter's enhance
   Usage:
   ```bash
   bash test-routing/generate_cycling_route.sh
+  ```
+
+- **`generate_trekking_route.sh`**: Script to regenerate the trekking test route. Requires:
+  - Map segments: `E10_N55.rd5`, `E10_N60.rd5` in `test_segments/` directory
+  - BRouter JAR file: `brouter-server/build/libs/brouter-*-all.jar`
+  
+  Usage:
+  ```bash
+  bash test-routing/generate_trekking_route.sh
   ```
 
 ## Features Demonstrated
@@ -82,6 +98,14 @@ Rest Stop 2 (11.3 km) | Water: 800m (spring)
 - **Distance**: ~630 km
 - **Rest Stops**: Main rest every 28.24 km (scaled from hiking distances)
 
+### Trekking Route
+- **Start**: 61.8937872, 9.4865861
+- **Via**: 61.8788128, 9.7959691
+- **End**: 61.8842863, 10.0113469
+- **Profile**: `trekking`
+- **Distance**: ~56.9 km
+- **Rest Stops**: Every 11.295 km (old Norwegian mile)
+
 ## Regenerating Routes
 
 To regenerate routes with the latest BRouter code:
@@ -99,6 +123,7 @@ To regenerate routes with the latest BRouter code:
    ```bash
    bash test-routing/generate_car_route.sh
    bash test-routing/generate_cycling_route.sh
+   bash test-routing/generate_trekking_route.sh
    ```
 
 ## Viewing Routes

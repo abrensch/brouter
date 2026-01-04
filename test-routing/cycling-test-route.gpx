@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- track-length = 629931 filtered ascend = 3933 plain-ascend = -8 cost=821042 energy=3.5kwh time=35h 36m 53s cycling-rest-stops=22 daily-segments=7 -->
+<!-- track-length = 629931 filtered ascend = 3933 plain-ascend = -8 cost=821042 energy=3.5kwh time=35h 36m 53s cycling-rest-stops=22 daily-segments=7 camping-rules=enabled water-point-filter=enabled -->
 <gpx 
  xmlns="http://www.topografix.com/GPX/1/1" 
  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
