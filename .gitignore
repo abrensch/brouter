@@ -25,3 +25,4 @@ private/
 *.osm.pbf
 norway-latest.osm.pbf
 test_segments/*.rd5
+testtrack*.gpx
