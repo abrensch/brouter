@@ -259,11 +259,11 @@ assign costfactor
 
 
   switch or highway=motorway highway=motorway_link    switch allow_motorways 1.5 10000
-  switch or highway=trunk highway=trunk_link          switch allow_motorways 1.5 10
+  switch or highway=trunk highway=trunk_link          switch allow_motorways 3.0 15
   switch or highway=primary highway=primary_link      1.2
   switch or highway=secondary highway=secondary_link  1.1
   switch or highway=tertiary highway=tertiary_link    1.0
-  switch    highway=unclassified                      switch isunpaved 10 1.1
+  switch    highway=unclassified                      switch isunpaved 10 0.95
   switch    highway=pedestrian                        10
   switch    highway=steps                             switch allow_steps 1000 10000
   switch    route=ferry                               switch allow_ferries 5.67 10000
