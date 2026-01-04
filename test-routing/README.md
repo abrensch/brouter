@@ -69,10 +69,14 @@ All routes include waypoints marking suggested rest stops:
 For hiking and cycling routes, BRouter automatically searches for nearby Points of Interest (POIs) around rest stops:
 - **Water points**: Drinking water, fountains, and springs within 2 km
 - **Cabins/Huts**: Alpine huts, wilderness huts, and cabins within 5 km
+  - Only includes accessible cabins: `access=yes` (or no access tag) and `locked=no` (or no locked tag)
+  - Includes network cabins (e.g., Den Norske Turistforening) but excludes those requiring membership (e.g., `dnt:lock=yes`)
+  - Network name displayed in waypoint names when available
 
 POI information is included in the waypoint names when available:
 ```
 Main Rest 1 (28.24 km) | Water: 450m | Cabin: 1200m
+Main Rest 2 (56.48 km) | Cabin: 800m (Den Norske Turistforening)
 ```
 
 If a water point is a natural spring, a warning is included:
@@ -141,4 +145,9 @@ These GPX files can be opened in:
 - POI information may not be available for all rest stops if no POIs are found nearby
 - The search radius is 2 km for water points and 5 km for cabins/huts
 - Routes are generated for Norway and require Norwegian map segments
+- **Important**: For POI search to work, segments must be regenerated with POI nodes included
+  - Use `regenerate_segments_with_poi.sh` to regenerate segments with POI data
+  - The NodeFilter has been modified to include POI nodes (nodes with tags)
+  - Existing segments (generated before this change) won't have POI nodes
+  - If waypoint names don't show "| Water:" or "| Cabin:", the segments need regeneration
 

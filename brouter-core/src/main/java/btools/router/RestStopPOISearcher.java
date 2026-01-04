@@ -191,14 +191,67 @@ public class RestStopPOISearcher {
   
   /**
    * Check if node description contains cabin/hut tags
+   * Only includes cabins with access=yes (or no access restriction) and locked=no (or no locked tag)
+   * Optionally includes network cabins (e.g., DNT) if they meet access requirements
    */
   private static CabinInfo checkCabinTags(OsmNode node, String nodeDesc, double distance) {
     String descLower = nodeDesc.toLowerCase();
     
+    // Check access restrictions - exclude if access=no or access=private
+    if (descLower.contains("access=no") || descLower.contains("access=private")) {
+      return null; // Exclude inaccessible cabins
+    }
+    
+    // Check locked status - exclude if locked=yes
+    if (descLower.contains("locked=yes")) {
+      return null; // Exclude locked cabins
+    }
+    
+    // Check for network information
+    String network = extractTagValue(nodeDesc, "network");
+    boolean isNetworkCabin = network != null && !network.isEmpty();
+    
+    // Check for network-specific lock tags (e.g., dnt:lock=yes for DNT network)
+    // DNT (Den Norske Turistforening) cabins with dnt:lock=yes require membership
+    boolean hasNetworkLock = false;
+    if (isNetworkCabin) {
+      String networkLower = network.toLowerCase();
+      if (networkLower.contains("dnt") || networkLower.contains("den norske turistforening")) {
+        // Check for DNT-specific lock tag
+        if (descLower.contains("dnt:lock=yes") || descLower.contains("dnt:lock yes")) {
+          hasNetworkLock = true;
+        }
+      }
+      // Check for other network-specific lock patterns (network:lock=yes, etc.)
+      if (descLower.contains(":lock=yes") || descLower.contains(":lock yes")) {
+        hasNetworkLock = true;
+      }
+    }
+    
+    // Exclude network cabins that require membership (network lock)
+    if (hasNetworkLock) {
+      return null; // Exclude network cabins that require membership
+    }
+    
+    // Include if accessible and unlocked:
+    // - access=yes (explicitly accessible) OR no access tag (defaults to accessible)
+    // - locked=no (explicitly unlocked) OR no locked tag (defaults to unlocked)
+    boolean hasAccessYes = descLower.contains("access=yes");
+    boolean hasLockedNo = descLower.contains("locked=no");
+    boolean hasAccessTag = descLower.contains("access=");
+    boolean hasLockedTag = descLower.contains("locked=");
+    
+    // Must satisfy: (access=yes OR no access tag) AND (locked=no OR no locked tag)
+    boolean isAccessible = hasAccessYes || !hasAccessTag;
+    boolean isUnlocked = hasLockedNo || !hasLockedTag;
+    
+    if (!isAccessible || !isUnlocked) {
+      return null; // Exclude if not accessible or locked
+    }
+    
     // Check for cabin/hut tags
     String type = null;
     String name = extractName(nodeDesc);
-    boolean locked = descLower.contains("locked=yes") || descLower.contains("access=private");
     boolean hasWater = descLower.contains("drinking_water=yes") || descLower.contains("amenity=drinking_water");
     
     if (descLower.contains("tourism=alpine_hut") || descLower.contains("tourism alpine_hut")) {
@@ -215,11 +268,26 @@ public class RestStopPOISearcher {
     
     if (type != null) {
       CabinInfo cabin = new CabinInfo(node, type, name, distance);
-      cabin.locked = locked;
+      cabin.locked = false; // Already filtered out locked cabins
       cabin.hasWater = hasWater;
+      cabin.network = network; // Store network information
+      cabin.isNetworkCabin = isNetworkCabin;
       return cabin;
     }
     
+    return null;
+  }
+  
+  /**
+   * Extract value for a specific tag from node description
+   */
+  private static String extractTagValue(String nodeDesc, String tagName) {
+    String[] parts = nodeDesc.split(" ");
+    for (String part : parts) {
+      if (part.startsWith(tagName + "=")) {
+        return part.substring(tagName.length() + 1);
+      }
+    }
     return null;
   }
   
@@ -317,6 +385,8 @@ public class RestStopPOISearcher {
     public boolean locked;
     public boolean hasWater;
     public boolean hasShelter;
+    public String network; // Network name if cabin is part of a network (e.g., "Den Norske Turistforening")
+    public boolean isNetworkCabin; // Whether this cabin is part of a network
     
     public CabinInfo(OsmPos location, String type, String name, double distance) {
       this.location = location;
@@ -326,6 +396,8 @@ public class RestStopPOISearcher {
       this.locked = false; // Would be determined from OSM tags
       this.hasWater = false; // Would be determined from OSM tags
       this.hasShelter = true; // Cabins/huts typically provide shelter
+      this.network = null;
+      this.isNetworkCabin = false;
     }
   }
 }

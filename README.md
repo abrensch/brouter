@@ -262,6 +262,9 @@ BRouter supports various routing modes and features:
 - **POI search**: Automatic search for water points and cabins/huts near rest stops (hiking and cycling routes)
   - Water points: Searches for `amenity=drinking_water`, `amenity=fountain`, `natural=spring` within 2 km
   - Cabins/Huts: Searches for `tourism=alpine_hut`, `tourism=wilderness_hut`, `tourism=hut`, `tourism=cabin` within 5 km
+  - **Cabin filtering**: Only includes accessible cabins with `access=yes` (or no access restriction) and `locked=no` (or no locked tag)
+  - **Network cabins**: Includes network cabins (e.g., Den Norske Turistforening) but excludes those requiring membership (e.g., `dnt:lock=yes`)
+  - Network information displayed in waypoint names when available
   - POI information included in GPX waypoint names with distances
   - Spring warnings included for natural springs
 - **Camping rules**: Detailed country-specific information for Norway, Sweden, Denmark, and Finland

@@ -437,6 +437,9 @@ public class FormatGpx extends Formatter {
                   RestStopPOISearcher.CabinInfo nearestCabin = restStop.nearbyPOIs.getNearestCabin();
                   if (nearestCabin != null) {
                     poiInfo += " | Cabin: " + String.format("%.0f", nearestCabin.distanceFromRestStop) + "m";
+                    if (nearestCabin.isNetworkCabin && nearestCabin.network != null) {
+                      poiInfo += " (" + nearestCabin.network + ")";
+                    }
                   }
                 }
               }
@@ -473,6 +476,9 @@ public class FormatGpx extends Formatter {
                 RestStopPOISearcher.CabinInfo nearestCabin = restStop.nearbyPOIs.getNearestCabin();
                 if (nearestCabin != null) {
                   poiInfo += " | Cabin: " + String.format("%.0f", nearestCabin.distanceFromRestStop) + "m";
+                  if (nearestCabin.isNetworkCabin && nearestCabin.network != null) {
+                    poiInfo += " (" + nearestCabin.network + ")";
+                  }
                 }
               }
             }
@@ -538,6 +544,9 @@ public class FormatGpx extends Formatter {
                 RestStopPOISearcher.CabinInfo nearestCabin = restStop.nearbyPOIs.getNearestCabin();
                 if (nearestCabin != null) {
                   poiInfo += " | Cabin: " + String.format("%.0f", nearestCabin.distanceFromRestStop) + "m";
+                  if (nearestCabin.isNetworkCabin && nearestCabin.network != null) {
+                    poiInfo += " (" + nearestCabin.network + ")";
+                  }
                 }
               }
             }
