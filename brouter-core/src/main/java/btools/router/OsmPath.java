@@ -148,6 +148,34 @@ abstract class OsmPath implements OsmLinkHolder {
 
     // calculate the costfactor inputs
     float costfactor = rc.expctxWay.getCostfactor();
+    
+    // Apply path priority adjustments (fixme penalty, trailblazed bonus)
+    // Extract wayKeyValues if processUnusedTags is enabled
+    // Check for fixme tags first - if present, block the path completely
+    if (rc.processUnusedTags) {
+      String wayKeyValues = rc.expctxWay.getKeyValueDescription(isReverse, description);
+      if (wayKeyValues != null && !wayKeyValues.isEmpty()) {
+        java.util.Map<String, String> wayTags = parseWayKeyValues(wayKeyValues);
+        
+        // Check for fixme tags first - block completely if present
+        double fixmePenalty = PathPriorityChecker.getFixmePenalty(wayTags);
+        if (fixmePenalty > 0.0) {
+          // Block paths with fixme tags by setting very high cost factor (1000x = effectively forbidden)
+          // This makes the path costfactor > 10000, which will be rejected in the access check
+          costfactor = (float)(costfactor * (1.0 + fixmePenalty));
+          // Also set cost to -1 to immediately reject this path
+          cost = -1;
+          return;
+        } else {
+          // Only apply other priority adjustments if no fixme tag
+          double trailblazedBonus = PathPriorityChecker.getTrailblazedBonus(wayTags);
+          if (trailblazedBonus != 0.0) {
+            costfactor = (float)(costfactor * (1.0 + trailblazedBonus));
+          }
+        }
+      }
+    }
+    
     boolean isTrafficBackbone = cost == 0 && rc.expctxWay.getIsTrafficBackbone() > 0.f;
     int lastpriorityclassifier = priorityclassifier;
     priorityclassifier = (int) rc.expctxWay.getPriorityClassifier();
@@ -430,5 +458,33 @@ abstract class OsmPath implements OsmLinkHolder {
 
   public double getTotalEnergy() {
     return 0.;
+  }
+  
+  /**
+   * Parse wayKeyValues string into a Map of tags
+   * Format: "key1=value1 key2=value2 ..." (space-separated, as returned by getKeyValueDescription)
+   * 
+   * @param wayKeyValues String containing key=value pairs separated by spaces
+   * @return Map of tag key-value pairs
+   */
+  private java.util.Map<String, String> parseWayKeyValues(String wayKeyValues) {
+    java.util.Map<String, String> tags = new java.util.HashMap<>();
+    if (wayKeyValues == null || wayKeyValues.isEmpty()) {
+      return tags;
+    }
+    
+    // getKeyValueDescription returns space-separated pairs, not semicolon-separated
+    String[] pairs = wayKeyValues.split(" ");
+    for (String pair : pairs) {
+      int eqIndex = pair.indexOf('=');
+      if (eqIndex > 0 && eqIndex < pair.length() - 1) {
+        String key = pair.substring(0, eqIndex).trim();
+        String value = pair.substring(eqIndex + 1).trim();
+        if (!key.isEmpty() && !value.isEmpty()) {
+          tags.put(key, value);
+        }
+      }
+    }
+    return tags;
   }
 }

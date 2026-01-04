@@ -18,6 +18,27 @@ assign   consider_town          = false   # %consider_town% | Activate to bypass
 
 assign   shortest_way             0    # 0 as default, duplicate shortest standard profile, SAC access limit ignored for now
 
+# Hiking rest suggestions
+assign   enable_hiking_rest        = true   # %enable_hiking_rest% | Enable hiking rest suggestions | boolean
+assign   use_alternative_hiking_rest = false # %use_alternative_hiking_rest% | Use alternative (2.275 km) instead of standard (11.295 km) rest distance | boolean
+
+# Water point filtering (enables water points and hut search)
+assign   enable_water_point_filter = true   # %enable_water_point_filter% | Enable water point filtering (min 4km between points) and hut search | boolean
+
+# Camping rules (country-specific)
+assign   enable_camping_rules      = true   # %enable_camping_rules% | Enable country-specific camping rules | boolean
+
+# Glacier proximity rules
+assign   enable_glacier_distance_check = true   # %enable_glacier_distance_check% | Check minimum 200m distance from glaciers for camping | boolean
+assign   min_glacier_distance         = 200    # %min_glacier_distance% | Minimum camping distance from glaciers in meters | number
+
+# Guide requirement detection
+assign   enable_guide_warnings        = true   # %enable_guide_warnings% | Warn when guide is required or recommended | boolean
+
+# Path enforcement (avoid forbidden highways)
+assign   enforce_path_usage        = false   # %enforce_path_usage% | Automatically add waypoints to avoid forbidden highways | boolean
+assign   max_path_detour            = 2000   # %max_path_detour% | Maximum detour distance in meters for path enforcement | number
+
 assign   iswet                    0    # %iswet% | tries to prevent muddy boots and wet buttocks | boolean
 assign   hiking_routes_preference 0.20 # %hiking_routes_preference% | Increases cost of non hiking routes by multiplier 1 + hiking_routes_preference (0.10 to 2.0) | number
 
@@ -80,6 +101,9 @@ assign   downhillcutoff  if  consider_elevation   then  downhillcutoffvalue else
 assign   nonhiking_route_penalty    add 1.0 max 0.0 hiking_routes_preference
 
 assign   validForFoot        1
+
+# Enable processUnusedTags to access fixme and trailblazed tags via Java code
+assign   processUnusedTags   = true   # Enable to access tags not in lookup table
 
 #Penalizing SAC routes below (K1) and above(K2) preferred SAC scale
 #see  http://wiki.openstreetmap.org/wiki/Key:sac_scale
@@ -149,9 +173,17 @@ assign initialcost
 
    switch or shortest_way  is_ldhr  0 initialcost_value
 
+#
+# Forbidden access restrictions
+# Note: landuse, protect_class, and designation tags are not in lookup table
+# These checks are handled in Java code (LanduseRestrictionChecker, ProtectedAreaChecker)
+#
+assign forbidden_access = or access=private access=no
+
 assign defaultaccess    switch access=    not motorroad=yes    switch or access=private access=no   0   1
 
 assign bikeaccess
+       switch forbidden_access 0
        switch bicycle=
               switch vehicle=
                      defaultaccess
@@ -160,7 +192,16 @@ assign bikeaccess
                             1
               not or bicycle=private or bicycle=no bicycle=dismount
 
-assign footaccess     or issidewalk
+#
+# Glacier proximity and guide requirement checks
+# Note: Many tags (natural=glacier, guide, alpine_grade, hazard, climbing, via_ferrata, supervised)
+# are not in lookup table. These checks are handled in Java code:
+# - GlacierProximityChecker.java
+# - GuideRequirementChecker.java
+#
+
+assign footaccess     switch forbidden_access false
+                      or issidewalk
                       or and bikeaccess  not foot=no|use_sidepath
                       or bicycle=dismount
                       switch foot=      defaultaccess    not foot=private|no|use_sidepath
@@ -170,6 +211,14 @@ assign accesspenalty switch footaccess 0 switch bikeaccess 4 switch foot=use_sid
 assign badoneway = 0
 assign onewaypenalty = 0
 
+# Route priority preferences (way context)
+# Prioritize route=hiking and trailblazed=yes paths
+# Avoid fixme paths completely (handled in Java code via PathPriorityChecker)
+# Note: trailblazed and fixme tags are not in lookup table yet
+# These are handled in Java code when processUnusedTags=true
+assign route_hiking_bonus = if route=hiking then -0.3 else 0.0  # Prefer hiking routes (-0.3 = 30% cost reduction)
+assign fixme_penalty = 0.0  # Not used - fixme paths are blocked in Java code (PathPriorityChecker)
+assign trailblazed_bonus = 0.0  # Not used - trailblazed bonus applied in Java code (PathPriorityChecker)
 
 #SAC is estimated path difficulty,
 #integrating both MTB and SAC scales with estimated MTB/SAC difficulty matching
@@ -274,6 +323,9 @@ assign rawcostfactor # can be <1.0, is treated later
     if shortest_way  then (   add 1 accesspenalty )   else
 
   add      nonpath_penalty
+  add      route_hiking_bonus
+  add      fixme_penalty
+  add      trailblazed_bonus
   add      accesspenalty
   (
   if    ( and highway= not route=ferry )  then 100000
@@ -358,12 +410,18 @@ assign town_penalty
 
 assign trafficpenalty = 0
 
+# Guide requirement checks handled in Java code (GuideRequirementChecker.java)
+# Note: guide, alpine_grade, hazard, climbing, via_ferrata, supervised tags not in lookup table
+
 assign costfactor
 add town_penalty
   add no_forest_penalty
   add no_river_penalty
   add noise_penalty
   add trafficpenalty
+  add route_hiking_bonus
+  add fixme_penalty
+  add trailblazed_bonus
 if shortest_way  then  ( add 1 accesspenalty )
        else max 1.0 add rawcostfactor2 Offroad_factor_for_road
 

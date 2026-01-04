@@ -190,6 +190,96 @@ docker run --rm \
   brouter
 ```
 
+## Enhanced Features
+
+### Hiking Rest Stop Waypoints
+
+BRouter now includes automatic rest stop suggestions for hiking routes. When using the `hiking-mountain` profile (or other hiking profiles) with the `enable_hiking_rest=1.0` parameter, the router will:
+
+- Calculate suggested rest stops along the route (every 11.295 km by default)
+- Add these rest stops as waypoints in the GPX output
+- Include rest stop information in the route metadata
+
+Example usage:
+```
+java -jar brouter.jar <segmentdir> <profiledir> 0 hiking-mountain \
+  "lon1,lat1|lon2,lat2" \
+  "alternativeidx=0&format=gpx" \
+  "enable_hiking_rest=1.0"
+```
+
+The rest stops will appear as `<wpt>` elements in the GPX file with names like "Rest Stop 1 (11.3 km)" and type "rest_stop", making them easy to identify in GPX readers and navigation apps.
+
+When POI search is enabled (for hiking and cycling routes), nearby water points and cabins/huts are automatically found and included in the waypoint names:
+- Water points within 2 km: `"Rest Stop 1 (11.3 km) | Water: 450m"`
+- Cabins/huts within 5 km: `"Main Rest 1 (28.24 km) | Cabin: 1200m"`
+- Spring warnings: `"Rest Stop 2 (22.6 km) | Water: 800m (spring)"`
+
+See the [`test-routing/README.md`](test-routing/README.md) for example routes demonstrating these features.
+
+**Historical Background:** The rest stop distances are based on traditional Norwegian measurement units. The default distance of 11.295 km corresponds to one old Norwegian mile (mil), while the alternative distance of 2.275 km is one quarter of an old Norwegian mile. A full day's walk was traditionally considered to be 40 km. Rest periods for hikers and cyclists are based on these historical measurements.
+
+### Additional Routing Features
+
+BRouter supports various routing modes and features:
+
+#### Car Routing
+- **Energy-based routing** with kinematic calculations
+- **Rest period suggestions**: Every 4.5 hours driving = 45 min break, every 9 hours = 11 hour rest, every 6 days = 45 hour rest
+- **Intersection parking**: Allows parking at intersections between specific road types (unclassified, service, track, rest_area, tertiary)
+- **Landuse restrictions**: Automatically avoids forbidden landuse areas (farmland, residential, commercial, industrial, military, etc.)
+- **Protected area checks**: Validates access through IUCN protection classes and designations
+
+#### Truck Routing
+- **Physical dimension restrictions**: Checks height, width, length, weight, and axle load against OSM restrictions
+- **EU Regulation EC 561/2006 compliance**: Mandatory breaks after 4.5 hours, daily rest (11 hours), weekly rest (45 hours)
+- **Time-based access restrictions**: Handles conditional tags like `hgv:conditional`, `access:conditional`, `maxweight:conditional`
+- **Hazmat routing support**: Tunnel category restrictions based on hazmat class
+- **Automatic rest stop insertion**: Finds and suggests rest areas, services, and motels along the route
+
+#### Bicycle Routing
+- **Elevation awareness**: Considers uphill/downhill costs
+- **Rest stop suggestions**: For trekking cyclists, main rest every 28.24 km (scaled from hiking distances), alternative rest every 5.69 km
+- **Daily segments**: Maximum 100 km per day for trekking cyclists
+- **POI search**: Automatically searches for water points (2 km radius) and cabins/huts (5 km radius) near rest stops
+- **Camping rules**: Country-specific rules for Nordic countries
+- **Water point filtering**: Minimum 4 km between water points with spring warnings
+
+#### Hiking Routing
+- **Path validation**: Validates routes against forbidden highways (motorways, trunk, primary roads)
+- **Rest suggestions**: Every 11.295 km (old Norwegian mile) or 2.275 km (1/4 mile) alternative
+- **Daily segments**: Maximum 40 km per day
+- **POI search**: Automatically searches for water points (2 km radius) and cabins/huts (5 km radius) near rest stops
+- **Path priority**: Prioritizes `trailblazed=yes` and `route=hiking` paths, avoids `fixme` tagged paths
+- **Path enforcement**: Automatically adds waypoints to avoid forbidden highways and enforce path usage
+- **Guide requirements**: Detects when a guide is needed based on route difficulty and hazards
+- **Glacier proximity warnings**: Minimum 200m camping distance from glaciers (buildings exempt)
+- **Camping rules**: Country-specific rules for Nordic countries (Norway, Sweden, Denmark, Finland)
+- **Water point filtering**: Minimum 4 km between water points with spring warnings
+- **Protected area checks**: Validates access through IUCN protection classes and designations
+
+#### Common Features
+- **POI search**: Automatic search for water points and cabins/huts near rest stops (hiking and cycling routes)
+  - Water points: Searches for `amenity=drinking_water`, `amenity=fountain`, `natural=spring` within 2 km
+  - Cabins/Huts: Searches for `tourism=alpine_hut`, `tourism=wilderness_hut`, `tourism=hut`, `tourism=cabin` within 5 km
+  - **Cabin filtering**: Only includes accessible cabins with `access=yes` (or no access restriction) and `locked=no` (or no locked tag)
+  - **Network cabins**: Includes network cabins (e.g., Den Norske Turistforening) but excludes those requiring membership (e.g., `dnt:lock=yes`)
+  - Network information displayed in waypoint names when available
+  - POI information included in GPX waypoint names with distances
+  - Spring warnings included for natural springs
+- **Camping rules**: Detailed country-specific information for Norway, Sweden, Denmark, and Finland
+- **Water point filtering**: Distance-based filtering (minimum 4 km) with warnings for natural springs
+- **Protected area checks**: IUCN protection class validation and designation checks
+- **Country border detection**: Coordinate-based country detection for filtering POIs and applying country-specific rules
+- **Landuse restrictions**: Automatic avoidance of forbidden landuse areas (cultivated, residential, commercial, industrial, restricted access)
+
+#### Advanced Features
+- **AutomaticRestStopInsertion**: Framework for automatically inserting rest stops as waypoints in routes
+- **PathEnforcementEngine**: Framework for enforcing path usage by adding waypoints to avoid forbidden highways
+- **CountryBorderFilter**: Coordinate-based country detection for major countries (can be extended with OSM boundary data)
+
+For example routes demonstrating these features, see [`test-routing/README.md`](test-routing/README.md).
+
 ## Documentation
 
 More documentation is available in the [`docs`](docs) folder.

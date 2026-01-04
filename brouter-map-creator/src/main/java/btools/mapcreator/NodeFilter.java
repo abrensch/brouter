@@ -69,8 +69,16 @@ public class NodeFilter extends MapCreatorBase {
   }
 
   public boolean isRelevant(NodeData n) {
-    // check if node passes bitmap
-    return nodebitmap.getInt(n.nid) == 0; // 0 -> bit set, -1 -> unset
+    // Keep nodes that are part of ways (current behavior)
+    if (nodebitmap.getInt(n.nid) == 0) { // 0 -> bit set, -1 -> unset
+      return true;
+    }
+    // Also keep nodes with tags (POI nodes like water points, cabins, etc.)
+    // Nodes with descriptions have tags and may be POIs
+    if (n.description != null && n.description.length > 0) {
+      return true;
+    }
+    return false;
   }
 
   @Override

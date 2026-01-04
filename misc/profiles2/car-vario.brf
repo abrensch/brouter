@@ -20,6 +20,15 @@ assign avoid_motorways     = false  # %avoid_motorways% | Avoid motorways | bool
 assign add_beeline         = false  # %add_beeline% | Enable beeline on distant start/end points | boolean
 assign use_offroad         = false  # %use_offroad% | Enable additional roads | boolean
 
+# Suggested breaks for cars (non-mandatory, but recommended)
+assign enable_car_breaks   = true   # %enable_car_breaks% | Enable suggested breaks every 4.5 hours | boolean
+
+# Camping rules (country-specific)
+assign enable_camping_rules = true  # %enable_camping_rules% | Enable country-specific camping rules | boolean
+
+# Parking at intersections
+assign allow_intersection_parking = true  # %allow_intersection_parking% | Allow parking at intersections of specific road types | boolean
+
 # Kinematic model parameters
 assign vmax             = 90     # %vmax% | Target speed (in km/h) | number
 assign recup_efficiency = 0.7    # %recup_efficiency% | (ratio) | number
@@ -45,6 +54,12 @@ assign classifier_ferry       = 2
 assign is_avoided_toll_road and  avoid_toll toll=yes
 assign is_avoided_motorway and avoid_motorways highway=motorway|motorway_link
 
+#
+# Forbidden access restrictions
+# Note: landuse, protect_class, and designation tags are not in lookup table
+# These checks are handled in Java code (LanduseRestrictionChecker, ProtectedAreaChecker)
+#
+assign forbidden_access = or access=private access=no
 
 #
 # calculate logical car access
@@ -52,6 +67,7 @@ assign is_avoided_motorway and avoid_motorways highway=motorway|motorway_link
 assign isresidentialorliving = or highway=residential|living_street living_street=yes
 
 assign caraccess
+       switch forbidden_access 0
        switch motorcar=
               switch motor_vehicle=
                      switch vehicle=
@@ -197,7 +213,15 @@ assign maxspeed =
   min maxspeed_implicit
   min maxspeed_surface maxspeed_tracktype
 
+# Identify parking-allowed road types (for intersection parking)
+assign is_parking_allowed_road = or highway=unclassified or highway=service or highway=track or highway=rest_area highway=tertiary
+
+# Reduce cost for parking-allowed roads if intersection parking is enabled
+# This makes routes through such roads more attractive for parking
+assign parking_preference = if and allow_intersection_parking is_parking_allowed_road then 0.95 else 1.0
+
 assign costfactor = if equal maxspeed 0 then 10000 else 0
+assign costfactor = multiply costfactor parking_preference
 
 assign minspeed =
     switch highway=motorway|motorway_link|trunk  75 0
@@ -258,6 +282,11 @@ assign caraccess
                             vehicle=yes|permissive|designated|destination
                      motor_vehicle=yes|permissive|designated|destination
               motorcar=yes|permissive|designated|destination
+
+# Check if node is at intersection of parking-allowed roads
+# Note: In BRouter, we can check if connected ways are parking-allowed types
+# This is a simplified check - full intersection detection would require way context
+assign is_parking_intersection = if allow_intersection_parking then 1 else 0
 
 assign initialcost =
        switch and avoid_toll barrier=toll_booth 1000000

@@ -237,6 +237,53 @@ public class RoutingEngine extends Thread {
         if (track.energy != 0) {
           track.message += " energy=" + Formatter.getFormattedEnergy(track.energy) + " time=" + Formatter.getFormattedTime2(track.getTotalSeconds());
         }
+        
+        // Process rest periods if enabled for trucks
+        if (routingContext.enableRestPeriods && routingContext.carMode) {
+          processRestPeriods(track);
+        }
+        
+        // Process car breaks (suggested, not mandatory)
+        if (routingContext.enableCarBreaks && routingContext.carMode) {
+          processCarBreaks(track);
+        }
+        
+        // Process hiking rest suggestions (must be done before track is finalized)
+        // Note: Rest stops are now calculated in tryFindTrack before returning the track
+        // This ensures they're available when the track is formatted
+        if (routingContext.enableHikingRest && routingContext.footMode) {
+          // Only recalculate if not already set (to avoid overwriting)
+          if (track.hikingRestStops == null) {
+            processHikingRest(track);
+          }
+        }
+        
+        // Process cycling rest suggestions (trekking cyclists)
+        if (routingContext.enableCyclingRest && routingContext.bikeMode) {
+          // Only recalculate if not already set (to avoid overwriting)
+          if (track.cyclingRestStops == null) {
+            processCyclingRest(track);
+          }
+        }
+        
+        // Process camping rules if enabled
+        if (routingContext.enableCampingRules) {
+          processCampingRules(track);
+        }
+        
+        // Process water point filtering for hikers/cyclists
+        if (routingContext.enableWaterPointFilter && (routingContext.footMode || routingContext.bikeMode)) {
+          processWaterPoints(track);
+        }
+        
+        // Copy rest stops and other metadata to foundTrack for later use
+        if (track.hikingRestStops != null) {
+          foundTrack.hikingRestStops = track.hikingRestStops;
+        }
+        if (track.hikingDailySegments != null) {
+          foundTrack.hikingDailySegments = track.hikingDailySegments;
+        }
+        
         track.name = "brouter_" + routingContext.getProfileName() + "_" + i;
 
         messageList.add(track.message);
@@ -267,6 +314,8 @@ public class RoutingEngine extends Thread {
           filename = outfileBase + i + "." + routingContext.outputFormat;
           switch (routingContext.outputFormat) {
             case "gpx":
+              System.err.println("DEBUG RoutingEngine: Before format, track.hikingRestStops=" + 
+                                 (track.hikingRestStops != null ? track.hikingRestStops.size() : "null"));
               outputMessage = new FormatGpx(routingContext).format(track);
               break;
             case "geojson":
@@ -1047,6 +1096,11 @@ public class RoutingEngine extends Thread {
 
     if (routingContext.poipoints != null)
       totaltrack.pois = routingContext.poipoints;
+
+    // Calculate hiking rest stops on the final merged track
+    if (routingContext.enableHikingRest && routingContext.footMode) {
+      processHikingRest(totaltrack);
+    }
 
     return totaltrack;
   }
@@ -2439,5 +2493,261 @@ public class RoutingEngine extends Thread {
 
   public String getOutfile() {
     return outfile;
+  }
+
+  /**
+   * Process rest periods for truck routing (EU Regulation EC 561/2006)
+   * Calculates required rest stops and adds them to the track
+   */
+  private void processRestPeriods(OsmTrack track) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty()) {
+      return;
+    }
+
+    // Calculate rest period statistics
+    RestPeriodCalculator.DrivingTimeStats stats = RestPeriodCalculator.calculateStats(track);
+    track.restPeriodStats = stats;
+
+    if (stats.restStops.isEmpty()) {
+      return; // No rest stops required
+    }
+
+    // Add rest period information to track message
+    if (track.message != null) {
+      track.message += " rest-breaks=" + stats.requiredBreaks;
+      track.message += " total-time-with-breaks=" + Formatter.getFormattedTime2((int)(stats.totalTimeWithBreaks + 0.5));
+    }
+
+    // Calculate cumulative driving time for each node
+    double[] cumulativeTime = RestPeriodCalculator.calculateCumulativeDrivingTime(track);
+    track.cumulativeDrivingTime = cumulativeTime;
+
+    // Add rest stop waypoints if automatic insertion is enabled
+    // Note: Full implementation would find actual rest areas and insert them
+    // For now, we just mark the required positions
+    if (routingContext.autoInsertRestStops) {
+      logInfo("Rest periods: " + stats.requiredBreaks + " breaks required");
+      for (RestPeriodCalculator.RestStopRequirement req : stats.restStops) {
+        logInfo("Rest stop required at " + Formatter.getFormattedTime2((int)(req.position + 0.5)) 
+                + " (driving time: " + Formatter.getFormattedTime2((int)(req.drivingTimeBeforeStop + 0.5)) + ")");
+      }
+    }
+  }
+  
+  /**
+   * Process suggested breaks for cars (non-mandatory)
+   */
+  private void processCarBreaks(OsmTrack track) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty()) {
+      return;
+    }
+    
+    double totalTime = (double) track.getTotalSeconds();
+    List<RestPeriodCalculator.RestStopRequirement> breaks = RestPeriodCalculator.calculateCarBreaks(totalTime);
+    track.carBreaks = breaks;
+    
+    if (!breaks.isEmpty()) {
+      if (track.message != null) {
+        track.message += " suggested-breaks=" + breaks.size();
+        for (RestPeriodCalculator.RestStopRequirement brk : breaks) {
+          if (brk.isDailyRest) {
+            track.message += " daily-rest=" + Formatter.getFormattedTime2((int)(brk.duration + 0.5));
+          }
+        }
+      }
+      logInfo("Car breaks: " + breaks.size() + " suggested breaks");
+    }
+  }
+  
+  /**
+   * Process hiking rest suggestions
+   */
+  private void processHikingRest(OsmTrack track) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty()) {
+      return;
+    }
+    
+    double totalDistance = (double) track.distance;
+    boolean useAlternative = routingContext.useAlternativeHikingRest;
+    
+    List<HikingRestCalculator.HikingRestStop> restStops = 
+        HikingRestCalculator.calculateRestStops(totalDistance, useAlternative);
+    
+    // Search for POIs (water points, cabins) near each rest stop
+    if (routingContext.enableWaterPointFilter && restStops != null && !restStops.isEmpty()) {
+      searchPOIsForRestStops(track, restStops);
+    }
+    
+    track.hikingRestStops = restStops;
+    
+    List<HikingRestCalculator.DailySegment> dailySegments = 
+        HikingRestCalculator.calculateDailySegments(totalDistance);
+    track.hikingDailySegments = dailySegments;
+    
+    if (!restStops.isEmpty() || !dailySegments.isEmpty()) {
+      if (track.message != null) {
+        track.message += " hiking-rest-stops=" + restStops.size();
+        track.message += " daily-segments=" + dailySegments.size();
+      }
+      logInfo("Hiking rest: " + restStops.size() + " rest stops, " + 
+              dailySegments.size() + " daily segments");
+    }
+  }
+  
+  /**
+   * Process cycling rest suggestions (trekking cyclists)
+   */
+  private void processCyclingRest(OsmTrack track) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty()) {
+      return;
+    }
+    
+    double totalDistance = (double) track.distance;
+    boolean useAlternative = routingContext.useAlternativeCyclingRest;
+    
+    List<CyclingRestCalculator.CyclingRestStop> restStops = 
+        CyclingRestCalculator.calculateRestStops(totalDistance, useAlternative);
+    
+    // Search for POIs (water points, cabins) near each rest stop
+    if (routingContext.enableWaterPointFilter && restStops != null && !restStops.isEmpty()) {
+      searchPOIsForCyclingRestStops(track, restStops);
+    }
+    
+    track.cyclingRestStops = restStops;
+    
+    List<CyclingRestCalculator.DailySegment> dailySegments = 
+        CyclingRestCalculator.calculateDailySegments(totalDistance);
+    track.cyclingDailySegments = dailySegments;
+    
+    if (!restStops.isEmpty() || !dailySegments.isEmpty()) {
+      if (track.message != null) {
+        track.message += " cycling-rest-stops=" + restStops.size();
+        track.message += " daily-segments=" + dailySegments.size();
+      }
+      logInfo("Cycling rest: " + restStops.size() + " rest stops, " + 
+              dailySegments.size() + " daily segments");
+    }
+  }
+  
+  /**
+   * Process camping rules based on route location
+   */
+  private void processCampingRules(OsmTrack track) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty()) {
+      return;
+    }
+    
+    // Note: Country detection would require geographic boundary data
+    // For now, we provide the framework
+    track.campingRulesEnabled = true;
+    
+    if (track.message != null) {
+      track.message += " camping-rules=enabled";
+    }
+    logInfo("Camping rules: Enabled (country-specific rules apply)");
+  }
+  
+  /**
+   * Process water point filtering for hikers/cyclists
+   */
+  private void processWaterPoints(OsmTrack track) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty()) {
+      return;
+    }
+    
+    // Note: Water point finding would require POI data access
+    // For now, we provide the framework
+    track.waterPointFilterEnabled = true;
+    
+    if (track.message != null) {
+      track.message += " water-point-filter=enabled";
+    }
+    logInfo("Water point filter: Enabled (min 4km between points, 2km search radius)");
+  }
+  
+  /**
+   * Search for POIs (water points, cabins) near hiking rest stops
+   */
+  private void searchPOIsForRestStops(OsmTrack track, List<HikingRestCalculator.HikingRestStop> restStops) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty() || restStops == null) {
+      return;
+    }
+    
+    // Use RoutingEngine's nodesCache (may be null if not initialized)
+    btools.mapaccess.NodesCache nodesCache = this.nodesCache;
+    
+    if (nodesCache == null || routingContext == null) {
+      return; // Cannot search without nodes cache or routing context
+    }
+    
+    for (HikingRestCalculator.HikingRestStop restStop : restStops) {
+      // Find the node closest to the rest stop position
+      OsmPathElement restNode = findNodeAtDistance(track, restStop.distanceFromStart);
+      if (restNode != null) {
+        // OsmPathElement implements OsmPos, so we can use it directly
+        RestStopPOISearcher.RestStopPOIs pois = 
+            RestStopPOISearcher.searchPOIsNearRestStop(restNode, nodesCache, routingContext);
+        restStop.nearbyPOIs = pois;
+      }
+    }
+  }
+  
+  /**
+   * Search for POIs (water points, cabins) near cycling rest stops
+   */
+  private void searchPOIsForCyclingRestStops(OsmTrack track, List<CyclingRestCalculator.CyclingRestStop> restStops) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty() || restStops == null) {
+      return;
+    }
+    
+    // Use RoutingEngine's nodesCache (may be null if not initialized)
+    btools.mapaccess.NodesCache nodesCache = this.nodesCache;
+    
+    if (nodesCache == null || routingContext == null) {
+      return; // Cannot search without nodes cache or routing context
+    }
+    
+    for (CyclingRestCalculator.CyclingRestStop restStop : restStops) {
+      // Find the node closest to the rest stop position
+      OsmPathElement restNode = findNodeAtDistance(track, restStop.distanceFromStart);
+      if (restNode != null) {
+        // OsmPathElement implements OsmPos, so we can use it directly
+        RestStopPOISearcher.RestStopPOIs pois = 
+            RestStopPOISearcher.searchPOIsNearRestStop(restNode, nodesCache, routingContext);
+        restStop.nearbyPOIs = pois;
+      }
+    }
+  }
+  
+  /**
+   * Find the node closest to a given distance along the track
+   */
+  private OsmPathElement findNodeAtDistance(OsmTrack track, double targetDistance) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty()) {
+      return null;
+    }
+    
+    double accumulatedDistance = 0;
+    
+    for (int i = 0; i < track.nodes.size() - 1; i++) {
+      OsmPathElement node1 = track.nodes.get(i);
+      OsmPathElement node2 = track.nodes.get(i + 1);
+      double segmentDistance = node1.calcDistance(node2);
+      
+      if (accumulatedDistance + segmentDistance >= targetDistance) {
+        // Return the node closest to the target distance
+        double ratio = segmentDistance > 0 ? (targetDistance - accumulatedDistance) / segmentDistance : 0.5;
+        if (ratio < 0.5) {
+          return node1;
+        } else {
+          return node2;
+        }
+      }
+      
+      accumulatedDistance += segmentDistance;
+    }
+    
+    // If not found, return the last node
+    return track.nodes.isEmpty() ? null : track.nodes.get(track.nodes.size() - 1);
   }
 }

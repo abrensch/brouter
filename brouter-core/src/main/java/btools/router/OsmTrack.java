@@ -64,6 +64,27 @@ public final class OsmTrack {
   public boolean exportWaypoints = false;
   public boolean exportCorrectedWaypoints = false;
 
+  // Rest period support for trucks (EU Regulation EC 561/2006)
+  public RestPeriodCalculator.DrivingTimeStats restPeriodStats;
+  public double[] cumulativeDrivingTime; // Cumulative driving time at each node (seconds)
+  
+  // Car break suggestions
+  public List<RestPeriodCalculator.RestStopRequirement> carBreaks;
+  
+  // Hiking rest suggestions
+  public List<HikingRestCalculator.HikingRestStop> hikingRestStops;
+  public List<HikingRestCalculator.DailySegment> hikingDailySegments;
+  
+  // Cycling rest suggestions (trekking cyclists)
+  public List<CyclingRestCalculator.CyclingRestStop> cyclingRestStops;
+  public List<CyclingRestCalculator.DailySegment> cyclingDailySegments;
+  
+  // Camping rules
+  public boolean campingRulesEnabled;
+  
+  // Water point filtering
+  public boolean waterPointFilterEnabled;
+
   public void addNode(OsmPathElement node) {
     nodes.add(0, node);
   }

@@ -18,6 +18,14 @@
 # Bike profile
 assign validForBikes = true
 
+# Cycling rest suggestions (trekking cyclists)
+assign enable_cycling_rest = true   # %enable_cycling_rest% | Enable suggested rest stops every 28.24 km (main) or 5.69 km (alternative) | boolean
+assign use_alternative_cycling_rest = false  # %use_alternative_cycling_rest% | Use alternative (shorter) rest distance of 5.69 km | boolean
+
+# Hiking rest suggestions (for trekking cyclists)
+assign enable_hiking_rest = true   # %enable_hiking_rest% | Enable hiking rest suggestions | boolean
+assign use_alternative_hiking_rest = false  # %use_alternative_hiking_rest% | Use alternative (2.275 km) instead of standard (11.295 km) rest distance | boolean
+
 # Use the following switches to change behaviour
 assign allow_steps           = true   # %allow_steps% | Set to false to disallow steps | boolean
 assign allow_ferries         = true   # %allow_ferries% | set to false to disallow ferries | boolean
@@ -28,6 +36,12 @@ assign consider_noise        = false  # %consider_noise% | Activate to prefer a 
 assign consider_river        = false  # %consider_river% | Activate to prefer a route along rivers, lakes, etc. | boolean
 assign consider_forest       = false  # %consider_forest% | Activate to prefer a route in forest or parks | boolean
 assign consider_town         = false  # %consider_town% | Activate to bypass cities / big towns as far as possible | boolean
+
+# Water point filtering (enables water points and hut search)
+assign enable_water_point_filter = true  # %enable_water_point_filter% | Enable water point filtering (min 4km between points) and hut search | boolean
+
+# Camping rules (country-specific)
+assign enable_camping_rules = true  # %enable_camping_rules% | Enable country-specific camping rules | boolean
 
 # Change elevation parameters
 assign consider_elevation = true  # %consider_elevation% | Set to false to ignore elevation in routing | boolean
@@ -86,9 +100,17 @@ assign defaultaccess
                      true
 
 #
+# Forbidden access restrictions
+# Note: landuse, protect_class, and designation tags are not in lookup table
+# These checks are handled in Java code (LanduseRestrictionChecker, ProtectedAreaChecker)
+#
+assign forbidden_access = or access=private access=no
+
+#
 # calculate logical bike access
 #
 assign bikeaccess =
+       switch forbidden_access false
        switch bicycle=
               switch bicycle_road=yes
                  true
@@ -101,6 +123,7 @@ assign bikeaccess =
 # calculate logical foot access
 #
 assign footaccess =
+       switch forbidden_access false
        or bicycle=dismount
           switch foot=
                  defaultaccess
@@ -227,11 +250,11 @@ assign costfactor
 
 
   switch or highway=motorway highway=motorway_link    switch allow_motorways 1.5 10000
-  switch or highway=trunk highway=trunk_link          switch allow_motorways 1.5 10
+  switch or highway=trunk highway=trunk_link          switch allow_motorways 3.0 15
   switch or highway=primary highway=primary_link      1.2
   switch or highway=secondary highway=secondary_link  1.1
   switch or highway=tertiary highway=tertiary_link    1.0
-  switch    highway=unclassified                      switch isunpaved 10 1.1
+  switch    highway=unclassified                      switch isunpaved 10 0.95
   switch    highway=pedestrian                        5
   switch    highway=steps                             switch allow_steps 120 10000
   switch    route=ferry                               switch allow_ferries 5.67 10000

@@ -182,6 +182,27 @@ public final class RoutingContext {
     boolean test = expctxGlobal.getVariableValue("check_start_way", 1f) == 1f;
     if (!test) freeNoWays();
 
+    // Rest period support for trucks
+    enableRestPeriods = 0.f != expctxGlobal.getVariableValue("enable_rest_periods", 0.f);
+    autoInsertRestStops = 0.f != expctxGlobal.getVariableValue("auto_insert_rest_stops", 0.f);
+    
+    // Car break suggestions
+    enableCarBreaks = 0.f != expctxGlobal.getVariableValue("enable_car_breaks", 0.f);
+    
+    // Hiking rest suggestions
+    enableHikingRest = 0.f != expctxGlobal.getVariableValue("enable_hiking_rest", 0.f);
+    useAlternativeHikingRest = 0.f != expctxGlobal.getVariableValue("use_alternative_hiking_rest", 0.f);
+    
+    // Cycling rest suggestions (trekking cyclists)
+    enableCyclingRest = 0.f != expctxGlobal.getVariableValue("enable_cycling_rest", 0.f);
+    useAlternativeCyclingRest = 0.f != expctxGlobal.getVariableValue("use_alternative_cycling_rest", 0.f);
+    
+    // Camping rules
+    enableCampingRules = 0.f != expctxGlobal.getVariableValue("enable_camping_rules", 0.f);
+    
+    // Water point filtering
+    enableWaterPointFilter = 0.f != expctxGlobal.getVariableValue("enable_water_point_filter", 0.f);
+
   }
 
   public void freeNoWays() {
@@ -238,6 +259,27 @@ public final class RoutingContext {
   public double S_C_x;
   public double defaultC_r;
   public double bikerPower;
+
+  // Rest period support for trucks
+  public boolean enableRestPeriods;
+  public boolean autoInsertRestStops;
+  
+  // Car break suggestions
+  public boolean enableCarBreaks;
+  
+  // Hiking rest suggestions
+  public boolean enableHikingRest;
+  public boolean useAlternativeHikingRest;
+  
+  // Cycling rest suggestions (trekking cyclists)
+  public boolean enableCyclingRest;
+  public boolean useAlternativeCyclingRest;
+  
+  // Camping rules
+  public boolean enableCampingRules;
+  
+  // Water point filtering
+  public boolean enableWaterPointFilter;
 
   public static void prepareNogoPoints(List<OsmNodeNamed> nogos) {
     for (OsmNodeNamed nogo : nogos) {
