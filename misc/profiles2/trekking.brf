@@ -148,13 +148,14 @@ assign footaccess =
        else not foot=private|no|use_sidepath
 
 #
-# if not bike-, but foot-acess, just a moderate penalty,
+# if not bike-, but foot-access, just a moderate penalty,
 # otherwise access is forbidden
 #
 assign accesspenalty =
        if bikeaccess then 0
        else if footaccess then 4
        else if any_cycleroute then 15
+       else if bicycle=use_sidepath then 25
        else 10000
 
 #
