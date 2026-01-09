@@ -117,7 +117,9 @@ assign accesspenalty
                      5
                      switch any_cycleroute
                             15
-                            10000
+                            switch bicycle=use_sidepath
+                                   25
+                                   10000
 
 #
 # handle one-ways. On primary roads, wrong-oneways should
