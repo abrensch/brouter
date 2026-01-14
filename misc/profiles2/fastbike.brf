@@ -232,7 +232,7 @@ assign costfactor
   switch or highway=secondary highway=secondary_link  1.1
   switch or highway=tertiary highway=tertiary_link    1.0
   switch    highway=unclassified                      switch isunpaved 10 1.1
-  switch    highway=pedestrian                        5
+  switch    highway=pedestrian                        switch hascycleway 1.3 5
   switch    highway=steps                             switch allow_steps 120 10000
   switch    route=ferry                               switch allow_ferries 5.67 10000
   switch    highway=bridleway                         5
