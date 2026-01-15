@@ -35,7 +35,8 @@ PLANET_FILE=${PLANET_FILE:-$(realpath "./planet-latest.osm.pbf")}
 # https://cgiarcsi.community/data/srtm-90m-digital-elevation-database-v4-1/
 # (use the "ArcInfo ASCII" version) and put the ZIP files directly in this
 # folder:
-SRTM_PATH="/private-backup/srtm"
+SRTM_PATH="/private-backup/srtm1_bef"
+SRTM_FALLBACK_PATH="/private-backup/srtm3_bef"
 
 mkdir tmp
 cd tmp
@@ -57,7 +58,7 @@ mkdir nodes55
 ${JAVA} -cp ${BROUTER_JAR} -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.NodeCutter ftiles nodes55
 
 mkdir unodes55
-${JAVA} -cp ${BROUTER_JAR} -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.PosUnifier nodes55 unodes55 bordernids.dat bordernodes.dat ${SRTM_PATH}
+${JAVA} -cp ${BROUTER_JAR} -Ddeletetmpfiles=true -DuseDenseMaps=true btools.mapcreator.PosUnifier nodes55 unodes55 bordernids.dat bordernodes.dat ${SRTM_PATH} ${SRTM_FALLBACK_PATH}
 
 mkdir segments
 ${JAVA} -cp ${BROUTER_JAR} -DuseDenseMaps=true btools.mapcreator.WayLinker unodes55 waytiles55 bordernodes.dat restrictions.dat ${BROUTER_PROFILES}/lookups.dat ${BROUTER_PROFILES}/all.brf segments rd5
