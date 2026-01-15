@@ -205,13 +205,32 @@ public final class VoiceHintProcessor {
         }
       }
 
-      boolean hasSomethingMoreStraight = (Math.abs(turnAngle) - minAbsAngeRaw) > 20. && input.badWays != null; // && !ignoreBadway;
+      // has a significant angle and one or more bad ways around
+      // https://brouter.de/brouter-test/#map=17/53.07509/-0.95780/standard&lonlats=-0.95757,53.073428;-0.95727,53.076064&profile=car-eco
+      boolean hasSomethingMoreStraight = (Math.abs(turnAngle) > 20f) && input.badWays != null;
 
+      // bad way has more prio, but is not a link
+      //
       boolean noLinkButBadWayPrio = (maxPrioAll > minPrio && !isLink2Highway);
+
+      // bad way has more prio
+      //
       boolean badWayHasPrio = (maxPrioCandidates > currentPrio);
+
+      // is a u-turn - same way back
+      // https://brouter.de/brouter-test/#map=16/51.0608/13.7707/standard&lonlats=13.7658,51.060989;13.767893,51.061628;13.765273,51.062953&pois=13.76739,51.061609,Biergarten2956
       boolean isUTurn = VoiceHint.is180DegAngle(turnAngle);
+
+      // way has prio, but also has an angle
+      // https://brouter.de/brouter-test/#map=15/47.7925/16.2582/standard&lonlats=16.24952,47.785458;16.269679,47.794653&profile=car-eco
       boolean isBadWayLinkButNoLink = (!isHighway2Link && isBadwayLink && Math.abs(turnAngle) > 5.f);
+
+      //
+      // https://brouter.de/brouter-test/#map=14/47.7927/16.2848/standard&lonlats=16.267617,47.795275;16.286438,47.787354&profile=car-eco
       boolean isLinkButNoBadWayLink = (isHighway2Link && !isBadwayLink && Math.abs(turnAngle) < 5.f);
+
+      // way has prio, but has to give way
+      // https://brouter.de/brouter-test/#map=15/54.1344/-4.6015/standard&lonlats=-4.605432,54.136747;-4.609336,54.130058&profile=car-eco
       boolean mustGiveWay = transportMode != VoiceHintList.TRANS_MODE_FOOT  &&
                             input.badWays != null &&
                             !badWayHasPrio &&
