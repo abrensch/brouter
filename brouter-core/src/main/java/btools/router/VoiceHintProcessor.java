@@ -207,7 +207,7 @@ public final class VoiceHintProcessor {
 
       // has a significant angle and one or more bad ways around
       // https://brouter.de/brouter-test/#map=17/53.07509/-0.95780/standard&lonlats=-0.95757,53.073428;-0.95727,53.076064&profile=car-eco
-      boolean hasSomethingMoreStraight = (Math.abs(turnAngle) > 20f) && input.badWays != null;
+      boolean hasSomethingMoreStraight = (Math.abs(turnAngle) > 35f) && input.badWays != null;
 
       // bad way has more prio, but is not a link
       //
