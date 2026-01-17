@@ -84,6 +84,9 @@ public final class OsmTrack {
   
   // Water point filtering
   public boolean waterPointFilterEnabled;
+  
+  // Calculated rest stop waypoints (positions interpolated along track)
+  public List<OsmNodeNamed> restStopWaypoints;
 
   public void addNode(OsmPathElement node) {
     nodes.add(0, node);

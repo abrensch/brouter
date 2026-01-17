@@ -8,9 +8,7 @@ package btools.router;
 import java.util.ArrayList;
 import java.util.List;
 
-import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmPos;
-import btools.util.CheapRuler;
 
 public class RestStopFinder {
   
@@ -77,7 +75,7 @@ public class RestStopFinder {
     // Search in a grid around the center point
     // Use smaller step size to cover more segments
     int stepSize = 500000; // 0.5 degree in internal coordinates (~55km)
-    int radiusInternal = (int)(radiusDegrees * 1000000);
+    int radiusInternal = (int) (radiusDegrees * 1000000);
     
     // Iterate through nearby segments
     for (int latOffset = -radiusInternal; latOffset <= radiusInternal; latOffset += stepSize) {

@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- track-length = 347875 filtered ascend = 3134 plain-ascend = 498 cost=404412 energy=43.7kwh time=5h 55m 40s suggested-breaks=1 camping-rules=enabled -->
+<!-- track-length = 347877 filtered ascend = 3132 plain-ascend = 498 cost=404400 energy=43.7kwh time=5h 55m 39s suggested-breaks=1 camping-rules=enabled -->
 <gpx 
  xmlns="http://www.topografix.com/GPX/1/1" 
  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" 
  creator="BRouter-1.7.8" version="1.1">
- <wpt lon="10.155804" lat="61.537932"><name>Break 1 (4,5h driving, 45min break)</name><type>car_break</type></wpt>
+ <wpt lon="10.155753" lat="61.538034"><name>Break 1 (4,5h driving, 45min break)</name><type>car_break</type></wpt>
+ <wpt lon="10.207929" lat="59.589069"><name>from</name><type>via</type></wpt>
+ <wpt lon="10.462849" lat="61.646814"><name>via1</name><type>shaping</type></wpt>
+ <wpt lon="10.887983" lat="61.997819"><name>to</name><type>via</type></wpt>
  <trk>
   <name>brouter_car-vario_0</name>
   <trkseg>
@@ -1474,19 +1477,20 @@
    <trkpt lon="10.304108" lat="59.988286"><ele>228.5</ele></trkpt>
    <trkpt lon="10.303385" lat="59.988725"><ele>224.25</ele></trkpt>
    <trkpt lon="10.303023" lat="59.988958"><ele>217.0</ele></trkpt>
-   <trkpt lon="10.302886" lat="59.989066"><ele>214.75</ele></trkpt>
-   <trkpt lon="10.302673" lat="59.989257"><ele>211.75</ele></trkpt>
-   <trkpt lon="10.302481" lat="59.989472"><ele>210.25</ele></trkpt>
-   <trkpt lon="10.302283" lat="59.989663"><ele>208.0</ele></trkpt>
-   <trkpt lon="10.302184" lat="59.989843"><ele>209.75</ele></trkpt>
-   <trkpt lon="10.302113" lat="59.990022"><ele>212.5</ele></trkpt>
-   <trkpt lon="10.302028" lat="59.990285"><ele>214.25</ele></trkpt>
-   <trkpt lon="10.301956" lat="59.990528"><ele>216.25</ele></trkpt>
-   <trkpt lon="10.301889" lat="59.990822"><ele>219.75</ele></trkpt>
-   <trkpt lon="10.301835" lat="59.991053"><ele>217.75</ele></trkpt>
+   <trkpt lon="10.302767" lat="59.989159"><ele>212.75</ele></trkpt>
+   <trkpt lon="10.302674" lat="59.989247"><ele>211.5</ele></trkpt>
+   <trkpt lon="10.302464" lat="59.989474"><ele>209.5</ele></trkpt>
+   <trkpt lon="10.302355" lat="59.989629"><ele>210.0</ele></trkpt>
+   <trkpt lon="10.302187" lat="59.989891"><ele>211.5</ele></trkpt>
+   <trkpt lon="10.302109" lat="59.990082"><ele>213.75</ele></trkpt>
+   <trkpt lon="10.302044" lat="59.990272"><ele>214.75</ele></trkpt>
+   <trkpt lon="10.301946" lat="59.990621"><ele>217.75</ele></trkpt>
+   <trkpt lon="10.301900" lat="59.990833"><ele>220.25</ele></trkpt>
+   <trkpt lon="10.301875" lat="59.990940"><ele>219.25</ele></trkpt>
+   <trkpt lon="10.301855" lat="59.991025"><ele>218.5</ele></trkpt>
    <trkpt lon="10.301578" lat="59.992314"><ele>215.25</ele></trkpt>
    <trkpt lon="10.301445" lat="59.992784"><ele>224.25</ele></trkpt>
-   <trkpt lon="10.301392" lat="59.992956"><ele>229.25</ele></trkpt>
+   <trkpt lon="10.301392" lat="59.992960"><ele>229.25</ele></trkpt>
    <trkpt lon="10.301345" lat="59.993089"><ele>228.5</ele></trkpt>
    <trkpt lon="10.301185" lat="59.993403"><ele>227.0</ele></trkpt>
    <trkpt lon="10.300972" lat="59.993784"><ele>225.25</ele></trkpt>

@@ -7,7 +7,15 @@ set -e
 
 cd "$(dirname "$0")/.."
 
+# Use online segments from brouter.de for better coverage
+# Note: Online segments may not include POI nodes, but have complete road network
 SEGMENT_DIR="test_segments"
+
+# Download online segments if needed (they have better road network coverage)
+if [ -x "../download_online_segments.sh" ]; then
+    echo "Checking/updating online segments for better coverage..."
+    ../download_online_segments.sh "$SEGMENT_DIR" > /dev/null 2>&1
+fi
 PROFILE_DIR="misc/profiles2"
 BROUTER_JAR="brouter-server/build/libs/brouter-1.7.8-all.jar"
 
@@ -44,7 +52,7 @@ java -jar "${BROUTER_JAR}" \
     0 \
     fastbike \
     "10.7696719,59.9063856|11.0431314,60.7927994|9.966244,61.5484373|10.3955186,63.4268907" \
-    "alternativeidx=0&format=gpx" \
+    "alternativeidx=0&format=gpx&exportWaypoints=1" \
     "enable_cycling_rest=1.0&enable_hiking_rest=1.0&enable_water_point_filter=1.0&enable_camping_rules=1.0" \
     2>/dev/null
 

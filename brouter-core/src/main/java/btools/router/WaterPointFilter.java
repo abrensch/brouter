@@ -95,9 +95,8 @@ public class WaterPointFilter {
                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
                Math.sin(dLon / 2) * Math.sin(dLon / 2);
     double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    double distance = 6371000 * c; // Earth radius in meters
     
-    return distance;
+    return 6371000 * c; // Earth radius in meters
   }
   
   /**

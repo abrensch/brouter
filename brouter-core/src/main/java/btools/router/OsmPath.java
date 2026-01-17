@@ -162,7 +162,7 @@ abstract class OsmPath implements OsmLinkHolder {
         if (fixmePenalty > 0.0) {
           // Block paths with fixme tags by setting very high cost factor (1000x = effectively forbidden)
           // This makes the path costfactor > 10000, which will be rejected in the access check
-          costfactor = (float)(costfactor * (1.0 + fixmePenalty));
+          costfactor = (float) (costfactor * (1.0 + fixmePenalty));
           // Also set cost to -1 to immediately reject this path
           cost = -1;
           return;
@@ -170,7 +170,7 @@ abstract class OsmPath implements OsmLinkHolder {
           // Only apply other priority adjustments if no fixme tag
           double trailblazedBonus = PathPriorityChecker.getTrailblazedBonus(wayTags);
           if (trailblazedBonus != 0.0) {
-            costfactor = (float)(costfactor * (1.0 + trailblazedBonus));
+            costfactor = (float) (costfactor * (1.0 + trailblazedBonus));
           }
         }
       }

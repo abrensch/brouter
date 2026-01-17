@@ -15,6 +15,7 @@ public class OsmNodeNamed extends OsmNode {
   public double nogoWeight;  // weight for nogopoint
   public boolean isNogo = false;
   public byte wpttype = MatchedWaypoint.WAYPOINT_TYPE_SHAPING; // set default type
+  public String waypointType; // Type string for GPX output (e.g., "rest_stop", "truck_rest", "car_break")
 
   public OsmNodeNamed() {
   }

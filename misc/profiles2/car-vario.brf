@@ -17,7 +17,7 @@ assign avoid_toll          = false  # %avoid_toll% | Avoid paid roads | boolean
 assign avoid_unpaved       = false  # %avoid_unpaved% | Avoid unpaved roads, if possible | boolean
 assign avoid_motorways     = false  # %avoid_motorways% | Avoid motorways | boolean
 
-assign add_beeline         = false  # %add_beeline% | Enable beeline on distant start/end points | boolean
+assign add_beeline         = true   # %add_beeline% | Enable beeline on distant start/end points | boolean
 assign use_offroad         = false  # %use_offroad% | Enable additional roads | boolean
 
 # Suggested breaks for cars (non-mandatory, but recommended)
@@ -28,6 +28,13 @@ assign enable_camping_rules = true  # %enable_camping_rules% | Enable country-sp
 
 # Parking at intersections
 assign allow_intersection_parking = true  # %allow_intersection_parking% | Allow parking at intersections of specific road types | boolean
+
+# Ferry connections
+assign allow_ferries = true  # %allow_ferries% | Allow ferry connections | boolean
+
+# Waypoint matching
+assign waypointCatchingRange = 1000  # %waypointCatchingRange% | Maximum distance to snap waypoints to roads (meters) | number
+assign useDynamicDistance = true  # %useDynamicDistance% | Use dynamic distance for waypoint matching | boolean
 
 # Kinematic model parameters
 assign vmax             = 90     # %vmax% | Target speed (in km/h) | number
@@ -80,7 +87,7 @@ assign caraccess
                                    switch highway=unclassified                 1
                                    switch and highway=track use_offroad        1
                                    switch and highway=road use_offroad         1
-                                   switch route=ferry                          1
+                                   switch route=ferry                          switch allow_ferries 1 0
                                    switch isresidentialorliving                1
                                    switch highway=service                      1
                                    0
@@ -112,7 +119,7 @@ assign initialclassifier =
 # changed
 #
 assign initialcost =
-     if      ( equal initialclassifier classifier_ferry       ) then 10000
+     if      ( equal initialclassifier classifier_ferry       ) then ( switch allow_ferries 10000 1000000 )
      else 0
 
 assign accessspeedlimit = if caraccess then 999 else 0
@@ -143,7 +150,7 @@ assign maxspeed_implicit =
   switch highway=secondary|secondary_link   90
   switch highway=tertiary|tertiary_link     80
   switch highway=unclassified               50
-  switch route=ferry                        10
+  switch route=ferry                        switch allow_ferries 10 0
   switch highway=bridleway                  10
   switch isresidentialorliving              30
   switch highway=service                    30
@@ -221,6 +228,9 @@ assign is_parking_allowed_road = or highway=unclassified or highway=service or h
 assign parking_preference = if and allow_intersection_parking is_parking_allowed_road then 0.95 else 1.0
 
 assign costfactor = if equal maxspeed 0 then 10000 else 0
+# Add ferry costfactor (ferries should have reasonable cost, not blocked)
+assign ferry_costfactor = if route=ferry then ( switch allow_ferries 1.0 10000 ) else 1.0
+assign costfactor = if route=ferry then ferry_costfactor else costfactor
 assign costfactor = multiply costfactor parking_preference
 
 assign minspeed =

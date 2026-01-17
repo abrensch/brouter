@@ -44,7 +44,7 @@ java -jar "${BROUTER_JAR}" \
     0 \
     car-vario \
     "10.2079291,59.589069|10.462849,61.6468135|10.8879825,61.9978187" \
-    "alternativeidx=0&format=gpx" \
+    "alternativeidx=0&format=gpx&exportWaypoints=1" \
     "enable_car_breaks=1.0&enable_camping_rules=1.0" \
     2>/dev/null
 

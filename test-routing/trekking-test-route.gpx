@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- track-length = 56881 filtered ascend = 59 plain-ascend = -18 cost=128095 energy=.3kwh time=2h 44m 43s camping-rules=enabled water-point-filter=enabled -->
+<!-- track-length = 56880 filtered ascend = 59 plain-ascend = -18 cost=128094 energy=.3kwh time=2h 44m 43s camping-rules=enabled water-point-filter=enabled -->
 <gpx 
  xmlns="http://www.topografix.com/GPX/1/1" 
  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" 
  creator="BRouter-1.7.8" version="1.1">
- <wpt lon="9.416422" lat="61.855001"><name>Rest Stop 1 (11,3 km)</name><type>rest_stop</type></wpt>
- <wpt lon="9.551564" lat="61.801211"><name>Rest Stop 2 (22,6 km)</name><type>rest_stop</type></wpt>
- <wpt lon="9.715744" lat="61.826800"><name>Rest Stop 3 (33,9 km)</name><type>rest_stop</type></wpt>
- <wpt lon="9.857200" lat="61.890240"><name>Rest Stop 4 (45,2 km)</name><type>rest_stop</type></wpt>
- <wpt lon="10.009738" lat="61.886479"><name>Rest Stop 5 (56,5 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="9.416433" lat="61.854994"><name>Rest Stop 1 (11,3 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="9.551583" lat="61.801212"><name>Rest Stop 2 (22,6 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="9.715755" lat="61.826808"><name>Rest Stop 3 (33,9 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="9.857217" lat="61.890244"><name>Rest Stop 4 (45,2 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.009756" lat="61.886476"><name>Rest Stop 5 (56,5 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="9.486586" lat="61.893787"><name>from</name><type>via</type></wpt>
+ <wpt lon="9.795969" lat="61.878813"><name>via1</name><type>shaping</type></wpt>
+ <wpt lon="10.011347" lat="61.884286"><name>to</name><type>via</type></wpt>
  <trk>
   <name>brouter_trekking_0</name>
   <trkseg>
@@ -455,7 +458,9 @@
    <trkpt lon="9.401489" lat="61.866459"><ele>934.5</ele></trkpt>
    <trkpt lon="9.401138" lat="61.866302"><ele>934.5</ele></trkpt>
    <trkpt lon="9.400926" lat="61.866194"><ele>934.5</ele></trkpt>
+   <trkpt lon="9.400701" lat="61.866059"><ele>934.5</ele></trkpt>
    <trkpt lon="9.400516" lat="61.865939"><ele>934.5</ele></trkpt>
+   <trkpt lon="9.400401" lat="61.865852"><ele>934.5</ele></trkpt>
    <trkpt lon="9.400241" lat="61.865722"><ele>934.5</ele></trkpt>
    <trkpt lon="9.400050" lat="61.865543"><ele>934.5</ele></trkpt>
    <trkpt lon="9.399842" lat="61.865294"><ele>934.5</ele></trkpt>
@@ -467,11 +472,10 @@
    <trkpt lon="9.399589" lat="61.864083"><ele>934.5</ele></trkpt>
    <trkpt lon="9.399651" lat="61.863883"><ele>934.5</ele></trkpt>
    <trkpt lon="9.399724" lat="61.863718"><ele>934.5</ele></trkpt>
-   <trkpt lon="9.399822" lat="61.863556"><ele>934.5</ele></trkpt>
+   <trkpt lon="9.399884" lat="61.863466"><ele>934.5</ele></trkpt>
    <trkpt lon="9.399978" lat="61.863347"><ele>934.5</ele></trkpt>
    <trkpt lon="9.400172" lat="61.863137"><ele>934.5</ele></trkpt>
-   <trkpt lon="9.400313" lat="61.863003"><ele>934.5</ele></trkpt>
-   <trkpt lon="9.400629" lat="61.862732"><ele>934.5</ele></trkpt>
+   <trkpt lon="9.400491" lat="61.862845"><ele>934.5</ele></trkpt>
    <trkpt lon="9.400844" lat="61.862565"><ele>934.5</ele></trkpt>
    <trkpt lon="9.401270" lat="61.862265"><ele>934.5</ele></trkpt>
    <trkpt lon="9.401560" lat="61.862072"><ele>934.5</ele></trkpt>

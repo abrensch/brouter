@@ -67,7 +67,7 @@ public class RestStopPOISearcher {
     OsmPos centerPos = new OsmNode(centerLon, centerLat);
     
     // Convert radius to internal coordinates (approximate: 1 degree ≈ 111km)
-    int radiusInternal = (int)(radius * 9.0); // ~9 internal units per meter at mid-latitudes
+    int radiusInternal = (int) (radius * 9.0); // ~9 internal units per meter at mid-latitudes
     int stepSize = 1000000; // 1 degree step for segment search
     
     // Search nearby segments
@@ -120,7 +120,7 @@ public class RestStopPOISearcher {
     OsmPos centerPos = new OsmNode(centerLon, centerLat);
     
     // Convert radius to internal coordinates
-    int radiusInternal = (int)(radius * 9.0);
+    int radiusInternal = (int) (radius * 9.0);
     int stepSize = 1000000; // 1 degree step for segment search
     
     // Search nearby segments
@@ -191,8 +191,8 @@ public class RestStopPOISearcher {
   
   /**
    * Check if node description contains cabin/hut tags
-   * Only includes cabins with access=yes (or no access restriction) and locked=no (or no locked tag)
-   * Optionally includes network cabins (e.g., DNT) if they meet access requirements
+   * Includes all accessible cabins (access=yes or no access tag), including locked ones (e.g., DNT huts with dnt:lock=yes)
+   * Locked cabins are marked but not excluded - this allows users to see DNT huts even if they require membership
    */
   private static CabinInfo checkCabinTags(OsmNode node, String nodeDesc, double distance) {
     String descLower = nodeDesc.toLowerCase();
@@ -202,51 +202,56 @@ public class RestStopPOISearcher {
       return null; // Exclude inaccessible cabins
     }
     
-    // Check locked status - exclude if locked=yes
-    if (descLower.contains("locked=yes")) {
-      return null; // Exclude locked cabins
-    }
+    // Do NOT exclude locked cabins - include them but mark as locked
+    // Locked DNT huts should be included if filters are enabled
     
     // Check for network information
     String network = extractTagValue(nodeDesc, "network");
+    String operator = extractTagValue(nodeDesc, "operator");
     boolean isNetworkCabin = network != null && !network.isEmpty();
+    boolean isOperatorCabin = operator != null && !operator.isEmpty();
     
-    // Check for network-specific lock tags (e.g., dnt:lock=yes for DNT network)
-    // DNT (Den Norske Turistforening) cabins with dnt:lock=yes require membership
-    boolean hasNetworkLock = false;
+    // Check for DNT identification (via network or operator tag)
+    // DNT cabins can be identified by network=Den Norske Turistforening or operator containing "DNT"
+    boolean isDNTCabin = false;
     if (isNetworkCabin) {
       String networkLower = network.toLowerCase();
       if (networkLower.contains("dnt") || networkLower.contains("den norske turistforening")) {
-        // Check for DNT-specific lock tag
-        if (descLower.contains("dnt:lock=yes") || descLower.contains("dnt:lock yes")) {
-          hasNetworkLock = true;
-        }
+        isDNTCabin = true;
       }
-      // Check for other network-specific lock patterns (network:lock=yes, etc.)
-      if (descLower.contains(":lock=yes") || descLower.contains(":lock yes")) {
+    }
+    if (!isDNTCabin && isOperatorCabin) {
+      String operatorLower = operator.toLowerCase();
+      if (operatorLower.contains("dnt") || operatorLower.contains("den norske turistforening")) {
+        isDNTCabin = true;
+      }
+    }
+    
+    // Check for network-specific lock tags (e.g., dnt:lock=yes for DNT network)
+    // DNT (Den Norske Turistforening) cabins with dnt:lock=yes require membership
+    // Include these cabins but mark them as locked
+    boolean hasNetworkLock = false;
+    if (isDNTCabin) {
+      // Check for DNT-specific lock tag
+      if (descLower.contains("dnt:lock=yes") || descLower.contains("dnt:lock yes")) {
         hasNetworkLock = true;
       }
     }
-    
-    // Exclude network cabins that require membership (network lock)
-    if (hasNetworkLock) {
-      return null; // Exclude network cabins that require membership
+    // Check for other network-specific lock patterns (network:lock=yes, etc.)
+    if (isNetworkCabin && (descLower.contains(":lock=yes") || descLower.contains(":lock yes"))) {
+      hasNetworkLock = true;
     }
     
-    // Include if accessible and unlocked:
-    // - access=yes (explicitly accessible) OR no access tag (defaults to accessible)
-    // - locked=no (explicitly unlocked) OR no locked tag (defaults to unlocked)
+    // Include if accessible: access=yes (explicitly accessible) OR no access tag (defaults to accessible)
+    // Do NOT exclude based on locked status - include locked cabins (e.g., DNT huts) if accessible
     boolean hasAccessYes = descLower.contains("access=yes");
-    boolean hasLockedNo = descLower.contains("locked=no");
     boolean hasAccessTag = descLower.contains("access=");
-    boolean hasLockedTag = descLower.contains("locked=");
     
-    // Must satisfy: (access=yes OR no access tag) AND (locked=no OR no locked tag)
+    // Must satisfy: access=yes OR no access tag (exclude only if access=no or access=private)
     boolean isAccessible = hasAccessYes || !hasAccessTag;
-    boolean isUnlocked = hasLockedNo || !hasLockedTag;
     
-    if (!isAccessible || !isUnlocked) {
-      return null; // Exclude if not accessible or locked
+    if (!isAccessible) {
+      return null; // Exclude only if not accessible (access=no or access=private already checked above)
     }
     
     // Check for cabin/hut tags
@@ -268,7 +273,7 @@ public class RestStopPOISearcher {
     
     if (type != null) {
       CabinInfo cabin = new CabinInfo(node, type, name, distance);
-      cabin.locked = false; // Already filtered out locked cabins
+      cabin.locked = hasNetworkLock || descLower.contains("locked=yes"); // Mark as locked if network lock or general locked tag
       cabin.hasWater = hasWater;
       cabin.network = network; // Store network information
       cabin.isNetworkCabin = isNetworkCabin;

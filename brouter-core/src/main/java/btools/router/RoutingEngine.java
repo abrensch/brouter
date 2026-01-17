@@ -251,7 +251,8 @@ public class RoutingEngine extends Thread {
         // Process hiking rest suggestions (must be done before track is finalized)
         // Note: Rest stops are now calculated in tryFindTrack before returning the track
         // This ensures they're available when the track is formatted
-        if (routingContext.enableHikingRest && routingContext.footMode) {
+        // Hiking rest is for foot mode, but can also be enabled for bike mode (trekking cyclists)
+        if (routingContext.enableHikingRest && (routingContext.footMode || routingContext.bikeMode)) {
           // Only recalculate if not already set (to avoid overwriting)
           if (track.hikingRestStops == null) {
             processHikingRest(track);
@@ -283,6 +284,9 @@ public class RoutingEngine extends Thread {
         if (track.hikingDailySegments != null) {
           foundTrack.hikingDailySegments = track.hikingDailySegments;
         }
+        
+        // Rest stop waypoint positions are calculated on the final merged track (totaltrack)
+        // Don't calculate on individual segment tracks - calculate on totaltrack only
         
         track.name = "brouter_" + routingContext.getProfileName() + "_" + i;
 
@@ -1097,10 +1101,25 @@ public class RoutingEngine extends Thread {
     if (routingContext.poipoints != null)
       totaltrack.pois = routingContext.poipoints;
 
-    // Calculate hiking rest stops on the final merged track
-    if (routingContext.enableHikingRest && routingContext.footMode) {
+    // Process rest stops on the final merged track
+    // Process car breaks on the final merged track
+    if (routingContext.enableCarBreaks && routingContext.carMode) {
+      processCarBreaks(totaltrack);
+    }
+    
+    // Process hiking rest stops on the final merged track
+    // Hiking rest is for foot mode, but can also be enabled for bike mode (trekking cyclists)
+    if (routingContext.enableHikingRest && (routingContext.footMode || routingContext.bikeMode)) {
       processHikingRest(totaltrack);
     }
+    
+    // Process cycling rest stops on the final merged track
+    if (routingContext.enableCyclingRest && routingContext.bikeMode) {
+      processCyclingRest(totaltrack);
+    }
+
+    // Calculate rest stop waypoint positions on the final merged track
+    calculateRestStopWaypoints(totaltrack);
 
     return totaltrack;
   }
@@ -2515,7 +2534,7 @@ public class RoutingEngine extends Thread {
     // Add rest period information to track message
     if (track.message != null) {
       track.message += " rest-breaks=" + stats.requiredBreaks;
-      track.message += " total-time-with-breaks=" + Formatter.getFormattedTime2((int)(stats.totalTimeWithBreaks + 0.5));
+      track.message += " total-time-with-breaks=" + Formatter.getFormattedTime2((int) (stats.totalTimeWithBreaks + 0.5));
     }
 
     // Calculate cumulative driving time for each node
@@ -2528,8 +2547,8 @@ public class RoutingEngine extends Thread {
     if (routingContext.autoInsertRestStops) {
       logInfo("Rest periods: " + stats.requiredBreaks + " breaks required");
       for (RestPeriodCalculator.RestStopRequirement req : stats.restStops) {
-        logInfo("Rest stop required at " + Formatter.getFormattedTime2((int)(req.position + 0.5)) 
-                + " (driving time: " + Formatter.getFormattedTime2((int)(req.drivingTimeBeforeStop + 0.5)) + ")");
+        logInfo("Rest stop required at " + Formatter.getFormattedTime2((int) (req.position + 0.5)) 
+                + " (driving time: " + Formatter.getFormattedTime2((int) (req.drivingTimeBeforeStop + 0.5)) + ")");
       }
     }
   }
@@ -2551,7 +2570,7 @@ public class RoutingEngine extends Thread {
         track.message += " suggested-breaks=" + breaks.size();
         for (RestPeriodCalculator.RestStopRequirement brk : breaks) {
           if (brk.isDailyRest) {
-            track.message += " daily-rest=" + Formatter.getFormattedTime2((int)(brk.duration + 0.5));
+            track.message += " daily-rest=" + Formatter.getFormattedTime2((int) (brk.duration + 0.5));
           }
         }
       }
@@ -2674,7 +2693,7 @@ public class RoutingEngine extends Thread {
     }
     
     // Use RoutingEngine's nodesCache (may be null if not initialized)
-    btools.mapaccess.NodesCache nodesCache = this.nodesCache;
+    NodesCache nodesCache = this.nodesCache;
     
     if (nodesCache == null || routingContext == null) {
       return; // Cannot search without nodes cache or routing context
@@ -2701,7 +2720,7 @@ public class RoutingEngine extends Thread {
     }
     
     // Use RoutingEngine's nodesCache (may be null if not initialized)
-    btools.mapaccess.NodesCache nodesCache = this.nodesCache;
+    NodesCache nodesCache = this.nodesCache;
     
     if (nodesCache == null || routingContext == null) {
       return; // Cannot search without nodes cache or routing context
@@ -2749,5 +2768,201 @@ public class RoutingEngine extends Thread {
     
     // If not found, return the last node
     return track.nodes.isEmpty() ? null : track.nodes.get(track.nodes.size() - 1);
+  }
+  
+  /**
+   * Calculate rest stop waypoint positions by interpolating along the track
+   * Creates OsmNodeNamed waypoints with proper names and types for all rest stops
+   * This method handles all calculation logic - FormatGpx should only format these waypoints
+   */
+  private void calculateRestStopWaypoints(OsmTrack track) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty()) {
+      return;
+    }
+    
+    if (track.restStopWaypoints == null) {
+      track.restStopWaypoints = new ArrayList<>();
+    } else {
+      track.restStopWaypoints.clear();
+    }
+    
+    // Calculate truck rest stop waypoints
+    if (track.restPeriodStats != null && track.restPeriodStats.restStops != null && 
+        !track.restPeriodStats.restStops.isEmpty()) {
+      double totalTime = (double) track.getTotalSeconds();
+      int restIndex = 1;
+      
+      for (RestPeriodCalculator.RestStopRequirement restStop : track.restPeriodStats.restStops) {
+        // Convert time-based position to distance-based position
+        double timeRatio = totalTime > 0 ? restStop.position / totalTime : 0;
+        double targetDistance = timeRatio * track.distance;
+        
+        OsmNodeNamed waypoint = interpolateWaypointPosition(track, targetDistance);
+        if (waypoint != null) {
+          double drivingHours = restStop.drivingTimeBeforeStop / 3600.0;
+          double breakMinutes = restStop.duration / 60.0;
+          String restType = restStop.isDailyRest ? "Daily Rest" : 
+                           restStop.isWeeklyRest ? "Weekly Rest" : "Rest Break";
+          
+          waypoint.name = restType + " " + restIndex + 
+                         " (" + String.format("%.1f", drivingHours) + "h driving, " +
+                         String.format("%.0f", breakMinutes) + "min mandatory)";
+          waypoint.waypointType = "truck_rest";
+          track.restStopWaypoints.add(waypoint);
+          restIndex++;
+        }
+      }
+    }
+    
+    // Calculate car break waypoints
+    if (track.carBreaks != null && !track.carBreaks.isEmpty()) {
+      double totalTime = (double) track.getTotalSeconds();
+      int breakIndex = 1;
+      
+      for (RestPeriodCalculator.RestStopRequirement carBreak : track.carBreaks) {
+        double timeRatio = totalTime > 0 ? carBreak.position / totalTime : 0;
+        double targetDistance = timeRatio * track.distance;
+        
+        OsmNodeNamed waypoint = interpolateWaypointPosition(track, targetDistance);
+        if (waypoint != null) {
+          double drivingHours = carBreak.drivingTimeBeforeStop / 3600.0;
+          double breakMinutes = carBreak.duration / 60.0;
+          String breakType = carBreak.isDailyRest ? "Daily Rest" : 
+                            carBreak.isWeeklyRest ? "Weekly Rest" : "Break";
+          
+          waypoint.name = breakType + " " + breakIndex + 
+                         " (" + String.format("%.1f", drivingHours) + "h driving, " +
+                         String.format("%.0f", breakMinutes) + "min break)";
+          waypoint.waypointType = "car_break";
+          track.restStopWaypoints.add(waypoint);
+          breakIndex++;
+        }
+      }
+    }
+    
+    // Calculate cycling rest stop waypoints
+    if (track.cyclingRestStops != null && !track.cyclingRestStops.isEmpty()) {
+      int restIndex = 1;
+      
+      for (CyclingRestCalculator.CyclingRestStop restStop : track.cyclingRestStops) {
+        OsmNodeNamed waypoint = interpolateWaypointPosition(track, restStop.distanceFromStart);
+        if (waypoint != null) {
+          String restType = restStop.isMainRest ? "Main Rest" : "Rest Option";
+          String poiInfo = formatPOIInfo(restStop.nearbyPOIs);
+          
+          waypoint.name = restType + " " + restIndex + 
+                         " (" + String.format("%.2f", restStop.distanceFromStart / 1000.0) + " km)" + poiInfo;
+          waypoint.waypointType = "cycling_rest";
+          track.restStopWaypoints.add(waypoint);
+          restIndex++;
+        }
+      }
+    }
+    
+    // Calculate hiking rest stop waypoints
+    if (track.hikingRestStops != null && !track.hikingRestStops.isEmpty()) {
+      int restIndex = 1;
+      
+      for (HikingRestCalculator.HikingRestStop restStop : track.hikingRestStops) {
+        OsmNodeNamed waypoint = interpolateWaypointPosition(track, restStop.distanceFromStart);
+        if (waypoint != null) {
+          String poiInfo = formatPOIInfo(restStop.nearbyPOIs);
+          
+          waypoint.name = "Rest Stop " + restIndex + 
+                         " (" + String.format("%.1f", restStop.distanceFromStart / 1000.0) + " km)" + poiInfo;
+          waypoint.waypointType = "rest_stop";
+          track.restStopWaypoints.add(waypoint);
+          restIndex++;
+        }
+      }
+    }
+  }
+  
+  /**
+   * Interpolate a waypoint position along the track at the given distance
+   * @param track The track to interpolate along
+   * @param targetDistance Target distance from start in meters
+   * @return OsmNodeNamed with interpolated position, or null if track is invalid
+   */
+  private OsmNodeNamed interpolateWaypointPosition(OsmTrack track, double targetDistance) {
+    if (track == null || track.nodes == null || track.nodes.isEmpty()) {
+      return null;
+    }
+    
+    double accumulatedDistance = 0;
+    
+    for (int i = 0; i < track.nodes.size() - 1; i++) {
+      OsmPathElement node1 = track.nodes.get(i);
+      OsmPathElement node2 = track.nodes.get(i + 1);
+      double segmentDistance = node1.calcDistance(node2);
+      
+      if (accumulatedDistance + segmentDistance >= targetDistance) {
+        // Interpolate position along this segment
+        double ratio = segmentDistance > 0 ? (targetDistance - accumulatedDistance) / segmentDistance : 0.5;
+        if (ratio < 0) ratio = 0;
+        if (ratio > 1) ratio = 1;
+        
+        int ilon = (int) (node1.getILon() + (node2.getILon() - node1.getILon()) * ratio);
+        int ilat = (int) (node1.getILat() + (node2.getILat() - node1.getILat()) * ratio);
+        
+        OsmNodeNamed waypoint = new OsmNodeNamed();
+        waypoint.ilon = ilon;
+        waypoint.ilat = ilat;
+        return waypoint;
+      }
+      
+      accumulatedDistance += segmentDistance;
+    }
+    
+    // If not found by distance, use the last node
+    if (!track.nodes.isEmpty()) {
+      OsmPathElement lastNode = track.nodes.get(track.nodes.size() - 1);
+      OsmNodeNamed waypoint = new OsmNodeNamed();
+      waypoint.ilon = lastNode.getILon();
+      waypoint.ilat = lastNode.getILat();
+      return waypoint;
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Format POI information as a string for waypoint names
+   */
+  private String formatPOIInfo(RestStopPOISearcher.RestStopPOIs pois) {
+    if (pois == null) {
+      return "";
+    }
+    
+    StringBuilder poiInfo = new StringBuilder();
+    
+    if (pois.hasWater()) {
+      RestStopPOISearcher.WaterPointInfo nearestWater = pois.getNearestWater();
+      if (nearestWater != null) {
+        poiInfo.append(" | Water: ").append(String.format("%.0f", nearestWater.distanceFromRestStop)).append("m");
+        if (nearestWater.isSpring) {
+          poiInfo.append(" (spring)");
+        }
+      }
+    }
+    
+    if (pois.hasCabins()) {
+      RestStopPOISearcher.CabinInfo nearestCabin = pois.getNearestCabin();
+      if (nearestCabin != null) {
+        poiInfo.append(" | Cabin: ").append(String.format("%.0f", nearestCabin.distanceFromRestStop)).append("m");
+        if (nearestCabin.isNetworkCabin && nearestCabin.network != null) {
+          poiInfo.append(" (").append(nearestCabin.network);
+          if (nearestCabin.locked) {
+            poiInfo.append(", locked)");
+          } else {
+            poiInfo.append(")");
+          }
+        } else if (nearestCabin.locked) {
+          poiInfo.append(" (locked)");
+        }
+      }
+    }
+    
+    return poiInfo.toString();
   }
 }

@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import btools.mapaccess.MatchedWaypoint;
-import btools.mapaccess.OsmPos;
-import btools.util.CheapRuler;
 
 public class AutomaticRestStopInsertion {
   
@@ -130,19 +128,19 @@ public class AutomaticRestStopInsertion {
       List<MatchedWaypoint> newViaPoints,
       RoutingContext routingContext,
       java.io.File segmentDir,
-      List<btools.router.OsmNodeNamed> waypointList) {
+      List<OsmNodeNamed> waypointList) {
     
     if (routingContext == null || segmentDir == null || waypointList == null) {
       return null;
     }
     
     // Combine original and new waypoints
-    List<btools.router.OsmNodeNamed> allWaypoints = new ArrayList<>(waypointList);
+    List<OsmNodeNamed> allWaypoints = new ArrayList<>(waypointList);
     
     // Add new via points to waypoint list
     for (MatchedWaypoint newVia : newViaPoints) {
       if (newVia.waypoint != null) {
-        btools.router.OsmNodeNamed onn = new btools.router.OsmNodeNamed(newVia.waypoint);
+        OsmNodeNamed onn = new OsmNodeNamed(newVia.waypoint);
         onn.name = newVia.name != null ? newVia.name : "via";
         allWaypoints.add(allWaypoints.size() - 1, onn); // Insert before last (destination)
       }

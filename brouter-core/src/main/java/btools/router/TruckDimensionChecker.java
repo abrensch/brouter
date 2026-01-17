@@ -5,8 +5,6 @@
  */
 package btools.router;
 
-import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmPos;
 
 public class TruckDimensionChecker {
   

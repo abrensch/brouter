@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- track-length = 628364 filtered ascend = 4062 plain-ascend = -8 cost=816598 energy=3.5kwh time=35h 45m 40s cycling-rest-stops=22 daily-segments=7 camping-rules=enabled water-point-filter=enabled -->
+<!-- track-length = 628364 filtered ascend = 4062 plain-ascend = -8 cost=816598 energy=3.5kwh time=35h 45m 40s camping-rules=enabled water-point-filter=enabled -->
 <gpx 
  xmlns="http://www.topografix.com/GPX/1/1" 
  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
@@ -27,6 +27,65 @@
  <wpt lon="10.475113" lat="62.992803"><name>Main Rest 20 (564,80 km)</name><type>cycling_rest</type></wpt>
  <wpt lon="10.274746" lat="63.158001"><name>Main Rest 21 (593,04 km)</name><type>cycling_rest</type></wpt>
  <wpt lon="10.368137" lat="63.370399"><name>Main Rest 22 (621,28 km)</name><type>cycling_rest</type></wpt>
+ <wpt lon="10.923795" lat="59.944431"><name>Rest Stop 1 (11,3 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.068517" lat="59.976317"><name>Rest Stop 2 (22,6 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.123160" lat="60.064764"><name>Rest Stop 3 (33,9 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.172832" lat="60.157257"><name>Rest Stop 4 (45,2 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.199388" lat="60.247843"><name>Rest Stop 5 (56,5 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.215690" lat="60.334456"><name>Rest Stop 6 (67,8 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.240200" lat="60.418631"><name>Rest Stop 7 (79,1 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.243510" lat="60.514660"><name>Rest Stop 8 (90,4 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.284550" lat="60.606210"><name>Rest Stop 9 (101,7 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.199207" lat="60.687921"><name>Rest Stop 10 (113,0 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.120722" lat="60.771457"><name>Rest Stop 11 (124,2 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.993846" lat="60.826358"><name>Rest Stop 12 (135,5 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.889306" lat="60.889546"><name>Rest Stop 13 (146,8 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.707656" lat="60.911190"><name>Rest Stop 14 (158,1 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.590917" lat="60.973639"><name>Rest Stop 15 (169,4 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.440573" lat="61.034881"><name>Rest Stop 16 (180,7 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.410037" lat="61.124694"><name>Rest Stop 17 (192,0 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.294603" lat="61.189714"><name>Rest Stop 18 (203,3 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.160865" lat="61.249141"><name>Rest Stop 19 (214,6 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.131808" lat="61.323604"><name>Rest Stop 20 (225,9 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="9.990666" lat="61.388243"><name>Rest Stop 21 (237,2 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="9.897589" lat="61.467311"><name>Rest Stop 22 (248,5 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="9.766220" lat="61.524981"><name>Rest Stop 23 (259,8 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="9.901856" lat="61.560034"><name>Rest Stop 24 (271,1 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.082767" lat="61.549592"><name>Rest Stop 25 (282,4 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.095319" lat="61.629041"><name>Rest Stop 26 (293,7 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.164031" lat="61.705598"><name>Rest Stop 27 (305,0 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.223390" lat="61.791841"><name>Rest Stop 28 (316,3 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.188769" lat="61.877563"><name>Rest Stop 29 (327,6 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.029595" lat="61.938395"><name>Rest Stop 30 (338,9 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.009998" lat="62.031535"><name>Rest Stop 31 (350,1 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.014898" lat="62.110288"><name>Rest Stop 32 (361,4 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.173028" lat="62.155951"><name>Rest Stop 33 (372,7 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.347878" lat="62.197629"><name>Rest Stop 34 (384,0 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.531691" lat="62.164774"><name>Rest Stop 35 (395,3 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.610411" lat="62.172194"><name>Rest Stop 36 (406,6 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.684282" lat="62.257401"><name>Rest Stop 37 (417,9 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.855315" lat="62.303233"><name>Rest Stop 38 (429,2 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.961273" lat="62.384628"><name>Rest Stop 39 (440,5 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.107528" lat="62.432991"><name>Rest Stop 40 (451,8 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.227239" lat="62.501049"><name>Rest Stop 41 (463,1 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.320913" lat="62.578249"><name>Rest Stop 42 (474,4 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.411636" lat="62.659624"><name>Rest Stop 43 (485,7 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.330667" lat="62.747208"><name>Rest Stop 44 (497,0 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.302597" lat="62.841552"><name>Rest Stop 45 (508,3 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.187438" lat="62.900684"><name>Rest Stop 46 (519,6 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="11.019592" lat="62.941623"><name>Rest Stop 47 (530,9 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.816560" lat="62.956530"><name>Rest Stop 48 (542,2 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.639408" lat="62.942469"><name>Rest Stop 49 (553,5 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.475770" lat="62.992478"><name>Rest Stop 50 (564,8 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.301253" lat="63.029416"><name>Rest Stop 51 (576,0 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.242636" lat="63.115306"><name>Rest Stop 52 (587,3 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.278828" lat="63.201509"><name>Rest Stop 53 (598,6 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.273788" lat="63.288557"><name>Rest Stop 54 (609,9 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.367804" lat="63.369928"><name>Rest Stop 55 (621,2 km)</name><type>rest_stop</type></wpt>
+ <wpt lon="10.769672" lat="59.906386"><name>from</name><type>via</type></wpt>
+ <wpt lon="11.043131" lat="60.792799"><name>via1</name><type>shaping</type></wpt>
+ <wpt lon="9.966244" lat="61.548437"><name>via2</name><type>shaping</type></wpt>
+ <wpt lon="10.395519" lat="63.426891"><name>to</name><type>via</type></wpt>
  <trk>
   <name>brouter_fastbike_0</name>
   <trkseg>

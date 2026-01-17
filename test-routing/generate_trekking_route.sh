@@ -43,7 +43,7 @@ java -jar "${BROUTER_JAR}" \
     0 \
     trekking \
     "9.4865861,61.8937872|9.7959691,61.8788128|10.0113469,61.8842863" \
-    "alternativeidx=0&format=gpx" \
+    "alternativeidx=0&format=gpx&exportWaypoints=1" \
     "enable_hiking_rest=1.0&enable_water_point_filter=1.0&enable_camping_rules=1.0" \
     2>/dev/null
 

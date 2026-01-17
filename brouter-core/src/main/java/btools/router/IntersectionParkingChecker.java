@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Set;
 
 import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmPos;
 
 public class IntersectionParkingChecker {
   

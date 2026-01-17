@@ -111,7 +111,7 @@ public class PathEnforcementEngine {
     double radiusDegrees = radius / 111000.0; // meters to degrees
     int centerLon = center.getILon();
     int centerLat = center.getILat();
-    int radiusInternal = (int)(radiusDegrees * 1000000);
+    int radiusInternal = (int) (radiusDegrees * 1000000);
     
     OsmPos nearestPath = null;
     double nearestDistance = Double.MAX_VALUE;

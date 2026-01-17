@@ -146,7 +146,7 @@ public class CampingRulesCalculator {
           "Allemannsretten",
           "Up to 2 nights in same spot",
           "Minimum 150m from houses",
-          java.util.Arrays.asList("Uncultivated land only", "No fires Apr 15-Sep 15"),
+          Arrays.asList("Uncultivated land only", "No fires Apr 15-Sep 15"),
           true
         );
       case "SE":
@@ -155,7 +155,7 @@ public class CampingRulesCalculator {
           "Allemansrätten",
           "1-2 nights recommended",
           "Out of sight from houses",
-          java.util.Arrays.asList("Move if asked", "Motorhomes use designated areas"),
+          Arrays.asList("Move if asked", "Motorhomes use designated areas"),
           true
         );
       case "DK":
@@ -164,7 +164,7 @@ public class CampingRulesCalculator {
           "No general right",
           "Use designated sites",
           "Permission required",
-          java.util.Arrays.asList("Very restrictive", "No wild camping"),
+          Arrays.asList("Very restrictive", "No wild camping"),
           false
         );
       case "FI":
@@ -173,7 +173,7 @@ public class CampingRulesCalculator {
           "Jokaisenoikeus",
           "Short periods allowed",
           "Reasonable distance from homes",
-          java.util.Arrays.asList("Wilderness areas", "No fires during warnings"),
+          Arrays.asList("Wilderness areas", "No fires during warnings"),
           true
         );
       default:
