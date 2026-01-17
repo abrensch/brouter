@@ -149,10 +149,11 @@ abstract class OsmPath implements OsmLinkHolder {
     // calculate the costfactor inputs
     float costfactor = rc.expctxWay.getCostfactor();
     
-    // Apply path priority adjustments (fixme penalty, trailblazed bonus)
-    // Extract wayKeyValues if processUnusedTags is enabled
-    // Check for fixme tags first - if present, block the path completely
-    if (rc.processUnusedTags) {
+    // Apply path priority adjustments (fixme penalty, trailblazed bonus, route preferences)
+    // Extract wayKeyValues if processUnusedTags is enabled OR if route preferences are needed
+    // Route preferences are applied for foot mode (route=hiking) and bike mode (route=bicycle)
+    boolean needRoutePreferences = (rc.footMode || rc.bikeMode);
+    if (rc.processUnusedTags || needRoutePreferences) {
       String wayKeyValues = rc.expctxWay.getKeyValueDescription(isReverse, description);
       if (wayKeyValues != null && !wayKeyValues.isEmpty()) {
         java.util.Map<String, String> wayTags = parseWayKeyValues(wayKeyValues);
@@ -167,10 +168,18 @@ abstract class OsmPath implements OsmLinkHolder {
           cost = -1;
           return;
         } else {
-          // Only apply other priority adjustments if no fixme tag
+          // Apply other priority adjustments if no fixme tag
           double trailblazedBonus = PathPriorityChecker.getTrailblazedBonus(wayTags);
           if (trailblazedBonus != 0.0) {
             costfactor = (float) (costfactor * (1.0 + trailblazedBonus));
+          }
+          
+          // Apply route preferences: prefer route=hiking for foot mode, route=bicycle for bike mode
+          if (needRoutePreferences) {
+            double routePreferenceBonus = PathPriorityChecker.getRoutePreferenceBonus(wayTags, rc.footMode, rc.bikeMode);
+            if (routePreferenceBonus != 0.0) {
+              costfactor = (float) (costfactor * (1.0 + routePreferenceBonus));
+            }
           }
         }
       }
