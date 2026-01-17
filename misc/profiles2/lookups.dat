@@ -711,6 +711,184 @@ estimated_town_class;0000000001 4
 estimated_town_class;0000000001 5
 estimated_town_class;0000000001 6
 
+trailblazed;000052434 symbols
+trailblazed;000043272 yes
+trailblazed;000011652 no
+trailblazed;000000863 poles
+trailblazed;000000370 hiking
+
+maxheight;001188430 default
+maxheight;000216660 2
+maxheight;000198970 5 5.0
+maxheight;000177910 below_default
+maxheight;000176090 4.5
+maxheight;000167200 4.1
+maxheight;000136300 2.1
+maxheight;000133620 4 4.0
+maxheight;000132070 none
+maxheight;000092580 3.5
+maxheight;000079380 2.2
+maxheight;000078630 3
+maxheight;000075410 2.5
+maxheight;000075060 1.9
+maxheight;000058790 3.8
+maxheight;000056910 5.5
+maxheight;000056720 4.2
+maxheight;000051400 4.3
+maxheight;000048620 3.90
+maxheight;000041520 1.8
+maxheight;000041350 4.6
+maxheight;000040140 2.3
+maxheight;000037140 2.8
+maxheight;000036070 3.2
+maxheight;000035190 3.6
+maxheight;000034700 3.9
+maxheight;000033100 3.7
+maxheight;000032190 3.3
+maxheight;000031040 3.4
+maxheight;000030570 4.4
+maxheight;000029650 4.8
+maxheight;000028680 2.4
+maxheight;000027520 2.6
+maxheight;000026360 2.7
+maxheight;000019720 13'6"
+maxheight;000019420 4.0
+maxheight;000019360 14'0"
+maxheight;000019270 4.7
+maxheight;000018050 2.9
+maxheight;000015020 4.67
+maxheight;000014810 2.05
+maxheight;000014050 1.95
+maxheight;000012290 2.0
+maxheight;000011950 5.1
+maxheight;000011860 5.4
+maxheight;000011430 5.2
+maxheight;000010890 16'6"
+maxheight;000009870 6 6.0
+
+maxwidth;000006450 1
+maxwidth;000006349 2
+maxwidth;000004627 3
+maxwidth;000003350 2.2
+maxwidth;000003077 1.5
+maxwidth;000002969 2.5
+maxwidth;000002245 4 4.0
+maxwidth;000002023 2.3
+maxwidth;000001893 6'6"
+maxwidth;000001330 2.49
+maxwidth;000001044 1.8
+maxwidth;000001018 5
+maxwidth;000000912 1.9
+maxwidth;000000860 3.5
+maxwidth;000000859 1.2
+maxwidth;000000818 8'6"
+maxwidth;000000788 0.8
+maxwidth;000000764 2.1
+maxwidth;000000711 6 6.0
+maxwidth;000000606 12'0"
+maxwidth;000000568 0.5
+maxwidth;000000553 2.4
+maxwidth;000000539 2.0
+maxwidth;000000424 2.8
+maxwidth;000000418 1.7
+maxwidth;000000416 2.6
+maxwidth;000000379 3.44
+maxwidth;000000359 1.27
+maxwidth;000000333 12
+maxwidth;000000329 3.0
+
+maxlength;000004173 10
+maxlength;000002844 12
+maxlength;000002585 34.5
+maxlength;000001849 6
+maxlength;000001798 12.40
+maxlength;000001487 8
+maxlength;000001101 9
+maxlength;000001021 15.00
+maxlength;000000870 15
+maxlength;000000718 11
+maxlength;000000715 6.5
+maxlength;000000660 7
+maxlength;000000555 9.5
+maxlength;000000462 55 ft
+maxlength;000000329 5
+maxlength;000000316 12.0
+maxlength;000000314 none
+maxlength;000000291 14
+maxlength;000000290 30'
+maxlength;000000279 25
+maxlength;000000278 65'
+maxlength;000000245 20
+maxlength;000000239 13'6"
+maxlength;000000230 24'0"
+maxlength;000000212 28'6"
+maxlength;000000199 40'
+maxlength;000000189 12.5
+maxlength;000000175 18.7
+maxlength;000000168 55'0"
+
+maxweight;000075927 3.5
+maxweight;000041746 7.5
+maxweight;000024359 64
+maxweight;000021084 74
+maxweight;000020599 5
+maxweight;000017948 10
+maxweight;000014607 12
+maxweight;000013787 20
+maxweight;000011730 6
+maxweight;000011599 44000 lbs
+maxweight;000010058 3
+maxweight;000008911 16
+maxweight;000007817 2.5
+maxweight;000007417 5.5
+maxweight;000007282 15
+maxweight;000006812 8
+maxweight;000005644 30
+maxweight;000004761 51.4
+maxweight;000004150 5 st
+maxweight;000003676 2.8
+maxweight;000003524 19
+maxweight;000003376 2
+maxweight;000003256 18
+maxweight;000003181 7
+maxweight;000002958 9
+maxweight;000002780 1.5
+maxweight;000002592 10 st
+maxweight;000002422 4
+maxweight;000002391 3.5 t
+maxweight;000002330 120
+
+maxaxleload;000071416 11.5
+maxaxleload;000050058 10
+maxaxleload;000008885 8
+maxaxleload;000002894 6
+maxaxleload;000001599 12
+maxaxleload;000001261 5
+maxaxleload;000000931 4.8
+maxaxleload;000000624 13
+maxaxleload;000000578 22.5
+maxaxleload;000000372 14
+maxaxleload;000000356 3.5
+maxaxleload;000000353 4
+maxaxleload;000000258 6.5 st
+maxaxleload;000000237 7.5
+maxaxleload;000000228 9
+maxaxleload;000000221 2.4
+maxaxleload;000000213 7
+maxaxleload;000000203 22
+maxaxleload;000000172 11
+maxaxleload;000000163 4.0
+maxaxleload;000000156 3
+maxaxleload;000000140 2
+maxaxleload;000000134 8.0
+maxaxleload;000000111 2.5
+maxaxleload;000000105 5.5
+maxaxleload;000000094 1.5
+maxaxleload;000000093 2.0
+maxaxleload;000000092 7.0
+maxaxleload;000000087 13000 lbs
+maxaxleload;000000081 5 (Mar 1-Apr 30)
+
 
  ---context:node
 
@@ -971,33 +1149,59 @@ fixme;0000000001 resurvey
 fixme;0000000001 refine
 fixme;0000000001 resurvey;refine
 
-trailblazed;0000000001 yes
+shelter_type;000231249 public_transport
+shelter_type;000101182 picnic_shelter
+shelter_type;000050161 gazebo
+shelter_type;000023823 weather_shelter
+shelter_type;000020642 lean_to
+shelter_type;000009703 pavilion
+shelter_type;000008434 sun_shelter
+shelter_type;000007976 basic_hut
+shelter_type;000002257 field_shelter
+shelter_type;000001471 rock_shelter
+shelter_type;000001352 parking
+shelter_type;000001102 pergola
+shelter_type;000001084 building
+shelter_type;000000992 dugout
+shelter_type;000000757 roof
+shelter_type;000000644 wildlife_hide
+shelter_type;000000417 shopping_cart
+shelter_type;000000350 Wetterpilz
+shelter_type;000000279 tent
+shelter_type;000000264 fuel_station
+shelter_type;000000245 umbrella
+shelter_type;000000229 bomb_shelter
+shelter_type;000000213 wetterpilz
+shelter_type;000000163 changing_rooms
+shelter_type;000000143 parkingq
+shelter_type;000000128 smoking
+shelter_type;000000123 picnic
+shelter_type;000000106 hut
+shelter_type;000000090 basic
+shelter_type;000000066 bicycle_parking
+shelter_type;000000059 nuclear
+shelter_type;000000053 porch
+shelter_type;000000049 residential
+shelter_type;000000047 parasol
+shelter_type;000000047 bomb
+shelter_type;000000046 yes
+shelter_type;000000041 animal_shelter
+shelter_type;000000038 cabana
+shelter_type;000000031 game_feeding
+shelter_type;000000029 Cabana
+shelter_type;000000028 parking_canopy
+shelter_type;000000025 dug-out
+shelter_type;000000025 sport
+shelter_type;000000024 lavvu
+shelter_type;000000021 trolley_park
+shelter_type;000000019 fire
+shelter_type;000000019 wilderness_hut
+shelter_type;000000018 public
+shelter_type;000000017 remise
+shelter_type;000000014 picnic_table
 
-maxheight;0000000001 4.0
-maxheight;0000000001 4.5
-maxheight;0000000001 5.0
-maxheight;0000000001 5.5
-maxheight;0000000001 6.0
-
-maxwidth;0000000001 2.5
-maxwidth;0000000001 3.0
-maxwidth;0000000001 3.5
-maxwidth;0000000001 4.0
-
-maxlength;0000000001 10
-maxlength;0000000001 15
-maxlength;0000000001 20
-maxlength;0000000001 25
-
-maxweight;0000000001 7.5
-maxweight;0000000001 10
-maxweight;0000000001 12
-maxweight;0000000001 18
-maxweight;0000000001 25
-maxweight;0000000001 40
-maxweight;0000000001 44
-
-maxaxleload;0000000001 8
-maxaxleload;0000000001 10
-maxaxleload;0000000001 11.5
-maxaxleload;0000000001 13
+maxheight;000133620 4 4.0
+maxheight;000176090 4.5
+maxheight;000198970 5 5.0
+maxheight;000056910 5.5
+maxheight;000009870 6 6.0
