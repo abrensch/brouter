@@ -550,10 +550,7 @@ public final class OsmTrack {
   }
 
   public float getVoiceHintTime(int i) {
-    if (voiceHints.list.isEmpty()) {
-      return 0f;
-    }
-    if (i < voiceHints.list.size()) {
+    if (!voiceHints.list.isEmpty() && i < voiceHints.list.size()) {
       return voiceHints.list.get(i).getTime();
     }
     if (nodes.isEmpty()) {
