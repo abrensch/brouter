@@ -5,7 +5,7 @@
  */
 package btools.router;
 
-final class KineNewPath extends OsmPath {
+final class KinematicWeightPath extends OsmPath {
   private double ekin; // kinetic energy (Joule)
   private double totalTime;  // travel time (seconds)
   private double totalEnergy; // total route energy (Joule)
@@ -14,7 +14,7 @@ final class KineNewPath extends OsmPath {
 
   @Override
   protected void init(OsmPath orig) {
-    KineNewPath origin = (KineNewPath) orig;
+    KinematicWeightPath origin = (KinematicWeightPath) orig;
     ekin = origin.ekin;
     totalTime = origin.totalTime;
     totalEnergy = origin.totalEnergy;
@@ -33,7 +33,7 @@ final class KineNewPath extends OsmPath {
 
   @Override
   protected double processWaySection(RoutingContext rc, double dist, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier) {
-    KineNewModel km = (KineNewModel) rc.pm;
+    KinematicWeightModel km = (KinematicWeightModel) rc.pm;
 
     double cost = 0.;
     double extraTime = 0.;
@@ -145,7 +145,7 @@ final class KineNewPath extends OsmPath {
   }
 
 
-  protected double evolveDistance(KineNewModel km, double dist, double delta_h, double f_air) {
+  protected double evolveDistance(KinematicWeightModel km, double dist, double delta_h, double f_air) {
     // elevation force
     double fh = delta_h * km.totalweight * 9.81 / dist;
 
@@ -220,7 +220,7 @@ final class KineNewPath extends OsmPath {
 
   @Override
   protected double processTargetNode(RoutingContext rc) {
-    KineNewModel km = (KineNewModel) rc.pm;
+    KinematicWeightModel km = (KinematicWeightModel) rc.pm;
 
     // finally add node-costs for target node
     if (targetNode.nodeDescription != null) {
@@ -255,7 +255,7 @@ final class KineNewPath extends OsmPath {
 
   @Override
   public boolean definitlyWorseThan(OsmPath path) {
-    KineNewPath p = (KineNewPath) path;
+    KinematicWeightPath p = (KinematicWeightPath) path;
 
     int c = p.cost;
     return cost > c + 100;

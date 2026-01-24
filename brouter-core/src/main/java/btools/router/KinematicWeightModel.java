@@ -11,13 +11,13 @@ import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 
 
-final class KineNewModel extends OsmPathModel {
+final class KinematicWeightModel extends OsmPathModel {
   public OsmPrePath createPrePath() {
     return new KinematicPrePath();
   }
 
   public OsmPath createPath() {
-    return new KineNewPath();
+    return new KinematicWeightPath();
   }
 
   public double turnAngleDecayTime;
