@@ -2,10 +2,11 @@
 # Car-Routing based on a kinematic model
 #
 # Depending on the vmax-parameter (target-speed)
+# and can handle the costfactor
 # this can be anything from least-time routing to eco-routing
 #
 #
----model:btools.router.KineNewModel
+---model:btools.router.KinematicWeightModel
 
 ---context:global
 
@@ -16,8 +17,6 @@ assign validForCars        = true
 assign avoid_toll          = false  # %avoid_toll% | Avoid paid roads | boolean
 assign avoid_unpaved       = false  # %avoid_unpaved% | Avoid unpaved roads, if possible | boolean
 assign avoid_motorways     = false  # %avoid_motorways% | Avoid motorways | boolean
-assign avoid_trunk         = false  # %avoid_trunk% | Avoid trunk roads | boolean
-assign avoid_primary       = false  # %avoid_primary% | Avoid primary roads | boolean
 
 assign add_beeline         = false  # %add_beeline% | Enable beeline on distant start/end points | boolean
 assign use_offroad         = false  # %use_offroad% | Enable additional roads | boolean
@@ -50,8 +49,6 @@ assign classifier_ferry       = 2
 
 assign is_avoided_toll_road and  avoid_toll toll=yes
 assign is_avoided_motorway and avoid_motorways highway=motorway|motorway_link
-assign is_avoided_trunk and avoid_trunk highway=trunk|trunk_link
-assign is_avoided_primary and avoid_primary highway=primary|primary_link
 
 #
 # calculate logical car access
@@ -237,8 +234,6 @@ assign costfactor =
   if ( equal maxspeed 0 ) then 10000
   else if is_avoided_toll_road then 10000
   else if is_avoided_motorway then 10
-  else if is_avoided_trunk then 10
-  else if is_avoided_primary then 10
   else min 9999
   add town_penalty
   add no_forest_penalty
