@@ -32,6 +32,10 @@ assign prefer_rivers false # %prefer_rivers% | Enable to prefer river valleys | 
 assign avoid_towns false # %avoid_towns% | Enable to avoid urban areas | boolean
 assign avoid_noise false # %avoid_noise% | Enable to avoid noisy areas | boolean
 
+# with engine defaults, long parts of routing to via points may be removed
+assign correctMisplacedViaPoints = true # %correctMisplacedViaPoints% | Set to false to keep detours due to via points (going back and forth on the same route) | boolean
+assign correctMisplacedViaPointsDistance = 40 # %correctMisplacedViaPointsDistance% | Only remove detours shorter than this (one-way) distance (in m) (engine defaults to 0 which removes detours whatever their length) | number
+
 ---context:way
 
 assign downhillcost   switch consider_elevation 40 switch avoid_steep_inclines  80 0.0
