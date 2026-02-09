@@ -23,7 +23,7 @@ assign allow_steps           = true   # %allow_steps% | Set to false to disallow
 assign allow_ferries         = true   # %allow_ferries% | set to false to disallow ferries | boolean
 assign allow_motorways       = false  # %allow_motorways% | Set to true to allow motorways (useful in Asia / Oceania for example) | boolean
 
-assign use_proposed_cycleroutes = true   # %use_proposed_cycleroutes% | Set true to consider proposed and regular cycleroutes as equals | boolean
+assign use_proposed_cycleroutes = false  # %use_proposed_cycleroutes% | Set to true to consider proposed and regular cycleroutes as equals | boolean
 
 assign consider_traffic      = 0.1      # %consider_traffic% | avoiding roads that usually have traffic is? | [1=very important, 0.5=pretty important, 0.3=important, 0.1=slightly preferred, 0.0=do not consider traffic]
 assign consider_noise        = false  # %consider_noise% | Activate to prefer a low-noise route | boolean

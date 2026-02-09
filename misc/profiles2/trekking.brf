@@ -13,7 +13,7 @@ assign   allow_steps              = true   # %allow_steps% | Set false to disall
 assign   allow_ferries            = true   # %allow_ferries% | Set false to disallow ferries | boolean
 assign   ignore_cycleroutes       = false  # %ignore_cycleroutes% | Set true for better elevation results | boolean
 assign   stick_to_cycleroutes     = false  # %stick_to_cycleroutes% | Set true to just follow cycleroutes | boolean
-assign   use_proposed_cycleroutes = true   # %use_proposed_cycleroutes% | Set true to consider proposed and regular cycleroutes as equals | boolean
+assign   use_proposed_cycleroutes = false  # %use_proposed_cycleroutes% | Set to true to consider proposed and regular cycleroutes as equals | boolean
 assign   avoid_unsafe             = false  # %avoid_unsafe% | Set true to avoid standard highways | boolean
 
 assign   add_beeline              = false  # %add_beeline% | Enable beeline on distant start/end points | boolean
