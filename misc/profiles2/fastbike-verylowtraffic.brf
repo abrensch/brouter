@@ -23,6 +23,8 @@ assign allow_steps           = true   # %allow_steps% | Set to false to disallow
 assign allow_ferries         = true   # %allow_ferries% | set to false to disallow ferries | boolean
 assign allow_motorways       = false  # %allow_motorways% | Set to true to allow motorways (useful in Asia / Oceania for example) | boolean
 
+assign use_proposed_cycleroutes = false  # %use_proposed_cycleroutes% | Set to true to consider proposed and regular cycleroutes as equals | boolean
+
 assign consider_traffic = true # %consider_traffic% | Activate to avoid traffic | boolean
 assign consider_noise        = false  # %consider_noise% | Activate to prefer a low-noise route | boolean
 assign consider_river        = false  # %consider_river% | Activate to prefer a route along rivers, lakes, etc. | boolean
@@ -56,7 +58,11 @@ assign processUnusedTags            = false # %processUnusedTags% | Set to true 
 
 ---context:way   # following code refers to way-tags
 
-assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+assign any_cycleroute
+  switch not use_proposed_cycleroutes
+    or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+    or route_bicycle_icn=yes|proposed or route_bicycle_ncn=yes|proposed or route_bicycle_rcn=yes|proposed route_bicycle_lcn=yes|proposed
+
 assign nodeaccessgranted or any_cycleroute lcn=yes
 
 assign ispaved or surface=paved or surface=asphalt or surface=concrete or surface=paving_stones surface=sett
