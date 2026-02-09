@@ -43,6 +43,8 @@ assign   initialcost_value        0 # not used now
 assign   allow_steps              true   # %allow_steps% | Set to false to disallow steps | boolean
 assign   allow_ferries            true   # %allow_ferries% | set to false to disallow ferries | boolean
 
+assign   use_proposed_cycleroutes false  # %use_proposed_cycleroutes% | Set to true to consider proposed and regular cycleroutes as equals | boolean
+
 assign add_beeline                false  # %add_beeline% | Enable beeline on distant start/end points | boolean
 
 assign   cost_of_unknown          2  # 2 as default
@@ -122,10 +124,17 @@ assign any_hiking_route or route=hiking             or route_hiking_iwn=yes
                         or route_foot_rwn=yes       route_foot_lwn=yes
 
 assign any_cycleroute =
+  if not use_proposed_cycleroutes then
      if      route_bicycle_icn=yes then true
      else if route_bicycle_ncn=yes then true
      else if route_bicycle_rcn=yes then true
      else if route_bicycle_lcn=yes then true
+     else false
+  else
+     if      route_bicycle_icn=yes|proposed then true
+     else if route_bicycle_ncn=yes|proposed then true
+     else if route_bicycle_rcn=yes|proposed then true
+     else if route_bicycle_lcn=yes|proposed then true
      else false
 
 assign is_ldhr                  and any_hiking_route not equal 0.0 hiking_routes_preference
