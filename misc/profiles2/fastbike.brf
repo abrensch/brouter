@@ -52,7 +52,12 @@ assign turnInstructionCatchingRange = 40    # %turnInstructionCatchingRange% | W
 assign turnInstructionRoundabouts   = true  # %turnInstructionRoundabouts% | Set to "false" to avoid generating special turning instructions for roundabouts | boolean
 assign considerTurnRestrictions     = true  # %considerTurnRestrictions% | Set to true to take turn restrictions into account | boolean
 
+# with engine defaults, long parts of routing to via points may be removed
+assign correctMisplacedViaPoints = true # %correctMisplacedViaPoints% | Set to false to keep detours due to via points (going back and forth on the same route) | boolean
+assign correctMisplacedViaPointsDistance = 40 # %correctMisplacedViaPointsDistance% | Only remove detours shorter than this (one-way) distance (in m) (engine defaults to 0 which removes detours whatever their length) | number
+
 assign processUnusedTags            = false # %processUnusedTags% | Set to true to output unused tags in data tab | boolean
+
 
 ---context:way   # following code refers to way-tags
 

@@ -36,6 +36,10 @@
 
   assign   allow_default_barrier_restriction  false # If true, default access for barrier=gate is false. see node context
 
+  # with engine defaults, long parts of routing to via points may be removed
+  assign correctMisplacedViaPoints = true # %correctMisplacedViaPoints% | Set to false to keep detours due to via points (going back and forth on the same route) | boolean
+  assign correctMisplacedViaPointsDistance = 40 # %correctMisplacedViaPointsDistance% | Only remove detours shorter than this (one-way) distance (in m) (engine defaults to 0 which removes detours whatever their length) | number
+
   # Internal parameters - not intended to be tweaked by end users, unless they know what they are doing.
 
   #new in 2.5.12
