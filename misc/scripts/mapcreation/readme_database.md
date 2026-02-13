@@ -14,7 +14,9 @@ Import new tags for noise, green and water feature
 ```
 # postgres createdb --encoding=UTF8 -U postgres osm
 
-# postgres psql -U postgres osm --command='CREATE EXTENSION postgis;'
+# postgres psql -U postgres -d osm --command='CREATE EXTENSION postgis;'
+
+# postgres psql -U postgres -d osm --command='CREATE EXTENSION hstore;'
 ```
 
 - import to database and create
@@ -36,7 +38,7 @@ Import new tags for noise, green and water feature
 
   - script needs a jdbc in the classpath (on UNIX and Linux use a colon `:` as delimiter)
 
-    `... -cp ../postgresql-42.6.0.jar;../brouter_fc.jar ...`
+    `... -cp ../postgresql-42.6.0.jar;../brouter.jar ...`
 
   - script needs a call with jdbc parameter
 
@@ -53,3 +55,10 @@ Import new tags for noise, green and water feature
     `... btools.mapcreator.OsmFastCutter ... ../planet-new.osm.pbf db_tags.csv.gz`
 
 
+_Note:_ The last two steps can be omitted if the database is used directly
+
+  - remove the pseudo tag file generation
+
+  - call OsmFasCutter with database parameter insteed of file name
+
+    `... btools.mapcreator.OsmFastCutter ... ../planet-new.osm.pbf $(JDBC)`
