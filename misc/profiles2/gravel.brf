@@ -21,6 +21,8 @@ assign S_C_x      = 0.300 # %S_C_x%      | Drag coefficient times reference area
 assign C_r        = 0.005 # %C_r%        | Rolling resistance coefficient (dimensionless)
 assign bikerPower = 150   # %bikerPower% | Average power (W) provided by the biker | number
 
+assign use_proposed_cycleroutes = false  # %use_proposed_cycleroutes% | Set to true to consider proposed and regular cycleroutes as equals | boolean
+
 assign consider_traffic_estimate false # %consider_traffic_estimate% | Enable to consider traffic estimates | boolean
 assign assume_wet_conditions false # %assume_wet_conditions% | Enable to assume wet conditions | boolean
 assign prefer_unpaved_paths false # %prefer_unpaved_paths% | Enable to prefer unpaved paths | boolean
@@ -51,7 +53,10 @@ assign any_cycleway or cycleway=track|lane|shared_lane|shared
                     or and cycleway:right=track|lane|shared_lane reversedirection=
                        and  cycleway:left=track|lane|shared_lane reversedirection=yes
 
-assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+assign any_cycleroute
+  switch not use_proposed_cycleroutes
+    or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+    or route_bicycle_icn=yes|proposed or route_bicycle_ncn=yes|proposed or route_bicycle_rcn=yes|proposed route_bicycle_lcn=yes|proposed
 
 assign turncost switch junction=roundabout 15 65
 
