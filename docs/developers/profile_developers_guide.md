@@ -147,12 +147,12 @@ Some variable names are pre-defined and accessed by the routing engine:
 
     - `correctMisplacedViaPoints`  default = true
 
-       Searches for incorrectly placed via points and removes the detours.
+       Removes detours (going back and forth using the same ways) that would be used to reach via points. 
        With the parameter `exportCorrectedWaypoints` adds these points to the output formats.
 
     - `correctMisplacedViaPointsDistance`  default=0
 
-       The default setting 0 removes the entire path, with a tolerance limit BRouter finds and removes only paths within this distance.
+       The default setting 0 removes the entire path (detour). Above 0, BRouter only removes detours shorter than this distance (in meters).
 
     - `continueStraight` default = false
 
