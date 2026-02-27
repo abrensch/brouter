@@ -238,7 +238,7 @@ assign costfactor =
   add town_penalty
   add no_forest_penalty
   add no_river_penalty
-  1.0
+  0
 
 assign minspeed =
     switch highway=motorway|motorway_link|trunk  75 0
