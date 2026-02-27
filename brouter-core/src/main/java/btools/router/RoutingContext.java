@@ -124,8 +124,8 @@ public final class RoutingContext {
     // turn-restrictions not used per default for foot profiles
     considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue("considerTurnRestrictions", footMode ? 0.f : 1.f);
 
-    correctMisplacedViaPoints = 0.f != expctxGlobal.getVariableValue("correctMisplacedViaPoints", 1.f);
-    correctMisplacedViaPointsDistance = expctxGlobal.getVariableValue("correctMisplacedViaPointsDistance", 0.f); // 0 == don't use distance
+    correctMisplacedViaPoints = 0.f != expctxGlobal.getVariableValue("correctMisplacedViaPoints", 0.f);
+    correctMisplacedViaPointsDistance = expctxGlobal.getVariableValue("correctMisplacedViaPointsDistance", 400.f); // 0 == don't use distance
 
     continueStraight = 0.f != expctxGlobal.getVariableValue("continueStraight", 0.f);
 
@@ -158,7 +158,7 @@ public final class RoutingContext {
       turnInstructionMode = tiMode;
     }
     turnInstructionCatchingRange = expctxGlobal.getVariableValue("turnInstructionCatchingRange", 40.f);
-    turnInstructionRoundabouts = expctxGlobal.getVariableValue("turnInstructionRoundabouts", 1.f) != 0.f;
+    turnInstructionRoundabouts = expctxGlobal.getVariableValue("turnInstructionRoundabouts", footMode ? 0.f : 1.f) != 0.f;
 
     // Speed computation model (for bikes)
     // Total mass (biker + bike + luggages or hiker), in kg

@@ -150,7 +150,7 @@ public class RouteServerTest {
 
   @Test
   public void misplacedPoints() throws IOException, URISyntaxException {
-    URL requestUrl = new URI(baseUrl + "brouter?lonlats=8.708678,49.999188%7C8.71145,49.999761%7C8.715801,50.00065&nogos=&profile=trekking&alternativeidx=0&format=geojson&correctMisplacedViaPoints=1&timode=3").toURL();
+    URL requestUrl = new URI(baseUrl + "brouter?lonlats=8.708678,49.999188%7C8.71145,49.999761%7C8.715801,50.00065&nogos=&profile=trekking&alternativeidx=0&format=geojson&profile:correctMisplacedViaPoints=1&timode=3").toURL();
     HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
     httpConnection.connect();
 

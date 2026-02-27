@@ -269,7 +269,11 @@ public final class VoiceHintProcessor {
           }
         }
 
-        input.angle = sumNonConsumedWithinCatchingRange(inputs, hintIdx, INTERNAL_CATCHING_RANGE_WIDE);
+        if (explicitRoundabouts) {
+          input.angle = sumNonConsumedWithinCatchingRange(inputs, hintIdx, INTERNAL_CATCHING_RANGE_WIDE);
+        } else {
+          input.turnAngleConsumed = true;
+        }
         input.distanceToNext = distance;
         distance = 0.;
         results.add(input);
