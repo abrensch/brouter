@@ -1,16 +1,27 @@
 -- special config to calcule pseudo-tags /  "Brouter project"
--- EssBee version 08/05/2023
+-- EssBee version 22/02/2026
 
 local srid = 3857
 --local srid = 4326
 
-
--- 3857 (projection) SHOULD BE USED here for distance calculation ... (not srid = 4326 !)
+-- 3857 (Mercator projection) is used here!
 -- https://gis.stackexchange.com/questions/48949/epsg-3857-or-4326-for-web-mapping  
+--  As distances in this SRID are falsed by the projection, a correction factor (merca_coef) will be applied in the SQL's
+--
 
 local tables = {}
 
+tables.nodes = osm2pgsql.define_table{
+    name = 'nodes',
+    ids = { type = 'any', id_column = 'osm_id', type_column = 'osm_type' },
+    columns = {
+        { column = 'tags',  type = 'jsonb' },
+        { column = 'geom',  type = 'point', projection = srid }
+    }
+}
+
 tables.lines = osm2pgsql.define_way_table('lines', {
+    { column = 'nodes', type = 'jsonb' },    
    { column = 'name', type = 'text' },
    { column = 'osm_id', type = 'text' },
    { column = 'highway', type = 'text' },
@@ -19,6 +30,13 @@ tables.lines = osm2pgsql.define_way_table('lines', {
    { column = 'natural', type = 'text' },
    { column = 'width', type = 'text' },
    { column = 'oneway', type = 'text' },
+   { column = 'bridge', type = 'text' },
+   { column = 'tunnel', type = 'text' },
+   { column = 'junction', type = 'text' },
+    { column = 'lanes', type = 'text' },
+    { column = 'bicycle', type = 'text' },
+    { column = 'crossing', type = 'text' },
+    { column = 'crossing_markings', type = 'text' },
    { column = 'way', type = 'linestring', projection = srid, not_null = true },
 })
 
@@ -117,7 +135,7 @@ end
 
 function osm2pgsql.process_node(object)
 
-if (object.tags.place == 'city' or object.tags.place == 'town' or object.tags.place == 'village' or object.tags.place == 'municipality') and has_area_tags(object.tags)  then
+   if (object.tags.place == 'city' or object.tags.place == 'town' or object.tags.place == 'village' or object.tags.place == 'municipality') and has_area_tags(object.tags)  then
       tables.cities:insert({
          osm_id = object.id,
          name = object.tags.name,
@@ -138,6 +156,15 @@ if (object.tags.place == 'city' or object.tags.place == 'town' or object.tags.pl
          way = object:as_point()
       })
    end
+
+   if ( object.tags.highway == 'traffic_signals') or  (object.tags.railway == 'level_crossing') or (object.tags.crossing == 'traffic_signals') or (object.tags.crossing == 'pedestrian_signals') or (object.tags['crossing:island'] == 'yes') or (object.tags.crossing == 'island') or (object.tags['crossing:signals'] == 'yes') or (object.tags.crossing == 'zebra') or (object.tags['crossing:markings'] == 'zebra') or (object.tags.crossing_ref ~= nil) or (object.tags.button_operated ~= nil) or (object.tags.traffic_signals ~= nil) then
+      tables.nodes:insert({
+         tags = object.tags,
+         geom = object:as_point()
+      })
+
+   end
+
 end
 
 function osm2pgsql.process_way(object)
@@ -163,6 +190,7 @@ function osm2pgsql.process_way(object)
 
    if (object.tags.highway ~= nil) or  ( object.tags.waterway ~= nil) or ( object.tags.natural == 'coastline') then
       tables.lines:insert({
+         nodes = object.nodes,
          name = object.tags.name,
          osm_id =  object.id,
          highway = object.tags.highway,
@@ -171,6 +199,13 @@ function osm2pgsql.process_way(object)
          width = object.tags.width,
          maxspeed = object.tags.maxspeed,
          oneway = object.tags.oneway, 
+         tunnel = object.tags.tunnel,
+         bridge = object.tags.bridge,
+         junction = object.tags.junction,
+         lanes = object.tags.lanes,
+         bicycle = object.tags.bicycle,
+         crossing = object.tags.crossing,
+         crossing_markings = object.tags['crossing:markings'],
          way = object:as_linestring()
       })
    end

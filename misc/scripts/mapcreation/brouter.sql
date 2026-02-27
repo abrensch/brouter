@@ -1,5 +1,7 @@
 --  calculation of new tags (estimated_noise_class, estimated_river_class,estimated_forest_class, estimated_town_class, estimated_traffic_class)
 --  formatted by https://sqlformat.darold.net/
+--  version 22.02.2026
+
 SET client_encoding TO UTF8;
 
 -- prepare the lines table with a new index and a new column
@@ -14,13 +16,30 @@ SELECT
 SELECT
     osm_id,
     highway,
-    maxspeed,
     way,
     waterway,
     li.natural,
     width,
     oneway,
-    st_length (way) / st_length (ST_Transform (way, 4326)::geography) AS merca_coef INTO TABLE lines_bis
+    tunnel,
+    bridge,
+    nodes,
+    -- convert mph to kmh by need..
+    CASE WHEN maxspeed IS NULL THEN
+        NULL
+    WHEN maxspeed LIKE '% mph'
+        AND (replace(maxspeed, ' mph', '') ~ '^\d+(\.\d+)?$') THEN
+        ((replace(maxspeed::text, ' mph', ''))::numeric * 1.61)::text
+    ELSE
+        maxspeed
+    END AS maxspeed,
+    junction,
+    lanes, 
+    bicycle,
+    st_length (way) / st_length (ST_Transform (way, 4326)::geography) AS merca_coef,
+    crossing, 
+    crossing_markings
+INTO TABLE lines_bis
 FROM
     lines li;
 
@@ -445,7 +464,8 @@ FROM
 WHERE
     dd.highway IS NOT NULL
     AND dd.highway NOT IN ('proposed', 'construction')
-    AND (st_length (dd.way) / dd.merca_coef) < 40000;
+    AND (st_length (dd.way) / dd.merca_coef) < 40000
+    AND dd.tunnel IS NULL;
 
 SELECT
     now();
@@ -642,6 +662,7 @@ FROM
     INNER JOIN osm_poly_forest q ON ST_Within (m.way, q.way)
 WHERE
     m.highway IS NOT NULL
+    AND m.tunnel IS NULL
 GROUP BY
     m.osm_id,
     m.highway,
@@ -1939,4 +1960,1146 @@ ANALYSE all_tags;
 
 SELECT
     now();
+
+
+
+
+
+-- Generation of the crossing_tags
+-- version 22.02.2026
+
+
+CREATE INDEX nodes_idx ON nodes (osm_id) WITH (fillfactor = '100');
+
+SELECT
+    now();
+
+ANALYZE nodes;
+
+SELECT
+    now();
+
+-- estimated traffic
+SELECT
+    y.losmid::bigint,
+    ((y.populate_factor * 1200 * (1 + q.peak_sum_ele)) + q.industrial_factor) / ((30 + q.motorway_factor) * (50 + q.highway_factor)) / 10 AS estimated_traffic INTO TABLE estimated_traffic
+FROM
+    traffic_tmp y
+    LEFT OUTER JOIN except_all AS q ON y.losmid = q.losmid;
+
+CREATE INDEX estimated_traffic_idx ON estimated_traffic (losmid) WITH (fillfactor = '100');
+
+SELECT
+    now();
+
+ANALYZE estimated_traffic;
+
+-- search for intersections prim/sec with path, track, etc...
+-- Keep speed_factor, traffic and lanes_factor of the prim/sec hw(s)
+--
+-- possibly 2 segments of the highprio highway or / and the lowprio highway flow into the intersection:
+--     as result 1, 2 or 4 raws can be created at this node (reduction to 1 raw only will be done later )
+--
+-- the same highprio and lowprio highways can intersects 2 times:
+--      example, a short service HW (for parking) starts and ends on a prim/sec
+--      this will be consider later..
+SELECT
+    st_intersection (a.way, c.way) AS inter,
+    c.osm_id l_osm_id,
+    c.nodes nodes,
+    a.osm_id h_osm_id,
+    a.maxspeed,
+    c.highway AS l_highway,
+    estimated_traffic AS traffic,
+    -- calculate the "speed_factor" (intermediate variable to modify the crossing-risk depending in the "maxspeed" tag of the highway to be crossed)
+    CASE WHEN a.maxspeed IS NULL
+        OR (NOT (a.maxspeed ~ '^\d+(\.\d+)?$'))
+        OR a.maxspeed::numeric > '105'
+        -- maxspeed not defined OR not numeric OR > 105 km/h  ==> unusable , set Default 0.9
+        THEN
+        0.9
+    WHEN a.maxspeed::numeric > 85 THEN
+        1
+    WHEN a.maxspeed::numeric >= 55 THEN
+        0.8
+    WHEN a.maxspeed::numeric >= 35 THEN
+        0.65
+    ELSE
+        0.5
+    END AS speed_factor,
+    -- calculate the "lane_factor" (intermediate variable to modify the crossing-risk)
+    -- it depends on:
+    --    lanes number of the highway to be crossed
+    --    the "oneway" tag of the highway to be crossed:
+    --        On oneway only 1/2 of the traffic has to be considered
+    --        On the other side, when 2 oneways are not separated by something (node 2242217581)
+    --           the biker have to cross the lanes of the other oneway
+    --         Example: crossing 2 (2 lanes oneways) should get the same lane penalty as crossing 1 (4 lanes) highway...
+    CASE WHEN (a.oneway = 'yes'
+        OR a.oneway = 'true'
+        OR a.oneway = '1') THEN
+        -- a oneway is to be crossed
+        CASE WHEN a.lanes IS NULL
+            OR (NOT a.lanes ~ '^\d+(\.\d+)?$')
+            --  number of lanes not defined: by primary / secondary with oneway=yes, the number of lanes is mostly 1
+            THEN
+            0.5
+        WHEN a.lanes = '1' THEN
+            0.5
+        WHEN a.lanes = '1.5' THEN
+            0.62
+        WHEN a.lanes = '2' THEN
+            0.75
+        WHEN a.lanes = '3' THEN
+            0.85
+        WHEN a.lanes = '4' THEN
+            0.95
+        WHEN a.lanes = '5'
+            OR a.lanes = '6' THEN
+            1
+        ELSE
+            1
+        END
+    ELSE
+        -- no oneway!
+        CASE WHEN a.lanes IS NULL
+            OR (NOT a.lanes ~ '^\d+(\.\d+)?$')
+            --  number of lanes not defined: by primary / secondary with oneway=no, the number of lanes is mostly 2
+            THEN
+            1
+        WHEN a.lanes = '1' THEN
+            0.6
+        WHEN a.lanes = '1.5' THEN
+            0.8
+        WHEN a.lanes = '2' THEN
+            1
+        WHEN a.lanes = '3' THEN
+            1.2
+        WHEN a.lanes = '4' THEN
+            1.5
+        WHEN a.lanes = '5'
+            OR a.lanes = '6' THEN
+            1.7
+        ELSE
+            2
+        END
+    END AS lanes_factor,
+    CASE WHEN e.estimated_traffic IS NULL THEN
+        0
+    ELSE
+        estimated_traffic / 10
+    END AS traffic_factor,
+    CASE WHEN a.lanes IS NULL
+        OR (NOT a.lanes ~ '^\d+(\.\d+)?$')
+        -- parameter will be used only by oneway, so the defaut when not defined is 1 lane!
+        THEN
+        1
+    ELSE
+        a.lanes::numeric
+    END AS lanes_ow,
+    CASE WHEN a.oneway IS NULL
+    -- default is oneway_no
+    THEN
+        0
+    WHEN (a.oneway = 'yes'
+        OR a.oneway = 'true'
+        OR a.oneway = '1') THEN
+        1
+    ELSE
+        0
+    END AS oneway,
+    c.way AS l_way,
+    c.crossing AS l_crossing,
+    c.crossing_markings AS l_crossing_markings INTO TABLE intersec_1
+FROM
+    lines c -- lowprio highways
+    INNER JOIN lines a -- highprio highways
+    ON st_intersects (a.way, c.way)
+    LEFT OUTER JOIN estimated_traffic e ON e.losmid = a.osm_id::numeric
+WHERE (c.highway = 'track'
+    OR c.highway = 'cycleway'
+    OR c.highway = 'footway'
+    OR c.highway = 'path'
+    OR c.highway = 'residential'
+    OR c.highway = 'service'
+    OR c.highway = 'unclassified'
+    OR c.highway = 'living_street'
+    OR c.highway = 'tertiary'
+    OR c.highway = 'pedestrian')
+AND c.bridge IS NULL
+AND c.tunnel IS NULL
+-- and (a.crossing is null or c.crossing != 'zebra')
+-- and (a.crossing_markings is null or c.crossing:markings != 'zebra')
+AND (a.highway = 'primary'
+    OR a.highway = 'secondary'
+    OR a.highway = 'primary_link'
+    OR a.highway = 'secondary_link')
+AND (a.junction IS NULL
+    OR a.junction != 'roundabout')
+AND (c.junction IS NULL
+    OR c.junction != 'roundabout')
+AND a.bridge IS NULL
+AND a.tunnel IS NULL
+-- eliminate segments in error (example l_osm_id = 1325635264 overlapps a primary!)
+AND ST_NPoints (st_intersection (a.way, c.way)) < 3;
+
+SELECT
+    now();
+
+ANALYZE intersec_1;
+
+SELECT
+    now();
+
+-- Now, we need the OSM_ID of the node at the intersection…
+-- First generate a row for each node of the lowprio hw
+-- from all the nodes, keep only the nodes at intersections (what we need)
+SELECT
+    now();
+
+-- from all the nodes, keep only the nodes at intersections (what we need)
+SELECT
+    now();
+
+SELECT
+    l_osm_id,
+    h_osm_id,
+    CASE WHEN (l_crossing = 'zebra'
+        OR l_crossing_markings = 'zebra') THEN
+        0
+    ELSE
+        penalty
+    END AS penalty,
+    l_indx,
+    Npoints,
+    nodes,
+    inter AS inter_old,
+    oneway,
+    lanes_ow,
+    l_highway,
+    st_intersection (inter, Npoint) inter INTO TABLE intersec_3
+FROM (
+    SELECT
+        inter,
+        l_osm_id,
+        h_osm_id,
+        oneway,
+        lanes_ow,
+        nodes,
+        l_highway,
+        l_crossing,
+        l_crossing_markings,
+        (speed_factor * traffic_factor * lanes_factor) AS penalty,
+        ST_PointN (l_way::geometry, generate_series(1, ST_NPoints (l_way))) Npoint,
+        generate_series(1, ST_NPoints (l_way)) l_indx,
+        ST_NPoints (l_way)
+        Npoints
+    FROM
+        intersec_1) AS t2
+WHERE
+    st_intersects (inter, Npoint)
+ORDER BY
+    l_osm_id;
+
+SELECT
+    now();
+
+CREATE INDEX intersec_3_idx ON intersec_3 (l_osm_id, l_indx) WITH (fillfactor = '100');
+
+SELECT
+    now();
+
+ANALYZE intersec_3;
+
+-- Problem in this example:
+--   way 23947236   secondary   intersection on node 7020383623
+--   way 1414615295 footway     intersection on node 12998912956
+--  both nodes are on the same Position !!!!!!!! ==> probably mapping error?
+-- solution: select only 1 node (limit 1)
+SELECT
+    l_osm_id,
+    h_osm_id,
+    l_highway,
+    penalty,
+    (
+        SELECT
+            arr.item_object
+        FROM
+            intersec_3 b,
+            jsonb_array_elements(nodes)
+            WITH ORDINALITY arr (item_object, position)
+            WHERE
+                a.l_osm_id = b.l_osm_id
+                AND a.l_indx = b.l_indx
+                AND arr.position = (a.l_indx)
+            LIMIT 1) AS node_id,
+    inter AS node_way,
+    oneway,
+    lanes_ow INTO TABLE intersec_4
+FROM
+    intersec_3 a;
+
+SELECT
+    now();
+
+-- groups the hw with highprio... keep the max for penalty, max for lanes, min for oneway..
+SELECT
+    a.l_osm_id,
+    (
+        SELECT
+            way
+        FROM
+            lines b
+        WHERE
+            a.l_osm_id = b.osm_id) AS l_way,
+    node_id,
+    node_way,
+    max(penalty) AS penalty,
+    st_union (x.way) AS h_way INTO TABLE intersec_5
+FROM
+    intersec_4 a
+    INNER JOIN lines x ON a.h_osm_id = x.osm_id
+GROUP BY
+    a.l_osm_id,
+    l_way,
+    a.node_id,
+    a.node_way;
+
+SELECT
+    now();
+
+-- groups the hw with lowprio (keeping only 1 raw per node!)
+-- keep the max for designated and use_path
+-- keep l_way as union of all the lowprio hw
+SELECT
+    max(penalty) penalty,
+    node_id,
+    node_way,
+    st_union (l_way) AS l_way,
+    st_union (h_way) AS h_way,
+    st_length (st_union (l_way)) / st_length (ST_Transform (st_union (l_way), 4326)::geography) AS merca_coef INTO TABLE intersec_6
+FROM
+    intersec_5
+GROUP BY
+    node_id,
+    node_way;
+
+SELECT
+    now();
+
+-- now set penalty = 0 by  intersections (nodes) considered "secured" or "protected"...
+-- unfortunatly, traffic_signals are not allways on the intersection itself...
+-- example 1 / node 645255230 (not 282220 in underground!)
+-- example 2 / node 60740728
+-- example 3 / 1097988193 (with traffic_signal on 1097988200)
+-- ==> complex / very different situations
+-- ==> current implemetation:
+--  the safe / unsafe depends on:
+--     the distance between intersection and the traffic_signal
+--     the position of the traffic_signal (on the lowprio hw or only on the hihprio hw)
+--     the type of the signal (standard or as example "button_operated", "pelican"..)
+--     the "direction" tag (backward / forward) is given or not on the signal
+CREATE INDEX intersec_6_idx ON intersec_6 USING gist (node_way) WITH (fillfactor = '100');
+
+ANALYZE intersec_6;
+
+SELECT
+    now();
+
+-- zebra protects the crossing!
+SELECT
+    node_way,
+    node_id,
+    st_distance (a.node_way, b.geom) / merca_coef AS dist,
+    b.geom AS zebra_geom,
+    merca_coef,
+    l_way INTO TABLE intermed0
+FROM
+    intersec_6 a
+    INNER JOIN nodes b ON ST_DWithin (a.node_way, b.geom, 4 * a.merca_coef)
+    -- allowing a distance is some times good (11761608784, 11761608797, 13151632289, 13151668804, 13230762051)
+    -- but some times not so good (400915619, 273534797, 35788425, 7040995085)
+    -- see below how to eliminate the bad nodes:
+    -- inner join nodes b on st_intersects(a.node_way, b.geom)
+WHERE
+    st_intersects (a.l_way, b.geom)
+    AND a.penalty != 0
+    AND (b.tags ->> 'crossing' = 'zebra'
+        OR b.tags ->> 'crossing:markings' = 'zebra');
+
+SELECT
+    now();
+
+SELECT
+    a.* INTO TABLE intermed00
+FROM
+    intermed0 a
+    INNER JOIN (
+        SELECT
+            node_id,
+            MIN(dist) dist
+        FROM
+            intermed0
+        GROUP BY
+            node_id) b ON b.node_id = a.node_id
+    AND a.dist = b.dist;
+
+CREATE INDEX intermed00_idx ON intermed00 USING gist (l_way) WITH (fillfactor = '100');
+
+SELECT
+    now();
+
+SELECT
+    a.node_id INTO TABLE del00
+FROM
+    intermed00 a
+    INNER JOIN lines c ON (st_intersects (a.zebra_geom, c.way)
+            AND st_intersects (a.l_way, c.way))
+        AND a.dist != '0'
+        AND st_length (st_intersection (a.l_way, c.way)) = 0
+        AND (c.highway = 'track'
+            OR c.highway = 'cycleway'
+            OR c.highway = 'footway'
+            OR c.highway = 'path'
+            OR c.highway = 'residential'
+            OR c.highway = 'service'
+            OR c.highway = 'unclassified'
+            OR c.highway = 'living_street'
+            OR c.highway = 'tertiary'
+            OR c.highway = 'pedestrian');
+
+DELETE FROM intermed00
+WHERE node_id IN (
+        SELECT
+            node_id
+        FROM
+            del00);
+
+SELECT
+    now();
+
+UPDATE
+    intersec_6
+SET
+    penalty = 0
+WHERE
+    node_way IN (
+        SELECT
+            node_way
+        FROM
+            intermed0);
+
+SELECT
+    now();
+
+-- when traffic_signal is on one of the lowprio highways
+-- and "direction" is not given
+-- then this is good for each type of traffic_signals on at least 25 meters distance!
+SELECT
+    node_way,
+    node_id INTO TABLE intermed1
+FROM
+    intersec_6 a
+    INNER JOIN nodes b ON ST_DWithin (a.node_way, b.geom, 25 * a.merca_coef)
+WHERE
+    a.penalty != 0
+    AND st_intersects (a.l_way, b.geom)
+    AND b.tags ->> 'direction' IS NULL
+    AND b.tags ->> 'traffic_signals:direction' IS NULL
+    AND (b.tags ->> 'crossing' = 'traffic_signals'
+        OR b.tags ->> 'crossing' = 'pedestrian_signals'
+        OR b.tags ->> 'crossing_ref' IS NOT NULL
+        OR b.tags ->> 'crossing:signals' = 'yes'
+        OR b.tags ->> 'highway' = 'traffic_signals');
+
+UPDATE
+    intersec_6
+SET
+    penalty = 0
+WHERE
+    node_way IN (
+        SELECT
+            node_way
+        FROM
+            intermed1);
+
+SELECT
+    now();
+
+-- When "direction" is given, consider all types of traffic_signals within 15 meters
+SELECT
+    node_way,
+    node_id INTO TABLE intermed2
+FROM
+    intersec_6 a
+    INNER JOIN nodes b ON ST_DWithin (a.node_way, b.geom, 15 * a.merca_coef)
+WHERE
+    st_intersects (a.l_way, b.geom)
+    AND a.penalty != 0
+    AND (b.tags ->> 'crossing' = 'traffic_signals'
+        OR b.tags ->> 'crossing' = 'pedestrian_signals'
+        OR b.tags ->> 'crossing_ref' IS NOT NULL
+        OR b.tags ->> 'crossing:signals' = 'yes'
+        OR b.tags ->> 'highway' = 'traffic_signals');
+
+UPDATE
+    intersec_6
+SET
+    penalty = 0
+WHERE
+    node_way IN (
+        SELECT
+            node_way
+        FROM
+            intermed2);
+
+SELECT
+    now();
+
+-- Now the traffic_signal is not direct on the lowprio highways but on the highprio highway:
+-- direction not checked, standard Signal-type, consider till 20 meter
+-- negativ example node 60740728  (button_operated)
+-- positiv examples: 9121884424, 60740728
+SELECT
+    node_way,
+    node_id INTO TABLE intermed3
+FROM
+    intersec_6 a
+    INNER JOIN nodes b ON ST_DWithin (a.node_way, b.geom, 20 * a.merca_coef)
+WHERE
+    st_intersects (a.h_way, b.geom)
+    AND a.penalty != 0
+    AND (b.tags ->> 'crossing_ref' IS NULL
+        OR b.tags ->> 'crossing_ref' != 'pelican')
+    AND (b.tags ->> 'button_operated' IS NULL
+        OR b.tags ->> 'button_operated' != 'yes')
+    AND (b.tags ->> 'traffic_signals' IS NULL
+        OR b.tags ->> 'traffic_signals' != 'pedestrian_crossing')
+    AND (b.tags ->> 'traffic_signals:direction' IS NULL)
+    AND (b.tags ->> 'crossing' = 'traffic_signals'
+        OR b.tags ->> 'crossing' = 'pedestrian_signals'
+        OR b.tags ->> 'crossing_ref' IS NOT NULL
+        OR b.tags ->> 'crossing:signals' = 'yes'
+        OR b.tags ->> 'highway' = 'traffic_signals');
+
+UPDATE
+    intersec_6
+SET
+    penalty = 0
+WHERE
+    node_way IN (
+        SELECT
+            node_way
+        FROM
+            intermed3);
+
+SELECT
+    now();
+
+-- direction is null, "standard" signal-type, considers till 22 meters
+-- (node 6905737728 should not be considered save!==> distance only 22m, not 25!)
+-- pb (loop) in postgis... workarround ...
+SELECT
+    * INTO TABLE nodes_p
+FROM
+    nodes
+WHERE
+    tags ->> 'direction' IS NULL
+    AND tags ->> 'traffic_signals:direction' IS NULL
+    AND (tags ->> 'crossing' = 'traffic_signals'
+        OR tags ->> 'crossing:signals' = 'yes'
+        OR tags ->> 'highway' = 'traffic_signals');
+
+CREATE INDEX nodes_p_idx ON nodes_p USING gist (geom) WITH (fillfactor = '100');
+
+SELECT
+    node_way,
+    node_id INTO TABLE intermed4
+FROM
+    intersec_6 a
+    INNER JOIN nodes_p b ON ST_DWithin (a.node_way, b.geom, 22 * a.merca_coef)
+WHERE
+    st_intersects (a.h_way, b.geom)
+    AND a.penalty != 0
+    AND (b.tags ->> 'crossing_ref' IS NULL
+        OR b.tags ->> 'crossing_ref' != 'pelican')
+    AND (b.tags ->> 'button_operated' IS NULL
+        OR b.tags ->> 'button_operated' != 'yes')
+    AND (b.tags ->> 'traffic_signals' IS NULL
+        OR b.tags ->> 'traffic_signals' != 'pedestrian_crossing');
+
+UPDATE
+    intersec_6
+SET
+    penalty = 0
+WHERE
+    node_way IN (
+        SELECT
+            node_way
+        FROM
+            intermed4);
+
+SELECT
+    now();
+
+-- direction not checked, standard signals-type, considers till 12 meters
+SELECT
+    * INTO TABLE nodes_pp
+FROM
+    nodes
+WHERE
+    tags ->> 'crossing' = 'traffic_signals'
+    OR tags ->> 'crossing:signals' = 'yes'
+    OR tags ->> 'highway' = 'traffic_signals';
+
+CREATE INDEX nodes_pp_idx ON nodes_pp USING gist (geom) WITH (fillfactor = '100');
+
+SELECT
+    now();
+
+SELECT
+    node_way,
+    node_id INTO TABLE intermed4a
+FROM
+    intersec_6 a
+    INNER JOIN nodes_pp b ON ST_DWithin (a.node_way, b.geom, 12 * a.merca_coef)
+WHERE
+    st_intersects (a.h_way, b.geom)
+    AND a.penalty != 0
+    AND (b.tags ->> 'crossing_ref' IS NULL
+        OR b.tags ->> 'crossing_ref' != 'pelican')
+    AND (b.tags ->> 'button_operated' IS NULL
+        OR b.tags ->> 'button_operated' != 'yes')
+    AND (b.tags ->> 'traffic_signals' IS NULL
+        OR b.tags ->> 'traffic_signals' != 'pedestrian_crossing');
+
+SELECT
+    now();
+
+--is a "button_operated" or so near ??
+SELECT
+    node_way,
+    node_id INTO TABLE intermed4aminus
+FROM
+    intersec_6 a
+    INNER JOIN nodes_pp b ON ST_DWithin (a.node_way, b.geom, 20 * a.merca_coef)
+WHERE
+    st_intersects (a.h_way, b.geom)
+    AND a.penalty != 0
+    AND ((b.tags ->> 'crossing_ref' = 'pelican')
+        OR (b.tags ->> 'button_operated' = 'yes')
+        OR (b.tags ->> 'traffic_signals' = 'pedestrian_crossing'));
+
+SELECT
+    now();
+
+-- so do not set the penalty to 0 because the signal above belongs probably to it
+DELETE FROM intermed4a
+WHERE node_id IN (
+        SELECT
+            node_id
+        FROM
+            intermed4aminus);
+
+UPDATE
+    intersec_6
+SET
+    penalty = 0
+WHERE
+    node_way IN (
+        SELECT
+            node_way
+        FROM
+            intermed4a);
+
+SELECT
+    now();
+
+-- NOW, do not set "safe / penalty =0", but reduce the penalty near a traffic_signal in "limit" / "strange" / mapping errors situations
+-- examples: nodes 59067155, 9121884424, 60740728 ....
+SELECT
+    node_way,
+    node_id INTO TABLE intermed5
+FROM
+    intersec_6 a
+    INNER JOIN nodes b ON ST_DWithin (a.node_way, b.geom, 20 * a.merca_coef)
+WHERE
+    st_intersects (a.h_way, b.geom)
+    AND a.penalty != 0
+    AND (b.tags ->> 'highway' IS NULL
+        OR b.tags ->> 'highway' != 'crossing')
+    AND (b.tags ->> 'crossing' = 'traffic_signals'
+        OR b.tags ->> 'crossing' = 'pedestrian_signals'
+        OR b.tags ->> 'crossing_ref' IS NOT NULL
+        OR b.tags ->> 'crossing:signals' = 'yes'
+        OR b.tags ->> 'highway' = 'traffic_signals');
+
+SELECT
+    now();
+
+UPDATE
+    intersec_6
+SET
+    penalty = penalty / 2.5
+WHERE
+    node_way IN (
+        SELECT
+            node_way
+        FROM
+            intermed5);
+
+SELECT
+    now();
+
+--
+-- node 246258292 is on a roundabout but should remain as "unsecured"
+-- (mapping sub-optimal at this place!)
+--
+
+-- reduce the penalty when an island for bikers (in term of OSM => refuge) is near my place (on the lowprio hw)
+-- but only when the island is "near" the highprio HW! (see node 2474233 )
+SELECT
+    node_way INTO TABLE intermed6
+FROM
+    intersec_6 a
+    INNER JOIN nodes b ON ST_DWithin (a.node_way, b.geom, 4 * a.merca_coef)
+WHERE
+    st_intersects (a.l_way, b.geom)
+    AND (b.tags ->> 'crossing' = 'island'
+        OR b.tags ->> 'crossing:island' = 'yes');
+
+SELECT
+    now();
+
+UPDATE
+    intersec_6
+SET
+    penalty = penalty / 2
+WHERE
+    node_way IN (
+        SELECT
+            node_way
+        FROM
+            intermed6);
+
+SELECT
+    now();
+
+-- reduce the penalty when a railway barrier is near my place (on the high- or low- prio hw)
+SELECT
+    node_way INTO TABLE intermed7
+FROM
+    intersec_6 a
+    INNER JOIN nodes b ON ST_DWithin (a.node_way, b.geom, 30 * a.merca_coef)
+WHERE (b.tags ->> 'railway' = 'level_crossing');
+
+SELECT
+    now();
+
+UPDATE
+    intersec_6
+SET
+    penalty = penalty / 2
+WHERE
+    node_way IN (
+        SELECT
+            node_way
+        FROM
+            intermed7);
+
+SELECT
+    now();
+
+-- reduce the penalty when a roundabout is near the node:
+-- In many situations near roudabouts the highway is mapped with 2 separated highways, each with oneway and 1 lane!
+-- differenciates the factor
+SELECT
+    way,
+    osm_id INTO TABLE roundabout1
+FROM
+    lines
+WHERE
+    junction = 'roundabout'
+    AND (oneway = 'yes'
+        OR oneway = '1'
+        OR oneway = 'true');
+
+SELECT
+    now();
+
+CREATE INDEX roundabout1_way_idx ON roundabout1 USING gist (way) WITH (fillfactor = '100');
+
+ANALYZE roundabout1;
+
+SELECT
+    now();
+
+SELECT
+    node_id,
+    node_way INTO TABLE rdb1
+FROM
+    intersec_6 a
+    INNER JOIN roundabout1 b ON ST_DWithin (a.node_way, b.way, 25 * a.merca_coef)
+GROUP BY
+    node_way,
+    node_id;
+
+SELECT
+    now();
+
+SELECT
+    way,
+    osm_id INTO TABLE roundabout2
+FROM
+    lines
+WHERE
+    junction = 'roundabout'
+    AND way NOT IN (
+        SELECT
+            way
+        FROM
+            roundabout1);
+
+SELECT
+    now();
+
+CREATE INDEX roundabout2_way_idx ON roundabout2 USING gist (way) WITH (fillfactor = '100');
+
+ANALYZE roundabout2;
+
+SELECT
+    now();
+
+SELECT
+    node_id,
+    node_way INTO TABLE rdb2
+FROM
+    intersec_6 a
+    INNER JOIN roundabout2 b ON ST_DWithin (a.node_way, b.way, 25 * a.merca_coef)
+GROUP BY
+    node_way,
+    node_id;
+
+SELECT
+    now();
+
+-- when "oneway" reduce by factor 1.5
+UPDATE
+    intersec_6
+SET
+    penalty = penalty / 1.5
+WHERE
+    node_way IN (
+        SELECT
+            node_way
+        FROM
+            rdb1);
+
+-- else reduce by factor 2
+SELECT
+    now();
+
+UPDATE
+    intersec_6
+SET
+    penalty = penalty / 2
+WHERE
+    node_way IN (
+        SELECT
+            node_way
+        FROM
+            rdb2);
+
+--
+--  when 2 nodes are on "oneways", try to determine whether a kind of "island" in the middle exists for BIKERs (only bikers)!...
+--
+--
+SELECT
+    now();
+
+SELECT
+    a.node_way,
+    a.node_id,
+    b.node_id AS twin_node_id,
+    st_distance (a.node_way, b.node_way) / a.merca_coef AS distance INTO TABLE twin1
+FROM
+    intersec_6 a
+    INNER JOIN intersec_6 b ON ST_DWithin (a.node_way, b.node_way, 200 * a.merca_coef)
+WHERE
+    a.node_id != b.node_id
+    -- see node 3394208194, the twin node should not intersect the h_way of node
+    AND NOT st_intersects (a.h_way, b.node_way)
+    -- the twin node should intersect the l_way of node (same highway)
+    AND st_intersects (a.l_way, b.node_way)
+    AND a.penalty != 0;
+
+SELECT
+    now();
+
+CREATE INDEX intersec_4_idx ON public.intersec_4 (node_id) WITH (fillfactor = '100');
+
+ANALYZE twin1;
+
+SELECT
+    now();
+
+-- now eliminates uneligible nodes
+-- 1-when a non "oneway" is involved on the intersection or on the twin
+DELETE FROM twin1
+WHERE node_id IN (
+        SELECT
+            a.node_id
+        FROM
+            twin1 a
+            INNER JOIN intersec_4 b ON (a.node_id = b.node_id)
+        WHERE
+            b.oneway = '0');
+
+SELECT
+    now();
+
+DELETE FROM twin1
+WHERE node_id IN (
+        SELECT
+            a.node_id
+        FROM
+            twin1 a
+            INNER JOIN intersec_4 b ON (a.twin_node_id = b.node_id)
+        WHERE
+            b.oneway = '0');
+
+SELECT
+    now();
+
+-- 2-when a non "bikers" way is involved on the lowprio highway
+CREATE INDEX twin1_idx ON public.twin1 (node_id) WITH (fillfactor = '100');
+
+CREATE INDEX twin1_x_idx ON public.twin1 (twin_node_id) WITH (fillfactor = '100');
+
+SELECT
+    now();
+
+DELETE FROM twin1
+WHERE node_id IN (
+        SELECT
+            a.node_id
+        FROM
+            twin1 a
+            INNER JOIN intersec_4 b ON (a.node_id = b.node_id
+                    OR a.twin_node_id = b.node_id)
+        WHERE
+            NOT (b.l_highway = 'track'
+                OR b.l_highway = 'cycleway'
+                OR b.l_highway = 'footway'
+                OR b.l_highway = 'path'
+                OR b.l_highway = 'pedestrian'));
+
+SELECT
+    now();
+
+-- 3-when an "OSM island" is mapped in OSM near the node (the penalty were allready decreased above by factor 2!)
+DELETE FROM twin1
+WHERE node_id IN (
+        SELECT
+            a.node_id
+        FROM
+            twin1 a
+            INNER JOIN intersec_6 c ON a.node_id = c.node_id
+            INNER JOIN intermed6 b ON c.node_way = b.node_way);
+
+SELECT
+    now();
+
+-- 4-when the node is near a roundabout (penalty were allreay decreased)
+DELETE FROM twin1
+WHERE node_id IN (
+        SELECT
+            node_id
+        FROM
+            rdb1);
+
+SELECT
+    now();
+
+DELETE FROM twin1
+WHERE node_id IN (
+        SELECT
+            node_id
+        FROM
+            rdb2);
+
+SELECT
+    now();
+
+-- Group by node_id, Keep node_way, node_id, "min_distance"
+SELECT
+    node_id,
+    node_way,
+    twin_node_id,
+    min(distance) AS distance INTO TABLE twin2
+FROM
+    twin1
+GROUP BY
+    node_id,
+    node_way,
+    twin_node_id;
+
+ANALYZE twin2;
+
+SELECT
+    now();
+
+-- we need now the lanes number on the highprio HW
+SELECT
+    a.node_id,
+    a.twin_node_id,
+    a.distance,
+    max(b.lanes_ow) AS lanes INTO TABLE twin3
+FROM
+    twin2 a
+    INNER JOIN intersec_4 b ON (a.node_id = b.node_id)
+GROUP BY
+    a.node_id,
+    a.distance,
+    a.twin_node_id;
+
+ANALYZE twin3;
+
+SELECT
+    now();
+
+-- Keep only te line with the min distance
+SELECT
+    a.* INTO TABLE twin4
+FROM
+    twin3 a
+    INNER JOIN (
+        SELECT
+            node_id,
+            MIN(distance) min_distance
+        FROM
+            twin3
+        GROUP BY
+            node_id) b ON b.node_id = a.node_id
+WHERE
+    b.min_distance = a.distance;
+
+-- add l.lanes!
+SELECT
+    now();
+
+SELECT
+    a.node_id,
+    b.node_id AS twin_node_id,
+    a.distance,
+    a.lanes lanes,
+    b.lanes twin_lanes INTO TABLE twin5
+FROM
+    twin4 a
+    INNER JOIN twin4 b ON (a.twin_node_id = b.node_id)
+ORDER BY
+    distance;
+
+ANALYZE twin5;
+
+SELECT
+    now();
+
+-- eliminates the nodes where the distance is too low for the lanes number...
+SELECT
+    * INTO TABLE twin6
+FROM
+    twin5 a
+WHERE
+    distance > ((a.lanes + a.twin_lanes) * 3)
+ORDER BY
+    distance;
+
+ANALYZE twin6;
+
+SELECT
+    now();
+
+-- update the penalty (by "OSM island" it is reduced by factor 3 above
+-- reduce here only by factor 2!
+UPDATE
+    intersec_6
+SET
+    Penalty = penalty / 3
+WHERE
+    node_id IN (
+        SELECT
+            node_id
+        FROM
+            twin6);
+
+SELECT
+    now();
+
+-- unique node ?
+-- just to verify that!
+SELECT
+    count(*)
+FROM
+    intersec_6;
+
+SELECT
+    node_id,
+    node_way way,
+    max(penalty) penalty INTO TABLE intersec_7
+FROM
+    intersec_6
+GROUP BY
+    node_id,
+    node_way;
+
+SELECT
+    now();
+
+ANALYZE intersec_7;
+
+-- now define classes (estimated_crossing_class)
+SELECT
+    way AS way,
+    node_id,
+    CASE WHEN penalty = 0 THEN
+        '0'
+    WHEN penalty < 0.056 THEN
+        '1'
+    WHEN penalty < 0.11 THEN
+        '2'
+    WHEN penalty < 0.185 THEN
+        '3'
+    WHEN penalty < 0.37 THEN
+        '4'
+    WHEN penalty < 0.65 THEN
+        '5'
+    ELSE
+        '6'
+    END AS crossing_class INTO TABLE crossing_tags
+FROM
+    intersec_7;
+
+SELECT
+    now();
+
+SELECT
+    crossing_class,
+    count(*)
+FROM
+    crossing_tags
+GROUP BY
+    crossing_class
+ORDER BY
+    crossing_class;
+
+CREATE INDEX crossing_tags_idx ON public.crossing_tags USING gist (way) WITH (fillfactor = '100');
+
+CREATE INDEX crossing_tags_gist_idx ON public.crossing_tags (node_id) WITH (fillfactor = '100');
+
+SELECT
+    now();
+
+ANALYZE crossing_tags;
+
 
