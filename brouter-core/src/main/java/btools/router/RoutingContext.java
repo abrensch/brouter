@@ -119,6 +119,26 @@ public final class RoutingContext {
     bikeMode = 0.f != expctxGlobal.getVariableValue("validForBikes", 0.f);
     footMode = 0.f != expctxGlobal.getVariableValue("validForFoot", 0.f);
 
+    consider_crossing = 0.f != expctxGlobal.getVariableValue("consider_crossing", 0.f);
+
+    crossing_Prio_H = (int) expctxGlobal.getVariableValue("crossing_Prio_H", 0.f);
+    crossing_Prio_L = (int) expctxGlobal.getVariableValue("crossing_Prio_L", 0.f);
+
+    cost_ToLeft_from_H_class1 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class1", 0.f);
+    cost_ToLeft_from_H_class2 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class2", 0.f);
+    cost_ToLeft_from_H_class3 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class3", 0.f);
+    cost_ToLeft_from_H_class4 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class4", 0.f);
+    cost_ToLeft_from_H_class5 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class5", 0.f);
+    cost_ToLeft_from_H_class6 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class6", 0.f);
+
+    cost_from_L_class1 = (int) expctxGlobal.getVariableValue("cost_from_L_class1", 0.f);
+    cost_from_L_class2 = (int) expctxGlobal.getVariableValue("cost_from_L_class2", 0.f);
+    cost_from_L_class3 = (int) expctxGlobal.getVariableValue("cost_from_L_class3", 0.f);
+    cost_from_L_class4 = (int) expctxGlobal.getVariableValue("cost_from_L_class4", 0.f);
+    cost_from_L_class5 = (int) expctxGlobal.getVariableValue("cost_from_L_class5", 0.f);
+    cost_from_L_class6 = (int) expctxGlobal.getVariableValue("cost_from_L_class6", 0.f);
+
+
     waypointCatchingRange = expctxGlobal.getVariableValue("waypointCatchingRange", 250.f);
 
     // turn-restrictions not used per default for foot profiles
@@ -238,6 +258,28 @@ public final class RoutingContext {
   public double S_C_x;
   public double defaultC_r;
   public double bikerPower;
+
+  // variables in the profile to activate "crossing costs" at nodes with "estimated_crossing_class" not null
+  public boolean consider_crossing = false; // consider crossing
+
+  public int crossing_Prio_H = 0; // min value to considered a HW as "highprio"
+  public int crossing_Prio_L = 0; // max value to considered a HW as "lowprio"
+
+  // cost when turning left from a Highprio to a lowprio
+  public int cost_ToLeft_from_H_class1 =0;
+  public int cost_ToLeft_from_H_class2 =0;
+  public int cost_ToLeft_from_H_class3 =0;
+  public int cost_ToLeft_from_H_class4 =0;
+  public int cost_ToLeft_from_H_class5 =0;
+  public int cost_ToLeft_from_H_class6 =0;
+
+  // cost when "crossing" turning from a lowprio (possible extention later on the target HW?)
+  public int cost_from_L_class1 =0;
+  public int cost_from_L_class2 =0;
+  public int cost_from_L_class3 =0;
+  public int cost_from_L_class4 =0;
+  public int cost_from_L_class5 =0;
+  public int cost_from_L_class6 =0;
 
   public static void prepareNogoPoints(List<OsmNodeNamed> nogos) {
     for (OsmNodeNamed nogo : nogos) {
