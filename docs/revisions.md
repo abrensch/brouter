@@ -2,7 +2,28 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### [brouter-1.7.8.zip](../brouter_bin/brouter-1.7.8.zip) (current revision, 12.07.2025)
+### [brouter-1.7.9.zip](../brouter_bin/brouter-1.7.9.zip) (current revision, XX.03.2026)
+
+Android
+
+- add more languages #836, #845, #851
+
+
+Library
+
+- Enable database access for pseudo way tags #828
+- Enable database access for pseudo node tags #884
+- Matched way points have a type now #849
+- Kinematic class update for cost (experimental) #860
+
+Profiles
+
+- [several rule updates](https://github.com/abrensch/brouter/pulls?q=is%3Apr+is%3Aclosed+milestone%3A%22Version+1.7.9%22+label%3Aprofiles)
+
+[Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.7.9%22+is%3Aclosed)
+
+
+### [brouter-1.7.8.zip](../brouter_bin/brouter-1.7.8.zip) (12.07.2025)
 
 Android
 
