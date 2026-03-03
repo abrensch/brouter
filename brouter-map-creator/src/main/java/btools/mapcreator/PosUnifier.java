@@ -101,7 +101,7 @@ public class PosUnifier extends MapCreatorBase {
 
     // process all files
     borderNodesOut = createOutStream(bordernodesoutfile);
-    new NodeIterator(this, true).processDir(nodeTilesIn, ".n5d");
+    new NodeIterator(this, true).processDir(nodeTilesIn, new String[]{".n5d"});
     borderNodesOut.close();
   }
 

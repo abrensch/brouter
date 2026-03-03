@@ -22,17 +22,25 @@ public class NodeIterator extends MapCreatorBase {
     delete = deleteAfterReading;
   }
 
-  public void processDir(File indir, String inSuffix) throws Exception {
+  public void processDir(File indir, String [] inSuffixes) throws Exception {
     if (!indir.isDirectory()) {
       throw new IllegalArgumentException("not a directory: " + indir);
     }
 
+    int filesProcessed = 0;
     File[] af = sortBySizeAsc(indir.listFiles());
-    for (int i = 0; i < af.length; i++) {
-      File nodefile = af[i];
-      if (nodefile.getName().endsWith(inSuffix)) {
-        processFile(nodefile);
+    for (int s = 0; s < inSuffixes.length; s++) {
+      String inSuffix = inSuffixes[s];
+      for (int i = 0; i < af.length; i++) {
+        File nodefile = af[i];
+        if (nodefile.getName().endsWith(inSuffix)) {
+          processFile(nodefile);
+          filesProcessed++;
+        }
       }
+    }
+    if(filesProcessed == 0) {
+      throw new RuntimeException("no files with suffixes " + String.join(", ", inSuffixes) + " found in directory: " + indir);
     }
   }
 

@@ -29,7 +29,7 @@ public class NodeCutter extends MapCreatorBase {
   public void process(File nodeTilesIn, File nodeTilesOut) throws Exception {
     init(nodeTilesOut);
 
-    new NodeIterator(this, true).processDir(nodeTilesIn, ".tlf");
+    new NodeIterator(this, true).processDir(nodeTilesIn, new String[]{".tlf",".ntl"});
   }
 
   @Override

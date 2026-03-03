@@ -29,7 +29,7 @@ public class WayCutter extends MapCreatorBase {
   public void process(File nodeTilesIn, File wayFileIn, File wayTilesOut) throws Exception {
     init(wayTilesOut);
 
-    new NodeIterator(this, false).processDir(nodeTilesIn, ".tlf");
+    new NodeIterator(this, false).processDir(nodeTilesIn, new String[]{".tlf",".ntl"});
 
     // *** finally process the way-file, cutting into pieces
     new WayIterator(this, true).processFile(wayFileIn);

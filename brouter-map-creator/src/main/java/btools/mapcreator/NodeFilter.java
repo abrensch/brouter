@@ -43,7 +43,7 @@ public class NodeFilter extends MapCreatorBase {
     new WayIterator(this, false).processFile(wayFileIn);
 
     // finally filter all node files
-    new NodeIterator(this, true).processDir(nodeTilesIn, ".tls");
+    new NodeIterator(this, true).processDir(nodeTilesIn, new String[]{".tls",".ntl"});
   }
 
   @Override
