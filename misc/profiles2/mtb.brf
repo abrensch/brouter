@@ -268,6 +268,7 @@ assign any_cycleroute
                 cycleway:right=opposite|opposite_lane|opposite_track
                                                             ) then 0
            else if oneway:bicycle=no                          then 0
+           else if not footaccess                             then 100
            else if junction=roundabout|circular               then 60
            else if highway=primary|primary_link               then 50
            else if highway=secondary|secondary_link           then 30
