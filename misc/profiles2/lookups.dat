@@ -112,6 +112,10 @@ maxspeed;0000026953 130 80_mph 79_mph
 maxspeed;0000138654 urban RO:urban RU:urban FR:urban IT:urban AT:urban DE:urban UA:urban
 maxspeed;0000138654 rural RO:rural RU:rural FR:rural IT:rural AT:rural DE:rural UA:rural
 
+maxheight;0000122129 default none
+maxheight;0000018084 below_default
+maxheight;0000000001 *
+
 service;0001433919 parking_aisle
 service;0001305879 driveway driveway2
 service;0000382788 alley
@@ -1064,6 +1068,10 @@ surface;0000000001 unpaved compacted gravel grass ground
 
 ford;0000037927 yes
 ford;0000000310 stepping_stones
+
+maxheight;0000122129 default none
+maxheight;0000018084 below_default
+maxheight;0000000001 *
 
 direction;0000274642 forward
 direction;0000249637 backward
