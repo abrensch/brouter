@@ -157,7 +157,7 @@ assign any_cycleroute
   assign isotherroad = not or istrack ismainroad
 
   assign hascycleway = not
-    and ( or cycleway= cycleway=no|none ) and ( or cycleway:left= cycleway:left=no ) ( or cycleway:right= cycleway:right=no )
+  and ( or cycleway= cycleway=no|none ) and ( or cycleway:left= cycleway:left=no ) and ( or cycleway:right= cycleway:right=no ) ( or cycleway:both= cycleway:both=no )
 
   #2.6.* inserted originalisbike option
   assign isbike_candidate or bicycle=yes|permissive|designated or hascycleway
@@ -253,7 +253,20 @@ assign any_cycleroute
 
   assign onewaypenalty =
          if ( badoneway ) then
-           if cycleway=opposite|opposite_lane|opposite_track  then 0
+           if (
+             and hascycleway
+             or and cycleway:left=lane|track|shared_lane|share_busway
+                    cycleway:left:oneway=no|-1
+             or and cycleway:right=lane|track|shared_lane|share_busway
+                    cycleway:right:oneway=no|-1
+             or and cycleway:both=lane|track|shared_lane|share_busway
+                    #or cycleway:both:oneway=no|-1
+                    or cycleway:left:oneway=no|-1
+                       cycleway:right:oneway=no|-1
+             or cycleway=opposite|opposite_lane|opposite_track
+             or cycleway:left=opposite|opposite_lane|opposite_track
+                cycleway:right=opposite|opposite_lane|opposite_track
+                                                            ) then 0
            else if oneway:bicycle=no                          then 0
            else if junction=roundabout|circular               then 60
            else if highway=primary|primary_link               then 50
