@@ -90,7 +90,7 @@ assign is_ldcr =
 
 # set isbike considering access, local cycle route or the presence of a cycleway on the highway
 assign hasbikerouteoraccess =
-       or bicycle_road=yes or bicycle=yes|permissive|designated lcn=yes  # also add cyclestreet=yes when lookup has it
+       or bicycle_road=yes or cyclestreet=yes or bicycle=yes|permissive|designated lcn=yes
 
 assign hascycleway = not
   and ( or cycleway= cycleway=no|none ) and ( or cycleway:left= cycleway:left=no ) and ( or cycleway:right= cycleway:right=no ) ( or cycleway:both= cycleway:both=no )
