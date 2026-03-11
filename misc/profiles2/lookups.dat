@@ -692,11 +692,14 @@ busway:right;0000000001 lane
 cycleway:left:oneway;0000000769 yes
 cycleway:left:oneway;0000001595 no
 cycleway:left:oneway;0000000927 -1
-cycleway:right:oneway;0000000001 -1
 
 cycleway:right:oneway;0000003084 yes
 cycleway:right:oneway;0000002499 no
 cycleway:right:oneway;0000000017 -1
+
+cycleway:both:oneway;0000002930 yes
+cycleway:both:oneway;0000000585 no
+cycleway:both:oneway;0000000001 -1
 
 zone:maxspeed;0000001616 20 DE:20 FR:20
 zone:maxspeed;0000063721 30 DE:30 FR:30 BE:30 HU:30 NO:30 AT:30 ES:30 NL:30 IT:30 CZ:30

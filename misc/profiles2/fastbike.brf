@@ -147,7 +147,7 @@ assign badoneway =
        else oneway=-1
 
 assign hascycleway = not
-  and ( or cycleway= cycleway=no|none ) and ( or cycleway:left= cycleway:left=no ) ( or cycleway:right= cycleway:right=no )
+  and ( or cycleway= cycleway=no|none ) and ( or cycleway:left= cycleway:left=no ) and ( or cycleway:right= cycleway:right=no ) ( or cycleway:both= cycleway:both=no )
 
 assign onewaypenalty =
        if ( badoneway ) then
@@ -158,6 +158,10 @@ assign onewaypenalty =
                   cycleway:left:oneway=no|-1
            or and cycleway:right=lane|track|shared_lane|share_busway
                   cycleway:right:oneway=no|-1
+           or and cycleway:both=lane|track|shared_lane|share_busway
+                  or cycleway:both:oneway=no|-1
+                  or cycleway:left:oneway=no|-1
+                     cycleway:right:oneway=no|-1
            or cycleway=opposite|opposite_lane|opposite_track
            or cycleway:left=opposite|opposite_lane|opposite_track
               cycleway:right=opposite|opposite_lane|opposite_track
