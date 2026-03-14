@@ -18,6 +18,7 @@ public final class ProfileCache {
 
   private BExpressionContextWay expctxWay;
   private BExpressionContextNode expctxNode;
+  private String userOutputHeader;
   private File lastProfileFile;
   private long lastProfileTimestamp;
   private boolean profilesBusy;
@@ -67,6 +68,7 @@ public final class ProfileCache {
           if (rc.profileTimestamp == pc.lastProfileTimestamp) {
             rc.expctxWay = pc.expctxWay;
             rc.expctxNode = pc.expctxNode;
+            rc.userOutputHeader = pc.userOutputHeader;
             rc.readGlobalConfig();
             pc.profilesBusy = true;
             return true;
@@ -93,6 +95,7 @@ public final class ProfileCache {
 
     rc.expctxWay.parseFile(profileFile, "global", rc.keyValues);
     rc.expctxNode.parseFile(profileFile, "global", rc.keyValues);
+    rc.userOutputHeader = rc.expctxWay.getUserOutputHeader();
 
     rc.readGlobalConfig();
 
@@ -118,6 +121,7 @@ public final class ProfileCache {
     lru.lastProfileFile = profileFile;
     lru.expctxWay = rc.expctxWay;
     lru.expctxNode = rc.expctxNode;
+    lru.userOutputHeader = rc.userOutputHeader;
     lru.profilesBusy = true;
     lru.lastUseTime = System.currentTimeMillis();
     return false;

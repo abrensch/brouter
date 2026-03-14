@@ -6,6 +6,8 @@
 package btools.router;
 
 
+import java.util.ArrayList;
+
 final class MessageData implements Cloneable {
   int linkdist = 0;
   int linkelevationcost = 0;
@@ -35,12 +37,21 @@ final class MessageData implements Cloneable {
   int vnode1 = 999;
   int extraTime = 0;
 
+  // user output variables:
+  int userOutputCount = 0;
+  ArrayList<Float> userOutput = new ArrayList<Float>();
+
   String toMessage() {
     if (wayKeyValues == null) {
       return null;
     }
 
     int iCost = (int) (costfactor * 1000 + 0.5f);
+    String userOutputBlock="";
+    for (int i=0; i<userOutputCount; ++i) {
+      userOutputBlock += "\t" + ((int) (userOutput.get(i) * 1000 + 0.5f));
+    }
+
     return (lon - 180000000) + "\t"
       + (lat - 90000000) + "\t"
       + ele / 4 + "\t"
@@ -49,6 +60,7 @@ final class MessageData implements Cloneable {
       + linkelevationcost
       + "\t" + linkturncost
       + "\t" + linknodecost
+      + userOutputBlock
       + "\t" + linkinitcost
       + "\t" + wayKeyValues
       + "\t" + (nodeKeyValues == null ? "" : nodeKeyValues)

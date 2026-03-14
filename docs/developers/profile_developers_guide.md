@@ -420,6 +420,14 @@ calculations per way-section in the *Data*-tab.
 For profile debugging activate `assign processUnusedTags = true` to see all
 present OSM tags on the Data tab, not just those used in the tested profile.
 
+It can be useful to create user variables, beginning with the keyword
+"userOutput", which are shown in the data table of brouter-web, e.g.
+
+assign userOutputTraffic trafficcost
+assign userOutputSurface surfacecost
+
+adds two columns "Traffic" and "Surface" with the respective values
+for each sector between the "node$"- and "initial$"-column.
 
 Lookup-Table evolution and the the *major* and *minor* versions
 ---------------------------------------------------------------

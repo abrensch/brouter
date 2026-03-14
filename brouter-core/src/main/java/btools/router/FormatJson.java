@@ -69,7 +69,7 @@ public class FormatJson extends Formatter {
     //  ... traditional message list
     {
       sb.append("        \"messages\": [\n");
-      sb.append("          [\"").append(MESSAGES_HEADER.replaceAll("\t", "\", \"")).append("\"],\n");
+      sb.append("          [\"").append(MESSAGES_HEADER.replace("\tUserOutput",rc.userOutputHeader).replaceAll("\t", "\", \"")).append("\"],\n");
       for (String m : t.aggregateMessages()) {
         sb.append("          [\"").append(m.replaceAll("\t", "\", \"")).append("\"],\n");
       }

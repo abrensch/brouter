@@ -75,12 +75,27 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   private int[] buildInVariableIdx;
   private int nBuildInVars;
 
+  private int nUserOutputVars;
+
+  private ArrayList<String> userOutputNames=new ArrayList<>();
+
   private float[] currentVars;
   private int currentVarOffset;
 
   private BExpressionContext foreignContext;
 
   public int[] noStartWays = new int[0];
+
+  public int getUserOutputCount() {
+    return nUserOutputVars;
+  }
+  public String getUserOutputHeader() {
+    String header="";
+    for (int i=0;i<nUserOutputVars;++i) {
+      header+="\t"+userOutputNames.get(i);
+    }
+    return header;
+  }
 
   protected void setInverseVars() {
     currentVarOffset = nBuildInVars;
@@ -91,6 +106,11 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   public final float getBuildInVariable(int idx) {
     return currentVars[idx + currentVarOffset];
   }
+
+  public final float getUserVariable(int idx) {
+    return currentVars[idx];
+  }
+
 
   private int linenr;
 
@@ -800,11 +820,22 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       lastAssignedExpression = null;
 
       // determine the build-in variable indices
-      String[] varNames = getBuildInVariableNames();
-      nBuildInVars = varNames.length;
+      ArrayList<String> varNames = new ArrayList<String>(Arrays.asList(getBuildInVariableNames()));
+      nBuildInVars = varNames.size();
+      // find all userOutput variables and insert them to buildInVariables:
+      final String userOutputKeyword="userOutput";
+      for (String key : variableNumbers.keySet()) {
+        if (key.startsWith(userOutputKeyword)) {
+          varNames.add(key);
+          nBuildInVars++;
+          userOutputNames.add(key.substring(userOutputKeyword.length()));
+          nUserOutputVars++;
+        }
+      }
+
       buildInVariableIdx = new int[nBuildInVars];
-      for (int vi = 0; vi < varNames.length; vi++) {
-        buildInVariableIdx[vi] = getVariableIdx(varNames[vi], false);
+      for (int vi = 0; vi < varNames.size(); vi++) {
+        buildInVariableIdx[vi] = getVariableIdx(varNames.get(vi), false);
       }
 
       float[] readOnlyData = variableData;
