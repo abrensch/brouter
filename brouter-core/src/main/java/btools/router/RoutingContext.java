@@ -131,12 +131,13 @@ public final class RoutingContext {
     cost_ToLeft_from_H_class5 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class5", 0.f);
     cost_ToLeft_from_H_class6 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class6", 0.f);
 
-    cost_from_L_class1 = (int) expctxGlobal.getVariableValue("cost_from_L_class1", 0.f);
-    cost_from_L_class2 = (int) expctxGlobal.getVariableValue("cost_from_L_class2", 0.f);
-    cost_from_L_class3 = (int) expctxGlobal.getVariableValue("cost_from_L_class3", 0.f);
-    cost_from_L_class4 = (int) expctxGlobal.getVariableValue("cost_from_L_class4", 0.f);
-    cost_from_L_class5 = (int) expctxGlobal.getVariableValue("cost_from_L_class5", 0.f);
-    cost_from_L_class6 = (int) expctxGlobal.getVariableValue("cost_from_L_class6", 0.f);
+    // for left-hand traffic
+    cost_ToRight_from_H_class1 = (int) expctxGlobal.getVariableValue("cost_ToRight_from_H_class1", 0.f);
+    cost_ToRight_from_H_class2 = (int) expctxGlobal.getVariableValue("cost_ToRight_from_H_class2", 0.f);
+    cost_ToRight_from_H_class3 = (int) expctxGlobal.getVariableValue("cost_ToRight_from_H_class3", 0.f);
+    cost_ToRight_from_H_class4 = (int) expctxGlobal.getVariableValue("cost_ToRight_from_H_class4", 0.f);
+    cost_ToRight_from_H_class5 = (int) expctxGlobal.getVariableValue("cost_ToRight_from_H_class5", 0.f);
+    cost_ToRight_from_H_class6 = (int) expctxGlobal.getVariableValue("cost_ToRight_from_H_class6", 0.f);
 
 
     waypointCatchingRange = expctxGlobal.getVariableValue("waypointCatchingRange", 250.f);
@@ -273,13 +274,13 @@ public final class RoutingContext {
   public int cost_ToLeft_from_H_class5 =0;
   public int cost_ToLeft_from_H_class6 =0;
 
-  // cost when "crossing" turning from a lowprio (possible extention later on the target HW?)
-  public int cost_from_L_class1 =0;
-  public int cost_from_L_class2 =0;
-  public int cost_from_L_class3 =0;
-  public int cost_from_L_class4 =0;
-  public int cost_from_L_class5 =0;
-  public int cost_from_L_class6 =0;
+  // cost when turning Right from a Highprio to a lowprio
+  public int cost_ToRight_from_H_class1 =0;
+  public int cost_ToRight_from_H_class2 =0;
+  public int cost_ToRight_from_H_class3 =0;
+  public int cost_ToRight_from_H_class4 =0;
+  public int cost_ToRight_from_H_class5 =0;
+  public int cost_ToRight_from_H_class6 =0;
 
   public static void prepareNogoPoints(List<OsmNodeNamed> nogos) {
     for (OsmNodeNamed nogo : nogos) {
