@@ -172,7 +172,7 @@ final class StdPath extends OsmPath {
     if (message != null) {
       message.costfactor = costfactor;
       message.userOutputCount = rc.expctxWay.getUserOutputCount();
-      for (int i=0; i<message.userOutputCount;++i) {
+      for (int i=0; i<message.userOutputCount; ++i) {
         message.userOutput.add(rc.expctxWay.getUserOutput(i));
       }
     }

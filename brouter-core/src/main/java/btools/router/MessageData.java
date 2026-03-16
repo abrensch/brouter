@@ -7,6 +7,7 @@ package btools.router;
 
 
 import java.util.ArrayList;
+import java.util.List;
 
 final class MessageData implements Cloneable {
   int linkdist = 0;
@@ -39,7 +40,7 @@ final class MessageData implements Cloneable {
 
   // user output variables:
   int userOutputCount = 0;
-  ArrayList<Float> userOutput = new ArrayList<Float>();
+  List<Float> userOutput = new ArrayList<>();
 
   String toMessage() {
     if (wayKeyValues == null) {

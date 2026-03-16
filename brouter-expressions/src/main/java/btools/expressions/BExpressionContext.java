@@ -77,7 +77,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
 
   private int nUserOutputVars;
 
-  private ArrayList<String> userOutputNames=new ArrayList<>();
+  private List<String> userOutputNames=new ArrayList<>();
 
   private float[] currentVars;
   private int currentVarOffset;
@@ -91,7 +91,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
   }
   public String getUserOutputHeader() {
     String header="";
-    for (int i=0;i<nUserOutputVars;++i) {
+    for (int i=0; i<nUserOutputVars; ++i) {
       header+="\t"+userOutputNames.get(i);
     }
     return header;
@@ -820,7 +820,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       lastAssignedExpression = null;
 
       // determine the build-in variable indices
-      ArrayList<String> varNames = new ArrayList<String>(Arrays.asList(getBuildInVariableNames()));
+      List<String> varNames = new ArrayList<>(Arrays.asList(getBuildInVariableNames()));
       nBuildInVars = varNames.size();
       // find all userOutput variables and insert them to buildInVariables:
       final String userOutputKeyword="userOutput";
