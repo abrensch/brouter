@@ -35,35 +35,35 @@ assign initialcost switch route=ferry 10000 0
 #
 assign defaultaccess
        switch access=
-              not motorroad=yes
+              (
+                    if motorroad=yes then false
+                    else if highway=motorway|motorway_link then false
+                    else true
+              )
               switch or access=private access=no
-                     0
-                     1
+                     false
+                     true
 
 #
 # calculate logical bike access
 #
 assign bikeaccess
-       or any_cycleroute
-          switch bicycle=
-                 switch bicycle_road=yes
-                    1
-                    switch vehicle=
-                            defaultaccess
-                            switch or vehicle=private vehicle=no
-                                0
-                                1
-                 not or bicycle=private or bicycle=no bicycle=dismount
+       switch bicycle=
+              switch bicycle_road=yes
+                 true
+                 switch vehicle=
+                        ( if highway=footway then false else defaultaccess )
+                        not vehicle=private|no
+              not or bicycle=private or bicycle=no or bicycle=dismount bicycle=use_sidepath
 
 #
 # calculate logical foot access
 #
 assign footaccess
-       or bikeaccess
-          or bicycle=dismount
-             switch foot=
-                    defaultaccess
-                    not or foot=private foot=no
+       or bicycle=dismount
+          switch foot=
+                 defaultaccess
+                 not or foot=private or foot=no foot=use_sidepath
 
 assign accesspenalty switch or bikeaccess footaccess 0 100000
 
