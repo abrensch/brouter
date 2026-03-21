@@ -14,9 +14,11 @@ Library
 - Enable database access for pseudo way tags #828
 - Enable database access for pseudo node tags #884
 - Matched way points have a type now #849
-- Kinematic class update for cost (experimental) #860
+- Kinematic class update for cost (old classes become backup) #860
 
 Profiles
+
+- car profiles now can use the pseudo way tags like forest, river, town
 
 - [several rule updates](https://github.com/abrensch/brouter/pulls?q=is%3Apr+is%3Aclosed+milestone%3A%22Version+1.7.9%22+label%3Aprofiles)
 
