@@ -5,7 +5,7 @@
  */
 package btools.router;
 
-final class KinematicPath extends OsmPath {
+final class KinematicNoCostPath extends OsmPath {
   private double ekin; // kinetic energy (Joule)
   private double totalTime;  // travel time (seconds)
   private double totalEnergy; // total route energy (Joule)
@@ -14,7 +14,7 @@ final class KinematicPath extends OsmPath {
 
   @Override
   protected void init(OsmPath orig) {
-    KinematicPath origin = (KinematicPath) orig;
+    KinematicNoCostPath origin = (KinematicNoCostPath) orig;
     ekin = origin.ekin;
     totalTime = origin.totalTime;
     totalEnergy = origin.totalEnergy;
@@ -33,7 +33,7 @@ final class KinematicPath extends OsmPath {
 
   @Override
   protected double processWaySection(RoutingContext rc, double dist, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier) {
-    KinematicModel km = (KinematicModel) rc.pm;
+    KinematicNoCostModel km = (KinematicNoCostModel) rc.pm;
 
     double cost = 0.;
     double extraTime = 0.;
@@ -111,8 +111,6 @@ final class KinematicPath extends OsmPath {
       cutEkin(km.totalweight, turnspeed); // apply turnspeed
     }
 
-    double sectionCost = extraTime;
-
     // linear temperature correction
     double tcorr = (20. - km.outside_temp) * 0.0035;
 
@@ -123,9 +121,6 @@ final class KinematicPath extends OsmPath {
 
     double distanceCost = evolveDistance(km, dist, delta_h, f_air);
 
-
-    float cf = rc.expctxWay.getCostfactor();
-
     if (message != null) {
       message.costfactor = (float) (distanceCost / dist);
       message.vmax = (int) (km.getWayMaxspeed() * 3.6 + 0.5);
@@ -134,18 +129,14 @@ final class KinematicPath extends OsmPath {
       message.extraTime = (int) (extraTime * 1000);
     }
 
-    cost += dist * cf + 0.5f;
-
-    cost += (extraTime * km.pw / km.cost0);
+    cost += extraTime * km.pw / km.cost0;
     totalTime += extraTime;
 
-    cost += distanceCost;
-
-    return cost;
+    return cost + distanceCost;
   }
 
 
-  protected double evolveDistance(KinematicModel km, double dist, double delta_h, double f_air) {
+  protected double evolveDistance(KinematicNoCostModel km, double dist, double delta_h, double f_air) {
     // elevation force
     double fh = delta_h * km.totalweight * 9.81 / dist;
 
@@ -220,7 +211,7 @@ final class KinematicPath extends OsmPath {
 
   @Override
   protected double processTargetNode(RoutingContext rc) {
-    KinematicModel km = (KinematicModel) rc.pm;
+    KinematicNoCostModel km = (KinematicNoCostModel) rc.pm;
 
     // finally add node-costs for target node
     if (targetNode.nodeDescription != null) {
@@ -255,7 +246,7 @@ final class KinematicPath extends OsmPath {
 
   @Override
   public boolean definitlyWorseThan(OsmPath path) {
-    KinematicPath p = (KinematicPath) path;
+    KinematicNoCostPath p = (KinematicNoCostPath) path;
 
     int c = p.cost;
     return cost > c + 100;
