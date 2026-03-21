@@ -366,8 +366,8 @@ public final class VoiceHintProcessor {
         if ((inputLastSaved != null && inputLastSaved.distanceToNext > catchingRange) || input.distanceToNext > catchingRange) {
           if ((input.cmd == VoiceHint.C ||
             input.cmd == VoiceHint.KR ||
-            input.cmd == VoiceHint.KL)
-            && !input.goodWay.isLinktType()) {
+            input.cmd == VoiceHint.KL)) {
+
             if (checkStraightHold(input, inputLastSaved, minRange)) {
               // add only on prio
               results.add(input);
@@ -505,6 +505,16 @@ public final class VoiceHintProcessor {
 
   boolean checkStraightHold(VoiceHint input, VoiceHint inputLastSaved, double minRange) {
     if (input.indexInTrack == 0) return false;
+
+    boolean badOneWay = false;
+    if (input.badWays != null) {
+      for (MessageData md: input.badWays) {
+        if (md.isBadOneway()) badOneWay = true;
+      }
+    }
+    if (badOneWay && input.lowerBadWayAngle == -181.f && input.higherBadWayAngle == 181.f) return false;
+    if ((input.lowerBadWayAngle != -181.f && Math.abs(input.lowerBadWayAngle) > 135.f) ||
+        (input.higherBadWayAngle != 181.f && input.higherBadWayAngle > 135.f)) return false;
 
     return
           ((Math.abs(input.lowerBadWayAngle) < 35.f || input.higherBadWayAngle < 35.f)
