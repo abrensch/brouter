@@ -24,7 +24,7 @@ assign bikerPower = 125    # %bikerPower% | Dauerleistung in Watt, für Fahrtzei
 assign ignore_bicycle_no = false # %ignore_bicycle_no% | für Regionen mit falschen bicyle=no tags können sie mit "true" ignoriert werden. Auch Shuttletransporte (bicycle=dismount + foot=no) werden geroutet | boolean
 
 
-assign turnInstructionMode          = 1     # %turnInstructionMode% | Modus für die Abbiegehinweise | [0=keine, 1=automatische Wahl, 2=locus-Style, 3=osmand-Style, 4=comment-Style, 5=gpsies-Style, 6=orux-Style, 7=locus-old-Style]
+assign turnInstructionMode          = 1     # %turnInstructionMode% | Modus für die Abbiegehinweise | [0=keine, 1=automatische Wahl, 2=locus-Style, 3=osmand-Style, 4=comment-Style, 5=gpsies-Style, 6=orux-Style]
 assign turnInstructionCatchingRange 20 # innerhalb dieser Strecke werden mehrere Abiegehinweise zu einem zusammengefasst und die Abiegewinkel werden besser an die generelle Richtung angenähert
 assign turnInstructionRoundabouts true # mit "false" werden keine speziellen Abiegehinweise für den Kreisverkehr generiert
 
@@ -102,7 +102,6 @@ assign onewaypenalty
  switch switch reversedirection=yes oneway oneway=-1
   switch or cycleway=opposite or cycleway=opposite_lane or cycleway=opposite_track oneway:bicycle=no 0 #zusätzliche Kosten für in Gegenrichtung für Radfahrer freigegebene Einbahnstraßen in Gegenrichtung
   switch no_wrong_oneway 10000
-  switch junction=roundabout|circular 60
   switch or highway=primary highway=primary_link 50 #zusätzliche Kosten für Bundesstraßen Einbahnstraßen in Gegenrichtung
   switch or highway=secondary highway=secondary_link 30 #zusätzliche Kosten für Landstraßen Einbahnstraßen in Gegenrichtung
   switch or highway=tertiary highway=tertiary_link 25 #zusätzliche Kosten für Kreisstraßen Einbahnstraßen in Gegenrichtung

@@ -1,0 +1,400 @@
+########################################################################
+#
+# License Information
+#
+# randonneur.brf: A long-distance bike routing profile for the BRouter engine
+# Copyright (C) 2015 Axel Reichert <mail@axel-reichert.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+########################################################################
+
+
+---context:global
+
+########################################################################
+#
+# Configurable Parameters
+#
+########################################################################
+
+
+assign cycleway_tolerance = 1 # %cycleway_tolerance% | What about cycleways? | [0=I hate them!, 1=They are OK., 2=I love them!]
+# This affects ALL infrastructure BUILD for cycling (painted lanes are fine).
+#
+# It CANNOT distinguish between ways next to primary roads
+# or ways through pastures and parks. This information is not present in OSM.
+
+
+assign climb_tolerance = 1 # %climb_tolerance% | What about climbs? | [0=I hate them!, 1=I don't care., 2=I hate flats!]
+
+
+assign gravel_tolerance = 1 # %gravel_tolerance% | What about gravel? | [0=I hate it!, 1=It's OK., 2=I am adventurous!]
+# 0: Completely prohibit unpaved roads
+# 1: Just penalize unpaved roads according to pessimistic estimates
+# 2: Just penalize unpaved roads according to optimistic estimates
+
+
+assign cobblestone_tolerance = 1 # %cobblestone_tolerance% | What about cobblestone? | [0=Worse than gravel!, 1=It's OK.]
+
+
+assign allow_steps = true # %allow_steps% | Uncheck to prohibit steps | boolean
+# false: Completely prohibit steps
+# true:  Just penalize steps according to the slow-down
+
+
+assign allow_ferries = true # %allow_ferries% | Uncheck to prohibit ferries | boolean
+# false: Completely prohibit ferries
+# true:  Just penalize ferries according to the slow-down
+
+
+assign turnInstructionMode = 0 # %turnInstructionMode% | How to create turn instructions? | [0=None, 1=Automatic, 2=Locus, 3=OSMand]
+
+
+assign debug_mode = 0 # %debug_mode% | Debugging | [0=Off, 1=Show all OSM tags, 2=God mode]
+# 0: Default
+# 1: Shows all OSM tags, even those not used in the profile
+# 2: Like 1, but also ignores access restrictions
+
+
+########################################################################
+#
+# End of Configurable Parameters
+#
+########################################################################
+
+
+assign godmode =
+  switch greater debug_mode 1 true false
+# false: Completely prohibit access violations
+# true:  Just ignore access violations
+
+
+assign processUnusedTags =
+  switch greater debug_mode 0 true false
+# false: Used tags are shown
+# true:  All tags are shown
+
+
+assign turncostdefault = 80
+# 80: About 11 seconds delay for a 90 degrees turn
+#
+# This may seem too high, but lower values result in too many turns.
+
+
+assign cyclingtowalkingratio = 5.0
+# 5.0: Cycling on the flats is 5 times faster than walking
+
+
+assign forcyclingdefault =
+  switch equal cycleway_tolerance 0 5.0
+  switch equal cycleway_tolerance 1 2.0 1.0
+# 1.0: "I love cycleways!"
+# 2.0: "Cycleways are OK."
+# 5.0: "I hate cycleways!"
+
+
+assign cobblestonedefault =
+  switch equal cobblestone_tolerance 0 2.0 0.5
+# 2.0: "Worse than gravel!"
+# 0.5: "It's OK."
+
+
+# Elevation configuration parameters
+#
+assign downhillcutoff = 2 # use downhillcostfactor for descents steeper than 2 %
+assign uphillcutoff   = 2 # use uphillcostfactor for ascents steeper than 2 %
+assign elevationpenaltybuffer = 0
+assign elevationmaxbuffer = 0
+
+
+# Boolean mode-hint flags
+#
+assign validForBikes = true
+
+
+# Heuristic coefficients for the 2 routing passes
+# ( <0 disables a routing pass )
+#
+# assign pass1coefficient = 1.5
+# assign pass2coefficient = 0.0
+
+
+---context:node
+
+assign initialcost =
+  switch barrier=block|bollard|cattle_grid 20
+  switch highway=give_way 20
+  switch barrier=cycle_barrier 50
+  switch ford=yes 50
+  switch highway=stop 50
+  switch railway=crossing 200
+  switch barrier=chain|stile|turnstile 200
+  switch barrier=bump_gate|hampshire_gate|kissing_gate|lift_gate|swing_gate 200
+  switch ford=stepping_stones 200
+  switch highway=traffic_signals 200
+  switch railway=level_crossing 200
+  switch barrier=gate
+         switch and not godmode
+                and bicycle=no foot=no 1000000
+           500
+    0
+
+
+---context:way
+
+assign isbicycleroute = or route_bicycle_icn=yes
+                        or route_bicycle_ncn=yes
+                        or route_bicycle_rcn=yes
+                        or route_bicycle_lcn=yes
+                        or route_bicycle_radweit=yes
+                        or ncn=yes
+                        or rcn=yes lcn=yes
+
+assign ismainroad =
+  highway=trunk|trunk_link|primary|primary_link|secondary|secondary_link
+
+assign onewayaccess =
+  or not or and reversedirection=yes
+                or and oneway= or junction=roundabout|circular
+                                  oneway:bicycle=yes
+                   oneway=yes
+            oneway=-1
+     or cycleway=opposite|opposite_lane|opposite_track
+     or oneway:bicycle=no godmode
+
+assign bicycleaccess =
+  or isbicycleroute
+  or and bicycle= or godmode not access=private|no
+  or bicycle=yes|permissive|designated|destination|unknown
+     and godmode bicycle=private|no|dismount
+
+assign footaccess =
+  or bicycle=dismount
+  or and foot= or vehicle=private|no bicycleaccess
+  or foot=yes|permissive|designated|destination|unknown
+  or and godmode foot=private|no
+     and not ismainroad or bicycle=use_sidepath foot=use_sidepath
+
+assign accesspenalty =
+  switch and bicycleaccess onewayaccess 1
+  switch footaccess cyclingtowalkingratio
+    100000
+
+assign initialclassifier =
+  add switch bicycleaccess 666 50
+      switch route=ferry 10000
+      switch ismainroad 300
+      switch highway=bridleway|pedestrian|construction 50
+      switch highway=service|path|cycleway|footway 20
+      0
+
+assign initialcost =
+  sub initialclassifier
+      switch and footaccess not bicycleaccess 0 666
+
+assign likelyunpaved =
+  highway=track|path|construction|bridleway
+
+assign turncost =
+  multiply turncostdefault
+  switch junction=roundabout|circular 0.0
+  switch ismainroad 2.0
+  switch likelyunpaved 0.5
+    1.0
+
+assign ferrypenalty =
+  switch allow_ferries 10 10000
+
+assign steppenalty =
+  switch allow_steps 50 10000
+
+assign unknownpenalty =
+  switch equal gravel_tolerance 2
+    10 -10
+
+assign mtbpenalty =
+  switch not highway=track|path 0
+  switch mtb:scale= unknownpenalty
+  switch or mtb:scale=0-|0|0+ mtb:scale:uphill=0 1
+  switch or mtb:scale=1-|1|1+ mtb:scale:uphill=1 2
+  switch or mtb:scale=2-|2|2+ mtb:scale:uphill=2 5
+    10000
+
+assign smoothnesspenalty =
+  switch smoothness= unknownpenalty
+  switch smoothness=excellent|very_good|good|intermediate 0
+  switch smoothness=bad 0.5
+  switch smoothness=very_bad 1
+  switch smoothness=horrible 2
+    10000
+
+assign tracktypepenalty =
+  switch tracktype= unknownpenalty
+  switch tracktype=grade1 0
+  switch tracktype=grade2 1
+  switch tracktype=grade3 2
+  switch tracktype=grade4 5
+    10000
+
+assign surfacepenalty =
+  switch or surface= surface=unknown unknownpenalty
+  switch surface=paved|asphalt|concrete|paving_stones|metal|wood 0
+  switch surface=cobblestone|sett cobblestonedefault
+  switch surface=unpaved|compacted|fine_gravel|gravel|grass_paver 1
+  switch surface=dirt|earth|ground|grass|pebblestone 2
+  switch surface=sand 5
+    10000
+
+assign minunpaved =
+  min mtbpenalty
+  min smoothnesspenalty
+  min tracktypepenalty
+      surfacepenalty
+
+assign maxunpaved =
+  max mtbpenalty
+  max smoothnesspenalty
+  max tracktypepenalty
+      surfacepenalty
+
+assign knownpenalty =
+  switch equal gravel_tolerance 2 minunpaved
+  switch equal gravel_tolerance 1 maxunpaved
+  switch greater maxunpaved 0.5 10000
+    maxunpaved
+
+assign unpavedpenalty =
+  switch equal knownpenalty unknownpenalty
+         switch likelyunpaved
+                switch equal gravel_tolerance 0 10000
+                switch equal gravel_tolerance 1
+                       switch bicycle=designated 0
+                       switch isbicycleroute 1
+                         multiply -1 unknownpenalty
+                  0
+           0
+    knownpenalty
+
+assign tunnelpenalty =
+  switch not highway=
+         switch tunnel=yes 1
+         switch tunnel=avalanche_protector 0.5
+           0
+    0
+
+assign forbidden =
+  and not godmode
+  or and highway= not route=ferry
+     or highway=motorway|motorway_link
+        motorroad=yes
+
+assign forcycling =
+  or cycleway=track|opposite_track
+  or cycleway:right=track|opposite_track
+  or cycleway:left=track|opposite_track
+  or highway=cycleway
+     and highway=path|footway bicycle=designated|yes
+
+assign forwalking =
+  highway=footway|pedestrian|bridleway
+
+assign favouritehighwayclass = 3
+
+assign highwayclass =
+  switch highway=path|cycleway|construction 1
+  switch highway=service|residential|living_street 2
+  switch highway=unclassified|track 3
+  switch highway=tertiary|tertiary_link
+         switch maxspeed=50|30 3 4
+  switch highway=secondary|secondary_link
+         switch maxspeed=50 4 5
+  switch highway=primary|primary_link
+         switch maxspeed=50 4 6
+  switch highway=trunk|trunk_link
+         switch maxspeed=50 5 7
+  0
+
+assign classdiff = sub highwayclass favouritehighwayclass
+
+assign absclassdiff =
+  switch greater classdiff 0
+  	 classdiff
+	 sub 0 classdiff
+
+# Reasonable values: 1.4 ... 1.8
+assign malus = 1.5
+
+assign highwaypenalty =
+  switch route=ferry ferrypenalty
+  switch forbidden 10000
+  switch forcycling forcyclingdefault
+  switch forwalking cyclingtowalkingratio
+  switch highway=steps steppenalty
+  switch equal absclassdiff 0
+  	 1
+  switch equal absclassdiff 1
+  	 multiply malus
+	 1
+  switch equal absclassdiff 2
+  	 multiply malus
+  	 multiply malus
+	 1
+  switch equal absclassdiff 3
+  	 multiply malus
+  	 multiply malus
+  	 multiply malus
+	 1
+  switch equal absclassdiff 4
+  	 multiply malus
+  	 multiply malus
+  	 multiply malus
+  	 multiply malus
+	 1
+  10000
+
+assign fordownhill =
+  or highway=trunk|primary|secondary|tertiary
+     highway=trunk_link|primary_link|secondary_link|tertiary_link
+
+assign foruphill =
+  highway=living_street|service|path|construction
+
+assign costfactor =
+  multiply accesspenalty
+  add unpavedpenalty
+  add tunnelpenalty
+  multiply
+    switch equal climb_tolerance 2 1.2
+      1
+    highwaypenalty
+
+assign uphillcostfactor =
+  multiply accesspenalty
+  add multiply 1.2 unpavedpenalty
+  add multiply 1.8 tunnelpenalty
+  multiply
+    switch equal climb_tolerance 0 malus
+      1
+    switch fordownhill add 1 multiply 1.8 sub highwaypenalty 1
+    switch foruphill add 1 multiply 0.35 sub highwaypenalty 1
+      highwaypenalty
+
+assign downhillcostfactor =
+  multiply accesspenalty
+  add multiply 1.8 unpavedpenalty
+  add multiply 0.35 tunnelpenalty
+    switch fordownhill add 1 multiply 0.35 sub highwaypenalty 1
+    switch foruphill add 1 multiply 4.0 sub highwaypenalty 1
+      highwaypenalty

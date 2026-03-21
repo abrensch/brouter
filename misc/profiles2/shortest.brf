@@ -12,6 +12,14 @@ assign   validForFoot        1
 
 assign use_proposed_cycleroutes = false  # %use_proposed_cycleroutes% | Set to true to consider proposed and regular cycleroutes as equals | boolean
 
+# Turn instructions settings
+assign turnInstructionCatchingRange = 40    # %turnInstructionCatchingRange% | Within this distance (in m) several turning instructions are combined into one and the turning angles are better approximated to the general direction | number
+assign turnInstructionRoundabouts   = true  # %turnInstructionRoundabouts% | Set to "false" to avoid generating special turning instructions for roundabouts | boolean
+
+# this prevents suppression of unused tags, so they are visibly in the data tab;
+# also enable it as option in the profile tab
+assign processUnusedTags = true # %processUnusedTags% | Set to true to output unused tags in data tab | boolean
+
 ---context:way   # following code refers to way-tags
 
 assign any_cycleroute

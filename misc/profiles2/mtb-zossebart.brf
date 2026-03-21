@@ -1,0 +1,665 @@
+#
+# mountainbike profile by zossebart
+# v1.2.3
+# see https://github.com/zossebart/brouter-mtb for information and releases
+#
+# CAUTION! always ride carefully, routing data and/or route calculation might not be accurate and safe at all times!
+#
+
+---context:global   # following code refers to global config
+
+# generate a bike route
+assign validForBikes            = true
+assign validForCars             = false
+assign validForFoot             = false
+
+# Locus nav interface flags
+assign mtb_hard_factor          = 0               # %mtb_hard_factor% | Difficulty of the route | [0=easy, 1=moderate, 2=demanding, 3=hard, 4=extreme/uncompromising]
+assign is_wet                   = false           # %is_wet% | Choose a safer route in wet conditions | boolean
+assign allow_ferries            = false           # %allow_ferries% | Allow ferries | boolean
+assign allow_steps              = true            # %allow_steps% | Allow steps | boolean
+assign use_uncertain_gates      = false           # %use_uncertain_gates% | Route through gates with no access info (might be locked) | boolean
+
+# the global elevation parameters
+assign downhillcost             = max 0 ( sub 30 ( multiply mtb_hard_factor 10 ) )
+assign downhillcutoff           = 4
+assign uphillcost               = max 0 ( sub 40 ( multiply mtb_hard_factor 15 ) )
+assign uphillcutoff             = 1.5
+
+# elevation filtering parameters (tbd: optimized settings)
+assign elevationpenaltybuffer   = 5
+assign elevationmaxbuffer       = 10
+assign elevationbufferreduce    = 0
+
+# +++ Kinematic model parameters (travel time computation)
+assign totalMass  = 100    # %totalMass% | Mass (in kg) of the bike + biker, for travel time computation | number
+assign maxSpeed   = 35     # %maxSpeed% | Absolute maximum speed (in km/h), for travel time computation | number
+assign S_C_x      = 0.75   # %S_C_x% | Drag coefficient times the reference area (in m^2), for travel time computation | number
+assign C_r        = 0.02   # %C_r% | Rolling resistance coefficient (dimensionless), for travel time computation | number
+assign bikerPower = 180    # %bikerPower% | Average power (in W) provided by the biker, for travel time computation | number
+
+assign turnInstructionMode          = 1     # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=oruxmaps-style]
+assign turnInstructionRoundabouts   = true  # %turnInstructionRoundabouts% | Set to "false" to avoid generating special turning instructions for roundabouts | boolean
+assign turnInstructionCatchingRange = 4
+
+# ++++++++++++++++++++++++++++++++++++++ some global defines for finetuning
+
+assign voiceprio                = 2                # 1: all ways have the same prio (max instructions)
+                                                   # 2: mtb prio, more instructions on different small way types
+assign mj_rd_penalty            = 0.5              # additional penalty for major roads for finetuning
+assign construction_penalty     = 3                # penalty for roads in construction (oftentimes rideable by mtb)
+assign steps_penalty            = max 0 ( sub 15 ( multiply mtb_hard_factor 5 ) )
+                                                   # penalty for steps
+assign steps_ramp_uh_penalty    = 5                # penalty for uphill steps with a ramp (might be smaller than default steps penalty)
+assign steps_ramp_dh_penalty    = 2                # penalty for downhill steps with a ramp (even smaller than uphill ramp)
+assign ferry_penalty            = if allow_ferries # penalty for ferries
+                                    then 2000
+                                    else 100000
+assign private_penalty          = 6                # penalty for private ways and nodes
+assign bicycle_no_penalty       = 5                # penalty for ways and nodes with bicycle=no
+assign slippery_muddy_penalty   = if is_wet        # penalty for unpaved roads and tracks, which are tricky to ride when wet
+                                    then 2
+                                    else 0
+assign ford_penalty             = max 0 ( sub 15 ( multiply mtb_hard_factor 8 ) )
+                                                   # penalty for fords (you might not want to get your feet wet ;-) )
+
+assign isbike_reduce            = 0.7              # penalty reduction for major roads with a cycleway
+assign isfoot_reduce            = 0.9              # penalty reduction for major roads with a footway or sidewalk
+
+# +++ special downhill parameters
+assign considerdownhill         = true             # use special penalties for downhills? (enables/disables below parameters)
+assign dh_penalty               = max 0 ( add 2.0 ( multiply mtb_hard_factor 0.5 ) )
+                                                   # additional penalty for undesired downhills (e.g. major roads)
+assign dh_difficult_penalty     = max 0 ( sub 10 ( multiply mtb_hard_factor 1 ) )                
+                                                   # additional downhill penalty for ways with high difficulty (mtb/sac_scale)
+assign dh_use_tracks            = lesser mtb_hard_factor 0
+                                                   # use less penalty for downhill tracks than for other waytypes? (0/1)
+                                                   # enables/disables dh_track_penalty
+assign dh_track_penalty         = multiply 0.75 dh_penalty 
+                                                   # percentage of reduced downhill penalty for tracks
+
+# +++ special uphill parameters
+assign consideruphill           = true             # use special penalties for uphills? (enables/disables below parameters)
+assign uh_penalty               = max 0 ( sub 2.5 ( multiply mtb_hard_factor 0.25 ) )
+                                                   # additional penalty for undesired uphills (e.g. paths)
+assign uh_difficult_penalty     = max 0 ( sub 10 ( multiply mtb_hard_factor 1 ) )
+                                                   # additional uphill penalty for ways with high difficulty (mtb/sac_scale or mtb_scale_uphill)
+
+# ------------------------------------------- global defines end
+
+---context:way   # following code refers to way-tags
+
+# classifier constants
+assign classifier_none  = 1
+assign classifier_ferry = 2
+
+#
+# pre-calculate some logical expressions
+#
+
+#
+# does the road have a footway or sidewalk?
+#
+assign has_sidewalk             = not ( or sidewalk= sidewalk=no|none )
+assign has_footway              = not ( or footway= footway=no|none )
+assign has_foot                 = or has_sidewalk has_footway
+
+#
+# does the road have a cycleway?
+#
+assign cycle                    = not ( or cycleway= cycleway=no|none|proposed )
+assign l_cycle                  = not ( or cycleway:left= cycleway:left=no )
+assign r_cycle                  = not ( or cycleway:right= cycleway:right=no )
+assign has_cycleway             = or cycle ( or l_cycle r_cycle )
+
+#
+# is it a low-speed highway?
+#
+assign islowspeed               = if maxspeed=10|20|30 
+                                  then true
+                                  else false
+
+#
+# is it a high-speed highway?
+#
+assign ishighspeed              = if maxspeed=60|70|80|90|100|110|120|130|rural
+                                  then true
+                                  else false
+
+#
+# are there multiple lanes on the highway?
+#
+assign ismultilane              = if lanes=
+                                    then false
+                                    else if lanes=1|1.5|2
+                                      then false
+                                      else true
+
+#
+# assign the penalty reduction for roads with sidewalks or cycleways
+#
+assign penalty_reduce           = if has_cycleway 
+                                    then isbike_reduce 
+                                    else if has_foot 
+                                      then isfoot_reduce 
+                                      else 1 
+
+#
+# is the road paved or unpaved?
+#
+assign ispaved                  = surface=paved|asphalt|concrete|paving_stones|grass_paver|metal|wood|compacted
+assign isunpaved                = not ( or surface= ispaved )
+
+#
+# is the surface potentially slippery or muddy when it's wet?
+#
+assign surfacebadwhenwet        = and isunpaved ( not surface=compacted|fine_gravel )
+assign highwaybadwhenwet        = or highway=path ( or tracktype=grade5|grade4 highway=bridleway )
+assign isbadwhenwet             = or surfacebadwhenwet highwaybadwhenwet
+
+assign any_cycleroute           = or route_bicycle_icn=yes ( or route_bicycle_ncn=yes ( or route_bicycle_rcn=yes route_bicycle_lcn=yes ) )
+
+#
+# get the inclination (up=1, down=-1, unknown=0)
+#
+assign inclination = 
+if incline=
+  then 0
+  else if incline=yes|up|5%|8%|10%|15%|20%|25%|30%
+    then if reversedirection=yes
+      then -1
+      else 1
+  else if incline=down|-5%|-8%|-10%|-15%|-20%|-25%|-30%
+    then if reversedirection=yes
+      then 1
+      else -1
+    else 0
+
+
+#
+# precalculate steps penaltys
+#
+assign steps_uh_penalty =
+  if not allow_steps
+    then 99999
+  else if or ramp:stroller=yes ramp:bicycle=yes
+    then steps_ramp_uh_penalty
+  else multiply 1.2 ( add uh_penalty steps_penalty )         # boost steps uphill penalty even more
+
+assign steps_dh_penalty =
+  if not allow_steps
+    then 99999
+  else if or ramp:stroller=yes ramp:bicycle=yes
+    then steps_ramp_dh_penalty
+  else add dh_penalty steps_penalty
+
+
+#
+# base penalties for roadtypes
+#
+assign hw_penalty =
+  if      highway=motorway|motorway_link               then 9999
+  else if highway=proposed                             then 9999
+  else if highway=construction                         then construction_penalty
+                                                       else 0
+
+assign hw_major_penalty =
+  multiply  if islowspeed                                      # reduce the penalty if the speedlimit is low
+              then 0.75
+              else 1
+  multiply  max 1 ( multiply ishighspeed 1.2 )                 # rise the penalty if the speedlimit is high
+  multiply  max 1 ( multiply ismultilane 1.2 )                 # rise the penalty if there are more than 2 lanes  
+  if        highway=trunk|trunk_link                   then add mj_rd_penalty 10
+  else if   highway=primary|primary_link               then add mj_rd_penalty 6.0
+  else if   highway=secondary|secondary_link           then add mj_rd_penalty 2.6
+  else if   highway=tertiary|tertiary_link             then add mj_rd_penalty 2.3
+  else if   highway=unclassified                       then add mj_rd_penalty 2.2
+                                                       else 0
+
+assign hw_minor_penalty =
+  multiply  max 1 ( multiply ishighspeed 1.2 )                 # rise the penalty if the speedlimit is high
+  multiply  max 1 ( multiply ismultilane 1.2 )                 # rise the penalty if there are more than 2 lanes
+  if        highway=residential                         then 1.2
+  else if   highway=service                             then 1.1
+  else if   highway=living_street                       then 1.1
+  else if   highway=pedestrian                          then 1.1
+  else if   highway=footway                             then 1.1
+                                                        else 0
+
+#
+# additional penalties for other road attributes
+#
+assign mtb_sac_penalty =
+  max 0 
+  multiply 
+  ( sub 1 ( multiply mtb_hard_factor 0.25 ) )
+  ( 
+    if ( or mtb:scale=3|2+ sac_scale=demanding_mountain_hiking ) then 2
+    else if ( or mtb:scale=4 sac_scale=alpine_hiking )           then 4
+    else if ( or mtb:scale=5 sac_scale=demanding_alpine_hiking ) then 50
+    else if ( or mtb:scale=6 sac_scale=difficult_alpine_hiking ) then 100
+                                                                 else 0
+  )
+
+assign mtb_uh_penalty =                                         #(supported since 1.4.4)
+  max 0 
+  multiply 
+  ( sub 1 ( multiply mtb_hard_factor 0.25 ) )
+  ( 
+    if      mtb:scale:uphill=3                             then 2
+    else if mtb:scale:uphill=4                             then 4
+    else if mtb:scale:uphill=5                             then 50
+    else if mtb:scale=6                                    then 100
+                                                           else 0
+  )
+
+assign tracktype_penalty =
+  max 0 
+  multiply 
+  ( sub 1 ( multiply mtb_hard_factor 0.5 ) )
+  (
+    if tracktype=grade5                                    then 0.2
+                                                           else 0
+  )
+
+assign traffic_penalty =
+  multiply 
+  0.3
+  (
+    if estimated_traffic_class=2                         then 1
+    else if estimated_traffic_class=3                    then 2
+    else if estimated_traffic_class=4                    then 3
+    else if estimated_traffic_class=5                    then 4
+    else if estimated_traffic_class=6                    then 5
+    else if estimated_traffic_class=7                    then 6
+                                                         else 0
+  )
+
+#
+# implicit access here just from the motorroad tag
+# (implicit access rules from highway tag handled elsewhere)
+#
+assign defaultaccess =
+  if access=
+    then ( not motorroad=yes )
+    else 
+    (
+      if access=no
+        then false
+        else
+        (
+         if access=private
+          then false
+          else true
+        )
+    )
+
+#
+# calculate logical bike access
+#
+assign bikeaccess =
+  or 
+  any_cycleroute
+  (
+    if bicycle=
+      then 
+      (
+        if vehicle=
+        then defaultaccess
+        else 
+        ( 
+          if vehicle=private|no
+          then false
+          else true
+        )
+      )
+      else 
+      (
+        if not bicycle=private
+        then true
+        else false
+      )
+  )
+
+#
+# calculate logical foot access
+#
+assign footaccess =
+  or bikeaccess
+  or bicycle=dismount
+    if foot=
+      then defaultaccess
+      else not foot=private|no
+
+#
+# combine to penalty for access
+#
+assign access_penalty = 
+if bikeaccess 
+  then 
+  (
+    if bicycle=no                                                             # bike access granted from above, but check for bicycle=no
+      then bicycle_no_penalty                                                 # access with penalty for bicycle=no  
+      else 
+      (
+        if bicycle=dismount                                                   # bike access granted from above, but check for bicycle=dismount
+          then ( multiply 0.2 bicycle_no_penalty )                            # access with penalty for bicycle=dismount
+          else 0
+      )
+  )                                                                           # full bike access
+  else 
+  (
+    if ( or  access=private or bicycle=private or vehicle=private foot=private )
+      then                                                    private_penalty # access with penalty for private
+      else                                                    100000          # absolutely no access
+  )
+
+assign badoneway =
+       if reversedirection=yes then
+         if oneway:bicycle=yes then true
+         else if oneway= then junction=roundabout
+         else oneway=yes|true|1
+       else oneway=-1
+
+assign onewaypenalty =
+       if ( badoneway ) then
+       (
+         if oneway:bicycle=no
+                                                        then 0
+         else if or highway=cycleway and highway=path bicycle=designated
+                                                        then 50
+                                                        else 0.0
+       )
+                                                        else 0.0
+
+#
+# combine additional penaltys which are common for flat, up and down ways
+#
+assign misc_penalty =
+  add access_penalty
+  add traffic_penalty
+  add onewaypenalty
+  add if ( not ford= )                                   then ford_penalty
+                                                         else 0
+  add if trail_visibility=bad                            then 2
+        else 
+        (
+          if trail_visibility=horrible                   then 5
+            else
+            (
+              if trail_visibility=no                     then 15
+                                                         else 0
+            )
+        )
+  add if smoothness=impassable                           then 10
+                                                         else 0
+  max 0 multiply ( sub 1 ( multiply mtb_hard_factor 0.3333 ) )
+  add if surfacebadwhenwet                               then slippery_muddy_penalty
+                                                         else 0
+  add if highwaybadwhenwet                               then slippery_muddy_penalty
+                                                         else 0
+  if surface=sand|mud                                    then 3
+                                                         else 0
+
+
+#
+# now assign the parameters for the routing engine (initialcost, turncost and flat/up/down costfactors)
+#
+assign turncost = 
+  if highway=path|footway
+    then 
+    (
+      if equal inclination -1                            then 0
+                                                         else 10
+    )
+    else
+    (
+      if highway=track                                   then 50
+                                                         else 150
+    )
+
+#
+# assign parameters for turn instruction generation
+#
+assign priorityclassifier =
+  if      equal voiceprio 1                             then 1
+  else if equal voiceprio 2
+  then if ( highway=motorway                  )         then  101
+  else if ( highway=motorway_link             )         then  100
+  else if ( highway=trunk                     )         then  91
+  else if ( highway=trunk_link                )         then  90
+  else if ( highway=primary                   )         then  88
+  else if ( highway=primary_link              )         then  87
+  else if ( highway=secondary                 )         then  86
+  else if ( highway=secondary_link            )         then  85
+  else if ( highway=tertiary                  )         then  84
+  else if ( highway=tertiary_link             )         then  83
+  else if ( highway=unclassified              )         then  82
+  else if ( highway=residential|living_street )         then  50
+  else if ( highway=service                   )         then  40
+  else if ( highway=road                      )         then  35  
+  else if ( highway=cycleway                  )         then  30
+  else if ( highway=bridleway|track           )         then  20
+  else if ( highway=footway|pedestrian        )         then  17
+  else if ( highway=steps                     )         then  15
+  else if ( highway=path                      )         then  10
+  else                                                        0
+  else                                                        0
+
+assign isroundabout             = junction=roundabout
+assign islinktype               = highway=motorway_link|trunk_link|primary_link|secondary_link|tertiary_link
+assign isgoodforcars            = 
+  if ( greater priorityclassifier 30 )
+   then true
+   else
+   (
+    if highway=residential|living_street|service 
+      then true
+      else 
+      (
+        if ( and highway=track tracktype=grade1 ) 
+          then true
+          else false
+      )
+    )
+
+# ... encoded into a bitmask
+
+assign classifiermask           = add multiply isroundabout   4
+                                  add multiply islinktype     8
+                                  multiply isgoodforcars 16
+
+#
+# for any change in initialclassifier, initialcost is added once
+#
+assign initialclassifier =
+     if route=ferry then classifier_ferry
+else classifier_none
+
+assign initialcost =
+     if ( equal initialclassifier classifier_ferry ) then ferry_penalty
+else 0
+
+#
+# costfactor for flat terrain
+#
+assign costfactor =
+  if and highway= not route=ferry                       then 100000
+    else
+    min 9999
+    add misc_penalty
+    add if ( and ( equal inclination 1 ) mtb_uh_penalty )
+          then 
+          (
+            add 
+            mtb_uh_penalty 
+            (
+              if consideruphill                         then uh_difficult_penalty 
+                                                        else 0                                                                  
+            )
+          )
+                                                        else mtb_sac_penalty
+    add tracktype_penalty
+    max 1
+    if hw_penalty                                       then hw_penalty
+    else if hw_major_penalty                            then hw_major_penalty
+    else if hw_minor_penalty                            then hw_minor_penalty
+
+    else if highway=path                                then 1
+    else if highway=steps                             
+      then 
+      (
+        if equal inclination 1                          then steps_uh_penalty
+        else
+        (
+          if equal inclination -1                       then steps_dh_penalty
+          else
+          (
+            if reversedirection=yes                     then steps_dh_penalty
+                                                        else steps_uh_penalty
+          )
+        )
+      )
+    else if highway=track|bridleway                     then 1
+    else if highway=cycleway                            then max 1 ( add 1.1 ( multiply mtb_hard_factor 0.1 ) )
+    else if route=ferry                                 then 1 # ferries are handled through initialcost, so no need to add cosfactory here
+                                                        else 40 # default for any other highway type not handled above
+
+#
+# costfactor for uphills
+#
+assign uphillcostfactor =
+  if consideruphill
+    then 
+    (
+      if and highway= not route=ferry                   then 100000
+      else
+      min 9999
+      add misc_penalty
+      add if ( and ( equal inclination 1 ) mtb_uh_penalty )
+                                                        then add uh_difficult_penalty mtb_uh_penalty
+          else 
+          (
+            if mtb_sac_penalty                          then add uh_difficult_penalty mtb_sac_penalty 
+                                                        else 0 
+          )                                                        
+      add if tracktype_penalty                          then add uh_difficult_penalty tracktype_penalty 
+                                                        else 0
+      max 1
+      if hw_penalty                                     then hw_penalty
+      else if hw_major_penalty                          then multiply penalty_reduce hw_major_penalty
+      else if hw_minor_penalty                          then hw_minor_penalty 
+
+      else if highway=path                              then uh_penalty
+      else if highway=steps                             # first try to use incline
+        then if equal inclination 1                     then steps_uh_penalty
+        else if equal inclination -1                    then steps_dh_penalty
+                                                        else steps_uh_penalty # no incline tag, assume step is really uphill
+      else if highway=track                             then 1
+      else if highway=bridleway                         then 1.2
+      else if highway=cycleway                          then 1
+      else if route=ferry                               then 1 # ferries are handled through initialcost, so no need to add cosfactory here
+                                                        else 40 # default for any other highway type not handled above
+    )
+                                                        else 0 # no special handling for uphill selected, flat costfactor will be used instead
+
+#
+# costfactor for downhills
+#
+assign downhillcostfactor = 
+  if considerdownhill
+    then 
+    (
+      if and highway= not route=ferry                   then 100000
+      else
+      min 9999
+      add misc_penalty
+      add if ( and ( equal inclination 1 ) mtb_uh_penalty )
+          then 
+          (
+            add if consideruphill                       then uh_difficult_penalty
+                                                        else 0 
+                                                             mtb_uh_penalty
+          )
+          else 
+          (
+            if mtb_sac_penalty                          then add dh_difficult_penalty mtb_sac_penalty 
+                                                        else 0
+          )
+      add if tracktype_penalty                          then add dh_difficult_penalty tracktype_penalty
+                                                        else 0
+      max 1
+      if      hw_penalty                                then add dh_penalty hw_penalty
+      else if hw_major_penalty                          then add dh_penalty hw_major_penalty
+      else if hw_minor_penalty                          then add dh_penalty hw_minor_penalty
+
+      else if highway=path                              then 1
+      else if highway=steps                             # first try to use incline
+        then if equal inclination 1                     then steps_uh_penalty
+        else if equal inclination -1                    then steps_dh_penalty
+                                                        else steps_dh_penalty # no incline tag, assume step is really downhill
+      else if highway=track|bridleway
+        then if dh_use_tracks                           then dh_track_penalty 
+                                                        else dh_penalty
+      else if highway=cycleway                          then add dh_penalty 0.5
+      else if route=ferry                               then 1 # ferries are handled through initialcost, so no need to add cosfactory here
+                                                        else 40 # default for any other highway type not handled above
+    )
+                                                        else 0 # no special handling for downhill selected, flat costfactor will be used instead
+
+---context:node  # following code refers to node tags
+
+assign defaultaccess =
+  if access=
+    then 
+    (
+      if and barrier=gate use_uncertain_gates           then true
+      else if barrier=gate|fence|door|wall              then false 
+                                                        else true 
+    )
+    else
+    (
+      if access=private|no
+                                                        then false
+                                                        else true
+    )
+
+assign bikeaccess =
+  or nodeaccessgranted=yes
+  if bicycle=
+    then 
+    (
+      if vehicle=                                       then defaultaccess
+      else
+      (
+        if vehicle=private|no                           then false
+                                                        else true
+      )
+    )
+    else
+    (
+      if bicycle=private|no|dismount                    then false
+                                                        else true
+    )
+
+assign footaccess =
+  or bicycle=dismount
+  if foot=                                              then defaultaccess
+    else if foot=private|no                             then false
+                                                        else true
+
+assign initialcost =
+  add  if highway=traffic_signals                       then 100  
+                                                        else 0
+  if ( and ( or bikeaccess footaccess ) ( not highway=elevator ) )
+    then 
+    (
+      if ( or ( not ford= ) highway=ford )              then ( multiply 100 ford_penalty )
+                                                        else 0
+    )
+#    switch  or access=private
+#            or bicycle=private
+#            or vehicle=private
+#            foot=private
+#      multiply 100 private_penalty   # access with penalty
+                                                        else 1000000

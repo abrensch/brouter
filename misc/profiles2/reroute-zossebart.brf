@@ -1,0 +1,73 @@
+---context:global   # following code refers to global config
+
+# the elevation parameters
+
+assign downhillcost 0
+assign downhillcutoff 1.5
+assign uphillcost 0
+assign uphillcutoff 1.5
+
+assign turnInstructionMode  1     # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=oruxmaps-style]
+assign turnInstructionCatchingRange 10
+
+---context:way   # following code refers to way-tags
+
+assign turncost 0
+
+assign initialclassifier =
+  if ( and junction=roundabout reversedirection=yes )
+  then 2
+  else 1
+
+assign initialcost =
+     if ( equal initialclassifier 2 ) then 9999
+     else 0
+
+#
+# include smoothness= and surface=for track analysis
+#
+assign dummyUsage or smoothness= surface=
+
+assign costfactor
+  switch and not route=ferry highway= 100000
+                  1
+
+# odd priorities indicate link-types
+assign priorityclassifier =
+
+  if      ( highway=motorway                  ) then  30
+  else if ( highway=motorway_link             ) then  29
+  else if ( highway=trunk                     ) then  28
+  else if ( highway=trunk_link                ) then  27
+  else if ( highway=primary                   ) then  26
+  else if ( highway=primary_link              ) then  25
+  else if ( highway=secondary                 ) then  24
+  else if ( highway=secondary_link            ) then  23
+  else if ( highway=tertiary                  ) then  22
+  else if ( highway=tertiary_link             ) then  21
+  else if ( highway=unclassified              ) then  20
+  else if ( highway=residential|living_street ) then  6
+  else if ( highway=service                   ) then  6
+  else if ( tracktype=grade1                  ) then  6
+  else if ( highway=cycleway                  ) then  6
+  else if ( bicycle=designated                ) then  6
+  else if ( highway=bridleway                 ) then  4
+  else if ( highway=track|road|path|footway   ) then  4
+  else if ( highway=steps                     ) then  2
+  else if ( highway=pedestrian                ) then  2
+  else 0
+
+assign isroundabout = junction=roundabout
+assign islinktype = highway=motorway_link|trunk_link|primary_link|secondary_link|tertiary_link
+assign isgoodforcars = if greater priorityclassifier 6 then true
+                  else if ( highway=residential|living_street|service ) then true
+                  else if ( and highway=track tracktype=grade1 ) then true
+                  else false
+
+assign classifiermask add multiply isroundabout   4
+                      add multiply islinktype     8
+                          multiply isgoodforcars 16
+
+---context:node  # following code refers to node tags
+
+assign initialcost 0
