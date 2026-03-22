@@ -94,6 +94,8 @@ public class RoutingEngine extends Thread {
   private boolean directWeaving = !Boolean.getBoolean("disableDirectWeaving");
   private String outfile;
 
+  double roundTripSearchRadius = 0;
+
   public RoutingEngine(String outfileBase, String logfileBase, File segmentDir,
                        List<OsmNodeNamed> waypoints, RoutingContext rc) {
     this(outfileBase, logfileBase, segmentDir, waypoints, rc, 0);
@@ -509,6 +511,8 @@ public class RoutingEngine extends Thread {
 
       routingContext.waypointCatchingRange = 250;
 
+      roundTripSearchRadius = searchRadius;
+
       doRouting(0);
 
       long endTime = System.currentTimeMillis();
@@ -518,6 +522,58 @@ public class RoutingEngine extends Thread {
       logException(e);
     }
 
+  }
+
+  /**
+   * Filter round-trip waypoints that matched to bad positions.
+   * Removes intermediate waypoints (named "rt*") where:
+   * - The snap distance (waypoint to crosspoint) exceeds maxSnapDistance
+   * - Consecutive matched positions are too close together
+   * Never removes the first or last waypoint (start/end of loop).
+   * Preserves at least one intermediate waypoint.
+   */
+  void filterRoundTripWaypoints(List<MatchedWaypoint> waypoints) {
+    double maxSnapDistance = roundTripSearchRadius * 0.5;
+    double minWaypointDistance = roundTripSearchRadius / 10.0;
+
+    // Count intermediate round-trip waypoints
+    int rtCount = 0;
+    for (int i = 1; i < waypoints.size() - 1; i++) {
+      if (waypoints.get(i).name != null && waypoints.get(i).name.startsWith("rt")) {
+        rtCount++;
+      }
+    }
+
+    // Remove waypoints that snapped too far
+    for (int i = waypoints.size() - 2; i >= 1; i--) {
+      MatchedWaypoint mwp = waypoints.get(i);
+      if (mwp.name == null || !mwp.name.startsWith("rt")) continue;
+      if (rtCount <= 1) break; // preserve at least one intermediate waypoint
+
+      if (mwp.radius > maxSnapDistance) {
+        logInfo("filterRoundTrip: removing " + mwp.name + " snap=" + (int) mwp.radius + "m > max=" + (int) maxSnapDistance + "m");
+        waypoints.remove(i);
+        rtCount--;
+      }
+    }
+
+    if (rtCount <= 1) return;
+
+    // Remove consecutive round-trip waypoints that matched too close together
+    for (int i = waypoints.size() - 2; i >= 2; i--) {
+      if (rtCount <= 1) break;
+      MatchedWaypoint curr = waypoints.get(i);
+      MatchedWaypoint prev = waypoints.get(i - 1);
+      if (curr.name == null || !curr.name.startsWith("rt")) continue;
+      if (prev.name == null || !prev.name.startsWith("rt")) continue;
+
+      double dist = curr.crosspoint.calcDistance(prev.crosspoint);
+      if (dist < minWaypointDistance) {
+        logInfo("filterRoundTrip: removing " + curr.name + " too close to " + prev.name + " dist=" + (int) dist + "m");
+        waypoints.remove(i);
+        rtCount--;
+      }
+    }
   }
 
   void buildPointsFromCircle(List<OsmNodeNamed> waypoints, double startAngle, double searchRadius, int points) {
@@ -933,6 +989,18 @@ public class RoutingEngine extends Thread {
       }
       int startSize = matchedWaypoints.size();
       matchWaypointsToNodes(matchedWaypoints);
+
+      // filter bad round-trip waypoints after matching
+      if (roundTripSearchRadius > 0) {
+        int beforeFilter = matchedWaypoints.size();
+        filterRoundTripWaypoints(matchedWaypoints);
+        if (matchedWaypoints.size() != beforeFilter) {
+          logInfo("filterRoundTrip: reduced waypoints from " + beforeFilter + " to " + matchedWaypoints.size());
+          refTracks = new OsmTrack[matchedWaypoints.size() - 1];
+          lastTracks = new OsmTrack[matchedWaypoints.size() - 1];
+        }
+      }
+
       if (startSize < matchedWaypoints.size()) {
         refTracks = new OsmTrack[matchedWaypoints.size() - 1]; // used ways for alternatives
         lastTracks = new OsmTrack[matchedWaypoints.size() - 1];
