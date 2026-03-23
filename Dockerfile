@@ -3,7 +3,7 @@
 # Builds BRouter from source using Gradle, runs the standalone HTTP server.
 # Uses Bellsoft Liberica to share base layers with the Spring Boot app image.
 # =============================================================================
-FROM bellsoft/liberica-openjdk-alpine:25@sha256:31929ba9551e22cf598d6b65129c50eb0236f9dc3bde2b4270cb93bea4d7c85a AS build
+FROM bellsoft/liberica-openjdk-alpine:21@sha256:d939f0118532acc680d10dd0c0438cbffab5f028eaa0537ebb2bd97537329c74 AS build
 
 WORKDIR /tmp/brouter
 COPY . .
