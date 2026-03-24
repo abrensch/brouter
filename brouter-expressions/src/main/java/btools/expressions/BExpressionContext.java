@@ -631,7 +631,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
               if (sa.length >= 1) value = sa[0];
               float cm = Float.parseFloat(value);
               value = String.format(Locale.US, "%3.1f", cm / 100f);
-            } else if (value.contains("meter")) {
+            } else if (value.contains("metre") || value.contains("meter")) {
               value = value.substring(0, value.indexOf("m"));
             } else if (value.contains("mph")) {
               String[] sa = value.split("mph");
