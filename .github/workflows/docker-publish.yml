@@ -94,6 +94,38 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Update infrastructure repo with the new image digest
+      - name: Checkout infrastructure repo
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v3
+        with:
+          repository: jonnybbb/rove-routes-infrastructure
+          token: ${{ secrets.INFRA_REPO_PAT }}
+          ref: main
+          path: infra
+
+      - name: Update image digest in infrastructure repo
+        if: github.event_name != 'pull_request'
+        run: |
+          DIGEST="${{ steps.build-and-push.outputs.digest }}"
+          sed -i "s|^\(\s*digest:\s*\).*# brouter-image-digest|\1${DIGEST} # brouter-image-digest|" infra/helm/rove-routes/values.yaml
+
+      - name: Create Pull Request
+        if: github.event_name != 'pull_request'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.INFRA_REPO_PAT }}
+          path: infra
+          commit-message: "chore: update brouter image to ${{ steps.build-and-push.outputs.digest }}"
+          title: "chore: update brouter image (${{ github.sha }})"
+          body: |
+            Automated PR to update the BRouter image digest.
+
+            - **Digest:** `${{ steps.build-and-push.outputs.digest }}`
+            - **Source commit:** ${{ github.repository }}@${{ github.sha }}
+          branch: deploy/brouter-${{ github.sha }}
+          delete-branch: true
+
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
       # repository is public to avoid leaking data.  If you would like to publish
