@@ -98,6 +98,12 @@ public final class BExpressionContextWay extends BExpressionContext implements T
     return getBuildInVariable(19);
   }
 
+  public float getUserOutput(int idx) {
+    return getBuildInVariable(20+idx);
+  }
+
+
+
   public BExpressionContextWay(BExpressionMetaData meta) {
     super("way", meta);
   }

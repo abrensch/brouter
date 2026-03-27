@@ -23,7 +23,7 @@ public class FormatCsv extends Formatter {
   }
 
   public void writeMessages(BufferedWriter bw, OsmTrack t) throws Exception {
-    dumpLine(bw, MESSAGES_HEADER);
+    dumpLine(bw, MESSAGES_HEADER.replace("\tUserOutput", rc.expctxWay.getUserOutputHeader()));
     for (String m : t.aggregateMessages()) {
       dumpLine(bw, m);
     }

@@ -49,6 +49,8 @@ public final class RoutingContext {
   public BExpressionContextWay expctxWay;
   public BExpressionContextNode expctxNode;
 
+  public String userOutputHeader;
+
   public GeometryDecoder geometryDecoder = new GeometryDecoder();
 
   public int memoryclass = 64;
