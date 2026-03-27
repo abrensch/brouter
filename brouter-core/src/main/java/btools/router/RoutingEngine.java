@@ -496,6 +496,9 @@ public class RoutingEngine extends Thread {
       double directionAdd = (routingContext.roundTripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD :routingContext.roundTripDirectionAdd);
       if (direction == -1) direction = getRandomDirectionFromData(waypoints.get(0), searchRadius);
 
+      List<OsmNodeNamed> userViaPoints = new ArrayList<>(waypoints.subList(1, waypoints.size()));
+      waypoints.subList(1, waypoints.size()).clear();
+
       if (routingContext.allowSamewayback) {
         int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction);
         MatchedWaypoint wpt2 = new MatchedWaypoint();
@@ -506,7 +509,12 @@ public class RoutingEngine extends Thread {
         onn.name = "rt1";
         waypoints.add(onn);
       } else {
-        buildPointsFromCircle(waypoints, direction, searchRadius, routingContext.roundTripPoints == null ? 5 : routingContext.roundTripPoints);
+        int targetPoints = routingContext.roundTripPoints == null ? 5 : routingContext.roundTripPoints;
+        buildPointsFromCircle(waypoints, direction, searchRadius, targetPoints);
+
+        if (!userViaPoints.isEmpty()) {
+          mergeUserWaypointsIntoLoop(waypoints, userViaPoints, direction, targetPoints);
+        }
       }
 
       routingContext.waypointCatchingRange = 250;
@@ -522,6 +530,72 @@ public class RoutingEngine extends Thread {
       logException(e);
     }
 
+  }
+
+  /**
+   * Merge user-provided via waypoints into the round-trip loop.
+   * Inserts user waypoints among the circle-generated waypoints,
+   * sorted by bearing angle from the start point. If the total
+   * number of intermediate waypoints exceeds targetPoints,
+   * circle waypoints closest in angle to a user waypoint are removed.
+   */
+  void mergeUserWaypointsIntoLoop(List<OsmNodeNamed> waypoints, List<OsmNodeNamed> userViaPoints, double startAngle, int targetPoints) {
+    OsmNodeNamed start = waypoints.get(0);
+    OsmNodeNamed closingPoint = waypoints.remove(waypoints.size() - 1);
+    List<OsmNodeNamed> circlePoints = new ArrayList<>(waypoints.subList(1, waypoints.size()));
+    waypoints.subList(1, waypoints.size()).clear();
+
+    for (int i = 0; i < userViaPoints.size(); i++) {
+      OsmNodeNamed wp = userViaPoints.get(i);
+      if (wp.name == null || wp.name.isEmpty()) {
+        wp.name = "via" + (i + 1);
+      }
+    }
+
+    // Precompute user waypoint bearings (constant across removal iterations)
+    double[] userBearings = new double[userViaPoints.size()];
+    for (int i = 0; i < userViaPoints.size(); i++) {
+      userBearings[i] = CheapAngleMeter.getDirection(start.ilon, start.ilat,
+        userViaPoints.get(i).ilon, userViaPoints.get(i).ilat);
+    }
+
+    int maxCirclePoints = Math.max(1, targetPoints - userViaPoints.size());
+    while (circlePoints.size() > maxCirclePoints) {
+      int removeIdx = -1;
+      double smallestGap = Double.MAX_VALUE;
+      for (int ci = 0; ci < circlePoints.size(); ci++) {
+        double circBearing = CheapAngleMeter.getDirection(start.ilon, start.ilat,
+          circlePoints.get(ci).ilon, circlePoints.get(ci).ilat);
+        for (double userBearing : userBearings) {
+          double gap = CheapAngleMeter.getDifferenceFromDirection(circBearing, userBearing);
+          if (gap < smallestGap) {
+            smallestGap = gap;
+            removeIdx = ci;
+          }
+        }
+      }
+      logInfo("mergeUserWaypoints: removing circle point " + circlePoints.get(removeIdx).name
+        + " (angular gap " + (int) smallestGap + "° to nearest user waypoint)");
+      circlePoints.remove(removeIdx);
+    }
+
+    List<OsmNodeNamed> allIntermediates = new ArrayList<>();
+    allIntermediates.addAll(circlePoints);
+    allIntermediates.addAll(userViaPoints);
+
+    allIntermediates.sort((a, b) -> {
+      double relA = CheapAngleMeter.normalizeRelative(
+        CheapAngleMeter.getDirection(start.ilon, start.ilat, a.ilon, a.ilat) - startAngle);
+      double relB = CheapAngleMeter.normalizeRelative(
+        CheapAngleMeter.getDirection(start.ilon, start.ilat, b.ilon, b.ilat) - startAngle);
+      return Double.compare(relA, relB);
+    });
+
+    waypoints.addAll(allIntermediates);
+    waypoints.add(closingPoint);
+
+    logInfo("mergeUserWaypoints: loop has " + allIntermediates.size() + " intermediate waypoints ("
+      + userViaPoints.size() + " user, " + circlePoints.size() + " circle)");
   }
 
   /**
@@ -572,6 +646,44 @@ public class RoutingEngine extends Thread {
         logInfo("filterRoundTrip: removing " + curr.name + " too close to " + prev.name + " dist=" + (int) dist + "m");
         waypoints.remove(i);
         rtCount--;
+      }
+    }
+  }
+
+  /**
+   * Remove back-and-forth segments from a round-trip track.
+   * At each waypoint boundary, the route may retrace the same road
+   * it arrived on before diverging. This method detects such overlaps
+   * by walking outward from each waypoint in both directions and
+   * comparing node positions. The overlapping nodes on the outgoing
+   * side are removed, keeping the waypoint itself.
+   */
+  void removeBackAndForthSegments(OsmTrack track, List<MatchedWaypoint> waypoints) {
+    List<OsmPathElement> nodes = track.nodes;
+
+    for (int wi = 1; wi < waypoints.size() - 1; wi++) {
+      int wptIdx = waypoints.get(wi).indexInTrack;
+      if (wptIdx <= 0 || wptIdx >= nodes.size() - 1) continue;
+
+      int overlapCount = 0;
+      int maxSteps = Math.min(wptIdx, nodes.size() - 1 - wptIdx);
+      for (int step = 1; step <= maxSteps; step++) {
+        OsmPathElement before = nodes.get(wptIdx - step);
+        OsmPathElement after = nodes.get(wptIdx + step);
+        if (before.getIdFromPos() == after.getIdFromPos()) {
+          overlapCount = step;
+        } else {
+          break;
+        }
+      }
+
+      if (overlapCount > 0) {
+        logInfo("removeBackAndForth: at waypoint " + waypoints.get(wi).name
+          + " removing " + overlapCount + " overlapping nodes");
+        nodes.subList(wptIdx + 1, wptIdx + overlapCount + 1).clear();
+        for (int wj = wi + 1; wj < waypoints.size(); wj++) {
+          waypoints.get(wj).indexInTrack -= overlapCount;
+        }
       }
     }
   }
@@ -1102,6 +1214,10 @@ public class RoutingEngine extends Thread {
     }
 
     postElevationCheck(totaltrack);
+
+    if (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) {
+      removeBackAndForthSegments(totaltrack, matchedWaypoints);
+    }
 
     recalcTrack(totaltrack);
 
