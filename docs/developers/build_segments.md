@@ -15,27 +15,7 @@ extract](https://download.geofabrik.de/))
 
 ## Run the map creation script
 
-If you want to have elevation information in the generated segments files, you
-should download the required [SRTM
-files](https://cgiarcsi.community/data/srtm-90m-digital-elevation-database-v4-1/)
-and set the `SRTM_PATH` variable when running the `process_pbf_planet.sh`
-script.
-
-Any flavor of the 90m SRTM database should be working, but the one used by the
-official BRouter segments files are the ones provided by
-[CGIAR](https://cgiarcsi.community/data/srtm-90m-digital-elevation-database-v4-1/).
-If you are working with rather small geographical extracts, you can download
-tiles manually using [this
-interface](https://srtm.csi.cgiar.org/srtmdata/) (use the
-"ArcInfo ASCII" format), instead of having to ask for an access for bulk
-download of data. There is no need to unzip the downloaded files, the
-`process_pbf_planet.sh` script expects a folder with all the ZIP files inside
-and will manage it.
-
-Note that if you don't have the SRTM data available, the segments files will
-still be generated without any issue (but they will miss the elevation data).
-If you are not sure which SRTM files you have to download, you can run the
-script once and it will log all the SRTM files it is looking for.
+If you want to have elevation information in the generated segments files, please see belowfor generation of BRouter elevation data files.
 
 You can now run the `misc/scripts/mapcreation/process_pbf_planet.sh` script to
 build the segments. Have a look at the variables defined at the beginning of
@@ -53,6 +33,27 @@ _Note:_ The file 'process_pbf_planet_production.sh' makes a more compact process
 
 
 ## Run a generation for elevation data tiles
+
+If you want to have elevation information in the generated segments files, you
+should download the required [SRTM
+files](https://cgiarcsi.community/data/srtm-90m-digital-elevation-database-v4-1/)
+ - Note: this has a dead download link at the moment (2026).
+
+Any flavor of the 90m SRTM database should be working, but the one used by the
+official BRouter segments files are the ones provided by
+[CGIAR](https://cgiarcsi.community/data/srtm-90m-digital-elevation-database-v4-1/).
+If you are working with rather small geographical extracts, you can download
+tiles manually using [this
+interface](https://srtm.csi.cgiar.org/srtmdata/) (use the
+"ArcInfo ASCII" format), instead of having to ask for an access for bulk
+download of data. There is no need to unzip the downloaded files, the
+`process_pbf_planet.sh` script expects a folder with all the ZIP files inside
+and will manage it.
+
+Note that if you don't have the SRTM data available, the segments files will
+still be generated without any issue (but they will miss the elevation data).
+If you are not sure which SRTM files you have to download, you can run the
+script once and it will log all the SRTM files it is looking for.
 
 To match the 5x5 OSM data grid (*.rd5) files from BRouter, there are elevation
 data in a 5x5 degree format (*.bef). At the moment (end of 2023) the naming of
