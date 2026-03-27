@@ -203,7 +203,7 @@ assign maxspeed =
 
 assign no_river_penalty
    switch consider_river
-     switch estimated_river_class=  2
+     switch estimated_river_class=  10
      switch estimated_river_class=1  1.3
      switch estimated_river_class=2  1
      switch estimated_river_class=3  0.7
@@ -213,7 +213,7 @@ assign no_river_penalty
 
 assign no_forest_penalty
    switch consider_forest
-     switch estimated_forest_class=  1
+     switch estimated_forest_class=  10
      switch estimated_forest_class=1  0.5
      switch estimated_forest_class=2  0.4
      switch estimated_forest_class=3  0.25
@@ -224,12 +224,12 @@ assign no_forest_penalty
 assign town_penalty
    switch consider_town
      switch estimated_town_class=  0
-     switch estimated_town_class=1  0.5
-     switch estimated_town_class=2  0.9
-     switch estimated_town_class=3  1.2
-     switch estimated_town_class=4  1.3
-     switch estimated_town_class=5  1.4
-     switch estimated_town_class=6  1.6 99 0
+     switch estimated_town_class=1  5
+     switch estimated_town_class=2  9
+     switch estimated_town_class=3  12
+     switch estimated_town_class=4  13
+     switch estimated_town_class=5  14
+     switch estimated_town_class=6  16 99 0
 
 assign costfactor =
   if ( equal maxspeed 0 ) then 10000
