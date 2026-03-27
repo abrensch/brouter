@@ -228,19 +228,81 @@ public class RoutingEngineTest {
     Assert.assertTrue("track should have significant length", track.distance > 200);
   }
 
-  // buildPointsFromCircle generates correct number of waypoints at expected distances
+  // mergeUserWaypointsIntoLoop inserts user waypoints and removes redundant circle points
+  @Test
+  public void mergeUserWaypointsIntoLoop() {
+    double searchRadius = 5000;
+    double startAngle = 90;
+    int targetPoints = 5;
+
+    RoutingEngine re = createDummyEngine(searchRadius);
+    List<OsmNodeNamed> wps = buildStartWaypointList();
+    re.buildPointsFromCircle(wps, startAngle, searchRadius, targetPoints);
+    Assert.assertEquals(6, wps.size());
+
+    List<OsmNodeNamed> userWps = new ArrayList<>();
+    userWps.add(createNode("via1", START_ILON + 50000, START_ILAT));
+
+    re.mergeUserWaypointsIntoLoop(wps, userWps, startAngle, targetPoints);
+
+    // 1 start + targetPoints intermediates (4 circle kept + 1 user) + 1 closing
+    Assert.assertEquals(targetPoints + 2, wps.size());
+    Assert.assertEquals("from", wps.get(0).name);
+    Assert.assertEquals("to_rt", wps.get(wps.size() - 1).name);
+
+    boolean foundUser = false;
+    for (OsmNodeNamed wp : wps) {
+      if ("via1".equals(wp.name)) foundUser = true;
+    }
+    Assert.assertTrue("user waypoint must be in the loop", foundUser);
+  }
+
+  @Test
+  public void mergeUserWaypointsEmptyList() {
+    double searchRadius = 5000;
+    RoutingEngine re = createDummyEngine(searchRadius);
+    List<OsmNodeNamed> wps = buildStartWaypointList();
+    re.buildPointsFromCircle(wps, 90, searchRadius, 5);
+    int sizeBefore = wps.size();
+
+    re.mergeUserWaypointsIntoLoop(wps, new ArrayList<>(), 90, 5);
+
+    Assert.assertEquals("no change when no user waypoints", sizeBefore, wps.size());
+  }
+
+  @Test
+  public void mergeUserWaypointsSortedByBearing() {
+    double searchRadius = 5000;
+    int targetPoints = 8;
+
+    RoutingEngine re = createDummyEngine(searchRadius);
+    List<OsmNodeNamed> wps = buildStartWaypointList();
+
+    OsmNodeNamed closing = new OsmNodeNamed(wps.get(0));
+    closing.name = "to_rt";
+    wps.add(closing);
+
+    List<OsmNodeNamed> userWps = new ArrayList<>();
+    userWps.add(createNode("viaEast", START_ILON + 50000, START_ILAT + 50000));
+    userWps.add(createNode("viaWest", START_ILON - 50000, START_ILAT + 50000));
+
+    re.mergeUserWaypointsIntoLoop(wps, userWps, 0, targetPoints);
+
+    // startAngle=0 (north): NW has negative relative bearing, NE has positive
+    Assert.assertEquals("from", wps.get(0).name);
+    Assert.assertEquals("viaWest", wps.get(1).name);
+    Assert.assertEquals("viaEast", wps.get(2).name);
+    Assert.assertEquals("to_rt", wps.get(3).name);
+  }
+
   @Test
   public void buildPointsFromCircleGeometry() {
     double searchRadius = 5000;
-    double startAngle = 90; // east
+    double startAngle = 90;
     int points = 5;
 
-    List<OsmNodeNamed> wps = new ArrayList<>();
-    OsmNodeNamed start = new OsmNodeNamed();
-    start.ilon = START_ILON;
-    start.ilat = START_ILAT;
-    start.name = "from";
-    wps.add(start);
+    List<OsmNodeNamed> wps = buildStartWaypointList();
+    OsmNodeNamed start = wps.get(0);
 
     RoutingEngine re = createDummyEngine(searchRadius);
     re.buildPointsFromCircle(wps, startAngle, searchRadius, points);
@@ -261,6 +323,113 @@ public class RoutingEngineTest {
         Math.abs(dist - searchRadius) < searchRadius * 0.1);
       Assert.assertTrue(wps.get(i).name.startsWith("rt"));
     }
+  }
+
+  // removeBackAndForthSegments removes overlapping nodes around a waypoint
+  @Test
+  public void removeBackAndForthAtWaypoint() {
+    double searchRadius = 5000;
+    RoutingEngine re = createDummyEngine(searchRadius);
+
+    // Build a track: A, B, C, W, C, B, D, E
+    // where W is a waypoint and C, B appear on both sides (back-and-forth)
+    OsmTrack track = new OsmTrack();
+    OsmPathElement nodeA = OsmPathElement.create(1000, 1000, (short) 0, null);
+    OsmPathElement nodeB = OsmPathElement.create(2000, 2000, (short) 0, null);
+    OsmPathElement nodeC = OsmPathElement.create(3000, 3000, (short) 0, null);
+    OsmPathElement nodeW = OsmPathElement.create(4000, 4000, (short) 0, null);
+    OsmPathElement nodeC2 = OsmPathElement.create(3000, 3000, (short) 0, null); // same pos as C
+    OsmPathElement nodeB2 = OsmPathElement.create(2000, 2000, (short) 0, null); // same pos as B
+    OsmPathElement nodeD = OsmPathElement.create(5000, 5000, (short) 0, null);
+    OsmPathElement nodeE = OsmPathElement.create(6000, 6000, (short) 0, null);
+
+    track.nodes.add(nodeA);   // 0
+    track.nodes.add(nodeB);   // 1
+    track.nodes.add(nodeC);   // 2
+    track.nodes.add(nodeW);   // 3 - waypoint
+    track.nodes.add(nodeC2);  // 4 - duplicate of C
+    track.nodes.add(nodeB2);  // 5 - duplicate of B
+    track.nodes.add(nodeD);   // 6
+    track.nodes.add(nodeE);   // 7
+
+    // Set up waypoints: start at index 0, intermediate waypoint W at index 3, end at index 7
+    List<MatchedWaypoint> wpts = new ArrayList<>();
+    MatchedWaypoint startWp = createMatchedWaypoint("from", 1000, 1000, 1000, 1000);
+    startWp.indexInTrack = 0;
+    wpts.add(startWp);
+
+    MatchedWaypoint midWp = createMatchedWaypoint("rt1", 4000, 4000, 4000, 4000);
+    midWp.indexInTrack = 3;
+    wpts.add(midWp);
+
+    MatchedWaypoint endWp = createMatchedWaypoint("to_rt", 6000, 6000, 6000, 6000);
+    endWp.indexInTrack = 7;
+    wpts.add(endWp);
+
+    re.removeBackAndForthSegments(track, wpts);
+
+    // After removal: A, B, C, W, D, E (C2 and B2 removed)
+    Assert.assertEquals("should have 6 nodes after removal", 6, track.nodes.size());
+    Assert.assertSame("node 0 should be A", nodeA, track.nodes.get(0));
+    Assert.assertSame("node 1 should be B", nodeB, track.nodes.get(1));
+    Assert.assertSame("node 2 should be C", nodeC, track.nodes.get(2));
+    Assert.assertSame("node 3 should be W (waypoint kept)", nodeW, track.nodes.get(3));
+    Assert.assertSame("node 4 should be D", nodeD, track.nodes.get(4));
+    Assert.assertSame("node 5 should be E", nodeE, track.nodes.get(5));
+
+    // End waypoint index should be updated
+    Assert.assertEquals("end waypoint index should be adjusted", 5, endWp.indexInTrack);
+  }
+
+  // removeBackAndForthSegments does nothing when there's no overlap
+  @Test
+  public void removeBackAndForthNoOverlap() {
+    double searchRadius = 5000;
+    RoutingEngine re = createDummyEngine(searchRadius);
+
+    OsmTrack track = new OsmTrack();
+    OsmPathElement nodeA = OsmPathElement.create(1000, 1000, (short) 0, null);
+    OsmPathElement nodeB = OsmPathElement.create(2000, 2000, (short) 0, null);
+    OsmPathElement nodeC = OsmPathElement.create(3000, 3000, (short) 0, null);
+    OsmPathElement nodeD = OsmPathElement.create(4000, 4000, (short) 0, null);
+    OsmPathElement nodeE = OsmPathElement.create(5000, 5000, (short) 0, null);
+
+    track.nodes.add(nodeA);
+    track.nodes.add(nodeB);
+    track.nodes.add(nodeC);
+    track.nodes.add(nodeD);
+    track.nodes.add(nodeE);
+
+    List<MatchedWaypoint> wpts = new ArrayList<>();
+    MatchedWaypoint startWp = createMatchedWaypoint("from", 1000, 1000, 1000, 1000);
+    startWp.indexInTrack = 0;
+    wpts.add(startWp);
+
+    MatchedWaypoint midWp = createMatchedWaypoint("rt1", 3000, 3000, 3000, 3000);
+    midWp.indexInTrack = 2;
+    wpts.add(midWp);
+
+    MatchedWaypoint endWp = createMatchedWaypoint("to_rt", 5000, 5000, 5000, 5000);
+    endWp.indexInTrack = 4;
+    wpts.add(endWp);
+
+    re.removeBackAndForthSegments(track, wpts);
+
+    Assert.assertEquals("should have 5 nodes (unchanged)", 5, track.nodes.size());
+  }
+
+  private static OsmNodeNamed createNode(String name, int ilon, int ilat) {
+    OsmNodeNamed n = new OsmNodeNamed();
+    n.name = name;
+    n.ilon = ilon;
+    n.ilat = ilat;
+    return n;
+  }
+
+  private List<OsmNodeNamed> buildStartWaypointList() {
+    List<OsmNodeNamed> wps = new ArrayList<>();
+    wps.add(createNode("from", START_ILON, START_ILAT));
+    return wps;
   }
 
   private MatchedWaypoint createMatchedWaypoint(String name, int wpIlon, int wpIlat, int cpIlon, int cpIlat) {
