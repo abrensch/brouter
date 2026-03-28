@@ -688,6 +688,47 @@ public class RoutingEngine extends Thread {
     }
   }
 
+  /**
+   * Remove micro-detours: small loops where the route visits the same node twice
+   * within a short distance. These occur when the router briefly leaves a road
+   * and returns to the same intersection.
+   *
+   * @param maxLoopDistance maximum total distance of a loop to be considered a micro-detour (in meters)
+   */
+  void removeMicroDetours(OsmTrack track, int maxLoopDistance) {
+    List<OsmPathElement> nodes = track.nodes;
+    boolean changed = true;
+
+    while (changed) {
+      changed = false;
+      Map<Long, Integer> firstOccurrence = new HashMap<>();
+
+      for (int i = 0; i < nodes.size(); i++) {
+        long id = nodes.get(i).getIdFromPos();
+        Integer firstIdx = firstOccurrence.get(id);
+        if (firstIdx == null) {
+          firstOccurrence.put(id, i);
+          continue;
+        }
+
+        int loopDist = 0;
+        for (int j = firstIdx + 1; j <= i; j++) {
+          loopDist += nodes.get(j).calcDistance(nodes.get(j - 1));
+        }
+
+        if (loopDist <= maxLoopDistance && loopDist > 0) {
+          logInfo("removeMicroDetours: removing " + (i - firstIdx) + " nodes (loop of " + loopDist + "m at index " + firstIdx + ")");
+          nodes.subList(firstIdx + 1, i + 1).clear();
+          changed = true;
+          break; // restart scan since indices shifted
+        } else {
+          // advance to later occurrence so we detect the shortest loops
+          firstOccurrence.put(id, i);
+        }
+      }
+    }
+  }
+
   void buildPointsFromCircle(List<OsmNodeNamed> waypoints, double startAngle, double searchRadius, int points) {
     //startAngle -= 90;
     for (int i = 1; i < points; i++) {
@@ -1217,6 +1258,7 @@ public class RoutingEngine extends Thread {
 
     if (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) {
       removeBackAndForthSegments(totaltrack, matchedWaypoints);
+      removeMicroDetours(totaltrack, 350);
     }
 
     recalcTrack(totaltrack);
