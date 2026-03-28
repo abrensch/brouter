@@ -455,7 +455,7 @@ public class RoutingEngineTest {
     track.nodes.add(nodeB2);
     track.nodes.add(nodeE);
 
-    re.removeMicroDetours(track, 150);
+    re.removeMicroDetours(track, 150, new ArrayList<>());
 
     // After removal: A, B, E (loop C→D→B2 removed)
     Assert.assertEquals("should have 3 nodes after micro-detour removal", 3, track.nodes.size());
@@ -486,7 +486,7 @@ public class RoutingEngineTest {
     track.nodes.add(nodeB2);
     track.nodes.add(nodeD);
 
-    re.removeMicroDetours(track, 150);
+    re.removeMicroDetours(track, 150, new ArrayList<>());
 
     Assert.assertEquals("should have 5 nodes (loop too large to remove)", 5, track.nodes.size());
   }
@@ -500,7 +500,7 @@ public class RoutingEngineTest {
     track.nodes.add(OsmPathElement.create(2000, 2000, (short) 0, null));
     track.nodes.add(OsmPathElement.create(3000, 3000, (short) 0, null));
 
-    re.removeMicroDetours(track, 150);
+    re.removeMicroDetours(track, 150, new ArrayList<>());
 
     Assert.assertEquals("should have 3 nodes (unchanged)", 3, track.nodes.size());
   }
@@ -532,7 +532,7 @@ public class RoutingEngineTest {
     track.nodes.add(nodeE2);
     track.nodes.add(nodeG);
 
-    re.removeMicroDetours(track, 150);
+    re.removeMicroDetours(track, 150, new ArrayList<>());
 
     // After removal: A, B, D, E, G
     Assert.assertEquals("should have 5 nodes after removing two detours", 5, track.nodes.size());
