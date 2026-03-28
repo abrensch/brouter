@@ -9,6 +9,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.OsmNode;
@@ -93,6 +94,20 @@ public class RoutingEngineTest {
     int closingDistance = first.calcDistance(last);
     Assert.assertTrue("loop should close near origin, but gap is " + closingDistance + "m",
       closingDistance < 500);
+
+    // verify no micro-detours remain: no node should appear twice within 350m of track distance
+    Map<Long, Integer> lastSeen = new HashMap<>();
+    int cumDist = 0;
+    for (int i = 0; i < track.nodes.size(); i++) {
+      if (i > 0) cumDist += track.nodes.get(i).calcDistance(track.nodes.get(i - 1));
+      long id = track.nodes.get(i).getIdFromPos();
+      Integer prevDist = lastSeen.put(id, cumDist);
+      if (prevDist != null) {
+        int loopDist = cumDist - prevDist;
+        Assert.assertTrue("micro-detour found: node " + id + " revisited after " + loopDist + "m",
+          loopDist > 350);
+      }
+    }
   }
 
   // Round-trip with large radius pushing waypoints outside road data area
@@ -416,6 +431,116 @@ public class RoutingEngineTest {
     re.removeBackAndForthSegments(track, wpts);
 
     Assert.assertEquals("should have 5 nodes (unchanged)", 5, track.nodes.size());
+  }
+
+  // removeMicroDetours removes small loops where the route visits the same node twice
+  @Test
+  public void removeMicroDetoursSimpleLoop() {
+    RoutingEngine re = createDummyEngine(5000);
+
+    // Build a track: A → B → C → D → B → E
+    // where B appears twice, creating a small loop B→C→D→B
+    OsmTrack track = new OsmTrack();
+    OsmPathElement nodeA = OsmPathElement.create(1000, 1000, (short) 0, null);
+    OsmPathElement nodeB = OsmPathElement.create(1010, 1000, (short) 0, null); // ~0.7m from A
+    OsmPathElement nodeC = OsmPathElement.create(1010, 1010, (short) 0, null);
+    OsmPathElement nodeD = OsmPathElement.create(1020, 1010, (short) 0, null);
+    OsmPathElement nodeB2 = OsmPathElement.create(1010, 1000, (short) 0, null); // same pos as B
+    OsmPathElement nodeE = OsmPathElement.create(1020, 1000, (short) 0, null);
+
+    track.nodes.add(nodeA);
+    track.nodes.add(nodeB);
+    track.nodes.add(nodeC);
+    track.nodes.add(nodeD);
+    track.nodes.add(nodeB2);
+    track.nodes.add(nodeE);
+
+    re.removeMicroDetours(track, 150, new ArrayList<>());
+
+    // After removal: A, B, E (loop C→D→B2 removed)
+    Assert.assertEquals("should have 3 nodes after micro-detour removal", 3, track.nodes.size());
+    Assert.assertSame("node 0 should be A", nodeA, track.nodes.get(0));
+    Assert.assertSame("node 1 should be B", nodeB, track.nodes.get(1));
+    Assert.assertSame("node 2 should be E", nodeE, track.nodes.get(2));
+  }
+
+  // removeMicroDetours does NOT remove loops that are too large
+  @Test
+  public void removeMicroDetoursKeepsLargeLoop() {
+    RoutingEngine re = createDummyEngine(5000);
+
+    // Build a track with a large loop using realistic coordinates (~50N, ~8E)
+    // Each 1000 units ≈ 0.001 degrees ≈ 70-110m, so 5000 units apart ≈ 350-550m
+    int baseLon = START_ILON;
+    int baseLat = START_ILAT;
+    OsmTrack track = new OsmTrack();
+    OsmPathElement nodeA = OsmPathElement.create(baseLon, baseLat, (short) 0, null);
+    OsmPathElement nodeB = OsmPathElement.create(baseLon + 5000, baseLat, (short) 0, null);
+    OsmPathElement nodeC = OsmPathElement.create(baseLon + 10000, baseLat, (short) 0, null);
+    OsmPathElement nodeB2 = OsmPathElement.create(baseLon + 5000, baseLat, (short) 0, null); // same as B
+    OsmPathElement nodeD = OsmPathElement.create(baseLon + 15000, baseLat, (short) 0, null);
+
+    track.nodes.add(nodeA);
+    track.nodes.add(nodeB);
+    track.nodes.add(nodeC);
+    track.nodes.add(nodeB2);
+    track.nodes.add(nodeD);
+
+    re.removeMicroDetours(track, 150, new ArrayList<>());
+
+    Assert.assertEquals("should have 5 nodes (loop too large to remove)", 5, track.nodes.size());
+  }
+
+  @Test
+  public void removeMicroDetoursNoLoop() {
+    RoutingEngine re = createDummyEngine(5000);
+
+    OsmTrack track = new OsmTrack();
+    track.nodes.add(OsmPathElement.create(1000, 1000, (short) 0, null));
+    track.nodes.add(OsmPathElement.create(2000, 2000, (short) 0, null));
+    track.nodes.add(OsmPathElement.create(3000, 3000, (short) 0, null));
+
+    re.removeMicroDetours(track, 150, new ArrayList<>());
+
+    Assert.assertEquals("should have 3 nodes (unchanged)", 3, track.nodes.size());
+  }
+
+  @Test
+  public void removeMicroDetoursMultipleLoops() {
+    RoutingEngine re = createDummyEngine(5000);
+
+    // Track: A → B → C → B → D → E → F → E → G
+    // Two micro-detours: B→C→B and E→F→E
+    OsmTrack track = new OsmTrack();
+    OsmPathElement nodeA = OsmPathElement.create(1000, 1000, (short) 0, null);
+    OsmPathElement nodeB = OsmPathElement.create(1010, 1000, (short) 0, null);
+    OsmPathElement nodeC = OsmPathElement.create(1010, 1010, (short) 0, null);
+    OsmPathElement nodeB2 = OsmPathElement.create(1010, 1000, (short) 0, null);
+    OsmPathElement nodeD = OsmPathElement.create(1020, 1000, (short) 0, null);
+    OsmPathElement nodeE = OsmPathElement.create(1030, 1000, (short) 0, null);
+    OsmPathElement nodeF = OsmPathElement.create(1030, 1010, (short) 0, null);
+    OsmPathElement nodeE2 = OsmPathElement.create(1030, 1000, (short) 0, null);
+    OsmPathElement nodeG = OsmPathElement.create(1040, 1000, (short) 0, null);
+
+    track.nodes.add(nodeA);
+    track.nodes.add(nodeB);
+    track.nodes.add(nodeC);
+    track.nodes.add(nodeB2);
+    track.nodes.add(nodeD);
+    track.nodes.add(nodeE);
+    track.nodes.add(nodeF);
+    track.nodes.add(nodeE2);
+    track.nodes.add(nodeG);
+
+    re.removeMicroDetours(track, 150, new ArrayList<>());
+
+    // After removal: A, B, D, E, G
+    Assert.assertEquals("should have 5 nodes after removing two detours", 5, track.nodes.size());
+    Assert.assertSame(nodeA, track.nodes.get(0));
+    Assert.assertSame(nodeB, track.nodes.get(1));
+    Assert.assertSame(nodeD, track.nodes.get(2));
+    Assert.assertSame(nodeE, track.nodes.get(3));
+    Assert.assertSame(nodeG, track.nodes.get(4));
   }
 
   private static OsmNodeNamed createNode(String name, int ilon, int ilat) {
