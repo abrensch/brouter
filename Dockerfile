@@ -29,13 +29,19 @@ RUN mkdir -p /brouter/segments4 /brouter/customprofiles && chown -R brouter:brou
 
 VOLUME ["/brouter/segments4"]
 
+# Runtime configuration — override via environment variables
+ENV JAVA_OPTS="-Xmx512m -Xms256m" \
+    BROUTER_PORT=17777 \
+    BROUTER_MAX_THREADS=4
+
 USER brouter
 
-# BRouter server listens on port 17777 by default
 EXPOSE 17777
 
-ENTRYPOINT ["java"]
-CMD ["-Xmx512m", "-Xms256m", "-cp", "/brouter/brouter-server.jar", \
-     "btools.server.RouteServer", "/brouter/segments4", "/brouter/profiles2", \
-     "customprofiles", "17777", "1"]
+# Shell form so env vars are expanded at runtime
+ENTRYPOINT exec java $JAVA_OPTS \
+    -cp /brouter/brouter-server.jar \
+    btools.server.RouteServer \
+    /brouter/segments4 /brouter/profiles2 customprofiles \
+    $BROUTER_PORT $BROUTER_MAX_THREADS
 
