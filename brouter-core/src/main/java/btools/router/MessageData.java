@@ -50,7 +50,7 @@ final class MessageData implements Cloneable {
     int iCost = (int) (costfactor * 1000 + 0.5f);
     String userOutputBlock="";
     for (int i=0; i<userOutputCount; ++i) {
-      userOutputBlock += "\t" + ((int) (userOutput.get(i) * 1000 + 0.5f));
+      userOutputBlock += "\t" + (int) (userOutput.get(i) + 0.5f);
     }
 
     return (lon - 180000000) + "\t"
