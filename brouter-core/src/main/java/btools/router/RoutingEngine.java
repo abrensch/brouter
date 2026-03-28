@@ -496,9 +496,6 @@ public class RoutingEngine extends Thread {
       double directionAdd = (routingContext.roundTripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD :routingContext.roundTripDirectionAdd);
       if (direction == -1) direction = getRandomDirectionFromData(waypoints.get(0), searchRadius);
 
-      List<OsmNodeNamed> userViaPoints = new ArrayList<>(waypoints.subList(1, waypoints.size()));
-      waypoints.subList(1, waypoints.size()).clear();
-
       if (routingContext.allowSamewayback) {
         int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction);
         MatchedWaypoint wpt2 = new MatchedWaypoint();
@@ -509,6 +506,9 @@ public class RoutingEngine extends Thread {
         onn.name = "rt1";
         waypoints.add(onn);
       } else {
+        List<OsmNodeNamed> userViaPoints = new ArrayList<>(waypoints.subList(1, waypoints.size()));
+        waypoints.subList(1, waypoints.size()).clear();
+
         int targetPoints = routingContext.roundTripPoints == null ? 5 : routingContext.roundTripPoints;
         buildPointsFromCircle(waypoints, direction, searchRadius, targetPoints);
 
@@ -695,7 +695,7 @@ public class RoutingEngine extends Thread {
    *
    * @param maxLoopDistance maximum total distance of a loop to be considered a micro-detour (in meters)
    */
-  void removeMicroDetours(OsmTrack track, int maxLoopDistance) {
+  void removeMicroDetours(OsmTrack track, int maxLoopDistance, List<MatchedWaypoint> waypoints) {
     List<OsmPathElement> nodes = track.nodes;
     boolean changed = true;
 
@@ -717,8 +717,16 @@ public class RoutingEngine extends Thread {
         }
 
         if (loopDist <= maxLoopDistance && loopDist > 0) {
-          logInfo("removeMicroDetours: removing " + (i - firstIdx) + " nodes (loop of " + loopDist + "m at index " + firstIdx + ")");
+          int removeCount = i - firstIdx;
+          logInfo("removeMicroDetours: removing " + removeCount + " nodes (loop of " + loopDist + "m at index " + firstIdx + ")");
           nodes.subList(firstIdx + 1, i + 1).clear();
+          for (MatchedWaypoint mwp : waypoints) {
+            if (mwp.indexInTrack > i) {
+              mwp.indexInTrack -= removeCount;
+            } else if (mwp.indexInTrack > firstIdx) {
+              mwp.indexInTrack = firstIdx;
+            }
+          }
           changed = true;
           break; // restart scan since indices shifted
         } else {
@@ -1258,7 +1266,7 @@ public class RoutingEngine extends Thread {
 
     if (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) {
       removeBackAndForthSegments(totaltrack, matchedWaypoints);
-      removeMicroDetours(totaltrack, 350);
+      removeMicroDetours(totaltrack, 350, matchedWaypoints);
     }
 
     recalcTrack(totaltrack);
