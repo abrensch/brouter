@@ -111,6 +111,8 @@ final class KinematicPath extends OsmPath {
       cutEkin(km.totalweight, turnspeed); // apply turnspeed
     }
 
+    double sectionCost = extraTime;
+
     // linear temperature correction
     double tcorr = (20. - km.outside_temp) * 0.0035;
 
@@ -121,6 +123,9 @@ final class KinematicPath extends OsmPath {
 
     double distanceCost = evolveDistance(km, dist, delta_h, f_air);
 
+
+    float cf = rc.expctxWay.getCostfactor();
+
     if (message != null) {
       message.costfactor = (float) (distanceCost / dist);
       message.vmax = (int) (km.getWayMaxspeed() * 3.6 + 0.5);
@@ -129,10 +134,14 @@ final class KinematicPath extends OsmPath {
       message.extraTime = (int) (extraTime * 1000);
     }
 
-    cost += extraTime * km.pw / km.cost0;
+    cost += dist * cf + 0.5f;
+
+    cost += (extraTime * km.pw / km.cost0);
     totalTime += extraTime;
 
-    return cost + distanceCost;
+    cost += distanceCost;
+
+    return cost;
   }
 
 

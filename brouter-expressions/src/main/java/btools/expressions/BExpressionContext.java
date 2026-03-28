@@ -82,6 +82,8 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
 
   public int[] noStartWays = new int[0];
 
+  boolean showErrors = Boolean.getBoolean("showErrors");
+
   protected void setInverseVars() {
     currentVarOffset = nBuildInVars;
   }
@@ -258,7 +260,17 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     float res = 0f;
     int val = lookupData[key];
     if (val == 0) return Float.NaN;
-    res = (val - 1000) / 100f;
+    if (val < 900) {
+      try {
+        BExpressionLookupValue[] va = lookupValues.get(key);
+        String sval = va[val].toString();
+        res = Float.parseFloat(sval);
+      } catch (NumberFormatException e) {
+        res = 0f;
+      }
+    } else {
+      res = (val - 1000) / 100f;
+    }
     return res;
   }
 
@@ -631,7 +643,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
               if (sa.length >= 1) value = sa[0];
               float cm = Float.parseFloat(value);
               value = String.format(Locale.US, "%3.1f", cm / 100f);
-            } else if (value.contains("meter")) {
+            } else if (value.contains("metre") || value.contains("meter")) {
               value = value.substring(0, value.indexOf("m"));
             } else if (value.contains("mph")) {
               String[] sa = value.split("mph");
@@ -650,6 +662,24 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
               value = value.substring(0, value.indexOf("m"));
             } else if (value.contains("(")) {
               value = value.substring(0, value.indexOf("("));
+            } else if (value.contains("st")) {
+              String[] sa = value.split("st");
+              if (sa.length >= 1) value = sa[0];
+              float st = Float.parseFloat(value);
+              value = String.format(Locale.US, "%3.1f", st * 0.907f);
+            } else if (value.contains("kg")) {
+              String[] sa = value.split("kg");
+              if (sa.length >= 1) value = sa[0];
+              float kg = Float.parseFloat(value);
+              value = String.format(Locale.US, "%3.1f", kg / 1000f);
+            } else if (value.contains("lbs")) {
+              String[] sa = value.split("lbs");
+              if (sa.length >= 1) value = sa[0];
+              float lbs = Float.parseFloat(value);
+              value = String.format(Locale.US, "%3.1f", lbs / 2204f);
+            } else if (value.contains("t")) {
+              String[] sa = value.split("t");
+              if (sa.length >= 1) value = sa[0];
             }
             // found negative maxdraft values
             // no negative values
@@ -657,7 +687,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
             lookupData2[num] = 1000 + (int) (Math.abs(Float.parseFloat(value)) * 100f);
           } catch (Exception e) {
             // ignore errors
-            System.err.println("error for " + name + "  " + org + " trans " + value + " " + e.getMessage());
+            if (showErrors) System.err.println("error for " + name + "  " + org + " trans " + value + " " + e.getMessage());
             lookupData2[num] = 0;
           }
         }
