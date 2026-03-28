@@ -2,10 +2,13 @@ package btools.router;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.net.URL;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,34 +21,32 @@ import btools.util.CheapRuler;
 public class RoutingEngineTest {
   private static final int START_ILON = 188720000; // ~8.72E
   private static final int START_ILAT = 140000000; // ~50.0N
-  private static final String PROFILE_PATH = "/../../../../misc/profiles2/trekking.brf";
-  private static final String SEGMENTS_PATH = "/../../../../brouter-map-creator/build/resources/test/tmp/segments";
 
-  private File workingDir;
+  @Rule
+  public TemporaryFolder outputDir = new TemporaryFolder();
+
+  private File projectDir;
 
   @Before
-  public void before() {
-    URL resulturl = this.getClass().getResource("/testtrack0.gpx");
-    Assert.assertNotNull("reference result not found: ", resulturl);
-    File resultfile = new File(resulturl.getFile());
-    workingDir = resultfile.getParentFile();
+  public void before() throws Exception {
+    // Gradle sets cwd to the module directory (brouter-core/)
+    projectDir = new File(".").getCanonicalFile().getParentFile();
   }
 
   @Test
-  public void routeCrossingSegmentBorder() {
-    String msg = calcRoute(8.720897, 50.002515, 8.723658, 49.997510, "testtrack", new RoutingContext());
-    // error message from router?
+  public void routeCrossingSegmentBorder() throws Exception {
+    // Copy reference track into temp dir so engine finds it for comparison and produces an alternative
+    copyResourceToDir("/testtrack0.gpx", outputDir.getRoot());
+    String msg = calcRoute(8.720897, 50.002515, 8.723658, 49.997510, outputDir.getRoot(), "testtrack", new RoutingContext());
     Assert.assertNull("routing failed: " + msg, msg);
 
-    // if the track didn't change, we expect the first alternative also
-    File a1 = new File(workingDir, "testtrack1.gpx");
-    a1.deleteOnExit();
+    File a1 = new File(outputDir.getRoot(), "testtrack1.gpx");
     Assert.assertTrue("result content mismatch", a1.exists());
   }
 
   @Test
   public void routeDestinationPointFarOff() {
-    String msg = calcRoute(8.720897, 50.002515, 16.723658, 49.997510, "notrack", new RoutingContext());
+    String msg = calcRoute(8.720897, 50.002515, 16.723658, 49.997510, outputDir.getRoot(), "notrack", new RoutingContext());
     Assert.assertTrue(msg, msg != null && msg.contains("not found"));
   }
 
@@ -53,24 +54,20 @@ public class RoutingEngineTest {
   // while explicitely overriding a routing profile parameter
   @Test
   public void overrideParam() {
-    // 1st route computing (with param)
+    // 1st route computing (with param) — writes paramTrack0.gpx
     RoutingContext rctx = new RoutingContext();
     rctx.keyValues = new HashMap<>();
     rctx.keyValues.put("avoid_unsafe", "1.0");
-    String msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "paramTrack", rctx);
+    String msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, outputDir.getRoot(), "paramTrack", rctx);
     Assert.assertNull("routing failed (paramTrack 1st route): " + msg, msg);
-    // 2nd route computing (same from/to & same param)
+    // 2nd route computing (same from/to & same param) — finds paramTrack0.gpx, produces alternative
     rctx = new RoutingContext();
     rctx.keyValues = new HashMap<>();
     rctx.keyValues.put("avoid_unsafe", "1.0");
-    msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "paramTrack", rctx);
+    msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, outputDir.getRoot(), "paramTrack", rctx);
     Assert.assertNull("routing failed (paramTrack 2nd route): " + msg, msg);
 
-    File trackFile = new File(workingDir, "paramTrack0.gpx");
-    trackFile.deleteOnExit();
-    trackFile = new File(workingDir, "paramTrack1.gpx");
-    trackFile.deleteOnExit();
-    // checks if a gpx file has been created for the alternative route
+    File trackFile = new File(outputDir.getRoot(), "paramTrack1.gpx");
     Assert.assertTrue("result content mismatch", trackFile.exists());
   }
 
@@ -568,8 +565,22 @@ public class RoutingEngineTest {
     return mwp;
   }
 
+  private void copyResourceToDir(String resource, File dir) throws Exception {
+    try (InputStream in = getClass().getResourceAsStream(resource)) {
+      Assert.assertNotNull("resource not found: " + resource, in);
+      Files.copy(in, new File(dir, resource.substring(resource.lastIndexOf('/') + 1)).toPath());
+    }
+  }
+
+  private File profileFile() {
+    return new File(projectDir, "misc/profiles2/trekking.brf");
+  }
+
+  private File segmentDir() {
+    return new File(projectDir, "brouter-map-creator/build/resources/test/tmp/segments");
+  }
+
   private RoutingEngine createDummyEngine(double searchRadius) {
-    String wd = workingDir.getAbsolutePath();
     List<OsmNodeNamed> wplist = new ArrayList<>();
     OsmNodeNamed n = new OsmNodeNamed();
     n.name = "from";
@@ -577,17 +588,17 @@ public class RoutingEngineTest {
     n.ilat = START_ILAT;
     wplist.add(n);
     RoutingContext rctx = new RoutingContext();
-    rctx.localFunction = wd + PROFILE_PATH;
+    rctx.localFunction = profileFile().getAbsolutePath();
     RoutingEngine re = new RoutingEngine(
       null, null,
-      new File(wd, SEGMENTS_PATH),
+      segmentDir(),
       wplist, rctx, RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP);
     re.roundTripSearchRadius = searchRadius;
     return re;
   }
 
   private RoutingEngine calcRoundTrip(double lon, double lat, String trackname, RoutingContext rctx) {
-    String wd = workingDir.getAbsolutePath();
+    String out = new File(outputDir.getRoot(), trackname).getAbsolutePath();
 
     List<OsmNodeNamed> wplist = new ArrayList<>();
     OsmNodeNamed n = new OsmNodeNamed();
@@ -596,12 +607,11 @@ public class RoutingEngineTest {
     n.ilat = 90000000 + (int) (lat * 1000000 + 0.5);
     wplist.add(n);
 
-    rctx.localFunction = wd + PROFILE_PATH;
+    rctx.localFunction = profileFile().getAbsolutePath();
 
     RoutingEngine re = new RoutingEngine(
-      wd + "/" + trackname,
-      wd + "/" + trackname,
-      new File(wd, SEGMENTS_PATH),
+      out, out,
+      segmentDir(),
       wplist,
       rctx,
       RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP);
@@ -611,8 +621,8 @@ public class RoutingEngineTest {
     return re;
   }
 
-  private String calcRoute(double flon, double flat, double tlon, double tlat, String trackname, RoutingContext rctx) {
-    String wd = workingDir.getAbsolutePath();
+  private String calcRoute(double flon, double flat, double tlon, double tlat, File dir, String trackname, RoutingContext rctx) {
+    String out = new File(dir, trackname).getAbsolutePath();
 
     List<OsmNodeNamed> wplist = new ArrayList<>();
     OsmNodeNamed n;
@@ -628,12 +638,11 @@ public class RoutingEngineTest {
     n.ilat = 90000000 + (int) (tlat * 1000000 + 0.5);
     wplist.add(n);
 
-    rctx.localFunction = wd + PROFILE_PATH;
+    rctx.localFunction = profileFile().getAbsolutePath();
 
     RoutingEngine re = new RoutingEngine(
-      wd + "/" + trackname,
-      wd + "/" + trackname,
-      new File(wd, SEGMENTS_PATH),
+      out, out,
+      segmentDir(),
       wplist,
       rctx);
 
