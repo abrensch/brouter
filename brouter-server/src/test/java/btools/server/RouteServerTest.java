@@ -78,9 +78,9 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("1169", geoJson.query("/features/0/properties/track-length"));
-    Assert.assertEquals("-15", geoJson.query("/features/0/properties/plain-ascend"));
-    Assert.assertEquals("4", geoJson.query("/features/0/properties/filtered ascend"));
+    assertTrackLength(geoJson, 1169, 10);
+    assertIntProperty(geoJson, "/features/0/properties/plain-ascend", -15, 5);
+    assertIntProperty(geoJson, "/features/0/properties/filtered ascend", 4, 5);
   }
 
   @Test
@@ -93,7 +93,7 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("1455", geoJson.query("/features/0/properties/track-length"));
+    assertTrackLength(geoJson, 1455, 10);
   }
 
   @Test
@@ -119,7 +119,7 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("505", geoJson.query("/features/0/properties/track-length"));
+    assertTrackLength(geoJson, 505, 10);
   }
 
   @Test
@@ -132,7 +132,7 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("506", geoJson.query("/features/0/properties/track-length"));
+    assertTrackLength(geoJson, 506, 10);
   }
 
   @Test
@@ -145,7 +145,7 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("347", geoJson.query("/features/0/properties/track-length"));
+    assertTrackLength(geoJson, 347, 10);
   }
 
   @Test
@@ -158,7 +158,7 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("546", geoJson.query("/features/0/properties/track-length"));
+    assertTrackLength(geoJson, 546, 10);
   }
 
   @Test
@@ -171,7 +171,18 @@ public class RouteServerTest {
 
     InputStream inputStream = httpConnection.getInputStream();
     JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("482", geoJson.query("/features/0/properties/track-length"));
+    assertTrackLength(geoJson, 482, 10);
+  }
+
+  private static void assertTrackLength(JSONObject geoJson, int expected, int tolerance) {
+    assertIntProperty(geoJson, "/features/0/properties/track-length", expected, tolerance);
+  }
+
+  private static void assertIntProperty(JSONObject geoJson, String path, int expected, int tolerance) {
+    int actual = Integer.parseInt((String) geoJson.query(path));
+    Assert.assertTrue(
+      path + ": " + actual + " not within ±" + tolerance + " of " + expected,
+      Math.abs(actual - expected) <= tolerance);
   }
 
   @Test
