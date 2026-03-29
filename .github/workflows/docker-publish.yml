@@ -138,7 +138,7 @@ jobs:
       - name: Get merged digest
         id: merged-digest
         run: |
-          DIGEST=$(docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }} --format '{{.Manifest.Digest}}')
+          DIGEST=$(docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }} 2>&1 | awk '/^Digest:/{print $2; exit}')
           echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
 
       # Update infrastructure repo with the new image digest
