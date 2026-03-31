@@ -1,0 +1,502 @@
+# *** Skating - Long Distance Profile
+# *** Originally by Downhill Wings (downhillwings.ch)
+# ***
+# *** BRouter profile for long-distance inline/quad skating routing.
+# *** Calibrated against real Strava data from 289km of skating across
+# *** Switzerland and France (Geneva-Annecy, Tour du Lac Leman).
+# ***
+# *** Key principles:
+# ***  - Smooth asphalt is essential; concrete is fine, cobblestone tolerable
+# ***  - Unpaved and gravel surfaces are avoided (very slow and exhausting)
+# ***  - Gentle downhills are free speed; steep downhills require braking
+# ***  - Uphills are exhausting (no gears), but short climbs are acceptable
+# ***  - Sidewalks and footways are great - bypass traffic lights, ignore one-ways
+# ***  - Quiet roads preferred, main roads with bike infrastructure are fine
+
+---context:global   # following code refers to global config
+
+# Bike profile (needed for BRouter to accept the profile)
+assign validForBikes = true
+
+# ---User-configurable switches ----------------------------------
+assign   allow_steps              = true   # %allow_steps% | Allow steps (walk up in skates for shortcuts) | boolean
+assign   allow_ferries            = true   # %allow_ferries% | Set false to disallow ferries | boolean
+assign   ignore_cycleroutes       = true   # %ignore_cycleroutes% | Set true for better elevation results | boolean
+assign   stick_to_cycleroutes     = false  # %stick_to_cycleroutes% | Set true to just follow cycleroutes | boolean
+assign   avoid_unsafe             = true   # %avoid_unsafe% | Set true to avoid standard highways | boolean
+assign   add_beeline              = false  # %add_beeline% | Enable beeline on distant start/end points | boolean
+
+# ---Environment preferences -------------------------------------
+assign   consider_noise           = true   # %consider_noise% | Prefer quieter routes (gentle nudge, won't cause big detours) | boolean
+assign   consider_river           = false  # %consider_river% | Activate to prefer a route along rivers, lakes, etc. | boolean
+assign   consider_forest          = false  # %consider_forest% | Activate to prefer a route in forest or parks | boolean
+assign   consider_town            = false  # %consider_town% | Activate to bypass cities / big towns as far as possible | boolean
+assign   consider_traffic         = true   # %consider_traffic% | Activate to consider traffic estimates | boolean
+assign   traffic_sensitivity      = 2      # %traffic_sensitivity% | How much to avoid traffic: 1=tolerant 2=moderate 3=strong 4=avoid at all costs | [1|2|3|4]
+
+# ---Surface quality ---------------------------------------------
+assign   penalize_cobblestone     = false  # %penalize_cobblestone% | Extra penalty for cobblestone/sett (set true for long cobblestone sections) | boolean
+assign   prefer_smooth_asphalt    = true   # %prefer_smooth_asphalt% | Bonus for known smooth surfaces | boolean
+
+# ---Momentum / inertia ------------------------------------------
+# On skates, every stop destroys your momentum. Rebuilding speed is costly.
+# Traffic lights, crossings, sharp turns, and barriers all break your flow.
+assign   consider_momentum        = true   # %consider_momentum% | Penalize stops at traffic lights, crossings, barriers | boolean
+assign   momentum_sensitivity     = 2      # %momentum_sensitivity% | How much to penalize flow-breaking stops: 1=mild 2=moderate 3=strong | [1|2|3]
+
+# ---Elevation ----------------------------------------------------
+# Skating uphill is much harder than cycling (no gears, balance issues).
+# Gentle downhills are free speed; steep downhills require braking.
+assign   consider_elevation       = true   # %consider_elevation% | Set true to favor a route with few elevation meters | boolean
+assign   elevation_sensitivity    = 2      # %elevation_sensitivity% | How much to avoid hills: 1=mild 2=moderate 3=strong 4=extreme | [1|2|3|4]
+
+# Uphill cost: gradients below 1.5% are barely felt on skates.
+# Above that, every meter of climb is penalized (no gears!).
+assign uphillcost_base =
+       if equal elevation_sensitivity 1 then 40
+       else if equal elevation_sensitivity 2 then 80
+       else if equal elevation_sensitivity 3 then 140
+       else 220
+
+# Downhill cost: gentle descents are free speed, but steep descents
+# require braking which caps real-world speed at ~22 km/h regardless
+# of gradient. Downhill cost is ~37% of uphill cost, calibrated from
+# real speed data across 289km of skating.
+assign downhillcost_base =
+       if equal elevation_sensitivity 1 then 15
+       else if equal elevation_sensitivity 2 then 30
+       else if equal elevation_sensitivity 3 then 50
+       else 80
+
+assign downhillcost       = 0     # (overridden below)
+assign downhillcutoff     = 1.5   # %downhillcutoff% | Gentle descents below this % are truly free | number
+assign uphillcost         = 80    # (overridden below)
+assign uphillcutoff       = 1.5   # %uphillcutoff% | Gradients below this value in percents are not counted. | number
+
+assign downhillcost       = if consider_elevation then downhillcost_base else 0
+assign uphillcost         = if consider_elevation then uphillcost_base else 0
+
+# ---Kinematic model ----------------------------------------------
+# Calibrated for inline skating. Flat cruise ~ 20 km/h.
+#
+# vs cycling: more upright posture (higher drag), urethane wheels on
+# asphalt (slightly higher rolling resistance), lower sustained power.
+#
+# Real-world speeds from Strava (289km, 2 routes):
+#   Flat (+/-2%):    19.9 km/h (model: 20.1)
+#   Gentle down:   22 km/h
+#   Steep down:    22 km/h (braking limits speed regardless of gradient)
+#   Gentle up:     16 km/h
+#   Moderate up:   11 km/h
+#   Steep up:       8 km/h
+#
+assign totalMass  = 80     # %totalMass% | Mass (in kg) of skater + gear | number
+assign maxSpeed   = 55     # %maxSpeed% | Max speed (in km/h), experienced downhill skaters can handle more | number
+assign S_C_x      = 0.4    # %S_C_x% | Drag coefficient times reference area (upright skating posture) | number
+assign C_r        = 0.012  # %C_r% | Rolling resistance coefficient (urethane wheels on asphalt) | number
+assign bikerPower = 95     # %bikerPower% | Average sustained power (in W) by the skater | number
+
+# ---Turn instructions --------------------------------------------
+assign turnInstructionMode          = 1     # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style]
+assign turnInstructionCatchingRange = 40    # %turnInstructionCatchingRange% | Within this distance (in m) several turning instructions are combined into one | number
+assign turnInstructionRoundabouts   = true  # %turnInstructionRoundabouts% | Generate special turning instructions for roundabouts | boolean
+assign considerTurnRestrictions     = true  # %considerTurnRestrictions% | Set true to take turn restrictions into account | boolean
+
+assign processUnusedTags            = false # %processUnusedTags% | Set true to output unused tags in data tab | boolean
+
+---context:way   # following code refers to way-tags
+
+# classifier constants
+assign classifier_none  = 1
+assign classifier_ferry = 2
+
+# ---Pre-computed expressions -------------------------------------
+
+assign any_cycleroute =
+     if      route_bicycle_icn=yes then true
+     else if route_bicycle_ncn=yes then true
+     else if route_bicycle_rcn=yes then true
+     else if route_bicycle_lcn=yes then true
+     else false
+
+assign nodeaccessgranted =
+     if any_cycleroute then true
+     else lcn=yes
+
+assign is_ldcr =
+     if ignore_cycleroutes then false
+     else any_cycleroute
+
+assign isbike = or bicycle_road=yes or bicycle=yes or or bicycle=permissive bicycle=designated lcn=yes
+
+# ---Surface classification ---------------------------------------
+assign ispaved = surface=paved|asphalt|concrete|paving_stones|sett
+assign isasphalt = surface=asphalt
+assign isconcrete = surface=concrete
+assign ispaving_stones = surface=paving_stones
+assign iscobblestone = or surface=cobblestone surface=sett
+assign isunpaved = not or surface= or ispaved surface=fine_gravel|cobblestone
+assign isfine_gravel = surface=fine_gravel
+
+# "Probably good" requires actual paved surface evidence - stricter than bikes
+assign probablyGood = or isasphalt or isconcrete and ( or isbike highway=footway|cycleway ) not isunpaved
+
+# ---Smoothness penalty -------------------------------------------
+assign smoothness_penalty =
+     if smoothness=excellent then 0
+     else if smoothness=good then 0
+     else if smoothness=intermediate then 0.5
+     else if smoothness=bad then 3.0
+     else if smoothness=very_bad then 8.0
+     else if smoothness=horrible then 15.0
+     else if smoothness=very_horrible then 10000
+     else if smoothness=impassable then 10000
+     else 0
+
+# ---Surface penalty ----------------------------------------------
+# Asphalt is king. Concrete is fine. Paving stones are acceptable.
+# Cobblestone is rough but tolerable for short stretches. Unpaved is avoided.
+assign surface_penalty =
+     if isasphalt then 0
+     else if isconcrete then 0.2
+     else if ispaving_stones then ( if penalize_cobblestone then 1.5 else 0.6 )
+     else if iscobblestone then ( if penalize_cobblestone then 5.0 else 2.0 )
+     else if isfine_gravel then 10000
+     else if isunpaved then 10000
+     else 0   # unknown surface - assume rideable
+
+# ---Turn cost ----------------------------------------------------
+# Direction changes cost momentum. Values moderate because they stack
+# with node penalties at intersections.
+assign turncost_base =
+       if not consider_momentum then 30
+       else if equal momentum_sensitivity 1 then 40
+       else if equal momentum_sensitivity 2 then 60
+       else 90
+
+assign turncost = if is_ldcr then 0
+                  else if junction=roundabout then 0
+                  else turncost_base
+
+# ---Initial classifier (ferry detection) -------------------------
+assign initialclassifier =
+     if route=ferry then classifier_ferry
+     else classifier_none
+
+assign initialcost =
+     if ( equal initialclassifier classifier_ferry ) then 10000
+     else 0
+
+# ---Access logic -------------------------------------------------
+# Unlike cycling, inline skating works on footways and sidewalks.
+assign defaultaccess =
+       if access= then not motorroad=yes
+       else if access=private|no then false
+       else true
+
+assign bikeaccess =
+       if bicycle= then
+       (
+         if bicycle_road=yes then true
+         else if vehicle= then defaultaccess
+         else not vehicle=private|no
+       )
+       else not bicycle=private|no|dismount|use_sidepath
+
+assign footaccess =
+       if bicycle=dismount then true
+       else if foot= then defaultaccess
+       else not foot=private|no|use_sidepath
+
+# Foot-only access gets a small penalty (slower but perfectly doable)
+assign accesspenalty =
+       if bikeaccess then 0
+       else if footaccess then 2
+       else if any_cycleroute then 15
+       else 10000
+
+# ---One-way handling ---------------------------------------------
+# On skates you use the sidewalk - one-way direction is irrelevant.
+# Only penalize when there is truly no foot access.
+assign badoneway =
+       if reversedirection=yes then
+         if oneway:bicycle=yes then true
+         else if oneway= then junction=roundabout
+         else oneway=yes|true|1
+       else oneway=-1
+
+assign onewaypenalty =
+       if ( badoneway ) then
+       (
+         if      ( cycleway=opposite|opposite_lane|opposite_track       ) then 0
+         else if ( cycleway:left=opposite|opposite_lane|opposite_track  ) then 0
+         else if ( cycleway:right=opposite|opposite_lane|opposite_track ) then 0
+         else if ( oneway:bicycle=no                         ) then 0
+         else if ( cycleway:left:oneway=no                   ) then 0
+         else if ( cycleway:right:oneway=no                  ) then 0
+         else if ( not footaccess                            ) then 100
+         else if ( junction=roundabout|circular              ) then 10
+         else 1.0
+       )
+       else 0.0
+
+# ---Traffic penalty ----------------------------------------------
+assign traffic_multiplier =
+       if equal traffic_sensitivity 1 then 0.5
+       else if equal traffic_sensitivity 2 then 1
+       else if equal traffic_sensitivity 3 then 1.8
+       else 3
+
+assign traffic_penalty_raw
+   switch consider_traffic
+      switch estimated_traffic_class=       0
+      switch estimated_traffic_class=1|2    0.1
+      switch estimated_traffic_class=3      0.2
+      switch estimated_traffic_class=4      0.35
+      switch estimated_traffic_class=5      0.6
+      switch estimated_traffic_class=6|7    1.0 99 0
+
+assign traffic_penalty = multiply traffic_penalty_raw traffic_multiplier
+
+# ---Environment tiebreakers --------------------------------------
+# Low values - act as tiebreakers, not primary routing factors.
+
+assign noise_penalty
+   switch consider_noise
+     switch estimated_noise_class=  0
+     switch estimated_noise_class=1  0.05
+     switch estimated_noise_class=2  0.1
+     switch estimated_noise_class=3  0.2
+     switch estimated_noise_class=4  0.3
+     switch estimated_noise_class=5  0.4
+     switch estimated_noise_class=6  0.5 99 0
+
+assign no_river_penalty
+   switch consider_river
+     switch estimated_river_class=  2
+     switch estimated_river_class=1  1.3
+     switch estimated_river_class=2  1
+     switch estimated_river_class=3  0.7
+     switch estimated_river_class=4  0.4
+     switch estimated_river_class=5  0.1
+     switch estimated_river_class=6  0 99 0
+
+assign no_forest_penalty
+   switch consider_forest
+     switch estimated_forest_class=  1
+     switch estimated_forest_class=1  0.5
+     switch estimated_forest_class=2  0.4
+     switch estimated_forest_class=3  0.25
+     switch estimated_forest_class=4  0.15
+     switch estimated_forest_class=5  0.1
+     switch estimated_forest_class=6  0 99 0
+
+assign town_penalty
+   switch consider_town
+     switch estimated_town_class=  0
+     switch estimated_town_class=1  0.5
+     switch estimated_town_class=2  0.9
+     switch estimated_town_class=3  1.2
+     switch estimated_town_class=4  1.3
+     switch estimated_town_class=5  1.4
+     switch estimated_town_class=6  1.6 99 0
+
+# ---Main cost factor ---------------------------------------------
+assign isresidentialorliving = or highway=residential|living_street living_street=yes
+assign costfactor
+
+  if ( and highway= not route=ferry ) then 10000
+  else if ( highway=motorway|motorway_link ) then   10000
+  else if ( highway=proposed|abandoned     ) then   10000
+
+  else min 9999
+
+  add town_penalty
+  add no_forest_penalty
+  add no_river_penalty
+  add noise_penalty
+  add traffic_penalty
+  add surface_penalty
+  add smoothness_penalty
+  add max onewaypenalty accesspenalty
+
+  # Steps - walkable in skates (useful shortcuts, especially uphill)
+  if ( highway=steps ) then ( if allow_steps then 40 else 10000 )
+
+  else if ( route=ferry ) then ( if allow_ferries then 5.67 else 10000 )
+
+  # Long-distance cycle routes - follow if paved
+  else if ( is_ldcr ) then ( if isunpaved then 10000 else 1 )
+  else
+  add ( if stick_to_cycleroutes then 0.5 else 0.05 )
+
+  # -- Highway type ratings --
+
+  # Cycleways - ideal if paved
+  if      ( highway=cycleway ) then ( if isunpaved then 10000 else 1.0 )
+
+  # Pedestrian zones
+  else if ( highway=pedestrian ) then ( if iscobblestone then 4.0 else 2.0 )
+
+  # Bridleways - almost always unpaved
+  else if ( highway=bridleway ) then 10000
+
+  # Residential / living streets - usually good asphalt, quiet
+  else if ( isresidentialorliving ) then
+  (
+    if isunpaved then 10000
+    else if isasphalt then 1.0
+    else if iscobblestone then 3.0
+    else 1.1
+  )
+
+  # Service roads - variable quality
+  else if ( highway=service ) then
+  (
+    if isunpaved then 10000
+    else if isasphalt then 1.2
+    else if iscobblestone then 3.0
+    else 1.4
+  )
+
+  # Footways and sidewalks - very usable on skates!
+  # Sidewalks bypass traffic lights and ignore one-ways.
+  else if ( highway=footway ) then
+  (
+    if isunpaved then 10000
+    else if isasphalt then 1.0
+    else if isconcrete then 1.1
+    else if iscobblestone then 3.0
+    else if ispaving_stones then 1.3
+    else if footway=sidewalk then 1.3
+    else ( if probablyGood then 1.0 else 2.5 )
+  )
+
+  # Tracks and paths - only usable if clearly paved
+  else if ( highway=track|road|path ) then
+  (
+    if isunpaved then 10000
+    else if isfine_gravel then 10000
+    else if ( tracktype=grade1 ) then ( if probablyGood then 1.0 else 2.0 )
+    else if ( tracktype=grade2 ) then ( if isasphalt then 1.5 else 10000 )
+    else if ( tracktype=grade3 ) then 10000
+    else if ( tracktype=grade4 ) then 10000
+    else if ( tracktype=grade5 ) then 10000
+    else                              ( if probablyGood then 1.0 else 8.0 )
+  )
+
+  # Classified roads - mild nudge toward bike-friendly ones
+  else add ( if ( and avoid_unsafe not isbike ) then 0.5 else 0 )
+
+       if ( highway=trunk|trunk_link         ) then ( if isbike then 2.0 else 10000 )
+  else if ( highway=primary|primary_link     ) then ( if isbike then 1.2 else 3.0  )
+  else if ( highway=secondary|secondary_link ) then ( if isbike then 1.0 else 2.0 )
+  else if ( highway=tertiary|tertiary_link   ) then ( if isbike then 1.0 else 1.1 )
+  else if ( highway=unclassified             ) then ( if isbike then 1.0 else 1.05 )
+
+  else 3.0
+
+
+# ---Voice hint priorities -----------------------------------------
+assign priorityclassifier =
+
+  if      ( highway=motorway                          ) then  30
+  else if ( highway=motorway_link                     ) then  29
+  else if ( highway=trunk                             ) then  28
+  else if ( highway=trunk_link                        ) then  27
+  else if ( highway=primary                           ) then  26
+  else if ( highway=primary_link                      ) then  25
+  else if ( highway=secondary                         ) then  24
+  else if ( highway=secondary_link                    ) then  23
+  else if ( highway=tertiary                          ) then  22
+  else if ( highway=tertiary_link                     ) then  21
+  else if ( highway=unclassified                      ) then  20
+  else if ( isresidentialorliving                     ) then  6
+  else if ( highway=service                           ) then  6
+  else if ( highway=cycleway                          ) then  6
+  else if ( or bicycle=designated bicycle_road=yes    ) then  6
+  else if ( highway=track                             ) then if tracktype=grade1 then 6 else 4
+  else if ( highway=bridleway|road|path|footway       ) then  4
+  else if ( highway=steps                             ) then  2
+  else if ( highway=pedestrian                        ) then  2
+  else 0
+
+assign isbadoneway = not equal onewaypenalty 0
+assign isgoodoneway = if reversedirection=yes then oneway=-1
+                      else if oneway= then junction=roundabout else oneway=yes|true|1
+assign isroundabout = junction=roundabout
+assign islinktype = highway=motorway_link|trunk_link|primary_link|secondary_link|tertiary_link
+assign isgoodforcars = if greater priorityclassifier 6 then true
+                  else if ( or isresidentialorliving highway=service ) then true
+                  else if ( and highway=track tracktype=grade1 ) then true
+                  else false
+
+assign classifiermask add          isbadoneway
+                      add multiply isgoodoneway   2
+                      add multiply isroundabout   4
+                      add multiply islinktype     8
+                          multiply isgoodforcars 16
+
+assign dummyUsage = or smoothness= surface=
+
+---context:node  # following code refers to node tags
+
+assign defaultaccess =
+       if ( access= ) then true
+       else if ( access=private|no ) then false
+       else true
+
+assign bikeaccess =
+       if nodeaccessgranted=yes then true
+       else if bicycle= then
+       (
+         if vehicle= then defaultaccess
+         else not vehicle=private|no
+       )
+       else not bicycle=private|no|dismount
+
+assign footaccess =
+       if bicycle=dismount then true
+       else if foot= then defaultaccess
+       else not foot=private|no
+
+# ---Momentum penalties (node-level) ------------------------------
+# Values in "equivalent meters" - kept moderate because they stack
+# with way-level traffic penalties and turn costs.
+assign momentum_multiplier =
+       if not consider_momentum then 0
+       else if equal momentum_sensitivity 1 then 1
+       else if equal momentum_sensitivity 2 then 1.5
+       else 2.5
+
+# Traffic signals - full stop, wait, restart from zero
+assign traffic_signal_penalty =
+       if highway=traffic_signals then ( multiply 30 momentum_multiplier )
+       else 0
+
+# Crossings - slow down, check traffic
+assign crossing_penalty =
+       if highway=crossing then ( multiply 15 momentum_multiplier )
+       else 0
+
+# Stop signs / give way
+assign stop_penalty =
+       if highway=stop then ( multiply 30 momentum_multiplier )
+       else if highway=give_way then ( multiply 10 momentum_multiplier )
+       else 0
+
+# Barriers - passable on skates, just slow down
+assign barrier_penalty =
+       if barrier=bollard then ( multiply 30 momentum_multiplier )
+       else if barrier=cycle_barrier then ( multiply 30 momentum_multiplier )
+       else if barrier=gate|lift_gate|swing_gate then ( multiply 40 momentum_multiplier )
+       else if barrier=block|jersey_barrier then ( multiply 30 momentum_multiplier )
+       else 0
+
+# Total node cost
+assign initialcost =
+       if not bikeaccess then ( if footaccess then 100 else 1000000 )
+       else add traffic_signal_penalty
+            add crossing_penalty
+            add stop_penalty
+            barrier_penalty
