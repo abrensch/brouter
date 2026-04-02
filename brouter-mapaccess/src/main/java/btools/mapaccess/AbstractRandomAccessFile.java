@@ -7,7 +7,7 @@ import java.io.IOException;
  * Abstraction for random file access, allowing pluggable implementations.
  * Supports both standard RandomAccessFile and optimized BufferedRandomAccessFile.
  */
-public interface Rd5RandomAccessFile extends Closeable {
+public interface AbstractRandomAccessFile extends Closeable {
 
   /**
    * Sets the file-pointer offset from the beginning of the file.

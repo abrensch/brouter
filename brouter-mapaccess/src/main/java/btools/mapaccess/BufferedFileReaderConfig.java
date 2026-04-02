@@ -1,29 +1,29 @@
 package btools.mapaccess;
 
 /**
- * Configuration for RD5 file reading strategies.
+ * Configuration for buffered file reading strategies.
  * Optimized for cloud storage (S3, GCS, etc.) where network latency is high.
  */
-public class Rd5FileConfig {
+public class BufferedFileReaderConfig {
 
   /**
    * Enable buffered reading strategy optimized for cloud storage.
    * Default: false (use standard RandomAccessFile)
    *
-   * Set via system property: -Drd5.useBufferedReader=true
+   * Set via system property: -DbufferedReader.useBufferedReader=true
    */
   public static final boolean USE_BUFFERED_READER =
-      Boolean.getBoolean("rd5.useBufferedReader");
+      Boolean.getBoolean("bufferedReader.useBufferedReader");
 
   /**
    * Buffer size for buffered reading strategy (in bytes).
    * Default: 1m (1 MB - good balance for cloud storage)
    *
    * Examples:
-   *   -Drd5.bufferSize=512k   (512 KB)
-   *   -Drd5.bufferSize=2m     (2 MB)
+   *   -DbufferedReader.bufferSize=512k   (512 KB)
+   *   -DbufferedReader.bufferSize=2m     (2 MB)
    */
-  public static final int BUFFER_SIZE = parseBufferSize(System.getProperty("rd5.bufferSize", "1m"));
+  public static final int BUFFER_SIZE = parseBufferSize(System.getProperty("bufferedReader.bufferSize", "1m"));
 
   /**
    * Parse buffer size from string with optional unit suffix.

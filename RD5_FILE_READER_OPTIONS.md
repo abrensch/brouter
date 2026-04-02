@@ -23,14 +23,14 @@ Uses a large in-memory buffer (1MB default) to reduce the number of I/O operatio
 
 **Usage:**
 ```bash
--Drd5.useBufferedReader=true
+-DbufferedReader.useBufferedReader=true
 ```
 
 **Optional buffer size configuration:**
 ```bash
--Drd5.bufferSize=512k     # 512 KB
--Drd5.bufferSize=1m       # 1 MB (default)
--Drd5.bufferSize=4m       # 4 MB
+-DbufferedReader.bufferSize=512k     # 512 KB
+-DbufferedReader.bufferSize=1m       # 1 MB (default)
+-DbufferedReader.bufferSize=4m       # 4 MB
 ```
 
 ## Configuration Examples
@@ -42,14 +42,14 @@ java -jar brouter-server.jar <segmentdir> <profiledir> <customprofiledir> <port>
 
 ### Buffered Mode for Cloud Storage
 ```bash
-java -Drd5.useBufferedReader=true \
+java -DbufferedReader.useBufferedReader=true \
      -jar brouter-server.jar <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads>
 ```
 
 ### Buffered Mode with Custom Buffer Size
 ```bash
-java -Drd5.useBufferedReader=true \
-     -Drd5.bufferSize=2m \
+java -DbufferedReader.useBufferedReader=true \
+     -DbufferedReader.bufferSize=2m \
      -jar brouter-server.jar <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads>
 ```
 
@@ -58,7 +58,7 @@ java -Drd5.useBufferedReader=true \
 docker run --rm \
   -v ./segments4:/segments4 \
   -p 17777:17777 \
-  -e JAVA_OPTS="-Drd5.useBufferedReader=true -Drd5.bufferSize=1m" \
+  -e JAVA_OPTS="-DbufferedReader.useBufferedReader=true -DbufferedReader.bufferSize=1m" \
   --name brouter \
   brouter
 ```
@@ -89,8 +89,8 @@ docker run --rm \
 
 The implementation uses an interface-based design that allows switching between strategies:
 
-- **`Rd5RandomAccessFile`** - Interface for file access
-- **`StandardRd5RandomAccessFile`** - Standard implementation
+- **`AbstractRandomAccessFile`** - Interface for file access
+- **`StandardRandomAccessFile`** - Standard implementation
 - **`BufferedRandomAccessFile`** - Buffered implementation with configurable buffer
 
 Both implementations provide the same interface and are fully backward compatible.
