@@ -5,6 +5,8 @@ REM java -cp brouter.jar btools.brouter.RouteServer <segmentdir> <profile-map> <
 
 pushd %~dp0
 
+REM use useBufferedReader=true to enable buffered reading of RD5 files (useful for high latency storage like cloud buckets)
+REM optionally use readBufferSize=2m configure the buffer size (default is 1M)
 REM maxRunningTime is the request timeout in seconds, set to 0 to disable timeout
 set JAVA_OPTS=-Xmx128M -Xms128M -Xmn8M -DmaxRunningTime=300 -DuseRFCMimeType=false
 
