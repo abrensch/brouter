@@ -15,7 +15,7 @@ import java.io.RandomAccessFile;
  * - Standard: Many small reads = many network round-trips = high latency
  * - Buffered: Few large reads = fewer network round-trips = lower total latency
  */
-public class BufferedRandomAccessFile implements Rd5RandomAccessFile {
+public class BufferedRandomAccessFile implements AbstractRandomAccessFile {
 
   private final RandomAccessFile raf;
   private final byte[] buffer;
@@ -28,7 +28,7 @@ public class BufferedRandomAccessFile implements Rd5RandomAccessFile {
   private final long fileLength;
 
   public BufferedRandomAccessFile(File file, String mode) throws IOException {
-    this(file, mode, Rd5FileConfig.BUFFER_SIZE);
+    this(file, mode, BufferedFileReaderConfig.BUFFER_SIZE);
   }
 
   public BufferedRandomAccessFile(File file, String mode, int bufferSize) throws IOException {

@@ -15,7 +15,7 @@ import btools.util.ByteDataReader;
 import btools.util.Crc32;
 
 final public class PhysicalFile {
-  Rd5RandomAccessFile ra = null;
+  AbstractRandomAccessFile ra = null;
   long[] fileIndex = new long[25];
   int[] fileHeaderCrcs;
 
@@ -94,10 +94,10 @@ final public class PhysicalFile {
     byte[] iobuffer = dataBuffers.iobuffer;
 
     // Choose file access implementation based on configuration
-    if (Rd5FileConfig.USE_BUFFERED_READER) {
+    if (BufferedFileReaderConfig.USE_BUFFERED_READER) {
       ra = new BufferedRandomAccessFile(f, "r");
     } else {
-      ra = new StandardRd5RandomAccessFile(f, "r");
+      ra = new StandardRandomAccessFile(f, "r");
     }
 
     ra.readFully(iobuffer, 0, 200);

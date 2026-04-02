@@ -17,7 +17,7 @@ import btools.util.ByteDataReader;
 import btools.util.Crc32;
 
 final public class OsmFile {
-  private Rd5RandomAccessFile is = null;
+  private AbstractRandomAccessFile is = null;
   private long fileOffset;
 
   private int[] posIdx;

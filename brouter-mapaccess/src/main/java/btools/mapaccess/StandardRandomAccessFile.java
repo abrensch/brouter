@@ -7,11 +7,11 @@ import java.io.RandomAccessFile;
 /**
  * Standard implementation using RandomAccessFile.
  */
-public class StandardRd5RandomAccessFile implements Rd5RandomAccessFile {
+public class StandardRandomAccessFile implements AbstractRandomAccessFile {
 
   private final RandomAccessFile raf;
 
-  public StandardRd5RandomAccessFile(File file, String mode) throws IOException {
+  public StandardRandomAccessFile(File file, String mode) throws IOException {
     this.raf = new RandomAccessFile(file, mode);
   }
 
