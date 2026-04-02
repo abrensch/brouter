@@ -20,3 +20,8 @@ misc/customprofiles
 .classpath
 .project
 !/.idea/runConfigurations
+build/
+bin/
+tmp/
+srtm/
+*.pbf

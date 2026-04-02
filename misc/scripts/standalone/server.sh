@@ -4,6 +4,8 @@ cd "$(dirname "$0")"
 # BRouter standalone server
 # java -cp brouter.jar btools.brouter.RouteServer <segmentdir> <profile-map> <customprofiledir> <port> <maxthreads> [bindaddress]
 
+# use useBufferedReader=true to enable buffered reading of RD5 files (useful for high latency storage like cloud buckets)
+# optionally use readBufferSize=2m configure the buffer size (default is 1M)
 # maxRunningTime is the request timeout in seconds, set to 0 to disable timeout
 JAVA_OPTS="-Xmx128M -Xms128M -Xmn8M -DmaxRunningTime=300 -DuseRFCMimeType=false"
 

@@ -10,20 +10,20 @@ public class BufferedFileReaderConfig {
    * Enable buffered reading strategy optimized for cloud storage.
    * Default: false (use standard RandomAccessFile)
    *
-   * Set via system property: -DbufferedReader.useBufferedReader=true
+   * Set via system property: -DuseBufferedReader=true
    */
   public static final boolean USE_BUFFERED_READER =
-      Boolean.getBoolean("bufferedReader.useBufferedReader");
+      Boolean.getBoolean("useBufferedReader");
 
   /**
    * Buffer size for buffered reading strategy (in bytes).
    * Default: 1m (1 MB - good balance for cloud storage)
    *
    * Examples:
-   *   -DbufferedReader.bufferSize=512k   (512 KB)
-   *   -DbufferedReader.bufferSize=2m     (2 MB)
+   *   -DreadBufferSize=512k   (512 KB)
+   *   -DreadBufferSize=2m     (2 MB)
    */
-  public static final int BUFFER_SIZE = parseBufferSize(System.getProperty("bufferedReader.bufferSize", "1m"));
+  public static final int BUFFER_SIZE = parseBufferSize(System.getProperty("readBufferSize", "1m"));
 
   /**
    * Parse buffer size from string with optional unit suffix.
