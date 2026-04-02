@@ -28,9 +28,9 @@ Uses a large in-memory buffer (1MB default) to reduce the number of I/O operatio
 
 **Optional buffer size configuration:**
 ```bash
--Drd5.bufferSize=1048576  # 1 MB (default)
--Drd5.bufferSize=2097152  # 2 MB
--Drd5.bufferSize=4194304  # 4 MB
+-Drd5.bufferSize=512k     # 512 KB
+-Drd5.bufferSize=1m       # 1 MB (default)
+-Drd5.bufferSize=4m       # 4 MB
 ```
 
 ## Configuration Examples
@@ -49,7 +49,7 @@ java -Drd5.useBufferedReader=true \
 ### Buffered Mode with Custom Buffer Size
 ```bash
 java -Drd5.useBufferedReader=true \
-     -Drd5.bufferSize=2097152 \
+     -Drd5.bufferSize=2m \
      -jar brouter-server.jar <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads>
 ```
 
@@ -58,7 +58,7 @@ java -Drd5.useBufferedReader=true \
 docker run --rm \
   -v ./segments4:/segments4 \
   -p 17777:17777 \
-  -e JAVA_OPTS="-Drd5.useBufferedReader=true -Drd5.bufferSize=1048576" \
+  -e JAVA_OPTS="-Drd5.useBufferedReader=true -Drd5.bufferSize=1m" \
   --name brouter \
   brouter
 ```
