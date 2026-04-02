@@ -17,11 +17,59 @@ public class Rd5FileConfig {
 
   /**
    * Buffer size for buffered reading strategy (in bytes).
-   * Default: 1 MB (good balance for cloud storage)
+   * Default: 1m (1 MB - good balance for cloud storage)
    *
-   * Larger buffers reduce number of network round-trips but use more memory.
-   * Set via system property: -Drd5.bufferSize=1048576
+   * Examples:
+   *   -Drd5.bufferSize=512k   (512 KB)
+   *   -Drd5.bufferSize=2m     (2 MB)
    */
-  public static final int BUFFER_SIZE =
-      Integer.getInteger("rd5.bufferSize", 1024 * 1024); // 1 MB default
+  public static final int BUFFER_SIZE = parseBufferSize(System.getProperty("rd5.bufferSize", "1m"));
+
+  /**
+   * Parse buffer size from string with optional unit suffix.
+   * @param value String value like "1m", "512k", "2g", or plain number
+   * @return Buffer size in bytes
+   */
+  private static int parseBufferSize(String value) {
+    if (value == null || value.isEmpty()) {
+      return 1024 * 1024; // 1 MB default
+    }
+
+    value = value.trim();
+
+    // Check for unit suffix
+    char lastChar = value.charAt(value.length() - 1);
+    int multiplier = 1;
+    String numericPart = value;
+
+    if (Character.isLetter(lastChar)) {
+      numericPart = value.substring(0, value.length() - 1).trim();
+      switch (Character.toLowerCase(lastChar)) {
+        case 'k':
+          multiplier = 1024;
+          break;
+        case 'm':
+          multiplier = 1024 * 1024;
+          break;
+        case 'g':
+          multiplier = 1024 * 1024 * 1024;
+          break;
+        default:
+          throw new IllegalArgumentException("Invalid buffer size unit: " + lastChar + ". Use k, m, or g.");
+      }
+    }
+
+    try {
+      long bytes = Long.parseLong(numericPart) * multiplier;
+      if (bytes > Integer.MAX_VALUE) {
+        throw new IllegalArgumentException("Buffer size too large: " + value + " (max: 2g)");
+      }
+      if (bytes <= 0) {
+        throw new IllegalArgumentException("Buffer size must be positive: " + value);
+      }
+      return (int) bytes;
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("Invalid buffer size format: " + value, e);
+    }
+  }
 }
