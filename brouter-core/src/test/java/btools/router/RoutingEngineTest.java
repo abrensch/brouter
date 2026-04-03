@@ -435,15 +435,17 @@ public class RoutingEngineTest {
   public void removeMicroDetoursSimpleLoop() {
     RoutingEngine re = createDummyEngine(5000);
 
-    // Build a track: A → B → C → D → B → E
-    // where B appears twice, creating a small loop B→C→D→B
+    // At ~50N: 1 ilon unit ≈ 0.072m, 1 ilat unit ≈ 0.111m
+    // A is 215m from B (well beyond 50m proximity), loop B→C→D→B2 ≈ 126m
+    int baseLon = START_ILON;
+    int baseLat = START_ILAT;
     OsmTrack track = new OsmTrack();
-    OsmPathElement nodeA = OsmPathElement.create(1000, 1000, (short) 0, null);
-    OsmPathElement nodeB = OsmPathElement.create(1010, 1000, (short) 0, null); // ~0.7m from A
-    OsmPathElement nodeC = OsmPathElement.create(1010, 1010, (short) 0, null);
-    OsmPathElement nodeD = OsmPathElement.create(1020, 1010, (short) 0, null);
-    OsmPathElement nodeB2 = OsmPathElement.create(1010, 1000, (short) 0, null); // same pos as B
-    OsmPathElement nodeE = OsmPathElement.create(1020, 1000, (short) 0, null);
+    OsmPathElement nodeA = OsmPathElement.create(baseLon, baseLat, (short) 0, null);
+    OsmPathElement nodeB = OsmPathElement.create(baseLon + 3000, baseLat, (short) 0, null);
+    OsmPathElement nodeC = OsmPathElement.create(baseLon + 3000, baseLat + 400, (short) 0, null);
+    OsmPathElement nodeD = OsmPathElement.create(baseLon + 3400, baseLat + 400, (short) 0, null);
+    OsmPathElement nodeB2 = OsmPathElement.create(baseLon + 3000, baseLat, (short) 0, null); // same pos as B
+    OsmPathElement nodeE = OsmPathElement.create(baseLon + 6000, baseLat, (short) 0, null);
 
     track.nodes.add(nodeA);
     track.nodes.add(nodeB);
@@ -459,6 +461,40 @@ public class RoutingEngineTest {
     Assert.assertSame("node 0 should be A", nodeA, track.nodes.get(0));
     Assert.assertSame("node 1 should be B", nodeB, track.nodes.get(1));
     Assert.assertSame("node 2 should be E", nodeE, track.nodes.get(2));
+  }
+
+  // removeMicroDetours catches loops returning to a nearby (but not identical) node
+  @Test
+  public void removeMicroDetoursProximityMatch() {
+    RoutingEngine re = createDummyEngine(5000);
+
+    // At ~50N: 1 ilon unit ≈ 0.072m, 1 ilat unit ≈ 0.111m
+    // B and B2 are ~7m apart (within 50m proximity threshold).
+    // A is ~72m from B2 (beyond proximity threshold).
+    int baseLon = START_ILON;
+    int baseLat = START_ILAT;
+    OsmTrack track = new OsmTrack();
+    OsmPathElement nodeA = OsmPathElement.create(baseLon, baseLat, (short) 0, null);
+    OsmPathElement nodeB = OsmPathElement.create(baseLon + 1000, baseLat, (short) 0, null);
+    OsmPathElement nodeC = OsmPathElement.create(baseLon + 1000, baseLat + 200, (short) 0, null);
+    OsmPathElement nodeD = OsmPathElement.create(baseLon + 1200, baseLat + 200, (short) 0, null);
+    OsmPathElement nodeB2 = OsmPathElement.create(baseLon + 1050, baseLat + 50, (short) 0, null); // ~7m from B
+    OsmPathElement nodeE = OsmPathElement.create(baseLon + 2000, baseLat, (short) 0, null);
+
+    track.nodes.add(nodeA);
+    track.nodes.add(nodeB);
+    track.nodes.add(nodeC);
+    track.nodes.add(nodeD);
+    track.nodes.add(nodeB2);
+    track.nodes.add(nodeE);
+
+    re.removeMicroDetours(track, 350, new ArrayList<>());
+
+    // Loop B→C→D→B2 (~56m total) should be removed via proximity match
+    Assert.assertEquals("should have 3 nodes after proximity detour removal", 3, track.nodes.size());
+    Assert.assertSame(nodeA, track.nodes.get(0));
+    Assert.assertSame(nodeB, track.nodes.get(1));
+    Assert.assertSame(nodeE, track.nodes.get(2));
   }
 
   // removeMicroDetours does NOT remove loops that are too large
@@ -492,10 +528,13 @@ public class RoutingEngineTest {
   public void removeMicroDetoursNoLoop() {
     RoutingEngine re = createDummyEngine(5000);
 
+    // Nodes ~132m apart at 50N — well beyond 50m proximity threshold
+    int baseLon = START_ILON;
+    int baseLat = START_ILAT;
     OsmTrack track = new OsmTrack();
-    track.nodes.add(OsmPathElement.create(1000, 1000, (short) 0, null));
-    track.nodes.add(OsmPathElement.create(2000, 2000, (short) 0, null));
-    track.nodes.add(OsmPathElement.create(3000, 3000, (short) 0, null));
+    track.nodes.add(OsmPathElement.create(baseLon, baseLat, (short) 0, null));
+    track.nodes.add(OsmPathElement.create(baseLon + 1000, baseLat + 1000, (short) 0, null));
+    track.nodes.add(OsmPathElement.create(baseLon + 2000, baseLat + 2000, (short) 0, null));
 
     re.removeMicroDetours(track, 150, new ArrayList<>());
 
@@ -508,16 +547,19 @@ public class RoutingEngineTest {
 
     // Track: A → B → C → B → D → E → F → E → G
     // Two micro-detours: B→C→B and E→F→E
+    // Groups are 3000 units (215m) apart — well beyond proximity threshold
+    int baseLon = START_ILON;
+    int baseLat = START_ILAT;
     OsmTrack track = new OsmTrack();
-    OsmPathElement nodeA = OsmPathElement.create(1000, 1000, (short) 0, null);
-    OsmPathElement nodeB = OsmPathElement.create(1010, 1000, (short) 0, null);
-    OsmPathElement nodeC = OsmPathElement.create(1010, 1010, (short) 0, null);
-    OsmPathElement nodeB2 = OsmPathElement.create(1010, 1000, (short) 0, null);
-    OsmPathElement nodeD = OsmPathElement.create(1020, 1000, (short) 0, null);
-    OsmPathElement nodeE = OsmPathElement.create(1030, 1000, (short) 0, null);
-    OsmPathElement nodeF = OsmPathElement.create(1030, 1010, (short) 0, null);
-    OsmPathElement nodeE2 = OsmPathElement.create(1030, 1000, (short) 0, null);
-    OsmPathElement nodeG = OsmPathElement.create(1040, 1000, (short) 0, null);
+    OsmPathElement nodeA = OsmPathElement.create(baseLon, baseLat, (short) 0, null);
+    OsmPathElement nodeB = OsmPathElement.create(baseLon + 3000, baseLat, (short) 0, null);
+    OsmPathElement nodeC = OsmPathElement.create(baseLon + 3000, baseLat + 400, (short) 0, null);
+    OsmPathElement nodeB2 = OsmPathElement.create(baseLon + 3000, baseLat, (short) 0, null);
+    OsmPathElement nodeD = OsmPathElement.create(baseLon + 6000, baseLat, (short) 0, null);
+    OsmPathElement nodeE = OsmPathElement.create(baseLon + 9000, baseLat, (short) 0, null);
+    OsmPathElement nodeF = OsmPathElement.create(baseLon + 9000, baseLat + 400, (short) 0, null);
+    OsmPathElement nodeE2 = OsmPathElement.create(baseLon + 9000, baseLat, (short) 0, null);
+    OsmPathElement nodeG = OsmPathElement.create(baseLon + 12000, baseLat, (short) 0, null);
 
     track.nodes.add(nodeA);
     track.nodes.add(nodeB);

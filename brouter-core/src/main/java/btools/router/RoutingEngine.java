@@ -494,7 +494,10 @@ public class RoutingEngine extends Thread {
       double searchRadius = (routingContext.roundTripDistance == null ? 1500 :routingContext.roundTripDistance);
       double direction = (routingContext.startDirection == null ? -1 :routingContext.startDirection);
       double directionAdd = (routingContext.roundTripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD :routingContext.roundTripDirectionAdd);
-      if (direction == -1) direction = getRandomDirectionFromData(waypoints.get(0), searchRadius);
+      if (direction == -1) {
+        direction = getRandomDirectionFromData(waypoints.get(0), searchRadius);
+        direction += directionAdd;
+      }
 
       if (routingContext.allowSamewayback) {
         int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction);
@@ -509,12 +512,18 @@ public class RoutingEngine extends Thread {
         List<OsmNodeNamed> userViaPoints = new ArrayList<>(waypoints.subList(1, waypoints.size()));
         waypoints.subList(1, waypoints.size()).clear();
 
-        int targetPoints = routingContext.roundTripPoints == null ? 5 : routingContext.roundTripPoints;
+        // scale waypoints with distance: ~1 extra point per 1.5km radius, clamped to [5,15]
+        int targetPoints = routingContext.roundTripPoints == null ?
+          Math.max(5, Math.min(15, (int) (searchRadius / 1500) + 3)) :
+          routingContext.roundTripPoints;
         buildPointsFromCircle(waypoints, direction, searchRadius, targetPoints);
 
         if (!userViaPoints.isEmpty()) {
           mergeUserWaypointsIntoLoop(waypoints, userViaPoints, direction, targetPoints);
         }
+
+        // Pre-validate waypoints against segment data and routing profile
+        validateAndAdjustWaypoints(waypoints, searchRadius);
       }
 
       routingContext.waypointCatchingRange = 250;
@@ -651,6 +660,102 @@ public class RoutingEngine extends Thread {
   }
 
   /**
+   * Validate round-trip waypoints against segment data before routing.
+   * For each generated waypoint, checks if profile-compatible ways exist
+   * nearby by matching against the routing segments. Waypoints that fall
+   * in unreachable areas (water, no compatible ways) are relocated by
+   * trying alternative positions at varied angles and distances from the
+   * start point. Unmatched waypoints are removed if enough remain.
+   *
+   * The matching is profile-aware: during segment decoding, only ways
+   * with accessType >= 2 (compatible with the current routing profile)
+   * are considered.
+   */
+  void validateAndAdjustWaypoints(List<OsmNodeNamed> waypoints, double searchRadius) {
+    resetCache(false);
+    OsmNodeNamed start = waypoints.get(0);
+    double maxSnapDist = Math.min(searchRadius * 0.3, 2000);
+
+    double[] angleOffsets = {0, -15, 15, -30, 30};
+    double[] distFactors = {1.0, 0.8, 1.2, 0.6, 1.4};
+
+    int intermediateCount = waypoints.size() - 2;
+    List<List<MatchedWaypoint>> candidateGroups = new ArrayList<>();
+    List<MatchedWaypoint> allCandidates = new ArrayList<>();
+
+    for (int i = 1; i <= intermediateCount; i++) {
+      OsmNodeNamed wp = waypoints.get(i);
+      double[] scales = CheapRuler.getLonLatToMeterScales((start.ilat + wp.ilat) >> 1);
+      double bearing = Math.toDegrees(Math.atan2(
+        (wp.ilon - start.ilon) * scales[0],
+        (wp.ilat - start.ilat) * scales[1]));
+      double dist = CheapRuler.distance(start.ilon, start.ilat, wp.ilon, wp.ilat);
+
+      List<MatchedWaypoint> group = new ArrayList<>();
+
+      for (double da : angleOffsets) {
+        for (double df : distFactors) {
+          // skip extreme combinations to limit candidate count
+          if (Math.abs(da) > 15 && Math.abs(df - 1.0) > 0.25) continue;
+
+          int ilon, ilat;
+          if (da == 0 && df == 1.0) {
+            ilon = wp.ilon;
+            ilat = wp.ilat;
+          } else {
+            int[] pos = CheapRuler.destination(start.ilon, start.ilat, dist * df, bearing + da);
+            ilon = pos[0];
+            ilat = pos[1];
+          }
+
+          MatchedWaypoint mwp = new MatchedWaypoint();
+          mwp.waypoint = new OsmNode(ilon, ilat);
+          mwp.name = wp.name + "_c" + group.size();
+          group.add(mwp);
+          allCandidates.add(mwp);
+        }
+      }
+
+      candidateGroups.add(group);
+    }
+
+    // Match all candidates at once — profile-aware via segment decoding
+    nodesCache.matchWaypointsToNodes(allCandidates, maxSnapDist, islandNodePairs);
+
+    // Pick the best candidate for each waypoint or remove it
+    int minWaypoints = 3;
+    int remaining = intermediateCount;
+
+    for (int i = intermediateCount; i >= 1; i--) {
+      List<MatchedWaypoint> group = candidateGroups.get(i - 1);
+
+      MatchedWaypoint best = null;
+      for (MatchedWaypoint mwp : group) {
+        if (mwp.crosspoint != null && (best == null || mwp.radius < best.radius)) {
+          best = mwp;
+        }
+      }
+
+      OsmNodeNamed wp = waypoints.get(i);
+      if (best != null && best.radius <= maxSnapDist) {
+        if (wp.ilon != best.waypoint.ilon || wp.ilat != best.waypoint.ilat) {
+          logInfo("validateWaypoints: relocated " + wp.name + " snap=" + (int) best.radius + "m");
+          wp.ilon = best.waypoint.ilon;
+          wp.ilat = best.waypoint.ilat;
+        }
+      } else if (remaining > minWaypoints) {
+        logInfo("validateWaypoints: removing unreachable " + wp.name
+          + " (best=" + (best == null ? "none" : (int) best.radius + "m") + ")");
+        waypoints.remove(i);
+        remaining--;
+      } else {
+        logInfo("validateWaypoints: keeping marginal " + wp.name + " (min waypoint count reached)");
+      }
+    }
+    logInfo("validateWaypoints: " + remaining + "/" + intermediateCount + " waypoints validated");
+  }
+
+  /**
    * Remove back-and-forth segments from a round-trip track.
    * At each waypoint boundary, the route may retrace the same road
    * it arrived on before diverging. This method detects such overlaps
@@ -689,50 +794,91 @@ public class RoutingEngine extends Thread {
   }
 
   /**
-   * Remove micro-detours: small loops where the route visits the same node twice
-   * within a short distance. These occur when the router briefly leaves a road
-   * and returns to the same intersection.
+   * Remove micro-detours: small loops where the route returns to the same
+   * area within a short distance. Uses proximity matching (not just exact
+   * node identity) to catch detours through parallel roads or dual
+   * carriageways where the route returns to a nearby but distinct node.
    *
-   * @param maxLoopDistance maximum total distance of a loop to be considered a micro-detour (in meters)
+   * @param maxLoopDistance maximum route distance of a loop to be considered a micro-detour (in meters)
    */
   void removeMicroDetours(OsmTrack track, int maxLoopDistance, List<MatchedWaypoint> waypoints) {
     List<OsmPathElement> nodes = track.nodes;
+    int proximityThreshold = 50; // meters — catch returns to nearby (not just identical) nodes
+    // Grid cell size in internal coords: ~35-55m depending on latitude.
+    // Checking the 9-cell neighborhood covers up to ~100-160m, well above the proximity threshold.
+    int cellSize = 500;
     boolean changed = true;
 
     while (changed) {
       changed = false;
-      Map<Long, Integer> firstOccurrence = new HashMap<>();
+      Map<Long, List<Integer>> grid = new HashMap<>();
 
       for (int i = 0; i < nodes.size(); i++) {
-        long id = nodes.get(i).getIdFromPos();
-        Integer firstIdx = firstOccurrence.get(id);
-        if (firstIdx == null) {
-          firstOccurrence.put(id, i);
-          continue;
-        }
+        int ilon = nodes.get(i).getILon();
+        int ilat = nodes.get(i).getILat();
+        int cx = ilon / cellSize;
+        int cy = ilat / cellSize;
 
-        int loopDist = 0;
-        for (int j = firstIdx + 1; j <= i; j++) {
-          loopDist += nodes.get(j).calcDistance(nodes.get(j - 1));
-        }
-
-        if (loopDist <= maxLoopDistance && loopDist > 0) {
-          int removeCount = i - firstIdx;
-          logInfo("removeMicroDetours: removing " + removeCount + " nodes (loop of " + loopDist + "m at index " + firstIdx + ")");
-          nodes.subList(firstIdx + 1, i + 1).clear();
-          for (MatchedWaypoint mwp : waypoints) {
-            if (mwp.indexInTrack > i) {
-              mwp.indexInTrack -= removeCount;
-            } else if (mwp.indexInTrack > firstIdx) {
-              mwp.indexInTrack = firstIdx;
+        // Search the 9-cell neighborhood for the closest previously visited node
+        // (by distance, ties broken by latest index = shortest loop)
+        int matchIdx = -1;
+        int matchDist = Integer.MAX_VALUE;
+        for (int dx = -1; dx <= 1; dx++) {
+          for (int dy = -1; dy <= 1; dy++) {
+            long neighborCell = ((long) (cx + dx)) << 32 | ((cy + dy) & 0xFFFFFFFFL);
+            List<Integer> entries = grid.get(neighborCell);
+            if (entries != null) {
+              for (int idx : entries) {
+                int dist = nodes.get(idx).calcDistance(nodes.get(i));
+                if (dist <= proximityThreshold && (dist < matchDist || (dist == matchDist && idx > matchIdx))) {
+                  matchIdx = idx;
+                  matchDist = dist;
+                }
+              }
             }
           }
-          changed = true;
-          break; // restart scan since indices shifted
-        } else {
-          // advance to later occurrence so we detect the shortest loops
-          firstOccurrence.put(id, i);
         }
+
+        if (matchIdx >= 0) {
+          // Use raw distance for ratio check (calcDistance floors to 1, distorting the ratio)
+          double crowFly = CheapRuler.distance(
+            nodes.get(matchIdx).getILon(), nodes.get(matchIdx).getILat(),
+            nodes.get(i).getILon(), nodes.get(i).getILat());
+          int loopDist = 0;
+          for (int j = matchIdx + 1; j <= i; j++) {
+            loopDist += nodes.get(j).calcDistance(nodes.get(j - 1));
+          }
+          // A genuine detour has route distance much larger than crow-fly distance
+          // (the route went elsewhere and came back). Normal forward progression
+          // has route distance ≈ crow-fly distance. Factor of 3 separates these.
+          if (loopDist <= maxLoopDistance && loopDist > 0 && loopDist > crowFly * 3) {
+            int removeCount = i - matchIdx;
+            logInfo("removeMicroDetours: removing " + removeCount + " nodes (loop of " + loopDist + "m, crow-fly " + (int) crowFly + "m at index " + matchIdx + ")");
+            nodes.subList(matchIdx + 1, i + 1).clear();
+            adjustWaypointIndices(waypoints, matchIdx, i, removeCount);
+            changed = true;
+            break; // restart scan since indices shifted
+          }
+        }
+
+        // Register this node in the grid (even if it matched — we advanced past the match)
+        long cell = ((long) cx) << 32 | (cy & 0xFFFFFFFFL);
+        grid.computeIfAbsent(cell, k -> new ArrayList<>()).add(i);
+      }
+    }
+  }
+
+  /**
+   * Adjust waypoint track indices after removing a range of nodes.
+   * Waypoints beyond the removed range are shifted back; waypoints
+   * inside the range are clamped to rangeStart.
+   */
+  private static void adjustWaypointIndices(List<MatchedWaypoint> waypoints, int rangeStart, int rangeEnd, int removeCount) {
+    for (MatchedWaypoint mwp : waypoints) {
+      if (mwp.indexInTrack > rangeEnd) {
+        mwp.indexInTrack -= removeCount;
+      } else if (mwp.indexInTrack > rangeStart) {
+        mwp.indexInTrack = rangeStart;
       }
     }
   }
