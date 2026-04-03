@@ -513,8 +513,8 @@ public final class VoiceHintProcessor {
       }
     }
     if (badOneWay && input.lowerBadWayAngle == -181.f && input.higherBadWayAngle == 181.f) return false;
-    if ((input.lowerBadWayAngle != -181.f && Math.abs(input.lowerBadWayAngle) > 135.f) ||
-        (input.higherBadWayAngle != 181.f && input.higherBadWayAngle > 135.f)) return false;
+    if ((input.lowerBadWayAngle != -181.f && Math.abs(input.lowerBadWayAngle) > 135.f && Math.abs(input.higherBadWayAngle) > 35.f) ||
+        (input.higherBadWayAngle != 181.f && input.higherBadWayAngle > 135.f && Math.abs(input.lowerBadWayAngle) > 35.f)) return false;
 
     return
           ((Math.abs(input.lowerBadWayAngle) < 35.f || input.higherBadWayAngle < 35.f)
