@@ -121,7 +121,7 @@ Some variable names are pre-defined and accessed by the routing engine:
        To find the start / end points for a route, BRouter normally uses for all
        waypoint matches the dynamic range logic instead of the variable
        `waypointCatchingRange` with a default value of 250 m. In some
-       situations, adding a few meters here is not enough to find a point.
+       situations, adding a few metres here is not enough to find a point.
        With this new variable, it goes deeper and could reach a radius of about 50 km.
 
     - `add_beeline` default=false
@@ -145,14 +145,14 @@ Some variable names are pre-defined and accessed by the routing engine:
        New is an additional block with information on the excluded ways, a list with
        name `noStartWay` and `name,value;...` entries.
 
-    - `correctMisplacedViaPoints`  default = true
+    - `correctMisplacedViaPoints`  default = false
 
-       Searches for incorrectly placed via points and removes the detours.
+       Removes detours (going back and forth using the same ways) that would be used to reach via points. 
        With the parameter `exportCorrectedWaypoints` adds these points to the output formats.
 
-    - `correctMisplacedViaPointsDistance`  default=0
+    - `correctMisplacedViaPointsDistance`  default=400
 
-       The default setting 0 removes the entire path, with a tolerance limit BRouter finds and removes only paths within this distance.
+       The default setting 0 removes the entire path (detour). Above 0, BRouter only removes detours shorter than this distance (in metres).
 
     - `continueStraight` default = false
 

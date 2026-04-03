@@ -25,6 +25,8 @@
   assign   isbike_for_mainroads   true # default=true / if false then bike friendly tag hints for mainroads are ignored, keeping their high penalties. v2.5.20
   assign   path_preference        20.0 # 20.0 as default, the bigger it is the bigger it penalizes nonpath ways a/o paved ways
 
+  assign use_proposed_cycleroutes = false  # %use_proposed_cycleroutes% | Set to true to consider proposed and regular cycleroutes as equals | boolean
+
   assign   consider_elevation     1 # 1 as default
   assign   consider_smoothness    1 # 1 as default
   assign   allow_steps            0 # 1 as default
@@ -35,6 +37,10 @@
   assign   valley_nonflat_multiplier = 2.0
 
   assign   allow_default_barrier_restriction  false # If true, default access for barrier=gate is false. see node context
+
+  # with engine defaults, long parts of routing to via points may be removed
+  assign correctMisplacedViaPoints = false # %correctMisplacedViaPoints% | Set to true to remove detours due to via points (going back and forth on the same route) | boolean
+  assign correctMisplacedViaPointsDistance = 400 # %correctMisplacedViaPointsDistance% | Only remove detours shorter than this (one-way) distance (in m) (engine defaults to 0 which removes detours whatever their length) | number
 
   # Internal parameters - not intended to be tweaked by end users, unless they know what they are doing.
 
@@ -133,7 +139,10 @@
   assign isrcn or route_bicycle_rcn=yes rcn=yes
   assign islcn or route_bicycle_lcn=yes lcn=yes
 
-  assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+assign any_cycleroute
+  switch not use_proposed_cycleroutes
+    or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+    or route_bicycle_icn=yes|proposed or route_bicycle_ncn=yes|proposed or route_bicycle_rcn=yes|proposed route_bicycle_lcn=yes|proposed
 
   assign any_cn_yes or lcn=yes or rcn=yes ncn=yes
   assign any_cn_proposed or lcn=proposed or rcn=proposed ncn=proposed
@@ -148,7 +157,7 @@
   assign isotherroad = not or istrack ismainroad
 
   assign hascycleway = not
-    and ( or cycleway= cycleway=no|none ) and ( or cycleway:left= cycleway:left=no ) ( or cycleway:right= cycleway:right=no )
+  and ( or cycleway= cycleway=no|none ) and ( or cycleway:left= cycleway:left=no ) and ( or cycleway:right= cycleway:right=no ) ( or cycleway:both= cycleway:both=no )
 
   #2.6.* inserted originalisbike option
   assign isbike_candidate or bicycle=yes|permissive|designated or hascycleway
@@ -244,8 +253,22 @@
 
   assign onewaypenalty =
          if ( badoneway ) then
-           if cycleway=opposite|opposite_lane|opposite_track  then 0
+           if (
+             and hascycleway
+             or and cycleway:left=lane|track|shared_lane|share_busway
+                    cycleway:left:oneway=no|-1
+             or and cycleway:right=lane|track|shared_lane|share_busway
+                    cycleway:right:oneway=no|-1
+             or and cycleway:both=lane|track|shared_lane|share_busway
+                    #or cycleway:both:oneway=no|-1
+                    or cycleway:left:oneway=no|-1
+                       cycleway:right:oneway=no|-1
+             or cycleway=opposite|opposite_lane|opposite_track
+             or cycleway:left=opposite|opposite_lane|opposite_track
+                cycleway:right=opposite|opposite_lane|opposite_track
+                                                            ) then 0
            else if oneway:bicycle=no                          then 0
+           else if not footaccess                             then 100
            else if junction=roundabout|circular               then 60
            else if highway=primary|primary_link               then 50
            else if highway=secondary|secondary_link           then 30

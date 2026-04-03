@@ -167,17 +167,9 @@ public final class VoiceHintProcessor {
           }
           boolean isBadHighway2Link = !input.oldWay.isLinktType() && badWay.isLinktType();
 
-          if (badPrio > maxPrioAll && !isBadHighway2Link) {
+          if (badPrio > maxPrioAll) {
             maxPrioAll = badPrio;
             input.maxBadPrio = Math.max(input.maxBadPrio, badPrio);
-          }
-
-          if (badWay.costfactor < 20.f && Math.abs(badTurn) < minAbsAngeRaw) {
-            minAbsAngeRaw = Math.abs(badTurn);
-          }
-
-          if (badPrio < minPrio) {
-            continue; // ignore low prio ways
           }
 
           if (badWay.isBadOneway()) {
@@ -190,6 +182,10 @@ public final class VoiceHintProcessor {
             if (minAbsAngeRaw == 180f)
               minAbsAngeRaw = Math.abs(turnAngle); // disable hasSomethingMoreStraight
             continue; // ways from the back should not trigger a slight turn
+          }
+
+          if (badWay.costfactor < 20.f && Math.abs(badTurn) < minAbsAngeRaw) {
+            minAbsAngeRaw = Math.abs(badTurn);
           }
 
           if (badPrio > maxPrioCandidates) {
@@ -229,10 +225,10 @@ public final class VoiceHintProcessor {
       // https://brouter.de/brouter-test/#map=14/47.7927/16.2848/standard&lonlats=16.267617,47.795275;16.286438,47.787354&profile=car-eco
       boolean isLinkButNoBadWayLink = (isHighway2Link && !isBadwayLink && Math.abs(turnAngle) < 5.f);
 
-      // way has same prio, but bad way has smaller angle
+      // way has same prio, but bad way has smaller angle and is not a bad link and prio is near
       // small: https://brouter.de/brouter-test/#map=17/49.40750/8.69257/standard&lonlats=8.692461,49.407997;8.694028,49.408478&profile=car-eco
       // high:  https://brouter.de/brouter-test/#map=14/52.9951/-0.5786/standard&lonlats=-0.59261,52.991576;-0.583606,52.998947&profile=car-eco
-      boolean samePrioSmallBadAngle = (currentPrio == oldPrio) && minAbsAngeRaw != 180f && minAbsAngeRaw < 35f;
+      boolean samePrioSmallBadAngle = (currentPrio == oldPrio) && (minPrio - maxPrioAll <= 2) && !isBadwayLink && minAbsAngeRaw != 180f && minAbsAngeRaw < 35f;
 
       // way has prio, but has to give way
       // https://brouter.de/brouter-test/#map=15/54.1344/-4.6015/standard&lonlats=-4.605432,54.136747;-4.609336,54.130058&profile=car-eco
@@ -273,7 +269,11 @@ public final class VoiceHintProcessor {
           }
         }
 
-        input.angle = sumNonConsumedWithinCatchingRange(inputs, hintIdx, INTERNAL_CATCHING_RANGE_WIDE);
+        if (explicitRoundabouts) {
+          input.angle = sumNonConsumedWithinCatchingRange(inputs, hintIdx, INTERNAL_CATCHING_RANGE_WIDE);
+        } else {
+          input.turnAngleConsumed = true;
+        }
         input.distanceToNext = distance;
         distance = 0.;
         results.add(input);
@@ -366,8 +366,8 @@ public final class VoiceHintProcessor {
         if ((inputLastSaved != null && inputLastSaved.distanceToNext > catchingRange) || input.distanceToNext > catchingRange) {
           if ((input.cmd == VoiceHint.C ||
             input.cmd == VoiceHint.KR ||
-            input.cmd == VoiceHint.KL)
-            && !input.goodWay.isLinktType()) {
+            input.cmd == VoiceHint.KL)) {
+
             if (checkStraightHold(input, inputLastSaved, minRange)) {
               // add only on prio
               results.add(input);
@@ -395,7 +395,8 @@ public final class VoiceHintProcessor {
               (input.goodWay.getPrio() != 30) &&
               (input.goodWay.getPrio() != 26))
               || input.isRoundabout()
-              || Math.abs(input.angle) > 21.f) {
+              || Math.abs(input.angle) > 21.f
+              || (Math.abs(input.angle) - input.lowerBadWayAngle) < 21f) {
               results.add(input);
               inputLastSaved = input;
             } else {
@@ -504,6 +505,16 @@ public final class VoiceHintProcessor {
 
   boolean checkStraightHold(VoiceHint input, VoiceHint inputLastSaved, double minRange) {
     if (input.indexInTrack == 0) return false;
+
+    boolean badOneWay = false;
+    if (input.badWays != null) {
+      for (MessageData md: input.badWays) {
+        if (md.isBadOneway()) badOneWay = true;
+      }
+    }
+    if (badOneWay && input.lowerBadWayAngle == -181.f && input.higherBadWayAngle == 181.f) return false;
+    if ((input.lowerBadWayAngle != -181.f && Math.abs(input.lowerBadWayAngle) > 135.f) ||
+        (input.higherBadWayAngle != 181.f && input.higherBadWayAngle > 135.f)) return false;
 
     return
           ((Math.abs(input.lowerBadWayAngle) < 35.f || input.higherBadWayAngle < 35.f)

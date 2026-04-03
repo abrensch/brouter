@@ -9,6 +9,7 @@ assign no_wrong_oneway = false # %no_wrong oneway% | keine Einbahnstrasse in fal
 assign dismount_cost = 1000 # %dismount_cost% | Umweg in Meter der in Kauf genommen wird bevor eine Strecke genommen wird bei der man austeigen muss, ab 1 000 000 wird keine Schiebestrecke mehr genommen | number
 assign avoid_main_roads = 5 # %avoid_main_roads% | große Straße vermeiden(0-10): 0 = nicht vermeiden, 1 = leicht vermeiden, 3 = Standard, 10 = stark vermeiden | number
 assign avoid_small_roads = 5 # %avoid_small_roads% | kleine Straße vermeiden(0-10): 0 = nicht vermeiden, 1 = leicht vermeiden, 5 = Standard, 10 = stark vermeiden | number
+assign use_proposed_cycleroutes = false  # %use_proposed_cycleroutes% | Set to true to consider proposed and regular cycleroutes as equals | boolean
 assign avoid_cycleways = 3 # %avoid_cycleways% | Radwege vermeiden(0-10): 0 = nicht vermeiden, 1 = leicht vermeiden, 3 = Standard, 10 = stark vermeiden | number
 assign avoid_elevation = 5 # %avoid_elevation% | Hohenmeter vermeiden(0-10): 0 = nicht vermeiden, 1 = leicht vermeiden, 5 = Standard, 10 = stark vermeiden | number
 assign avoid_bad_ways = 8 # %avoid_bad_ways% | Schlechte Wege vermeiden(0-10): 0 = nicht vermeiden, 1 = leicht vermeiden, 8 = Standard, 10 = stark vermeiden | number
@@ -60,7 +61,10 @@ assign elevationbufferreduce 1 # im Bereich zwischen elevationpenaltybuffer und 
 # Parameter für die Wege
 #zusätzliche Kosten in Meter für jeden Streckenabschnitt
 
-assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+assign any_cycleroute
+  switch not use_proposed_cycleroutes
+    or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+    or route_bicycle_icn=yes|proposed or route_bicycle_ncn=yes|proposed or route_bicycle_rcn=yes|proposed route_bicycle_lcn=yes|proposed
 assign nodeaccessgranted or any_cycleroute lcn=yes
 
 assign cycleway

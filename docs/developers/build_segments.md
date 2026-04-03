@@ -15,11 +15,29 @@ extract](https://download.geofabrik.de/))
 
 ## Run the map creation script
 
+If you want to have elevation information in the generated segments files, please see belowfor generation of BRouter elevation data files.
+
+You can now run the `misc/scripts/mapcreation/process_pbf_planet.sh` script to
+build the segments. Have a look at the variables defined at the beginning of
+the files and overwrite them according to your needs. By default, the script
+will download the latest full planet dump from
+[planet.osm.org](https://planet.osm.org/). You can also download a
+geographical extract provided by [Geofabrik](https://download.geofabrik.de/)
+and set the `PLANET_FILE` variable to point to it.
+
+_Note:_ It is possible that you encounter an error complaining about not being
+able to run `bash^M` on Linux/Mac OS. You can fix this one by running
+`sed -i -e 's/\r$//' process_pbf_planet.sh`.
+
+_Note:_ The file 'process_pbf_planet_production.sh' makes a more compact process and allows the integration of pseudo tags.
+
+
+## Run a generation for elevation data tiles
+
 If you want to have elevation information in the generated segments files, you
 should download the required [SRTM
 files](https://cgiarcsi.community/data/srtm-90m-digital-elevation-database-v4-1/)
-and set the `SRTM_PATH` variable when running the `process_pbf_planet.sh`
-script.
+ - Note: this has a dead download link at the moment (2026).
 
 Any flavor of the 90m SRTM database should be working, but the one used by the
 official BRouter segments files are the ones provided by
@@ -36,21 +54,6 @@ Note that if you don't have the SRTM data available, the segments files will
 still be generated without any issue (but they will miss the elevation data).
 If you are not sure which SRTM files you have to download, you can run the
 script once and it will log all the SRTM files it is looking for.
-
-You can now run the `misc/scripts/mapcreation/process_pbf_planet.sh` script to
-build the segments. Have a look at the variables defined at the beginning of
-the files and overwrite them according to your needs. By default, the script
-will download the latest full planet dump from
-[planet.osm.org](https://planet.osm.org/). You can also download a
-geographical extract provided by [Geofabrik](https://download.geofabrik.de/)
-and set the `PLANET_FILE` variable to point to it.
-
-_Note:_ It is possible that you encounter an error complaining about not being
-able to run `bash^M` on Linux/Mac OS. You can fix this one by running
-`sed -i -e 's/\r$//' process_pbf_planet.sh`.
-
-
-## Run a generation for elevation data tiles
 
 To match the 5x5 OSM data grid (*.rd5) files from BRouter, there are elevation
 data in a 5x5 degree format (*.bef). At the moment (end of 2023) the naming of

@@ -105,7 +105,7 @@ public class OsmCutter extends MapCreatorBase {
   }
 
   private void checkStats() {
-    if ((++recordCnt % 100000) == 0) System.out.println(statsLine());
+    if ((++recordCnt % 1000000) == 0) System.out.println(statsLine());
   }
 
   private String statsLine() {
@@ -124,6 +124,10 @@ public class OsmCutter extends MapCreatorBase {
   public void nextNode(NodeData n) throws Exception {
     nodesParsed++;
     checkStats();
+
+    if (dbPseudoTagProvider != null) {
+      dbPseudoTagProvider.addNodeTags(n);
+    }
 
     if (n.getTagsOrNull() != null) {
       int[] lookupData = _expctxNode.createNewLookupData();
@@ -176,7 +180,7 @@ public class OsmCutter extends MapCreatorBase {
     if (w.getTagsOrNull() == null) return;
 
     if (dbPseudoTagProvider != null) {
-      dbPseudoTagProvider.addTags(w.wid, w.getTagsOrNull());
+      dbPseudoTagProvider.addWayTags(w.wid, w.getTagsOrNull());
     }
 
     generatePseudoTags(w.getTagsOrNull());

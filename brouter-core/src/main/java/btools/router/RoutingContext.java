@@ -119,13 +119,34 @@ public final class RoutingContext {
     bikeMode = 0.f != expctxGlobal.getVariableValue("validForBikes", 0.f);
     footMode = 0.f != expctxGlobal.getVariableValue("validForFoot", 0.f);
 
+    consider_crossing = 0.f != expctxGlobal.getVariableValue("consider_crossing", 0.f);
+
+    crossing_Prio_H = (int) expctxGlobal.getVariableValue("crossing_Prio_H", 0.f);
+    crossing_Prio_L = (int) expctxGlobal.getVariableValue("crossing_Prio_L", 0.f);
+
+    cost_ToLeft_from_H_class1 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class1", 0.f);
+    cost_ToLeft_from_H_class2 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class2", 0.f);
+    cost_ToLeft_from_H_class3 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class3", 0.f);
+    cost_ToLeft_from_H_class4 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class4", 0.f);
+    cost_ToLeft_from_H_class5 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class5", 0.f);
+    cost_ToLeft_from_H_class6 = (int) expctxGlobal.getVariableValue("cost_ToLeft_from_H_class6", 0.f);
+
+    // for left-hand traffic
+    cost_ToRight_from_H_class1 = (int) expctxGlobal.getVariableValue("cost_ToRight_from_H_class1", 0.f);
+    cost_ToRight_from_H_class2 = (int) expctxGlobal.getVariableValue("cost_ToRight_from_H_class2", 0.f);
+    cost_ToRight_from_H_class3 = (int) expctxGlobal.getVariableValue("cost_ToRight_from_H_class3", 0.f);
+    cost_ToRight_from_H_class4 = (int) expctxGlobal.getVariableValue("cost_ToRight_from_H_class4", 0.f);
+    cost_ToRight_from_H_class5 = (int) expctxGlobal.getVariableValue("cost_ToRight_from_H_class5", 0.f);
+    cost_ToRight_from_H_class6 = (int) expctxGlobal.getVariableValue("cost_ToRight_from_H_class6", 0.f);
+
+
     waypointCatchingRange = expctxGlobal.getVariableValue("waypointCatchingRange", 250.f);
 
     // turn-restrictions not used per default for foot profiles
     considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue("considerTurnRestrictions", footMode ? 0.f : 1.f);
 
-    correctMisplacedViaPoints = 0.f != expctxGlobal.getVariableValue("correctMisplacedViaPoints", 1.f);
-    correctMisplacedViaPointsDistance = expctxGlobal.getVariableValue("correctMisplacedViaPointsDistance", 0.f); // 0 == don't use distance
+    correctMisplacedViaPoints = 0.f != expctxGlobal.getVariableValue("correctMisplacedViaPoints", 0.f);
+    correctMisplacedViaPointsDistance = expctxGlobal.getVariableValue("correctMisplacedViaPointsDistance", 400.f); // 0 == don't use distance
 
     continueStraight = 0.f != expctxGlobal.getVariableValue("continueStraight", 0.f);
 
@@ -158,7 +179,7 @@ public final class RoutingContext {
       turnInstructionMode = tiMode;
     }
     turnInstructionCatchingRange = expctxGlobal.getVariableValue("turnInstructionCatchingRange", 40.f);
-    turnInstructionRoundabouts = expctxGlobal.getVariableValue("turnInstructionRoundabouts", 1.f) != 0.f;
+    turnInstructionRoundabouts = expctxGlobal.getVariableValue("turnInstructionRoundabouts", footMode ? 0.f : 1.f) != 0.f;
 
     // Speed computation model (for bikes)
     // Total mass (biker + bike + luggages or hiker), in kg
@@ -238,6 +259,28 @@ public final class RoutingContext {
   public double S_C_x;
   public double defaultC_r;
   public double bikerPower;
+
+  // variables in the profile to activate "crossing costs" at nodes with "estimated_crossing_class" not null
+  public boolean consider_crossing = false; // consider crossing
+
+  public int crossing_Prio_H = 0; // min value to considered a HW as "highprio"
+  public int crossing_Prio_L = 0; // max value to considered a HW as "lowprio"
+
+  // cost when turning left from a Highprio to a lowprio
+  public int cost_ToLeft_from_H_class1 =0;
+  public int cost_ToLeft_from_H_class2 =0;
+  public int cost_ToLeft_from_H_class3 =0;
+  public int cost_ToLeft_from_H_class4 =0;
+  public int cost_ToLeft_from_H_class5 =0;
+  public int cost_ToLeft_from_H_class6 =0;
+
+  // cost when turning Right from a Highprio to a lowprio
+  public int cost_ToRight_from_H_class1 =0;
+  public int cost_ToRight_from_H_class2 =0;
+  public int cost_ToRight_from_H_class3 =0;
+  public int cost_ToRight_from_H_class4 =0;
+  public int cost_ToRight_from_H_class5 =0;
+  public int cost_ToRight_from_H_class6 =0;
 
   public static void prepareNogoPoints(List<OsmNodeNamed> nogos) {
     for (OsmNodeNamed nogo : nogos) {
