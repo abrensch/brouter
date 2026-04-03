@@ -1,4 +1,4 @@
----lookupversion:11
+---lookupversion:12
 ---minorversion:1
 
 ---context:way
@@ -111,6 +111,19 @@ maxspeed;0000038763 120 75_mph 75mph
 maxspeed;0000026953 130 80_mph 79_mph
 maxspeed;0000138654 urban RO:urban RU:urban FR:urban IT:urban AT:urban DE:urban UA:urban
 maxspeed;0000138654 rural RO:rural RU:rural FR:rural IT:rural AT:rural DE:rural UA:rural
+
+portage;0000000001 no
+portage;0000000001 yes
+portage;0000000001 private
+portage;0000000001 permit
+portage;0000000001 customers
+portage;0000000001 permissive
+portage;0000000001 designated
+portage;0000000001 discouraged
+
+hand_cart;0000000001 no
+hand_cart;0000000001 yes
+hand_cart;0000000001 designated
 
 service;0001433919 parking_aisle
 service;0001305879 driveway driveway2
@@ -507,12 +520,55 @@ waterway;0000000113 fish_pass
 waterway;0000000086 boatyard
 waterway;0000000071 fairway
 waterway;0000000059 lock_gate
+waterway;0000000001 flowline
+waterway;0000000001 link
+waterway;0000000001 tidal_channel
+waterway;0000000001 canoe_pass
+waterway;0000000001 ditch
+waterway;0000000001 drain
+waterway;0000000001 stream
+
+tidal;0000000001 no
+tidal;0000000001 yes
+
+intermittent;0000000001 no
+intermittent;0000000001 yes
+
+rapids;0000000001 no A B C 0
+rapids;0000000001 yes
+rapids;0000000001 1 1+ 1- I  1;0
+rapids;0000000001 2 2+ 2- II 1;2 2;1
+rapids;0000000001 3 3+ 3- III 2;3 3;2
+rapids;0000000001 4 4+ 4- IV 3;4 4;3
+rapids;0000000001 5 5+ 5- V 4;5 5;4
+rapids;0000000001 6 6+ VI 5;6 6;5
+rapids;0000000001 X 5;X 6;X X;5 X;6
+
+open_water;0000000001 no
+open_water;0000000001 yes
+open_water;0000000001 partial
+
+canoe;0000000001 no
+canoe;0000000001 yes
+canoe;0000000001 private
+canoe;0000000001 permit
+canoe;0000000001 customers
+canoe;0000000001 permissive
+canoe;0000000001 designated
+canoe;0000000001 discouraged
+canoe;0000000001 unknown
+
+oneway:canoe;0000000001 no
+oneway:canoe;0000000001 yes
 
 boat;0000019888 no
 boat;0000002718 yes
 boat;0000000232 private
 boat;0000000064 permissive
 boat;0000000045 designated
+boat;0000000001 discouraged
+boat;0000000001 unknown
+boat;0000000001 permit
 
 motorboat;0000001077 yes
 motorboat;0000000808 no
@@ -1050,6 +1106,48 @@ waterway;0000004698 weir
 waterway;0000001647 lock_gate
 waterway;0000000425 waterfall
 waterway;0000000170 lock
+waterway;0000000001 rapids
+waterway;0000000001 access_point
+waterway;0000000001 dam
+
+rapids;0000000001 no A B C 0
+rapids;0000000001 yes
+rapids;0000000001 1 1+ 1- I  1;0
+rapids;0000000001 2 2+ 2- II 1;2 2;1
+rapids;0000000001 3 3+ 3- III 2;3 3;2
+rapids;0000000001 4 4+ 4- IV 3;4 4;3
+rapids;0000000001 5 5+ 5- V 4;5 5;4
+rapids;0000000001 6 6+ VI 5;6 6;5
+rapids;0000000001 X 5;X 6;X X;5 X;6
+
+canoe;0000000001 no
+canoe;0000000001 yes
+canoe;0000000001 private
+canoe;0000000001 permit
+canoe;0000000001 customers
+canoe;0000000001 permissive
+canoe;0000000001 designated
+canoe;0000000001 discouraged
+canoe:egress;0000000001 yes
+canoe:egress;0000000001 designated
+canoe:egress;0000000001 permissive
+canoe:egress;0000000001 customers
+canoe:egress;0000000001 permit
+canoe:put_in;0000000001 yes
+canoe:put_in;0000000001 designated
+canoe:put_in;0000000001 permissive
+canoe:put_in;0000000001 customers
+canoe:put_in;0000000001 permit
+
+
+boat;0000000001 no
+boat;0000000001 yes
+boat;0000000001 private
+boat;0000000001 permissive
+boat;0000000001 designated
+boat;0000000001 discouraged
+boat;0000000001 unknown
+boat;0000000001 permit
 
 surface;0000000001 asphalt
 surface;0000000001 paved paving_stones sett cobblestone
