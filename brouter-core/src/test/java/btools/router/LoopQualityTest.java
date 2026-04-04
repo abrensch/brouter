@@ -127,11 +127,9 @@ public class LoopQualityTest {
     OsmTrack track = re.getFoundTrack();
 
     if (error != null || track == null) {
-      // Record as error in the report, but skip (not fail) — constrained terrain
-      // or data-edge limitations may legitimately prevent route generation
       synchronized (results) {
         results.add(new LoopQualityResult(testLabel, region, targetDistanceMeters,
-          profileName, direction, null, error != null ? error : "no track produced"));
+          profileName, direction, null, error != null ? error : "no track produced", null));
       }
       Assume.assumeTrue("routing could not produce track for " + testLabel + ": " + error, false);
       return;
@@ -140,10 +138,13 @@ public class LoopQualityTest {
     // Compute metrics
     LoopQualityMetrics metrics = LoopQualityMetrics.compute(track, targetDistanceMeters, direction);
 
-    // Record result
+    // Extract coordinates for GeoJSON export
+    double[][] coords = extractCoordinates(track);
+
+    // Record result with coordinates
     synchronized (results) {
       results.add(new LoopQualityResult(testLabel, region, targetDistanceMeters,
-        profileName, direction, metrics, null));
+        profileName, direction, metrics, null, coords));
     }
 
     // Write golden baseline files
@@ -176,19 +177,76 @@ public class LoopQualityTest {
     if (results.isEmpty()) return;
 
     try {
-      // Determine output dir — use project build dir if available, else temp
       File buildDir = new File("build/reports/loops");
       buildDir.mkdirs();
 
+      // HTML report
       File reportFile = new File(buildDir, "index.html");
       String html = LoopQualityReportGenerator.generateHtml(results);
       try (FileWriter fw = new FileWriter(reportFile)) {
         fw.write(html);
       }
       System.out.println("Loop quality report: " + reportFile.getAbsolutePath());
+
+      // Combined GeoJSON FeatureCollection with all routes
+      File geojsonFile = new File(buildDir, "all-routes.geojson");
+      try (FileWriter fw = new FileWriter(geojsonFile)) {
+        fw.write(formatCombinedGeoJson(results));
+      }
+      System.out.println("GeoJSON export: " + geojsonFile.getAbsolutePath());
     } catch (IOException e) {
       System.err.println("Failed to write loop quality report: " + e.getMessage());
     }
+  }
+
+  private static double[][] extractCoordinates(OsmTrack track) {
+    double[][] coords = new double[track.nodes.size()][2];
+    for (int i = 0; i < track.nodes.size(); i++) {
+      OsmPathElement n = track.nodes.get(i);
+      coords[i][0] = (n.getILon() - 180000000) / 1000000.0;
+      coords[i][1] = (n.getILat() - 90000000) / 1000000.0;
+    }
+    return coords;
+  }
+
+  private static String formatCombinedGeoJson(List<LoopQualityResult> results) {
+    StringBuilder sb = new StringBuilder(1024 * 1024);
+    sb.append("{\n  \"type\": \"FeatureCollection\",\n  \"features\": [\n");
+    boolean first = true;
+    for (LoopQualityResult r : results) {
+      if (r.coordinates == null || r.coordinates.length == 0) continue;
+      if (!first) sb.append(",\n");
+      first = false;
+      sb.append("    {\n      \"type\": \"Feature\",\n");
+      sb.append("      \"properties\": {\n");
+      sb.append(String.format(Locale.US, "        \"name\": \"%s\",\n", r.label));
+      sb.append(String.format(Locale.US, "        \"region\": \"%s\",\n", r.region.name()));
+      sb.append(String.format(Locale.US, "        \"profile\": \"%s\",\n", r.profileName));
+      sb.append(String.format(Locale.US, "        \"requestedDistance\": %d,\n", r.distanceMeters));
+      sb.append(String.format(Locale.US, "        \"direction\": %.0f,\n", r.direction));
+      if (r.metrics != null) {
+        sb.append(String.format(Locale.US, "        \"actualDistance\": %d,\n", r.metrics.getActualDistanceMeters()));
+        sb.append(String.format(Locale.US, "        \"distanceRatio\": %.2f,\n", r.metrics.getDistanceRatio()));
+        sb.append(String.format(Locale.US, "        \"roadReusePercent\": %.1f,\n", r.metrics.getRoadReusePercent()));
+        sb.append(String.format(Locale.US, "        \"directionDelta\": %.1f,\n", r.metrics.getDirectionDeltaDegrees()));
+        sb.append(String.format(Locale.US, "        \"passed\": %s,\n", r.passed()));
+      }
+      // Color: green=pass, red=fail
+      String color = r.passed() ? "#28a745" : "#dc3545";
+      sb.append(String.format("        \"stroke\": \"%s\",\n", color));
+      sb.append("        \"stroke-width\": 2,\n");
+      sb.append(String.format("        \"stroke-opacity\": %s\n", r.passed() ? "0.7" : "0.9"));
+      sb.append("      },\n");
+      sb.append("      \"geometry\": {\n        \"type\": \"LineString\",\n        \"coordinates\": [\n");
+      for (int i = 0; i < r.coordinates.length; i++) {
+        sb.append(String.format(Locale.US, "          [%.6f, %.6f]", r.coordinates[i][0], r.coordinates[i][1]));
+        if (i < r.coordinates.length - 1) sb.append(",");
+        sb.append("\n");
+      }
+      sb.append("        ]\n      }\n    }");
+    }
+    sb.append("\n  ]\n}\n");
+    return sb.toString();
   }
 
   private void writeGoldenBaseline(OsmTrack track, LoopQualityMetrics metrics) {
@@ -279,10 +337,11 @@ public class LoopQualityTest {
     final double direction;
     final LoopQualityMetrics metrics; // null if routing failed
     final String error; // null if routing succeeded
+    final double[][] coordinates; // [lon, lat] pairs; null if routing failed
 
     LoopQualityResult(String label, LoopTestRegion region, int distanceMeters,
                       String profileName, double direction,
-                      LoopQualityMetrics metrics, String error) {
+                      LoopQualityMetrics metrics, String error, double[][] coordinates) {
       this.label = label;
       this.region = region;
       this.distanceMeters = distanceMeters;
@@ -290,6 +349,7 @@ public class LoopQualityTest {
       this.direction = direction;
       this.metrics = metrics;
       this.error = error;
+      this.coordinates = coordinates;
     }
 
     boolean passed() {
