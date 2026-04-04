@@ -15,6 +15,9 @@ build
 .externalNativeBuild
 .cxx
 misc/segments4
+/segments4
+# Golden baseline GeoJSON tracks (large, regenerated from test runs)
+*_track.geojson
 misc/customprofiles
 *.BAK
 .classpath
