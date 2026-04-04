@@ -145,5 +145,6 @@ This needs some parameter:
 - roundTripDistance - in meters, how far to generate some helping points (default 1500)
 - direction - in degree, the direction to the points (default -1, BRouter uses a random direction)
 - roundTripPoints - how many helping point (default 5, 4 around the distance and one end point)
+- roundTripIsochrone - set to 1 to enable isochrone-based waypoint placement (default 0). Uses a Dijkstra expansion to discover the actual road network shape around the start point, producing better distance accuracy in constrained terrain (mountains, coast, sparse road networks). Falls back to the default probe strategy when the expansion cannot produce sufficient data.
 
 When direction = -1 and with a selection of the profile parameter consider_elevation, consider_forest or consider_river  BRouter collects the information about this from the area defined in roundTripDistance and selects a random direction from the quadrant with the best choice of the values. Please keep in mind that the longer the distance, the longer this will take.
