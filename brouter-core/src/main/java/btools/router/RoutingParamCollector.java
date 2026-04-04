@@ -218,6 +218,8 @@ public class RoutingParamCollector {
           }
         } else if (key.equals("allowSamewayback")) {
           rctx.allowSamewayback = Integer.parseInt(value)==1;
+        } else if (key.equals("roundTripIsochrone")) {
+          rctx.roundTripIsochrone = Integer.parseInt(value)==1;
         } else if (key.equals("alternativeidx")) {
           rctx.setAlternativeIdx(Integer.parseInt(value));
         } else if (key.equals("turnInstructionMode")) {

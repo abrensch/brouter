@@ -582,6 +582,276 @@ public class RoutingEngineTest {
     Assert.assertSame(nodeG, track.nodes.get(4));
   }
 
+  // --- Isochrone + combined strategy tests ---
+
+  // Integration: isochrone=true produces a valid closed loop
+  @Test
+  public void roundTripIsochroneBasicLoop() {
+    RoutingContext rctx = new RoutingContext();
+    rctx.startDirection = 0;
+    rctx.roundTripDistance = 1000;
+    rctx.roundTripIsochrone = true;
+
+    RoutingEngine re = calcRoundTrip(8.720, 50.000, "rtIsochrone", rctx);
+
+    Assert.assertNull("isochrone round-trip failed: " + re.getErrorMessage(), re.getErrorMessage());
+    OsmTrack track = re.getFoundTrack();
+    Assert.assertNotNull("isochrone should produce a track", track);
+    Assert.assertTrue("track should have nodes", track.nodes.size() > 2);
+
+    OsmPathElement first = track.nodes.get(0);
+    OsmPathElement last = track.nodes.get(track.nodes.size() - 1);
+    int closingDistance = first.calcDistance(last);
+    Assert.assertTrue("loop should close near origin, gap=" + closingDistance + "m",
+      closingDistance < 500);
+  }
+
+  // Integration: isochrone produces valid loops in all 4 directions
+  @Test
+  public void roundTripIsochroneAllDirections() {
+    for (int dir : new int[]{0, 90, 180, 270}) {
+      RoutingContext rctx = new RoutingContext();
+      rctx.startDirection = dir;
+      rctx.roundTripDistance = 1000;
+      rctx.roundTripIsochrone = true;
+
+      RoutingEngine re = calcRoundTrip(8.720, 50.000, "rtIsoDir" + dir, rctx);
+
+      Assert.assertNull("isochrone dir=" + dir + " failed: " + re.getErrorMessage(), re.getErrorMessage());
+      OsmTrack track = re.getFoundTrack();
+      Assert.assertNotNull("isochrone dir=" + dir + " should produce track", track);
+      Assert.assertTrue("isochrone dir=" + dir + " should have >2 nodes", track.nodes.size() > 2);
+      Assert.assertTrue("isochrone dir=" + dir + " should have positive distance", track.distance > 100);
+    }
+  }
+
+  // Integration: isochrone and probe both produce valid routes for the same input
+  @Test
+  public void roundTripIsochroneAndProbeBothSucceed() {
+    RoutingContext probeCtx = new RoutingContext();
+    probeCtx.startDirection = 0;
+    probeCtx.roundTripDistance = 1000;
+    RoutingEngine probeRe = calcRoundTrip(8.720, 50.000, "rtBothProbe", probeCtx);
+
+    RoutingContext isoCtx = new RoutingContext();
+    isoCtx.startDirection = 0;
+    isoCtx.roundTripDistance = 1000;
+    isoCtx.roundTripIsochrone = true;
+    RoutingEngine isoRe = calcRoundTrip(8.720, 50.000, "rtBothIso", isoCtx);
+
+    Assert.assertNull("probe failed: " + probeRe.getErrorMessage(), probeRe.getErrorMessage());
+    Assert.assertNull("isochrone failed: " + isoRe.getErrorMessage(), isoRe.getErrorMessage());
+
+    OsmTrack probeTrack = probeRe.getFoundTrack();
+    OsmTrack isoTrack = isoRe.getFoundTrack();
+    Assert.assertNotNull(probeTrack);
+    Assert.assertNotNull(isoTrack);
+    Assert.assertTrue("probe should produce positive distance", probeTrack.distance > 100);
+    Assert.assertTrue("isochrone should produce positive distance", isoTrack.distance > 100);
+  }
+
+  // Integration: isochrone distance accuracy is reasonable
+  @Test
+  public void roundTripIsochroneDistanceAccuracy() {
+    RoutingContext rctx = new RoutingContext();
+    rctx.startDirection = 90;
+    rctx.roundTripDistance = 3000;
+    rctx.roundTripIsochrone = true;
+
+    RoutingEngine re = calcRoundTrip(8.720, 50.000, "rtIsoAccuracy", rctx);
+
+    Assert.assertNull("isochrone routing failed: " + re.getErrorMessage(), re.getErrorMessage());
+    OsmTrack track = re.getFoundTrack();
+    Assert.assertNotNull(track);
+
+    double ratio = (double) track.distance / 3000;
+    Assert.assertTrue("distance ratio " + String.format("%.2f", ratio) + " should be < 5.0", ratio < 5.0);
+    Assert.assertTrue("distance ratio " + String.format("%.2f", ratio) + " should be > 0.2", ratio > 0.2);
+  }
+
+  // Integration: default (no flag) uses probe, not isochrone
+  @Test
+  public void roundTripDefaultUsesProbe() {
+    RoutingContext rctx = new RoutingContext();
+    rctx.startDirection = 0;
+    rctx.roundTripDistance = 1000;
+    // roundTripIsochrone NOT set — should default to false
+
+    Assert.assertFalse("roundTripIsochrone should default to false", rctx.roundTripIsochrone);
+
+    RoutingEngine re = calcRoundTrip(8.720, 50.000, "rtDefaultProbe", rctx);
+    Assert.assertNull(re.getErrorMessage());
+    Assert.assertNotNull(re.getFoundTrack());
+  }
+
+  // --- mergeIsochroneWithProbe unit tests ---
+
+  @Test
+  public void mergeIsochroneWithProbeNoOverlap() {
+    // Isochrone has N and S, probe adds E and W
+    double[][] frontier = {{0, 500}, {180, 600}};
+    double[] probe = {90, 270};
+    double[][] merged = RoutingEngine.mergeIsochroneWithProbe(frontier, probe, 1000);
+
+    Assert.assertEquals("should have 4 entries", 4, merged.length);
+    // Verify isochrone entries keep their distances
+    boolean foundNorth = false, foundEast = false;
+    for (double[] entry : merged) {
+      if (Math.abs(entry[0] - 0) < 1) { foundNorth = true; Assert.assertEquals(500, entry[1], 0.1); }
+      if (Math.abs(entry[0] - 90) < 1) { foundEast = true; Assert.assertEquals(1000, entry[1], 0.1); } // probe uses searchRadius
+    }
+    Assert.assertTrue("should contain north (isochrone)", foundNorth);
+    Assert.assertTrue("should contain east (probe fill)", foundEast);
+  }
+
+  @Test
+  public void mergeIsochroneWithProbeOverlap() {
+    // Isochrone and probe both have direction 90 — isochrone distance should win
+    double[][] frontier = {{90, 750}};
+    double[] probe = {90, 180};
+    double[][] merged = RoutingEngine.mergeIsochroneWithProbe(frontier, probe, 1000);
+
+    Assert.assertEquals("should have 2 entries", 2, merged.length);
+    // Direction 90 should keep isochrone distance (750), not probe (1000)
+    for (double[] entry : merged) {
+      if (Math.abs(entry[0] - 90) < 1) {
+        Assert.assertEquals("overlapping direction should keep isochrone distance", 750, entry[1], 0.1);
+      }
+    }
+  }
+
+  @Test
+  public void mergeIsochroneWithProbeNullIsochrone() {
+    // Isochrone failed — merge should use probe directions at searchRadius
+    double[] probe = {0, 90, 180, 270};
+    double[][] merged = RoutingEngine.mergeIsochroneWithProbe(null, probe, 2000);
+
+    Assert.assertEquals("should have 4 entries from probe", 4, merged.length);
+    for (double[] entry : merged) {
+      Assert.assertEquals("probe-only entries should use searchRadius", 2000, entry[1], 0.1);
+    }
+  }
+
+  @Test
+  public void mergeIsochroneWithProbeNullProbe() {
+    // Probe failed — merge should return isochrone data unchanged
+    double[][] frontier = {{45, 800}, {135, 600}, {225, 900}};
+    double[][] merged = RoutingEngine.mergeIsochroneWithProbe(frontier, null, 1000);
+
+    Assert.assertEquals("should have 3 entries from isochrone", 3, merged.length);
+    Assert.assertEquals(800, merged[0][1], 0.1);
+  }
+
+  @Test
+  public void mergeIsochroneWithProbeBothNull() {
+    double[][] merged = RoutingEngine.mergeIsochroneWithProbe(null, null, 1000);
+    Assert.assertNull("both null should return null", merged);
+  }
+
+  @Test
+  public void mergeIsochroneWithProbeCloseDirections() {
+    // Isochrone has 90°, probe has 93° — should NOT add probe (within 5° threshold)
+    double[][] frontier = {{90, 750}};
+    double[] probe = {93};
+    double[][] merged = RoutingEngine.mergeIsochroneWithProbe(frontier, probe, 1000);
+
+    Assert.assertEquals("close direction should not be added", 1, merged.length);
+    Assert.assertEquals(750, merged[0][1], 0.1);
+  }
+
+  @Test
+  public void mergeIsochroneWithProbeSorted() {
+    // Result should be sorted by direction
+    double[][] frontier = {{270, 500}, {90, 600}};
+    double[] probe = {0, 180};
+    double[][] merged = RoutingEngine.mergeIsochroneWithProbe(frontier, probe, 1000);
+
+    for (int i = 1; i < merged.length; i++) {
+      Assert.assertTrue("result should be sorted by direction",
+        merged[i][0] >= merged[i - 1][0]);
+    }
+  }
+
+  // --- Reachability-aware waypoint placement tests ---
+
+  @Test
+  public void angleDiffBasic() {
+    Assert.assertEquals(0, RoutingEngine.angleDiff(0, 0), 0.01);
+    Assert.assertEquals(90, RoutingEngine.angleDiff(0, 90), 0.01);
+    Assert.assertEquals(180, RoutingEngine.angleDiff(0, 180), 0.01);
+    Assert.assertEquals(90, RoutingEngine.angleDiff(0, 270), 0.01);
+    Assert.assertEquals(10, RoutingEngine.angleDiff(355, 5), 0.01);
+  }
+
+  @Test
+  public void selectSpreadDirectionsFullCircle() {
+    // All 24 directions viable — should pick evenly spaced subset
+    double[] viable = new double[24];
+    for (int i = 0; i < 24; i++) viable[i] = i * 15;
+
+    double[] selected = RoutingEngine.selectSpreadDirections(viable, 4, 0);
+    Assert.assertEquals(4, selected.length);
+
+    // Should be roughly 90° apart
+    for (int i = 0; i < selected.length; i++) {
+      for (int j = i + 1; j < selected.length; j++) {
+        double diff = RoutingEngine.angleDiff(selected[i], selected[j]);
+        Assert.assertTrue("selected directions should be well-spread, got diff=" + diff,
+          diff >= 60);
+      }
+    }
+  }
+
+  @Test
+  public void selectSpreadDirectionsValley() {
+    // Only E-W directions viable (simulating an E-W valley)
+    double[] viable = {60, 75, 90, 105, 120, 240, 255, 270, 285, 300};
+
+    double[] selected = RoutingEngine.selectSpreadDirections(viable, 5, 90);
+    Assert.assertEquals(5, selected.length);
+
+    // First selected should be close to startDirection (90)
+    Assert.assertTrue("first should be near 90°, got " + selected[0],
+      RoutingEngine.angleDiff(selected[0], 90) <= 15);
+  }
+
+  @Test
+  public void selectSpreadDirectionsFewerThanNeeded() {
+    // Callers (placeWaypointsFromEnvelope etc.) cap 'needed' to viable.length
+    // before calling selectSpreadDirections. When called with count <= viable.length,
+    // it correctly selects all of them.
+    double[] viable = {0, 90, 180};
+    double[] selected = RoutingEngine.selectSpreadDirections(viable, 3, 0);
+    Assert.assertEquals(3, selected.length);
+    java.util.Set<Double> selectedSet = new java.util.HashSet<>();
+    for (double d : selected) selectedSet.add(d);
+    Assert.assertTrue("should contain 0", selectedSet.contains(0.0));
+    Assert.assertTrue("should contain 90", selectedSet.contains(90.0));
+    Assert.assertTrue("should contain 180", selectedSet.contains(180.0));
+  }
+
+  @Test
+  public void sortDirectionsForLoop() {
+    double[] dirs = {270, 90, 180, 0};
+    double[] sorted = RoutingEngine.sortDirectionsForLoop(dirs, 0);
+    // Should be ordered: 0, 90, 180, 270 (clockwise from north)
+    Assert.assertEquals(0, sorted[0], 0.01);
+    Assert.assertEquals(90, sorted[1], 0.01);
+    Assert.assertEquals(180, sorted[2], 0.01);
+    Assert.assertEquals(270, sorted[3], 0.01);
+  }
+
+  @Test
+  public void sortDirectionsForLoopStartingSouth() {
+    double[] dirs = {270, 90, 180, 0};
+    double[] sorted = RoutingEngine.sortDirectionsForLoop(dirs, 180);
+    // Starting from south (180): 180, 270, 0, 90
+    Assert.assertEquals(180, sorted[0], 0.01);
+    Assert.assertEquals(270, sorted[1], 0.01);
+    Assert.assertEquals(0, sorted[2], 0.01);
+    Assert.assertEquals(90, sorted[3], 0.01);
+  }
+
   private static OsmNodeNamed createNode(String name, int ilon, int ilat) {
     OsmNodeNamed n = new OsmNodeNamed();
     n.name = name;

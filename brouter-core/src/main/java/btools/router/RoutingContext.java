@@ -224,6 +224,7 @@ public final class RoutingContext {
   public Integer roundTripDirectionAdd;
   public Integer roundTripPoints;
   public boolean allowSamewayback;
+  public boolean roundTripIsochrone;
 
   public CheapAngleMeter anglemeter = new CheapAngleMeter();
 
