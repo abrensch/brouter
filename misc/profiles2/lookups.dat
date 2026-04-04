@@ -582,6 +582,7 @@ route;0000000413 mtb
 route;0000000194 canoe
 route;0000000151 road
 route;0000000104 bus
+route;0000000001 portage
 
 obstacle;0000000001 vegetation
 obstacle;0000000001 fallen_tree
@@ -664,6 +665,13 @@ route_mtb_ncn;0000004853 yes
 route_mtb_rcn;0000013321 yes
 route_mtb_mtb;0000006853 yes
 route_bicycle_mtb;0000002240 yes
+
+route_canoe_;00000000001 yes
+route_canoe_lpn;00000000001 yes
+route_canoe_rpn;00000000001 yes
+route_canoe_npn;00000000001 yes
+
+route_portage_;00000000001 yes
 
 ramp:bicycle;0000001305 yes both permissive right left
 ramp:bicycle;0000000385 no
