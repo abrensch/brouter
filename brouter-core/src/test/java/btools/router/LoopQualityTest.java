@@ -92,84 +92,88 @@ public class LoopQualityTest {
 
   @Test
   public void loopQuality() {
-    // Skip if segment data is not available
     File segDir = segmentDir();
     File segFile = new File(segDir, region.segmentFile);
     Assume.assumeTrue("Segment file not found: " + segFile.getAbsolutePath() +
       " — run download-loop-test-segments.sh to fetch test data", segFile.exists());
-
     File profileFile = profileFile(profileName);
     Assume.assumeTrue("Profile not found: " + profileFile.getAbsolutePath(), profileFile.exists());
 
-    // Build waypoint list with single start point
-    List<OsmNodeNamed> wplist = new ArrayList<>();
-    OsmNodeNamed start = new OsmNodeNamed();
-    start.name = "from";
-    start.ilon = region.ilon;
-    start.ilat = region.ilat;
-    wplist.add(start);
+    // Run probe strategy (default)
+    LoopQualityResult probeResult = runVariant("probe", false, segDir, profileFile);
+    // Run isochrone strategy for comparison (best-effort, no assertions)
+    LoopQualityResult isoResult = runVariant("isochrone", true, segDir, profileFile);
 
-    // Configure routing context
-    RoutingContext rctx = new RoutingContext();
-    rctx.localFunction = profileFile.getAbsolutePath();
-    rctx.startDirection = (int) direction;
-    rctx.roundTripDistance = searchRadius;
-    rctx.roundTripIsochrone = Boolean.getBoolean("looptest.isochrone");
+    synchronized (results) {
+      if (probeResult != null) results.add(probeResult);
+      if (isoResult != null) results.add(isoResult);
+    }
 
-    // Execute round-trip routing
-    String outPath = new File(outputDir.getRoot(), testLabel).getAbsolutePath();
-    RoutingEngine re = new RoutingEngine(
-      outPath, outPath, segDir, wplist, rctx,
-      RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP);
-    re.doRun(0);
+    if (probeResult != null && probeResult.metrics != null) {
+      writeGoldenBaseline(probeResult);
+    }
 
-    String error = re.getErrorMessage();
-    OsmTrack track = re.getFoundTrack();
-
-    if (error != null || track == null) {
-      synchronized (results) {
-        results.add(new LoopQualityResult(testLabel, region, targetDistanceMeters,
-          profileName, direction, null, error != null ? error : "no track produced", null));
-      }
-      Assume.assumeTrue("routing could not produce track for " + testLabel + ": " + error, false);
+    if (probeResult == null || probeResult.metrics == null) {
+      Assume.assumeTrue("routing could not produce track for " + testLabel, false);
       return;
     }
 
-    // Compute metrics
-    LoopQualityMetrics metrics = LoopQualityMetrics.compute(track, targetDistanceMeters, direction);
-
-    // Extract coordinates for GeoJSON export
-    double[][] coords = extractCoordinates(track);
-
-    // Record result with coordinates
-    synchronized (results) {
-      results.add(new LoopQualityResult(testLabel, region, targetDistanceMeters,
-        profileName, direction, metrics, null, coords));
-    }
-
-    // Write golden baseline files
-    writeGoldenBaseline(track, metrics);
-
-    // Property-bound assertions
+    LoopQualityMetrics metrics = probeResult.metrics;
     assertTrue(
       String.format("%s: road reuse %.1f%% exceeds max %.1f%% for %s terrain",
         testLabel, metrics.getRoadReusePercent(), region.maxReusePercent, region.name()),
       metrics.getRoadReusePercent() <= region.maxReusePercent);
-
     assertTrue(
       String.format("%s: distance ratio %.2f below min %.2f",
         testLabel, metrics.getDistanceRatio(), region.minDistanceRatio),
       metrics.getDistanceRatio() >= region.minDistanceRatio);
-
     assertTrue(
       String.format("%s: distance ratio %.2f exceeds max %.2f",
         testLabel, metrics.getDistanceRatio(), region.maxDistanceRatio),
       metrics.getDistanceRatio() <= region.maxDistanceRatio);
-
     assertTrue(
       String.format("%s: direction delta %.1f° exceeds max %.1f°",
         testLabel, metrics.getDirectionDeltaDegrees(), region.maxDirectionDelta),
       metrics.getDirectionDeltaDegrees() <= region.maxDirectionDelta);
+  }
+
+  private LoopQualityResult runVariant(String variant, boolean useIsochrone, File segDir, File profileFile) {
+    try {
+      List<OsmNodeNamed> wplist = new ArrayList<>();
+      OsmNodeNamed start = new OsmNodeNamed();
+      start.name = "from";
+      start.ilon = region.ilon;
+      start.ilat = region.ilat;
+      wplist.add(start);
+
+      RoutingContext rctx = new RoutingContext();
+      rctx.localFunction = profileFile.getAbsolutePath();
+      rctx.startDirection = (int) direction;
+      rctx.roundTripDistance = searchRadius;
+      rctx.roundTripIsochrone = useIsochrone;
+
+      String outPath = new File(outputDir.getRoot(), testLabel + "_" + variant).getAbsolutePath();
+      RoutingEngine re = new RoutingEngine(
+        outPath, outPath, segDir, wplist, rctx,
+        RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP);
+      re.doRun(0);
+
+      String error = re.getErrorMessage();
+      OsmTrack track = re.getFoundTrack();
+
+      if (error != null || track == null) {
+        return new LoopQualityResult(testLabel, region, targetDistanceMeters,
+          profileName, direction, null, error != null ? error : "no track", null, variant);
+      }
+
+      LoopQualityMetrics metrics = LoopQualityMetrics.compute(track, targetDistanceMeters, direction);
+      double[][] coords = extractCoordinates(track);
+      return new LoopQualityResult(testLabel, region, targetDistanceMeters,
+        profileName, direction, metrics, null, coords, variant);
+    } catch (Exception e) {
+      return new LoopQualityResult(testLabel, region, targetDistanceMeters,
+        profileName, direction, null, e.getMessage(), null, variant);
+    }
   }
 
   @AfterClass
@@ -194,6 +198,26 @@ public class LoopQualityTest {
         fw.write(formatCombinedGeoJson(results));
       }
       System.out.println("GeoJSON export: " + geojsonFile.getAbsolutePath());
+
+      // Per-region HTML with full geometry and variant comparison
+      for (LoopTestRegion region : LoopTestRegion.values()) {
+        List<LoopQualityResult> regionResults = new ArrayList<>();
+        for (LoopQualityResult r : results) {
+          if (r.region == region) regionResults.add(r);
+        }
+        if (regionResults.isEmpty()) continue;
+
+        File regionGeoJson = new File(buildDir, "routes-" + region.name().toLowerCase() + ".geojson");
+        try (FileWriter fw = new FileWriter(regionGeoJson)) {
+          fw.write(formatCombinedGeoJson(regionResults));
+        }
+
+        File regionHtml = new File(buildDir, region.name().toLowerCase() + ".html");
+        try (FileWriter fw = new FileWriter(regionHtml)) {
+          fw.write(LoopQualityReportGenerator.generateRegionHtml(region, regionResults));
+        }
+        System.out.println("Region report: " + regionHtml.getAbsolutePath());
+      }
     } catch (IOException e) {
       System.err.println("Failed to write loop quality report: " + e.getMessage());
     }
@@ -209,6 +233,10 @@ public class LoopQualityTest {
     return coords;
   }
 
+  private static String variantColor(String variant) {
+    return "isochrone".equals(variant) ? "#e67300" : "#0066cc";
+  }
+
   private static String formatCombinedGeoJson(List<LoopQualityResult> results) {
     StringBuilder sb = new StringBuilder(1024 * 1024);
     sb.append("{\n  \"type\": \"FeatureCollection\",\n  \"features\": [\n");
@@ -219,7 +247,8 @@ public class LoopQualityTest {
       first = false;
       sb.append("    {\n      \"type\": \"Feature\",\n");
       sb.append("      \"properties\": {\n");
-      sb.append(String.format(Locale.US, "        \"name\": \"%s\",\n", r.label));
+      sb.append(String.format(Locale.US, "        \"name\": \"%s [%s]\",\n", r.label, r.variant));
+      sb.append(String.format(Locale.US, "        \"variant\": \"%s\",\n", r.variant));
       sb.append(String.format(Locale.US, "        \"region\": \"%s\",\n", r.region.name()));
       sb.append(String.format(Locale.US, "        \"profile\": \"%s\",\n", r.profileName));
       sb.append(String.format(Locale.US, "        \"requestedDistance\": %d,\n", r.distanceMeters));
@@ -229,13 +258,10 @@ public class LoopQualityTest {
         sb.append(String.format(Locale.US, "        \"distanceRatio\": %.2f,\n", r.metrics.getDistanceRatio()));
         sb.append(String.format(Locale.US, "        \"roadReusePercent\": %.1f,\n", r.metrics.getRoadReusePercent()));
         sb.append(String.format(Locale.US, "        \"directionDelta\": %.1f,\n", r.metrics.getDirectionDeltaDegrees()));
-        sb.append(String.format(Locale.US, "        \"passed\": %s,\n", r.passed()));
       }
-      // Color: green=pass, red=fail
-      String color = r.passed() ? "#28a745" : "#dc3545";
-      sb.append(String.format("        \"stroke\": \"%s\",\n", color));
+      sb.append(String.format("        \"stroke\": \"%s\",\n", variantColor(r.variant)));
       sb.append("        \"stroke-width\": 2,\n");
-      sb.append(String.format("        \"stroke-opacity\": %s\n", r.passed() ? "0.7" : "0.9"));
+      sb.append("        \"stroke-opacity\": 0.8\n");
       sb.append("      },\n");
       sb.append("      \"geometry\": {\n        \"type\": \"LineString\",\n        \"coordinates\": [\n");
       for (int i = 0; i < r.coordinates.length; i++) {
@@ -249,24 +275,16 @@ public class LoopQualityTest {
     return sb.toString();
   }
 
-  private void writeGoldenBaseline(OsmTrack track, LoopQualityMetrics metrics) {
+  private void writeGoldenBaseline(LoopQualityResult result) {
+    if (result.metrics == null) return;
     try {
       File goldenDir = new File(projectDir, "brouter-core/src/test/resources/test-data/golden");
       goldenDir.mkdirs();
 
-      // Write metric snapshot JSON
       File metricsFile = new File(goldenDir, testLabel + "_metrics.json");
       if (!metricsFile.exists()) {
         try (FileWriter fw = new FileWriter(metricsFile)) {
-          fw.write(formatMetricsJson(metrics));
-        }
-      }
-
-      // Write track GeoJSON
-      File geojsonFile = new File(goldenDir, testLabel + "_track.geojson");
-      if (!geojsonFile.exists()) {
-        try (FileWriter fw = new FileWriter(geojsonFile)) {
-          fw.write(formatTrackGeoJson(track, metrics));
+          fw.write(formatMetricsJson(result.metrics));
         }
       }
     } catch (IOException e) {
@@ -290,34 +308,6 @@ public class LoopQualityTest {
       metrics.getRequestedDistanceMeters());
   }
 
-  private String formatTrackGeoJson(OsmTrack track, LoopQualityMetrics metrics) {
-    StringBuilder sb = new StringBuilder(4096);
-    sb.append("{\n");
-    sb.append("  \"type\": \"Feature\",\n");
-    sb.append("  \"properties\": {\n");
-    sb.append(String.format(Locale.US, "    \"roadReusePercent\": %.2f,\n", metrics.getRoadReusePercent()));
-    sb.append(String.format(Locale.US, "    \"distanceRatio\": %.4f,\n", metrics.getDistanceRatio()));
-    sb.append(String.format(Locale.US, "    \"directionDeltaDegrees\": %.2f,\n", metrics.getDirectionDeltaDegrees()));
-    sb.append(String.format(Locale.US, "    \"actualDistanceMeters\": %d,\n", metrics.getActualDistanceMeters()));
-    sb.append(String.format(Locale.US, "    \"requestedDistanceMeters\": %d\n", metrics.getRequestedDistanceMeters()));
-    sb.append("  },\n");
-    sb.append("  \"geometry\": {\n");
-    sb.append("    \"type\": \"LineString\",\n");
-    sb.append("    \"coordinates\": [\n");
-    for (int i = 0; i < track.nodes.size(); i++) {
-      OsmPathElement n = track.nodes.get(i);
-      double lon = (n.getILon() - 180000000) / 1000000.0;
-      double lat = (n.getILat() - 90000000) / 1000000.0;
-      sb.append(String.format(Locale.US, "      [%.6f, %.6f]", lon, lat));
-      if (i < track.nodes.size() - 1) sb.append(",");
-      sb.append("\n");
-    }
-    sb.append("    ]\n");
-    sb.append("  }\n");
-    sb.append("}\n");
-    return sb.toString();
-  }
-
   private File segmentDir() {
     return new File(projectDir, "segments4");
   }
@@ -338,10 +328,12 @@ public class LoopQualityTest {
     final LoopQualityMetrics metrics; // null if routing failed
     final String error; // null if routing succeeded
     final double[][] coordinates; // [lon, lat] pairs; null if routing failed
+    final String variant; // "probe" or "isochrone"
 
     LoopQualityResult(String label, LoopTestRegion region, int distanceMeters,
                       String profileName, double direction,
-                      LoopQualityMetrics metrics, String error, double[][] coordinates) {
+                      LoopQualityMetrics metrics, String error, double[][] coordinates,
+                      String variant) {
       this.label = label;
       this.region = region;
       this.distanceMeters = distanceMeters;
@@ -350,6 +342,7 @@ public class LoopQualityTest {
       this.metrics = metrics;
       this.error = error;
       this.coordinates = coordinates;
+      this.variant = variant != null ? variant : "probe";
     }
 
     boolean passed() {
