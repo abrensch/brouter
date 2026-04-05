@@ -684,6 +684,32 @@ public class RoutingEngine extends Thread {
   }
 
   /**
+   * Snap intermediate roundtrip waypoints to the nearest intersection node.
+   * When a waypoint is matched to the middle of an edge (crosspoint between
+   * node1 and node2), routing to that mid-edge point can create small
+   * out-and-back tails. By moving the crosspoint to the closer of node1/node2
+   * (a real intersection), we avoid these tails entirely.
+   * This is analogous to GraphHopper's getBaseNode() approach.
+   * Only applied to generated roundtrip waypoints (rt*), not user waypoints
+   * or the start/end points.
+   */
+  void snapToIntersection(List<MatchedWaypoint> waypoints) {
+    for (int i = 1; i < waypoints.size() - 1; i++) {
+      MatchedWaypoint mwp = waypoints.get(i);
+      if (mwp.name == null || !mwp.name.startsWith("rt")) continue;
+      if (mwp.node1 == null || mwp.node2 == null || mwp.crosspoint == null) continue;
+
+      int distToNode1 = mwp.crosspoint.calcDistance(mwp.node1);
+      int distToNode2 = mwp.crosspoint.calcDistance(mwp.node2);
+      OsmNode closerNode = distToNode1 <= distToNode2 ? mwp.node1 : mwp.node2;
+
+      logInfo("snapToIntersection: " + mwp.name + " moved crosspoint "
+        + (distToNode1 <= distToNode2 ? distToNode1 : distToNode2) + "m to nearest intersection");
+      mwp.crosspoint = new OsmNode(closerNode.ilon, closerNode.ilat);
+    }
+  }
+
+  /**
    * Validate round-trip waypoints against segment data before routing.
    * For each generated waypoint, checks if profile-compatible ways exist
    * nearby by matching against the routing segments. Waypoints that fall
@@ -746,17 +772,46 @@ public class RoutingEngine extends Thread {
     // Match all candidates at once — profile-aware via segment decoding
     nodesCache.matchWaypointsToNodes(allCandidates, maxSnapDist, islandNodePairs);
 
-    // Pick the best candidate for each waypoint or remove it
+    // Pick the best candidate for each waypoint or remove it.
+    // Use direction-aware scoring: prefer roads perpendicular to the travel
+    // direction (the route naturally crosses them) over parallel roads
+    // (which often require a detour to reach).
     int minWaypoints = 3;
     int remaining = intermediateCount;
 
     for (int i = intermediateCount; i >= 1; i--) {
       List<MatchedWaypoint> group = candidateGroups.get(i - 1);
 
+      // Travel bearing: direction from previous to next waypoint
+      OsmNodeNamed prev = waypoints.get(i - 1);
+      OsmNodeNamed next = waypoints.get(i + 1);
+      double travelBearing = CheapAngleMeter.getDirection(prev.ilon, prev.ilat, next.ilon, next.ilat);
+
       MatchedWaypoint best = null;
+      double bestScore = Double.MAX_VALUE;
       for (MatchedWaypoint mwp : group) {
-        if (mwp.crosspoint != null && (best == null || mwp.radius < best.radius)) {
+        if (mwp.crosspoint == null) continue;
+
+        double snapDist = mwp.radius;
+
+        // Road bearing at snap point
+        double roadBearing = CheapAngleMeter.getDirection(
+          mwp.node1.ilon, mwp.node1.ilat, mwp.node2.ilon, mwp.node2.ilat);
+
+        // Angle between road and travel direction (0-90°, road is bidirectional)
+        double angleDiff = CheapAngleMeter.getDifferenceFromDirection(roadBearing, travelBearing);
+        if (angleDiff > 90) angleDiff = 180 - angleDiff;
+
+        // parallelFactor: 1.0 for parallel, 0.0 for perpendicular
+        double parallelFactor = 1.0 - angleDiff / 90.0;
+
+        // Penalize parallel roads: effective snap distance increases up to 50%.
+        // This favors roads the route would naturally cross without detour.
+        double score = snapDist * (1.0 + 0.5 * parallelFactor * parallelFactor);
+
+        if (score < bestScore) {
           best = mwp;
+          bestScore = score;
         }
       }
 
@@ -795,11 +850,13 @@ public class RoutingEngine extends Thread {
       if (wptIdx <= 0 || wptIdx >= nodes.size() - 1) continue;
 
       int overlapCount = 0;
+      int proximityThreshold = 30; // meters — catch near-overlaps (dual carriageways, parallel roads)
       int maxSteps = Math.min(wptIdx, nodes.size() - 1 - wptIdx);
       for (int step = 1; step <= maxSteps; step++) {
         OsmPathElement before = nodes.get(wptIdx - step);
         OsmPathElement after = nodes.get(wptIdx + step);
-        if (before.getIdFromPos() == after.getIdFromPos()) {
+        if (before.getIdFromPos() == after.getIdFromPos()
+            || before.calcDistance(after) <= proximityThreshold) {
           overlapCount = step;
         } else {
           break;
@@ -831,6 +888,7 @@ public class RoutingEngine extends Thread {
     // Grid cell size in internal coords: ~35-55m depending on latitude.
     // Checking the 9-cell neighborhood covers up to ~100-160m, well above the proximity threshold.
     int cellSize = 500;
+    int waypointProximity = 200; // meters — relaxed ratio zone around generated waypoints
     boolean changed = true;
 
     while (changed) {
@@ -872,12 +930,20 @@ public class RoutingEngine extends Thread {
           for (int j = matchIdx + 1; j <= i; j++) {
             loopDist += nodes.get(j).calcDistance(nodes.get(j - 1));
           }
+
+          // Near generated roundtrip waypoints, use a relaxed ratio (2x instead of 3x)
+          // since detours there are artifacts of synthetic waypoint placement.
+          double ratioThreshold = 3.0;
+          if (isNearGeneratedWaypoint(nodes, matchIdx, i, waypoints, waypointProximity)) {
+            ratioThreshold = 2.0;
+          }
+
           // A genuine detour has route distance much larger than crow-fly distance
           // (the route went elsewhere and came back). Normal forward progression
-          // has route distance ≈ crow-fly distance. Factor of 3 separates these.
-          if (loopDist <= maxLoopDistance && loopDist > 0 && loopDist > crowFly * 3) {
+          // has route distance ≈ crow-fly distance.
+          if (loopDist <= maxLoopDistance && loopDist > 0 && loopDist > crowFly * ratioThreshold) {
+            logInfo("removeMicroDetours: removing " + (i - matchIdx) + " nodes (loop of " + loopDist + "m, crow-fly " + (int) crowFly + "m, ratio " + String.format("%.1f", ratioThreshold) + "x at index " + matchIdx + ")");
             int removeCount = i - matchIdx;
-            logInfo("removeMicroDetours: removing " + removeCount + " nodes (loop of " + loopDist + "m, crow-fly " + (int) crowFly + "m at index " + matchIdx + ")");
             nodes.subList(matchIdx + 1, i + 1).clear();
             adjustWaypointIndices(waypoints, matchIdx, i, removeCount);
             changed = true;
@@ -890,6 +956,26 @@ public class RoutingEngine extends Thread {
         grid.computeIfAbsent(cell, k -> new ArrayList<>()).add(i);
       }
     }
+  }
+
+  /**
+   * Check if a loop (between matchIdx and currentIdx in the track) is near
+   * a generated roundtrip waypoint (name starting with "rt").
+   */
+  private boolean isNearGeneratedWaypoint(List<OsmPathElement> nodes, int matchIdx, int currentIdx,
+                                          List<MatchedWaypoint> waypoints, int proximityMeters) {
+    // Check both endpoints and midpoint of the loop for proximity to waypoints
+    int midIdx = (matchIdx + currentIdx) / 2;
+    for (int checkIdx : new int[]{matchIdx, midIdx, currentIdx}) {
+      if (checkIdx < 0 || checkIdx >= nodes.size()) continue;
+      OsmPathElement refNode = nodes.get(checkIdx);
+      for (MatchedWaypoint mwp : waypoints) {
+        if (mwp.name == null || !mwp.name.startsWith("rt")) continue;
+        if (mwp.crosspoint == null) continue;
+        if (refNode.calcDistance(mwp.crosspoint) <= proximityMeters) return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -1811,6 +1897,8 @@ public class RoutingEngine extends Thread {
           refTracks = new OsmTrack[matchedWaypoints.size() - 1];
           lastTracks = new OsmTrack[matchedWaypoints.size() - 1];
         }
+        // Snap intermediate waypoints to nearest intersection to avoid mid-edge detour tails
+        snapToIntersection(matchedWaypoints);
       }
 
       if (startSize < matchedWaypoints.size()) {
@@ -1864,6 +1952,12 @@ public class RoutingEngine extends Thread {
 
     routingContext.hasDirectRouting = hasDirectRouting;
 
+    // For roundtrip mode, accumulate all previous legs so each new leg
+    // penalizes reuse of edges from earlier legs (similar to GraphHopper's
+    // AvoidEdgesWeighting). BRouter's existing refTrack mechanism doubles
+    // the cost of edges found in the refTrack, discouraging road reuse.
+    OsmTrack roundTripPreviousLegs = (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) ? new OsmTrack() : null;
+
     OsmPath.seg = 1; // set segment counter
     for (int i = 0; i < matchedWaypoints.size() - 1; i++) {
       if (lastTracks[i] != null) {
@@ -1871,15 +1965,30 @@ public class RoutingEngine extends Thread {
         refTracks[i].addNodes(lastTracks[i]);
       }
 
+      // In roundtrip mode, use accumulated previous legs as the refTrack
+      // to discourage reusing roads from earlier legs of the loop.
+      // Always create a fresh OsmTrack to avoid mutating refTracks[i] via alias.
+      OsmTrack effectiveRefTrack;
+      if (roundTripPreviousLegs != null && roundTripPreviousLegs.nodes != null
+          && !roundTripPreviousLegs.nodes.isEmpty()) {
+        effectiveRefTrack = new OsmTrack();
+        if (refTracks[i] != null) {
+          effectiveRefTrack.addNodes(refTracks[i]);
+        }
+        effectiveRefTrack.addNodes(roundTripPreviousLegs);
+      } else {
+        effectiveRefTrack = refTracks[i];
+      }
+
       OsmTrack seg;
       int wptIndex;
       if (routingContext.inverseRouting) {
         routingContext.inverseDirection = true;
-        seg = searchTrack(matchedWaypoints.get(i + 1), matchedWaypoints.get(i), null, refTracks[i]);
+        seg = searchTrack(matchedWaypoints.get(i + 1), matchedWaypoints.get(i), null, effectiveRefTrack);
         routingContext.inverseDirection = false;
         wptIndex = i + 1;
       } else {
-        seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), i == matchedWaypoints.size() - 2 ? nearbyTrack : null, refTracks[i]);
+        seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), i == matchedWaypoints.size() - 2 ? nearbyTrack : null, effectiveRefTrack);
         wptIndex = i;
         if (routingContext.continueStraight) {
           if (i < matchedWaypoints.size() - 2) {
@@ -1911,13 +2020,18 @@ public class RoutingEngine extends Thread {
 
       totaltrack.appendTrack(seg);
       lastTracks[i] = seg;
+
+      // Accumulate this leg for roundtrip edge-avoidance on subsequent legs
+      if (roundTripPreviousLegs != null) {
+        roundTripPreviousLegs.addNodes(seg);
+      }
     }
 
     postElevationCheck(totaltrack);
 
     if (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) {
       removeBackAndForthSegments(totaltrack, matchedWaypoints);
-      removeMicroDetours(totaltrack, 350, matchedWaypoints);
+      removeMicroDetours(totaltrack, 1500, matchedWaypoints);
     }
 
     recalcTrack(totaltrack);
