@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import btools.util.CheapAngleMeter;
-import btools.util.CheapRuler;
 
 /**
  * Quality metrics for evaluating round-trip/loop routes.
