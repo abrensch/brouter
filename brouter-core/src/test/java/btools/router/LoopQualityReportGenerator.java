@@ -111,7 +111,8 @@ final class LoopQualityReportGenerator {
     sb.append("var routes = [\n");
     for (int i = 0; i < results.size(); i++) {
       LoopQualityTest.LoopQualityResult r = results.get(i);
-      sb.append("  {label:\"").append(r.label).append("\",");
+      sb.append("  {label:\"").append(r.label).append(" [").append(r.variant).append("]\",");
+      sb.append("variant:\"").append(r.variant).append("\",");
       sb.append("region:\"").append(r.region.name()).append("\",");
       sb.append("profile:\"").append(r.profileName).append("\",");
       sb.append("dist:").append(r.distanceMeters / 1000).append(",");
@@ -148,11 +149,11 @@ final class LoopQualityReportGenerator {
     sb.append("}).addTo(map);\n\n");
 
     sb.append("var layers = [];\n");
-    sb.append("var colors = {pass:'#28a745', fail:'#dc3545', error:'#ffc107'};\n");
+    sb.append("var variantColors = {probe:'#0066cc', isochrone:'#e67300'};\n");
     sb.append("var selectedIdx = -1;\n\n");
 
     sb.append("routes.forEach(function(r, i) {\n");
-    sb.append("  var color = colors[r.status];\n");
+    sb.append("  var color = variantColors[r.variant] || '#888';\n");
     sb.append("  var layer = null;\n");
     sb.append("  if (r.coords.length > 1) {\n");
     sb.append("    layer = L.polyline(r.coords, {color: color, weight: 3, opacity: 0.6});\n");
@@ -224,6 +225,137 @@ final class LoopQualityReportGenerator {
     sb.append("  });\n");
     sb.append("  if (anyVisible) map.fitBounds(bounds.pad(0.1));\n");
     sb.append("}\n");
+
+    sb.append("</script>\n</body>\n</html>\n");
+    return sb.toString();
+  }
+
+  /**
+   * Generate a per-region HTML report with full route geometry and variant comparison.
+   * Probe routes shown in blue, isochrone routes in orange.
+   */
+  static String generateRegionHtml(LoopTestRegion region, List<LoopQualityTest.LoopQualityResult> results) {
+    StringBuilder sb = new StringBuilder(512 * 1024);
+
+    sb.append("<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n");
+    sb.append("<title>BRouter Loops: ").append(region.name()).append("</title>\n");
+    sb.append("<link rel=\"stylesheet\" href=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css\"/>\n");
+    sb.append("<script src=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\"></script>\n");
+    sb.append("<style>\n");
+    sb.append("* { margin: 0; padding: 0; box-sizing: border-box; }\n");
+    sb.append("body { font-family: -apple-system, sans-serif; display: flex; height: 100vh; }\n");
+    sb.append("#sidebar { width: 480px; overflow-y: auto; background: #f8f9fa; border-right: 1px solid #dee2e6; padding: 12px; font-size: 12px; }\n");
+    sb.append("#map { flex: 1; }\n");
+    sb.append(".filters { margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px; }\n");
+    sb.append(".filters select, .filters label { padding: 3px; font-size: 12px; }\n");
+    sb.append("table { width: 100%; border-collapse: collapse; }\n");
+    sb.append("th { background: #e9ecef; padding: 4px; text-align: left; position: sticky; top: 0; }\n");
+    sb.append("td { padding: 3px; border-bottom: 1px solid #dee2e6; }\n");
+    sb.append("tr:hover { background: #e2e6ea; cursor: pointer; }\n");
+    sb.append("tr.selected { outline: 2px solid #007bff; }\n");
+    sb.append(".probe { color: #0066cc; } .isochrone { color: #e67300; }\n");
+    sb.append(".metric-bad { color: #dc3545; font-weight: bold; }\n");
+    sb.append("</style>\n</head>\n<body>\n");
+
+    // Sidebar
+    sb.append("<div id=\"sidebar\">\n");
+    sb.append("<h3>").append(region.name()).append("</h3>\n");
+    sb.append("<p>").append(String.format("%.3f, %.3f", region.lon, region.lat)).append("</p>\n");
+    sb.append("<p style=\"margin:4px 0\"><span class=\"probe\">&#9632; Probe (blue)</span> &nbsp; ");
+    sb.append("<span class=\"isochrone\">&#9632; Isochrone (orange)</span></p>\n");
+
+    // Filters
+    sb.append("<div class=\"filters\">\n");
+    sb.append("<select id=\"fProfile\" onchange=\"applyFilters()\"><option value=\"\">All profiles</option>");
+    sb.append("<option>fastbike</option><option>gravel</option><option>mtb-zossebart</option></select>\n");
+    sb.append("<select id=\"fDist\" onchange=\"applyFilters()\"><option value=\"\">All distances</option>");
+    sb.append("<option>30</option><option>50</option><option>80</option><option>100</option></select>\n");
+    sb.append("<select id=\"fVariant\" onchange=\"applyFilters()\"><option value=\"\">Both variants</option>");
+    sb.append("<option>probe</option><option>isochrone</option></select>\n");
+    sb.append("</div>\n");
+
+    // Table
+    sb.append("<table id=\"results\"><thead><tr><th>Test</th><th>Var</th><th>Reuse</th><th>DistR</th><th>Dir</th><th>Dist</th></tr></thead><tbody>\n");
+    for (int i = 0; i < results.size(); i++) {
+      LoopQualityTest.LoopQualityResult r = results.get(i);
+      String vc = "probe".equals(r.variant) ? "probe" : "isochrone";
+      sb.append(String.format("<tr class=\"%s\" data-idx=\"%d\" data-profile=\"%s\" data-dist=\"%d\" data-variant=\"%s\" onclick=\"focusRoute(%d)\">",
+        vc, i, r.profileName, r.distanceMeters / 1000, r.variant, i));
+      sb.append(String.format("<td title=\"%s\">%s</td>", r.label, abbreviateLabel(r.label)));
+      sb.append(String.format("<td class=\"%s\">%s</td>", vc, r.variant.substring(0, 1).toUpperCase()));
+      if (r.metrics != null) {
+        sb.append(String.format(Locale.US, "<td>%.1f</td>", r.metrics.getRoadReusePercent()));
+        sb.append(String.format(Locale.US, "<td>%.2f</td>", r.metrics.getDistanceRatio()));
+        sb.append(String.format(Locale.US, "<td>%.0f</td>", r.metrics.getDirectionDeltaDegrees()));
+        sb.append(String.format(Locale.US, "<td>%d</td>", r.metrics.getActualDistanceMeters()));
+      } else {
+        sb.append("<td colspan=\"4\">").append(r.error != null ? "err" : "skip").append("</td>");
+      }
+      sb.append("</tr>\n");
+    }
+    sb.append("</tbody></table></div>\n");
+
+    // Map
+    sb.append("<div id=\"map\"></div>\n<script>\n");
+
+    // Embed routes with FULL coordinates
+    sb.append("var routes = [\n");
+    for (int i = 0; i < results.size(); i++) {
+      LoopQualityTest.LoopQualityResult r = results.get(i);
+      sb.append("{label:\"").append(r.label).append(" [").append(r.variant).append("]\",");
+      sb.append("variant:\"").append(r.variant).append("\",");
+      sb.append("profile:\"").append(r.profileName).append("\",");
+      sb.append("dist:").append(r.distanceMeters / 1000).append(",");
+      if (r.metrics != null) {
+        sb.append(String.format(Locale.US, "reuse:%.1f,distR:%.2f,dirD:%.0f,actualDist:%d,",
+          r.metrics.getRoadReusePercent(), r.metrics.getDistanceRatio(),
+          r.metrics.getDirectionDeltaDegrees(), r.metrics.getActualDistanceMeters()));
+      }
+      sb.append("coords:[");
+      if (r.coordinates != null) {
+        for (int j = 0; j < r.coordinates.length; j++) {
+          if (j > 0) sb.append(",");
+          sb.append(String.format(Locale.US, "[%.5f,%.5f]", r.coordinates[j][1], r.coordinates[j][0]));
+        }
+      }
+      sb.append("]},\n");
+    }
+    sb.append("];\n\n");
+
+    sb.append(String.format(Locale.US, "var map = L.map('map').setView([%.4f, %.4f], 11);\n", region.lat, region.lon));
+    sb.append("L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OSM',maxZoom:18}).addTo(map);\n");
+    sb.append("var layers=[], selectedIdx=-1;\n");
+    sb.append("var variantColors = {probe:'#0066cc', isochrone:'#e67300'};\n\n");
+
+    sb.append("routes.forEach(function(r,i){\n");
+    sb.append("  var layer=null;\n");
+    sb.append("  if(r.coords.length>1){\n");
+    sb.append("    layer=L.polyline(r.coords,{color:variantColors[r.variant],weight:3,opacity:0.7});\n");
+    sb.append("    var p='<b>'+r.label+'</b><hr>';\n");
+    sb.append("    p+='Variant: <b>'+r.variant+'</b><br>';\n");
+    sb.append("    p+='Profile: '+r.profile+'<br>';\n");
+    sb.append("    p+='Requested: '+r.dist+'km<br>';\n");
+    sb.append("    if(r.reuse!==undefined){p+='<hr>Actual: '+r.actualDist+'m ('+r.distR+'x)<br>Reuse: '+r.reuse+'%<br>Dir delta: '+r.dirD+'&deg;';}\n");
+    sb.append("    layer.bindPopup(p);\n");
+    sb.append("    layer.on('click',function(){highlightRow(i);});\n");
+    sb.append("  }\n  layers.push(layer);\n});\n\n");
+
+    sb.append("function focusRoute(i){highlightRow(i);if(layers[i]){layers[i].setStyle({weight:5,opacity:1});map.fitBounds(layers[i].getBounds().pad(0.1));layers[i].openPopup();}}\n");
+    sb.append("function highlightRow(i){if(selectedIdx>=0&&layers[selectedIdx])layers[selectedIdx].setStyle({weight:3,opacity:0.7});document.querySelectorAll('tr.selected').forEach(function(e){e.classList.remove('selected');});selectedIdx=i;var row=document.querySelector('tr[data-idx=\"'+i+'\"]');if(row){row.classList.add('selected');row.scrollIntoView({block:'nearest'});}}\n\n");
+
+    sb.append("function applyFilters(){\n");
+    sb.append("  var fP=document.getElementById('fProfile').value,fD=document.getElementById('fDist').value,fV=document.getElementById('fVariant').value;\n");
+    sb.append("  var bounds=L.latLngBounds(),any=false;\n");
+    sb.append("  document.querySelectorAll('#results tbody tr').forEach(function(row){\n");
+    sb.append("    var show=true;\n");
+    sb.append("    if(fP&&row.dataset.profile!==fP)show=false;\n");
+    sb.append("    if(fD&&row.dataset.dist!==fD)show=false;\n");
+    sb.append("    if(fV&&row.dataset.variant!==fV)show=false;\n");
+    sb.append("    row.style.display=show?'':'none';\n");
+    sb.append("    var idx=parseInt(row.dataset.idx);\n");
+    sb.append("    if(layers[idx]){if(show){layers[idx].addTo(map);bounds.extend(layers[idx].getBounds());any=true;}else{layers[idx].remove();}}\n");
+    sb.append("  });\n  if(any)map.fitBounds(bounds.pad(0.1));\n}\n");
+    sb.append("applyFilters();\n");
 
     sb.append("</script>\n</body>\n</html>\n");
     return sb.toString();
