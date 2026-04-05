@@ -5,6 +5,7 @@ import java.util.Locale;
 
 /**
  * Generates a self-contained Leaflet HTML report from loop quality test results.
+ * Embeds simplified route polylines directly in the HTML for interactive viewing.
  */
 final class LoopQualityReportGenerator {
 
@@ -12,7 +13,7 @@ final class LoopQualityReportGenerator {
   }
 
   static String generateHtml(List<LoopQualityTest.LoopQualityResult> results) {
-    StringBuilder sb = new StringBuilder(32768);
+    StringBuilder sb = new StringBuilder(1024 * 1024);
 
     sb.append("<!DOCTYPE html>\n<html>\n<head>\n");
     sb.append("<meta charset=\"utf-8\">\n");
@@ -22,20 +23,23 @@ final class LoopQualityReportGenerator {
     sb.append("<style>\n");
     sb.append("* { margin: 0; padding: 0; box-sizing: border-box; }\n");
     sb.append("body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; height: 100vh; }\n");
-    sb.append("#sidebar { width: 420px; overflow-y: auto; background: #f8f9fa; border-right: 1px solid #dee2e6; padding: 12px; font-size: 13px; }\n");
+    sb.append("#sidebar { width: 440px; overflow-y: auto; background: #f8f9fa; border-right: 1px solid #dee2e6; padding: 12px; font-size: 13px; }\n");
     sb.append("#map { flex: 1; }\n");
-    sb.append(".filters { margin-bottom: 12px; }\n");
-    sb.append(".filters select { margin-right: 8px; padding: 4px; font-size: 12px; }\n");
+    sb.append(".filters { margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 4px; }\n");
+    sb.append(".filters select { padding: 4px; font-size: 12px; }\n");
     sb.append(".summary { margin-bottom: 12px; padding: 8px; background: #fff; border-radius: 4px; border: 1px solid #dee2e6; }\n");
     sb.append(".summary strong { font-size: 14px; }\n");
     sb.append("table { width: 100%; border-collapse: collapse; font-size: 12px; }\n");
-    sb.append("th { background: #e9ecef; padding: 6px 4px; text-align: left; position: sticky; top: 0; }\n");
+    sb.append("th { background: #e9ecef; padding: 6px 4px; text-align: left; position: sticky; top: 0; cursor: pointer; }\n");
     sb.append("td { padding: 4px; border-bottom: 1px solid #dee2e6; }\n");
     sb.append("tr.pass { background: #d4edda; }\n");
     sb.append("tr.fail { background: #f8d7da; }\n");
     sb.append("tr.error { background: #fff3cd; }\n");
     sb.append("tr:hover { opacity: 0.8; cursor: pointer; }\n");
+    sb.append("tr.selected { outline: 2px solid #007bff; }\n");
     sb.append(".metric-bad { color: #dc3545; font-weight: bold; }\n");
+    sb.append(".legend { margin-bottom: 12px; font-size: 12px; }\n");
+    sb.append(".legend span { display: inline-block; width: 14px; height: 14px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }\n");
     sb.append("</style>\n");
     sb.append("</head>\n<body>\n");
 
@@ -48,8 +52,15 @@ final class LoopQualityReportGenerator {
       else if (r.passed()) passed++;
       else failed++;
     }
-    sb.append(String.format("<strong>Loop Quality Report</strong><br>%d passed, %d failed, %d errors / %d total\n",
+    sb.append(String.format("<strong>BRouter Loop Quality Report</strong><br>%d passed, %d failed, %d errors / %d total\n",
       passed, failed, errors, results.size()));
+    sb.append("</div>\n");
+
+    // Legend
+    sb.append("<div class=\"legend\">\n");
+    sb.append("<span style=\"background:#28a745\"></span> Pass &nbsp; ");
+    sb.append("<span style=\"background:#dc3545\"></span> Fail &nbsp; ");
+    sb.append("<span style=\"background:#ffc107\"></span> Error\n");
     sb.append("</div>\n");
 
     // Filters
@@ -95,24 +106,38 @@ final class LoopQualityReportGenerator {
     // Map
     sb.append("<div id=\"map\"></div>\n");
 
-    // Embedded route data as JS
+    // Embedded route data as JS — coordinates simplified to every Nth point for performance
     sb.append("<script>\n");
     sb.append("var routes = [\n");
     for (int i = 0; i < results.size(); i++) {
       LoopQualityTest.LoopQualityResult r = results.get(i);
       sb.append("  {label:\"").append(r.label).append("\",");
       sb.append("region:\"").append(r.region.name()).append("\",");
+      sb.append("profile:\"").append(r.profileName).append("\",");
+      sb.append("dist:").append(r.distanceMeters / 1000).append(",");
       sb.append(String.format(Locale.US, "center:[%.4f,%.4f],", r.region.lat, r.region.lon));
       String status = r.metrics == null ? "error" : (r.passed() ? "pass" : "fail");
       sb.append("status:\"").append(status).append("\",");
       if (r.metrics != null) {
-        sb.append(String.format(Locale.US, "reuse:%.1f,distR:%.2f,dirD:%.0f,dist:%d,",
+        sb.append(String.format(Locale.US, "reuse:%.1f,distR:%.2f,dirD:%.0f,actualDist:%d,",
           r.metrics.getRoadReusePercent(), r.metrics.getDistanceRatio(),
           r.metrics.getDirectionDeltaDegrees(), r.metrics.getActualDistanceMeters()));
       }
-      // Coordinates from the track (if we have them embedded in the result)
-      // For now, coordinates come from the golden GeoJSON files — the map shows markers only
-      sb.append("coords:[]},\n");
+      // Embed simplified coordinates (every Nth point to keep HTML manageable)
+      sb.append("coords:[");
+      if (r.coordinates != null && r.coordinates.length > 0) {
+        int step = Math.max(1, r.coordinates.length / 200); // ~200 points per route max
+        for (int j = 0; j < r.coordinates.length; j += step) {
+          if (j > 0) sb.append(",");
+          sb.append(String.format(Locale.US, "[%.5f,%.5f]", r.coordinates[j][1], r.coordinates[j][0])); // Leaflet: [lat, lon]
+        }
+        // Always include last point to close the loop
+        if ((r.coordinates.length - 1) % step != 0) {
+          sb.append(String.format(Locale.US, ",[%.5f,%.5f]",
+            r.coordinates[r.coordinates.length - 1][1], r.coordinates[r.coordinates.length - 1][0]));
+        }
+      }
+      sb.append("]},\n");
     }
     sb.append("];\n\n");
 
@@ -123,32 +148,57 @@ final class LoopQualityReportGenerator {
     sb.append("}).addTo(map);\n\n");
 
     sb.append("var layers = [];\n");
-    sb.append("var markers = [];\n");
-    sb.append("var colors = {pass:'#28a745', fail:'#dc3545', error:'#ffc107'};\n\n");
+    sb.append("var colors = {pass:'#28a745', fail:'#dc3545', error:'#ffc107'};\n");
+    sb.append("var selectedIdx = -1;\n\n");
 
     sb.append("routes.forEach(function(r, i) {\n");
     sb.append("  var color = colors[r.status];\n");
-    sb.append("  var m = L.circleMarker(r.center, {radius: 6, color: color, fillColor: color, fillOpacity: 0.7});\n");
-    sb.append("  var popup = '<b>' + r.label + '</b><br>';\n");
-    sb.append("  if (r.reuse !== undefined) popup += 'Reuse: ' + r.reuse + '%<br>Dist ratio: ' + r.distR + '<br>Dir delta: ' + r.dirD + '&deg;<br>Distance: ' + r.dist + 'm';\n");
-    sb.append("  else popup += 'Error';\n");
-    sb.append("  m.bindPopup(popup);\n");
-    sb.append("  m.addTo(map);\n");
-    sb.append("  markers.push(m);\n");
-    sb.append("  if (r.coords.length > 0) {\n");
-    sb.append("    var line = L.polyline(r.coords, {color: color, weight: 3, opacity: 0.8});\n");
-    sb.append("    line.addTo(map);\n");
-    sb.append("    layers.push(line);\n");
-    sb.append("  } else {\n");
-    sb.append("    layers.push(null);\n");
+    sb.append("  var layer = null;\n");
+    sb.append("  if (r.coords.length > 1) {\n");
+    sb.append("    layer = L.polyline(r.coords, {color: color, weight: 3, opacity: 0.6});\n");
+    sb.append("    var popup = '<b>' + r.label + '</b><br>';\n");
+    sb.append("    popup += '<hr style=\"margin:4px 0\">';\n");
+    sb.append("    popup += '<b>Parameters:</b><br>';\n");
+    sb.append("    popup += 'Region: ' + r.region + '<br>';\n");
+    sb.append("    popup += 'Profile: ' + r.profile + '<br>';\n");
+    sb.append("    popup += 'Requested: ' + r.dist + 'km<br>';\n");
+    sb.append("    if (r.reuse !== undefined) {\n");
+    sb.append("      popup += '<hr style=\"margin:4px 0\">';\n");
+    sb.append("      popup += '<b>Results:</b><br>';\n");
+    sb.append("      popup += 'Actual: ' + r.actualDist + 'm (' + r.distR + 'x)<br>';\n");
+    sb.append("      popup += 'Road reuse: ' + r.reuse + '%<br>';\n");
+    sb.append("      popup += 'Dir delta: ' + r.dirD + '&deg;<br>';\n");
+    sb.append("      popup += 'Status: <b>' + r.status + '</b>';\n");
+    sb.append("    }\n");
+    sb.append("    layer.bindPopup(popup);\n");
+    sb.append("    layer.on('click', function() { highlightRow(i); });\n");
     sb.append("  }\n");
+    sb.append("  layers.push(layer);\n");
     sb.append("});\n\n");
 
+    // Initially show nothing — user selects via filters or clicks
+    sb.append("// Start with all routes hidden; filters reveal them\n");
+    sb.append("applyFilters();\n\n");
+
     sb.append("function focusRoute(idx) {\n");
+    sb.append("  highlightRow(idx);\n");
     sb.append("  var r = routes[idx];\n");
-    sb.append("  if (layers[idx]) map.fitBounds(layers[idx].getBounds().pad(0.1));\n");
-    sb.append("  else map.setView(r.center, 11);\n");
-    sb.append("  markers[idx].openPopup();\n");
+    sb.append("  if (layers[idx]) {\n");
+    sb.append("    layers[idx].setStyle({weight: 5, opacity: 1.0});\n");
+    sb.append("    map.fitBounds(layers[idx].getBounds().pad(0.1));\n");
+    sb.append("    layers[idx].openPopup();\n");
+    sb.append("  } else {\n");
+    sb.append("    map.setView(r.center, 11);\n");
+    sb.append("  }\n");
+    sb.append("}\n\n");
+
+    sb.append("function highlightRow(idx) {\n");
+    sb.append("  // Reset previous\n");
+    sb.append("  if (selectedIdx >= 0 && layers[selectedIdx]) layers[selectedIdx].setStyle({weight: 3, opacity: 0.6});\n");
+    sb.append("  document.querySelectorAll('tr.selected').forEach(function(el) { el.classList.remove('selected'); });\n");
+    sb.append("  selectedIdx = idx;\n");
+    sb.append("  var row = document.querySelector('tr[data-idx=\"'+idx+'\"]');\n");
+    sb.append("  if (row) { row.classList.add('selected'); row.scrollIntoView({block:'nearest'}); }\n");
     sb.append("}\n\n");
 
     sb.append("function applyFilters() {\n");
@@ -157,6 +207,8 @@ final class LoopQualityReportGenerator {
     sb.append("  var fD = document.getElementById('fDist').value;\n");
     sb.append("  var fS = document.getElementById('fStatus').value;\n");
     sb.append("  var rows = document.querySelectorAll('#results tbody tr');\n");
+    sb.append("  var bounds = L.latLngBounds();\n");
+    sb.append("  var anyVisible = false;\n");
     sb.append("  rows.forEach(function(row) {\n");
     sb.append("    var show = true;\n");
     sb.append("    if (fR && row.dataset.region !== fR) show = false;\n");
@@ -165,9 +217,12 @@ final class LoopQualityReportGenerator {
     sb.append("    if (fS && row.dataset.status !== fS) show = false;\n");
     sb.append("    row.style.display = show ? '' : 'none';\n");
     sb.append("    var idx = parseInt(row.dataset.idx);\n");
-    sb.append("    if (markers[idx]) { show ? markers[idx].addTo(map) : markers[idx].remove(); }\n");
-    sb.append("    if (layers[idx]) { show ? layers[idx].addTo(map) : layers[idx].remove(); }\n");
+    sb.append("    if (layers[idx]) {\n");
+    sb.append("      if (show) { layers[idx].addTo(map); bounds.extend(layers[idx].getBounds()); anyVisible = true; }\n");
+    sb.append("      else { layers[idx].remove(); }\n");
+    sb.append("    }\n");
     sb.append("  });\n");
+    sb.append("  if (anyVisible) map.fitBounds(bounds.pad(0.1));\n");
     sb.append("}\n");
 
     sb.append("</script>\n</body>\n</html>\n");
@@ -175,9 +230,8 @@ final class LoopQualityReportGenerator {
   }
 
   private static String abbreviateLabel(String label) {
-    // dreieich_30km_fastbike_N -> drei..30k_fb_N
-    if (label.length() <= 20) return label;
-    return label.substring(0, 18) + "..";
+    if (label.length() <= 22) return label;
+    return label.substring(0, 20) + "..";
   }
 
   private static String formatMetricCell(double value, double threshold, String fmt) {
