@@ -612,7 +612,7 @@ public class RoutingEngineTest {
     for (int dir : new int[]{0, 90, 180, 270}) {
       RoutingContext rctx = new RoutingContext();
       rctx.startDirection = dir;
-      rctx.roundTripDistance = 1000;
+      rctx.roundTripDistance = 3000; // need realistic radius for indirectness-based placement
       rctx.roundTripIsochrone = true;
 
       RoutingEngine re = calcRoundTrip(8.720, 50.000, "rtIsoDir" + dir, rctx);
@@ -621,7 +621,7 @@ public class RoutingEngineTest {
       OsmTrack track = re.getFoundTrack();
       Assert.assertNotNull("isochrone dir=" + dir + " should produce track", track);
       Assert.assertTrue("isochrone dir=" + dir + " should have >2 nodes", track.nodes.size() > 2);
-      Assert.assertTrue("isochrone dir=" + dir + " should have positive distance", track.distance > 100);
+      Assert.assertTrue("isochrone dir=" + dir + " should have positive distance", track.distance > 500);
     }
   }
 
@@ -850,6 +850,96 @@ public class RoutingEngineTest {
     Assert.assertEquals(270, sorted[1], 0.01);
     Assert.assertEquals(0, sorted[2], 0.01);
     Assert.assertEquals(90, sorted[3], 0.01);
+  }
+
+  // --- Loop perimeter scaling tests ---
+
+  @Test
+  public void computeLoopPerimeterFactorFullCircle() {
+    // 4 waypoints at 0, 90, 180, 270 — a full circle
+    double[] sorted = RoutingEngine.sortDirectionsForLoop(new double[]{0, 90, 180, 270}, 0);
+    double factor = RoutingEngine.computeLoopPerimeterFactor(sorted);
+    // 3 chords of 90° each: 3 × 2×sin(45°) = 3 × 1.414 = 4.243, plus 2 radial = 6.243
+    Assert.assertEquals(6.243, factor, 0.01);
+  }
+
+  @Test
+  public void computeReferencePerimeterFactorFivePoints() {
+    // 5 targetPoints → 4 intermediates, arc span = 2×(90-36) = 108°, 3 gaps of 36°
+    double factor = RoutingEngine.computeReferencePerimeterFactor(5);
+    // 3 × 2×sin(18°) + 2 = 3 × 0.618 + 2 = 3.854
+    Assert.assertEquals(3.854, factor, 0.02);
+  }
+
+  @Test
+  public void computeRadiusScaleFullCircle() {
+    // Wide loop should get a scale < 1.0 to match v1.7.8's narrow arc
+    double[] dirs = {0, 90, 180, 270};
+    double[] sorted = RoutingEngine.sortDirectionsForLoop(dirs, 0);
+    double scale = RoutingEngine.computeRadiusScale(sorted, 5);
+    // refPerim(5) / actualPerim(360°) = 3.854 / 6.243 ≈ 0.617
+    Assert.assertTrue("scale should be < 1.0", scale < 1.0);
+    Assert.assertTrue("scale should be > 0.5", scale > 0.5);
+    Assert.assertEquals(0.617, scale, 0.02);
+  }
+
+  @Test
+  public void computeRadiusScaleNarrowArc() {
+    // Narrow arc similar to v1.7.8 should give scale ≈ 1.0
+    double[] dirs = {340, 350, 10, 20};
+    double[] sorted = RoutingEngine.sortDirectionsForLoop(dirs, 0);
+    double scale = RoutingEngine.computeRadiusScale(sorted, 5);
+    Assert.assertTrue("narrow arc should give scale close to 1.0", scale >= 0.9);
+  }
+
+  // --- Ferry segment filtering test ---
+
+  @Test
+  public void filterRoundTripWaypointsRemovesFerrySegments() throws Exception {
+    RoutingContext rctx = new RoutingContext();
+    rctx.localFunction = profileFile().getAbsolutePath();
+    RoutingEngine re = new RoutingEngine(null, null, new java.io.File("."), new ArrayList<>(),
+      rctx, RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP);
+    re.roundTripSearchRadius = 5000;
+
+    List<MatchedWaypoint> waypoints = new ArrayList<>();
+    waypoints.add(createMatchedWaypoint("from", START_ILON, START_ILAT, START_ILON, START_ILAT));
+
+    // Normal road waypoint at ~700m north (well-spaced, node1-node2 ~7m)
+    waypoints.add(createMatchedWaypoint("rt1", START_ILON, START_ILAT + 10000,
+      START_ILON, START_ILAT + 10000));
+
+    // Ferry-like waypoint: node1-node2 very far apart (simulating a ferry segment)
+    MatchedWaypoint ferryWp = createMatchedWaypoint("rt2", START_ILON + 10000, START_ILAT,
+      START_ILON + 10000, START_ILAT);
+    // Override node1/node2: ~3.6km apart geographically → ferry-like
+    ferryWp.node1 = new OsmNode(START_ILON, START_ILAT);
+    ferryWp.node2 = new OsmNode(START_ILON + 50000, START_ILAT);
+    ferryWp.radius = 100;
+    waypoints.add(ferryWp);
+
+    // Normal road waypoint at ~700m west (well-spaced from rt1)
+    waypoints.add(createMatchedWaypoint("rt3", START_ILON - 10000, START_ILAT,
+      START_ILON - 10000, START_ILAT));
+
+    waypoints.add(createMatchedWaypoint("to_rt", START_ILON, START_ILAT, START_ILON, START_ILAT));
+
+    re.filterRoundTripWaypoints(waypoints);
+
+    // The ferry waypoint (rt2) should be removed, others kept
+    boolean ferryRemoved = true;
+    for (MatchedWaypoint mwp : waypoints) {
+      if ("rt2".equals(mwp.name)) ferryRemoved = false;
+    }
+    Assert.assertTrue("ferry waypoint rt2 should have been removed", ferryRemoved);
+    // rt1 and rt3 should still be present
+    boolean hasRt1 = false, hasRt3 = false;
+    for (MatchedWaypoint mwp : waypoints) {
+      if ("rt1".equals(mwp.name)) hasRt1 = true;
+      if ("rt3".equals(mwp.name)) hasRt3 = true;
+    }
+    Assert.assertTrue("normal waypoint rt1 should be kept", hasRt1);
+    Assert.assertTrue("normal waypoint rt3 should be kept", hasRt3);
   }
 
   private static OsmNodeNamed createNode(String name, int ilon, int ilat) {

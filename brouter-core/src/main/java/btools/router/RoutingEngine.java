@@ -556,6 +556,25 @@ public class RoutingEngine extends Thread {
 
       doRouting(0);
 
+      // Check distance accuracy and warn if terrain prevents a compact loop
+      if (foundTrack != null && foundTrack.distance > 0) {
+        double expectedDistance = 2 * Math.PI * searchRadius;
+        double ratio = foundTrack.distance / expectedDistance;
+        if (ratio > 1.5) {
+          String warning = String.format(
+            "Warning: route distance (%dkm) exceeds requested loop distance (%dkm) by %.0f%%. "
+            + "The road network in this area is too constrained for a compact loop at this distance. "
+            + "Consider a shorter distance or an out-and-back route.",
+            foundTrack.distance / 1000, (int) (expectedDistance / 1000), (ratio - 1) * 100);
+          logInfo(warning);
+          if (foundTrack.message == null) {
+            foundTrack.message = warning;
+          } else {
+            foundTrack.message += " " + warning;
+          }
+        }
+      }
+
       long endTime = System.currentTimeMillis();
       logInfo("round trip execution time = " + (endTime - startTime) / 1000. + " seconds");
     } catch (Exception e) {
@@ -642,12 +661,31 @@ public class RoutingEngine extends Thread {
   void filterRoundTripWaypoints(List<MatchedWaypoint> waypoints) {
     double maxSnapDistance = roundTripSearchRadius * 0.5;
     double minWaypointDistance = roundTripSearchRadius / 10.0;
+    // Max edge length between node1 and node2 for a valid road match.
+    // Ferry routes have sparse nodes with multi-km edges; road segments are typically < 1km.
+    int maxSegmentLength = 1500;
 
     // Count intermediate round-trip waypoints
     int rtCount = 0;
     for (int i = 1; i < waypoints.size() - 1; i++) {
       if (waypoints.get(i).name != null && waypoints.get(i).name.startsWith("rt")) {
         rtCount++;
+      }
+    }
+
+    // Remove waypoints matched to ferry-like segments (very long edges)
+    for (int i = waypoints.size() - 2; i >= 1; i--) {
+      MatchedWaypoint mwp = waypoints.get(i);
+      if (mwp.name == null || !mwp.name.startsWith("rt")) continue;
+      if (rtCount <= 1) break;
+
+      if (mwp.node1 != null && mwp.node2 != null) {
+        int segLen = mwp.node1.calcDistance(mwp.node2);
+        if (segLen > maxSegmentLength) {
+          logInfo("filterRoundTrip: removing " + mwp.name + " matched to long segment (" + segLen + "m, likely ferry)");
+          waypoints.remove(i);
+          rtCount--;
+        }
       }
     }
 
@@ -791,6 +829,12 @@ public class RoutingEngine extends Thread {
       double bestScore = Double.MAX_VALUE;
       for (MatchedWaypoint mwp : group) {
         if (mwp.crosspoint == null) continue;
+
+        // Skip matches to ferry-like segments (very long edges between node1/node2).
+        // Ferry routes have sparse nodes spanning several km over water; road edges are < 1km.
+        if (mwp.node1 != null && mwp.node2 != null && mwp.node1.calcDistance(mwp.node2) > 1500) {
+          continue;
+        }
 
         double snapDist = mwp.radius;
 
@@ -1124,6 +1168,7 @@ public class RoutingEngine extends Thread {
     int bucketCount = 36;
     double bucketSize = 360.0 / bucketCount;
     double[] bucketMaxDist = new double[bucketCount];
+    int[] bucketCostAtMaxDist = new int[bucketCount]; // routing cost at the farthest node per bucket
 
     // Local open set — not the instance field, to avoid state contamination
     SortedHeap<OsmPath> isoOpenSet = new SortedHeap<>();
@@ -1163,6 +1208,7 @@ public class RoutingEngine extends Thread {
         if (bucket < 0) bucket += bucketCount;
         if (dist > bucketMaxDist[bucket]) {
           bucketMaxDist[bucket] = dist;
+          bucketCostAtMaxDist[bucket] = path.cost;
         }
       }
 
@@ -1235,11 +1281,11 @@ public class RoutingEngine extends Thread {
       }
     }
 
-    // Compile results using geographic frontier distances
+    // Compile results: [direction, airDistance, routeCost] per populated bucket
     List<double[]> results = new ArrayList<>();
     for (int b = 0; b < bucketCount; b++) {
       if (bucketMaxDist[b] > 0) {
-        results.add(new double[]{b * bucketSize + bucketSize / 2.0, bucketMaxDist[b]});
+        results.add(new double[]{b * bucketSize + bucketSize / 2.0, bucketMaxDist[b], bucketCostAtMaxDist[b]});
       }
     }
 
@@ -1251,10 +1297,18 @@ public class RoutingEngine extends Thread {
   }
 
   /**
-   * Place waypoints using frontier data with per-direction distances.
-   * Uses estimated road distances from the isochrone, normalized by the
-   * median to prevent extreme distance ratios between adjacent waypoints
-   * (which cause the router to take long detours in constrained terrain).
+   * Place waypoints using per-direction indirectness from the isochrone expansion.
+   *
+   * The isochrone gives [direction, airDistance, routeCost] per angular bucket.
+   * The ratio cost/airDist is the road indirectness factor for that direction:
+   * - In a flat valley (E-W at Innsbruck): indirectness ~1.3 (roads follow valley)
+   * - Across mountains (N-S at Innsbruck): indirectness ~3-5× (switchbacks)
+   *
+   * To hit the target loop distance, we compute a per-leg route-distance budget
+   * and convert it to air distance using the per-direction indirectness:
+   *   airDist = targetLegRouteDistance / indirectness
+   *
+   * This naturally produces elongated loops in valleys and compact loops in open terrain.
    */
   void placeWaypointsFromIsochrone(List<OsmNodeNamed> waypoints, double[][] frontierData,
                                    double searchRadius, double startDirection, int targetPoints) {
@@ -1264,19 +1318,15 @@ public class RoutingEngine extends Thread {
     if (needed > n) needed = n;
     if (needed < 2) needed = 2;
 
+    // Extract per-direction data: [direction, airDist, cost]
     double[] directions = new double[n];
-    double[] distances = new double[n];
-    Map<Double, Double> dirToDistance = new HashMap<>();
+    Map<Double, double[]> dirToData = new HashMap<>(); // dir -> [airDist, cost]
     for (int i = 0; i < n; i++) {
       directions[i] = frontierData[i][0];
-      distances[i] = frontierData[i][1];
-      dirToDistance.put(frontierData[i][0], frontierData[i][1]);
+      double airDist = frontierData[i][1];
+      double cost = frontierData[i].length > 2 ? frontierData[i][2] : airDist * 1.3; // fallback
+      dirToData.put(frontierData[i][0], new double[]{airDist, cost});
     }
-
-    // Compute median frontier distance for normalization
-    double[] sorted = distances.clone();
-    java.util.Arrays.sort(sorted);
-    double medianDist = sorted[n / 2];
 
     double[] selected;
     if (needed >= n) {
@@ -1286,18 +1336,48 @@ public class RoutingEngine extends Thread {
     }
     selected = sortDirectionsForLoop(selected, startDirection);
 
-    // Clamp per-direction distances to [median * 0.5, median * 2.0].
-    // This preserves the isochrone shape (relative differences) while preventing
-    // extreme outliers that force long routing detours between adjacent waypoints.
-    double minDist = Math.max(medianDist * 0.5, searchRadius * 0.2);
-    double maxDist = Math.min(medianDist * 2.0, searchRadius * 2.0);
+    // Base radius: scale searchRadius by the geometric factor (same as probe strategy)
+    // to match v1.7.8's expected loop distance for this angular spread.
+    double baseRadius = searchRadius * computeRadiusScale(selected, targetPoints);
+
+    // Compute per-direction indirectness: cost / airDist at the frontier.
+    // High indirectness = roads are indirect (mountains), low = roads are direct (valley floor).
+    double[] indirectnesses = new double[n];
+    for (int i = 0; i < n; i++) {
+      double[] data = dirToData.get(directions[i]);
+      indirectnesses[i] = (data[0] > 50) ? Math.max(1.0, data[1] / data[0]) : 1.5;
+    }
+    double[] sortedInd = indirectnesses.clone();
+    java.util.Arrays.sort(sortedInd);
+    double medianIndirectness = Math.max(1.0, sortedInd[n / 2]);
+
+    // Compute per-direction redistribution factors.
+    // Raw factor = medianIndirectness / dirIndirectness:
+    //   indirect dirs (mountains) → factor < 1 → closer
+    //   direct dirs (valley floor) → factor > 1 → farther
+    // Normalize so the average factor = 1.0 (mean-preserving).
+    double[] rawFactors = new double[selected.length];
+    double factorSum = 0;
+    for (int i = 0; i < selected.length; i++) {
+      double[] data = dirToData.get(selected[i]);
+      double ind = (data != null && data[0] > 50) ? Math.max(1.0, data[1] / data[0]) : medianIndirectness;
+      rawFactors[i] = medianIndirectness / ind;
+      factorSum += rawFactors[i];
+    }
+    double normalization = selected.length / factorSum; // makes avg factor = 1.0
 
     for (int i = 0; i < selected.length; i++) {
-      double dir = selected[i];
-      double dist = dirToDistance.getOrDefault(dir, medianDist);
-      dist = Math.max(minDist, Math.min(maxDist, dist));
+      double factor = rawFactors[i] * normalization;
+      // Clamp to prevent extreme distortion
+      factor = Math.max(0.5, Math.min(2.0, factor));
+      double airDist = baseRadius * factor;
 
-      int[] pos = CheapRuler.destination(start.ilon, start.ilat, dist, dir);
+      // Clamp to prevent extremes
+      double maxDist = searchRadius * 1.5;
+      double minDist = searchRadius * 0.15;
+      airDist = Math.max(minDist, Math.min(maxDist, airDist));
+
+      int[] pos = CheapRuler.destination(start.ilon, start.ilat, airDist, selected[i]);
       OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
       onn.name = "rt" + (i + 1);
       waypoints.add(onn);
@@ -1307,22 +1387,23 @@ public class RoutingEngine extends Thread {
     closing.name = "to_rt";
     waypoints.add(closing);
 
-    logInfo("placeWaypointsFromIsochrone: " + selected.length + " waypoints, medianDist="
-      + (int) medianDist + "m searchRadius=" + (int) searchRadius + "m");
+    logInfo("placeWaypointsFromIsochrone: " + selected.length + " waypoints"
+      + ", baseRadius=" + (int) baseRadius + "m"
+      + ", medianIndirectness=" + String.format("%.2f", medianIndirectness)
+      + ", searchRadius=" + (int) searchRadius + "m");
   }
 
   /**
    * Merge isochrone frontier data with probe directions for gap-filling.
-   * Uses isochrone per-direction distances where available, fills gaps
-   * with probe directions at the search radius.
+   * Isochrone entries have [direction, airDist, cost]; probe-only entries
+   * get [direction, searchRadius, searchRadius*1.3] (estimated cost).
    *
-   * @param frontier        isochrone [direction, distance] pairs (may be null)
+   * @param frontier        isochrone [direction, airDist, cost] triples (may be null)
    * @param probeDirections probe viable directions in degrees (may be null)
    * @param searchRadius    fallback distance for probe-only directions
-   * @return merged [direction, distance] pairs; null if both inputs empty
+   * @return merged [direction, airDist, cost] triples; null if both inputs empty
    */
   static double[][] mergeIsochroneWithProbe(double[][] frontier, double[] probeDirections, double searchRadius) {
-    // Collect isochrone directions into a set (bucketed to avoid float comparison issues)
     Map<Integer, double[]> merged = new HashMap<>();
 
     if (frontier != null) {
@@ -1336,7 +1417,6 @@ public class RoutingEngine extends Thread {
     if (probeDirections != null) {
       for (double dir : probeDirections) {
         int bucket = (int) Math.round(dir);
-        // Check if any isochrone bucket covers this direction (within half bucket width)
         boolean covered = false;
         for (int key : merged.keySet()) {
           if (angleDiff(key, bucket) <= 5) {
@@ -1345,29 +1425,28 @@ public class RoutingEngine extends Thread {
           }
         }
         if (!covered) {
-          merged.put(bucket, new double[]{dir, searchRadius});
+          // Probe-only: use searchRadius as airDist, estimate cost with default indirectness
+          merged.put(bucket, new double[]{dir, searchRadius, searchRadius * 1.3});
         }
       }
     }
 
     if (merged.isEmpty()) return null;
 
-    // Sort by direction
     List<double[]> result = new ArrayList<>(merged.values());
     result.sort((a, b) -> Double.compare(a[0], b[0]));
     return result.toArray(new double[0][]);
   }
 
   /**
-   * Place waypoints from the reachability envelope at a fixed search radius.
+   * Place waypoints from the reachability envelope at a scaled search radius.
    * Selects N directions from the viable set that maximize angular spread,
-   * biased to start near the requested direction.
+   * then scales the radius to match v1.7.8's expected loop distance.
    */
   void placeWaypointsFromEnvelope(List<OsmNodeNamed> waypoints, double[] viableDirections,
                                   double searchRadius, double startDirection, int targetPoints) {
     OsmNodeNamed start = waypoints.get(0);
     int n = viableDirections.length;
-    // We need (targetPoints - 1) intermediate waypoints (the closing waypoint returns to start)
     int needed = targetPoints - 1;
     if (needed > n) needed = n;
     if (needed < 2) needed = 2;
@@ -1379,24 +1458,27 @@ public class RoutingEngine extends Thread {
       selected = selectSpreadDirections(viableDirections, needed, startDirection);
     }
 
-    // Sort for coherent loop traversal
     selected = sortDirectionsForLoop(selected, startDirection);
 
-    // Place waypoints at the selected directions, all at searchRadius
+    // Scale radius so the loop perimeter matches v1.7.8's expected distance.
+    // v1.7.8 uses buildPointsFromCircle which creates a narrow arc (108-152°).
+    // The probe's wider direction spread produces longer loops at the same radius.
+    double adjustedRadius = searchRadius * computeRadiusScale(selected, targetPoints);
+
     for (int i = 0; i < selected.length; i++) {
-      int[] pos = CheapRuler.destination(start.ilon, start.ilat, searchRadius, selected[i]);
+      int[] pos = CheapRuler.destination(start.ilon, start.ilat, adjustedRadius, selected[i]);
       OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
       onn.name = "rt" + (i + 1);
       waypoints.add(onn);
     }
 
-    // Add closing waypoint (return to start)
     OsmNodeNamed closing = new OsmNodeNamed(start);
     closing.name = "to_rt";
     waypoints.add(closing);
 
-    logInfo("placeWaypointsFromEnvelope: placed " + selected.length + " waypoints from "
-      + n + " viable directions");
+    logInfo("placeWaypointsFromEnvelope: " + selected.length + " waypoints, radius "
+      + (int) searchRadius + "m -> " + (int) adjustedRadius + "m (scale "
+      + String.format("%.2f", adjustedRadius / searchRadius) + ")");
   }
 
   /**
@@ -1472,6 +1554,66 @@ public class RoutingEngine extends Thread {
   /** Absolute angular difference in [0, 180] degrees. Delegates to CheapAngleMeter. */
   static double angleDiff(double a, double b) {
     return CheapAngleMeter.getDifferenceFromDirection(a, b);
+  }
+
+  /**
+   * Compute a radius scaling factor so that a loop through the given sorted directions
+   * produces the same perimeter as v1.7.8's buildPointsFromCircle for the same targetPoints.
+   *
+   * v1.7.8 creates a narrow arc (108-152° depending on point count), while
+   * probe/isochrone create wider loops (270-360°). Without scaling, wider loops
+   * produce proportionally longer routes. This factor compensates for that.
+   *
+   * The geometric loop perimeter for waypoints at radius R is:
+   *   P = 2R (radial legs from center to circle) + sum of chord lengths between consecutive waypoints
+   * where each chord = 2R * sin(angularGap/2).
+   */
+  static double computeRadiusScale(double[] sortedDirections, int targetPoints) {
+    double actualPerim = computeLoopPerimeterFactor(sortedDirections);
+    double refPerim = computeReferencePerimeterFactor(targetPoints);
+    double scale = refPerim / actualPerim;
+    // Clamp: never enlarge (>1.0), and keep at least 0.5 to avoid degenerate tiny loops
+    return Math.max(0.5, Math.min(1.0, scale));
+  }
+
+  /**
+   * Compute the geometric loop perimeter / R for waypoints at the given sorted directions.
+   * Includes 2 radial legs (center to first waypoint, last waypoint back to center)
+   * plus chords between consecutive waypoints.
+   */
+  static double computeLoopPerimeterFactor(double[] sortedDirs) {
+    int n = sortedDirs.length;
+    if (n < 2) return 4.0; // degenerate: 2 radial legs of R each
+
+    double chordSum = 0;
+    for (int i = 0; i < n - 1; i++) {
+      double gap = sortedDirs[i + 1] - sortedDirs[i];
+      if (gap < 0) gap += 360;
+      if (gap > 180) gap = 360 - gap; // use shortest arc
+      chordSum += 2 * Math.sin(Math.toRadians(gap) / 2);
+    }
+    return 2 + chordSum; // 2R for radial legs + chord sum
+  }
+
+  /**
+   * Compute the geometric loop perimeter / R for v1.7.8's buildPointsFromCircle.
+   * v1.7.8 creates (targetPoints-1) intermediate waypoints in an arc whose
+   * half-span = 90 - 180/targetPoints degrees.
+   */
+  static double computeReferencePerimeterFactor(int targetPoints) {
+    int intermediates = targetPoints - 1;
+    if (intermediates < 2) return 4.0;
+
+    double arcHalfSpanDeg = 90.0 - 180.0 / targetPoints;
+    double arcSpanRad = Math.toRadians(2 * arcHalfSpanDeg);
+    int numGaps = intermediates - 1;
+    double gapAngle = arcSpanRad / numGaps;
+
+    double chordSum = 0;
+    for (int i = 0; i < numGaps; i++) {
+      chordSum += 2 * Math.sin(gapAngle / 2);
+    }
+    return 2 + chordSum;
   }
 
   void buildPointsFromCircle(List<OsmNodeNamed> waypoints, double startAngle, double searchRadius, int points) {
