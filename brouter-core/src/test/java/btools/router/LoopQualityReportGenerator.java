@@ -149,7 +149,7 @@ final class LoopQualityReportGenerator {
     sb.append("}).addTo(map);\n\n");
 
     sb.append("var layers = [];\n");
-    sb.append("var variantColors = {probe:'#0066cc', isochrone:'#e67300'};\n");
+    sb.append("var variantColors = {probe:'#0066cc', isochrone:'#e67300', greedy:'#22aa44'};\n");
     sb.append("var selectedIdx = -1;\n\n");
 
     sb.append("routes.forEach(function(r, i) {\n");
@@ -253,7 +253,7 @@ final class LoopQualityReportGenerator {
     sb.append("td { padding: 3px; border-bottom: 1px solid #dee2e6; }\n");
     sb.append("tr:hover { background: #e2e6ea; cursor: pointer; }\n");
     sb.append("tr.selected { outline: 2px solid #007bff; }\n");
-    sb.append(".probe { color: #0066cc; } .isochrone { color: #e67300; }\n");
+    sb.append(".probe { color: #0066cc; } .isochrone { color: #e67300; } .greedy { color: #22aa44; }\n");
     sb.append(".metric-bad { color: #dc3545; font-weight: bold; }\n");
     sb.append("</style>\n</head>\n<body>\n");
 
@@ -262,7 +262,8 @@ final class LoopQualityReportGenerator {
     sb.append("<h3>").append(region.name()).append("</h3>\n");
     sb.append("<p>").append(String.format("%.3f, %.3f", region.lon, region.lat)).append("</p>\n");
     sb.append("<p style=\"margin:4px 0\"><span class=\"probe\">&#9632; Probe (blue)</span> &nbsp; ");
-    sb.append("<span class=\"isochrone\">&#9632; Isochrone (orange)</span></p>\n");
+    sb.append("<span class=\"isochrone\">&#9632; Isochrone (orange)</span> &nbsp; ");
+    sb.append("<span class=\"greedy\">&#9632; Greedy (green)</span></p>\n");
 
     // Filters
     sb.append("<div class=\"filters\">\n");
@@ -270,15 +271,15 @@ final class LoopQualityReportGenerator {
     sb.append("<option>fastbike</option><option>gravel</option><option>mtb-zossebart</option></select>\n");
     sb.append("<select id=\"fDist\" onchange=\"applyFilters()\"><option value=\"\">All distances</option>");
     sb.append("<option>30</option><option>50</option><option>80</option><option>100</option></select>\n");
-    sb.append("<select id=\"fVariant\" onchange=\"applyFilters()\"><option value=\"\">Both variants</option>");
-    sb.append("<option>probe</option><option>isochrone</option></select>\n");
+    sb.append("<select id=\"fVariant\" onchange=\"applyFilters()\"><option value=\"\">All variants</option>");
+    sb.append("<option>probe</option><option>isochrone</option><option>greedy</option></select>\n");
     sb.append("</div>\n");
 
     // Table
     sb.append("<table id=\"results\"><thead><tr><th>Test</th><th>Var</th><th>Reuse</th><th>DistR</th><th>Dir</th><th>Dist</th></tr></thead><tbody>\n");
     for (int i = 0; i < results.size(); i++) {
       LoopQualityTest.LoopQualityResult r = results.get(i);
-      String vc = "probe".equals(r.variant) ? "probe" : "isochrone";
+      String vc = r.variant != null ? r.variant : "probe";
       sb.append(String.format("<tr class=\"%s\" data-idx=\"%d\" data-profile=\"%s\" data-dist=\"%d\" data-variant=\"%s\" onclick=\"focusRoute(%d)\">",
         vc, i, r.profileName, r.distanceMeters / 1000, r.variant, i));
       sb.append(String.format("<td title=\"%s\">%s</td>", r.label, abbreviateLabel(r.label)));
@@ -325,7 +326,7 @@ final class LoopQualityReportGenerator {
     sb.append(String.format(Locale.US, "var map = L.map('map').setView([%.4f, %.4f], 11);\n", region.lat, region.lon));
     sb.append("L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OSM',maxZoom:18}).addTo(map);\n");
     sb.append("var layers=[], selectedIdx=-1;\n");
-    sb.append("var variantColors = {probe:'#0066cc', isochrone:'#e67300'};\n\n");
+    sb.append("var variantColors = {probe:'#0066cc', isochrone:'#e67300', greedy:'#22aa44'};\n\n");
 
     sb.append("routes.forEach(function(r,i){\n");
     sb.append("  var layer=null;\n");

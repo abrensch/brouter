@@ -224,6 +224,10 @@ public final class RoutingContext {
   public Integer roundTripDirectionAdd;
   public Integer roundTripPoints;
   public boolean allowSamewayback;
+  public RoundTripAlgorithm roundTripAlgorithm = RoundTripAlgorithm.AUTO;
+
+  /** @deprecated Use {@link #roundTripAlgorithm} instead. Kept for backward compatibility. */
+  @Deprecated
   public boolean roundTripIsochrone;
 
   public CheapAngleMeter anglemeter = new CheapAngleMeter();

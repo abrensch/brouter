@@ -96,13 +96,16 @@ public class LoopQualityTest {
     Assume.assumeTrue("Profile not found: " + profileFile.getAbsolutePath(), profileFile.exists());
 
     // Run probe strategy (default)
-    LoopQualityResult probeResult = runVariant("probe", false, segDir, profileFile);
+    LoopQualityResult probeResult = runVariant("probe", RoundTripAlgorithm.WAYPOINT, segDir, profileFile);
     // Run isochrone strategy for comparison (best-effort, no assertions)
-    LoopQualityResult isoResult = runVariant("isochrone", true, segDir, profileFile);
+    LoopQualityResult isoResult = runVariant("isochrone", RoundTripAlgorithm.ISOCHRONE, segDir, profileFile);
+    // Run greedy sub-route strategy for comparison (best-effort, no assertions)
+    LoopQualityResult greedyResult = runVariant("greedy", RoundTripAlgorithm.GREEDY, segDir, profileFile);
 
     synchronized (results) {
       if (probeResult != null) results.add(probeResult);
       if (isoResult != null) results.add(isoResult);
+      if (greedyResult != null) results.add(greedyResult);
     }
 
     if (probeResult != null && probeResult.metrics != null) {
@@ -133,7 +136,7 @@ public class LoopQualityTest {
       metrics.getDirectionDeltaDegrees() <= region.maxDirectionDelta);
   }
 
-  private LoopQualityResult runVariant(String variant, boolean useIsochrone, File segDir, File profileFile) {
+  private LoopQualityResult runVariant(String variant, RoundTripAlgorithm algorithm, File segDir, File profileFile) {
     try {
       List<OsmNodeNamed> wplist = new ArrayList<>();
       OsmNodeNamed start = new OsmNodeNamed();
@@ -146,7 +149,7 @@ public class LoopQualityTest {
       rctx.localFunction = profileFile.getAbsolutePath();
       rctx.startDirection = (int) direction;
       rctx.roundTripDistance = searchRadius;
-      rctx.roundTripIsochrone = useIsochrone;
+      rctx.roundTripAlgorithm = algorithm;
 
       String outPath = new File(outputDir.getRoot(), testLabel + "_" + variant).getAbsolutePath();
       RoutingEngine re = new RoutingEngine(
@@ -230,7 +233,11 @@ public class LoopQualityTest {
   }
 
   private static String variantColor(String variant) {
-    return "isochrone".equals(variant) ? "#e67300" : "#0066cc";
+    switch (variant) {
+      case "isochrone": return "#e67300";
+      case "greedy": return "#22aa44";
+      default: return "#0066cc";
+    }
   }
 
   private static String formatCombinedGeoJson(List<LoopQualityResult> results) {
