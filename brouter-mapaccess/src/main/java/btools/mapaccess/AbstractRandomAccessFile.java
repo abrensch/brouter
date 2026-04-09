@@ -4,8 +4,8 @@ import java.io.Closeable;
 import java.io.IOException;
 
 /**
- * Abstraction for random file access, allowing pluggable implementations.
- * Supports both standard RandomAccessFile and optimized BufferedRandomAccessFile.
+ * Abstraction for random file access, allowing pluggable implementations of either:
+ * StandardRandomAccessFile(wraps java.io.RandomAccessFile) or BufferedRandomAccessFile.
  */
 public interface AbstractRandomAccessFile extends Closeable {
 
