@@ -2,7 +2,7 @@ FROM gradle:jdk17-jammy AS build
 
 RUN mkdir /tmp/brouter
 WORKDIR /tmp/brouter
-COPY . .
+COPY [".", "."]
 RUN dos2unix gradlew || sed -i 's/\r$//' gradlew
 RUN ./gradlew clean build
 
