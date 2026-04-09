@@ -3,6 +3,8 @@ package btools.router;
 import java.util.ArrayList;
 import java.util.List;
 
+import btools.mapaccess.MatchedWaypoint;
+
 /**
  * Result of a greedy round-trip planning attempt.
  * Contains the route, quality metrics, and diagnostic metadata.
@@ -10,14 +12,16 @@ import java.util.List;
 public class RoundTripResult {
 
   private OsmTrack track;
+  private List<OsmNodeNamed> loopWaypoints;
+  private List<MatchedWaypoint> matchedWaypoints;
   private int totalDistanceMeters;
-  private int totalAscentMeters;
   private double reusedEdgeRatio;
   private boolean withinTolerance;
   private int attemptsUsed;
   private int subRoutesChosen;
   private final List<String> diagnostics = new ArrayList<>();
   private String fallbackReason;
+  private List<OsmTrack> legTracks; // per-leg sub-route tracks from greedy planner
 
   public OsmTrack getTrack() {
     return track;
@@ -27,20 +31,28 @@ public class RoundTripResult {
     this.track = track;
   }
 
+  public List<OsmNodeNamed> getLoopWaypoints() {
+    return loopWaypoints;
+  }
+
+  public void setLoopWaypoints(List<OsmNodeNamed> loopWaypoints) {
+    this.loopWaypoints = loopWaypoints;
+  }
+
+  public List<MatchedWaypoint> getMatchedWaypoints() {
+    return matchedWaypoints;
+  }
+
+  public void setMatchedWaypoints(List<MatchedWaypoint> matchedWaypoints) {
+    this.matchedWaypoints = matchedWaypoints;
+  }
+
   public int getTotalDistanceMeters() {
     return totalDistanceMeters;
   }
 
   public void setTotalDistanceMeters(int totalDistanceMeters) {
     this.totalDistanceMeters = totalDistanceMeters;
-  }
-
-  public int getTotalAscentMeters() {
-    return totalAscentMeters;
-  }
-
-  public void setTotalAscentMeters(int totalAscentMeters) {
-    this.totalAscentMeters = totalAscentMeters;
   }
 
   public double getReusedEdgeRatio() {
@@ -89,5 +101,13 @@ public class RoundTripResult {
 
   public void setFallbackReason(String fallbackReason) {
     this.fallbackReason = fallbackReason;
+  }
+
+  public List<OsmTrack> getLegTracks() {
+    return legTracks;
+  }
+
+  public void setLegTracks(List<OsmTrack> legTracks) {
+    this.legTracks = legTracks;
   }
 }

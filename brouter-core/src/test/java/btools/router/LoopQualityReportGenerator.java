@@ -83,7 +83,7 @@ final class LoopQualityReportGenerator {
 
     // Results table
     sb.append("<table id=\"results\">\n");
-    sb.append("<thead><tr><th>Test</th><th>Reuse%</th><th>DistR</th><th>DirD</th><th>Dist(m)</th></tr></thead>\n");
+    sb.append("<thead><tr><th>Test</th><th>Reuse%</th><th>DistR</th><th>DirD</th><th>Cont</th><th>Comp</th><th>Score</th><th>Dist(m)</th></tr></thead>\n");
     sb.append("<tbody>\n");
     for (int i = 0; i < results.size(); i++) {
       LoopQualityTest.LoopQualityResult r = results.get(i);
@@ -95,9 +95,12 @@ final class LoopQualityReportGenerator {
         sb.append(formatMetricCell(r.metrics.getRoadReusePercent(), r.region.maxReusePercent, "%.1f"));
         sb.append(formatRatioCell(r.metrics.getDistanceRatio(), r.region.minDistanceRatio, r.region.maxDistanceRatio));
         sb.append(formatMetricCell(r.metrics.getDirectionDeltaDegrees(), r.region.maxDirectionDelta, "%.0f"));
+        sb.append(String.format(Locale.US, "<td>%.2f</td>", r.metrics.getContinuityScore()));
+        sb.append(String.format(Locale.US, "<td>%.2f</td>", r.metrics.getCompactnessScore()));
+        sb.append(String.format(Locale.US, "<td>%.2f</td>", r.metrics.compositeScore()));
         sb.append(String.format(Locale.US, "<td>%d</td>", r.metrics.getActualDistanceMeters()));
       } else {
-        sb.append("<td colspan=\"4\" title=\"").append(escapeHtml(r.error != null ? r.error : "")).append("\">error</td>");
+        sb.append("<td colspan=\"7\" title=\"").append(escapeHtml(r.error != null ? r.error : "")).append("\">error</td>");
       }
       sb.append("</tr>\n");
     }
@@ -123,6 +126,10 @@ final class LoopQualityReportGenerator {
         sb.append(String.format(Locale.US, "reuse:%.1f,distR:%.2f,dirD:%.0f,actualDist:%d,",
           r.metrics.getRoadReusePercent(), r.metrics.getDistanceRatio(),
           r.metrics.getDirectionDeltaDegrees(), r.metrics.getActualDistanceMeters()));
+        sb.append(String.format(Locale.US, "cont:%.2f,compact:%.2f,costM:%.1f,maxGap:%d,closure:%d,composite:%.2f,",
+          r.metrics.getContinuityScore(), r.metrics.getCompactnessScore(),
+          r.metrics.getAverageCostPerMeter(), r.metrics.getMaxGapMeters(),
+          r.metrics.getClosureDistanceMeters(), r.metrics.compositeScore()));
       }
       // Embed simplified coordinates (every Nth point to keep HTML manageable)
       sb.append("coords:[");
@@ -169,6 +176,12 @@ final class LoopQualityReportGenerator {
     sb.append("      popup += 'Actual: ' + r.actualDist + 'm (' + r.distR + 'x)<br>';\n");
     sb.append("      popup += 'Road reuse: ' + r.reuse + '%<br>';\n");
     sb.append("      popup += 'Dir delta: ' + r.dirD + '&deg;<br>';\n");
+    sb.append("      popup += 'Continuity: ' + r.cont + '<br>';\n");
+    sb.append("      popup += 'Compactness: ' + r.compact + '<br>';\n");
+    sb.append("      popup += 'Cost/m: ' + r.costM + '<br>';\n");
+    sb.append("      popup += 'Max gap: ' + r.maxGap + 'm<br>';\n");
+    sb.append("      popup += 'Closure: ' + r.closure + 'm<br>';\n");
+    sb.append("      popup += '<b>Composite: ' + r.composite + '</b><br>';\n");
     sb.append("      popup += 'Status: <b>' + r.status + '</b>';\n");
     sb.append("    }\n");
     sb.append("    layer.bindPopup(popup);\n");
@@ -276,7 +289,7 @@ final class LoopQualityReportGenerator {
     sb.append("</div>\n");
 
     // Table
-    sb.append("<table id=\"results\"><thead><tr><th>Test</th><th>Var</th><th>Reuse</th><th>DistR</th><th>Dir</th><th>Dist</th></tr></thead><tbody>\n");
+    sb.append("<table id=\"results\"><thead><tr><th>Test</th><th>Var</th><th>Reuse</th><th>DistR</th><th>Dir</th><th>Cont</th><th>Comp</th><th>Score</th><th>Dist</th></tr></thead><tbody>\n");
     for (int i = 0; i < results.size(); i++) {
       LoopQualityTest.LoopQualityResult r = results.get(i);
       String vc = r.variant != null ? r.variant : "probe";
@@ -288,9 +301,12 @@ final class LoopQualityReportGenerator {
         sb.append(String.format(Locale.US, "<td>%.1f</td>", r.metrics.getRoadReusePercent()));
         sb.append(String.format(Locale.US, "<td>%.2f</td>", r.metrics.getDistanceRatio()));
         sb.append(String.format(Locale.US, "<td>%.0f</td>", r.metrics.getDirectionDeltaDegrees()));
+        sb.append(String.format(Locale.US, "<td>%.2f</td>", r.metrics.getContinuityScore()));
+        sb.append(String.format(Locale.US, "<td>%.2f</td>", r.metrics.getCompactnessScore()));
+        sb.append(String.format(Locale.US, "<td>%.2f</td>", r.metrics.compositeScore()));
         sb.append(String.format(Locale.US, "<td>%d</td>", r.metrics.getActualDistanceMeters()));
       } else {
-        sb.append("<td colspan=\"4\">").append(r.error != null ? "err" : "skip").append("</td>");
+        sb.append("<td colspan=\"7\">").append(r.error != null ? "err" : "skip").append("</td>");
       }
       sb.append("</tr>\n");
     }
@@ -311,6 +327,10 @@ final class LoopQualityReportGenerator {
         sb.append(String.format(Locale.US, "reuse:%.1f,distR:%.2f,dirD:%.0f,actualDist:%d,",
           r.metrics.getRoadReusePercent(), r.metrics.getDistanceRatio(),
           r.metrics.getDirectionDeltaDegrees(), r.metrics.getActualDistanceMeters()));
+        sb.append(String.format(Locale.US, "cont:%.2f,compact:%.2f,costM:%.1f,maxGap:%d,closure:%d,composite:%.2f,",
+          r.metrics.getContinuityScore(), r.metrics.getCompactnessScore(),
+          r.metrics.getAverageCostPerMeter(), r.metrics.getMaxGapMeters(),
+          r.metrics.getClosureDistanceMeters(), r.metrics.compositeScore()));
       }
       sb.append("coords:[");
       if (r.coordinates != null) {
@@ -336,7 +356,7 @@ final class LoopQualityReportGenerator {
     sb.append("    p+='Variant: <b>'+r.variant+'</b><br>';\n");
     sb.append("    p+='Profile: '+r.profile+'<br>';\n");
     sb.append("    p+='Requested: '+r.dist+'km<br>';\n");
-    sb.append("    if(r.reuse!==undefined){p+='<hr>Actual: '+r.actualDist+'m ('+r.distR+'x)<br>Reuse: '+r.reuse+'%<br>Dir delta: '+r.dirD+'&deg;';}\n");
+    sb.append("    if(r.reuse!==undefined){p+='<hr>Actual: '+r.actualDist+'m ('+r.distR+'x)<br>Reuse: '+r.reuse+'%<br>Dir delta: '+r.dirD+'&deg;<br>Continuity: '+r.cont+'<br>Compactness: '+r.compact+'<br>Cost/m: '+r.costM+'<br>Closure: '+r.closure+'m<br><b>Composite: '+r.composite+'</b>';}\n");
     sb.append("    layer.bindPopup(p);\n");
     sb.append("    layer.on('click',function(){highlightRow(i);});\n");
     sb.append("  }\n  layers.push(layer);\n});\n\n");

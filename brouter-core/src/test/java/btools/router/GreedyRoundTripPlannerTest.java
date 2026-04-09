@@ -86,14 +86,14 @@ public class GreedyRoundTripPlannerTest {
       0, 8000, 10000,  // perfect loop feasibility
       0, DirectionPreference.N,
       1, 5,
-      0.0, 5000, 5000);
+      0.0, 5000, 5000, -1);
 
     double badScore = scorer.score(
       4000, 2000,  // 100% over target
       0, 12000, 10000,  // 40% over desired
       180, DirectionPreference.N,  // opposite direction
       1, 5,
-      0.5, 500, 5000);  // high reuse, too close to start
+      0.5, 500, 5000, -1);  // high reuse, too close to start
 
     Assert.assertTrue("Perfect candidate should beat bad one", perfectScore < badScore);
   }

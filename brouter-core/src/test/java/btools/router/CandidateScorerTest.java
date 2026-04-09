@@ -15,14 +15,14 @@ public class CandidateScorerTest {
       0, 8000, 10000,  // total=0, return=8000, desired=10000
       90, DirectionPreference.ANY,
       1, 5,
-      0.0, 5000, 5000);
+      0.0, 5000, 5000, -1);
 
     double farScore = scorer.score(
       3500, 2000,  // candidate 75% over target
       0, 8000, 10000,
       90, DirectionPreference.ANY,
       1, 5,
-      0.0, 5000, 5000);
+      0.0, 5000, 5000, -1);
 
     assertTrue("Closer candidate should score lower (better)", closeScore < farScore);
   }
@@ -60,12 +60,12 @@ public class CandidateScorerTest {
     double noReuse = scorer.score(
       2000, 2000, 0, 8000, 10000,
       90, DirectionPreference.ANY, 1, 5,
-      0.0, 5000, 5000);
+      0.0, 5000, 5000, -1);
 
     double highReuse = scorer.score(
       2000, 2000, 0, 8000, 10000,
       90, DirectionPreference.ANY, 1, 5,
-      0.8, 5000, 5000);
+      0.8, 5000, 5000, -1);
 
     assertTrue("High edge reuse should increase score (worse)", highReuse > noReuse);
   }
@@ -97,6 +97,58 @@ public class CandidateScorerTest {
 
     assertTrue("Perfect loop feasibility should score lower", perfect < tooLong);
     assertEquals("Perfect feasibility should be zero", 0.0, perfect, 0.001);
+  }
+
+  @Test
+  public void previousDistancePenaltyZeroForFirstStep() {
+    // distFromPrevious = -1 means first step (no previous waypoint)
+    double penalty = scorer.previousDistancePenalty(-1, 2000);
+    assertEquals("First step should have zero penalty", 0.0, penalty, 0.001);
+  }
+
+  @Test
+  public void previousDistancePenaltyZeroAtTarget() {
+    // distFromPrevious exactly equals subRouteTarget
+    double penalty = scorer.previousDistancePenalty(2000, 2000);
+    assertEquals("Candidate at target distance should have zero penalty", 0.0, penalty, 0.001);
+  }
+
+  @Test
+  public void previousDistancePenaltyIncreasesWithDeviation() {
+    // 50% over target: ((3000-2000)/2000)^2 = 0.25
+    double over = scorer.previousDistancePenalty(3000, 2000);
+    assertEquals(0.25, over, 0.001);
+
+    // 50% under target: ((1000-2000)/2000)^2 = 0.25
+    double under = scorer.previousDistancePenalty(1000, 2000);
+    assertEquals(0.25, under, 0.001);
+
+    // Symmetric
+    assertEquals("Equal over/under deviation should produce equal penalty", over, under, 0.001);
+  }
+
+  @Test
+  public void previousDistancePenaltyAffectsScore() {
+    // Score with no previous waypoint (first step)
+    double firstStepScore = scorer.score(
+      2000, 2000, 0, 8000, 10000,
+      90, DirectionPreference.ANY, 2, 5,
+      0.0, 5000, 5000, -1);
+
+    // Score with previous waypoint at exactly target distance (ideal)
+    double idealPrevScore = scorer.score(
+      2000, 2000, 0, 8000, 10000,
+      90, DirectionPreference.ANY, 2, 5,
+      0.0, 5000, 5000, 2000);
+
+    // Score with previous waypoint very close (clustering)
+    double clusterScore = scorer.score(
+      2000, 2000, 0, 8000, 10000,
+      90, DirectionPreference.ANY, 2, 5,
+      0.0, 5000, 5000, 200);
+
+    assertTrue("Clustered candidate should score worse than ideal spacing",
+      clusterScore > idealPrevScore);
   }
 
   @Test

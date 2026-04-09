@@ -207,6 +207,8 @@ public class RoutingParamCollector {
           rctx.forceUseStartDirection = true;
         } else if (key.equals("direction")) {
           rctx.startDirection = Integer.valueOf(value);
+        } else if (key.equals("roundTripLength")) {
+          rctx.roundTripLength = Integer.valueOf(value);
         } else if (key.equals("roundTripDistance")) {
           rctx.roundTripDistance = Integer.valueOf(value);
         } else if (key.equals("roundTripDirectionAdd")) {

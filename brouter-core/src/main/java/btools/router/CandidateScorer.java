@@ -12,6 +12,7 @@ import btools.util.CheapAngleMeter;
  *         + w_dir    * directionPenalty * directionFade(step)
  *         + w_reuse  * visitedEdgeRatio
  *         + w_spread * spreadPenalty(distFromStart, step, totalSteps)
+ *         + w_prev   * ((distFromPrevious - subRouteTarget) / subRouteTarget)²
  */
 public class CandidateScorer {
 
@@ -20,17 +21,23 @@ public class CandidateScorer {
   private final double wDir;
   private final double wReuse;
   private final double wSpread;
+  private final double wPrev;
 
   public CandidateScorer() {
-    this(1.0, 2.0, 0.5, 3.0, 1.5);
+    this(1.0, 2.0, 0.5, 3.0, 1.5, 1.5);
   }
 
   public CandidateScorer(double wDist, double wLoop, double wDir, double wReuse, double wSpread) {
+    this(wDist, wLoop, wDir, wReuse, wSpread, 1.5);
+  }
+
+  public CandidateScorer(double wDist, double wLoop, double wDir, double wReuse, double wSpread, double wPrev) {
     this.wDist = wDist;
     this.wLoop = wLoop;
     this.wDir = wDir;
     this.wReuse = wReuse;
     this.wSpread = wSpread;
+    this.wPrev = wPrev;
   }
 
   /**
@@ -48,25 +55,30 @@ public class CandidateScorer {
    * @param visitedEdgeRatio   fraction of candidate path edges already visited [0,1]
    * @param distFromStart      air distance from candidate to start node (meters)
    * @param searchRadius       approximate half-diameter of the loop (desiredDistance/4)
+   * @param distFromPrevious   air distance from previous waypoint to this candidate (meters),
+   *                           or -1 if no previous waypoint (first step)
    * @return score (lower is better)
    */
   public double score(double candidateDistance, double subRouteTarget,
                       double totalSoFar, double returnDistance, double desiredTotal,
                       double candidateBearing, DirectionPreference directionPreference,
                       int step, int totalSteps,
-                      double visitedEdgeRatio, double distFromStart, double searchRadius) {
+                      double visitedEdgeRatio, double distFromStart, double searchRadius,
+                      double distFromPrevious) {
 
     double distScore = distanceScore(candidateDistance, subRouteTarget);
     double loopScore = loopFeasibilityScore(totalSoFar, candidateDistance, returnDistance, desiredTotal);
     double dirScore = directionScore(candidateBearing, directionPreference, step);
     double reuseScore = visitedEdgeRatio;
     double spreadScore = spreadPenalty(distFromStart, searchRadius, step, totalSteps);
+    double prevScore = previousDistancePenalty(distFromPrevious, subRouteTarget);
 
     return wDist * distScore
       + wLoop * loopScore
       + wDir * dirScore
       + wReuse * reuseScore
-      + wSpread * spreadScore;
+      + wSpread * spreadScore
+      + wPrev * prevScore;
   }
 
   /**
@@ -107,6 +119,23 @@ public class CandidateScorer {
     if (step <= 1) return 1.0;
     if (step <= 2) return 0.5;
     return 0.0;
+  }
+
+  /**
+   * Penalizes candidates whose air distance from the previous waypoint differs
+   * from the target sub-route distance. Implements the Silesian algorithm's
+   * (d(prev, candidate) - target)^2 term which naturally prevents waypoint clustering
+   * without a hard angular filter.
+   *
+   * @param distFromPrevious air distance from previous waypoint to candidate (meters),
+   *                         or -1 if no previous waypoint (first step)
+   * @param subRouteTarget   target sub-route distance (meters)
+   * @return penalty in [0, inf), 0 when distFromPrevious == -1 (first step)
+   */
+  double previousDistancePenalty(double distFromPrevious, double subRouteTarget) {
+    if (distFromPrevious < 0 || subRouteTarget <= 0) return 0;
+    double ratio = (distFromPrevious - subRouteTarget) / subRouteTarget;
+    return ratio * ratio;
   }
 
   /**

@@ -81,6 +81,8 @@ public class RoutingEngine extends Thread {
 
   private OsmTrack guideTrack;
 
+  OsmTrack[] greedyLegTracks; // per-leg cost-cutting tracks from greedy planner
+
   private OsmPathElement matchPath;
 
   long startTime;
@@ -491,7 +493,15 @@ public class RoutingEngine extends Thread {
       long startTime = System.currentTimeMillis();
 
       routingContext.useDynamicDistance = true;
-      double searchRadius = (routingContext.roundTripDistance == null ? 1500 :routingContext.roundTripDistance);
+      double searchRadius;
+      if (routingContext.roundTripLength != null) {
+        // roundTripLength is the desired total loop distance — convert to internal search radius.
+        // The waypoint strategies place points at searchRadius from start and route between them.
+        // Empirically, total loop distance ≈ 2*PI * searchRadius for circular loops.
+        searchRadius = routingContext.roundTripLength / (2 * Math.PI);
+      } else {
+        searchRadius = (routingContext.roundTripDistance == null ? 1500 : routingContext.roundTripDistance);
+      }
       double direction = (routingContext.startDirection == null ? -1 :routingContext.startDirection);
       double directionAdd = (routingContext.roundTripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD :routingContext.roundTripDirectionAdd);
       if (direction == -1) {
@@ -591,6 +601,11 @@ public class RoutingEngine extends Thread {
 
       validateAndAdjustWaypoints(waypoints, searchRadius);
 
+      // Snap start/end waypoints to nearest road to prevent beeline segments.
+      // Without this, if the user's click position is >250m from a road (park,
+      // water, etc.), the routing engine inserts straight-line beelines.
+      snapStartToRoad(waypoints, searchRadius);
+
       if (!userViaPoints.isEmpty()) {
         mergeUserWaypointsIntoLoop(waypoints, userViaPoints, direction, targetPoints);
       }
@@ -603,8 +618,6 @@ public class RoutingEngine extends Thread {
 
   void doGreedyRoundTrip(double searchRadius, double direction) {
     // Initialize nodesCache — needed before the planner can match waypoints to the graph.
-    // Other strategies (probe, isochrone) initialize this as a side effect of their own
-    // resetCache calls, but the greedy path goes straight to the planner.
     resetCache(false);
 
     OsmNodeNamed start = waypoints.get(0);
@@ -615,20 +628,41 @@ public class RoutingEngine extends Thread {
     GreedyRoundTripPlanner planner = new GreedyRoundTripPlanner(this);
     RoundTripResult result = planner.plan(start, desiredDistance, direction);
 
-    if (result != null && result.getTrack() != null) {
-      foundTrack = result.getTrack();
+    if (result != null && result.getLoopWaypoints() != null && result.getLoopWaypoints().size() >= 3) {
       for (String diag : result.getDiagnostics()) {
         logInfo("greedy: " + diag);
       }
       if (!result.isWithinTolerance()) {
-        logInfo("greedy: fallback used — " + result.getFallbackReason());
+        logInfo("greedy: fallback — " + result.getFallbackReason());
       }
-      logInfo("greedy: distance=" + result.getTotalDistanceMeters()
-        + "m, subRoutes=" + result.getSubRoutesChosen()
-        + ", attempts=" + result.getAttemptsUsed()
-        + ", reuse=" + String.format("%.1f%%", result.getReusedEdgeRatio() * 100));
+      logInfo("greedy: planned " + result.getLoopWaypoints().size() + " waypoints"
+        + ", estimated distance=" + result.getTotalDistanceMeters() + "m");
+
+      // Route through the greedy waypoints with the standard routing engine.
+      // The greedy planner's lookahead ensures waypoints are in well-connected
+      // areas (not dead-end valleys), so doRouting() produces gap-free tracks
+      // following roads appropriate for the profile.
+      waypoints.clear();
+      waypoints.addAll(result.getLoopWaypoints());
+
+      if (result.getMatchedWaypoints() != null) {
+        matchedWaypoints = result.getMatchedWaypoints();
+      }
+
+      if (result.getLegTracks() != null) {
+        List<OsmTrack> legs = result.getLegTracks();
+        greedyLegTracks = legs.toArray(new OsmTrack[0]);
+      }
+
+      routingContext.waypointCatchingRange = 250;
+      roundTripSearchRadius = searchRadius;
+      try {
+        doRouting(0);
+      } finally {
+        greedyLegTracks = null;
+      }
     } else {
-      logInfo("greedy round trip planner returned no result, falling back to waypoint strategy");
+      logInfo("greedy round trip planner returned no waypoints, falling back to waypoint strategy");
       doWaypointBasedRoundTrip(searchRadius, direction, RoundTripAlgorithm.WAYPOINT);
     }
   }
@@ -793,6 +827,44 @@ public class RoutingEngine extends Thread {
       logInfo("snapToIntersection: " + mwp.name + " moved crosspoint "
         + (distToNode1 <= distToNode2 ? distToNode1 : distToNode2) + "m to nearest intersection");
       mwp.crosspoint = new OsmNode(closerNode.ilon, closerNode.ilat);
+    }
+  }
+
+  /**
+   * Snap the start (and closing) waypoint to the nearest road.
+   * Round-trip waypoints use the user's raw click position which may be
+   * far from any road. If the distance exceeds waypointCatchingRange (250m),
+   * the routing engine inserts a straight-line beeline instead of a road segment.
+   * This method matches the start to the road network and updates its position.
+   */
+  void snapStartToRoad(List<OsmNodeNamed> waypoints, double searchRadius) {
+    if (waypoints.size() < 2) return;
+    OsmNodeNamed start = waypoints.get(0);
+
+    resetCache(false);
+    MatchedWaypoint mwp = new MatchedWaypoint();
+    mwp.waypoint = new OsmNode(start.ilon, start.ilat);
+    mwp.name = "start_snap";
+    List<MatchedWaypoint> mwpList = new ArrayList<>();
+    mwpList.add(mwp);
+    try {
+      nodesCache.matchWaypointsToNodes(mwpList, Math.min(searchRadius * 0.3, 2000), islandNodePairs);
+    } catch (Exception e) {
+      return; // leave unsnapped if matching fails
+    }
+    if (mwp.crosspoint == null) return;
+
+    int snapDist = start.calcDistance(mwp.crosspoint);
+    if (snapDist > 0) {
+      logInfo("snapStartToRoad: moved start " + snapDist + "m to nearest road");
+      start.ilon = mwp.crosspoint.getILon();
+      start.ilat = mwp.crosspoint.getILat();
+      // Also snap the closing waypoint (last in list) which mirrors the start
+      OsmNodeNamed closing = waypoints.get(waypoints.size() - 1);
+      if ("to".equals(closing.name)) {
+        closing.ilon = start.ilon;
+        closing.ilat = start.ilat;
+      }
     }
   }
 
@@ -2184,7 +2256,23 @@ public class RoutingEngine extends Thread {
         routingContext.inverseDirection = false;
         wptIndex = i + 1;
       } else {
-        seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), i == matchedWaypoints.size() - 2 ? nearbyTrack : null, effectiveRefTrack);
+        OsmTrack legNearbyTrack = (greedyLegTracks != null && i < greedyLegTracks.length)
+          ? greedyLegTracks[i]
+          : (i == matchedWaypoints.size() - 2 ? nearbyTrack : null);
+        if (legNearbyTrack != null && legNearbyTrack != nearbyTrack) {
+          // Corridor-constrained routing: try with greedy leg track first,
+          // fall back to unconstrained routing if it fails.
+          try {
+            seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), legNearbyTrack, effectiveRefTrack);
+          } catch (IllegalArgumentException e) {
+            seg = null;
+          }
+          if (seg == null) {
+            seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), null, effectiveRefTrack);
+          }
+        } else {
+          seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), legNearbyTrack, effectiveRefTrack);
+        }
         wptIndex = i;
         if (routingContext.continueStraight) {
           if (i < matchedWaypoints.size() - 2) {

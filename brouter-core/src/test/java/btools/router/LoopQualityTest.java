@@ -302,13 +302,27 @@ public class LoopQualityTest {
       "  \"distanceRatio\": %.4f,\n" +
       "  \"directionDeltaDegrees\": %.2f,\n" +
       "  \"actualDistanceMeters\": %d,\n" +
-      "  \"requestedDistanceMeters\": %d\n" +
+      "  \"requestedDistanceMeters\": %d,\n" +
+      "  \"continuityScore\": %.4f,\n" +
+      "  \"maxGapMeters\": %d,\n" +
+      "  \"totalGapMeters\": %d,\n" +
+      "  \"compactnessScore\": %.4f,\n" +
+      "  \"averageCostPerMeter\": %.4f,\n" +
+      "  \"closureDistanceMeters\": %d,\n" +
+      "  \"compositeScore\": %.4f\n" +
       "}\n",
       metrics.getRoadReusePercent(),
       metrics.getDistanceRatio(),
       metrics.getDirectionDeltaDegrees(),
       metrics.getActualDistanceMeters(),
-      metrics.getRequestedDistanceMeters());
+      metrics.getRequestedDistanceMeters(),
+      metrics.getContinuityScore(),
+      metrics.getMaxGapMeters(),
+      metrics.getTotalGapMeters(),
+      metrics.getCompactnessScore(),
+      metrics.getAverageCostPerMeter(),
+      metrics.getClosureDistanceMeters(),
+      metrics.compositeScore());
   }
 
   private File segmentDir() {
