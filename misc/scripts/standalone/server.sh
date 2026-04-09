@@ -7,7 +7,8 @@ cd "$(dirname "$0")"
 # use useBufferedReader=true to enable buffered reading of RD5 files (useful for high latency storage like cloud buckets)
 # optionally use readBufferSize=2m configure the buffer size (default is 1M)
 # maxRunningTime is the request timeout in seconds, set to 0 to disable timeout
-JAVA_OPTS="-Xmx128M -Xms128M -Xmn8M -DmaxRunningTime=300 -DuseRFCMimeType=false"
+# use the these default JAVA_OPTS if no env variables are set
+JAVA_OPTS=${JAVA_OPTS:-"-Xmx128M -Xms128M -Xmn8M -DmaxRunningTime=300 -DuseRFCMimeType=false"}
 
 # If paths are unset, first search in locations matching the directory structure
 # as found in the official BRouter zip archive
