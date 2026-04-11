@@ -1,8 +1,3 @@
----
-parent: Using BRouter
-title: Skating
----
-
 # BRouter Profile for Long-Distance Inline Skating
 
 When we started skating long-distance point-to-point routes, the experience was sometimes tough, busy roads with constant traffic, main roads that cycling profiles happily sent us over, and routes that just weren't enjoyable. We wanted to find tracks we could actually like: quiet paths where you can switch off and unwind, steep short uphills followed by gentle downhills where you cruise effortlessly for kilometers, safe roads away from traffic, while still taking a reasonably optimal route between two points.
