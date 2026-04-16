@@ -13,8 +13,12 @@ import btools.server.ServiceContext;
 
 
 /**
- * URL query parameter handler for web and standalone server. Supports all
+ * Routing parameter handler for web and standalone server. Supports all
  * BRouter features without restrictions.
+ * <p>
+ * Parameters can either be sent via the request URL (GET) or via a request
+ * body using {@code application/x-www-form-urlencoded} or {@code text/plain}
+ * (POST/PUT).
  * <p>
  * Parameters:
  * <p>
@@ -38,6 +42,8 @@ import btools.server.ServiceContext;
  * Example URLs:
  * {@code http://localhost:17777/brouter?lonlats=8.799297,49.565883|8.811764,49.563606&nogos=&profile=trekking&alternativeidx=0&format=gpx}
  * {@code http://localhost:17777/brouter?lonlats=1.1,1.2|2.1,2.2|3.1,3.2|4.1,4.2&nogos=-1.1,-1.2,1|-2.1,-2.2,2&profile=shortest&alternativeidx=1&format=kml&trackname=Ride&pois=1.1,2.1,Barner Bar}
+ * {@code curl -X POST http://localhost:17777/brouter -H 'Content-Type: application/x-www-form-urlencoded' --data 'lonlats=8.799297,49.565883%7C8.811764,49.563606&profile=trekking&format=gpx'}
+ * {@code curl -X PUT http://localhost:17777/brouter -H 'Content-Type: application/x-www-form-urlencoded' --data-binary @request-body.txt}
  * {@code http://localhost:17777/brouter/getprofiles}
  * {@code http://localhost:17777/brouter/getprofiles/trekking.brf}
  */
