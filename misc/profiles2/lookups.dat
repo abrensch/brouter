@@ -220,6 +220,7 @@ tunnel;0000000265 passage
 tunnel;0000000241 culvert
 tunnel;0000000122 avalanche_protector
 tunnel;0000000114 covered
+tunnel;0000000001 flooded
 
 sidewalk;0000194579 none
 sidewalk;0000111468 both
