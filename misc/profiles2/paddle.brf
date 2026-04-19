@@ -6,7 +6,8 @@ assign avoid_yes 		  = 2
 
 assign number_portage_carries = 2				  # %number_portage_carries% | How many carries of gear+boat do you typically do when not using a portage cart? | number
 assign use_portage_cart			  = false		  # %use_portage_cart% | Will you use a portage cart when possible? | boolean
-assign max_preferred_rapids   = 3    		  # %max_preferred_rapids% | Maximum class of rapids you are willing to run? | [0=Avoid all known rapids, 1=Class I, 2=Class II, 3=Classs III, 4=Class IV, 5=Class V]
+assign max_rapids             = 3    		  # %max_rapids% | Maximum class of rapids you are willing to run? | [0=Avoid all known rapids, 1=Class I, 2=Class II, 3=Classs III, 4=Class IV, 5=Class V]
+assign max_upstream_rapids    = 2    		  # %max_upstream_rapids% | Maximum class of rapids you are willing to ascend? | [0=Avoid all known rapids, 1=Class I, 2=Class II, 3=Classs III, 4=Class IV, 5=Class V]
 assign default_unknown_rapids	= 3				  # %default_unknown_rapids% | What is the default class to use for unspecified rapids? | [1=Class I, 2=Class II, 3=Classs III, 4=Class IV, 5=Class V]
 assign allow_upstream_travel	= true		  # %allow_upstream_travel% | Allow upstream travel? | boolean
 assign avoid_open_water			  = avoid_no	# %avoid_open_water% | Avoid open water? |[avoid_no=Do not avoid, avoid_prefer=Prefer to avoid, avoid_yes=Always avoid]
@@ -88,7 +89,8 @@ assign is_upstream
   else false
 
 assign canoeablewaterway
-  if waterway=river|flowline|fairway|link|canal|canoe_pass|tidal_channel then true
+  if tunnel=flooded then false
+  else if waterway=river|flowline|fairway|link|canal|canoe_pass|tidal_channel then true
   else if and waterway=stream|ditch|drain or canoespecified not avoid_small_waterways then true
   else false
 
@@ -96,7 +98,8 @@ assign canoeablewaterway
 assign canoeaccess =
   if ignore_access_canoe then true
   # preferences must go before access as they override access
-  else if greater effective_rapids max_preferred_rapids then false #treat rapids greater than given preference as no canoe access
+  else if greater effective_rapids max_rapids then false #treat rapids greater than given preference as no canoe access
+  else if and is_upstream greater effective_rapids max_upstream_rapids then false #treat rapids greater than given preference as no canoe access
   else if and not allow_upstream_travel is_upstream  then false
   else if and equal avoid_open_water avoid_yes or open_water=yes open_water=partial then false # treat open_water=yes|partial  as no canoe access if preference to avoid it is set
   else if and equal avoid_intermittent avoid_yes intermittent=yes then false # treat intermittent=yes as no canoe access if preference to avoid it is set
@@ -244,7 +247,7 @@ assign effective_rapids
 # Therefore, reading the way is not very reliable. Plus it's unlikely to have a node with foot=no
 assign node =
   # preferences must go before access as they override access
-  if greater effective_rapids max_preferred_rapids then false #treat rapids greater than given preference as no canoe access
+  if greater effective_rapids max_rapids then false #treat rapids greater than given preference as no canoe access
   else if canoespecified then true # we assume canoe specified takes precidence over all
   else if and waterway= ignore_access_canoe then true #TODO refactor this
   else if and highway= ignore_access_portage then true #TODO refactor this
