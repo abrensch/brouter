@@ -56,7 +56,7 @@ public class DatabasePseudoTagProvider {
       System.out.println("DatabasePseudoTagProvider dumping data from database to file " + filename);
 
       String sql_node_tags = "select node_id, crossing_class from crossing_tags";
-      try(PreparedStatement psAllTags = conn.prepareStatement(sql_node_tags)) {
+      try (PreparedStatement psAllTags = conn.prepareStatement(sql_node_tags)) {
 
         bw.write("#####nodetags#####\n");
         bw.write("node_id;crossing_class\n");
@@ -79,7 +79,7 @@ public class DatabasePseudoTagProvider {
       }
 
       String sql_all_tags = "SELECT * from all_tags";
-      try(PreparedStatement psAllTags = conn.prepareStatement(sql_all_tags)) {
+      try (PreparedStatement psAllTags = conn.prepareStatement(sql_all_tags)) {
 
         bw.write("#####waytags#####\n");
         bw.write("losmid;noise_class;river_class;forest_class;town_class;traffic_class\n");
