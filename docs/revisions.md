@@ -2,7 +2,7 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### [brouter-1.7.9.zip](../brouter_bin/brouter-1.7.9.zip) (current revision, XX.03.2026)
+### [brouter-1.7.9.zip](../brouter_bin/brouter-1.7.9.zip) (current revision, 22.04.2026)
 
 Android
 
@@ -21,6 +21,7 @@ Profiles
 - car profiles now can use the pseudo way tags like forest, river, town
 
 - [several rule updates](https://github.com/abrensch/brouter/pulls?q=is%3Apr+is%3Aclosed+milestone%3A%22Version+1.7.9%22+label%3Aprofiles)
+  or [issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue%20state%3Aopen%20milestone%3A%22Lookup%20Version%2011.1%22)
 
 [Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.7.9%22+is%3Aclosed)
 
