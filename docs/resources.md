@@ -20,3 +20,4 @@ Vorträge zu BRouter auf der FOSSGIS Konferenz bei YouTube:
 - 2015: [Neues zu BRouter](https://www.youtube.com/watch?v=Eba4fcYI4h4) [(lokales mp4)](https://brouter.de/brouter_bin/fossgis_2015_neues_zu_brouter.mp4)
 - 2018: [Energieeffizientes PKW Routing mit OpenStreetMap](https://youtu.be/IHV2sL7n0Qo)
 - 2020: [Routenplanung mit BRouter und BRouter-Web](https://www.youtube.com/watch?v=l6X2Sm1YDLs) [(lokales mp4)](https://brouter.de/brouter_bin/fossgis_2015_neues_zu_brouter.mp4)
+- 2026: [Pseudo-Tag for highway crossing](https://brouter.de/brouter_bin/Brouter_2026_Intersections.pdf)
