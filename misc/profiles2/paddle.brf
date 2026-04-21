@@ -1,0 +1,266 @@
+---context:global   # following code refers to global config
+#constants
+assign avoid_no			  = 0
+assign avoid_prefer		= 1
+assign avoid_yes 		  = 2
+
+assign number_portage_carries = 2				  # %number_portage_carries% | How many carries of gear+boat do you typically do when not using a portage cart? | number
+assign use_portage_cart			  = false		  # %use_portage_cart% | Will you use a portage cart when possible? | boolean
+assign max_rapids             = 3    		  # %max_rapids% | Maximum class of rapids you are willing to run? | [0=Avoid all known rapids, 1=Class I, 2=Class II, 3=Classs III, 4=Class IV, 5=Class V]
+assign max_upstream_rapids    = 2    		  # %max_upstream_rapids% | Maximum class of rapids you are willing to ascend? | [0=Avoid all known rapids, 1=Class I, 2=Class II, 3=Classs III, 4=Class IV, 5=Class V]
+assign default_unknown_rapids	= 3				  # %default_unknown_rapids% | What is the default class to use for unspecified rapids? | [1=Class I, 2=Class II, 3=Classs III, 4=Class IV, 5=Class V]
+assign allow_upstream_travel	= true		  # %allow_upstream_travel% | Allow upstream travel? | boolean
+assign avoid_open_water			  = avoid_no	# %avoid_open_water% | Avoid open water? |[avoid_no=Do not avoid, avoid_prefer=Prefer to avoid, avoid_yes=Always avoid]
+assign avoid_tidal				    = avoid_no	# %avoid_tidal% | Avoid tidal water? |[avoid_no=Do not avoid, avoid_prefer=Prefer to avoid, avoid_yes=Always avoid]
+assign avoid_intermittent		  = avoid_yes	# %avoid_intermittent% | Avoid intermittent water? |[avoid_no=Do not avoid, avoid_prefer=Prefer to avoid, avoid_yes=Always avoid]
+assign avoid_small_waterways	= true			# %avoid_small_waterways% | Avoid streams, ditches, and drains (except when canoeing is explictly allowed)? | boolean
+
+assign add_beeline         		= false  		# %add_beeline% | Enable beeline on distant start/end points | boolean
+
+
+## for debugging
+assign processUnusedTags		  = true
+assign ignore_node_access		  = false
+assign follow_access_restrictions	= 0				# %follow_access_restrictions% | Follow access restrictions? | [0=Yes (recommended), 1=Strict Canoe Access ONLY for waterways, 2=Strict Portage Access ONLY for highways, 3=Strict Canoe and Portage Acess ONLY for waterways and highways, 4=Ignore all access restrictions on waterways (DANGER!), 5=Ignore all access restrictions on highways, 6=Ignore all access restrictions on waterways and highways (DANGER!)]
+assign strict_access_canoe
+  if or equal follow_access_restrictions 1 equal follow_access_restrictions 3 then true else false
+assign strict_access_portage
+  if or equal follow_access_restrictions 2 equal follow_access_restrictions 3 then true else false
+assign ignore_access_canoe
+  if or equal follow_access_restrictions 4 equal follow_access_restrictions 6 then true else false
+assign ignore_access_portage
+  if or equal follow_access_restrictions 5 equal follow_access_restrictions 6 then true else false
+
+# the elevation parameters
+assign downhillcost 	0
+assign downhillcutoff 0
+assign uphillcost 		0
+assign uphillcutoff 	0
+
+#todo: this sets some variables for foot (mostly limit speed I think). using it helps the time calculation but should be done properly for paddling
+assign validForFoot 	1
+
+
+---context:way   # following code refers to way-tags
+
+assign turncost 0
+
+#precalculate some access
+assign defaultaccess =
+  if access=private|no then false
+  else true
+
+#designated access calculated seperately so we can use it for weighting as well
+#	todo: is this the right behavior for permissive and/or customers?
+assign canoespecified
+  switch canoe=yes|designated|permit|permissive|customers true false
+assign boatspecified
+  switch boat=yes|designated|permit|permissive true false
+assign portagespecified
+  switch portage=yes|designated|permit|permissive|customers true false
+assign hand_cartspecified
+  switch hand_cart=yes|designated true false
+assign footspecified
+  switch foot=yes|designated|permissive true false
+
+
+## todo: add some sort of positive check for rapids=*?
+assign effective_rapids
+  if rapids=no then 0
+  else if rapids=yes then default_unknown_rapids
+  else if rapids=1 then 1
+  else if rapids=2 then 2
+  else if rapids=3 then 3
+  else if rapids=4 then 4
+  else if rapids=5 then 5
+  else if rapids=6 then 6
+  else if rapids=X then 7
+  else 0
+
+#we infer flow in a subset of waterways (unless they are tidal)
+#unlike opentrailmap.us canal current is not considered
+assign is_upstream
+  if (
+	and waterway=river|stream|canoe_pass
+	and not tidal=yes
+	and reversedirection=yes
+	not oneway:canoe=no
+  ) then true
+  else false
+
+assign canoeablewaterway
+  if tunnel=flooded then false
+  else if waterway=river|flowline|fairway|link|canal|canoe_pass|tidal_channel then true
+  else if and waterway=stream|ditch|drain or canoespecified not avoid_small_waterways then true
+  else false
+
+# calculate logical canoe access
+assign canoeaccess =
+  if ignore_access_canoe then true
+  # preferences must go before access as they override access
+  else if greater effective_rapids max_rapids then false #treat rapids greater than given preference as no canoe access
+  else if and is_upstream greater effective_rapids max_upstream_rapids then false #treat rapids greater than given preference as no canoe access
+  else if and not allow_upstream_travel is_upstream  then false
+  else if and equal avoid_open_water avoid_yes or open_water=yes open_water=partial then false # treat open_water=yes|partial  as no canoe access if preference to avoid it is set
+  else if and equal avoid_intermittent avoid_yes intermittent=yes then false # treat intermittent=yes as no canoe access if preference to avoid it is set
+  else if and equal avoid_tidal avoid_yes tidal=yes then false # treat tidal=yes as no canoe access if preference to avoid it is set
+  else if canoespecified then true
+  else if strict_access_canoe then false # stop trying after positive canoe access if we are following strict access rules
+  else if canoe=no|discouraged|private then false
+  else if portagespecified then true #special case for postivie portage access for portaging down  down an often dry stream. do NOT check for negative portage access
+  else if boatspecified then true
+  else if boat=no|discouraged|private then false
+  else defaultaccess
+
+######## todo: refine portageable ways better
+assign portageableway
+  if not highway= then
+  (
+	if highway=platform|proposed|rest_area then false
+	else true
+  )
+  else false
+
+#calculate logical portage access
+#todo: take oneway into account?
+assign portageaccess
+  if ignore_access_portage then true
+  else if portagespecified then true
+  else if strict_access_portage then false # stop trying after positive portage access if we are following strict access rules
+  else if portage=no|discouraged|private then false
+  else if footspecified then true
+  else if bicycle=dismount then true
+  else if foot=private|no|use_sidepath then false
+  else defaultaccess
+
+
+assign hand_cartableway
+  if portageableway then
+  (
+	if hand_cartspecified then true
+	else if hand_cart=no then false
+	else if highway=steps then false
+	else if smoothness=very_horrible|impassable then false
+	else if and highway=path|footway motor_vehicle=yes|designated|permissive|agricultural then true
+	else if highway=path|footway then false
+	else true
+  )
+  else false
+
+assign usinghand_cart
+  if and hand_cartableway use_portage_cart then true
+  else false
+
+#### todo: add elevation penalty
+#### todo: add smoothness penalty when using hand_cart
+#### todo: add in preference for portage and/or canoe route relations.
+assign accesspenalty
+  add switch and portageableway informal=yes 2 0
+  add switch and portageableway portagespecified  -1 0
+  add switch and canoeablewaterway canoespecified -1 0
+  add switch and canoeablewaterway and equal avoid_open_water avoid_prefer open_water=yes 2 0
+  add switch and canoeablewaterway and equal avoid_open_water avoid_prefer open_water=partial 1 0
+  add switch and canoeablewaterway and equal avoid_intermittent avoid_prefer intermittent=yes 2 0
+	  switch and canoeablewaterway and equal avoid_tidal avoid_prefer tidal=yes 2 0
+
+#calculate number of portages
+assign loadedportagecarries
+  if usinghand_cart then 1
+  else number_portage_carries
+assign unloadedportagecarries sub loadedportagecarries 1
+
+#assign our base costs
+assign loadedportagebasecost
+  if usinghand_cart then 		20
+  else 							30
+assign unloadedportagebasecost 	15
+
+assign waterwaybasecost  		10
+assign waterwaycost 			waterwaybasecost
+
+assign portagecost
+  add
+	multiply loadedportagecarries loadedportagebasecost
+	multiply unloadedportagecarries unloadedportagebasecost
+
+assign costfactor
+  add accesspenalty
+  switch and canoeablewaterway 	canoeaccess		waterwaycost
+  switch and portageableway 	portageaccess	portagecost    100000
+
+#Add cost for switching between portage and canoeing
+#We ignore cost of switching between portage cart and non-portage cart and extra cost to setup portage cart (for now).
+assign classifier_none 		1
+assign classifier_canoe 	2
+assign classifier_portage 	3
+assign initialclassifier
+  if portageableway 		then classifier_portage
+  else if canoeablewaterway then classifier_canoe
+  else classifier_none
+
+assign initialcost
+  if equal initialclassifier classifier_canoe then 1500
+  else if equal initialclassifier classifier_portage then 1500
+  else 0
+
+---context:node  # following code refers to node tags
+
+#precalculate some access
+assign defaultaccess =
+  if access=private|no then false
+  else true
+
+#designated access calculated seperately so we can use it for weighting as well
+assign canoespecified
+  switch canoe:egress=yes|permit|designated|permissive|customers
+  or canoe:put_in=yes|permit|designated|permissive|customers
+  or canoe=yes|designated|permit|permissive|customers true false
+assign boatspecified
+  switch boat=yes|designated|permit|permissive true false
+#assign portagespecified
+#  switch portage=yes|designated|permit|permissive|customers true false
+assign footspecified
+  switch foot=yes|designated|permissive true false
+
+#todo: add waterway=hazard?|
+#todo: add canoe access on nodes?
+#todo: add dams and weir?
+#	what about what there is rapids + dam/weir? (or waterfall)
+#todo: add penalty for waterway=rapids?
+#todo: can we do anything about dams/weirs as ways?
+
+
+assign effective_rapids
+  if rapids=no then 0
+  else if rapids=1 then 1
+  else if rapids=2 then 2
+  else if rapids=3 then 3
+  else if rapids=4 then 4
+  else if rapids=5 then 5
+  else if rapids=6 then 6
+  else if rapids=X then 7
+  else if or rapids=yes waterway=rapids then default_unknown_rapids
+  else 0
+
+# We ignore portage access on nodes as it is so rare (for now)
+# We combine canoe and foot access for nodes and do not try to infer the way because when the node is the boundary between ways it gets associated with the earlier way.
+# Therefore, reading the way is not very reliable. Plus it's unlikely to have a node with foot=no
+assign node =
+  # preferences must go before access as they override access
+  if greater effective_rapids max_rapids then false #treat rapids greater than given preference as no canoe access
+  else if canoespecified then true # we assume canoe specified takes precidence over all
+  else if and waterway= ignore_access_canoe then true #TODO refactor this
+  else if and highway= ignore_access_portage then true #TODO refactor this
+  else if and waterway=waterfall not way:canoespecified  then false # do read the way for waterfall as very often mark rapids as falls. so it's worth it in this narrow case
+  else if canoe=no|discouraged|private then false
+  else if boatspecified then true
+  else if boat=no|discouraged|private then false
+  else if footspecified then true
+  else if foot=no|private then false
+  else defaultaccess
+
+#todo: add accesspenalty for beaver dams?
+assign initialcost
+  if ignore_node_access then 0
+  else if not node then 1000000
+  else 0
