@@ -37,7 +37,7 @@ public class RoutingEngine extends Thread {
   public final static int BROUTER_ENGINEMODE_GETINFO = 3;
   public final static int BROUTER_ENGINEMODE_ROUNDTRIP = 4;
 
-  private NodesCache nodesCache;
+  NodesCache nodesCache;
   private SortedHeap<OsmPath> openSet = new SortedHeap<>();
   private boolean finished = false;
 
@@ -48,7 +48,7 @@ public class RoutingEngine extends Thread {
 
   private int nodeLimit; // used for target island search
   private int MAXNODES_ISLAND_CHECK = 500;
-  private OsmNodePairSet islandNodePairs = new OsmNodePairSet(MAXNODES_ISLAND_CHECK);
+  OsmNodePairSet islandNodePairs = new OsmNodePairSet(MAXNODES_ISLAND_CHECK);
   private boolean useNodePoints = false; // use the start/end nodes  instead of crosspoint
 
   private int engineMode = 0;
@@ -81,10 +81,12 @@ public class RoutingEngine extends Thread {
 
   private OsmTrack guideTrack;
 
+  OsmTrack[] greedyLegTracks; // per-leg cost-cutting tracks from greedy planner
+
   private OsmPathElement matchPath;
 
-  private long startTime;
-  private long maxRunningTime;
+  long startTime;
+  long maxRunningTime;
   public SearchBoundary boundary;
 
   public boolean quite = false;
@@ -93,6 +95,8 @@ public class RoutingEngine extends Thread {
 
   private boolean directWeaving = !Boolean.getBoolean("disableDirectWeaving");
   private String outfile;
+
+  double roundTripSearchRadius = 0;
 
   public RoutingEngine(String outfileBase, String logfileBase, File segmentDir,
                        List<OsmNodeNamed> waypoints, RoutingContext rc) {
@@ -489,27 +493,57 @@ public class RoutingEngine extends Thread {
       long startTime = System.currentTimeMillis();
 
       routingContext.useDynamicDistance = true;
-      double searchRadius = (routingContext.roundTripDistance == null ? 1500 :routingContext.roundTripDistance);
+      double searchRadius;
+      if (routingContext.roundTripLength != null) {
+        // roundTripLength is the desired total loop distance — convert to internal search radius.
+        // The waypoint strategies place points at searchRadius from start and route between them.
+        // Empirically, total loop distance ≈ 2*PI * searchRadius for circular loops.
+        searchRadius = routingContext.roundTripLength / (2 * Math.PI);
+      } else {
+        searchRadius = (routingContext.roundTripDistance == null ? 1500 : routingContext.roundTripDistance);
+      }
       double direction = (routingContext.startDirection == null ? -1 :routingContext.startDirection);
       double directionAdd = (routingContext.roundTripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD :routingContext.roundTripDirectionAdd);
-      if (direction == -1) direction = getRandomDirectionFromData(waypoints.get(0), searchRadius);
-
-      if (routingContext.allowSamewayback) {
-        int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction);
-        MatchedWaypoint wpt2 = new MatchedWaypoint();
-        wpt2.waypoint = new OsmNode(pos[0], pos[1]);
-        wpt2.name = "rt1_" + direction;
-
-        OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
-        onn.name = "rt1";
-        waypoints.add(onn);
-      } else {
-        buildPointsFromCircle(waypoints, direction, searchRadius, routingContext.roundTripPoints == null ? 5 : routingContext.roundTripPoints);
+      if (direction == -1) {
+        direction = getRandomDirectionFromData(waypoints.get(0), searchRadius);
+        direction += directionAdd;
       }
 
-      routingContext.waypointCatchingRange = 250;
+      // Resolve effective algorithm
+      RoundTripAlgorithm algo = routingContext.roundTripAlgorithm;
+      // Legacy compat: if roundTripIsochrone was set but roundTripAlgorithm wasn't explicitly changed
+      if (algo == RoundTripAlgorithm.AUTO && routingContext.roundTripIsochrone) {
+        algo = RoundTripAlgorithm.ISOCHRONE;
+      }
+      if (algo == RoundTripAlgorithm.AUTO) {
+        algo = selectRoundTripAlgorithm(searchRadius);
+      }
+      logInfo("round trip algorithm: " + algo);
 
-      doRouting(0);
+      if (algo == RoundTripAlgorithm.GREEDY) {
+        doGreedyRoundTrip(searchRadius, direction);
+      } else {
+        doWaypointBasedRoundTrip(searchRadius, direction, algo);
+      }
+
+      // Check distance accuracy and warn if terrain prevents a compact loop
+      if (foundTrack != null && foundTrack.distance > 0) {
+        double expectedDistance = 2 * Math.PI * searchRadius;
+        double ratio = foundTrack.distance / expectedDistance;
+        if (ratio > 1.5) {
+          String warning = String.format(
+            "Warning: route distance (%dkm) exceeds requested loop distance (%dkm) by %.0f%%. "
+            + "The road network in this area is too constrained for a compact loop at this distance. "
+            + "Consider a shorter distance or an out-and-back route.",
+            foundTrack.distance / 1000, (int) (expectedDistance / 1000), (ratio - 1) * 100);
+          logInfo(warning);
+          if (foundTrack.message == null) {
+            foundTrack.message = warning;
+          } else {
+            foundTrack.message += " " + warning;
+          }
+        }
+      }
 
       long endTime = System.currentTimeMillis();
       logInfo("round trip execution time = " + (endTime - startTime) / 1000. + " seconds");
@@ -518,6 +552,1194 @@ public class RoutingEngine extends Thread {
       logException(e);
     }
 
+  }
+
+  static RoundTripAlgorithm selectRoundTripAlgorithm(double searchRadius) {
+    // Greedy excels at medium-long loops where geometry matters.
+    // searchRadius maps to total loop distance ~ 2*PI*radius.
+    // For short loops (< ~30km total, radius < 5km), existing strategies work well.
+    if (searchRadius >= 5000) return RoundTripAlgorithm.GREEDY;
+    return RoundTripAlgorithm.ISOCHRONE;
+  }
+
+  private void doWaypointBasedRoundTrip(double searchRadius, double direction, RoundTripAlgorithm algo) {
+    if (routingContext.allowSamewayback) {
+      int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction);
+      OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
+      onn.name = "rt1";
+      waypoints.add(onn);
+    } else {
+      List<OsmNodeNamed> userViaPoints = new ArrayList<>(waypoints.subList(1, waypoints.size()));
+      waypoints.subList(1, waypoints.size()).clear();
+
+      int targetPoints = routingContext.roundTripPoints == null ?
+        Math.max(5, Math.min(15, (int) (searchRadius / 1500) + 3)) :
+        routingContext.roundTripPoints;
+
+      if (algo == RoundTripAlgorithm.ISOCHRONE) {
+        double[] probeDirections = probeReachableDirections(waypoints.get(0), searchRadius);
+        double[][] frontier = runIsochroneExpansion(waypoints.get(0), searchRadius);
+        double[][] merged = mergeIsochroneWithProbe(frontier, probeDirections, searchRadius);
+        if (merged != null && merged.length >= 3) {
+          placeWaypointsFromIsochrone(waypoints, merged, searchRadius, direction, targetPoints);
+        } else if (probeDirections != null && probeDirections.length >= 3) {
+          logInfo("isochrone merge insufficient, falling back to probe directions");
+          placeWaypointsFromEnvelope(waypoints, probeDirections, searchRadius, direction, targetPoints);
+        } else {
+          logInfo("both isochrone and probe insufficient, falling back to circle");
+          buildPointsFromCircle(waypoints, direction, searchRadius, targetPoints);
+        }
+      } else {
+        double[] viableDirections = probeReachableDirections(waypoints.get(0), searchRadius);
+        if (viableDirections != null && viableDirections.length >= 3) {
+          placeWaypointsFromEnvelope(waypoints, viableDirections, searchRadius, direction, targetPoints);
+        } else {
+          logInfo("reachability probe returned < 3 directions, falling back to circle");
+          buildPointsFromCircle(waypoints, direction, searchRadius, targetPoints);
+        }
+      }
+
+      validateAndAdjustWaypoints(waypoints, searchRadius);
+
+      // Snap start/end waypoints to nearest road to prevent beeline segments.
+      // Without this, if the user's click position is >250m from a road (park,
+      // water, etc.), the routing engine inserts straight-line beelines.
+      snapStartToRoad(waypoints, searchRadius);
+
+      if (!userViaPoints.isEmpty()) {
+        mergeUserWaypointsIntoLoop(waypoints, userViaPoints, direction, targetPoints);
+      }
+    }
+
+    routingContext.waypointCatchingRange = 250;
+    roundTripSearchRadius = searchRadius;
+    doRouting(0);
+  }
+
+  void doGreedyRoundTrip(double searchRadius, double direction) {
+    // Initialize nodesCache — needed before the planner can match waypoints to the graph.
+    resetCache(false);
+
+    OsmNodeNamed start = waypoints.get(0);
+    double desiredDistance = 2 * Math.PI * searchRadius;
+    logInfo("greedy round trip: desired distance=" + (int) desiredDistance
+      + "m, searchRadius=" + (int) searchRadius + "m, direction=" + (int) direction);
+
+    GreedyRoundTripPlanner planner = new GreedyRoundTripPlanner(this);
+    RoundTripResult result = planner.plan(start, desiredDistance, direction);
+
+    if (result != null && result.getLoopWaypoints() != null && result.getLoopWaypoints().size() >= 3) {
+      for (String diag : result.getDiagnostics()) {
+        logInfo("greedy: " + diag);
+      }
+      if (!result.isWithinTolerance()) {
+        logInfo("greedy: fallback — " + result.getFallbackReason());
+      }
+      logInfo("greedy: planned " + result.getLoopWaypoints().size() + " waypoints"
+        + ", estimated distance=" + result.getTotalDistanceMeters() + "m");
+
+      // Route through the greedy waypoints with the standard routing engine.
+      // The greedy planner's lookahead ensures waypoints are in well-connected
+      // areas (not dead-end valleys), so doRouting() produces gap-free tracks
+      // following roads appropriate for the profile.
+      waypoints.clear();
+      waypoints.addAll(result.getLoopWaypoints());
+
+      if (result.getMatchedWaypoints() != null) {
+        matchedWaypoints = result.getMatchedWaypoints();
+      }
+
+      if (result.getLegTracks() != null) {
+        List<OsmTrack> legs = result.getLegTracks();
+        greedyLegTracks = legs.toArray(new OsmTrack[0]);
+      }
+
+      routingContext.waypointCatchingRange = 250;
+      roundTripSearchRadius = searchRadius;
+      try {
+        doRouting(0);
+      } finally {
+        greedyLegTracks = null;
+      }
+    } else {
+      logInfo("greedy round trip planner returned no waypoints, falling back to waypoint strategy");
+      doWaypointBasedRoundTrip(searchRadius, direction, RoundTripAlgorithm.WAYPOINT);
+    }
+  }
+
+  /**
+   * Merge user-provided via waypoints into the round-trip loop.
+   * Inserts user waypoints among the circle-generated waypoints,
+   * sorted by bearing angle from the start point. If the total
+   * number of intermediate waypoints exceeds targetPoints,
+   * circle waypoints closest in angle to a user waypoint are removed.
+   */
+  void mergeUserWaypointsIntoLoop(List<OsmNodeNamed> waypoints, List<OsmNodeNamed> userViaPoints, double startAngle, int targetPoints) {
+    OsmNodeNamed start = waypoints.get(0);
+    OsmNodeNamed closingPoint = waypoints.remove(waypoints.size() - 1);
+    List<OsmNodeNamed> circlePoints = new ArrayList<>(waypoints.subList(1, waypoints.size()));
+    waypoints.subList(1, waypoints.size()).clear();
+
+    for (int i = 0; i < userViaPoints.size(); i++) {
+      OsmNodeNamed wp = userViaPoints.get(i);
+      if (wp.name == null || wp.name.isEmpty()) {
+        wp.name = "via" + (i + 1);
+      }
+    }
+
+    // Precompute user waypoint bearings (constant across removal iterations)
+    double[] userBearings = new double[userViaPoints.size()];
+    for (int i = 0; i < userViaPoints.size(); i++) {
+      userBearings[i] = CheapAngleMeter.getDirection(start.ilon, start.ilat,
+        userViaPoints.get(i).ilon, userViaPoints.get(i).ilat);
+    }
+
+    int maxCirclePoints = Math.max(1, targetPoints - userViaPoints.size());
+    while (circlePoints.size() > maxCirclePoints) {
+      int removeIdx = -1;
+      double smallestGap = Double.MAX_VALUE;
+      for (int ci = 0; ci < circlePoints.size(); ci++) {
+        double circBearing = CheapAngleMeter.getDirection(start.ilon, start.ilat,
+          circlePoints.get(ci).ilon, circlePoints.get(ci).ilat);
+        for (double userBearing : userBearings) {
+          double gap = CheapAngleMeter.getDifferenceFromDirection(circBearing, userBearing);
+          if (gap < smallestGap) {
+            smallestGap = gap;
+            removeIdx = ci;
+          }
+        }
+      }
+      logInfo("mergeUserWaypoints: removing circle point " + circlePoints.get(removeIdx).name
+        + " (angular gap " + (int) smallestGap + "° to nearest user waypoint)");
+      circlePoints.remove(removeIdx);
+    }
+
+    List<OsmNodeNamed> allIntermediates = new ArrayList<>();
+    allIntermediates.addAll(circlePoints);
+    allIntermediates.addAll(userViaPoints);
+
+    allIntermediates.sort((a, b) -> {
+      double relA = CheapAngleMeter.normalizeRelative(
+        CheapAngleMeter.getDirection(start.ilon, start.ilat, a.ilon, a.ilat) - startAngle);
+      double relB = CheapAngleMeter.normalizeRelative(
+        CheapAngleMeter.getDirection(start.ilon, start.ilat, b.ilon, b.ilat) - startAngle);
+      return Double.compare(relA, relB);
+    });
+
+    waypoints.addAll(allIntermediates);
+    waypoints.add(closingPoint);
+
+    logInfo("mergeUserWaypoints: loop has " + allIntermediates.size() + " intermediate waypoints ("
+      + userViaPoints.size() + " user, " + circlePoints.size() + " circle)");
+  }
+
+  /**
+   * Filter round-trip waypoints that matched to bad positions.
+   * Removes intermediate waypoints (named "rt*") where:
+   * - The snap distance (waypoint to crosspoint) exceeds maxSnapDistance
+   * - Consecutive matched positions are too close together
+   * Never removes the first or last waypoint (start/end of loop).
+   * Preserves at least one intermediate waypoint.
+   */
+  void filterRoundTripWaypoints(List<MatchedWaypoint> waypoints) {
+    double maxSnapDistance = roundTripSearchRadius * 0.5;
+    double minWaypointDistance = roundTripSearchRadius / 10.0;
+    // Max edge length between node1 and node2 for a valid road match.
+    // Ferry routes have sparse nodes with multi-km edges; road segments are typically < 1km.
+    int maxSegmentLength = 1500;
+
+    // Count intermediate round-trip waypoints
+    int rtCount = 0;
+    for (int i = 1; i < waypoints.size() - 1; i++) {
+      if (waypoints.get(i).name != null && waypoints.get(i).name.startsWith("rt")) {
+        rtCount++;
+      }
+    }
+
+    // Remove waypoints matched to ferry-like segments (very long edges)
+    for (int i = waypoints.size() - 2; i >= 1; i--) {
+      MatchedWaypoint mwp = waypoints.get(i);
+      if (mwp.name == null || !mwp.name.startsWith("rt")) continue;
+      if (rtCount <= 1) break;
+
+      if (mwp.node1 != null && mwp.node2 != null) {
+        int segLen = mwp.node1.calcDistance(mwp.node2);
+        if (segLen > maxSegmentLength) {
+          logInfo("filterRoundTrip: removing " + mwp.name + " matched to long segment (" + segLen + "m, likely ferry)");
+          waypoints.remove(i);
+          rtCount--;
+        }
+      }
+    }
+
+    // Remove waypoints that snapped too far
+    for (int i = waypoints.size() - 2; i >= 1; i--) {
+      MatchedWaypoint mwp = waypoints.get(i);
+      if (mwp.name == null || !mwp.name.startsWith("rt")) continue;
+      if (rtCount <= 1) break; // preserve at least one intermediate waypoint
+
+      if (mwp.radius > maxSnapDistance) {
+        logInfo("filterRoundTrip: removing " + mwp.name + " snap=" + (int) mwp.radius + "m > max=" + (int) maxSnapDistance + "m");
+        waypoints.remove(i);
+        rtCount--;
+      }
+    }
+
+    if (rtCount <= 1) return;
+
+    // Remove consecutive round-trip waypoints that matched too close together
+    for (int i = waypoints.size() - 2; i >= 2; i--) {
+      if (rtCount <= 1) break;
+      MatchedWaypoint curr = waypoints.get(i);
+      MatchedWaypoint prev = waypoints.get(i - 1);
+      if (curr.name == null || !curr.name.startsWith("rt")) continue;
+      if (prev.name == null || !prev.name.startsWith("rt")) continue;
+
+      double dist = curr.crosspoint.calcDistance(prev.crosspoint);
+      if (dist < minWaypointDistance) {
+        logInfo("filterRoundTrip: removing " + curr.name + " too close to " + prev.name + " dist=" + (int) dist + "m");
+        waypoints.remove(i);
+        rtCount--;
+      }
+    }
+  }
+
+  /**
+   * Snap intermediate roundtrip waypoints to the nearest intersection node.
+   * When a waypoint is matched to the middle of an edge (crosspoint between
+   * node1 and node2), routing to that mid-edge point can create small
+   * out-and-back tails. By moving the crosspoint to the closer of node1/node2
+   * (a real intersection), we avoid these tails entirely.
+   * This is analogous to GraphHopper's getBaseNode() approach.
+   * Only applied to generated roundtrip waypoints (rt*), not user waypoints
+   * or the start/end points.
+   */
+  void snapToIntersection(List<MatchedWaypoint> waypoints) {
+    for (int i = 1; i < waypoints.size() - 1; i++) {
+      MatchedWaypoint mwp = waypoints.get(i);
+      if (mwp.name == null || !mwp.name.startsWith("rt")) continue;
+      if (mwp.node1 == null || mwp.node2 == null || mwp.crosspoint == null) continue;
+
+      int distToNode1 = mwp.crosspoint.calcDistance(mwp.node1);
+      int distToNode2 = mwp.crosspoint.calcDistance(mwp.node2);
+      OsmNode closerNode = distToNode1 <= distToNode2 ? mwp.node1 : mwp.node2;
+
+      logInfo("snapToIntersection: " + mwp.name + " moved crosspoint "
+        + (distToNode1 <= distToNode2 ? distToNode1 : distToNode2) + "m to nearest intersection");
+      mwp.crosspoint = new OsmNode(closerNode.ilon, closerNode.ilat);
+    }
+  }
+
+  /**
+   * Snap the start (and closing) waypoint to the nearest road.
+   * Round-trip waypoints use the user's raw click position which may be
+   * far from any road. If the distance exceeds waypointCatchingRange (250m),
+   * the routing engine inserts a straight-line beeline instead of a road segment.
+   * This method matches the start to the road network and updates its position.
+   */
+  void snapStartToRoad(List<OsmNodeNamed> waypoints, double searchRadius) {
+    if (waypoints.size() < 2) return;
+    OsmNodeNamed start = waypoints.get(0);
+
+    resetCache(false);
+    MatchedWaypoint mwp = new MatchedWaypoint();
+    mwp.waypoint = new OsmNode(start.ilon, start.ilat);
+    mwp.name = "start_snap";
+    List<MatchedWaypoint> mwpList = new ArrayList<>();
+    mwpList.add(mwp);
+    try {
+      nodesCache.matchWaypointsToNodes(mwpList, Math.min(searchRadius * 0.3, 2000), islandNodePairs);
+    } catch (Exception e) {
+      return; // leave unsnapped if matching fails
+    }
+    if (mwp.crosspoint == null) return;
+
+    int snapDist = start.calcDistance(mwp.crosspoint);
+    if (snapDist > 0) {
+      logInfo("snapStartToRoad: moved start " + snapDist + "m to nearest road");
+      start.ilon = mwp.crosspoint.getILon();
+      start.ilat = mwp.crosspoint.getILat();
+      // Also snap the closing waypoint (last in list) which mirrors the start
+      OsmNodeNamed closing = waypoints.get(waypoints.size() - 1);
+      if ("to".equals(closing.name)) {
+        closing.ilon = start.ilon;
+        closing.ilat = start.ilat;
+      }
+    }
+  }
+
+  /**
+   * Validate round-trip waypoints against segment data before routing.
+   * For each generated waypoint, checks if profile-compatible ways exist
+   * nearby by matching against the routing segments. Waypoints that fall
+   * in unreachable areas (water, no compatible ways) are relocated by
+   * trying alternative positions at varied angles and distances from the
+   * start point. Unmatched waypoints are removed if enough remain.
+   *
+   * The matching is profile-aware: during segment decoding, only ways
+   * with accessType >= 2 (compatible with the current routing profile)
+   * are considered.
+   */
+  void validateAndAdjustWaypoints(List<OsmNodeNamed> waypoints, double searchRadius) {
+    resetCache(false);
+    OsmNodeNamed start = waypoints.get(0);
+    double maxSnapDist = Math.min(searchRadius * 0.3, 2000);
+
+    double[] angleOffsets = {0, -15, 15, -30, 30};
+    double[] distFactors = {1.0, 0.8, 1.2, 0.6, 1.4};
+
+    int intermediateCount = waypoints.size() - 2;
+    List<List<MatchedWaypoint>> candidateGroups = new ArrayList<>();
+    List<MatchedWaypoint> allCandidates = new ArrayList<>();
+
+    for (int i = 1; i <= intermediateCount; i++) {
+      OsmNodeNamed wp = waypoints.get(i);
+      double[] scales = CheapRuler.getLonLatToMeterScales((start.ilat + wp.ilat) >> 1);
+      double bearing = Math.toDegrees(Math.atan2(
+        (wp.ilon - start.ilon) * scales[0],
+        (wp.ilat - start.ilat) * scales[1]));
+      double dist = CheapRuler.distance(start.ilon, start.ilat, wp.ilon, wp.ilat);
+
+      List<MatchedWaypoint> group = new ArrayList<>();
+
+      for (double da : angleOffsets) {
+        for (double df : distFactors) {
+          // skip extreme combinations to limit candidate count
+          if (Math.abs(da) > 15 && Math.abs(df - 1.0) > 0.25) continue;
+
+          int ilon, ilat;
+          if (da == 0 && df == 1.0) {
+            ilon = wp.ilon;
+            ilat = wp.ilat;
+          } else {
+            int[] pos = CheapRuler.destination(start.ilon, start.ilat, dist * df, bearing + da);
+            ilon = pos[0];
+            ilat = pos[1];
+          }
+
+          MatchedWaypoint mwp = new MatchedWaypoint();
+          mwp.waypoint = new OsmNode(ilon, ilat);
+          mwp.name = wp.name + "_c" + group.size();
+          group.add(mwp);
+          allCandidates.add(mwp);
+        }
+      }
+
+      candidateGroups.add(group);
+    }
+
+    // Match all candidates at once — profile-aware via segment decoding
+    nodesCache.matchWaypointsToNodes(allCandidates, maxSnapDist, islandNodePairs);
+
+    // Pick the best candidate for each waypoint or remove it.
+    // Use direction-aware scoring: prefer roads perpendicular to the travel
+    // direction (the route naturally crosses them) over parallel roads
+    // (which often require a detour to reach).
+    int minWaypoints = 3;
+    int remaining = intermediateCount;
+
+    for (int i = intermediateCount; i >= 1; i--) {
+      List<MatchedWaypoint> group = candidateGroups.get(i - 1);
+
+      // Travel bearing: direction from previous to next waypoint
+      OsmNodeNamed prev = waypoints.get(i - 1);
+      OsmNodeNamed next = waypoints.get(i + 1);
+      double travelBearing = CheapAngleMeter.getDirection(prev.ilon, prev.ilat, next.ilon, next.ilat);
+
+      MatchedWaypoint best = null;
+      double bestScore = Double.MAX_VALUE;
+      for (MatchedWaypoint mwp : group) {
+        if (mwp.crosspoint == null) continue;
+
+        // Skip matches to ferry-like segments (very long edges between node1/node2).
+        // Ferry routes have sparse nodes spanning several km over water; road edges are < 1km.
+        if (mwp.node1 != null && mwp.node2 != null && mwp.node1.calcDistance(mwp.node2) > 1500) {
+          continue;
+        }
+
+        double snapDist = mwp.radius;
+
+        // Road bearing at snap point
+        double roadBearing = CheapAngleMeter.getDirection(
+          mwp.node1.ilon, mwp.node1.ilat, mwp.node2.ilon, mwp.node2.ilat);
+
+        // Angle between road and travel direction (0-90°, road is bidirectional)
+        double angleDiff = CheapAngleMeter.getDifferenceFromDirection(roadBearing, travelBearing);
+        if (angleDiff > 90) angleDiff = 180 - angleDiff;
+
+        // parallelFactor: 1.0 for parallel, 0.0 for perpendicular
+        double parallelFactor = 1.0 - angleDiff / 90.0;
+
+        // Penalize parallel roads: effective snap distance increases up to 50%.
+        // This favors roads the route would naturally cross without detour.
+        double score = snapDist * (1.0 + 0.5 * parallelFactor * parallelFactor);
+
+        if (score < bestScore) {
+          best = mwp;
+          bestScore = score;
+        }
+      }
+
+      OsmNodeNamed wp = waypoints.get(i);
+      if (best != null && best.radius <= maxSnapDist) {
+        if (wp.ilon != best.waypoint.ilon || wp.ilat != best.waypoint.ilat) {
+          logInfo("validateWaypoints: relocated " + wp.name + " snap=" + (int) best.radius + "m");
+          wp.ilon = best.waypoint.ilon;
+          wp.ilat = best.waypoint.ilat;
+        }
+      } else if (remaining > minWaypoints) {
+        logInfo("validateWaypoints: removing unreachable " + wp.name
+          + " (best=" + (best == null ? "none" : (int) best.radius + "m") + ")");
+        waypoints.remove(i);
+        remaining--;
+      } else {
+        logInfo("validateWaypoints: keeping marginal " + wp.name + " (min waypoint count reached)");
+      }
+    }
+    logInfo("validateWaypoints: " + remaining + "/" + intermediateCount + " waypoints validated");
+  }
+
+  /**
+   * Remove back-and-forth segments from a round-trip track.
+   * At each waypoint boundary, the route may retrace the same road
+   * it arrived on before diverging. This method detects such overlaps
+   * by walking outward from each waypoint in both directions and
+   * comparing node positions. The overlapping nodes on the outgoing
+   * side are removed, keeping the waypoint itself.
+   */
+  void removeBackAndForthSegments(OsmTrack track, List<MatchedWaypoint> waypoints) {
+    List<OsmPathElement> nodes = track.nodes;
+
+    for (int wi = 1; wi < waypoints.size() - 1; wi++) {
+      int wptIdx = waypoints.get(wi).indexInTrack;
+      if (wptIdx <= 0 || wptIdx >= nodes.size() - 1) continue;
+
+      int overlapCount = 0;
+      int proximityThreshold = 30; // meters — catch near-overlaps (dual carriageways, parallel roads)
+      int maxSteps = Math.min(wptIdx, nodes.size() - 1 - wptIdx);
+      for (int step = 1; step <= maxSteps; step++) {
+        OsmPathElement before = nodes.get(wptIdx - step);
+        OsmPathElement after = nodes.get(wptIdx + step);
+        if (before.getIdFromPos() == after.getIdFromPos()
+            || before.calcDistance(after) <= proximityThreshold) {
+          overlapCount = step;
+        } else {
+          break;
+        }
+      }
+
+      if (overlapCount > 0) {
+        logInfo("removeBackAndForth: at waypoint " + waypoints.get(wi).name
+          + " removing " + overlapCount + " overlapping nodes");
+        nodes.subList(wptIdx + 1, wptIdx + overlapCount + 1).clear();
+        for (int wj = wi + 1; wj < waypoints.size(); wj++) {
+          waypoints.get(wj).indexInTrack -= overlapCount;
+        }
+      }
+    }
+  }
+
+  /**
+   * Remove micro-detours: small loops where the route returns to the same
+   * area within a short distance. Uses proximity matching (not just exact
+   * node identity) to catch detours through parallel roads or dual
+   * carriageways where the route returns to a nearby but distinct node.
+   *
+   * @param maxLoopDistance maximum route distance of a loop to be considered a micro-detour (in meters)
+   */
+  void removeMicroDetours(OsmTrack track, int maxLoopDistance, List<MatchedWaypoint> waypoints) {
+    List<OsmPathElement> nodes = track.nodes;
+    int proximityThreshold = 50; // meters — catch returns to nearby (not just identical) nodes
+    // Grid cell size in internal coords: ~35-55m depending on latitude.
+    // Checking the 9-cell neighborhood covers up to ~100-160m, well above the proximity threshold.
+    int cellSize = 500;
+    int waypointProximity = 200; // meters — relaxed ratio zone around generated waypoints
+    boolean changed = true;
+
+    while (changed) {
+      changed = false;
+      Map<Long, List<Integer>> grid = new HashMap<>();
+
+      for (int i = 0; i < nodes.size(); i++) {
+        int ilon = nodes.get(i).getILon();
+        int ilat = nodes.get(i).getILat();
+        int cx = ilon / cellSize;
+        int cy = ilat / cellSize;
+
+        // Search the 9-cell neighborhood for the closest previously visited node
+        // (by distance, ties broken by latest index = shortest loop)
+        int matchIdx = -1;
+        int matchDist = Integer.MAX_VALUE;
+        for (int dx = -1; dx <= 1; dx++) {
+          for (int dy = -1; dy <= 1; dy++) {
+            long neighborCell = ((long) (cx + dx)) << 32 | ((cy + dy) & 0xFFFFFFFFL);
+            List<Integer> entries = grid.get(neighborCell);
+            if (entries != null) {
+              for (int idx : entries) {
+                int dist = nodes.get(idx).calcDistance(nodes.get(i));
+                if (dist <= proximityThreshold && (dist < matchDist || (dist == matchDist && idx > matchIdx))) {
+                  matchIdx = idx;
+                  matchDist = dist;
+                }
+              }
+            }
+          }
+        }
+
+        if (matchIdx >= 0) {
+          // Use raw distance for ratio check (calcDistance floors to 1, distorting the ratio)
+          double crowFly = CheapRuler.distance(
+            nodes.get(matchIdx).getILon(), nodes.get(matchIdx).getILat(),
+            nodes.get(i).getILon(), nodes.get(i).getILat());
+          int loopDist = 0;
+          for (int j = matchIdx + 1; j <= i; j++) {
+            loopDist += nodes.get(j).calcDistance(nodes.get(j - 1));
+          }
+
+          // Near generated roundtrip waypoints, use a relaxed ratio (2x instead of 3x)
+          // since detours there are artifacts of synthetic waypoint placement.
+          double ratioThreshold = 3.0;
+          if (isNearGeneratedWaypoint(nodes, matchIdx, i, waypoints, waypointProximity)) {
+            ratioThreshold = 2.0;
+          }
+
+          // A genuine detour has route distance much larger than crow-fly distance
+          // (the route went elsewhere and came back). Normal forward progression
+          // has route distance ≈ crow-fly distance.
+          if (loopDist <= maxLoopDistance && loopDist > 0 && loopDist > crowFly * ratioThreshold) {
+            logInfo("removeMicroDetours: removing " + (i - matchIdx) + " nodes (loop of " + loopDist + "m, crow-fly " + (int) crowFly + "m, ratio " + String.format("%.1f", ratioThreshold) + "x at index " + matchIdx + ")");
+            int removeCount = i - matchIdx;
+            nodes.subList(matchIdx + 1, i + 1).clear();
+            adjustWaypointIndices(waypoints, matchIdx, i, removeCount);
+            changed = true;
+            break; // restart scan since indices shifted
+          }
+        }
+
+        // Register this node in the grid (even if it matched — we advanced past the match)
+        long cell = ((long) cx) << 32 | (cy & 0xFFFFFFFFL);
+        grid.computeIfAbsent(cell, k -> new ArrayList<>()).add(i);
+      }
+    }
+  }
+
+  /**
+   * Check if a loop (between matchIdx and currentIdx in the track) is near
+   * a generated roundtrip waypoint (name starting with "rt").
+   */
+  private boolean isNearGeneratedWaypoint(List<OsmPathElement> nodes, int matchIdx, int currentIdx,
+                                          List<MatchedWaypoint> waypoints, int proximityMeters) {
+    // Check both endpoints and midpoint of the loop for proximity to waypoints
+    int midIdx = (matchIdx + currentIdx) / 2;
+    for (int checkIdx : new int[]{matchIdx, midIdx, currentIdx}) {
+      if (checkIdx < 0 || checkIdx >= nodes.size()) continue;
+      OsmPathElement refNode = nodes.get(checkIdx);
+      for (MatchedWaypoint mwp : waypoints) {
+        if (mwp.name == null || !mwp.name.startsWith("rt")) continue;
+        if (mwp.crosspoint == null) continue;
+        if (refNode.calcDistance(mwp.crosspoint) <= proximityMeters) return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Adjust waypoint track indices after removing a range of nodes.
+   * Waypoints beyond the removed range are shifted back; waypoints
+   * inside the range are clamped to rangeStart.
+   */
+  private static void adjustWaypointIndices(List<MatchedWaypoint> waypoints, int rangeStart, int rangeEnd, int removeCount) {
+    for (MatchedWaypoint mwp : waypoints) {
+      if (mwp.indexInTrack > rangeEnd) {
+        mwp.indexInTrack -= removeCount;
+      } else if (mwp.indexInTrack > rangeStart) {
+        mwp.indexInTrack = rangeStart;
+      }
+    }
+  }
+
+  /**
+   * Probe the surrounding area for road reachability in all directions.
+   * Sends probes at 15° intervals (24 directions) at three distances
+   * (0.7R, 1.0R, 1.3R) and snaps each to the road network. Returns
+   * direction+distance pairs for viable directions, where the distance
+   * is the actual distance from start to the best-matched road position.
+   *
+   * @param start        the start waypoint
+   * @param searchRadius the round-trip search radius in meters
+   * @return array of viable directions in degrees, sorted ascending; null if probe fails
+   */
+  double[] probeReachableDirections(OsmNodeNamed start, double searchRadius) {
+    resetCache(false);
+    double maxSnapDist = Math.min(searchRadius * 0.3, 2000);
+    double[] distFactors = {0.7, 1.0, 1.3};
+    int probeCount = 24; // every 15 degrees
+    double angleStep = 360.0 / probeCount;
+
+    List<MatchedWaypoint> allProbes = new ArrayList<>();
+    int probesPerDirection = distFactors.length;
+
+    // Include the start point itself to ensure its segment is loaded
+    MatchedWaypoint startProbe = new MatchedWaypoint();
+    startProbe.waypoint = new OsmNode(start.ilon, start.ilat);
+    startProbe.name = "probe_start";
+    allProbes.add(startProbe);
+
+    for (int d = 0; d < probeCount; d++) {
+      double angle = d * angleStep;
+      for (double df : distFactors) {
+        int[] pos = CheapRuler.destination(start.ilon, start.ilat, searchRadius * df, angle);
+        MatchedWaypoint mwp = new MatchedWaypoint();
+        mwp.waypoint = new OsmNode(pos[0], pos[1]);
+        mwp.name = "probe_" + d + "_" + (int) (df * 100);
+        allProbes.add(mwp);
+      }
+    }
+
+    // Batch-match all probes against the road network
+    try {
+      nodesCache.matchWaypointsToNodes(allProbes, maxSnapDist, islandNodePairs);
+    } catch (Exception e) {
+      logInfo("reachability probe failed: " + e.getMessage());
+      return null;
+    }
+
+    // Collect viable directions (skip index 0 which is the start probe)
+    int probeOffset = 1; // start probe is at index 0
+    List<Double> viable = new ArrayList<>();
+    for (int d = 0; d < probeCount; d++) {
+      for (int f = 0; f < probesPerDirection; f++) {
+        MatchedWaypoint mwp = allProbes.get(probeOffset + d * probesPerDirection + f);
+        if (mwp.crosspoint != null && mwp.radius <= maxSnapDist) {
+          viable.add(d * angleStep);
+          break; // one match is enough for this direction
+        }
+      }
+    }
+
+    logInfo("reachability probe: " + viable.size() + "/" + probeCount + " directions viable");
+    if (viable.isEmpty()) return null;
+
+    double[] result = new double[viable.size()];
+    for (int i = 0; i < viable.size(); i++) result[i] = viable.get(i);
+    return result;
+  }
+
+  /**
+   * Run a cost-limited Dijkstra expansion from the start point to discover
+   * the reachable road network frontier in all directions. Returns an array
+   * of [direction_degrees, distance_meters] pairs representing the farthest
+   * reachable road node in each angular bucket.
+   *
+   * Uses the match → resetCache → getGraphNode pattern from _findTrack to
+   * correctly initialize graph nodes from production segment files.
+   *
+   * @param start        the start waypoint
+   * @param searchRadius the round-trip search radius in meters
+   * @return array of [direction, distance] pairs per populated angular bucket; null on failure
+   */
+  double[][] runIsochroneExpansion(OsmNodeNamed start, double searchRadius) {
+    // Phase 1: Match start point (loads segments via directWeaving, consumes node data)
+    resetCache(false);
+    MatchedWaypoint startMwp = new MatchedWaypoint();
+    startMwp.waypoint = new OsmNode(start.ilon, start.ilat);
+    startMwp.name = "iso_start";
+    List<MatchedWaypoint> mwpList = new ArrayList<>();
+    mwpList.add(startMwp);
+    double maxSnapDist = Math.min(searchRadius * 0.3, 2000);
+    try {
+      nodesCache.matchWaypointsToNodes(mwpList, maxSnapDist, islandNodePairs);
+    } catch (Exception e) {
+      logInfo("isochrone: match failed: " + e.getMessage());
+      return null;
+    }
+    if (startMwp.crosspoint == null || startMwp.node1 == null || startMwp.node2 == null) {
+      logInfo("isochrone: start match incomplete");
+      return null;
+    }
+
+    // Phase 2: Reset cache — creates fresh nodesMap but preserves fileRows (cached segments).
+    // This is the critical step: matchWaypointsToNodes consumed segment data via directWeaving,
+    // so obtainNonHollowNode would fail without this reset. The reset makes the segments
+    // re-parseable while keeping file handles open. Same pattern as findTrack → _findTrack.
+    resetCache(false);
+    nodesCache.nodesMap.cleanupMode = 1;
+
+    // Phase 3: Get graph nodes — now obtainNonHollowNode can re-parse from cached segments
+    OsmNode n1 = nodesCache.getGraphNode(startMwp.node1);
+    OsmNode n2 = nodesCache.getGraphNode(startMwp.node2);
+    if (!nodesCache.obtainNonHollowNode(n1) || !nodesCache.obtainNonHollowNode(n2)) {
+      logInfo("isochrone: could not obtain start nodes");
+      return null;
+    }
+    nodesCache.expandHollowLinkTargets(n1);
+    nodesCache.expandHollowLinkTargets(n2);
+
+    OsmPath startPath1 = getStartPath(n1, n2, startMwp, null, false);
+    OsmPath startPath2 = getStartPath(n2, n1, startMwp, null, false);
+
+    // Cost budget: searchRadius * 4 to ensure the expansion reaches the full searchRadius
+    // in all directions. Profile costfactor (~1.3) × road indirectness (~1.5) × safety margin.
+    int costBudget = (int) (searchRadius * 4);
+    // Geographic cutoff: don't expand beyond 1.5× searchRadius (prevents runaway)
+    double geoRadiusCutoff = searchRadius * 1.5;
+    int maxNodes = 100000;
+
+    // Angular bucketing: 36 buckets of 10 degrees
+    int bucketCount = 36;
+    double bucketSize = 360.0 / bucketCount;
+    double[] bucketMaxDist = new double[bucketCount];
+    int[] bucketCostAtMaxDist = new int[bucketCount]; // routing cost at the farthest node per bucket
+
+    // Local open set — not the instance field, to avoid state contamination
+    SortedHeap<OsmPath> isoOpenSet = new SortedHeap<>();
+    if (startPath1 != null) isoOpenSet.add(startPath1.cost, startPath1);
+    if (startPath2 != null) isoOpenSet.add(startPath2.cost, startPath2);
+
+    int nodesExpanded = 0;
+
+    for (;;) {
+      OsmPath path = isoOpenSet.popLowestKeyValue();
+      if (path == null) break;
+      if (path.airdistance == -1) continue; // invalidated
+
+      // Cost cutoff — Dijkstra: once popped cost exceeds budget, all remaining do too
+      if (path.cost > costBudget) break;
+
+      nodesExpanded++;
+      if (nodesExpanded > maxNodes) break;
+
+      OsmLink currentLink = path.getLink();
+      OsmNode sourceNode = path.getSourceNode();
+      OsmNode currentNode = path.getTargetNode();
+      if (currentLink.isLinkUnused()) continue;
+
+      // Record this node in angular buckets using true bearing (longitude-scaled)
+      double dist = CheapRuler.distance(start.ilon, start.ilat,
+        currentNode.getILon(), currentNode.getILat());
+      if (dist > 50) { // skip very close nodes (noisy bearings)
+        // Use CheapRuler scale factors for correct bearing at all latitudes.
+        // CheapAngleMeter.getDirection uses raw ilon/ilat which distorts E-W at high latitudes.
+        double[] scales = CheapRuler.getLonLatToMeterScales((start.ilat + currentNode.getILat()) >> 1);
+        double dx = (currentNode.getILon() - start.ilon) * scales[0];
+        double dy = (currentNode.getILat() - start.ilat) * scales[1];
+        double bearing = Math.toDegrees(Math.atan2(dx, dy));
+        if (bearing < 0) bearing += 360;
+        int bucket = ((int) (bearing / bucketSize)) % bucketCount;
+        if (bucket < 0) bucket += bucketCount;
+        if (dist > bucketMaxDist[bucket]) {
+          bucketMaxDist[bucket] = dist;
+          bucketCostAtMaxDist[bucket] = path.cost;
+        }
+      }
+
+      // Invalidate existing path holders for this link
+      OsmLinkHolder firstLinkHolder = currentLink.getFirstLinkHolder(sourceNode);
+      for (OsmLinkHolder lh = firstLinkHolder; lh != null; lh = lh.getNextForLink()) {
+        ((OsmPath) lh).airdistance = -1;
+      }
+
+      // Unlink processed link
+      if (path.treedepth > 1) {
+        boolean isBidir = currentLink.isBidirectional();
+        sourceNode.unlinkLink(currentLink);
+        if (isBidir && currentLink.getFirstLinkHolder(currentNode) == null
+          && !routingContext.considerTurnRestrictions) {
+          currentNode.unlinkLink(currentLink);
+        }
+      }
+
+      // Don't expand beyond geographic radius
+      if (dist > geoRadiusCutoff) continue;
+
+      // Two-pass neighbor expansion (prePath + path creation)
+      routingContext.firstPrePath = null;
+      for (OsmLink link = currentNode.firstlink; link != null; link = link.getNext(currentNode)) {
+        OsmNode nextNode = link.getTarget(currentNode);
+        if (!nodesCache.obtainNonHollowNode(nextNode)) continue;
+        if (nextNode.firstlink == null) continue;
+        if (nextNode == sourceNode) continue;
+
+        OsmPrePath prePath = routingContext.createPrePath(path, link);
+        if (prePath != null) {
+          prePath.next = routingContext.firstPrePath;
+          routingContext.firstPrePath = prePath;
+        }
+      }
+
+      for (OsmLink link = currentNode.firstlink; link != null; link = link.getNext(currentNode)) {
+        OsmNode nextNode = link.getTarget(currentNode);
+        if (!nodesCache.obtainNonHollowNode(nextNode)) continue;
+        if (nextNode.firstlink == null) continue;
+        if (nextNode == sourceNode) continue;
+
+        OsmPath bestPath = null;
+        for (OsmLinkHolder lh = firstLinkHolder; lh != null; lh = lh.getNextForLink()) {
+          OsmPath otherPath = (OsmPath) lh;
+          OsmPath testPath = routingContext.createPath(otherPath, link, null, false);
+          if (testPath.cost >= 0 && (bestPath == null || testPath.cost < bestPath.cost)
+            && testPath.sourceNode.getIdFromPos() != testPath.targetNode.getIdFromPos()) {
+            bestPath = testPath;
+          }
+        }
+
+        if (bestPath != null) {
+          bestPath.airdistance = 0; // pure Dijkstra — no heuristic
+
+          // Domination check
+          OsmLinkHolder dominator = link.getFirstLinkHolder(currentNode);
+          while (dominator != null) {
+            OsmPath dp = (OsmPath) dominator;
+            if (dp.airdistance != -1 && bestPath.definitlyWorseThan(dp)) break;
+            dominator = dominator.getNextForLink();
+          }
+          if (dominator == null) {
+            bestPath.treedepth = path.treedepth + 1;
+            link.addLinkHolder(bestPath, currentNode);
+            isoOpenSet.add(bestPath.cost, bestPath);
+          }
+        }
+      }
+    }
+
+    // Compile results: [direction, airDistance, routeCost] per populated bucket
+    List<double[]> results = new ArrayList<>();
+    for (int b = 0; b < bucketCount; b++) {
+      if (bucketMaxDist[b] > 0) {
+        results.add(new double[]{b * bucketSize + bucketSize / 2.0, bucketMaxDist[b], bucketCostAtMaxDist[b]});
+      }
+    }
+
+    logInfo("isochrone: " + nodesExpanded + " nodes expanded"
+      + (nodesExpanded >= maxNodes ? " (maxNodes limit)" : "")
+      + ", " + results.size() + "/" + bucketCount + " buckets populated");
+    if (results.isEmpty()) return null;
+    return results.toArray(new double[0][]);
+  }
+
+  /**
+   * Place waypoints using per-direction indirectness from the isochrone expansion.
+   *
+   * The isochrone gives [direction, airDistance, routeCost] per angular bucket.
+   * The ratio cost/airDist is the road indirectness factor for that direction:
+   * - In a flat valley (E-W at Innsbruck): indirectness ~1.3 (roads follow valley)
+   * - Across mountains (N-S at Innsbruck): indirectness ~3-5× (switchbacks)
+   *
+   * To hit the target loop distance, we compute a per-leg route-distance budget
+   * and convert it to air distance using the per-direction indirectness:
+   *   airDist = targetLegRouteDistance / indirectness
+   *
+   * This naturally produces elongated loops in valleys and compact loops in open terrain.
+   */
+  void placeWaypointsFromIsochrone(List<OsmNodeNamed> waypoints, double[][] frontierData,
+                                   double searchRadius, double startDirection, int targetPoints) {
+    OsmNodeNamed start = waypoints.get(0);
+    int n = frontierData.length;
+    int needed = targetPoints - 1;
+    if (needed > n) needed = n;
+    if (needed < 2) needed = 2;
+
+    // Extract per-direction data: [direction, airDist, cost]
+    double[] directions = new double[n];
+    Map<Double, double[]> dirToData = new HashMap<>(); // dir -> [airDist, cost]
+    for (int i = 0; i < n; i++) {
+      directions[i] = frontierData[i][0];
+      double airDist = frontierData[i][1];
+      double cost = frontierData[i].length > 2 ? frontierData[i][2] : airDist * 1.3; // fallback
+      dirToData.put(frontierData[i][0], new double[]{airDist, cost});
+    }
+
+    double[] selected;
+    if (needed >= n) {
+      selected = directions;
+    } else {
+      selected = selectSpreadDirections(directions, needed, startDirection);
+    }
+    selected = sortDirectionsForLoop(selected, startDirection);
+
+    // Base radius: scale searchRadius by the geometric factor (same as probe strategy)
+    // to match v1.7.8's expected loop distance for this angular spread.
+    double baseRadius = searchRadius * computeRadiusScale(selected, targetPoints);
+
+    // Compute per-direction indirectness: cost / airDist at the frontier.
+    // High indirectness = roads are indirect (mountains), low = roads are direct (valley floor).
+    double[] indirectnesses = new double[n];
+    for (int i = 0; i < n; i++) {
+      double[] data = dirToData.get(directions[i]);
+      indirectnesses[i] = (data[0] > 50) ? Math.max(1.0, data[1] / data[0]) : 1.5;
+    }
+    double[] sortedInd = indirectnesses.clone();
+    java.util.Arrays.sort(sortedInd);
+    double medianIndirectness = Math.max(1.0, sortedInd[n / 2]);
+
+    // Compute per-direction redistribution factors.
+    // Raw factor = medianIndirectness / dirIndirectness:
+    //   indirect dirs (mountains) → factor < 1 → closer
+    //   direct dirs (valley floor) → factor > 1 → farther
+    // Normalize so the average factor = 1.0 (mean-preserving).
+    double[] rawFactors = new double[selected.length];
+    double factorSum = 0;
+    for (int i = 0; i < selected.length; i++) {
+      double[] data = dirToData.get(selected[i]);
+      double ind = (data != null && data[0] > 50) ? Math.max(1.0, data[1] / data[0]) : medianIndirectness;
+      rawFactors[i] = medianIndirectness / ind;
+      factorSum += rawFactors[i];
+    }
+    double normalization = selected.length / factorSum; // makes avg factor = 1.0
+
+    for (int i = 0; i < selected.length; i++) {
+      double factor = rawFactors[i] * normalization;
+      // Clamp to prevent extreme distortion
+      factor = Math.max(0.5, Math.min(2.0, factor));
+      double airDist = baseRadius * factor;
+
+      // Clamp to prevent extremes
+      double maxDist = searchRadius * 1.5;
+      double minDist = searchRadius * 0.15;
+      airDist = Math.max(minDist, Math.min(maxDist, airDist));
+
+      int[] pos = CheapRuler.destination(start.ilon, start.ilat, airDist, selected[i]);
+      OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
+      onn.name = "rt" + (i + 1);
+      waypoints.add(onn);
+    }
+
+    OsmNodeNamed closing = new OsmNodeNamed(start);
+    closing.name = "to_rt";
+    waypoints.add(closing);
+
+    logInfo("placeWaypointsFromIsochrone: " + selected.length + " waypoints"
+      + ", baseRadius=" + (int) baseRadius + "m"
+      + ", medianIndirectness=" + String.format("%.2f", medianIndirectness)
+      + ", searchRadius=" + (int) searchRadius + "m");
+  }
+
+  /**
+   * Merge isochrone frontier data with probe directions for gap-filling.
+   * Isochrone entries have [direction, airDist, cost]; probe-only entries
+   * get [direction, searchRadius, searchRadius*1.3] (estimated cost).
+   *
+   * @param frontier        isochrone [direction, airDist, cost] triples (may be null)
+   * @param probeDirections probe viable directions in degrees (may be null)
+   * @param searchRadius    fallback distance for probe-only directions
+   * @return merged [direction, airDist, cost] triples; null if both inputs empty
+   */
+  static double[][] mergeIsochroneWithProbe(double[][] frontier, double[] probeDirections, double searchRadius) {
+    Map<Integer, double[]> merged = new HashMap<>();
+
+    if (frontier != null) {
+      for (double[] entry : frontier) {
+        int bucket = (int) Math.round(entry[0]);
+        merged.put(bucket, entry);
+      }
+    }
+
+    // Add probe directions where isochrone has no data
+    if (probeDirections != null) {
+      for (double dir : probeDirections) {
+        int bucket = (int) Math.round(dir);
+        boolean covered = false;
+        for (int key : merged.keySet()) {
+          if (angleDiff(key, bucket) <= 5) {
+            covered = true;
+            break;
+          }
+        }
+        if (!covered) {
+          // Probe-only: use searchRadius as airDist, estimate cost with default indirectness
+          merged.put(bucket, new double[]{dir, searchRadius, searchRadius * 1.3});
+        }
+      }
+    }
+
+    if (merged.isEmpty()) return null;
+
+    List<double[]> result = new ArrayList<>(merged.values());
+    result.sort((a, b) -> Double.compare(a[0], b[0]));
+    return result.toArray(new double[0][]);
+  }
+
+  /**
+   * Place waypoints from the reachability envelope at a scaled search radius.
+   * Selects N directions from the viable set that maximize angular spread,
+   * then scales the radius to match v1.7.8's expected loop distance.
+   */
+  void placeWaypointsFromEnvelope(List<OsmNodeNamed> waypoints, double[] viableDirections,
+                                  double searchRadius, double startDirection, int targetPoints) {
+    OsmNodeNamed start = waypoints.get(0);
+    int n = viableDirections.length;
+    int needed = targetPoints - 1;
+    if (needed > n) needed = n;
+    if (needed < 2) needed = 2;
+
+    double[] selected;
+    if (needed >= n) {
+      selected = viableDirections;
+    } else {
+      selected = selectSpreadDirections(viableDirections, needed, startDirection);
+    }
+
+    selected = sortDirectionsForLoop(selected, startDirection);
+
+    // Scale radius so the loop perimeter matches v1.7.8's expected distance.
+    // v1.7.8 uses buildPointsFromCircle which creates a narrow arc (108-152°).
+    // The probe's wider direction spread produces longer loops at the same radius.
+    double adjustedRadius = searchRadius * computeRadiusScale(selected, targetPoints);
+
+    for (int i = 0; i < selected.length; i++) {
+      int[] pos = CheapRuler.destination(start.ilon, start.ilat, adjustedRadius, selected[i]);
+      OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
+      onn.name = "rt" + (i + 1);
+      waypoints.add(onn);
+    }
+
+    OsmNodeNamed closing = new OsmNodeNamed(start);
+    closing.name = "to_rt";
+    waypoints.add(closing);
+
+    logInfo("placeWaypointsFromEnvelope: " + selected.length + " waypoints, radius "
+      + (int) searchRadius + "m -> " + (int) adjustedRadius + "m (scale "
+      + String.format("%.2f", adjustedRadius / searchRadius) + ")");
+  }
+
+  /**
+   * Select N directions from the viable set that maximize angular spread.
+   * Uses a greedy approach: start with the direction closest to startDirection,
+   * then iteratively pick the direction that maximizes the minimum angular
+   * distance to all already-selected directions.
+   */
+  static double[] selectSpreadDirections(double[] viable, int count, double startDirection) {
+    int n = viable.length;
+    boolean[] used = new boolean[n];
+    double[] selected = new double[count];
+
+    // Find starting direction closest to requested
+    int startIdx = 0;
+    double minDiff = Double.MAX_VALUE;
+    for (int i = 0; i < n; i++) {
+      double diff = angleDiff(viable[i], startDirection);
+      if (diff < minDiff) {
+        minDiff = diff;
+        startIdx = i;
+      }
+    }
+    used[startIdx] = true;
+    selected[0] = viable[startIdx];
+
+    // Greedy: pick the direction that maximizes minimum distance to selected set
+    for (int s = 1; s < count; s++) {
+      int bestIdx = -1;
+      double bestMinDist = -1;
+      for (int i = 0; i < n; i++) {
+        if (used[i]) continue;
+        double minDistToSelected = Double.MAX_VALUE;
+        for (int j = 0; j < s; j++) {
+          double d = angleDiff(viable[i], selected[j]);
+          if (d < minDistToSelected) minDistToSelected = d;
+        }
+        if (minDistToSelected > bestMinDist) {
+          bestMinDist = minDistToSelected;
+          bestIdx = i;
+        }
+      }
+      if (bestIdx < 0) break;
+      used[bestIdx] = true;
+      selected[s] = viable[bestIdx];
+    }
+
+    return selected;
+  }
+
+  /**
+   * Sort directions to form a coherent loop, starting from the direction
+   * closest to startDirection and proceeding clockwise.
+   */
+  static double[] sortDirectionsForLoop(double[] directions, double startDirection) {
+    int n = directions.length;
+    // Compute relative angles from startDirection, normalized to [0, 360)
+    double[][] relative = new double[n][2]; // [relativeAngle, originalAngle]
+    for (int i = 0; i < n; i++) {
+      double rel = directions[i] - startDirection;
+      if (rel < 0) rel += 360;
+      if (rel >= 360) rel -= 360;
+      relative[i][0] = rel;
+      relative[i][1] = directions[i];
+    }
+    // Sort by relative angle
+    java.util.Arrays.sort(relative, (a, b) -> Double.compare(a[0], b[0]));
+    double[] sorted = new double[n];
+    for (int i = 0; i < n; i++) sorted[i] = relative[i][1];
+    return sorted;
+  }
+
+  /** Absolute angular difference in [0, 180] degrees. Delegates to CheapAngleMeter. */
+  static double angleDiff(double a, double b) {
+    return CheapAngleMeter.getDifferenceFromDirection(a, b);
+  }
+
+  /**
+   * Compute a radius scaling factor so that a loop through the given sorted directions
+   * produces the same perimeter as v1.7.8's buildPointsFromCircle for the same targetPoints.
+   *
+   * v1.7.8 creates a narrow arc (108-152° depending on point count), while
+   * probe/isochrone create wider loops (270-360°). Without scaling, wider loops
+   * produce proportionally longer routes. This factor compensates for that.
+   *
+   * The geometric loop perimeter for waypoints at radius R is:
+   *   P = 2R (radial legs from center to circle) + sum of chord lengths between consecutive waypoints
+   * where each chord = 2R * sin(angularGap/2).
+   */
+  static double computeRadiusScale(double[] sortedDirections, int targetPoints) {
+    double actualPerim = computeLoopPerimeterFactor(sortedDirections);
+    double refPerim = computeReferencePerimeterFactor(targetPoints);
+    double scale = refPerim / actualPerim;
+    // Clamp to [0.5, 1.0]:
+    // - Never enlarge (>1.0): narrow arcs mean the road network is constrained in some
+    //   directions (e.g., coastal, valley). Enlarging would push waypoints beyond
+    //   reachable roads or segment data coverage, causing routing failures.
+    //   Shorter-than-target loops are acceptable; unreachable waypoints are not.
+    // - At least 0.5 to avoid degenerate tiny loops from extreme angular gaps.
+    return Math.max(0.5, Math.min(1.0, scale));
+  }
+
+  /**
+   * Compute the geometric loop perimeter / R for waypoints at the given sorted directions.
+   * Includes 2 radial legs (center to first waypoint, last waypoint back to center)
+   * plus chords between consecutive waypoints.
+   */
+  static double computeLoopPerimeterFactor(double[] sortedDirs) {
+    int n = sortedDirs.length;
+    if (n < 2) return 4.0; // degenerate: 2 radial legs of R each
+
+    double chordSum = 0;
+    for (int i = 0; i < n - 1; i++) {
+      double gap = sortedDirs[i + 1] - sortedDirs[i];
+      if (gap < 0) gap += 360;
+      if (gap > 180) gap = 360 - gap; // use shortest arc
+      chordSum += 2 * Math.sin(Math.toRadians(gap) / 2);
+    }
+    return 2 + chordSum; // 2R for radial legs + chord sum
+  }
+
+  /**
+   * Compute the geometric loop perimeter / R for v1.7.8's buildPointsFromCircle.
+   * v1.7.8 creates (targetPoints-1) intermediate waypoints in an arc whose
+   * half-span = 90 - 180/targetPoints degrees.
+   */
+  static double computeReferencePerimeterFactor(int targetPoints) {
+    int intermediates = targetPoints - 1;
+    if (intermediates < 2) return 4.0;
+
+    double arcHalfSpanDeg = 90.0 - 180.0 / targetPoints;
+    double arcSpanRad = Math.toRadians(2 * arcHalfSpanDeg);
+    int numGaps = intermediates - 1;
+    double gapAngle = arcSpanRad / numGaps;
+
+    double chordSum = 0;
+    for (int i = 0; i < numGaps; i++) {
+      chordSum += 2 * Math.sin(gapAngle / 2);
+    }
+    return 2 + chordSum;
   }
 
   void buildPointsFromCircle(List<OsmNodeNamed> waypoints, double startAngle, double searchRadius, int points) {
@@ -933,6 +2155,20 @@ public class RoutingEngine extends Thread {
       }
       int startSize = matchedWaypoints.size();
       matchWaypointsToNodes(matchedWaypoints);
+
+      // filter bad round-trip waypoints after matching
+      if (roundTripSearchRadius > 0) {
+        int beforeFilter = matchedWaypoints.size();
+        filterRoundTripWaypoints(matchedWaypoints);
+        if (matchedWaypoints.size() != beforeFilter) {
+          logInfo("filterRoundTrip: reduced waypoints from " + beforeFilter + " to " + matchedWaypoints.size());
+          refTracks = new OsmTrack[matchedWaypoints.size() - 1];
+          lastTracks = new OsmTrack[matchedWaypoints.size() - 1];
+        }
+        // Snap intermediate waypoints to nearest intersection to avoid mid-edge detour tails
+        snapToIntersection(matchedWaypoints);
+      }
+
       if (startSize < matchedWaypoints.size()) {
         refTracks = new OsmTrack[matchedWaypoints.size() - 1]; // used ways for alternatives
         lastTracks = new OsmTrack[matchedWaypoints.size() - 1];
@@ -984,6 +2220,12 @@ public class RoutingEngine extends Thread {
 
     routingContext.hasDirectRouting = hasDirectRouting;
 
+    // For roundtrip mode, accumulate all previous legs so each new leg
+    // penalizes reuse of edges from earlier legs (similar to GraphHopper's
+    // AvoidEdgesWeighting). BRouter's existing refTrack mechanism doubles
+    // the cost of edges found in the refTrack, discouraging road reuse.
+    OsmTrack roundTripPreviousLegs = (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) ? new OsmTrack() : null;
+
     OsmPath.seg = 1; // set segment counter
     for (int i = 0; i < matchedWaypoints.size() - 1; i++) {
       if (lastTracks[i] != null) {
@@ -991,15 +2233,46 @@ public class RoutingEngine extends Thread {
         refTracks[i].addNodes(lastTracks[i]);
       }
 
+      // In roundtrip mode, use accumulated previous legs as the refTrack
+      // to discourage reusing roads from earlier legs of the loop.
+      // Always create a fresh OsmTrack to avoid mutating refTracks[i] via alias.
+      OsmTrack effectiveRefTrack;
+      if (roundTripPreviousLegs != null && roundTripPreviousLegs.nodes != null
+          && !roundTripPreviousLegs.nodes.isEmpty()) {
+        effectiveRefTrack = new OsmTrack();
+        if (refTracks[i] != null) {
+          effectiveRefTrack.addNodes(refTracks[i]);
+        }
+        effectiveRefTrack.addNodes(roundTripPreviousLegs);
+      } else {
+        effectiveRefTrack = refTracks[i];
+      }
+
       OsmTrack seg;
       int wptIndex;
       if (routingContext.inverseRouting) {
         routingContext.inverseDirection = true;
-        seg = searchTrack(matchedWaypoints.get(i + 1), matchedWaypoints.get(i), null, refTracks[i]);
+        seg = searchTrack(matchedWaypoints.get(i + 1), matchedWaypoints.get(i), null, effectiveRefTrack);
         routingContext.inverseDirection = false;
         wptIndex = i + 1;
       } else {
-        seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), i == matchedWaypoints.size() - 2 ? nearbyTrack : null, refTracks[i]);
+        OsmTrack legNearbyTrack = (greedyLegTracks != null && i < greedyLegTracks.length)
+          ? greedyLegTracks[i]
+          : (i == matchedWaypoints.size() - 2 ? nearbyTrack : null);
+        if (legNearbyTrack != null && legNearbyTrack != nearbyTrack) {
+          // Corridor-constrained routing: try with greedy leg track first,
+          // fall back to unconstrained routing if it fails.
+          try {
+            seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), legNearbyTrack, effectiveRefTrack);
+          } catch (IllegalArgumentException e) {
+            seg = null;
+          }
+          if (seg == null) {
+            seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), null, effectiveRefTrack);
+          }
+        } else {
+          seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), legNearbyTrack, effectiveRefTrack);
+        }
         wptIndex = i;
         if (routingContext.continueStraight) {
           if (i < matchedWaypoints.size() - 2) {
@@ -1031,9 +2304,19 @@ public class RoutingEngine extends Thread {
 
       totaltrack.appendTrack(seg);
       lastTracks[i] = seg;
+
+      // Accumulate this leg for roundtrip edge-avoidance on subsequent legs
+      if (roundTripPreviousLegs != null) {
+        roundTripPreviousLegs.addNodes(seg);
+      }
     }
 
     postElevationCheck(totaltrack);
+
+    if (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) {
+      removeBackAndForthSegments(totaltrack, matchedWaypoints);
+      removeMicroDetours(totaltrack, 1500, matchedWaypoints);
+    }
 
     recalcTrack(totaltrack);
 
@@ -1606,7 +2889,7 @@ public class RoutingEngine extends Thread {
   }
 
   // geometric position matching finding the nearest routable way-section
-  private void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints) {
+  void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints) {
     resetCache(false);
     boolean useDynamicDistance = routingContext.useDynamicDistance;
     boolean bAddBeeline = routingContext.buildBeelineOnRange;
@@ -1805,7 +3088,7 @@ public class RoutingEngine extends Thread {
   }
 
 
-  private void resetCache(boolean detailed) {
+  void resetCache(boolean detailed) {
     if (hasInfo() && nodesCache != null) {
       logInfo("NodesCache status before reset=" + nodesCache.formatStatus());
     }
@@ -1815,7 +3098,7 @@ public class RoutingEngine extends Thread {
     islandNodePairs.clearTempPairs();
   }
 
-  private OsmPath getStartPath(OsmNode n1, OsmNode n2, MatchedWaypoint mwp, OsmNodeNamed endPos, boolean sameSegmentSearch) {
+  OsmPath getStartPath(OsmNode n1, OsmNode n2, MatchedWaypoint mwp, OsmNodeNamed endPos, boolean sameSegmentSearch) {
     if (endPos != null) {
       endPos.radius = 1.5;
     }
@@ -1829,7 +3112,7 @@ public class RoutingEngine extends Thread {
   }
 
 
-  private OsmPath getStartPath(OsmNode n1, OsmNode n2, OsmNodeNamed wp, OsmNodeNamed endPos, boolean sameSegmentSearch) {
+  OsmPath getStartPath(OsmNode n1, OsmNode n2, OsmNodeNamed wp, OsmNodeNamed endPos, boolean sameSegmentSearch) {
     try {
       routingContext.setWaypoint(wp, sameSegmentSearch ? endPos : null, false);
       OsmPath bestPath = null;
@@ -1869,7 +3152,7 @@ public class RoutingEngine extends Thread {
     }
   }
 
-  private OsmTrack findTrack(String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack, boolean fastPartialRecalc) {
+  OsmTrack findTrack(String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack, boolean fastPartialRecalc) {
     try {
       List<OsmNode> wpts2 = new ArrayList<>();
       if (startWp != null) wpts2.add(startWp.waypoint);

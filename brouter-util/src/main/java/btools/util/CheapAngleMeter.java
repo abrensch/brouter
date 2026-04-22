@@ -65,11 +65,15 @@ public final class CheapAngleMeter {
       : a < 0 ? a - (360 * ((int) (a / 360) - 1)) : a;
   }
 
+  public static double normalizeRelative(double angle) {
+    angle = angle % 360.0;
+    if (angle < -180.0) angle += 360.0;
+    if (angle >= 180.0) angle -= 360.0;
+    return angle;
+  }
+
   public static double getDifferenceFromDirection(double b1, double b2) {
-    double r = (b2 - b1) % 360.0;
-    if (r < -180.0) r += 360.0;
-    if (r >= 180.0) r -= 360.0;
-    return Math.abs(r);
+    return Math.abs(normalizeRelative(b2 - b1));
   }
 
 }
