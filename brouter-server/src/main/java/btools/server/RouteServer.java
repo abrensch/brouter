@@ -282,7 +282,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
 
   public static void main(String[] args) throws Exception {
-    System.out.println("BRouter " + OsmTrack.version + " / " + OsmTrack.versionDate);
+    System.out.println("BRouter " + OsmTrack.version);
     if (args.length != 5 && args.length != 6) {
       System.out.println("serve BRouter protocol");
       System.out.println("usage: java RouteServer <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads> [bindaddress]");

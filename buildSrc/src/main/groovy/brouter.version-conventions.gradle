@@ -3,4 +3,4 @@
 // this file
 // app: build.gradle (versionCode only)
 // docs revisions.md (version and versionDate)
-version = '1.7.9'
+version = '1.7.10-beta'
