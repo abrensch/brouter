@@ -28,10 +28,33 @@ application {
         }
         with jar
     }
+
+    task smallJar(type: Jar) {
+        archiveFileName = 'brouter-' + project.version + '-ro.jar'
+
+        manifest {
+            attributes "Main-Class": getMainClass(), "Implementation-Version": project.version
+        }
+        dependsOn configurations.runtimeClasspath
+        from {
+            configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+        } {
+            exclude "btools/mapcreator/**"
+            exclude "org/**"
+            exclude "google/**"
+            exclude "com/**"
+            exclude "META-INF/maven/**"
+            exclude "META-INF/*.SF"
+            exclude "META-INF/*.DSA"
+            exclude "META-INF/*.RSA"
+        }
+        with jar
+    }
 }
 
 distZip {
     dependsOn fatJar
+    dependsOn smallJar
     if (file('../local.properties').exists()) dependsOn (':brouter-routing-app:assemble')
     archiveFileName = 'brouter-' + project.version + '.zip'
 }
@@ -60,8 +83,9 @@ distributions {
             from ('../brouter-routing-app/build/outputs/apk/release') {
                 include '*.apk'
             }
-             from ('../brouter-server/build/libs') {
+            from ('../brouter-server/build/libs') {
                 include 'brouter-*-all.jar'
+                include 'brouter-*-ro.jar'
             }
         }
     }
