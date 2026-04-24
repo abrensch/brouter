@@ -7,5 +7,5 @@ dependencies {
     implementation project(':brouter-util')
     implementation project(':brouter-expressions')
 
-    implementation group: 'org.openstreetmap.osmosis', name: 'osmosis-osm-binary', version: '0.48.3'
+    implementation 'org.openstreetmap.osmosis:osmosis-osm-binary:0.48.3'
 }

@@ -15,7 +15,7 @@ android {
     }
 
     defaultConfig {
-        namespace 'btools.routingapp'
+        namespace = 'btools.routingapp'
         applicationId "btools.routingapp"
 
         versionCode 56
@@ -48,8 +48,8 @@ android {
                 keyPassword RELEASE_KEY_PASSWORD
 
                 // Optional, specify signing versions used
-                v1SigningEnabled true
-                v2SigningEnabled true
+                v1SigningEnabled = true
+                v2SigningEnabled = true
 
             }
         }
@@ -60,7 +60,7 @@ android {
             minifyEnabled true
             debuggable false
             if (project.hasProperty("RELEASE_STORE_FILE") && RELEASE_STORE_FILE.length() > 0) {
-                signingConfig signingConfigs.release
+                signingConfig = signingConfigs.release
             }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -72,7 +72,7 @@ android {
     }
     lintOptions {
         disable 'InvalidPackage'
-        checkReleaseBuilds false
+        checkReleaseBuilds = false
         //added this line to the build.gradle under the /android/app/build.gradle
     }
 
@@ -81,8 +81,8 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
     buildFeatures {
-        aidl true
-        buildConfig true
+        aidl = true
+        buildConfig = true
     }
 
     applicationVariants.all {
