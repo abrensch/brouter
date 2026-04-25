@@ -4,13 +4,19 @@ When we started skating long-distance point-to-point routes, the experience was 
 
 Standard cycling or walking profiles in BRouter don't understand what makes a good skating route. A steep cobblestone path that works on a bike can be dangerous or slow on skates. So we built our own profile, calibrated against real data from our long-distance sessions skating across Switzerland and France.
 
-## How to Use
+## How to use
 
-1. Go to [brouter-web](https://brouter.de/brouter-web/)
-2. Select **Profile** tab on the right and paste the contents of the `.brf` file
+### Web interface
+
+1. Go to a [brouter-web](https://brouter.de/brouter-web/) instance
+2. If the profile is not already available in the list, select **Profile** tab on the right and paste the contents of the `skating.brf` file
 3. Set your start and end points, the route will favor skating friendly paths
 
-## Inline Skating Routing differences
+### Android
+
+See the [Android quickstart](../users/android_quickstart.md) guide. 
+
+## Inline skating routing differences
 
 * **Surface** Skaters need smooth asphalt or concrete. Cobblestones are rough but tolerable for short stretches. Unpaved is avoided.
 
