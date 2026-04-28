@@ -5,7 +5,7 @@ plugins {
     id 'brouter.version-conventions'
 }
 
-group 'org.btools'
+group = 'org.btools'
 
 repositories {
     mavenCentral()

@@ -61,7 +61,7 @@ public class BRouter {
       }
       System.exit(0);
     }
-    System.out.println("BRouter " + OsmTrack.version + " / " + OsmTrack.versionDate);
+    System.out.println("BRouter " + OsmTrack.version);
     if (args.length < 5) {
       System.out.println("Find routes in an OSM map");
       System.out.println("usage: java -jar brouter.jar <segmentdir> <profiledir> <engineMode> <profile> <lonlats-list> [parameter-list] [profile-parameter-list] ");
