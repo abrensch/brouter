@@ -112,6 +112,80 @@ maxspeed;0000026953 130 80_mph 79_mph
 maxspeed;0000138654 urban RO:urban RU:urban FR:urban IT:urban AT:urban DE:urban UA:urban
 maxspeed;0000138654 rural RO:rural RU:rural FR:rural IT:rural AT:rural DE:rural UA:rural
 
+maxheight;0000122129 default none
+maxheight;0000018084 below_default
+maxheight;0000022110 2 2.0 2_m 2.0_m
+maxheight;0000020114 5 5.0 5_m 5.0_m 16'6" 16'5"
+maxheight;0000018112 4.5 4.50 4.5_m 4.50_m 14'9"
+maxheight;0000016795 4.1 4.10 4.1_m 4.10_m 13'6"
+maxheight;0000014000 2.1 2.10 2.1_m 2.10_m
+maxheight;0000015516 4 4.0 4_m 4.0_m
+maxheight;0000009387 3.5 3.50 3.5_m 3.50_m 11'6"
+maxheight;0000008642 2.2 2.20 2.2_m
+maxheight;0000007982 3 3.0 3_m 3.0_m
+maxheight;0000007685 2.5 2.50 2.5_m 2.50_m 8'2"
+maxheight;0000008270 1.9 1.90 1.9_m 1.90_m
+maxheight;0000006087 5.5 5.50 5.5_m 5.50_m
+maxheight;0000005987 3.8 3.80 3.8_m 3.80_m 12'6"
+maxheight;0000005751 4.2 4.20 4.2_m 4.20_m 13'9" 13'10"
+maxheight;0000005204 4.3 4.30 4.3_m 4.30_m 14'1" 14'2"
+maxheight;0000008381 3.9 3.90 3.9_m 3.90_m
+maxheight;0000004209 1.8 1.80 1.8_m 1.80_m
+maxheight;0000004192 4.6 4.60 4.6_m 4.60_m
+maxheight;0000004090 2.3 2.30 2.3_m 2.30_m
+maxheight;0000003778 2.8 2.80 2.8_m 2.80_m
+maxheight;0000003650 3.2 3.20 3.2_m 3.20_m
+maxheight;0000003544 3.6 3.60 3.6_m 3.60_m
+maxheight;0000003352 3.7 3.70 3.7_m 3.70_m
+maxheight;0000003275 3.3 3.30 3.3_m 3.30_m
+maxheight;0000003139 3.4 3.40 3.4_m 3.40_m
+maxheight;0000003073 4.4 4.40 14'6" 14'5"
+maxheight;0000003023 4.8 4.80 4.8_m 4.80_m
+maxheight;0000002930 2.4 2.40 2.4_m 2.40_m
+maxheight;0000002804 2.6 2.60 2.6_m 2.60_m
+maxheight;0000002663 2.7 2.70 2.7_m 2.70_m
+maxheight;0000002018 3.1 3.10 3.1_m 3.10_m
+maxheight;0000001997 4.27 14'0"
+maxheight;0000001955 4.7 15'6"
+maxheight;0000001849 2.9
+maxheight;0000001511 2.05
+maxheight;0000001502 4.67
+maxheight;0000001436 1.95
+maxheight;0000001223 5.1 16'9"
+maxheight;0000001212 5.4
+maxheight;0000001170 5.2
+maxheight;0000001009 6
+maxheight;0000000887 5.3
+maxheight;0000000879 4.9 16'1"
+maxheight;0000000837 4.34 14'3"
+maxheight;0000000831 4.57 15'0"
+maxheight;0000000801 4.95 16'3"
+maxheight;0000000744 2.15
+maxheight;0000000732 3.66 12'0"
+maxheight;0000000698 4.37 14'4"
+maxheight;0000000688 1.85
+maxheight;0000000674 2.74 9'0"
+maxheight;0000000673 1.5
+maxheight;0000000666 3.96 13'0"
+maxheight;0000000657 4.88 16'0"
+maxheight;0000000610 4.55 14'11"
+maxheight;0000000600 4.75
+maxheight;0000000591 1
+maxheight;0000000572 2.44 8'0"
+maxheight;0000000569 4.52 14'10"
+maxheight;0000000561 4.98 16'4"
+maxheight;0000000554 5.6
+maxheight;0000000548 4.65 15'3"
+maxheight;0000000533 2.75
+maxheight;0000000497 2.13 7'0"
+maxheight;0000000490 2.25
+maxheight;0000000471 3.04 10'0"
+maxheight;0000000468 3.35 11'0"
+maxheight;0000000459 3.05 16'7"
+maxheight;0000000446 4.24 13'11"
+maxheight;0000000442 1.67 13'8"
+maxheight;0000000441 4.62 15'2"
+
 service;0001433919 parking_aisle
 service;0001305879 driveway driveway2
 service;0000382788 alley
@@ -1057,6 +1131,80 @@ surface;0000000001 unpaved compacted gravel grass ground
 
 ford;0000037927 yes
 ford;0000000310 stepping_stones
+
+maxheight;0000122129 default none
+maxheight;0000018084 below_default
+maxheight;0000022110 2 2.0 2_m 2.0_m
+maxheight;0000020114 5 5.0 5_m 5.0_m 16'6" 16'5"
+maxheight;0000018112 4.5 4.50 4.5_m 4.50_m 14'9"
+maxheight;0000016795 4.1 4.10 4.1_m 4.10_m 13'6"
+maxheight;0000014000 2.1 2.10 2.1_m 2.10_m
+maxheight;0000015516 4 4.0 4_m 4.0_m
+maxheight;0000009387 3.5 3.50 3.5_m 3.50_m 11'6"
+maxheight;0000008642 2.2 2.20 2.2_m
+maxheight;0000007982 3 3.0 3_m 3.0_m
+maxheight;0000007685 2.5 2.50 2.5_m 2.50_m 8'2"
+maxheight;0000008270 1.9 1.90 1.9_m 1.90_m
+maxheight;0000006087 5.5 5.50 5.5_m 5.50_m
+maxheight;0000005987 3.8 3.80 3.8_m 3.80_m 12'6"
+maxheight;0000005751 4.2 4.20 4.2_m 4.20_m 13'9" 13'10"
+maxheight;0000005204 4.3 4.30 4.3_m 4.30_m 14'1" 14'2"
+maxheight;0000008381 3.9 3.90 3.9_m 3.90_m
+maxheight;0000004209 1.8 1.80 1.8_m 1.80_m
+maxheight;0000004192 4.6 4.60 4.6_m 4.60_m
+maxheight;0000004090 2.3 2.30 2.3_m 2.30_m
+maxheight;0000003778 2.8 2.80 2.8_m 2.80_m
+maxheight;0000003650 3.2 3.20 3.2_m 3.20_m
+maxheight;0000003544 3.6 3.60 3.6_m 3.60_m
+maxheight;0000003352 3.7 3.70 3.7_m 3.70_m
+maxheight;0000003275 3.3 3.30 3.3_m 3.30_m
+maxheight;0000003139 3.4 3.40 3.4_m 3.40_m
+maxheight;0000003073 4.4 4.40 14'6" 14'5"
+maxheight;0000003023 4.8 4.80 4.8_m 4.80_m
+maxheight;0000002930 2.4 2.40 2.4_m 2.40_m
+maxheight;0000002804 2.6 2.60 2.6_m 2.60_m
+maxheight;0000002663 2.7 2.70 2.7_m 2.70_m
+maxheight;0000002018 3.1 3.10 3.1_m 3.10_m
+maxheight;0000001997 4.27 14'0"
+maxheight;0000001955 4.7 15'6"
+maxheight;0000001849 2.9
+maxheight;0000001511 2.05
+maxheight;0000001502 4.67
+maxheight;0000001436 1.95
+maxheight;0000001223 5.1 16'9"
+maxheight;0000001212 5.4
+maxheight;0000001170 5.2
+maxheight;0000001009 6
+maxheight;0000000887 5.3
+maxheight;0000000879 4.9 16'1"
+maxheight;0000000837 4.34 14'3"
+maxheight;0000000831 4.57 15'0"
+maxheight;0000000801 4.95 16'3"
+maxheight;0000000744 2.15
+maxheight;0000000732 3.66 12'0"
+maxheight;0000000698 4.37 14'4"
+maxheight;0000000688 1.85
+maxheight;0000000674 2.74 9'0"
+maxheight;0000000673 1.5
+maxheight;0000000666 3.96 13'0"
+maxheight;0000000657 4.88 16'0"
+maxheight;0000000610 4.55 14'11"
+maxheight;0000000600 4.75
+maxheight;0000000591 1
+maxheight;0000000572 2.44 8'0"
+maxheight;0000000569 4.52 14'10"
+maxheight;0000000561 4.98 16'4"
+maxheight;0000000554 5.6
+maxheight;0000000548 4.65 15'3"
+maxheight;0000000533 2.75
+maxheight;0000000497 2.13 7'0"
+maxheight;0000000490 2.25
+maxheight;0000000471 3.04 10'0"
+maxheight;0000000468 3.35 11'0"
+maxheight;0000000459 3.05 16'7"
+maxheight;0000000446 4.24 13'11"
+maxheight;0000000442 1.67 13'8"
+maxheight;0000000441 4.62 15'2"
 
 direction;0000274642 forward
 direction;0000249637 backward
