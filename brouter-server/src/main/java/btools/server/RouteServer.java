@@ -157,6 +157,11 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       RequestHandler handler;
       if (params.containsKey("lonlats") && params.containsKey("profile")) {
         handler = new ServerHandler(serviceContext, params);
+      } else if (url.equals("/brouter/profiles")) {
+        writeHttpHeader(bw, "application/json", HTTP_STATUS_OK);
+        bw.write(listProfiles(serviceContext));
+        bw.flush();
+        return;
       } else if (url.startsWith(PROFILE_UPLOAD_URL)) {
         if (getline.startsWith("OPTIONS")) {
           // handle CORS preflight request (Safari)
@@ -365,6 +370,27 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
     }
   }
 
+
+  private static String listProfiles(ServiceContext serviceContext) {
+    File dir = new File(serviceContext.profileDir);
+    StringBuilder sb = new StringBuilder();
+    sb.append('[');
+    boolean first = true;
+    File[] files = dir.listFiles();
+    if (files != null) {
+      java.util.Arrays.sort(files);
+      for (File f : files) {
+        if (f.isFile() && f.getName().endsWith(".brf")) {
+          if (!first) sb.append(',');
+          first = false;
+          String name = f.getName();
+          sb.append('"').append(name.substring(0, name.length() - 4)).append('"');
+        }
+      }
+    }
+    sb.append(']');
+    return sb.toString();
+  }
 
   private static Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
     Map<String, String> params = new HashMap<>();
