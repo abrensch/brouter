@@ -507,12 +507,16 @@ waterway;0000000113 fish_pass
 waterway;0000000086 boatyard
 waterway;0000000071 fairway
 waterway;0000000059 lock_gate
+waterway;0000000002 canoe_pass
+waterway;0000000001 stream
 
 boat;0000019888 no
 boat;0000002718 yes
 boat;0000000232 private
 boat;0000000064 permissive
 boat;0000000045 designated
+
+canoe;000000001 yes true designated
 
 motorboat;0000001077 yes
 motorboat;0000000808 no
