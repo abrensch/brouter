@@ -19,7 +19,7 @@ assign add_beeline         		= false  		# %add_beeline% | Enable beeline on dist
 
 
 ## for debugging
-assign processUnusedTags		  = true
+assign processUnusedTags      = false # %processUnusedTags% | Set to true to output unused tags in data tab | boolean
 assign ignore_node_access		  = false
 assign follow_access_restrictions	= 0				# %follow_access_restrictions% | Follow access restrictions? | [0=Yes (recommended), 1=Strict Canoe Access ONLY for waterways, 2=Strict Portage Access ONLY for highways, 3=Strict Canoe and Portage Acess ONLY for waterways and highways, 4=Ignore all access restrictions on waterways (DANGER!), 5=Ignore all access restrictions on highways, 6=Ignore all access restrictions on waterways and highways (DANGER!)]
 assign strict_access_canoe

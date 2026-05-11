@@ -7,7 +7,7 @@ assign add_beeline         		= false  		# %add_beeline% | Enable beeline on dist
 
 
 ## for debugging
-assign processUnusedTags		  = true
+assign processUnusedTags      = false # %processUnusedTags% | Set to true to output unused tags in data tab | boolean
 
 # the elevation parameters
 assign downhillcost 	0
