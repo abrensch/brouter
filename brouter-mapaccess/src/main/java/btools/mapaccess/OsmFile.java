@@ -6,7 +6,6 @@
 package btools.mapaccess;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 
 import btools.codec.DataBuffers;
 import btools.codec.MicroCache;
@@ -18,7 +17,7 @@ import btools.util.ByteDataReader;
 import btools.util.Crc32;
 
 final public class OsmFile {
-  private RandomAccessFile is = null;
+  private AbstractRandomAccessFile is = null;
   private long fileOffset;
 
   private int[] posIdx;

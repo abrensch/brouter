@@ -15,7 +15,7 @@ import btools.util.ByteDataReader;
 import btools.util.Crc32;
 
 final public class PhysicalFile {
-  RandomAccessFile ra = null;
+  AbstractRandomAccessFile ra = null;
   long[] fileIndex = new long[25];
   int[] fileHeaderCrcs;
 
@@ -92,8 +92,16 @@ final public class PhysicalFile {
   public PhysicalFile(File f, DataBuffers dataBuffers, int lookupVersion, int lookupMinorVersion) throws IOException {
     fileName = f.getName();
     byte[] iobuffer = dataBuffers.iobuffer;
-    ra = new RandomAccessFile(f, "r");
+
+    // Choose file access implementation based on configuration
+    if (BufferedFileReaderConfig.USE_BUFFERED_READER) {
+      ra = new BufferedRandomAccessFile(f, "r");
+    } else {
+      ra = new StandardRandomAccessFile(f, "r");
+    }
+
     ra.readFully(iobuffer, 0, 200);
+
     int fileIndexCrc = Crc32.crc(iobuffer, 0, 200);
     ByteDataReader dis = new ByteDataReader(iobuffer);
     for (int i = 0; i < 25; i++) {
@@ -124,6 +132,7 @@ final public class PhysicalFile {
 
     ra.seek(pos);
     ra.readFully(iobuffer, 0, extraLen);
+
     dis = new ByteDataReader(iobuffer);
     creationTime = dis.readLong();
 
