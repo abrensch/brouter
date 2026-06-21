@@ -83,14 +83,15 @@ android {
     buildFeatures {
         aidl = true
         buildConfig = true
+        resValues = true
     }
+}
 
-    applicationVariants.all {
-        variant ->
-            {
-                tasks["merge${variant.name.capitalize()}Assets"].dependsOn(generateProfilesZip)
-                tasks["merge${variant.name.capitalize()}Assets"].dependsOn(generateReadmesZip)
-            }
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        tasks.matching { it.name == "merge${variant.name.capitalize()}Assets"}.configureEach { assetTask ->
+            assetTask.dependsOn generateProfilesZip, generateReadmesZip
+        }
     }
 }
 
