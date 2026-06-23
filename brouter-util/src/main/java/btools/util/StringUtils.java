@@ -25,6 +25,9 @@ public class StringUtils {
   }
 
   private static String escape(String s, char[] chr, String[] esc) {
+    if (s == null) {
+      return s; // null-safe: callers concatenate the result, so preserve the historic "null" rendering
+    }
     StringBuilder sb = null;
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);

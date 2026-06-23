@@ -78,6 +78,26 @@ public final class CheapRuler {
     return Math.sqrt(dlat * dlat + dlon * dlon); // in m
   }
 
+  /**
+   * Compute the longitude-scaled compass bearing from one ilon/ilat point to another,
+   * in degrees in {@code [0, 360)}. Uses the latitude-scaled atan2 (unlike
+   * {@link CheapAngleMeter#getDirection} which operates on raw int diffs and
+   * distorts at high latitudes / long E-W distances).
+   *
+   * @param ilon1 Integer longitude for the start point, ((longitude in degrees) + 180) * 1e6.
+   * @param ilat1 Integer latitude for the start point, ((latitude in degrees) + 90) * 1e6.
+   * @param ilon2 Integer longitude for the end point.
+   * @param ilat2 Integer latitude for the end point.
+   * @return Compass bearing in degrees, normalized to [0, 360).
+   */
+  public static double getScaledBearing(int ilon1, int ilat1, int ilon2, int ilat2) {
+    double[] scales = getLonLatToMeterScales((ilat1 + ilat2) >> 1);
+    double dx = (ilon2 - ilon1) * scales[0];
+    double dy = (ilat2 - ilat1) * scales[1];
+    double bearing = Math.toDegrees(Math.atan2(dx, dy));
+    return (bearing < 0) ? bearing + 360 : bearing;
+  }
+
   public static int[] destination(int lon1, int lat1, double distance, double angle) {
 
     double[] lonlat2m = getLonLatToMeterScales(lat1);
