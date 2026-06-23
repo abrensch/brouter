@@ -2,6 +2,17 @@ package btools.router;
 
 import btools.expressions.BExpressionContext;
 
+/**
+* The AreaInfo class is a specialized geographical data structure designed for routing and terrain analysis 
+* in the btools.router package. It captures and quantifies spatial characteristics of an area, tracking key metrics such as 
+* ways, forest and river coverage, and elevation. The class supports directional-based geographical assessment by storing 
+* information like the number of forest and river ways, total ways, and elevation data. With predefined 
+* result types (NONE, ELEV50, GREEN, RIVER), it enables systematic computation and reporting of terrain features, 
+* facilitating detailed geographical analysis and routing calculations. The constructor initializes the 
+* area information with a specific direction, and the class is prepared to aggregate and process spatial metrics 
+* for routing and environmental evaluation purposes.
+*/
+
 public class AreaInfo {
   final static int RESULT_TYPE_NONE = 0;
   final static int RESULT_TYPE_ELEV50 = 1;
