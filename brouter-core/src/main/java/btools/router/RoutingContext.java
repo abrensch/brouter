@@ -29,6 +29,40 @@ public final class RoutingContext {
     return alternativeIdx < min ? min : (alternativeIdx > max ? max : alternativeIdx);
   }
 
+  /**
+   * Variety seed for round-trip mode: the raw {@code alternativeidx} value with
+   * only a lower clamp at 0. Unlike classic routing's enumerated 0–3
+   * alternatives, round trips reuse {@code alternativeidx} as a free seed —
+   * any value &gt;= 1 deterministically selects one loop variant; 0 (or absent)
+   * is bit-identical to the unperturbed baseline. The seed never influences the
+   * start-direction draw.
+   */
+  public int getRoundTripSeed() {
+    return Math.max(0, alternativeIdx);
+  }
+
+  /**
+   * Multiplier on the anti-reuse refTrack penalty in
+   * {@link OsmPath#addAddionalPenalty}: a traveled refTrack edge costs an
+   * extra {@code linkdist × this factor}. 1.0 is the historic behaviour and
+   * exact at integer math (bit-identical costs); the greedy round-trip
+   * return-variant search lowers it (0.5 / 0.0) to offer retrace-tolerant
+   * closing legs when the fully-penalised return ships a self-crossing.
+   * Nothing outside the round-trip planner should ever set it ≠ 1.0.
+   */
+  public double refTrackCostFactor = 1.0;
+
+  /**
+   * True while this context drives round-trip (loop) generation (engineMode 4).
+   * Gates the anti-reuse refTrack penalty in {@link OsmPath#addAddionalPenalty}
+   * to its edge-membership form (a link is reused only when the refTrack actually
+   * traveled it). General routing (incl. alternativeidx alternatives) keeps the
+   * historic both-endpoints node-membership test so its output is unchanged. Set
+   * in the {@link RoutingEngine} constructor for every round-trip engine (parent
+   * and AUTO children) and carried into child contexts by {@link #copyRequestFields()}.
+   */
+  public boolean roundTrip = false;
+
   public int alternativeIdx = 0;
   public String localFunction;
   public long profileTimestamp;
@@ -217,13 +251,121 @@ public final class RoutingContext {
   private List<OsmNodeNamed> keepnogopoints = null;
   private OsmNodeNamed pendingEndpoint = null;
 
+  // Dense (town/city) areas for GREEDY via-steering. Null = off (general routing and non-steered
+  // round-trips). Built at round-trip time from the desirability grid (RoutingEngine) and consumed
+  // only by the round-trip planner — never by the general per-segment cost engine.
+  public DenseAreaMap denseAreaMap = null;
+
   public Integer startDirection;
   public boolean startDirectionValid;
   public boolean forceUseStartDirection;
   public Integer roundTripDistance;
+  /** Desired total loop distance in meters. Takes precedence over roundTripDistance. */
+  public Integer roundTripLength;
   public Integer roundTripDirectionAdd;
   public Integer roundTripPoints;
   public boolean allowSamewayback;
+  public RoundTripAlgorithm roundTripAlgorithm = RoundTripAlgorithm.AUTO;
+  /**
+   * Quality-gate strictness for generated round-trips. When {@code false}
+   * (the default), a route that fails only a QUALITY check
+   * ({@link RoundTripQualityResult.RejectionTier#QUALITY}: distance off-target,
+   * self-crossing/hairpin chaos, profile-hostile surface, mid-route
+   * backtracking) is returned anyway with an advisory {@code Warning:} message
+   * so the user can decide whether to ride it. STRUCTURAL failures (broken /
+   * un-routable / not-a-loop) are always hard-rejected. When {@code true},
+   * QUALITY failures are hard-rejected too (the pre-existing behaviour), e.g.
+   * for the quality-measurement test matrices that must only grade clean loops.
+   * Settable via the request parameter {@code roundTripStrictQuality=1}.
+   */
+  public boolean roundTripStrictQuality;
+
+  /**
+   * Via-arc densification: when on, the explicit-via round-trip inserts generated
+   * "bulge" waypoints between consecutive user anchors, offset outward from the
+   * anchor centroid, so each leg follows the loop perimeter instead of cutting the
+   * chord. Opt-in; off by default.
+   * {@link #explicitViaDensifyAlpha} is the bulge offset as a fraction of the leg chord length.
+   *
+   * <p>This is the effective per-request flag, computed by {@code doExplicitViaRoundTrip}
+   * from {@link #explicitViaDensifyOverride}; callers normally set the override, not this.
+   */
+  public boolean explicitViaDensify;
+  /**
+   * Request densification of explicit-via legs. The engine computes the effective
+   * {@link #explicitViaDensify} as {@code Boolean.TRUE.equals(override) && !isPavedProfile}:
+   * <ul>
+   *   <li>{@code TRUE} → opt in, but still gated to non-paved profiles. Paved profiles
+   *       (road bike) keep the plain explicit-via route, because in sparse terrain a
+   *       retracing paved lollipop beats a one-way track loop the gate would reject.
+   *       {@code TRUE} does <b>not</b> bypass the paved-profile gate.</li>
+   *   <li>{@code FALSE} or {@code null} (default) → no densification.</li>
+   * </ul>
+   * Used by tests/measurement to compare both modes deterministically. Tests that need
+   * densification on a paved profile must set {@link #explicitViaDensify} directly.
+   */
+  public Boolean explicitViaDensifyOverride;
+  public double explicitViaDensifyAlpha = 0.5;
+  /**
+   * Max profile cost-factor a densification "bulge" point may snap to. A bulge is an
+   * optional nicety, so it is placed ONLY on a road the profile genuinely likes (near-ideal),
+   * not merely an accessible one — keeping it well below the lenient user-snap reject
+   * threshold. Where the only road outward is profile-hostile (e.g. a road bike facing a
+   * track), the bulge is dropped and that leg reverts to its baseline form. Profile-relative
+   * (cost-factor is per-profile), so gravel still accepts tracks it likes while fastbike does not.
+   */
+  public double explicitViaDensifyMaxCostFactor = 1.8;
+
+  /**
+   * Shortcut for {@link #roundTripAlgorithm} = {@link RoundTripAlgorithm#ISOCHRONE},
+   * settable via the URL parameter {@code roundTripIsochrone=1}. Honoured only when
+   * {@link #roundTripAlgorithm} is left at AUTO — an explicit algorithm always wins.
+   *
+   * <p>This is a request-input shortcut only: {@code doRoundTrip()} resolves it
+   * into {@link #roundTripAlgorithm} once, up front, after which the algorithm
+   * field is the single source of truth (this boolean is no longer read and is
+   * not copied into child contexts by {@link #copyRequestFields()}).
+   */
+  public boolean roundTripIsochrone;
+
+  /**
+   * Experimental profile-desirability heatmap for GREEDY round-trips (issue #15),
+   * settable via the request parameter {@code roundTripDesirability=1}. Off by
+   * default. When on, the GREEDY round-trip accumulates a coarse profile-cost-density
+   * grid during its isochrone expansion and biases waypoint placement toward
+   * high-desirability cells (see {@link DesirabilityCandidateProvider}).
+   *
+   * <p>Takes effect only when the GREEDY algorithm actually runs; inert for
+   * ISOCHRONE / ISO_GREEDY / WAYPOINT. Under the default AUTO algorithm a GREEDY
+   * child is spawned only when ISO_GREEDY does not clearly win the competition, so
+   * on good tile data this flag can be silently inert under AUTO — set
+   * {@code roundTripAlgorithm=GREEDY} explicitly to guarantee it is honoured. This
+   * is an exploratory infrastructure lever, not a tuned route-quality default.
+   */
+  public boolean roundTripDesirability;
+
+  /**
+   * Experimental urban-capsule loop planning for GREEDY round-trips, settable via
+   * the request parameter {@code roundTripCapsule=1}. Off by default. When on, the
+   * GREEDY round-trip accumulates the same coarse density/elevation grid as the
+   * desirability flag and uses {@link CapsuleCandidateProvider} to steer waypoints
+   * out of dense capsule interiors toward boundary "portal" cells, plus reward
+   * higher ground to counter the flat-terrain bias.
+   *
+   * <p>Same activation caveats as {@link #roundTripDesirability}: honoured only by
+   * the GREEDY algorithm; set {@code roundTripAlgorithm=GREEDY} explicitly to
+   * guarantee it takes effect under AUTO. If both flags are set, capsule wins.
+   */
+  public boolean roundTripCapsule;
+
+  /**
+   * Via-steering for GREEDY round-trips (opt-in, request param {@code roundTripSteerVias=1}, default
+   * off). When on, the GREEDY round-trip builds the coarse density grid, derives a {@link DenseAreaMap}
+   * of town/city cores, and penalises candidate waypoints placed inside those areas — so the planned
+   * loop keeps its vias out of built-up cores. Honoured by GREEDY only; costs one extra isochrone
+   * expansion to build the grid, which is why it is opt-in.
+   */
+  public boolean roundTripSteerVias;
 
   public CheapAngleMeter anglemeter = new CheapAngleMeter();
 
@@ -574,6 +716,99 @@ public final class RoutingContext {
     OsmPath p = pm.createPath();
     p.init(origin, link, refTrack, detailMode, this);
     return p;
+  }
+
+  /**
+   * Produce a fresh {@link RoutingContext} carrying only the REQUEST-LEVEL
+   * fields: profile path, key/value lookups, round-trip settings, output
+   * format, no-go list. Used by the AUTO candidate competition (each algorithm
+   * gets its own child {@link RoutingEngine}) to construct isolated child
+   * engines without sharing parsed/runtime state.
+   *
+   * <p>What is intentionally NOT copied:
+   * <ul>
+   *   <li>{@code expctxWay} / {@code expctxNode} — compiled profile
+   *       expression contexts. Each child engine compiles its own via
+   *       {@link ProfileCache#parseProfile}; the cache makes this cheap.</li>
+   *   <li>{@code pm} — profile path model; child re-creates.</li>
+   *   <li>{@code anglemeter}, {@code wayfraction}, {@code ilonshortest}/
+   *       {@code ilatshortest}, {@code shortestmatch}, {@code inverseDirection} —
+   *       mutable search state.</li>
+   *   <li>{@code messageHandler}, {@code ai} — caller-specific output state.</li>
+   * </ul>
+   * Adding new request-level fields? Mirror them here so the child engine
+   * receives them.
+   */
+  public RoutingContext copyRequestFields() {
+    RoutingContext c = new RoutingContext();
+    c.localFunction = this.localFunction;
+    c.keyValues = this.keyValues;
+    c.profileTimestamp = this.profileTimestamp;
+    c.rawTrackPath = this.rawTrackPath;
+    c.rawAreaPath = this.rawAreaPath;
+    c.alternativeIdx = this.alternativeIdx;
+    c.memoryclass = this.memoryclass;
+    c.processUnusedTags = this.processUnusedTags;
+    c.forceSecondaryData = this.forceSecondaryData;
+    c.useDynamicDistance = this.useDynamicDistance;
+    c.buildBeelineOnRange = this.buildBeelineOnRange;
+    c.correctMisplacedViaPoints = this.correctMisplacedViaPoints;
+    c.correctMisplacedViaPointsDistance = this.correctMisplacedViaPointsDistance;
+    c.continueStraight = this.continueStraight;
+    c.startDirection = this.startDirection;
+    c.startDirectionValid = this.startDirectionValid;
+    c.forceUseStartDirection = this.forceUseStartDirection;
+    c.roundTripDistance = this.roundTripDistance;
+    c.roundTripLength = this.roundTripLength;
+    c.roundTripDirectionAdd = this.roundTripDirectionAdd;
+    c.roundTripPoints = this.roundTripPoints;
+    c.allowSamewayback = this.allowSamewayback;
+    c.roundTripAlgorithm = this.roundTripAlgorithm;
+    // AUTO children are round-trip engines too, so the edge-membership refTrack
+    // gate must follow the parent (the child constructor sets it again from engineMode).
+    c.roundTrip = this.roundTrip;
+    // Strictness must follow the parent into AUTO children: otherwise a strict
+    // request runs lenient children that adopt QUALITY best-effort tracks and
+    // report no errorMessage, so the parent's strict re-gate finds no winner
+    // but can only surface "unknown" instead of the child's real reason.
+    c.roundTripStrictQuality = this.roundTripStrictQuality;
+    // The desirability flag (issue #15) must reach the GREEDY child spawned by the
+    // AUTO competition, where it actually takes effect.
+    c.roundTripDesirability = this.roundTripDesirability;
+    // The capsule flag must likewise reach the GREEDY child spawned by AUTO.
+    c.roundTripCapsule = this.roundTripCapsule;
+    // Via-steering flag reaches the GREEDY child spawned by AUTO; the derived dense-area map (built
+    // after the grid expansion) is read-only during leg routing, so aliasing the reference is safe.
+    c.roundTripSteerVias = this.roundTripSteerVias;
+    c.denseAreaMap = this.denseAreaMap;
+    // Densification request inputs (the effective explicitViaDensify flag is
+    // recomputed per request in doExplicitViaRoundTrip, so it is not copied).
+    // AUTO children currently route a single waypoint and never densify, but
+    // copying these keeps a child consistent with the parent if that changes.
+    c.explicitViaDensifyOverride = this.explicitViaDensifyOverride;
+    c.explicitViaDensifyAlpha = this.explicitViaDensifyAlpha;
+    c.explicitViaDensifyMaxCostFactor = this.explicitViaDensifyMaxCostFactor;
+    // roundTripIsochrone is intentionally NOT copied: doRoundTrip() resolves it
+    // into roundTripAlgorithm before any child is spawned, so the algorithm
+    // (copied above) is the single source of truth in child contexts.
+    c.outputFormat = this.outputFormat;
+    c.waypointCatchingRange = this.waypointCatchingRange;
+    c.exportWaypoints = this.exportWaypoints;
+    c.exportCorrectedWaypoints = this.exportCorrectedWaypoints;
+    c.poipoints = this.poipoints;
+    // Defensive copy: the child engine's doRouting() appends synthetic nogo
+    // points (continueStraight handling) to its nogopoints list. Aliasing the
+    // parent's list would leak those child-only nogos back into the parent and
+    // contaminate every subsequent AUTO candidate and the final adopted route.
+    c.nogopoints = this.nogopoints == null ? null : new ArrayList<>(this.nogopoints);
+    c.inverseRouting = this.inverseRouting;
+    c.turnInstructionMode = this.turnInstructionMode;
+    c.turnInstructionCatchingRange = this.turnInstructionCatchingRange;
+    c.turnInstructionRoundabouts = this.turnInstructionRoundabouts;
+    c.showTime = this.showTime;
+    c.showspeed = this.showspeed;
+    c.showSpeedProfile = this.showSpeedProfile;
+    return c;
   }
 
 }
