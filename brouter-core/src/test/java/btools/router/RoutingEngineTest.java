@@ -1194,67 +1194,69 @@ public class RoutingEngineTest {
     // directional bulge so the per-direction target radius stays at
     // searchRadius regardless of startDirection (the bulge is covered by
     // placeWaypointsFromIsochroneBulgesTowardStartDirection).
-    System.setProperty("loop.isochrone.dirbulge", "0");
+    RoutingEngine.isochroneDirBulgeAlpha = 0;
+    try {
+      List<OsmNodeNamed> wps = new ArrayList<>();
+      OsmNodeNamed start = new OsmNodeNamed();
+      start.name = "from";
+      start.ilon = START_ILON;
+      start.ilat = START_ILAT;
+      wps.add(start);
 
-    List<OsmNodeNamed> wps = new ArrayList<>();
-    OsmNodeNamed start = new OsmNodeNamed();
-    start.name = "from";
-    start.ilon = START_ILON;
-    start.ilat = START_ILAT;
-    wps.add(start);
+      // 4 buckets at 0/90/180/270. For each bucket, give the candidate pool a
+      // frontier-max far out (at 3000m) plus a 25%-contour candidate at ~1000m.
+      // With searchRadius=2000 the placement target is roughly searchRadius, so
+      // the 25%-contour candidate (near 1000m) should be picked over the
+      // frontier-max (at 3000m).
+      double searchRadius = 2000;
+      int[][] frontierCoords = {
+        {START_ILON + 60_000, START_ILAT},
+        {START_ILON, START_ILAT + 50_000},
+        {START_ILON - 60_000, START_ILAT},
+        {START_ILON, START_ILAT - 50_000},
+      };
+      int[][] contourCoords = {
+        {START_ILON + 20_000, START_ILAT},
+        {START_ILON, START_ILAT + 16_000},
+        {START_ILON - 20_000, START_ILAT},
+        {START_ILON, START_ILAT - 16_000},
+      };
+      double[][] frontier = new double[4][];
+      List<IsoCandidate> candidates = new ArrayList<>();
+      int[] buckets = {0, 9, 18, 27};
+      double[] bearings = {0, 90, 180, 270};
+      for (int i = 0; i < 4; i++) {
+        frontier[i] = new double[]{bearings[i], 3000, 3900, 5, frontierCoords[i][0], frontierCoords[i][1]};
+        candidates.add(new IsoCandidate(frontierCoords[i][0], frontierCoords[i][1],
+          bearings[i], 3000, 3900, buckets[i], 5, 100));
+        candidates.add(new IsoCandidate(contourCoords[i][0], contourCoords[i][1],
+          bearings[i], 1000, 1300, buckets[i], 5, 25));
+      }
 
-    // 4 buckets at 0/90/180/270. For each bucket, give the candidate pool a
-    // frontier-max far out (at 3000m) plus a 25%-contour candidate at ~1000m.
-    // With searchRadius=2000 the placement target is roughly searchRadius, so
-    // the 25%-contour candidate (near 1000m) should be picked over the
-    // frontier-max (at 3000m).
-    double searchRadius = 2000;
-    int[][] frontierCoords = {
-      {START_ILON + 60_000, START_ILAT},
-      {START_ILON, START_ILAT + 50_000},
-      {START_ILON - 60_000, START_ILAT},
-      {START_ILON, START_ILAT - 50_000},
-    };
-    int[][] contourCoords = {
-      {START_ILON + 20_000, START_ILAT},
-      {START_ILON, START_ILAT + 16_000},
-      {START_ILON - 20_000, START_ILAT},
-      {START_ILON, START_ILAT - 16_000},
-    };
-    double[][] frontier = new double[4][];
-    List<IsoCandidate> candidates = new ArrayList<>();
-    int[] buckets = {0, 9, 18, 27};
-    double[] bearings = {0, 90, 180, 270};
-    for (int i = 0; i < 4; i++) {
-      frontier[i] = new double[]{bearings[i], 3000, 3900, 5, frontierCoords[i][0], frontierCoords[i][1]};
-      candidates.add(new IsoCandidate(frontierCoords[i][0], frontierCoords[i][1],
-        bearings[i], 3000, 3900, buckets[i], 5, 100));
-      candidates.add(new IsoCandidate(contourCoords[i][0], contourCoords[i][1],
-        bearings[i], 1000, 1300, buckets[i], 5, 25));
+      re.placeWaypointsFromIsochrone(wps, frontier, candidates, searchRadius, 0, 5);
+
+      Assert.assertEquals(6, wps.size());
+
+      // Every intermediate waypoint should land on a contour-coord, not on the
+      // far-out frontier-max coord.
+      java.util.Set<Long> contourKeys = new java.util.HashSet<>();
+      java.util.Set<Long> frontierKeys = new java.util.HashSet<>();
+      for (int i = 0; i < 4; i++) {
+        contourKeys.add(new OsmNode(contourCoords[i][0], contourCoords[i][1]).getIdFromPos());
+        frontierKeys.add(new OsmNode(frontierCoords[i][0], frontierCoords[i][1]).getIdFromPos());
+      }
+      int contourHits = 0, frontierHits = 0;
+      for (int i = 1; i < wps.size() - 1; i++) {
+        long key = wps.get(i).getIdFromPos();
+        if (contourKeys.contains(key)) contourHits++;
+        else if (frontierKeys.contains(key)) frontierHits++;
+      }
+      Assert.assertEquals("airDist-aware selection should prefer the 1000m contour over the 3000m frontier",
+        4, contourHits);
+      Assert.assertEquals(0, frontierHits);
+    } finally {
+      RoutingEngine.isochroneDirBulgeAlpha = 0.35;
     }
-
-    re.placeWaypointsFromIsochrone(wps, frontier, candidates, searchRadius, 0, 5);
-
-    Assert.assertEquals(6, wps.size());
-
-    // Every intermediate waypoint should land on a contour-coord, not on the
-    // far-out frontier-max coord.
-    java.util.Set<Long> contourKeys = new java.util.HashSet<>();
-    java.util.Set<Long> frontierKeys = new java.util.HashSet<>();
-    for (int i = 0; i < 4; i++) {
-      contourKeys.add(new OsmNode(contourCoords[i][0], contourCoords[i][1]).getIdFromPos());
-      frontierKeys.add(new OsmNode(frontierCoords[i][0], frontierCoords[i][1]).getIdFromPos());
-    }
-    int contourHits = 0, frontierHits = 0;
-    for (int i = 1; i < wps.size() - 1; i++) {
-      long key = wps.get(i).getIdFromPos();
-      if (contourKeys.contains(key)) contourHits++;
-      else if (frontierKeys.contains(key)) frontierHits++;
-    }
-    Assert.assertEquals("airDist-aware selection should prefer the 1000m contour over the 3000m frontier",
-      4, contourHits);
-    Assert.assertEquals(0, frontierHits);
-    System.clearProperty("loop.isochrone.dirbulge");
   }
 
   @Test
@@ -1266,7 +1268,7 @@ public class RoutingEngineTest {
     // and pull it IN on the opposite side (so the anti-heading bucket picks the
     // near 1000m candidate) — i.e. the loop bulges toward the requested heading.
     RoutingEngine re = createDummyEngine(0);
-    System.setProperty("loop.isochrone.dirbulge", "0.5");
+    RoutingEngine.isochroneDirBulgeAlpha = 0.5;
     try {
       List<OsmNodeNamed> wps = new ArrayList<>();
       OsmNodeNamed start = new OsmNodeNamed();
@@ -1321,7 +1323,7 @@ public class RoutingEngineTest {
       Assert.assertTrue("bulge must place the heading-direction waypoint farther out than the opposite "
         + "(north=" + northDist + "m vs south=" + southDist + "m)", northDist > southDist + 500);
     } finally {
-      System.clearProperty("loop.isochrone.dirbulge");
+      RoutingEngine.isochroneDirBulgeAlpha = 0.35;
     }
   }
 

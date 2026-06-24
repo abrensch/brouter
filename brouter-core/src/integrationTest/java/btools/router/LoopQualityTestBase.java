@@ -380,23 +380,6 @@ public abstract class LoopQualityTestBase {
           profileName, direction, null, error != null ? error : "no track", failCoords, variant);
       }
 
-      // NULLWAY validation probe (2026-06): count the longest undetailed (null-way)
-      // stretch in the shipped loop. This is the exact beeline-defect signal (the
-      // Wegendorf out-and-back rendered as a straight line because its leg edges
-      // had no way tags). One grep-able line per shipped variant; used to confirm
-      // beeline defects are rare (vs the ~29% near-revisit spur rate).
-      if ("greedy".equals(variant) || "iso_greedy".equals(variant)) {
-        int longNull = LoopQualityMetrics.maxSingleNullEdgeMeters(track);
-        int beelineSpur = LoopQualityMetrics.beelineInSpurMeters(track);
-        System.out.println("NULLWAY " + region.name() + " " + testLabel + " [" + variant
-          + "] maxSingleNullEdge=" + longNull + " beelineInSpur=" + beelineSpur);
-      }
-      // Opt-in shared-corridor crossing harvest (labeling pass before any
-      // detector change; see SharedCorridorProbe). Runs on every variant that
-      // produced a track — pure analysis, no extra routing.
-      if (Boolean.getBoolean("corridor.probe")) {
-        SharedCorridorProbe.run(track, testLabel, region.name(), variant, projectDir);
-      }
       LoopQualityMetrics metrics = LoopQualityMetrics.compute(track, targetDistanceMeters, direction);
       // Stash the production-selector score for the quality gate (see checkVariantQuality).
       // null gateVerdict scores on geometry — the track already passed the strict

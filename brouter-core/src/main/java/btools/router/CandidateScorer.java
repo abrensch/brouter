@@ -324,23 +324,21 @@ public class CandidateScorer {
   /**
    * Strengthen the direction preference so a round-trip keeps a coherent outward
    * heading instead of wandering / doubling back into self-crossings. On by
-   * default; disable with {@code -Dloop.strongdir=false}. Strength and late-step
-   * retention are tunable via {@code -Dloop.dirmult} / {@code -Dloop.dirlate}.
+   * default. Strength and late-step retention are calibrated constants.
    */
-  static final boolean STRONG_DIRECTION = Boolean.parseBoolean(System.getProperty("loop.strongdir", "true"));
-  private static final double STRONG_DIRECTION_MULT = Double.parseDouble(System.getProperty("loop.dirmult", "2.5"));
+  static final boolean STRONG_DIRECTION = true;
+  private static final double STRONG_DIRECTION_MULT = 2.5;
   /** Direction retention for steps &gt; 2 in strong mode (0 = off after step 2, lets closure win late). */
-  private static final double STRONG_DIRECTION_LATE = Double.parseDouble(System.getProperty("loop.dirlate", "0.3"));
+  private static final double STRONG_DIRECTION_LATE = 0.3;
   /**
    * Terrain-feasibility guard: scale the direction term's influence down when the
    * requested heading is unreachable this step (the best candidate is far
    * off-bearing — sea, no roads that way), so direction never forces a route
    * into terrain it cannot traverse. The planner sets {@link #dirReferenceOffset}
-   * (best achievable |Δbearing|) each step. On by default; disable with
-   * {@code -Dloop.dirfeas=false}. Mountains keep direction (roads exist, just
+   * (best achievable |Δbearing|) each step. On by default. Mountains keep direction (roads exist, just
    * costlier) — only true blockage relaxes it.
    */
-  static final boolean DIR_FEASIBILITY = Boolean.parseBoolean(System.getProperty("loop.dirfeas", "true"));
+  static final boolean DIR_FEASIBILITY = true;
   private double dirReferenceOffset = 0.0;
 
   /** Best achievable |Δbearing| (deg) among this step's candidates; set by the planner. */

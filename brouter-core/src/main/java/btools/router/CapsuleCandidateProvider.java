@@ -59,17 +59,17 @@ public class CapsuleCandidateProvider implements RoundTripCandidateProvider {
 
   /** A cell is "dense" only if its node count is at least this percentile of the grid. */
   private static final double DENSE_PERCENTILE =
-    Double.parseDouble(System.getProperty("loop.capsule.densepercentile", "0.80"));
+    0.80;
   /**
    * Absolute floor on a dense cell's node count. Combined with the percentile via
    * AND, so a sparse rural start (where p80 is still tiny) classifies nothing as a
    * capsule — no masking where there is no city.
    */
   private static final int MIN_DENSE_NODES =
-    Integer.parseInt(System.getProperty("loop.capsule.mindensenodes", "10"));
+    10;
   /** Capsule reward for an open-countryside cell (between dense=0 and portal=1). */
   private static final double OPEN_REWARD =
-    Double.parseDouble(System.getProperty("loop.capsule.openreward", "0.5"));
+    0.5;
 
   /** Elevation reward saturates below this percentile of cell elevations (flat valley = 0). */
   private static final double ELE_LO_PCT = 0.20;
@@ -165,18 +165,6 @@ public class CapsuleCandidateProvider implements RoundTripCandidateProvider {
         cp.capsuleReward = OPEN_REWARD;  // open countryside
       }
       cp.elevationReward = elevationReward(key);
-    }
-    if (Boolean.getBoolean("loop.capsule.debug")) {
-      int dense = 0, portal = 0, open = 0, eleNz = 0;
-      for (CandidatePoint cp : candidates) {
-        if (cp.capsuleReward <= 0.0) dense++;
-        else if (cp.capsuleReward >= 1.0) portal++;
-        else open++;
-        if (cp.elevationReward > 0) eleNz++;
-      }
-      System.out.println("CAPSULE-DBG step=" + step + "/" + totalSteps + " airRadius="
-        + (int) airRadius + " cands=" + candidates.size() + " dense=" + dense
-        + " portal=" + portal + " open=" + open + " eleNonZero=" + eleNz);
     }
     return candidates;
   }

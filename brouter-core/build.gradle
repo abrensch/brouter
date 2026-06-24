@@ -78,14 +78,6 @@ tasks.register('integrationTest', Test) {
     systemProperty 'loop.algorithms', System.getProperty('loop.algorithms', '')
     systemProperty 'golden.write', System.getProperty('golden.write', 'false')
     systemProperty 'golden.tests', System.getProperty('golden.tests', 'false')
-    systemProperty 'greedy.diagnostic', System.getProperty('greedy.diagnostic', 'false')
-    // Opt-in report-only probes (variety-seed calibration, ADR-0001; timing probe;
-    // sub-600m floor probe, backlog item 4).
-    systemProperty 'seed.calibration', System.getProperty('seed.calibration', 'false')
-    systemProperty 'timing.probe', System.getProperty('timing.probe', 'false')
-    systemProperty 'floor.probe', System.getProperty('floor.probe', 'false')
-    systemProperty 'feature.probe', System.getProperty('feature.probe', 'false')
-    systemProperty 'corridor.probe', System.getProperty('corridor.probe', 'false')
     // Ad-hoc loop overrides (region/dir/radius/profile for the loop suites) + the
     // direction-strength tuning overrides (loop.strongdir/dirmult/dirlate/dirfeas).
     ['loop.lon', 'loop.lat', 'loop.km', 'loop.dir', 'loop.name', 'loop.profile', 'loop.profilepath', 'loop.region', 'loop.regions', 'loop.radius', 'loop.algo', 'loop.waypoints', 'loop.html', 'loop.strongdir', 'loop.dirmult', 'loop.dirlate', 'loop.dirfeas', 'loop.xpenalty', 'loop.teardroppenalty', 'loop.sweep.profile', 'loop.steervias', 'loop.denseboxwppenalty', 'loop.densebox.percentile', 'loop.densebox.mindensenodes', 'loop.densebox.mincells', 'loop.densebox.maxcells', 'loop.densebox.tilecells'].each { k ->

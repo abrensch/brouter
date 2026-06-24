@@ -197,10 +197,6 @@ public class RoutingEngine extends Thread {
   // atomic should a watchdog ever read them, and is harmless otherwise.
   volatile long startTime;
   volatile long maxRunningTime;
-  // Cached once at class load (mirrors GreedyRoundTripPlanner's DIAGNOSTIC flag);
-  // -Dgreedy.diagnostic=true enables per-request stderr diagnostics.
-  private static final boolean GREEDY_DIAGNOSTIC =
-    Boolean.parseBoolean(System.getProperty("greedy.diagnostic", "false"));
   // Wall-clock budget (ms) for the routing legs of a round trip, captured from
   // doRun() so the WAYPOINT/ISOCHRONE/greedy-fallthrough doRouting() calls are
   // bounded. 0 (the CLI default) keeps the legacy no-timeout behaviour.
@@ -915,11 +911,6 @@ public class RoutingEngine extends Thread {
       // Explicit-via mode treats the requested distance as advisory only —
       // the user-supplied skeleton defines the route, not the distance target.
       // The gate still enforces beeline / closure / profile-hostility checks.
-      if (GREEDY_DIAGNOSTIC && RoundTripQualityGate.isPavedProfile(profileName)) {
-        System.err.printf("[greedy-diag] PRE-GATE foundTrack.distance=%d nodes=%d worstHost=%d%n",
-          foundTrack.distance, foundTrack.nodes == null ? 0 : foundTrack.nodes.size(),
-          RoundTripQualityGate.worstContiguousHostileMetersPaved(foundTrack));
-      }
       // A forced same-way-back corridor (planner found nothing clean in this
       // constrained terrain) is accepted as a disclosed OUT_AND_BACK rather than
       // rejected — keep-when-forced. Gratuitous corridors never reach here: the
@@ -2248,13 +2239,13 @@ public class RoutingEngine extends Thread {
     // Faithful capsule (leg-masking): turn the density grid into soft no-go polygons over
     // dense interiors so routed LEGS avoid the spaghetti, crossing only at least-cost gaps
     // (implicit portals/corridors). Off unless roundTripCapsule AND loop.capsule.nogoweight>0.
-    double capsuleNogoWeight = Double.parseDouble(System.getProperty("loop.capsule.nogoweight", "0"));
+    double capsuleNogoWeight = 0;
     if (routingContext.roundTripCapsule && capsuleNogoWeight > 0 && !desirabilityGrid.isEmpty()) {
       List<OsmNodeNamed> capsuleNogos = CapsuleNogoBuilder.build(
         desirabilityGrid, DESIRABILITY_CELL, capsuleNogoWeight,
-        Double.parseDouble(System.getProperty("loop.capsule.densepercentile", "0.80")),
-        Integer.parseInt(System.getProperty("loop.capsule.mindensenodes", "10")),
-        Integer.parseInt(System.getProperty("loop.capsule.nogomincells", "4")));
+        0.80,
+        10,
+        4);
       if (!capsuleNogos.isEmpty()) {
         if (routingContext.nogopoints == null) routingContext.nogopoints = new ArrayList<>();
         routingContext.nogopoints.addAll(capsuleNogos);
@@ -2267,11 +2258,11 @@ public class RoutingEngine extends Thread {
     // built-up cores. Opt-in (roundTripSteerVias); never consulted by the general per-segment engine.
     if (routingContext.roundTripSteerVias && !desirabilityGrid.isEmpty()) {
       routingContext.denseAreaMap = DenseAreaMap.fromDesirabilityGrid(desirabilityGrid, DESIRABILITY_CELL,
-        Double.parseDouble(System.getProperty("loop.densebox.percentile", "0.88")),
-        Integer.parseInt(System.getProperty("loop.densebox.mindensenodes", "12")),
-        Integer.parseInt(System.getProperty("loop.densebox.mincells", "2")),
-        Integer.parseInt(System.getProperty("loop.densebox.maxcells", "20")),
-        Integer.parseInt(System.getProperty("loop.densebox.tilecells", "5")));
+        0.88,
+        12,
+        2,
+        20,
+        5);
       if (routingContext.denseAreaMap != null) {
         logInfo("GREEDY: via-steering — " + routingContext.denseAreaMap.size() + " dense-area boxes");
       }
@@ -2421,12 +2412,6 @@ public class RoutingEngine extends Thread {
             matchedWaypoints = result.getMatchedWaypoints();
           }
           finalizeAdoptedRoundTripTrack(foundTrack, matchedWaypoints);
-          if (GREEDY_DIAGNOSTIC) {
-            System.err.printf("[greedy-diag] bypass-OK plannerDist=%d nodes=%d matched=%d worstHost=%d%n",
-              foundTrack.distance, foundTrack.nodes.size(),
-              matchedWaypoints == null ? 0 : matchedWaypoints.size(),
-              RoundTripQualityGate.worstContiguousHostileMetersPaved(foundTrack));
-          }
         } catch (Exception e) {
           logInfo("greedy: bypass path failed (" + e.getClass().getSimpleName() + ": " + e.getMessage() + "), falling back to doRouting");
           useDetailedPlannerTrack = false;
@@ -4179,6 +4164,12 @@ public class RoutingEngine extends Thread {
    *
    * This naturally produces elongated loops in valleys and compact loops in open terrain.
    */
+  /** ISOCHRONE direction-bulge strength: the per-direction placement radius is
+   *  scaled by 1 + alpha*cos(theta - heading), a mean-preserving cardioid toward
+   *  the requested heading (0 = legacy even ring). Package-private and non-final
+   *  only so tests can drive both ends — it is not a runtime knob. */
+  static double isochroneDirBulgeAlpha = 0.35;
+
   void placeWaypointsFromIsochrone(List<OsmNodeNamed> waypoints, double[][] frontierData,
                                    List<IsoCandidate> isoCandidates,
                                    double searchRadius, double startDirection, int targetPoints) {
@@ -4305,8 +4296,8 @@ public class RoutingEngine extends Thread {
     // even-spread frontier sampling cannot. Mean-preserving: the per-direction
     // factors are renormalised to average 1.0, so the loop's overall size — and
     // therefore the distance gate — is unchanged; only its shape shifts toward
-    // the heading. loop.isochrone.dirbulge=0 reproduces the legacy even ring.
-    double dirBulgeAlpha = Double.parseDouble(System.getProperty("loop.isochrone.dirbulge", "0.35"));
+    // the heading. isochroneDirBulgeAlpha=0 reproduces the legacy even ring.
+    double dirBulgeAlpha = isochroneDirBulgeAlpha;
     double[] dirBulge = new double[selected.length];
     double dirBulgeSum = 0;
     for (int i = 0; i < selected.length; i++) {
@@ -5393,17 +5384,7 @@ public class RoutingEngine extends Thread {
             seg = null;
           }
           if (seg == null) {
-            if (GREEDY_DIAGNOSTIC) {
-              System.err.printf("[greedy-diag] leg %d: corridor failed, falling back to unconstrained%n", i);
-            }
             seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), null, effectiveRefTrack);
-          } else if (GREEDY_DIAGNOSTIC) {
-            int legHost = RoundTripQualityGate.worstContiguousHostileMetersPaved(seg);
-            int plannerHost = RoundTripQualityGate.worstContiguousHostileMetersPaved(legNearbyTrack);
-            if (legHost != plannerHost) {
-              System.err.printf("[greedy-diag] leg %d: corridor-routed but DIVERGED — plannerHost=%d, segHost=%d, segDist=%d, plannerDist=%d%n",
-                i, plannerHost, legHost, seg.distance, legNearbyTrack.distance);
-            }
           }
         } else {
           seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), legNearbyTrack, effectiveRefTrack);

@@ -50,7 +50,7 @@ public final class RouteChoiceScore {
   // out-ranks one that buys a few % more distance by detouring through a town (e.g. basel_80km_E,
   // where AUTO used to ship the Lörrach-dipping iso_greedy over the city-skirting greedy).
   /** Distance closeness to requested (now tolerant — see the flat band in #1). */
-  static final double W_DISTANCE   = Double.parseDouble(System.getProperty("loop.wdistance", "0.18"));
+  static final double W_DISTANCE   = 0.18;
   /** Road reuse / retrace penalty (low reuse = high score). */
   static final double W_REUSE      = 0.20;
   /** Closure quality (small closure gap = high score). */
@@ -63,9 +63,9 @@ public final class RouteChoiceScore {
    * Road-CHARACTER preference (profile-aware highway desirability from the route's tags) — the
    * "would a real cyclist want to ride this" dimension. Validated against the user's eye on the
    * Basel/Freiburg matrix (residential-avoiding loops score higher). Now the dominant soft term so
-   * an appealing route out-ranks a marginally-better-distance one. Tunable via {@code -Dloop.charweight}.
+   * an appealing route out-ranks a marginally-better-distance one.
    */
-  static final double W_CHARACTER  = clamp01x(Double.parseDouble(System.getProperty("loop.charweight", "0.17")), 0.30);
+  static final double W_CHARACTER  = clamp01x(0.17, 0.30);
   /** Profile-specific cost/m soft preference. */
   static final double W_COSTM      = 0.05;
   /** Direction delta — weak; capped so it cannot dominate. */
@@ -89,11 +89,11 @@ public final class RouteChoiceScore {
    *
    * <p>Ranking-only: RCS never gates acceptance ({@link RoundTripQualityGate}
    * does), so this cannot cause a no-route. Tunable for the gold-standard
-   * re-baseline via {@code -Dloop.xpenalty}. The gate caps accepted loops at
+   *. The gate caps accepted loops at
    * {@link RoundTripQualityGate#MAX_SELF_INTERSECTIONS}, so the penalty is bounded.
    */
   static final double SHAPE_PENALTY_PER_SELF_INTERSECTION =
-    Double.parseDouble(System.getProperty("loop.xpenalty", "0.08"));
+    0.08;
 
   /**
    * Lasso surcharge — shape term #9b (loop-review backlog item 3).
@@ -111,10 +111,10 @@ public final class RouteChoiceScore {
    * pays ~the full surcharge (effective ~2.5× a structural crossing — the
    * middle of the review's 2-3× band) while a near-cap 3.5km loop pays
    * almost nothing. Ranking-only like #9 (excluded from
-   * {@link Verdict#qualityScore()}); tunable via {@code -Dloop.lassoextra}.
+   * {@link Verdict#qualityScore()}).
    */
   static final double SHAPE_PENALTY_LASSO_EXTRA =
-    Double.parseDouble(System.getProperty("loop.lassoextra", "0.12"));
+    0.12;
 
   /**
    * Near-revisit / "teardrop" penalty — shape term #10. Catches the defect that
@@ -133,11 +133,10 @@ public final class RouteChoiceScore {
    *
    * <p>Ranking-only and excluded from {@link Verdict#qualityScore()} exactly like #9: it lets
    * AUTO pick the cleaner of two comparable candidates, but a terrain-forced teardrop shipping
-   * as best-available is not double-penalised in the soft quality floor. Tunable via
-   * {@code -Dloop.teardroppenalty}; default is provisional pending the corpus A/B calibration.
+   * as best-available is not double-penalised in the soft quality floor. The default is provisional pending the corpus A/B calibration.
    */
   static final double SHAPE_PENALTY_PER_TEARDROP =
-    Double.parseDouble(System.getProperty("loop.teardroppenalty", "0.12"));
+    0.12;
   /** Near-revisit detector thresholds (mirror the probe; 10 km cap catches Basel's 7.3 km). */
   static final double NEAR_REVISIT_EPS_M = 60.0;
   static final double NEAR_REVISIT_MIN_ARC_M = 600.0;
