@@ -2585,7 +2585,7 @@ public class RoutingEngine extends Thread {
         + isoProvider.poolSize() + " candidates), using graph-native candidates");
       return graphNative;
     }
-    // QUALITY: blend start-centered iso depth with per-step graph-native
+    // ISO_GREEDY: blend start-centered iso depth with per-step graph-native
     // candidates. Both sources are road-native; neither invents coordinates.
     logInfo("ISO_GREEDY: blended isochrone+graph-native provider (iso pool="
       + isoProvider.poolSize() + ")");

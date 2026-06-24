@@ -236,34 +236,33 @@ public class RoundTripOutputFormatTest {
   }
 
   // -------------------------------------------------------------------------
-  // Per-tier alias end-to-end: the QUALITY alias must resolve through setParams
+  // Algorithm-name end-to-end: a forced ISO_GREEDY must resolve through setParams
   // (RoutingParamCollector → fromString) AND drive a real route to a loop — the
   // full param-string-to-route path, not just the fromString unit mapping.
-  // QUALITY (→ ISO_GREEDY) reliably forms a loop on the fixture.
   // -------------------------------------------------------------------------
 
   @Test
-  public void qualityTierAliasRoutesEndToEnd() {
+  public void isoGreedyNameRoutesEndToEnd() {
     List<OsmNodeNamed> wps = new ArrayList<>();
     wps.add(RoundTripFixture.node("from", 8.72, 50.0));
 
     RoutingContext rc = new RoutingContext();
     rc.localFunction = RoundTripFixture.profileFile(PROFILE).getAbsolutePath();
     Map<String, String> params = new LinkedHashMap<>();
-    params.put("roundTripAlgorithm", "QUALITY");
+    params.put("roundTripAlgorithm", "ISO_GREEDY");
     params.put("roundTripDistance", String.valueOf(RADIUS));
     params.put("direction", String.valueOf(EAST));
     new RoutingParamCollector().setParams(rc, null, params);
-    Assert.assertEquals("QUALITY alias must resolve to ISO_GREEDY",
+    Assert.assertEquals("ISO_GREEDY name must resolve to the enum",
       RoundTripAlgorithm.ISO_GREEDY, rc.roundTripAlgorithm);
 
     RoutingEngine re = new RoutingEngine(null, null, RoundTripFixture.segmentDir(), wps, rc,
       RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP);
     re.quite = true;
     re.doRun(60_000);
-    Assert.assertNull("QUALITY alias route error: " + re.getErrorMessage(), re.getErrorMessage());
-    Assert.assertNotNull("QUALITY alias must produce a loop", re.getFoundTrack());
-    Assert.assertTrue("QUALITY alias loop must be non-degenerate",
+    Assert.assertNull("ISO_GREEDY route error: " + re.getErrorMessage(), re.getErrorMessage());
+    Assert.assertNotNull("ISO_GREEDY must produce a loop", re.getFoundTrack());
+    Assert.assertTrue("ISO_GREEDY loop must be non-degenerate",
       re.getFoundTrack().nodes.size() > 2);
   }
 

@@ -9,7 +9,7 @@ import java.util.Set;
 import btools.util.CheapRuler;
 
 /**
- * Road-native candidate provider for the QUALITY tier (ISO_GREEDY). Takes a pool of
+ * Road-native candidate provider for the ISO_GREEDY planner. Takes a pool of
  * {@link IsoCandidate}s captured during a single start-centered isochrone expansion and
  * returns the candidates that fall within the planner's target sub-leg air-distance window
  * at each step. In production this provider is not used on its own: it is the iso half of a

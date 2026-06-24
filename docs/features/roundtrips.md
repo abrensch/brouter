@@ -25,7 +25,7 @@ You control the loop with a few request parameters:
 | `roundTripPoints` | target number of intermediate waypoints (3–20, default 5) |
 | `startDirection` / `heading` | compass bearing to bias the direction the loop heads out |
 | `roundTripDirectionAdd` | angle offset added to an auto-detected start bearing |
-| `roundTripAlgorithm` | planning strategy: `AUTO`, `FAST`, `BALANCED`, `QUALITY` (the internal engine names `WAYPOINT`, `GREEDY`, `ISO_GREEDY`, `ISOCHRONE` are also accepted — see below) |
+| `roundTripAlgorithm` | `AUTO` (default — best loop) or `FAST` (quick preview); the internal engine names `WAYPOINT`, `GREEDY`, `ISO_GREEDY`, `ISOCHRONE` are also accepted for forced selection — see below |
 | `roundTripStrictQuality` | `1` hard-rejects loops that fail the quality checks; default `0` is lenient — a failing loop is still returned, tagged with a `Warning:` advisory (see [Loop quality](#loop-quality)) |
 | `allowSamewayback` | `1` lets the return leg reuse ways from the outward leg; default `0` keeps the way out and the way back distinct |
 
@@ -40,28 +40,25 @@ via-points outward so the loop better honours the requested length.
 Generating a good loop is harder than routing between two fixed points: the
 waypoints are not given, so the planner has to *invent* a set of intermediate
 targets and then check whether the resulting route is actually a pleasant,
-closed loop. BRouter offers several strategies that trade speed for quality:
+closed loop. Two modes are recommended:
 
+- **AUTO** (default) — runs the iterative planners and keeps the best loop. This
+  is what you want almost always.
 - **FAST** — places the ring of waypoints geometrically and scores them by
-  straight-line distance only. Cheap enough for limited mobile hardware, but the
-  loop quality is modest.
-- **BALANCED** — an iterative planner that proposes candidate waypoints, routes
-  only the most promising ones, and checks how well the loop closes before
-  committing each leg. A good compromise and the usual production default.
-- **QUALITY** — like BALANCED, but candidate waypoints are drawn from the area
-  that is genuinely reachable from the start within a cost budget rather than
-  from an abstract circle. This pays off in constrained terrain such as
-  mountains, islands or coastlines, at the cost of more computation.
-- **AUTO** — lets BRouter pick. It tries the higher-quality strategies first and
-  falls back to a faster one only when the better result is not worth the extra
-  effort.
+  straight-line distance only, with no routed-leg evaluation. Roughly 10× faster
+  (sub-second) at noticeably lower quality — useful as a quick preview on limited
+  mobile hardware.
 
-The four names above are the recommended values. For parity with the engine, the
-parser also accepts the internal algorithm names directly: `FAST` = `WAYPOINT`,
-`BALANCED` = `GREEDY`, `QUALITY` = `ISO_GREEDY`, plus `ISOCHRONE` (direct
-isochrone-frontier waypoint placement, also selectable with `roundTripIsochrone=1`
-and AUTO-selected for small loops). Matching is case-insensitive and any
-unrecognised value falls back to `AUTO`.
+Under the hood AUTO competes two iterative strategies — `GREEDY` (radial
+candidate placement) and `ISO_GREEDY` (candidates drawn from a bounded isochrone
+expansion) — and adopts whichever scores better. Measured across the test matrix
+they cost the same (median ~3 s) and score almost identically, so they are *not*
+exposed as separate speed/quality tiers; AUTO just picks the better one per
+request. You can still force a specific planner by name for testing or
+comparison: the parser accepts `WAYPOINT` (= `FAST`), `GREEDY`, `ISO_GREEDY`, and
+`ISOCHRONE` (direct isochrone-frontier placement, also selectable with
+`roundTripIsochrone=1`). Matching is case-insensitive; any unrecognised value —
+including the former `BALANCED`/`QUALITY` names — falls back to `AUTO`.
 
 ## Loop quality
 
@@ -90,9 +87,9 @@ your routing profile.
 ## Experimental parameters
 
 A few opt-in flags expose work-in-progress planning experiments. They all
-default to off, are honoured only by the `BALANCED` (`GREEDY`) strategy, and may
-change or disappear without notice — they are **not** part of the stable
-round-trip interface:
+default to off, are honoured only by the iterative `GREEDY` / `ISO_GREEDY`
+planners, and may change or disappear without notice — they are **not** part of
+the stable round-trip interface:
 
 | parameter | meaning |
 | :----- | :----- |

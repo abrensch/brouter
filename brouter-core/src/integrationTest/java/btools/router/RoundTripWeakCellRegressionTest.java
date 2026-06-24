@@ -38,7 +38,7 @@ public class RoundTripWeakCellRegressionTest {
     projectDir = new File(".").getCanonicalFile().getParentFile();
   }
 
-  // ---- GREEDY (BALANCED) ---------------------------------------------------
+  // ---- GREEDY ---------------------------------------------------
 
   @Test
   public void greedyRuralLozere30kmFastbike() throws Exception {
@@ -61,7 +61,7 @@ public class RoundTripWeakCellRegressionTest {
     assertEnvelope("greedy coastal_nice 50km E fastbike", m, 0.70, 1.40, 30.0);
   }
 
-  // ---- ISO_GREEDY (QUALITY) ------------------------------------------------
+  // ---- ISO_GREEDY ------------------------------------------------
 
   @Test
   public void isoGreedyAlpine30kmEastFastbike() throws Exception {
