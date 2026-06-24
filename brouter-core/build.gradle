@@ -9,5 +9,110 @@ dependencies {
     implementation project(':brouter-codec')
 }
 
-// MapcreatorTest generates segments which are used in tests
+// MapcreatorTest generates the bundled Dreieich fixture used by the fast
+// round-trip tests in src/test.
 test.dependsOn ':brouter-map-creator:test'
+
+// --- Integration tests -----------------------------------------------------
+// Slow, real-segment round-trip suites (loop-quality matrix, golden signatures,
+// real-geography regression tests) live in src/integrationTest and run only via
+// `./gradlew integrationTest`. This keeps `./gradlew test` fast and free of the
+// Assume-skip noise those suites used to produce, and gives a single explicit
+// entry point instead of -Dloop.tests/-Dgolden.tests opt-in flags.
+sourceSets {
+    integrationTest {
+        java.srcDir 'src/integrationTest/java'
+        resources.srcDir 'src/integrationTest/resources'
+        // Reuse the production classes and the shared test helpers (RoundTripFixture,
+        // etc.) from src/test rather than duplicating them.
+        compileClasspath += sourceSets.main.output + sourceSets.test.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+tasks.register('integrationTest', Test) {
+    description = 'Runs the slow real-segment round-trip suites (downloads segment tiles on demand).'
+    group = 'verification'
+    useJUnit()
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    shouldRunAfter test
+    // Real tiles are downloaded on demand by LoopTestSegments; the bundled
+    // fixture is also available for suites that use it.
+    dependsOn ':brouter-map-creator:test'
+
+    // Parallelism: the loop-quality matrix is sharded one class per region
+    // (LoopQuality<Region>Test over LoopQualityTestBase), so Gradle's
+    // class-level fork distribution can run regions concurrently. Memory, not
+    // CPU, is the ceiling — keep forks × heap within machine RAM. Default to
+    // half the cores, capped at 6 so forks × 3g stays within ~18g on any
+    // machine; both are overridable for tuning: -Dloop.forks=N -Dloop.heap=Ng.
+    maxParallelForks = Integer.getInteger('loop.forks',
+        Math.min(6, Math.max(1, Runtime.runtime.availableProcessors().intdiv(2))))
+    // Report generation no longer runs in-test (it moved to the separate
+    // generateLoopReport task below), so each fork only needs routing heap —
+    // far less than the old in-@AfterClass 8g report build. Measured on the
+    // heaviest shard (alpine 100km mtb); tune with -Dloop.heap.
+    maxHeapSize = System.getProperty('loop.heap', '3g')
+
+    // Tests are write-only producers into a shared on-disk result cache. Clear
+    // it once here at suite start (fork-safe: a single delete before any fork
+    // runs, instead of the old in-test synchronized wipe that raced across
+    // forks), and render the report once afterwards in its own JVM.
+    doFirst {
+        delete file('build/reports/loops/.results')
+    }
+    finalizedBy 'generateLoopReport'
+
+    // Segment handling: fetch missing neighbour tiles, reuse already-present ones
+    // without a freshness re-fetch. Override per-run with -Dloop.segments.*.
+    systemProperty 'loop.segments.noupdate', System.getProperty('loop.segments.noupdate', 'true')
+    systemProperty 'loop.segments.nodownload', System.getProperty('loop.segments.nodownload', 'false')
+    // Optional filters / golden recapture (no opt-in flag needed — the task IS the gate).
+    systemProperty 'loop.profiles', System.getProperty('loop.profiles', '')
+    systemProperty 'loop.algorithms', System.getProperty('loop.algorithms', '')
+    systemProperty 'golden.write', System.getProperty('golden.write', 'false')
+    systemProperty 'golden.tests', System.getProperty('golden.tests', 'false')
+    systemProperty 'greedy.diagnostic', System.getProperty('greedy.diagnostic', 'false')
+    // Opt-in report-only probes (variety-seed calibration, ADR-0001; timing probe;
+    // sub-600m floor probe, backlog item 4).
+    systemProperty 'seed.calibration', System.getProperty('seed.calibration', 'false')
+    systemProperty 'timing.probe', System.getProperty('timing.probe', 'false')
+    systemProperty 'floor.probe', System.getProperty('floor.probe', 'false')
+    systemProperty 'feature.probe', System.getProperty('feature.probe', 'false')
+    systemProperty 'corridor.probe', System.getProperty('corridor.probe', 'false')
+    // Ad-hoc loop overrides (region/dir/radius/profile for the loop suites) + the
+    // direction-strength tuning overrides (loop.strongdir/dirmult/dirlate/dirfeas).
+    ['loop.lon', 'loop.lat', 'loop.km', 'loop.dir', 'loop.name', 'loop.profile', 'loop.profilepath', 'loop.region', 'loop.regions', 'loop.radius', 'loop.algo', 'loop.waypoints', 'loop.html', 'loop.strongdir', 'loop.dirmult', 'loop.dirlate', 'loop.dirfeas', 'loop.xpenalty', 'loop.teardroppenalty', 'loop.sweep.profile', 'loop.steervias', 'loop.denseboxwppenalty', 'loop.densebox.percentile', 'loop.densebox.mindensenodes', 'loop.densebox.mincells', 'loop.densebox.maxcells', 'loop.densebox.tilecells'].each { k ->
+        if (System.getProperty(k) != null) systemProperty k, System.getProperty(k)
+    }
+
+    testLogging {
+        // 'started' surfaces which case is in flight (so a wedged/slow routing
+        // case is visible immediately, not only on completion). showStandardStreams
+        // forwards each engine's stdout for in-test progress — verbose, but
+        // invaluable for diagnosing a stuck loop. Toggle off if too noisy.
+        events 'started', 'passed', 'skipped', 'failed'
+        exceptionFormat 'short'
+        showStandardStreams = true
+    }
+}
+
+// Renders the loop-quality HTML/GeoJSON report from the on-disk result cache
+// that the integrationTest forks populate. Runs in its own single JVM (so it
+// gets a large heap to hold the full corpus, while the test forks stay lean)
+// and is wired as integrationTest's finalizer, so it runs even when a quality
+// gate fails — the report is an artifact, never a build gate.
+tasks.register('generateLoopReport', JavaExec) {
+    description = 'Renders the loop-quality report from the persisted result cache (run after integrationTest).'
+    group = 'verification'
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    mainClass = 'btools.router.LoopQualityReport'
+    // One JVM holding the whole corpus + geometries; override with -Dloop.report.heap.
+    maxHeapSize = System.getProperty('loop.report.heap', '6g')
+}
