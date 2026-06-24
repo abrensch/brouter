@@ -7,8 +7,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 /** Tests for {@link RoundTripAlgorithm#fromString}: the {@code FAST} preview
- * alias, the internal enum names, and AUTO fallback (including the dropped
- * BALANCED/QUALITY names, which now resolve to AUTO). */
+ * alias, the internal enum names, and the AUTO fallback for anything else. */
 public class RoundTripAlgorithmTest {
 
   @Test
@@ -36,9 +35,6 @@ public class RoundTripAlgorithmTest {
   public void unknownAlgorithmFallsBackToAuto() {
     assertEquals(RoundTripAlgorithm.AUTO, RoundTripAlgorithm.fromString("UNKNOWN"));
     assertEquals(RoundTripAlgorithm.AUTO, RoundTripAlgorithm.fromString(""));
-    // The dropped BALANCED/QUALITY aliases now resolve to AUTO (the best-loop default).
-    assertEquals(RoundTripAlgorithm.AUTO, RoundTripAlgorithm.fromString("BALANCED"));
-    assertEquals(RoundTripAlgorithm.AUTO, RoundTripAlgorithm.fromString("QUALITY"));
   }
 
   @Test

@@ -107,7 +107,7 @@ public final class RoadCharacterScore {
     }
   }
 
-  // balanced
+  // trekking: balanced paved/unpaved preference
   private static double desirabilityTrekking(String highway, boolean none) {
     if (none) return 0.55;
     switch (highway) {

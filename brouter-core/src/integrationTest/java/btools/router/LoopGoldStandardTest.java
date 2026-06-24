@@ -327,7 +327,7 @@ public class LoopGoldStandardTest {
     if (requested.contains("greedy")) {
       variants.add(new AlgorithmVariant("greedy", RoundTripAlgorithm.GREEDY));
     }
-    if (requested.contains("iso_greedy") || requested.contains("quality")) {
+    if (requested.contains("iso_greedy")) {
       variants.add(new AlgorithmVariant("iso_greedy", RoundTripAlgorithm.ISO_GREEDY));
     }
     if (variants.isEmpty()) {

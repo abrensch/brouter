@@ -57,8 +57,7 @@ exposed as separate speed/quality tiers; AUTO just picks the better one per
 request. You can still force a specific planner by name for testing or
 comparison: the parser accepts `WAYPOINT` (= `FAST`), `GREEDY`, `ISO_GREEDY`, and
 `ISOCHRONE` (direct isochrone-frontier placement, also selectable with
-`roundTripIsochrone=1`). Matching is case-insensitive; any unrecognised value —
-including the former `BALANCED`/`QUALITY` names — falls back to `AUTO`.
+`roundTripIsochrone=1`). Matching is case-insensitive; any unrecognised value falls back to `AUTO`.
 
 ## Loop quality
 

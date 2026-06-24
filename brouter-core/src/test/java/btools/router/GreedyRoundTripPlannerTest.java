@@ -165,11 +165,10 @@ public class GreedyRoundTripPlannerTest {
   public void tierAliasesResolveThroughSetParams() {
     // fromString is unit-tested in RoundTripAlgorithmTest; this pins the parser
     // wiring (RoutingParamCollector → RoundTripAlgorithm.fromString) so the
-    // algorithm name actually reaches rctx.roundTripAlgorithm — including the
-    // FAST preview alias and the dropped BALANCED/QUALITY names → AUTO.
+    // algorithm name actually reaches rctx.roundTripAlgorithm — the FAST preview
+    // alias, an enum name, and the AUTO fallback for anything unrecognised.
     String[][] cases = {
       {"FAST", "WAYPOINT"}, {"ISO_GREEDY", "ISO_GREEDY"}, {"bogus", "AUTO"},
-      {"BALANCED", "AUTO"}, {"QUALITY", "AUTO"},
     };
     for (String[] c : cases) {
       RoutingContext rctx = new RoutingContext();

@@ -43,10 +43,8 @@ public enum RoundTripAlgorithm {
    * Parse the algorithm name. Accepts the internal enum names ({@code WAYPOINT},
    * {@code GREEDY}, {@code ISO_GREEDY}, {@code ISOCHRONE}, {@code AUTO}) plus the
    * one user-facing alias {@code FAST} → {@code WAYPOINT} (quick-preview mode).
-   * Case-insensitive. Unknown input falls back to {@link #AUTO} — which is the
-   * recommended choice for a best-quality loop. (The former {@code BALANCED} /
-   * {@code QUALITY} aliases were dropped: GREEDY and ISO_GREEDY are same-cost,
-   * same-quality AUTO competitors, not distinct speed/quality tiers.)
+   * Case-insensitive. Unknown input falls back to {@link #AUTO} — the
+   * recommended choice for a best-quality loop.
    */
   public static RoundTripAlgorithm fromString(String s) {
     if (s == null) return AUTO;
