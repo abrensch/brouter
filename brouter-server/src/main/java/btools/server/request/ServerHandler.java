@@ -22,7 +22,9 @@ import btools.server.ServiceContext;
  * polylines = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
  * polygons        = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
  * profile = profile file name without .brf
- * alternativeidx = [0|1|2|3] (optional, default 0)
+ * alternativeidx = [0|1|2|3] (optional, default 0); in round-trip mode any value &gt;= 0 is
+ *                  accepted and acts as a deterministic variety seed (0 = baseline route,
+ *                  each other value selects a different loop variant; direction is unaffected)
  * format = [kml|gpx|geojson] (optional, default gpx)
  * trackname = name used for filename and format specific trackname (optional, default brouter)
  * exportWaypoints = 1 to export them (optional, default is no export)

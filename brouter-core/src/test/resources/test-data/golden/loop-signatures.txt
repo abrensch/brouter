@@ -1,0 +1,10 @@
+# Golden route signatures for GREEDY / ISO_GREEDY loop generation.
+# Regenerate with -Dgolden.tests=true -Dgolden.write=true on known-good code.
+greedy|dreieich|r8000|dir0|fastbike => nodes=1409 hash=6d93920af8787ca5 dist=42665 ascend=123 cost=75124 err=null
+greedy|dreieich|r8000|dir90|fastbike => nodes=1201 hash=1926dd3839a8110c dist=46365 ascend=147 cost=78323 err=null
+greedy|rural_lozere|r8000|dir0|gravel => nodes=1336 hash=dc55bb74be6fa3d6 dist=49382 ascend=1049 cost=130779 err=null
+greedy|urban_berlin|r8000|dir0|fastbike => nodes=2405 hash=ce8be239380d3534 dist=46838 ascend=40 cost=70169 err=null
+iso_greedy|dreieich|r8000|dir0|fastbike => nodes=1427 hash=2eb8f234ed3a32a8 dist=45426 ascend=122 cost=76048 err=null
+iso_greedy|dreieich|r8000|dir90|fastbike => nodes=1276 hash=3c0ab3ea1dd9a521 dist=45680 ascend=112 cost=79211 err=null
+iso_greedy|rural_lozere|r8000|dir0|gravel => nodes=1354 hash=8da0372f6598ea97 dist=43403 ascend=740 cost=134049 err=null
+iso_greedy|urban_berlin|r8000|dir0|fastbike => nodes=1998 hash=8ed7970edfe1f198 dist=41951 ascend=46 cost=66968 err=null

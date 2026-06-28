@@ -59,6 +59,21 @@ public class RouteParamTest {
   }
 
   @Test
+  public void roundTripSeedSemantics() {
+    // ADR-0001: alternativeidx is a variety seed in round-trip mode — raw value
+    // with a lower clamp at 0 — while classic routing keeps the 0–3 clamp.
+    RoutingContext rc = new RoutingContext();
+    Assert.assertEquals("absent → seed 0 (inert baseline)", 0, rc.getRoundTripSeed());
+
+    rc.setAlternativeIdx(7);
+    Assert.assertEquals("round-trip mode reads the raw value", 7, rc.getRoundTripSeed());
+    Assert.assertEquals("classic-routing clamp unchanged", 3, rc.getAlternativeIdx(0, 3));
+
+    rc.setAlternativeIdx(-2);
+    Assert.assertEquals("negative clamps to 0 (= no jitter)", 0, rc.getRoundTripSeed());
+  }
+
+  @Test
   public void readParamsFromList() throws UnsupportedEncodingException {
     Map<String, String> params = new HashMap<>();
     params.put("timode", "3");
@@ -67,6 +82,33 @@ public class RouteParamTest {
     rpc.setParams(rc, null, params);
 
     Assert.assertEquals("result content timode ", 3, rc.turnInstructionMode);
+  }
+
+  @Test
+  public void roundTripDesirabilityParsesIntoContextAndPropagatesToChildren()
+      throws UnsupportedEncodingException {
+    // Default: off when the parameter is absent.
+    RoutingContext bare = new RoutingContext();
+    new RoutingParamCollector().setParams(bare, null, new HashMap<>());
+    Assert.assertFalse("roundTripDesirability defaults to off", bare.roundTripDesirability);
+
+    // roundTripDesirability=1 turns it on.
+    Map<String, String> params = new HashMap<>();
+    params.put("roundTripDesirability", "1");
+    RoutingContext rc = new RoutingContext();
+    new RoutingParamCollector().setParams(rc, null, params);
+    Assert.assertTrue("roundTripDesirability=1 enables the flag", rc.roundTripDesirability);
+
+    // It must follow the parent into the AUTO-spawned child context, where it takes effect.
+    RoutingContext child = rc.copyRequestFields();
+    Assert.assertTrue("roundTripDesirability is copied into child contexts", child.roundTripDesirability);
+
+    // Any non-1 value leaves it off.
+    Map<String, String> zero = new HashMap<>();
+    zero.put("roundTripDesirability", "0");
+    RoutingContext off = new RoutingContext();
+    new RoutingParamCollector().setParams(off, null, zero);
+    Assert.assertFalse("roundTripDesirability=0 keeps the flag off", off.roundTripDesirability);
   }
 
 }

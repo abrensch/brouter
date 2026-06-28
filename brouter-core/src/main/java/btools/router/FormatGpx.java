@@ -34,7 +34,7 @@ public class FormatGpx extends Formatter {
     int turnInstructionMode = t.voiceHints != null ? t.voiceHints.turnInstructionMode : 0;
 
     sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    if (turnInstructionMode != 9) {
+    if (turnInstructionMode != 9 && t.messageList != null) {
       for (int i = t.messageList.size() - 1; i >= 0; i--) {
         String message = t.messageList.get(i);
         if (i < t.messageList.size() - 1)
@@ -74,7 +74,7 @@ public class FormatGpx extends Formatter {
       sb.append(" <metadata>\n");
       sb.append("  <name>").append(t.name).append("</name>\n");
       sb.append("  <extensions>\n");
-      sb.append("   <brouter:info>").append(t.messageList.get(0)).append("</brouter:info>\n");
+      sb.append("   <brouter:info>").append(t.messageList != null && !t.messageList.isEmpty() ? t.messageList.get(0) : "").append("</brouter:info>\n");
       if (t.params != null && t.params.size() > 0) {
         sb.append("   <brouter:params><![CDATA[");
         int i = 0;
@@ -107,7 +107,14 @@ public class FormatGpx extends Formatter {
         first.append("    <offset>0</offset>\n  </extensions>\n </rtept>\n");
       }
       if (turnInstructionMode == 8) {
-        if (t.matchedWaypoints.get(0).wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT && t.voiceHints.list.get(0).indexInTrack == 0) {
+        // A merged round-trip track can reach here with matchedWaypoints unset
+        // (it is populated only on some finalize paths), and its voiceHints.list
+        // may be empty; guard those get(0) derefs rather than NPE on the GPX
+        // export. (voiceHints itself is necessarily non-null here —
+        // turnInstructionMode is derived from it at the top of this method.)
+        if (t.matchedWaypoints != null && !t.matchedWaypoints.isEmpty()
+            && !t.voiceHints.list.isEmpty()
+            && t.matchedWaypoints.get(0).wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT && t.voiceHints.list.get(0).indexInTrack == 0) {
           // has a voice hint do nothing, voice hint will do
         } else {
           sb.append(first.toString());
@@ -200,7 +207,7 @@ public class FormatGpx extends Formatter {
       formatWaypointGpx(sb, poi, "poi");
     }
 
-    if (t.exportWaypoints) {
+    if (t.exportWaypoints && t.matchedWaypoints != null) {
       for (int i = 0; i <= t.matchedWaypoints.size() - 1; i++) {
         MatchedWaypoint wt = t.matchedWaypoints.get(i);
         if (i == 0) {
@@ -218,7 +225,7 @@ public class FormatGpx extends Formatter {
         }
       }
     }
-    if (t.exportCorrectedWaypoints) {
+    if (t.exportCorrectedWaypoints && t.matchedWaypoints != null) {
       sb.append("\n");
       for (int i = 0; i <= t.matchedWaypoints.size() - 1; i++) {
         MatchedWaypoint wt = t.matchedWaypoints.get(i);
@@ -269,7 +276,7 @@ public class FormatGpx extends Formatter {
       if (turnInstructionMode == 8) {
         if (mwpt != null &&
           !mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
-          sele += "<name>" + mwpt.name + "</name>";
+          sele += "<name>" + StringUtils.escapeXml10(mwpt.name) + "</name>";
         }
       }
       boolean bNeedHeader = false;
@@ -279,7 +286,7 @@ public class FormatGpx extends Formatter {
 
           if (mwpt != null &&
             !mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
-            sele += "<name>" + mwpt.name + "</name>";
+            sele += "<name>" + StringUtils.escapeXml10(mwpt.name) + "</name>";
           }
           sele += "<desc>" + hint.getCruiserMessageString() + "</desc>";
           sele += "<sym>" + hint.getCommandString(hint.cmd, turnInstructionMode) + "</sym>";
@@ -333,7 +340,7 @@ public class FormatGpx extends Formatter {
               // bNextDirect = true;
               sele += "<desc>beeline</desc>";
             } else {
-              sele += "<desc>" + mwpt.name + "</desc>";
+              sele += "<desc>" + StringUtils.escapeXml10(mwpt.name) + "</desc>";
             }
             if (mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_MEETING) {
               sele += "<type>via</type>";
@@ -377,7 +384,7 @@ public class FormatGpx extends Formatter {
         if (hint != null) {
           if (mwpt != null) {
             if (!mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to") && !mwpt.name.startsWith("rt")) {
-              sele += "<name>" + mwpt.name + "</name>";
+              sele += "<name>" + StringUtils.escapeXml10(mwpt.name) + "</name>";
             }
             if (mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT && bNextDirect) {
               sele += "<src>" + hint.getLocusSymbolString() + "</src><sym>pass_place</sym><type>Shaping</type>";
@@ -405,7 +412,7 @@ public class FormatGpx extends Formatter {
               sele = sele.substring(0, pos);
             }
             if (mwpt != null && !mwpt.name.startsWith("from"))
-              sele += "<name>" + mwpt.name + "</name>";
+              sele += "<name>" + StringUtils.escapeXml10(mwpt.name) + "</name>";
             if (mwpt != null && mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
               bNextDirect = true;
             }
@@ -419,7 +426,7 @@ public class FormatGpx extends Formatter {
               sele = sele.substring(0, pos);
             }
             if (mwpt != null && mwpt.name != null && !mwpt.name.startsWith("to"))
-              sele += "<name>" + mwpt.name + "</name>";
+              sele += "<name>" + StringUtils.escapeXml10(mwpt.name) + "</name>";
             if (bNextDirect) {
               sele += "<src>beeline</src>";
             }
@@ -429,7 +436,7 @@ public class FormatGpx extends Formatter {
           } else {
             if (mwpt != null) {
               if (!mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to") && !mwpt.name.startsWith("rt")) {
-                sele += "<name>" + mwpt.name + "</name>";
+                sele += "<name>" + StringUtils.escapeXml10(mwpt.name) + "</name>";
               }
               if (mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT && bNextDirect) {
                 sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
@@ -453,7 +460,7 @@ public class FormatGpx extends Formatter {
                 }
                 bNextDirect = false;
               } else {
-                sele += "<name>" + mwpt.name + "</name>";
+                sele += "<name>" + StringUtils.escapeXml10(mwpt.name) + "</name>";
                 sele += "<sym>pass_place</sym><type>Via</type>";
               }
             }

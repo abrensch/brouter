@@ -25,6 +25,15 @@ public final class MatchedWaypoint {
   public String name;  // waypoint name used in error messages
   public double radius;  // distance in meter between waypoint and crosspoint
   public byte wpttype = WAYPOINT_TYPE_SHAPING;
+  // True when this match corresponds to an engine-generated waypoint (e.g. a
+  // round-trip arc-densification bulge), propagated from OsmNodeNamed.generated.
+  // Lets spur cleanup strip generated detours without matching on the name.
+  // Not part of writeToStream/readFromStream (rebuilt, like name/wpttype).
+  public boolean generated = false;
+  // Tag-value description bitmap of the matched way, captured by the waypoint
+  // matcher so snap scoring can evaluate the way's profile cost factor without
+  // re-reading the graph. Not part of writeToStream/readFromStream.
+  public byte[] wayDescription;
   public int indexInTrack = 0;
   public double directionToNext = -1;
   public double directionDiff = 361;

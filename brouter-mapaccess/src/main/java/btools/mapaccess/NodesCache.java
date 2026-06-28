@@ -344,7 +344,13 @@ public final class NodesCache {
     }
   }
 
-  private OsmFile fileForSegment(int lonDegree, int latDegree) throws Exception {
+  /**
+   * Canonical 5×5-degree tile basename (e.g. {@code "E10_N45"}) covering the
+   * given degree cell. Single source of truth for the on-disk naming scheme,
+   * shared by {@link #fileForSegment}, {@link #hasSegmentFor} and
+   * {@link #getSegmentFileName}.
+   */
+  private static String baseNameForTile(int lonDegree, int latDegree) {
     int lonMod5 = lonDegree % 5;
     int latMod5 = latDegree % 5;
 
@@ -353,7 +359,46 @@ public final class NodesCache {
     int lat = latDegree - 90 - latMod5;
 
     String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
-    String filenameBase = slon + "_" + slat;
+    return slon + "_" + slat;
+  }
+
+  /**
+   * True if the segment datafile (.rd5 tile) covering this coordinate is present
+   * in the primary or secondary segment directory (honoring
+   * {@code forceSecondaryData}).
+   *
+   * <p>This is the exact data-availability precondition that
+   * {@link #matchWaypointsToNodes} enforces via {@code first_file_access_failed},
+   * but exposed as a side-effect-free predicate: it neither opens the file nor
+   * mutates cache/match state. Callers can use it to fail fast on a missing tile
+   * before doing routing work, instead of conflating "no map data here" with
+   * "no nearby road node" (the latter being a {@code null} match).
+   */
+  public boolean hasSegmentFor(int ilon, int ilat) {
+    String filenameBase = baseNameForTile(ilon / 1000000, ilat / 1000000);
+    if (fileCache.containsKey(filenameBase)) {
+      // Already resolved once: non-null PhysicalFile => found, null => known-missing.
+      return fileCache.get(filenameBase) != null;
+    }
+    if (!forceSecondaryData && new File(segmentDir, filenameBase + ".rd5").exists()) {
+      return true;
+    }
+    return secondarySegmentsDir != null
+      && new File(secondarySegmentsDir, filenameBase + ".rd5").exists();
+  }
+
+  /**
+   * The canonical datafile name (e.g. {@code "E10_N45.rd5"}) for the tile
+   * covering this coordinate — for building a user-facing "datafile … not found"
+   * message consistent with {@link #matchWaypointsToNodes}. Does not imply the
+   * file exists; pair with {@link #hasSegmentFor}.
+   */
+  public String getSegmentFileName(int ilon, int ilat) {
+    return baseNameForTile(ilon / 1000000, ilat / 1000000) + ".rd5";
+  }
+
+  private OsmFile fileForSegment(int lonDegree, int latDegree) throws Exception {
+    String filenameBase = baseNameForTile(lonDegree, latDegree);
 
     currentFileName = filenameBase + ".rd5";
 
