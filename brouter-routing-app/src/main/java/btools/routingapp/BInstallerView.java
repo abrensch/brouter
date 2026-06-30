@@ -167,39 +167,42 @@ public class BInstallerView extends View {
     float fw = iw / 72.f;
     float fh = ih / 36.f;
 
-    if (tilesVisible) {
-      paintGrid.setColor(Color.GREEN);
-      paintGrid.setStyle(Paint.Style.STROKE);
-      for (int ix = 0; ix < 72; ix++) {
-        for (int iy = 0; iy < 36; iy++) {
-          int tidx = gridPos2Tileindex(ix, iy);
-          int tilesize = BInstallerSizes.getRd5Size(tidx);
-          if (tilesize > 0) {
-            canvas.drawRect(fw * ix, fh * iy, fw * (ix + 1), fh * (iy + 1), paintGrid);
-          }
+    //if (tilesVisible) {
+    paintGrid.setColor(Color.MAGENTA);
+    paintGrid.setStyle(Paint.Style.STROKE);
+    paintGrid.setStrokeWidth(1);
+    paintGrid.setAntiAlias(true);
+    for (int ix = 0; ix < 72; ix++) {
+      for (int iy = 0; iy < 36; iy++) {
+        int tidx = gridPos2Tileindex(ix, iy);
+        int tilesize = BInstallerSizes.getRd5Size(tidx);
+        if (tilesize > 0) {
+          canvas.drawRect(fw * ix, fh * iy, fw * (ix + 1), fh * (iy + 1), paintGrid);
         }
       }
-
-      int mask2 = MASK_SELECTED_RD5 | MASK_DELETED_RD5 | MASK_INSTALLED_RD5;
-      int mask3 = mask2 | MASK_CURRENT_RD5;
-
-      paintTiles.setStyle(Paint.Style.STROKE);
-      paintTiles.setColor(Color.GRAY);
-      paintTiles.setStrokeWidth(1);
-      drawSelectedTiles(canvas, paintTiles, fw, fh, MASK_INSTALLED_RD5, mask3);
-      paintTiles.setColor(Color.BLUE);
-      paintTiles.setStrokeWidth(1);
-      drawSelectedTiles(canvas, paintTiles, fw, fh, MASK_INSTALLED_RD5 | MASK_CURRENT_RD5, mask3);
-      paintTiles.setColor(Color.GREEN);
-      paintTiles.setStrokeWidth(2);
-      drawSelectedTiles(canvas, paintTiles, fw, fh, MASK_SELECTED_RD5, mask2);
-      paintTiles.setColor(Color.YELLOW);
-      paintTiles.setStrokeWidth(2);
-      drawSelectedTiles(canvas, paintTiles, fw, fh, MASK_SELECTED_RD5 | MASK_INSTALLED_RD5, mask2);
-      paintTiles.setColor(Color.RED);
-      paintTiles.setStrokeWidth(2);
-      drawSelectedTiles(canvas, paintTiles, fw, fh, MASK_DELETED_RD5 | MASK_INSTALLED_RD5, mask2);
     }
+
+    int mask2 = MASK_SELECTED_RD5 | MASK_DELETED_RD5 | MASK_INSTALLED_RD5;
+    int mask3 = mask2 | MASK_CURRENT_RD5;
+
+    paintTiles.setStyle(Paint.Style.FILL);
+    paintTiles.setAntiAlias(true);
+    paintTiles.setColor(0x80888888);
+    paintTiles.setStrokeWidth(2);
+    drawSelectedTiles(canvas, paintTiles, fw, fh, MASK_INSTALLED_RD5, mask3);
+    paintTiles.setColor(0x800000ff);
+    paintTiles.setStrokeWidth(2);
+    drawSelectedTiles(canvas, paintTiles, fw, fh, MASK_INSTALLED_RD5 | MASK_CURRENT_RD5, mask3);
+    paintTiles.setColor(0x8000ff00);
+    paintTiles.setStrokeWidth(2);
+    drawSelectedTiles(canvas, paintTiles, fw, fh, MASK_SELECTED_RD5, mask2);
+    paintTiles.setColor(0x80ffff00);
+    paintTiles.setStrokeWidth(2);
+    drawSelectedTiles(canvas, paintTiles, fw, fh, MASK_SELECTED_RD5 | MASK_INSTALLED_RD5, mask2);
+    paintTiles.setColor(0x80ff0000);
+    paintTiles.setStrokeWidth(2);
+    drawSelectedTiles(canvas, paintTiles, fw, fh, MASK_DELETED_RD5 | MASK_INSTALLED_RD5, mask2);
+    //}
   }
 
   private void drawSelectedTiles(Canvas canvas, Paint pnt, float fw, float fh, int status, int mask) {
@@ -210,8 +213,8 @@ public class BInstallerView extends View {
           int tilesize = BInstallerSizes.getRd5Size(tidx);
           if (tilesize > 0) {
             // draw cross
-            canvas.drawLine(fw * ix, fh * iy, fw * (ix + 1), fh * (iy + 1), pnt);
-            canvas.drawLine(fw * ix, fh * (iy + 1), fw * (ix + 1), fh * iy, pnt);
+            /*canvas.drawLine(fw * ix, fh * iy, fw * (ix + 1), fh * (iy + 1), pnt);
+            canvas.drawLine(fw * ix, fh * (iy + 1), fw * (ix + 1), fh * iy, pnt);*/
 
             // draw frame
             canvas.drawRect(fw * ix, fh * iy, fw * (ix + 1), fh * (iy + 1), pnt);
@@ -260,28 +263,28 @@ public class BInstallerView extends View {
 
     @Override
     public boolean onSingleTapConfirmed(MotionEvent e) {
-      if (tilesVisible) {
-        Matrix imat = new Matrix();
-        if (mat.invert(imat)) {
-          float[] touchPoint = {e.getX(), e.getY()};
-          imat.mapPoints(touchPoint);
+      //if (tilesVisible) {
+      Matrix imat = new Matrix();
+      if (mat.invert(imat)) {
+        float[] touchPoint = {e.getX(), e.getY()};
+        imat.mapPoints(touchPoint);
 
-          int tidx = tileIndex(touchPoint[0], touchPoint[1]);
-          if (tidx != -1) {
-            if ((tileStatus[tidx] & MASK_SELECTED_RD5) != 0) {
-              toggleTileStatus(tidx, MASK_SELECTED_RD5);
-              if ((tileStatus[tidx] & MASK_INSTALLED_RD5) != 0) {
-                setTileStatus(tidx, MASK_DELETED_RD5);
-              }
-            } else if ((tileStatus[tidx] & MASK_DELETED_RD5) != 0) {
-              toggleTileStatus(tidx, MASK_DELETED_RD5);
-            } else {
-              toggleTileStatus(tidx, MASK_SELECTED_RD5);
+        int tidx = tileIndex(touchPoint[0], touchPoint[1]);
+        if (tidx != -1) {
+          if ((tileStatus[tidx] & MASK_SELECTED_RD5) != 0) {
+            toggleTileStatus(tidx, MASK_SELECTED_RD5);
+            if ((tileStatus[tidx] & MASK_INSTALLED_RD5) != 0) {
+              setTileStatus(tidx, MASK_DELETED_RD5);
             }
+          } else if ((tileStatus[tidx] & MASK_DELETED_RD5) != 0) {
+            toggleTileStatus(tidx, MASK_DELETED_RD5);
+          } else {
+            toggleTileStatus(tidx, MASK_SELECTED_RD5);
           }
         }
-        invalidate();
       }
+      invalidate();
+      //}
       return true;
     }
 
