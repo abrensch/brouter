@@ -115,19 +115,6 @@ startActivity(intent);
 
 This suppress the first question after installation for the BRouter path, generates the BRouter folders in main space  and starts the download dialog.
 
-### silent app call
-
-The app can be started from other apps by using a call like this
-
-```
-Intent intent = new Intent();
-intent.setClassName("btools.routingapp", "btools.routingapp.BRouterActivity");
-intent.putExtra("runsilent", true);
-startActivity(intent);
-```
-
-This suppress the first question after installation for the BRouter path, generates the BRouter folders in main space  and starts the download dialog.
-
 ## other routing engine modes in app
 
 ### get elevation
@@ -142,8 +129,9 @@ This suppress the first question after installation for the BRouter path, genera
 
 "engineMode=4" generate routes returning to the start point.
 This needs some parameter:
-- roundTripDistance - in meters, how far to generate some helping points (default 1500)
-- direction - in degree, the direction to the points (default -1, BRouter uses a random direction)
-- roundTripPoints - how many helping point (default 5, 4 around the distance and one end point)
+- roundTripLength - total length for the round trip in meters (main size parameter, no default; wins over roundTripDistance if both are set)
+- roundTripDistance - radius to the round trip points in meters (default 1500, legacy fallback when roundTripLength is not set)
+- direction - initial round-trip bearing; use a fixed angle for reproducible loops, -1/random otherwise
+- alternativeidx - deterministic round-trip variant seed (0 = default; for round trips any value >= 0 works, it is a seed, not an index)
 
-When direction = -1 and with a selection of the profile parameter consider_elevation, consider_forest or consider_river  BRouter collects the information about this from the area defined in roundTripDistance and selects a random direction from the quadrant with the best choice of the values. Please keep in mind that the longer the distance, the longer this will take.
+For more information about round trips please see [here](https://github.com/abrensch/brouter/blob/master/docs/features/roundtrips.md).
