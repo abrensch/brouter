@@ -219,6 +219,138 @@ public class ConvertMapterhornTileTest {
     assertEquals(Short.MIN_VALUE, raster.eval_array[outside]);
   }
 
+  @Test
+  public void defaultZoomIsClampedToArchiveRange() throws IOException {
+    try (PmTilesArchive regional = PmTilesArchive.open(
+        new PmTilesTestArchive().zoomRange(13, 17).asByteSource());
+         PmTilesArchive merged = PmTilesArchive.open(
+           new PmTilesTestArchive().zoomRange(0, 17).asByteSource())) {
+      assertEquals(13, ConvertMapterhornTile.selectZoom(regional, -1, 1));
+      assertEquals(12, ConvertMapterhornTile.selectZoom(merged, -1, 1));
+      assertEquals(11, ConvertMapterhornTile.selectZoom(merged, -1, 3));
+    }
+  }
+
+  @Test
+  public void explicitZoomMustBeInsideTheInclusiveArchiveRange() throws IOException {
+    try (PmTilesArchive merged = PmTilesArchive.open(
+        new PmTilesTestArchive().zoomRange(0, 17).asByteSource());
+         PmTilesArchive regional = PmTilesArchive.open(
+           new PmTilesTestArchive().zoomRange(5, 17).asByteSource())) {
+      assertEquals(0, ConvertMapterhornTile.selectZoom(merged, 0, 3));
+      assertIllegalZoom(regional, 4);
+      assertIllegalZoom(merged, 18);
+    }
+  }
+
+  @Test
+  public void cellOutsideArchiveBoundsNeedsNoPostOpenReads() throws IOException {
+    PmTilesTestArchive fixture = new PmTilesTestArchive()
+      .zoomRange(ZOOM, ZOOM)
+      .bounds(10.0, 10.0, 20.0, 20.0)
+      .useLeafDirectory(true)
+      .put(ZOOM, 0, 0, new byte[]{1});
+    CountingByteSource source = new CountingByteSource(fixture.asByteSource());
+    try (PmTilesArchive archive = PmTilesArchive.open(source);
+         ConvertMapterhornTile converter = new ConvertMapterhornTile(
+           archive, ZOOM, null, TILE)) {
+      int readsAfterOpen = source.readCount();
+      assertFalse(converter.cellHasAnyTile(LON_START, LAT_START, ROW_LENGTH, null));
+      assertEquals("archive bounds should avoid a directory read",
+        readsAfterOpen, source.readCount());
+    }
+  }
+
+  @Test
+  public void bboxNarrowsBothTileAxesInOceanProbe() throws IOException {
+    double[] bbox = {1.0, 46.0, 2.0, 47.0};
+    PmTilesTestArchive westOnly = new PmTilesTestArchive().zoomRange(ZOOM, ZOOM)
+      .put(ZOOM, 31, 22, new byte[]{1});
+    try (PmTilesArchive archive = PmTilesArchive.open(westOnly.asByteSource());
+         ConvertMapterhornTile converter = new ConvertMapterhornTile(
+           archive, ZOOM, null, TILE)) {
+      assertFalse("bbox must exclude the western tile column",
+        converter.cellHasAnyTile(LON_START, LAT_START, ROW_LENGTH, bbox));
+    }
+
+    PmTilesTestArchive northOnly = new PmTilesTestArchive().zoomRange(ZOOM, ZOOM)
+      .put(ZOOM, 32, 21, new byte[]{1});
+    try (PmTilesArchive archive = PmTilesArchive.open(northOnly.asByteSource());
+         ConvertMapterhornTile converter = new ConvertMapterhornTile(
+           archive, ZOOM, null, TILE)) {
+      assertFalse("bbox must exclude the northern tile row",
+        converter.cellHasAnyTile(LON_START, LAT_START, ROW_LENGTH, bbox));
+    }
+  }
+
+  @Test
+  public void fullZ17CellIsRejectedByWorkPreflight() throws IOException {
+    try (PmTilesArchive archive = PmTilesArchive.open(
+        new PmTilesTestArchive().zoomRange(17, 17).asByteSource());
+         ConvertMapterhornTile converter = new ConvertMapterhornTile(
+           archive, 17, null, ConvertMapterhornTile.TILE_SIZE)) {
+      ConvertMapterhornTile.SamplingWindow window =
+        converter.samplingWindow(LON_START, LAT_START, 3600, null);
+      try {
+        converter.validateWorkWindow(window);
+        fail("expected a full z17 cell to exceed the work limits");
+      } catch (IOException e) {
+        assertTrue(e.getMessage(), e.getMessage().contains("-zoom"));
+        assertTrue(e.getMessage(), e.getMessage().contains("-bbox"));
+      }
+    }
+  }
+
+  @Test
+  public void smallZ17BboxPassesWorkPreflight() throws IOException {
+    try (PmTilesArchive archive = PmTilesArchive.open(
+        new PmTilesTestArchive().zoomRange(17, 17).asByteSource());
+         ConvertMapterhornTile converter = new ConvertMapterhornTile(
+           archive, 17, null, ConvertMapterhornTile.TILE_SIZE)) {
+      ConvertMapterhornTile.SamplingWindow window = converter.samplingWindow(
+        LON_START, LAT_START, 3600, new double[]{1.0, 46.0, 1.01, 46.01});
+      converter.validateWorkWindow(window);
+    }
+  }
+
+  @Test
+  public void tallNarrowZ17WindowIsRejectedBySourcePixelLimit() throws IOException {
+    try (PmTilesArchive archive = PmTilesArchive.open(
+        new PmTilesTestArchive().zoomRange(17, 17).asByteSource());
+         ConvertMapterhornTile converter = new ConvertMapterhornTile(
+           archive, 17, null, ConvertMapterhornTile.TILE_SIZE)) {
+      ConvertMapterhornTile.SamplingWindow window = converter.samplingWindow(
+        LON_START, LAT_START, 3600, new double[]{1.0, 45.0, 1.05, 50.0});
+      try {
+        converter.validateWorkWindow(window);
+        fail("expected a tall z17 window to exceed the source pixel limit");
+      } catch (IOException e) {
+        assertTrue(e.getMessage(), e.getMessage().contains("source pixels"));
+        assertTrue(e.getMessage(), e.getMessage().contains("-zoom"));
+        assertTrue(e.getMessage(), e.getMessage().contains("-bbox"));
+      }
+    }
+  }
+
+  @Test
+  public void workSizeOverflowBecomesIOException() throws IOException {
+    try (PmTilesArchive archive = PmTilesArchive.open(
+        new PmTilesTestArchive().zoomRange(30, 30).asByteSource());
+         ConvertMapterhornTile converter = new ConvertMapterhornTile(
+           archive, 30, null, Integer.MAX_VALUE)) {
+      ConvertMapterhornTile.SamplingWindow window =
+        converter.samplingWindow(LON_START, LAT_START, ROW_LENGTH, null);
+      try {
+        converter.validateWorkWindow(window);
+        fail("expected checked size overflow");
+      } catch (NegativeArraySizeException e) {
+        fail("size overflow must be reported as IOException");
+      } catch (IOException expected) {
+        assertTrue(expected.getMessage(), expected.getMessage().contains("too large"));
+      }
+    }
+  }
+
   private static int rowColIndex(double lat, double lon) {
     double cellsize = 1.0 / ROW_LENGTH;
     int imageRow = (int) Math.round((LAT_START + 5 - lat) / cellsize);
@@ -438,14 +570,69 @@ public class ConvertMapterhornTileTest {
     try (PmTilesArchive archive = PmTilesArchive.open(marginOnly.asByteSource());
          ConvertMapterhornTile converter = new ConvertMapterhornTile(archive, ZOOM, null, TILE)) {
       assertTrue("tile ending exactly on the cell edge must be probed",
-        converter.cellHasAnyTile(LON_START, LAT_START, ROW_LENGTH));
+        converter.cellHasAnyTile(LON_START, LAT_START, ROW_LENGTH, null));
     }
     PmTilesTestArchive farAway = new PmTilesTestArchive().zoomRange(ZOOM, ZOOM)
       .put(ZOOM, 5, 5, TerrainTiles.constantPng(TILE, 10.0));
     try (PmTilesArchive archive = PmTilesArchive.open(farAway.asByteSource());
          ConvertMapterhornTile converter = new ConvertMapterhornTile(archive, ZOOM, null, TILE)) {
       assertFalse("a distant tile must not be probed",
-        converter.cellHasAnyTile(LON_START, LAT_START, ROW_LENGTH));
+        converter.cellHasAnyTile(LON_START, LAT_START, ROW_LENGTH, null));
+    }
+  }
+
+  @Test
+  public void oceanProbeWrapsTheHalfCellMarginAtTheAntimeridian() throws IOException {
+    PmTilesTestArchive wrappedMarginOnly = new PmTilesTestArchive().zoomRange(ZOOM, ZOOM)
+      .put(ZOOM, 0, 22, new byte[]{1});
+    try (PmTilesArchive archive = PmTilesArchive.open(wrappedMarginOnly.asByteSource());
+         ConvertMapterhornTile converter = new ConvertMapterhornTile(
+           archive, ZOOM, null, TILE)) {
+      assertTrue("the margin east of 180 degrees must wrap to tile x=0",
+        converter.cellHasAnyTile(175, LAT_START, ROW_LENGTH, null));
+    }
+  }
+
+  private static void assertIllegalZoom(PmTilesArchive archive, int requested) {
+    try {
+      ConvertMapterhornTile.selectZoom(archive, requested, 3);
+      fail("expected rejection of zoom " + requested);
+    } catch (IllegalArgumentException expected) {
+      assertTrue(expected.getMessage(), expected.getMessage().contains("outside archive range"));
+    }
+  }
+
+  private static final class CountingByteSource implements PmTilesArchive.ByteSource {
+    private final PmTilesArchive.ByteSource delegate;
+    private int reads;
+
+    CountingByteSource(PmTilesArchive.ByteSource delegate) {
+      this.delegate = delegate;
+    }
+
+    int readCount() {
+      return reads;
+    }
+
+    @Override
+    public byte[] read(long offset, int length) throws IOException {
+      reads++;
+      return delegate.read(offset, length);
+    }
+
+    @Override
+    public long size() throws IOException {
+      return delegate.size();
+    }
+
+    @Override
+    public String versionId() throws IOException {
+      return delegate.versionId();
+    }
+
+    @Override
+    public void close() throws IOException {
+      delegate.close();
     }
   }
 

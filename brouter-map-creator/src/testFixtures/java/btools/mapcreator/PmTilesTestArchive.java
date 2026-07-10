@@ -40,10 +40,23 @@ public final class PmTilesTestArchive {
   private int tileCompression = PmTilesArchive.COMPRESSION_NONE;
   private boolean useLeafDirectory;
   private boolean contiguousOffsets;
+  private double minLon = -180.0;
+  private double minLat = -85.0511287;
+  private double maxLon = 180.0;
+  private double maxLat = 85.0511287;
 
   public PmTilesTestArchive zoomRange(int min, int max) {
     this.minZoom = min;
     this.maxZoom = max;
+    return this;
+  }
+
+  public PmTilesTestArchive bounds(double minLon, double minLat,
+                                   double maxLon, double maxLat) {
+    this.minLon = minLon;
+    this.minLat = minLat;
+    this.maxLon = maxLon;
+    this.maxLat = maxLat;
     return this;
   }
 
@@ -142,10 +155,10 @@ public final class PmTilesTestArchive {
     header[99] = (byte) tileType;
     header[100] = (byte) minZoom;
     header[101] = (byte) maxZoom;
-    putInt(header, 102, -1800000000);
-    putInt(header, 106, -850511287);
-    putInt(header, 110, 1800000000);
-    putInt(header, 114, 850511287);
+    putInt(header, 102, (int) Math.round(minLon * 1e7));
+    putInt(header, 106, (int) Math.round(minLat * 1e7));
+    putInt(header, 110, (int) Math.round(maxLon * 1e7));
+    putInt(header, 114, (int) Math.round(maxLat * 1e7));
     header[118] = 0;
     putInt(header, 119, 0);
     putInt(header, 123, 0);
@@ -202,7 +215,7 @@ public final class PmTilesTestArchive {
     }
   }
 
-  private static void putInt(byte[] b, int off, int v) {
+  public static void putInt(byte[] b, int off, int v) {
     for (int i = 0; i < 4; i++) {
       b[off + i] = (byte) (v >>> (8 * i));
     }
@@ -218,17 +231,30 @@ public final class PmTilesTestArchive {
 
   public static final class MemoryByteSource implements PmTilesArchive.ByteSource {
     private final byte[] data;
+    private final String versionId;
 
     public MemoryByteSource(byte[] data) {
-      this.data = data;
+      this.data = data.clone();
+      this.versionId = "memory-sha256:" + PmTilesArchive.sha256Hex(this.data);
     }
 
     @Override
     public byte[] read(long offset, int length) throws IOException {
-      if (offset < 0 || offset + length > data.length) {
+      long end = PmTilesArchive.checkedReadEnd(offset, length);
+      if (end > data.length) {
         throw new IOException("read past end of archive");
       }
-      return Arrays.copyOfRange(data, (int) offset, (int) offset + length);
+      return Arrays.copyOfRange(data, (int) offset, (int) end);
+    }
+
+    @Override
+    public long size() {
+      return data.length;
+    }
+
+    @Override
+    public String versionId() {
+      return versionId;
     }
 
     @Override

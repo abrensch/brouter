@@ -98,6 +98,12 @@ public class ConvertMapterhornTile implements AutoCloseable {
   /** Upper bound for one coalesced range read of contiguous tile bodies. */
   private static final int MAX_RUN_BYTES = 64 * 1024 * 1024;
 
+  /** Upper bound for the decoded float stripe held for one source tile row. */
+  private static final long MAX_STRIPE_BYTES = 512L * 1024L * 1024L;
+
+  /** Upper bound for source pixels visited by one conversion. */
+  private static final long MAX_SOURCE_PIXELS = 8_000_000_000L;
+
   /** Name of the marker file binding a cache directory to its source archive. */
   static final String CACHE_ID_FILE = "archive.id";
 
@@ -114,20 +120,20 @@ public class ConvertMapterhornTile implements AutoCloseable {
 
   // the horizontal footprint of each output column, as a CSR-style sparse matrix
   private int[] colOffset;
-  private int[] colSrcX;
+  private long[] colSrcX;
   private double[] colWeight;
-  private double colFootprint;
+  private double[] colFootprint;
 
   // one decoded row of source tiles, held as tileSize rows of stripeWidth pixels
   private float[] stripe;
-  private int stripeX0;
+  private long stripeX0;
   private int stripeWidth;
   private int stripeTileY = Integer.MIN_VALUE;
 
   // memo of the most recently reduced source row: source rows are consumed in
   // monotonically increasing order and only the boundary row is shared between two
   // adjacent output rows, so one slot is provably enough
-  private int reducedJ = Integer.MIN_VALUE;
+  private long reducedJ = Long.MIN_VALUE;
   private double[] reducedSumRow;
   private double[] reducedWeightRow;
 
@@ -146,7 +152,17 @@ public class ConvertMapterhornTile implements AutoCloseable {
     this.zoom = zoom;
     this.cacheDir = cacheDir;
     this.tileSize = tileSize;
-    this.worldPx = (long) tileSize << zoom;
+    if (zoom < 0 || zoom > 30) {
+      throw new IOException("zoom " + zoom + " is outside the supported range 0..30");
+    }
+    if (tileSize <= 0) {
+      throw new IOException("tile size must be positive: " + tileSize);
+    }
+    try {
+      this.worldPx = Math.multiplyExact((long) tileSize, 1L << zoom);
+    } catch (ArithmeticException e) {
+      throw new IOException("Mapterhorn world pixel size is too large", e);
+    }
     if (cacheDir != null) {
       // enforce the cache-archive binding for EVERY construction path, not only main()
       bindCacheDir(cacheDir, archive);
@@ -219,13 +235,7 @@ public class ConvertMapterhornTile implements AutoCloseable {
       if (cacheDir != null) {
         bindCacheDir(cacheDir, archive);
       }
-      if (zoom < 0) {
-        zoom = Math.min(archive.maxZoom(), arcsec == 1 ? 12 : 11);
-      }
-      if (zoom < 1 || zoom > archive.maxZoom()) {
-        throw new IllegalArgumentException("zoom " + zoom + " outside archive range 1.."
-          + archive.maxZoom());
-      }
+      zoom = selectZoom(archive, zoom, arcsec);
       System.out.println("mapterhorn: zoom=" + zoom + " arcsec=" + arcsec
         + " tileType=" + archive.tileType() + " bounds=" + archive.minLon() + ","
         + archive.minLat() + " .. " + archive.maxLon() + "," + archive.maxLat());
@@ -339,7 +349,7 @@ public class ConvertMapterhornTile implements AutoCloseable {
 
     try (ConvertMapterhornTile converter =
            new ConvertMapterhornTile(archive, zoom, cacheDir, tileSize, threads)) {
-      if (!converter.cellHasAnyTile(lonStart, latStart, rowLength)) {
+      if (!converter.cellHasAnyTile(lonStart, latStart, rowLength, bbox)) {
         System.out.println("  no source tiles for " + name + ", skipped");
         return;
       }
@@ -408,6 +418,18 @@ public class ConvertMapterhornTile implements AutoCloseable {
     return b;
   }
 
+  static int selectZoom(PmTilesArchive archive, int requested, int arcsec) {
+    int selected = requested < 0 ? (arcsec == 1 ? 12 : 11) : requested;
+    if (requested < 0) {
+      selected = Math.max(archive.minZoom(), Math.min(archive.maxZoom(), selected));
+    }
+    if (selected < archive.minZoom() || selected > archive.maxZoom() || selected > 30) {
+      throw new IllegalArgumentException("zoom " + selected + " outside archive range "
+        + archive.minZoom() + ".." + archive.maxZoom());
+    }
+    return selected;
+  }
+
   /**
    * Accepts a cell name in either naming scheme, or a plain '&lt;lon&gt;,&lt;lat&gt;'
    * corner. Malformed or out-of-range cells fail loudly instead of parsing to a
@@ -431,6 +453,118 @@ public class ConvertMapterhornTile implements AutoCloseable {
 
   // ---------------------------------------------------------------- raster
 
+  /** Output indices and their effective source-sampling rectangle. */
+  static final class SamplingWindow {
+    final int rowFrom;
+    final int rowTo;
+    final int colFrom;
+    final int colTo;
+    final double minLon;
+    final double minLat;
+    final double maxLon;
+    final double maxLat;
+    final boolean empty;
+
+    SamplingWindow(int rowFrom, int rowTo, int colFrom, int colTo,
+                   double minLon, double minLat, double maxLon, double maxLat,
+                   boolean empty) {
+      this.rowFrom = rowFrom;
+      this.rowTo = rowTo;
+      this.colFrom = colFrom;
+      this.colTo = colTo;
+      this.minLon = minLon;
+      this.minLat = minLat;
+      this.maxLon = maxLon;
+      this.maxLat = maxLat;
+      this.empty = empty;
+    }
+  }
+
+  SamplingWindow samplingWindow(int lonStart, int latStart, int rowLength, double[] bbox)
+      throws IOException {
+    if (rowLength <= 0) {
+      throw new IOException("row length must be positive: " + rowLength);
+    }
+    int n = checkedInt(checkedAdd(checkedMultiply(5L, rowLength, "output row count"),
+      1L, "output row count"), "output row count");
+    double cellsize = 1.0 / rowLength;
+
+    int rowFrom = 0;
+    int rowTo = n - 1;
+    int colFrom = 0;
+    int colTo = n - 1;
+    if (bbox != null) {
+      if (bbox[0] >= lonStart + 5.0 || bbox[2] <= lonStart
+        || bbox[1] >= latStart + 5.0 || bbox[3] <= latStart) {
+        return emptySamplingWindow();
+      }
+      // imageRow 0 is the north edge, so a higher latitude means a lower row index
+      rowFrom = clamp((int) Math.floor((latStart + 5.0 - bbox[3]) / cellsize), 0, n - 1);
+      rowTo = clamp((int) Math.ceil((latStart + 5.0 - bbox[1]) / cellsize), 0, n - 1);
+      colFrom = clamp((int) Math.floor((bbox[0] - lonStart) / cellsize), 0, n - 1);
+      colTo = clamp((int) Math.ceil((bbox[2] - lonStart) / cellsize), 0, n - 1);
+    }
+    if (rowFrom > rowTo || colFrom > colTo) {
+      return emptySamplingWindow();
+    }
+
+    double minLon = lonStart + colFrom * cellsize - 0.5 * cellsize;
+    double maxLon = lonStart + colTo * cellsize + 0.5 * cellsize;
+    double minLat = latStart + 5.0 - rowTo * cellsize - 0.5 * cellsize;
+    double maxLat = latStart + 5.0 - rowFrom * cellsize + 0.5 * cellsize;
+
+    double[] lonIntersection = intersectArchiveLongitude(minLon, maxLon);
+    if (lonIntersection == null) {
+      return emptySamplingWindow();
+    }
+    minLon = lonIntersection[0];
+    maxLon = lonIntersection[1];
+    minLat = Math.max(minLat, Math.max(archive.minLat(), -MAX_MERCATOR_LAT));
+    maxLat = Math.min(maxLat, Math.min(archive.maxLat(), MAX_MERCATOR_LAT));
+    if (minLon >= maxLon || minLat >= maxLat) {
+      return emptySamplingWindow();
+    }
+    return new SamplingWindow(rowFrom, rowTo, colFrom, colTo,
+      minLon, minLat, maxLon, maxLat, false);
+  }
+
+  private SamplingWindow emptySamplingWindow() {
+    return new SamplingWindow(0, -1, 0, -1,
+      Double.NaN, Double.NaN, Double.NaN, Double.NaN, true);
+  }
+
+  /**
+   * Intersect longitude on a periodic world. Full-world archives keep the sampling
+   * margin across +/-180; regional bounds are shifted by one world when the cell is on
+   * the opposite side of the antimeridian.
+   */
+  private double[] intersectArchiveLongitude(double minLon, double maxLon) {
+    double archiveMin = archive.minLon();
+    double archiveMax = archive.maxLon();
+    if (archiveMax - archiveMin >= 360.0 - 1e-7) {
+      return new double[]{minLon, maxLon};
+    }
+
+    double requestedCentre = 0.5 * (minLon + maxLon);
+    double archiveCentre = 0.5 * (archiveMin + archiveMax);
+    int nearestShift = (int) Math.rint((requestedCentre - archiveCentre) / 360.0);
+    double bestWidth = 0.0;
+    double bestMin = 0.0;
+    double bestMax = 0.0;
+    for (int delta = -1; delta <= 1; delta++) {
+      double shift = (nearestShift + delta) * 360.0;
+      double overlapMin = Math.max(minLon, archiveMin + shift);
+      double overlapMax = Math.min(maxLon, archiveMax + shift);
+      double width = overlapMax - overlapMin;
+      if (width > bestWidth) {
+        bestWidth = width;
+        bestMin = overlapMin;
+        bestMax = overlapMax;
+      }
+    }
+    return bestWidth > 0.0 ? new double[]{bestMin, bestMax} : null;
+  }
+
   /**
    * Cheap directory-only probe: does the archive hold any tile the resampler would
    * touch for this cell? Saves the full raster allocation and row loop for open-ocean
@@ -441,21 +575,26 @@ public class ConvertMapterhornTile implements AutoCloseable {
    * centred on the cell border). Probing only the nominal box would skip a cell whose
    * sole tiles sit in that margin when the box edge coincides with a tile boundary.
    */
-  boolean cellHasAnyTile(int lonStart, int latStart, int rowLength) throws IOException {
-    double halfCell = 0.5 / rowLength;
-    double latTop = Math.min(MAX_MERCATOR_LAT, latStart + 5.0 + halfCell);
-    double latBottom = Math.max(-MAX_MERCATOR_LAT, latStart - halfCell);
-    if (latBottom >= latTop) {
-      return false; // cell entirely outside the mercator range
+  boolean cellHasAnyTile(int lonStart, int latStart, int rowLength, double[] bbox)
+      throws IOException {
+    SamplingWindow window = samplingWindow(lonStart, latStart, rowLength, bbox);
+    if (window.empty) {
+      return false;
     }
-    int tiles = 1 << zoom;
-    int txMin = Math.floorDiv((int) Math.floor(mercatorX(lonStart - halfCell)), tileSize);
-    int txMax = Math.floorDiv((int) Math.ceil(mercatorX(lonStart + 5 + halfCell)) - 1, tileSize);
-    int tyMin = clamp((int) Math.floor(mercatorY(latTop) / tileSize), 0, tiles - 1);
-    int tyMax = clamp((int) Math.floor(mercatorY(latBottom) / tileSize), 0, tiles - 1);
-    for (int ty = tyMin; ty <= tyMax; ty++) {
-      for (int tx = txMin; tx <= txMax; tx++) {
-        if (archive.locateTile(zoom, Math.floorMod(tx, tiles), ty) != null) {
+    validateWorkWindow(window);
+
+    long txMin = tileXMin(window);
+    long txMax = tileXMax(window);
+    long sourceYFrom = sourceYFrom(window);
+    long sourceYTo = sourceYToExclusive(window);
+    long tiles = 1L << zoom;
+    long tyMin = Math.max(0L, Math.floorDiv(sourceYFrom, (long) tileSize));
+    long tyMax = Math.min(tiles - 1L,
+      Math.floorDiv(sourceYTo - 1L, (long) tileSize));
+    for (long ty = tyMin; ty <= tyMax; ty++) {
+      for (long tx = txMin; tx <= txMax; tx++) {
+        int wrappedTx = (int) Math.floorMod(tx, tiles);
+        if (archive.locateTile(zoom, wrappedTx, (int) ty) != null) {
           return true;
         }
       }
@@ -471,51 +610,48 @@ public class ConvertMapterhornTile implements AutoCloseable {
     // reset per-run state so a reused instance cannot see a stale stripe, memo or
     // tile counters (a stale tilesFound would defeat the empty-cell bail below)
     stripeTileY = Integer.MIN_VALUE;
-    reducedJ = Integer.MIN_VALUE;
+    reducedJ = Long.MIN_VALUE;
     tilesFound.set(0);
     tilesMissing.set(0);
 
-    int n = ElevationCells.cellSamples(rowLength);
-    double cellsize = 1.0 / rowLength;
-
-    int rowFrom = 0;
-    int rowTo = n - 1;
-    int colFrom = 0;
-    int colTo = n - 1;
-    if (bbox != null) {
-      // imageRow 0 is the north edge, so a higher latitude means a lower row index
-      rowFrom = clamp((int) Math.floor((latStart + 5 - bbox[3]) / cellsize), 0, n - 1);
-      rowTo = clamp((int) Math.ceil((latStart + 5 - bbox[1]) / cellsize), 0, n - 1);
-      colFrom = clamp((int) Math.floor((bbox[0] - lonStart) / cellsize), 0, n - 1);
-      colTo = clamp((int) Math.ceil((bbox[2] - lonStart) / cellsize), 0, n - 1);
+    SamplingWindow window = samplingWindow(lonStart, latStart, rowLength, bbox);
+    if (window.empty) {
+      return null;
     }
+    validateWorkWindow(window);
 
-    buildColumnWeights(lonStart, cellsize, n, colFrom, colTo);
-    prepareStripe(colFrom, colTo);
+    int n = checkedInt(checkedAdd(checkedMultiply(5L, rowLength, "output row count"),
+      1L, "output row count"), "output row count");
+    double cellsize = 1.0 / rowLength;
+    int rasterElements = checkedInt(checkedMultiply(n, n, "output raster size"),
+      "output raster size");
 
-    short[] pixels = new short[n * n];
+    buildColumnWeights(lonStart, cellsize, n, window);
+    prepareStripe(window);
+
+    short[] pixels = new short[rasterElements];
     Arrays.fill(pixels, NODATA);
 
     double[] acc = new double[n];
     double[] accWeight = new double[n];
 
     long t0 = System.currentTimeMillis();
-    for (int imageRow = rowFrom; imageRow <= rowTo; imageRow++) {
+    for (int imageRow = window.rowFrom; imageRow <= window.rowTo; imageRow++) {
       double lat = latStart + 5 - imageRow * cellsize;
-      double latTop = Math.min(MAX_MERCATOR_LAT, lat + 0.5 * cellsize);
-      double latBottom = Math.max(-MAX_MERCATOR_LAT, lat - 0.5 * cellsize);
+      double latTop = Math.min(window.maxLat, lat + 0.5 * cellsize);
+      double latBottom = Math.max(window.minLat, lat - 0.5 * cellsize);
       double yTop = mercatorY(latTop);
       double yBottom = mercatorY(latBottom);
       if (yBottom <= yTop) {
         continue;
       }
 
-      Arrays.fill(acc, colFrom, colTo + 1, 0.0);
-      Arrays.fill(accWeight, colFrom, colTo + 1, 0.0);
+      Arrays.fill(acc, window.colFrom, window.colTo + 1, 0.0);
+      Arrays.fill(accWeight, window.colFrom, window.colTo + 1, 0.0);
 
-      int j0 = (int) Math.floor(yTop);
-      int j1 = (int) Math.ceil(yBottom);
-      for (int j = j0; j < j1; j++) {
+      long j0 = floorToLong(yTop, "source row start");
+      long j1 = ceilToLong(yBottom, "source row end");
+      for (long j = j0; j < j1; j++) {
         if (j < 0 || j >= worldPx) {
           continue;
         }
@@ -523,26 +659,27 @@ public class ConvertMapterhornTile implements AutoCloseable {
         if (wy <= 0.0) {
           continue;
         }
-        reduceSourceRow(j, colFrom, colTo);
+        reduceSourceRow(j, window.colFrom, window.colTo);
         double[] sum = reducedSumRow;
         double[] weight = reducedWeightRow;
-        for (int c = colFrom; c <= colTo; c++) {
+        for (int c = window.colFrom; c <= window.colTo; c++) {
           acc[c] += wy * sum[c];
           accWeight[c] += wy * weight[c];
         }
       }
 
-      double fullWeight = (yBottom - yTop) * colFootprint;
       int base = imageRow * n;
-      for (int c = colFrom; c <= colTo; c++) {
+      for (int c = window.colFrom; c <= window.colTo; c++) {
+        double fullWeight = (yBottom - yTop) * colFootprint[c];
         if (accWeight[c] >= MIN_COVERAGE * fullWeight && accWeight[c] > 0.0) {
           long v = Math.round(acc[c] / accWeight[c]);
           pixels[base + c] = (short) Math.max(MIN_ELEVATION, Math.min(MAX_ELEVATION, v));
         }
       }
 
-      if ((imageRow - rowFrom) % 1000 == 0) {
-        System.out.println("  row " + (imageRow - rowFrom) + "/" + (rowTo - rowFrom)
+      if ((imageRow - window.rowFrom) % 1000 == 0) {
+        System.out.println("  row " + (imageRow - window.rowFrom) + "/"
+          + (window.rowTo - window.rowFrom)
           + "  tiles=" + tilesFound.get() + "  " + (System.currentTimeMillis() - t0) + " ms");
       }
     }
@@ -566,32 +703,154 @@ public class ConvertMapterhornTile implements AutoCloseable {
     return (lon + 180.0) / 360.0 * worldPx;
   }
 
+  void validateWorkWindow(SamplingWindow window) throws IOException {
+    if (window.empty) {
+      return;
+    }
+
+    long txMin = tileXMin(window);
+    long tileColumns = checkedAdd(checkedSubtract(tileXMax(window), txMin,
+      "stripe tile columns"), 1L, "stripe tile columns");
+    long stripeWidth = checkedMultiply(tileColumns, tileSize, "stripe width");
+    long stripeFloats = checkedMultiply(stripeWidth, tileSize, "stripe float count");
+    long stripeBytes = checkedMultiply(stripeFloats, Float.BYTES, "stripe byte count");
+    if (stripeBytes > MAX_STRIPE_BYTES) {
+      throw workTooLarge("float stripe needs " + stripeBytes + " bytes; maximum is "
+        + MAX_STRIPE_BYTES, null);
+    }
+
+    long sourceWidth = checkedSubtract(sourceXToExclusive(window), sourceXFrom(window),
+      "source pixel width");
+    long sourceHeight = checkedSubtract(sourceYToExclusive(window), sourceYFrom(window),
+      "source pixel height");
+    long sourcePixels = checkedMultiply(sourceWidth, sourceHeight, "source pixel count");
+    if (sourcePixels > MAX_SOURCE_PIXELS) {
+      throw workTooLarge("box filter would visit about " + sourcePixels
+        + " source pixels; maximum is " + MAX_SOURCE_PIXELS, null);
+    }
+  }
+
+  private long sourceXFrom(SamplingWindow window) throws IOException {
+    return floorToLong(mercatorX(window.minLon), "source column start");
+  }
+
+  private long sourceXToExclusive(SamplingWindow window) throws IOException {
+    return ceilToLong(mercatorX(window.maxLon), "source column end");
+  }
+
+  private long sourceYFrom(SamplingWindow window) throws IOException {
+    return floorToLong(mercatorY(window.maxLat), "source row start");
+  }
+
+  private long sourceYToExclusive(SamplingWindow window) throws IOException {
+    return ceilToLong(mercatorY(window.minLat), "source row end");
+  }
+
+  private long tileXMin(SamplingWindow window) throws IOException {
+    return Math.floorDiv(sourceXFrom(window), (long) tileSize);
+  }
+
+  private long tileXMax(SamplingWindow window) throws IOException {
+    return Math.floorDiv(checkedAdd(sourceXToExclusive(window), -1L,
+      "source column end"), (long) tileSize);
+  }
+
+  private static long floorToLong(double value, String what) throws IOException {
+    double rounded = Math.floor(value);
+    if (!Double.isFinite(rounded) || rounded < -0x1p63 || rounded >= 0x1p63) {
+      throw workTooLarge(what + " is outside the long range: " + value, null);
+    }
+    return (long) rounded;
+  }
+
+  private static long ceilToLong(double value, String what) throws IOException {
+    double rounded = Math.ceil(value);
+    if (!Double.isFinite(rounded) || rounded < -0x1p63 || rounded >= 0x1p63) {
+      throw workTooLarge(what + " is outside the long range: " + value, null);
+    }
+    return (long) rounded;
+  }
+
+  private static int checkedInt(long value, String what) throws IOException {
+    if (value < 0L || value > Integer.MAX_VALUE) {
+      throw workTooLarge(what + " exceeds the Java array limit: " + value, null);
+    }
+    return (int) value;
+  }
+
+  private static long checkedAdd(long left, long right, String what) throws IOException {
+    try {
+      return Math.addExact(left, right);
+    } catch (ArithmeticException e) {
+      throw workTooLarge(what + " overflow", e);
+    }
+  }
+
+  private static long checkedSubtract(long left, long right, String what) throws IOException {
+    try {
+      long value = Math.subtractExact(left, right);
+      if (value < 0L) {
+        throw workTooLarge(what + " is negative: " + value, null);
+      }
+      return value;
+    } catch (ArithmeticException e) {
+      throw workTooLarge(what + " overflow", e);
+    }
+  }
+
+  private static long checkedMultiply(long left, long right, String what) throws IOException {
+    try {
+      return Math.multiplyExact(left, right);
+    } catch (ArithmeticException e) {
+      throw workTooLarge(what + " overflow", e);
+    }
+  }
+
+  private static IOException workTooLarge(String detail, Throwable cause) {
+    String message = "Mapterhorn work is too large: " + detail
+      + "; lower -zoom or narrow -bbox";
+    return cause == null ? new IOException(message) : new IOException(message, cause);
+  }
+
   /**
    * Each output column overlaps two or three source columns. Precompute those overlaps
    * once: they are the same for every row, because longitude maps linearly onto x.
    */
-  private void buildColumnWeights(int lonStart, double cellsize, int n, int colFrom, int colTo) {
-    colFootprint = cellsize / 360.0 * worldPx;
-    int maxSpan = (int) Math.ceil(colFootprint) + 1;
+  private void buildColumnWeights(int lonStart, double cellsize, int n,
+                                  SamplingWindow window) throws IOException {
+    long maxSpan = checkedAdd(ceilToLong(cellsize / 360.0 * worldPx,
+      "source columns per output column"), 1L, "source columns per output column");
+    long activeColumns = (long) window.colTo - window.colFrom + 1L;
+    int weightCapacity = checkedInt(checkedMultiply(activeColumns, maxSpan,
+      "column weight count"), "column weight count");
 
-    colOffset = new int[n + 1];
-    colSrcX = new int[(colTo - colFrom + 1) * maxSpan];
+    colOffset = new int[checkedInt(checkedAdd(n, 1L, "column offset count"),
+      "column offset count")];
+    colSrcX = new long[weightCapacity];
     colWeight = new double[colSrcX.length];
+    colFootprint = new double[n];
 
     int k = 0;
     for (int c = 0; c < n; c++) {
       colOffset[c] = k;
-      if (c < colFrom || c > colTo) {
+      if (c < window.colFrom || c > window.colTo) {
         continue;
       }
       double lon = lonStart + c * cellsize;
-      double xa = mercatorX(lon - 0.5 * cellsize);
-      double xb = mercatorX(lon + 0.5 * cellsize);
-      int i0 = (int) Math.floor(xa);
-      int i1 = (int) Math.ceil(xb);
-      for (int i = i0; i < i1; i++) {
+      double xa = mercatorX(Math.max(window.minLon, lon - 0.5 * cellsize));
+      double xb = mercatorX(Math.min(window.maxLon, lon + 0.5 * cellsize));
+      if (xb <= xa) {
+        continue;
+      }
+      colFootprint[c] = xb - xa;
+      long i0 = floorToLong(xa, "source column start");
+      long i1 = ceilToLong(xb, "source column end");
+      for (long i = i0; i < i1; i++) {
         double w = Math.min(i + 1, xb) - Math.max(i, xa);
         if (w > 0.0) {
+          if (k >= colSrcX.length) {
+            throw new IOException("Mapterhorn column weight count is too large");
+          }
           colSrcX[k] = i;
           colWeight[k] = w;
           k++;
@@ -601,14 +860,16 @@ public class ConvertMapterhornTile implements AutoCloseable {
     colOffset[n] = k;
   }
 
-  private void prepareStripe(int colFrom, int colTo) {
-    int xMin = colSrcX[colOffset[colFrom]];
-    int xMax = colSrcX[colOffset[colTo + 1] - 1];
-    int txMin = Math.floorDiv(xMin, tileSize);
-    int txMax = Math.floorDiv(xMax, tileSize);
-    stripeX0 = txMin * tileSize;
-    stripeWidth = (txMax - txMin + 1) * tileSize;
-    stripe = new float[stripeWidth * tileSize];
+  private void prepareStripe(SamplingWindow window) throws IOException {
+    long txMin = tileXMin(window);
+    long tileColumns = checkedAdd(checkedSubtract(tileXMax(window), txMin,
+      "stripe tile columns"), 1L, "stripe tile columns");
+    stripeX0 = checkedMultiply(txMin, tileSize, "stripe source offset");
+    stripeWidth = checkedInt(checkedMultiply(tileColumns, tileSize, "stripe width"),
+      "stripe width");
+    int stripeElements = checkedInt(checkedMultiply(stripeWidth, tileSize,
+      "stripe float count"), "stripe float count");
+    stripe = new float[stripeElements];
   }
 
   /**
@@ -617,11 +878,11 @@ public class ConvertMapterhornTile implements AutoCloseable {
    * boundary, and source rows are consumed in monotonically increasing order, so a
    * single-slot memo captures all reuse.
    */
-  private void reduceSourceRow(int j, int colFrom, int colTo) throws IOException {
+  private void reduceSourceRow(long j, int colFrom, int colTo) throws IOException {
     if (reducedJ == j) {
       return;
     }
-    ensureStripe(Math.floorDiv(j, tileSize));
+    ensureStripe(checkedInt(Math.floorDiv(j, (long) tileSize), "source tile row"));
 
     if (reducedSumRow == null) {
       reducedSumRow = new double[colOffset.length - 1];
@@ -630,15 +891,18 @@ public class ConvertMapterhornTile implements AutoCloseable {
     double[] sum = reducedSumRow;
     double[] weight = reducedWeightRow;
 
-    int rowBase = (j - stripeTileY * tileSize) * stripeWidth;
+    int stripeRow = checkedInt(j - (long) stripeTileY * tileSize, "stripe row");
+    int rowBase = checkedInt(checkedMultiply(stripeRow, stripeWidth,
+      "stripe row offset"), "stripe row offset");
     for (int c = colFrom; c <= colTo; c++) {
       double s = 0.0;
       double w = 0.0;
       for (int k = colOffset[c]; k < colOffset[c + 1]; k++) {
-        int i = colSrcX[k] - stripeX0;
-        if (i < 0 || i >= stripeWidth) {
+        long relative = colSrcX[k] - stripeX0;
+        if (relative < 0 || relative >= stripeWidth) {
           continue;
         }
+        int i = (int) relative;
         float v = stripe[rowBase + i];
         if (!Float.isNaN(v)) {
           s += colWeight[k] * v;
@@ -667,8 +931,8 @@ public class ConvertMapterhornTile implements AutoCloseable {
     if (tileY == stripeTileY) {
       return;
     }
-    int txMin = stripeX0 / tileSize;
-    int tiles = 1 << zoom;
+    long txMin = Math.floorDiv(stripeX0, (long) tileSize);
+    long tiles = 1L << zoom;
     int count = stripeWidth / tileSize;
 
     AtomicReferenceArray<TerrariumTileDecoder.Tile> decoded = new AtomicReferenceArray<>(count);
@@ -676,7 +940,7 @@ public class ConvertMapterhornTile implements AutoCloseable {
     List<MissedTile> misses = new ArrayList<>();
 
     for (int k = 0; k < count; k++) {
-      int tx = Math.floorMod(txMin + k, tiles);
+      int tx = (int) Math.floorMod(txMin + k, tiles);
       byte[] cached = readCachedTile(tx, tileY);
       if (cached == ABSENT_MARKER) {
         tilesMissing.incrementAndGet();

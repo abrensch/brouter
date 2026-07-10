@@ -12,12 +12,23 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -40,7 +51,12 @@ public final class PmTilesArchive implements Closeable {
   public static final int TILETYPE_PNG = 2;
   public static final int TILETYPE_WEBP = 4;
 
-  private static final int LEAF_CACHE_ENTRIES = 256;
+  static final long INITIAL_DIRECTORY_END = 16L * 1024L;
+  static final int MAX_COMPRESSED_DIRECTORY_BYTES = 16 * 1024 * 1024;
+  static final int MAX_INFLATED_BYTES = 64 * 1024 * 1024;
+  static final int MAX_DIRECTORY_ENTRIES = 250_000;
+  static final int MAX_CACHED_LEAF_ENTRIES = 250_000;
+
   private static final int MAX_DIR_DEPTH = 4;
 
   /**
@@ -48,14 +64,24 @@ public final class PmTilesArchive implements Closeable {
    */
   public interface ByteSource extends Closeable {
     byte[] read(long offset, int length) throws IOException;
+
+    /** The immutable snapshot's total byte length. */
+    long size() throws IOException;
+
+    /** A stable identity for the immutable snapshot. */
+    String versionId() throws IOException;
   }
 
   private final ByteSource source;
 
   private long rootDirOffset;
   private long rootDirLength;
+  private long metadataOffset;
+  private long metadataLength;
   private long leafDirsOffset;
+  private long leafDirsLength;
   private long tileDataOffset;
+  private long tileDataLength;
   private String headerId;
   private int internalCompression;
   private int tileCompression;
@@ -69,12 +95,9 @@ public final class PmTilesArchive implements Closeable {
 
   private List<DirEntry> rootDir;
 
-  private final Map<Long, List<DirEntry>> leafCache = new LinkedHashMap<>(16, 0.75f, true) {
-    @Override
-    protected boolean removeEldestEntry(Map.Entry<Long, List<DirEntry>> eldest) {
-      return size() > LEAF_CACHE_ENTRIES;
-    }
-  };
+  private final Map<Long, List<DirEntry>> leafCache =
+    new LinkedHashMap<>(16, 0.75f, true);
+  private int cachedLeafEntries;
 
   private PmTilesArchive(ByteSource source) {
     this.source = source;
@@ -103,14 +126,13 @@ public final class PmTilesArchive implements Closeable {
     PmTilesArchive archive = new PmTilesArchive(source);
     byte[] header = archive.readHeader();
     byte[] rawRootDir = source.read(archive.rootDirOffset,
-      checkedInt(archive.rootDirLength, "root directory length"));
-    // identity = header + root directory: the root digests every tile offset/length
-    // (directly or via leaf pointers), so different builds cannot share it
-    byte[] idInput = new byte[header.length + rawRootDir.length];
-    System.arraycopy(header, 0, idInput, 0, header.length);
-    System.arraycopy(rawRootDir, 0, idInput, header.length, rawRootDir.length);
-    archive.headerId = sha256Hex(idInput);
-    archive.rootDir = archive.parseDirectory(rawRootDir);
+      checkedDirectoryLength(archive.rootDirLength, "root directory"));
+    MessageDigest identity = sha256Digest();
+    identity.update(source.versionId().getBytes(StandardCharsets.UTF_8));
+    identity.update(header);
+    identity.update(rawRootDir);
+    archive.headerId = hex(identity.digest());
+    archive.rootDir = archive.parseDirectory(rawRootDir, "root directory");
     return archive;
   }
 
@@ -199,13 +221,17 @@ public final class PmTilesArchive implements Closeable {
    * Undo the archive's tile compression on one tile body sliced out of a range read.
    */
   public byte[] decompressTile(byte[] raw) throws IOException {
-    return tileCompression == COMPRESSION_GZIP ? gunzip(raw) : raw;
+    if (raw.length > MAX_INFLATED_BYTES) {
+      throw new IOException("PMTiles stored tile body exceeds " + MAX_INFLATED_BYTES
+        + " bytes: " + raw.length);
+    }
+    return tileCompression == COMPRESSION_GZIP
+      ? gunzip(raw, MAX_INFLATED_BYTES, "PMTiles tile body") : raw;
   }
 
   /**
    * A fingerprint of this archive build, for binding external tile caches to their
-   * source: the SHA-256 of the header plus the raw root directory, which digests every
-   * tile offset and length (directly or through leaf pointers).
+   * source: the SHA-256 of the source version, header, and raw root directory.
    */
   public String archiveId() {
     return headerId;
@@ -215,6 +241,7 @@ public final class PmTilesArchive implements Closeable {
   public void close() throws IOException {
     synchronized (this) {
       leafCache.clear();
+      cachedLeafEntries = 0;
       rootDir = null;
     }
     source.close();
@@ -238,12 +265,12 @@ public final class PmTilesArchive implements Closeable {
 
     rootDirOffset = bb.getLong();
     rootDirLength = bb.getLong();
-    bb.getLong(); // metadata offset
-    bb.getLong(); // metadata length
+    metadataOffset = bb.getLong();
+    metadataLength = bb.getLong();
     leafDirsOffset = bb.getLong();
-    bb.getLong(); // leaf dirs length
+    leafDirsLength = bb.getLong();
     tileDataOffset = bb.getLong();
-    bb.getLong(); // tile data length
+    tileDataLength = bb.getLong();
     bb.getLong(); // num addressed tiles
     bb.getLong(); // num tile entries
     bb.getLong(); // num tile contents
@@ -259,35 +286,102 @@ public final class PmTilesArchive implements Closeable {
     maxLon = bb.getInt() / 1e7;
     maxLat = bb.getInt() / 1e7;
 
+    validateHeaderSections();
     if (internalCompression != COMPRESSION_NONE && internalCompression != COMPRESSION_GZIP) {
       throw new IOException("unsupported PMTiles directory compression: " + internalCompression);
     }
     if (tileCompression != COMPRESSION_NONE && tileCompression != COMPRESSION_GZIP) {
       throw new IOException("unsupported PMTiles tile compression: " + tileCompression);
     }
+    if (minZoom > 31 || maxZoom > 31 || minZoom > maxZoom) {
+      throw new IOException("invalid PMTiles zoom range: " + minZoom + ".." + maxZoom);
+    }
+    if (minLon < -180.0 || maxLon > 180.0 || minLon > maxLon
+      || minLat < -90.0 || maxLat > 90.0 || minLat > maxLat) {
+      throw new IOException("invalid PMTiles geographic bounds: " + minLon + "," + minLat
+        + " to " + maxLon + "," + maxLat);
+    }
     return buf;
+  }
+
+  private void validateHeaderSections() throws IOException {
+    long rootEnd = checkedSectionEnd(rootDirOffset, rootDirLength, "root directory");
+    long metadataEnd = checkedSectionEnd(metadataOffset, metadataLength, "metadata");
+    long leafEnd = checkedSectionEnd(leafDirsOffset, leafDirsLength, "leaf data");
+    long tileEnd = checkedSectionEnd(tileDataOffset, tileDataLength, "tile data");
+
+    if (rootDirOffset < HEADER_LEN) {
+      throw new IOException("invalid PMTiles root directory offset: " + rootDirOffset);
+    }
+    if (rootEnd > INITIAL_DIRECTORY_END) {
+      throw new IOException("implausible PMTiles root directory exceeds initial 16 KiB: "
+        + rootEnd);
+    }
+
+    long sourceSize = source.size();
+    requireSectionInsideSource(rootEnd, sourceSize, "root directory");
+    requireSectionInsideSource(metadataEnd, sourceSize, "metadata");
+    requireSectionInsideSource(leafEnd, sourceSize, "leaf data");
+    requireSectionInsideSource(tileEnd, sourceSize, "tile data");
+
+    if (rootEnd > metadataOffset || metadataEnd > leafDirsOffset
+      || leafEnd > tileDataOffset) {
+      throw new IOException("invalid PMTiles section order: root, metadata, leaf, tile");
+    }
+  }
+
+  private static long checkedSectionEnd(long offset, long length, String label)
+      throws IOException {
+    if (offset < 0L || length < 0L) {
+      throw new IOException("invalid PMTiles " + label + " section: offset=" + offset
+        + ", length=" + length);
+    }
+    return checkedAdd(offset, length, label + " section end");
+  }
+
+  private static void requireSectionInsideSource(long end, long sourceSize, String label)
+      throws IOException {
+    if (end > sourceSize) {
+      throw new IOException("PMTiles " + label + " section exceeds source length "
+        + sourceSize + ": " + end);
+    }
   }
 
   // ------------------------------------------------------------- directories
 
-  private List<DirEntry> parseDirectory(byte[] raw) throws IOException {
+  private List<DirEntry> parseDirectory(byte[] raw, String label) throws IOException {
     if (internalCompression == COMPRESSION_GZIP) {
-      raw = gunzip(raw);
+      raw = gunzip(raw, MAX_INFLATED_BYTES, label);
     }
     return deserializeDirectory(raw);
   }
 
-  private List<DirEntry> readDirectory(long offset, long length) throws IOException {
-    return parseDirectory(source.read(offset, checkedInt(length, "directory length")));
+  private List<DirEntry> readDirectory(long offset, long length, String label) throws IOException {
+    int readLength = checkedDirectoryLength(length, label);
+    return parseDirectory(source.read(offset, readLength), label);
   }
 
   private List<DirEntry> readLeafDirectory(long offset, long length) throws IOException {
+    requireSubrange(offset, length, leafDirsLength, "leaf data");
     List<DirEntry> cached = leafCache.get(offset);
     if (cached != null) {
       return cached;
     }
-    List<DirEntry> entries = readDirectory(leafDirsOffset + offset, length);
+    long absoluteOffset = checkedAdd(leafDirsOffset, offset, "leaf directory base offset");
+    List<DirEntry> entries = readDirectory(absoluteOffset, length,
+      "compressed leaf directory");
     leafCache.put(offset, entries);
+    try {
+      cachedLeafEntries = Math.addExact(cachedLeafEntries, entries.size());
+    } catch (ArithmeticException e) {
+      throw new IOException("PMTiles leaf cache entry count overflow", e);
+    }
+    Iterator<Map.Entry<Long, List<DirEntry>>> iterator = leafCache.entrySet().iterator();
+    while (cachedLeafEntries > MAX_CACHED_LEAF_ENTRIES && iterator.hasNext()) {
+      Map.Entry<Long, List<DirEntry>> eldest = iterator.next();
+      cachedLeafEntries -= eldest.getValue().size();
+      iterator.remove();
+    }
     return entries;
   }
 
@@ -297,11 +391,20 @@ public final class PmTilesArchive implements Closeable {
     if (numEntries <= 0) {
       return Collections.emptyList();
     }
+    if (numEntries > MAX_DIRECTORY_ENTRIES
+      || 4L * numEntries > data.length - pos[0]) {
+      throw new IOException("implausible PMTiles directory entry count: " + numEntries);
+    }
 
     long[] tileIds = new long[numEntries];
     long last = 0L;
     for (int i = 0; i < numEntries; i++) {
-      last += readVarint(data, pos);
+      long delta = readVarint(data, pos);
+      if (i > 0 && delta <= 0L) {
+        throw new IOException("invalid PMTiles directory tile ID delta at entry " + i
+          + ": " + delta);
+      }
+      last = checkedAdd(last, delta, "directory tile ID");
       tileIds[i] = last;
     }
     long[] runLengths = new long[numEntries];
@@ -311,6 +414,10 @@ public final class PmTilesArchive implements Closeable {
     long[] lengths = new long[numEntries];
     for (int i = 0; i < numEntries; i++) {
       lengths[i] = readVarint(data, pos);
+      if (lengths[i] <= 0L) {
+        throw new IOException("invalid PMTiles directory entry length at entry " + i
+          + ": " + lengths[i]);
+      }
     }
     // an offset of zero means "directly after the previous entry"
     long[] offsets = new long[numEntries];
@@ -320,7 +427,8 @@ public final class PmTilesArchive implements Closeable {
         if (i == 0) {
           throw new IOException("invalid PMTiles directory: leading zero offset");
         }
-        offsets[i] = offsets[i - 1] + lengths[i - 1];
+        offsets[i] = checkedAdd(offsets[i - 1], lengths[i - 1],
+          "directory offset");
       } else {
         offsets[i] = v - 1L;
       }
@@ -363,8 +471,15 @@ public final class PmTilesArchive implements Closeable {
     if (e.runLength == 0L) {
       return findEntry(tileId, readLeafDirectory(e.offset, e.length), depth + 1);
     }
-    if (tileId < e.tileId + e.runLength) {
-      return new long[]{tileDataOffset + e.offset, e.length};
+    long runEnd = checkedAdd(e.tileId, e.runLength, "tile run");
+    if (tileId < runEnd) {
+      if (e.length > MAX_INFLATED_BYTES) {
+        throw new IOException("PMTiles stored tile body exceeds " + MAX_INFLATED_BYTES
+          + " bytes: " + e.length);
+      }
+      requireSubrange(e.offset, e.length, tileDataLength, "tile data");
+      long absoluteOffset = checkedAdd(tileDataOffset, e.offset, "tile data base offset");
+      return new long[]{absoluteOffset, e.length};
     }
     return null;
   }
@@ -421,17 +536,64 @@ public final class PmTilesArchive implements Closeable {
     return (int) v;
   }
 
-  static String sha256Hex(byte[] data) {
+  private static int checkedDirectoryLength(long length, String label) throws IOException {
+    if (length <= 0L || length > MAX_COMPRESSED_DIRECTORY_BYTES) {
+      throw new IOException("implausible PMTiles " + label + " length: " + length
+        + " (maximum " + MAX_COMPRESSED_DIRECTORY_BYTES + ")");
+    }
+    return (int) length;
+  }
+
+  private static long checkedAdd(long left, long right, String what) throws IOException {
+    if (left < 0L || right < 0L) {
+      throw new IOException("invalid PMTiles " + what + ": " + left + " + " + right);
+    }
     try {
-      byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(data);
-      StringBuilder sb = new StringBuilder(digest.length * 2);
-      for (byte b : digest) {
-        sb.append(Character.forDigit((b >> 4) & 0xf, 16)).append(Character.forDigit(b & 0xf, 16));
-      }
-      return sb.toString();
-    } catch (java.security.NoSuchAlgorithmException e) {
+      return Math.addExact(left, right);
+    } catch (ArithmeticException e) {
+      throw new IOException("PMTiles " + what + " overflow: " + left + " + " + right, e);
+    }
+  }
+
+  private static void requireSubrange(long offset, long length, long sectionLength,
+                                      String label) throws IOException {
+    long end = checkedAdd(offset, length, label + " range");
+    if (end > sectionLength) {
+      throw new IOException("PMTiles " + label + " range exceeds section length "
+        + sectionLength + ": offset=" + offset + ", length=" + length);
+    }
+  }
+
+  static long checkedReadEnd(long offset, int length) throws IOException {
+    if (offset < 0L || length <= 0) {
+      throw new IOException("invalid byte range: offset=" + offset + ", length=" + length);
+    }
+    try {
+      return Math.addExact(offset, length);
+    } catch (ArithmeticException e) {
+      throw new IOException("invalid byte range overflow: offset=" + offset + ", length=" + length,
+        e);
+    }
+  }
+
+  static String sha256Hex(byte[] data) {
+    return hex(sha256Digest().digest(data));
+  }
+
+  private static MessageDigest sha256Digest() {
+    try {
+      return MessageDigest.getInstance("SHA-256");
+    } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("SHA-256 unavailable", e);
     }
+  }
+
+  private static String hex(byte[] digest) {
+    StringBuilder sb = new StringBuilder(digest.length * 2);
+    for (byte b : digest) {
+      sb.append(Character.forDigit((b >> 4) & 0xf, 16)).append(Character.forDigit(b & 0xf, 16));
+    }
+    return sb.toString();
   }
 
   static long readVarint(byte[] data, int[] pos) throws IOException {
@@ -442,6 +604,9 @@ public final class PmTilesArchive implements Closeable {
         throw new IOException("truncated varint in PMTiles directory");
       }
       int b = data[pos[0]++] & 0xff;
+      if (shift == 63 && (b & 0x7f) != 0) {
+        throw new IOException("varint exceeds signed 64-bit range in PMTiles directory");
+      }
       result |= (long) (b & 0x7f) << shift;
       if ((b & 0x80) == 0) {
         return result;
@@ -453,12 +618,24 @@ public final class PmTilesArchive implements Closeable {
     }
   }
 
-  static byte[] gunzip(byte[] data) throws IOException {
+  static byte[] gunzip(byte[] data, int maxBytes, String label) throws IOException {
+    if (maxBytes < 0) {
+      throw new IOException("invalid gzip output limit for " + label + ": " + maxBytes);
+    }
     try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(data));
-         ByteArrayOutputStream bos = new ByteArrayOutputStream(Math.max(64, data.length * 4))) {
+         ByteArrayOutputStream bos = new ByteArrayOutputStream(Math.min(maxBytes, 8192))) {
       byte[] buf = new byte[8192];
+      long total = 0L;
       int n;
       while ((n = gis.read(buf)) >= 0) {
+        try {
+          total = Math.addExact(total, n);
+        } catch (ArithmeticException e) {
+          throw new IOException(label + " gzip output length overflow", e);
+        }
+        if (total > maxBytes) {
+          throw new IOException(label + " gzip output exceeds " + maxBytes + " bytes");
+        }
         bos.write(buf, 0, n);
       }
       return bos.toByteArray();
@@ -485,29 +662,93 @@ public final class PmTilesArchive implements Closeable {
    * Reads from a local archive file.
    */
   public static final class FileByteSource implements ByteSource {
+    private final Path realPath;
+    private final Object fileKey;
+    private final long sourceSize;
+    private final FileTime modifiedTime;
+    private final String versionId;
     private final RandomAccessFile raf;
     private final FileChannel channel;
 
     public FileByteSource(File file) throws IOException {
-      this.raf = new RandomAccessFile(file, "r");
-      this.channel = raf.getChannel();
+      Path path = file.toPath().toRealPath();
+      BasicFileAttributes before = Files.readAttributes(path, BasicFileAttributes.class);
+      RandomAccessFile opened = new RandomAccessFile(path.toFile(), "r");
+      BasicFileAttributes after;
+      try {
+        after = Files.readAttributes(path, BasicFileAttributes.class);
+        if (!sameSnapshot(before, after)) {
+          throw new IOException("source file changed while opening: " + path);
+        }
+      } catch (IOException e) {
+        opened.close();
+        throw e;
+      }
+
+      this.realPath = path;
+      this.fileKey = after.fileKey();
+      this.sourceSize = after.size();
+      this.modifiedTime = after.lastModifiedTime();
+      String identity = realPath + "\n" + fileKey + "\n" + sourceSize + "\n"
+        + modifiedTime;
+      this.versionId = "file-sha256:" + sha256Hex(identity.getBytes(StandardCharsets.UTF_8));
+      this.raf = opened;
+      this.channel = opened.getChannel();
     }
 
     @Override
     public byte[] read(long offset, int length) throws IOException {
+      long end = checkedReadEnd(offset, length);
+      checkSnapshot();
+      if (end > sourceSize) {
+        throw new IOException("read past end of source file: offset=" + offset + ", length="
+          + length + ", size=" + sourceSize);
+      }
       ByteBuffer buf = ByteBuffer.allocate(length);
       int read = 0;
-      while (read < length) {
-        int n = channel.read(buf, offset + read);
-        if (n < 0) {
-          break;
+      try {
+        while (read < length) {
+          int n = channel.read(buf, offset + read);
+          if (n <= 0) {
+            break;
+          }
+          read += n;
         }
-        read += n;
+      } finally {
+        checkSnapshot();
       }
       if (read < length) {
         throw new IOException("short read at " + offset + ": wanted " + length + ", got " + read);
       }
       return buf.array();
+    }
+
+    @Override
+    public long size() {
+      return sourceSize;
+    }
+
+    @Override
+    public String versionId() {
+      return versionId;
+    }
+
+    private void checkSnapshot() throws IOException {
+      BasicFileAttributes current;
+      try {
+        current = Files.readAttributes(realPath, BasicFileAttributes.class);
+      } catch (IOException e) {
+        throw new IOException("source file changed or disappeared: " + realPath, e);
+      }
+      if (!Objects.equals(fileKey, current.fileKey()) || sourceSize != current.size()
+          || !modifiedTime.equals(current.lastModifiedTime())) {
+        throw new IOException("source file changed: " + realPath);
+      }
+    }
+
+    private static boolean sameSnapshot(BasicFileAttributes one, BasicFileAttributes two) {
+      return Objects.equals(one.fileKey(), two.fileKey()) && one.size() == two.size()
+        && one.lastModifiedTime().equals(two.lastModifiedTime());
     }
 
     @Override
@@ -524,8 +765,14 @@ public final class PmTilesArchive implements Closeable {
   public static final class HttpRangeByteSource implements ByteSource {
     private static final int MAX_ATTEMPTS = 3;
     private static final int TIMEOUT_MS = 30000;
+    private static final Pattern CONTENT_RANGE =
+      Pattern.compile("bytes (\\d+)-(\\d+)/(\\d+)");
 
     private final String url;
+    private final Object snapshotLock = new Object();
+    private String etag;
+    private long sourceLength = -1L;
+    private String versionId;
 
     public HttpRangeByteSource(String url) {
       this.url = url;
@@ -533,12 +780,13 @@ public final class PmTilesArchive implements Closeable {
 
     @Override
     public byte[] read(long offset, int length) throws IOException {
+      long end = checkedReadEnd(offset, length) - 1L;
       IOException last = null;
       for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
         try {
-          return rangeGet(offset, length);
+          return rangeGet(offset, end, length);
         } catch (PermanentHttpException e) {
-          throw e; // 4xx will not improve on retry
+          throw e; // a 4xx or snapshot mismatch will not improve on retry
         } catch (RateLimitedException e) {
           last = e;
           if (attempt + 1 >= MAX_ATTEMPTS) {
@@ -555,6 +803,28 @@ public final class PmTilesArchive implements Closeable {
         }
       }
       throw new IOException("range read failed at " + offset + " (+" + length + ")", last);
+    }
+
+    @Override
+    public long size() throws IOException {
+      synchronized (snapshotLock) {
+        requireSnapshot();
+        return sourceLength;
+      }
+    }
+
+    @Override
+    public String versionId() throws IOException {
+      synchronized (snapshotLock) {
+        requireSnapshot();
+        return versionId;
+      }
+    }
+
+    private void requireSnapshot() throws IOException {
+      if (etag == null) {
+        throw new IOException("HTTP source metadata is unavailable before a successful read");
+      }
     }
 
     private static void sleepBeforeRetry(long delayMs) throws IOException {
@@ -583,10 +853,18 @@ public final class PmTilesArchive implements Closeable {
       }
     }
 
-    private byte[] rangeGet(long offset, int length) throws IOException {
+    private byte[] rangeGet(long offset, long end, int length) throws IOException {
+      String ifMatch;
+      synchronized (snapshotLock) {
+        ifMatch = etag;
+      }
       HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
       con.setRequestMethod("GET");
-      con.setRequestProperty("Range", "bytes=" + offset + "-" + (offset + length - 1));
+      con.setRequestProperty("Range", "bytes=" + offset + "-" + end);
+      con.setRequestProperty("Accept-Encoding", "identity");
+      if (ifMatch != null) {
+        con.setRequestProperty("If-Match", ifMatch);
+      }
       con.setRequestProperty("User-Agent", "BRouter map-creator");
       con.setConnectTimeout(TIMEOUT_MS);
       con.setReadTimeout(TIMEOUT_MS);
@@ -610,10 +888,44 @@ public final class PmTilesArchive implements Closeable {
         }
         throw new IOException(msg);
       }
-      // read the body to the end and do not call disconnect(), so the connection returns
-      // to the keep-alive pool. Measured against Mapterhorn's CDN this saves little on
-      // its own -- a range request costs ~140 ms of round-trip latency regardless of
-      // size -- so callers should also fetch tiles concurrently.
+
+      String contentEncoding = con.getHeaderField("Content-Encoding");
+      if (contentEncoding != null && !"identity".equalsIgnoreCase(contentEncoding.trim())) {
+        drainAndDisconnect(con);
+        throw new PermanentHttpException("unexpected Content-Encoding for range response: "
+          + contentEncoding);
+      }
+
+      String responseEtag = con.getHeaderField("ETag");
+      if (!isStrongEtag(responseEtag)) {
+        drainAndDisconnect(con);
+        throw new PermanentHttpException("range response requires a strong ETag, got: "
+          + responseEtag);
+      }
+
+      String contentRange = con.getHeaderField("Content-Range");
+      long responseLength;
+      Matcher matcher = contentRange == null ? null : CONTENT_RANGE.matcher(contentRange);
+      try {
+        if (matcher == null || !matcher.matches()
+            || Long.parseLong(matcher.group(1)) != offset
+            || Long.parseLong(matcher.group(2)) != end) {
+          throw new IllegalArgumentException();
+        }
+        responseLength = Long.parseLong(matcher.group(3));
+        if (responseLength <= end) {
+          throw new IllegalArgumentException();
+        }
+      } catch (IllegalArgumentException e) {
+        drainAndDisconnect(con);
+        throw new PermanentHttpException("unexpected Content-Range for requested bytes " + offset
+          + "-" + end + ": " + contentRange);
+      }
+
+      checkResponseSnapshot(con, responseEtag, responseLength);
+      // Read the exact advertised range and do not call disconnect(), so the connection
+      // returns to the keep-alive pool. Callers should also fetch tiles concurrently:
+      // range requests still carry network round-trip latency regardless of size.
       byte[] out = new byte[length];
       try (InputStream is = con.getInputStream()) {
         int read = 0;
@@ -625,7 +937,74 @@ public final class PmTilesArchive implements Closeable {
           read += n;
         }
       }
+      captureResponseSnapshot(responseEtag, responseLength);
       return out;
+    }
+
+    private void checkResponseSnapshot(HttpURLConnection con, String responseEtag,
+        long responseLength) throws PermanentHttpException {
+      synchronized (snapshotLock) {
+        if (etag != null && !etag.equals(responseEtag)) {
+          drainAndDisconnect(con);
+          throw new PermanentHttpException("HTTP source ETag changed from " + etag + " to "
+            + responseEtag);
+        }
+        if (sourceLength >= 0L && sourceLength != responseLength) {
+          drainAndDisconnect(con);
+          throw new PermanentHttpException("HTTP source length changed from " + sourceLength
+            + " to " + responseLength);
+        }
+      }
+    }
+
+    private void captureResponseSnapshot(String responseEtag, long responseLength)
+        throws PermanentHttpException {
+      synchronized (snapshotLock) {
+        if (etag == null) {
+          etag = responseEtag;
+          sourceLength = responseLength;
+          versionId = snapshotVersionId(url, responseEtag, responseLength);
+          return;
+        }
+        if (!etag.equals(responseEtag)) {
+          throw new PermanentHttpException("HTTP source ETag changed from " + etag + " to "
+            + responseEtag);
+        }
+        if (sourceLength != responseLength) {
+          throw new PermanentHttpException("HTTP source length changed from " + sourceLength
+            + " to " + responseLength);
+        }
+      }
+    }
+
+    private static String snapshotVersionId(String url, String etag, long sourceLength) {
+      MessageDigest identity = sha256Digest();
+      updateLengthPrefixed(identity, url);
+      updateLengthPrefixed(identity, etag);
+      identity.update(ByteBuffer.allocate(Long.BYTES).order(ByteOrder.BIG_ENDIAN)
+        .putLong(sourceLength).array());
+      return "http-sha256:" + hex(identity.digest());
+    }
+
+    private static void updateLengthPrefixed(MessageDigest identity, String value) {
+      byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+      identity.update(ByteBuffer.allocate(Integer.BYTES).order(ByteOrder.BIG_ENDIAN)
+        .putInt(bytes.length).array());
+      identity.update(bytes);
+    }
+
+    private static boolean isStrongEtag(String value) {
+      if (value == null || value.length() < 2 || value.startsWith("W/")
+          || value.charAt(0) != '"' || value.charAt(value.length() - 1) != '"') {
+        return false;
+      }
+      for (int i = 1; i < value.length() - 1; i++) {
+        char c = value.charAt(i);
+        if (c == '"' || c <= 0x20 || c == 0x7f) {
+          return false;
+        }
+      }
+      return true;
     }
 
     private static void drainAndDisconnect(HttpURLConnection con) {

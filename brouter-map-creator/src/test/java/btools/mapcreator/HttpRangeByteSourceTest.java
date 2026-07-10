@@ -2,14 +2,20 @@ package btools.mapcreator;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,7 +31,7 @@ public class HttpRangeByteSourceTest {
   private String baseUrl;
   private final AtomicInteger hits = new AtomicInteger();
 
-  private static final byte[] DATA = "0123456789abcdefghij".getBytes();
+  private static final byte[] DATA = "0123456789abcdefghij".getBytes(StandardCharsets.US_ASCII);
 
   @Before
   public void startServer() throws IOException {
@@ -43,20 +49,213 @@ public class HttpRangeByteSourceTest {
   public void servesRangeRequests() throws IOException {
     server.createContext("/ok", exchange -> {
       hits.incrementAndGet();
-      String range = exchange.getRequestHeaders().getFirst("Range"); // bytes=a-b
-      String[] parts = range.substring(6).split("-");
-      int from = Integer.parseInt(parts[0]);
-      int to = Integer.parseInt(parts[1]);
-      byte[] body = java.util.Arrays.copyOfRange(DATA, from, to + 1);
-      exchange.sendResponseHeaders(206, body.length);
-      try (OutputStream os = exchange.getResponseBody()) {
-        os.write(body);
-      }
+      sendRange(exchange, DATA, "\"v1\"");
     });
     PmTilesArchive.HttpRangeByteSource src =
       new PmTilesArchive.HttpRangeByteSource(baseUrl + "/ok");
-    assertArrayEquals("3456789".getBytes(), src.read(3, 7));
+    assertArrayEquals("3456789".getBytes(StandardCharsets.US_ASCII), src.read(3, 7));
     assertEquals(1, hits.get());
+  }
+
+  @Test
+  public void exposesMetadataAfterSuccessfulRead() throws IOException {
+    server.createContext("/metadata", exchange -> {
+      hits.incrementAndGet();
+      sendRange(exchange, DATA, "\"v1\"");
+    });
+    PmTilesArchive.HttpRangeByteSource src =
+      new PmTilesArchive.HttpRangeByteSource(baseUrl + "/metadata");
+
+    assertSnapshotUnavailable(src);
+    src.read(0, 4);
+
+    assertEquals(DATA.length, src.size());
+    String versionId = src.versionId();
+    assertTrue(versionId, versionId.matches("http-sha256:[0-9a-f]{64}"));
+    assertEquals(versionId, src.versionId());
+  }
+
+  @Test
+  public void versionIdsDifferAcrossUrlsWithSameEtagAndLength() throws IOException {
+    server.createContext("/version-one", exchange -> sendRange(exchange, DATA, "\"v1\""));
+    server.createContext("/version-two", exchange -> sendRange(exchange, DATA, "\"v1\""));
+    PmTilesArchive.HttpRangeByteSource one =
+      new PmTilesArchive.HttpRangeByteSource(baseUrl + "/version-one");
+    PmTilesArchive.HttpRangeByteSource two =
+      new PmTilesArchive.HttpRangeByteSource(baseUrl + "/version-two");
+
+    one.read(0, 4);
+    two.read(0, 4);
+
+    assertNotEquals(one.versionId(), two.versionId());
+  }
+
+  @Test
+  public void secondRequestSendsIfMatch() throws IOException {
+    AtomicReference<String> firstIfMatch = new AtomicReference<>();
+    AtomicReference<String> secondIfMatch = new AtomicReference<>();
+    server.createContext("/if-match", exchange -> {
+      int hit = hits.incrementAndGet();
+      if (hit == 1) {
+        firstIfMatch.set(exchange.getRequestHeaders().getFirst("If-Match"));
+      } else {
+        secondIfMatch.set(exchange.getRequestHeaders().getFirst("If-Match"));
+      }
+      sendRange(exchange, DATA, "\"v1\"");
+    });
+    PmTilesArchive.HttpRangeByteSource src =
+      new PmTilesArchive.HttpRangeByteSource(baseUrl + "/if-match");
+
+    src.read(0, 4);
+    src.read(4, 4);
+
+    assertNull(firstIfMatch.get());
+    assertEquals("\"v1\"", secondIfMatch.get());
+  }
+
+  @Test
+  public void requestsIdentityContentEncoding() throws IOException {
+    AtomicReference<String> acceptEncoding = new AtomicReference<>();
+    server.createContext("/identity", exchange -> {
+      hits.incrementAndGet();
+      acceptEncoding.set(exchange.getRequestHeaders().getFirst("Accept-Encoding"));
+      sendRange(exchange, DATA, "\"v1\"");
+    });
+    PmTilesArchive.HttpRangeByteSource src =
+      new PmTilesArchive.HttpRangeByteSource(baseUrl + "/identity");
+
+    src.read(0, 4);
+
+    assertEquals("identity", acceptEncoding.get());
+  }
+
+  @Test
+  public void changedEtagFails() throws IOException {
+    server.createContext("/changed-etag", exchange -> {
+      String etag = hits.incrementAndGet() == 1 ? "\"v1\"" : "\"v2\"";
+      sendRange(exchange, DATA, etag);
+    });
+    PmTilesArchive.HttpRangeByteSource src =
+      new PmTilesArchive.HttpRangeByteSource(baseUrl + "/changed-etag");
+
+    src.read(0, 4);
+    try {
+      src.read(4, 4);
+      fail("expected changed ETag rejection");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("changed"));
+    }
+    assertEquals(2, hits.get());
+  }
+
+  @Test
+  public void weakEtagFails() throws IOException {
+    server.createContext("/weak-etag", exchange -> {
+      hits.incrementAndGet();
+      sendRange(exchange, DATA, "W/\"v1\"");
+    });
+    assertPermanentFailure("/weak-etag", "ETag");
+  }
+
+  @Test
+  public void absentEtagFails() throws IOException {
+    server.createContext("/absent-etag", exchange -> {
+      hits.incrementAndGet();
+      sendPartial(exchange, Arrays.copyOfRange(DATA, 0, 4), null, "bytes 0-3/20");
+    });
+    assertPermanentFailure("/absent-etag", "ETag");
+  }
+
+  @Test
+  public void wrongContentRangeFailsEvenWhenBodyLengthIsCorrect() throws IOException {
+    server.createContext("/wrong-range", exchange -> {
+      hits.incrementAndGet();
+      sendPartial(exchange, Arrays.copyOfRange(DATA, 4, 8), "\"v1\"", "bytes 5-8/20");
+    });
+    PmTilesArchive.HttpRangeByteSource src =
+      new PmTilesArchive.HttpRangeByteSource(baseUrl + "/wrong-range");
+    try {
+      src.read(4, 4);
+      fail("expected Content-Range rejection");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("Content-Range"));
+    }
+    assertEquals(1, hits.get());
+  }
+
+  @Test
+  public void changedTotalLengthFails() throws IOException {
+    server.createContext("/changed-total", exchange -> {
+      int hit = hits.incrementAndGet();
+      if (hit == 1) {
+        sendRange(exchange, DATA, "\"v1\"");
+      } else {
+        sendPartial(exchange, Arrays.copyOfRange(DATA, 4, 8), "\"v1\"", "bytes 4-7/21");
+      }
+    });
+    PmTilesArchive.HttpRangeByteSource src =
+      new PmTilesArchive.HttpRangeByteSource(baseUrl + "/changed-total");
+
+    src.read(0, 4);
+    try {
+      src.read(4, 4);
+      fail("expected changed source length rejection");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("changed"));
+    }
+    assertEquals(2, hits.get());
+  }
+
+  @Test
+  public void preconditionFailedIsNotRetried() throws IOException {
+    server.createContext("/precondition", exchange -> {
+      if (hits.incrementAndGet() == 1) {
+        sendRange(exchange, DATA, "\"v1\"");
+      } else {
+        exchange.sendResponseHeaders(412, -1);
+        exchange.close();
+      }
+    });
+    PmTilesArchive.HttpRangeByteSource src =
+      new PmTilesArchive.HttpRangeByteSource(baseUrl + "/precondition");
+
+    src.read(0, 4);
+    try {
+      src.read(4, 4);
+      fail("expected an IOException for 412");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("412"));
+    }
+    assertEquals("no retry after a failed snapshot precondition", 2, hits.get());
+  }
+
+  @Test
+  public void rangeOverflowFailsBeforeOpeningConnection() throws IOException {
+    server.createContext("/overflow", exchange -> {
+      hits.incrementAndGet();
+      exchange.sendResponseHeaders(500, -1);
+      exchange.close();
+    });
+    PmTilesArchive.HttpRangeByteSource src =
+      new PmTilesArchive.HttpRangeByteSource(baseUrl + "/overflow");
+
+    try {
+      src.read(Long.MAX_VALUE, 2);
+      fail("expected range overflow rejection");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("range"));
+    }
+    assertEquals(0, hits.get());
+  }
+
+  @Test
+  public void encodedResponseFails() throws IOException {
+    server.createContext("/encoded", exchange -> {
+      hits.incrementAndGet();
+      exchange.getResponseHeaders().set("Content-Encoding", "gzip");
+      sendRange(exchange, DATA, "\"v1\"");
+    });
+    assertPermanentFailure("/encoded", "Content-Encoding");
   }
 
   /**
@@ -94,15 +293,11 @@ public class HttpRangeByteSourceTest {
         exchange.close();
         return;
       }
-      byte[] body = java.util.Arrays.copyOfRange(DATA, 5, 9);
-      exchange.sendResponseHeaders(206, body.length);
-      try (OutputStream os = exchange.getResponseBody()) {
-        os.write(body);
-      }
+      sendRange(exchange, DATA, "\"v1\"");
     });
     PmTilesArchive.HttpRangeByteSource src =
       new PmTilesArchive.HttpRangeByteSource(baseUrl + "/limited");
-    assertArrayEquals("5678".getBytes(), src.read(5, 4));
+    assertArrayEquals("5678".getBytes(StandardCharsets.US_ASCII), src.read(5, 4));
     assertEquals(2, hits.get());
   }
 
@@ -117,15 +312,61 @@ public class HttpRangeByteSourceTest {
         exchange.close();
         return;
       }
-      byte[] body = java.util.Arrays.copyOfRange(DATA, 0, 4);
-      exchange.sendResponseHeaders(206, body.length);
-      try (OutputStream os = exchange.getResponseBody()) {
-        os.write(body);
-      }
+      sendRange(exchange, DATA, "\"v1\"");
     });
     PmTilesArchive.HttpRangeByteSource src =
       new PmTilesArchive.HttpRangeByteSource(baseUrl + "/flaky");
-    assertArrayEquals("0123".getBytes(), src.read(0, 4));
+    assertArrayEquals("0123".getBytes(StandardCharsets.US_ASCII), src.read(0, 4));
     assertEquals(3, hits.get());
+  }
+
+  private void assertPermanentFailure(String path, String messagePart) throws IOException {
+    PmTilesArchive.HttpRangeByteSource src =
+      new PmTilesArchive.HttpRangeByteSource(baseUrl + path);
+    try {
+      src.read(0, 4);
+      fail("expected permanent HTTP snapshot failure");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains(messagePart));
+    }
+    assertEquals(1, hits.get());
+  }
+
+  private static void assertSnapshotUnavailable(PmTilesArchive.HttpRangeByteSource src)
+      throws IOException {
+    try {
+      src.size();
+      fail("expected unavailable snapshot metadata");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("successful read"));
+    }
+    try {
+      src.versionId();
+      fail("expected unavailable snapshot metadata");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("successful read"));
+    }
+  }
+
+  private static void sendRange(HttpExchange exchange, byte[] data, String etag)
+      throws IOException {
+    String range = exchange.getRequestHeaders().getFirst("Range");
+    String[] parts = range.substring("bytes=".length()).split("-", -1);
+    int from = Integer.parseInt(parts[0]);
+    int to = Integer.parseInt(parts[1]);
+    byte[] body = Arrays.copyOfRange(data, from, to + 1);
+    sendPartial(exchange, body, etag, "bytes " + from + "-" + to + "/" + data.length);
+  }
+
+  private static void sendPartial(HttpExchange exchange, byte[] body, String etag,
+      String contentRange) throws IOException {
+    if (etag != null) {
+      exchange.getResponseHeaders().set("ETag", etag);
+    }
+    exchange.getResponseHeaders().set("Content-Range", contentRange);
+    exchange.sendResponseHeaders(206, body.length);
+    try (OutputStream os = exchange.getResponseBody()) {
+      os.write(body);
+    }
   }
 }

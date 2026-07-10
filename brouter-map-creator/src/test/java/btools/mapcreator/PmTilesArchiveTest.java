@@ -10,6 +10,10 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
@@ -76,6 +80,19 @@ public class PmTilesArchiveTest {
   @Test(expected = IOException.class)
   public void truncatedVarintFails() throws IOException {
     PmTilesArchive.readVarint(new byte[]{(byte) 0x80}, new int[]{0});
+  }
+
+  @Test
+  public void unsignedVarintMustFitInSixtyFourBits() throws IOException {
+    byte[] bytes = new byte[10];
+    Arrays.fill(bytes, (byte) 0x80);
+    bytes[9] = 0x02;
+    try {
+      PmTilesArchive.readVarint(bytes, new int[]{0});
+      fail("expected an IOException for an unsigned varint wider than 64 bits");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("varint"));
+    }
   }
 
   @Test
@@ -237,6 +254,180 @@ public class PmTilesArchiveTest {
     }
   }
 
+  @Test
+  public void rootDirectoryMustFitInitialSixteenKiB() throws IOException {
+    byte[] bytes = new PmTilesTestArchive().zoomRange(0, 0).build();
+    PmTilesTestArchive.putLong(bytes, 16,
+      16384L - PmTilesArchive.HEADER_LEN + 1L);
+    assertOpenFails(bytes, "root directory");
+  }
+
+  @Test
+  public void sectionEndOverflowFailsBeforeAnyRead() throws IOException {
+    byte[] bytes = new PmTilesTestArchive().zoomRange(0, 0).build();
+    PmTilesTestArchive.putLong(bytes, 56, Long.MAX_VALUE);
+    PmTilesTestArchive.putLong(bytes, 64, 1L);
+    assertOpenFails(bytes, "overflow");
+  }
+
+  @Test
+  public void sectionPastSourceLengthFailsBeforeAnyRead() throws IOException {
+    byte[] bytes = new PmTilesTestArchive().zoomRange(0, 0).build();
+    PmTilesTestArchive.putLong(bytes, 64, 1L);
+    assertOpenFails(bytes, "source length");
+  }
+
+  @Test
+  public void negativeSectionLengthFails() throws IOException {
+    byte[] bytes = new PmTilesTestArchive().zoomRange(0, 0).build();
+    PmTilesTestArchive.putLong(bytes, 32, -1L);
+    assertOpenFails(bytes, "metadata");
+  }
+
+  @Test
+  public void sectionsMustBeInSpecificationOrder() throws IOException {
+    byte[] bytes = new PmTilesTestArchive().zoomRange(0, 0).build();
+    PmTilesTestArchive.putLong(bytes, 24, PmTilesArchive.HEADER_LEN);
+    assertOpenFails(bytes, "section order");
+  }
+
+  @Test
+  public void zoomRangeMustBeSupportedAndOrdered() throws IOException {
+    byte[] unsupported = new PmTilesTestArchive().zoomRange(0, 0).build();
+    unsupported[101] = 32;
+    assertOpenFails(unsupported, "zoom");
+
+    byte[] reversed = new PmTilesTestArchive().zoomRange(0, 0).build();
+    reversed[100] = 10;
+    reversed[101] = 9;
+    assertOpenFails(reversed, "zoom");
+  }
+
+  @Test
+  public void geographicBoundsMustBeValidAndOrdered() throws IOException {
+    byte[] outsideWorld = new PmTilesTestArchive().zoomRange(0, 0).build();
+    PmTilesTestArchive.putInt(outsideWorld, 102, -1800000001);
+    assertOpenFails(outsideWorld, "geographic bounds");
+
+    byte[] reversed = new PmTilesTestArchive().zoomRange(0, 0).build();
+    PmTilesTestArchive.putInt(reversed, 102, 10000000);
+    PmTilesTestArchive.putInt(reversed, 110, 0);
+    assertOpenFails(reversed, "geographic bounds");
+  }
+
+  @Test
+  public void directoryEntryCountHasFixedAllocationLimit() throws IOException {
+    ByteArrayOutputStream data = new ByteArrayOutputStream();
+    PmTilesTestArchive.writeVarint(data, 250001L);
+    assertDirectoryFails(data.toByteArray(), "entry count");
+  }
+
+  @Test
+  public void directoryEntryCountMustFitFourVarintArrays() throws IOException {
+    assertDirectoryFails(new byte[]{2, 0, 0, 0, 0, 0, 0, 0}, "entry count");
+  }
+
+  @Test
+  public void directoryTileIdsMustIncrease() throws IOException {
+    assertDirectoryFails(directory(
+      new long[]{0L, 1L, 0L, 1L},
+      new long[]{0L, 1L, 1L, 1L}), "tile ID");
+  }
+
+  @Test
+  public void directoryTileIdAdditionMustNotOverflow() throws IOException {
+    ByteArrayOutputStream data = new ByteArrayOutputStream();
+    PmTilesTestArchive.writeVarint(data, 2L);
+    PmTilesTestArchive.writeVarint(data, Long.MAX_VALUE);
+    PmTilesTestArchive.writeVarint(data, 1L);
+    for (int i = 0; i < 6; i++) {
+      PmTilesTestArchive.writeVarint(data, 1L);
+    }
+    assertDirectoryFails(data.toByteArray(), "tile ID");
+  }
+
+  @Test
+  public void directoryEntryLengthMustBePositive() throws IOException {
+    assertDirectoryFails(directory(new long[]{0L, 1L, 0L, 0L}), "length");
+  }
+
+  @Test
+  public void contiguousDirectoryOffsetAdditionMustNotOverflow() throws IOException {
+    ByteArrayOutputStream data = new ByteArrayOutputStream();
+    PmTilesTestArchive.writeVarint(data, 2L);
+    PmTilesTestArchive.writeVarint(data, 0L);
+    PmTilesTestArchive.writeVarint(data, 1L);
+    PmTilesTestArchive.writeVarint(data, 1L);
+    PmTilesTestArchive.writeVarint(data, 1L);
+    PmTilesTestArchive.writeVarint(data, 2L);
+    PmTilesTestArchive.writeVarint(data, 1L);
+    PmTilesTestArchive.writeVarint(data, Long.MAX_VALUE);
+    PmTilesTestArchive.writeVarint(data, 0L);
+    assertDirectoryFails(data.toByteArray(), "offset");
+  }
+
+  @Test
+  public void compressedLeafDirectoryHasStoredSizeLimit() throws IOException {
+    byte[] root = directory(new long[]{0L, 0L, 0L, 16L * 1024L * 1024L + 1L});
+    byte[] prefix = archiveWithSections(root, new byte[0], new byte[0]);
+    long leafOffset = PmTilesArchive.HEADER_LEN + root.length;
+    long declaredSize = leafOffset + 16L * 1024L * 1024L + 1L;
+    PmTilesTestArchive.putLong(prefix, 48, 16L * 1024L * 1024L + 1L);
+    PmTilesTestArchive.putLong(prefix, 56, declaredSize);
+    try (PmTilesArchive archive = PmTilesArchive.open(
+      new PrefixByteSource(prefix, declaredSize))) {
+      assertLocateFails(archive, 0, 0, 0, "compressed leaf directory");
+    }
+  }
+
+  @Test
+  public void directTileBodyHasStoredSizeLimit() throws IOException {
+    byte[] root = directory(new long[]{0L, 1L, 0L, 64L * 1024L * 1024L + 1L});
+    try (PmTilesArchive archive = PmTilesArchive.open(new PmTilesTestArchive.MemoryByteSource(
+      archiveWithSections(root, new byte[0], new byte[0])))) {
+      assertLocateFails(archive, 0, 0, 0, "tile body");
+    }
+  }
+
+  @Test
+  public void directTileRunAdditionMustNotOverflow() throws IOException {
+    byte[] root = directory(new long[]{1L, Long.MAX_VALUE, 0L, 1L});
+    try (PmTilesArchive archive = PmTilesArchive.open(new PmTilesTestArchive.MemoryByteSource(
+      archiveWithSections(root, new byte[0], new byte[]{1})))) {
+      assertLocateFails(archive, 1, 0, 0, "run");
+    }
+  }
+
+  @Test
+  public void directTileMustStayInsideTileData() throws IOException {
+    byte[] root = directory(new long[]{0L, 1L, 1L, 1L});
+    try (PmTilesArchive archive = PmTilesArchive.open(new PmTilesTestArchive.MemoryByteSource(
+      archiveWithSections(root, new byte[0], new byte[]{1})))) {
+      assertLocateFails(archive, 0, 0, 0, "tile data");
+    }
+  }
+
+  @Test
+  public void leafPointerMustStayInsideLeafData() throws IOException {
+    byte[] root = directory(new long[]{0L, 0L, 0L, 1L});
+    try (PmTilesArchive archive = PmTilesArchive.open(new PmTilesTestArchive.MemoryByteSource(
+      archiveWithSections(root, new byte[0], new byte[0])))) {
+      assertLocateFails(archive, 0, 0, 0, "leaf data");
+    }
+  }
+
+  @Test
+  public void gzipOutputCannotExceedExplicitLimit() throws IOException {
+    byte[] compressed = PmTilesTestArchive.gzip(new byte[9]);
+    try {
+      PmTilesArchive.gunzip(compressed, 8, "test gzip payload");
+      fail("expected bounded gzip output rejection");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("test gzip payload"));
+      assertTrue(e.getMessage(), e.getMessage().contains("exceeds"));
+    }
+  }
+
   /**
    * A cyclic leaf-directory structure must throw, not report every tile as absent:
    * silent NODATA from a corrupt archive is indistinguishable from ocean.
@@ -287,6 +478,176 @@ public class PmTilesArchiveTest {
       assertEquals(64, a.archiveId().length());
       assertNotEquals("different archives must have different ids",
         a.archiveId(), b.archiveId());
+    }
+  }
+
+  @Test
+  public void archiveIdIncludesTileContentVersion() throws IOException {
+    PmTilesTestArchive one = new PmTilesTestArchive().zoomRange(1, 1)
+      .put(1, 0, 0, new byte[]{1});
+    PmTilesTestArchive two = new PmTilesTestArchive().zoomRange(1, 1)
+      .put(1, 0, 0, new byte[]{2});
+    try (PmTilesArchive a = PmTilesArchive.open(one.asByteSource());
+         PmTilesArchive b = PmTilesArchive.open(two.asByteSource())) {
+      assertNotEquals(a.archiveId(), b.archiveId());
+    }
+  }
+
+  @Test
+  public void memoryByteSourceExposesImmutableSnapshotMetadata() throws IOException {
+    byte[] data = {1, 2, 3};
+    PmTilesTestArchive.MemoryByteSource source = new PmTilesTestArchive.MemoryByteSource(data);
+    String versionId = source.versionId();
+
+    data[0] = 9;
+
+    assertEquals(3L, source.size());
+    assertEquals(versionId, source.versionId());
+    assertArrayEquals(new byte[]{1, 2, 3}, source.read(0, 3));
+  }
+
+  @Test
+  public void fileByteSourceRejectsChangedFile() throws IOException {
+    Path path = Files.createTempFile("pmtiles-source", ".pmtiles");
+    try {
+      Files.write(path, new byte[]{1, 2, 3, 4});
+      try (PmTilesArchive.FileByteSource source =
+             new PmTilesArchive.FileByteSource(path.toFile())) {
+        assertEquals(4L, source.size());
+        assertArrayEquals(new byte[]{1, 2}, source.read(0, 2));
+
+        FileTime originalModifiedTime = Files.getLastModifiedTime(path);
+        Files.write(path, new byte[]{5, 6, 7, 8});
+        Files.setLastModifiedTime(path,
+          FileTime.fromMillis(originalModifiedTime.toMillis() + 2000L));
+        assertEquals("rewrite must keep the same size", 4L, Files.size(path));
+        assertNotEquals("test must change modified time", originalModifiedTime,
+          Files.getLastModifiedTime(path));
+        try {
+          source.read(0, 2);
+          fail("expected changed file rejection");
+        } catch (IOException e) {
+          assertTrue(e.getMessage(), e.getMessage().contains("changed"));
+        }
+      }
+    } finally {
+      Files.deleteIfExists(path);
+    }
+  }
+
+  @Test
+  public void fileByteSourceRejectsInvalidRangeBeforeAllocation() throws IOException {
+    Path path = Files.createTempFile("pmtiles-source", ".pmtiles");
+    try {
+      Files.write(path, new byte[]{1, 2, 3, 4});
+      try (PmTilesArchive.FileByteSource source =
+             new PmTilesArchive.FileByteSource(path.toFile())) {
+        assertInvalidRange(source, -1L, 1);
+        assertInvalidRange(source, 0L, 0);
+        assertInvalidRange(source, Long.MAX_VALUE, 2);
+      }
+    } finally {
+      Files.deleteIfExists(path);
+    }
+  }
+
+  private static void assertInvalidRange(PmTilesArchive.ByteSource source, long offset, int length)
+      throws IOException {
+    try {
+      source.read(offset, length);
+      fail("expected invalid range rejection");
+    } catch (IOException expected) {
+      assertTrue(expected.getMessage(), expected.getMessage().contains("range"));
+    }
+  }
+
+  private static byte[] directory(long[]... entries) {
+    return PmTilesTestArchive.serializeDirectory(Arrays.asList(entries), false);
+  }
+
+  private static byte[] archiveWithSections(byte[] root, byte[] leaf, byte[] tiles)
+      throws IOException {
+    byte[] template = new PmTilesTestArchive().zoomRange(0, 0).build();
+    byte[] archive = new byte[PmTilesArchive.HEADER_LEN + root.length + leaf.length + tiles.length];
+    System.arraycopy(template, 0, archive, 0, PmTilesArchive.HEADER_LEN);
+    long rootOffset = PmTilesArchive.HEADER_LEN;
+    long metadataOffset = rootOffset + root.length;
+    long leafOffset = metadataOffset;
+    long tileOffset = leafOffset + leaf.length;
+    PmTilesTestArchive.putLong(archive, 8, rootOffset);
+    PmTilesTestArchive.putLong(archive, 16, root.length);
+    PmTilesTestArchive.putLong(archive, 24, metadataOffset);
+    PmTilesTestArchive.putLong(archive, 32, 0L);
+    PmTilesTestArchive.putLong(archive, 40, leafOffset);
+    PmTilesTestArchive.putLong(archive, 48, leaf.length);
+    PmTilesTestArchive.putLong(archive, 56, tileOffset);
+    PmTilesTestArchive.putLong(archive, 64, tiles.length);
+    System.arraycopy(root, 0, archive, (int) rootOffset, root.length);
+    System.arraycopy(leaf, 0, archive, (int) leafOffset, leaf.length);
+    System.arraycopy(tiles, 0, archive, (int) tileOffset, tiles.length);
+    return archive;
+  }
+
+  private static void assertOpenFails(byte[] bytes, String expectedMessage) throws IOException {
+    try (PmTilesArchive ignored = PmTilesArchive.open(
+      new PmTilesTestArchive.MemoryByteSource(bytes))) {
+      fail("expected PMTiles open failure containing: " + expectedMessage);
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains(expectedMessage));
+    }
+  }
+
+  private static void assertDirectoryFails(byte[] bytes, String expectedMessage)
+      throws IOException {
+    try {
+      PmTilesArchive.deserializeDirectory(bytes);
+      fail("expected directory failure containing: " + expectedMessage);
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains(expectedMessage));
+    }
+  }
+
+  private static void assertLocateFails(PmTilesArchive archive, int z, int x, int y,
+                                        String expectedMessage) throws IOException {
+    try {
+      archive.locateTile(z, x, y);
+      fail("expected tile lookup failure containing: " + expectedMessage);
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains(expectedMessage));
+    }
+  }
+
+  private static final class PrefixByteSource implements PmTilesArchive.ByteSource {
+    private final byte[] prefix;
+    private final long declaredSize;
+
+    PrefixByteSource(byte[] prefix, long declaredSize) {
+      this.prefix = prefix.clone();
+      this.declaredSize = declaredSize;
+    }
+
+    @Override
+    public byte[] read(long offset, int length) throws IOException {
+      long end = PmTilesArchive.checkedReadEnd(offset, length);
+      if (end > prefix.length) {
+        throw new IOException("test source does not store the requested large range");
+      }
+      return Arrays.copyOfRange(prefix, (int) offset, (int) end);
+    }
+
+    @Override
+    public long size() {
+      return declaredSize;
+    }
+
+    @Override
+    public String versionId() {
+      return "prefix:" + declaredSize + ":" + PmTilesArchive.sha256Hex(prefix);
+    }
+
+    @Override
+    public void close() {
+      // nothing to release
     }
   }
 
