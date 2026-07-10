@@ -1,25 +1,15 @@
 package btools.server;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import btools.mapcreator.OsmFastCutter;
 import btools.mapcreator.PmTilesTestArchive;
-import btools.mapcreator.PosUnifier;
 import btools.mapcreator.TerrainTiles;
-import btools.mapcreator.WayLinker;
-import btools.router.OsmNodeNamed;
 import btools.router.OsmPathElement;
 import btools.router.OsmTrack;
-import btools.router.RoutingContext;
-import btools.router.RoutingEngine;
-import btools.router.RoutingParamCollector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.List;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -74,44 +64,18 @@ public class MapterhornSegmentTest {
     assertTrue(new File(srtmDir, "srtm_38_02.bef").isFile());
     assertTrue(new File(srtmDir, "srtm_38_03.bef").isFile());
 
-    // 3. the real map-creation pipeline, exactly as MapcreatorTest runs it
+    // 3. the real map-creation pipeline via the shared harness
     File tmpDir = tmp.newFolder("work");
-    File nodes = mkdir(tmpDir, "nodetiles");
-    File ways = mkdir(tmpDir, "waytiles");
-    File nodes55 = mkdir(tmpDir, "nodes55");
-    File ways55 = mkdir(tmpDir, "waytiles55");
-    File lookupFile = new File(profileDir, "lookups.dat");
-    File borderFile = new File(tmpDir, "bordernids.dat");
-    OsmFastCutter.doCut(lookupFile, nodes, ways, nodes55, ways55, borderFile,
-      new File(tmpDir, "cycleways.dat"), new File(tmpDir, "restrictions.dat"),
-      new File(profileDir, "all.brf"), new File(profileDir, "trekking.brf"),
-      new File(profileDir, "softaccess.brf"), mapFile, null);
-
-    File unodes55 = mkdir(tmpDir, "unodes55");
-    File bordernodes = new File(tmpDir, "bordernodes.dat");
-    new PosUnifier().process(nodes55, unodes55, borderFile, bordernodes,
-      srtmDir.getAbsolutePath(), null);
-
-    File segments = mkdir(tmpDir, "segments");
-    new WayLinker().process(unodes55, ways55, bordernodes,
-      new File(tmpDir, "restrictions.dat"), lookupFile,
-      new File(profileDir, "all.brf"), segments, "rd5");
+    Files.copy(mapFile.toPath(), new File(tmpDir, "map.pbf").toPath());
+    File segments = Rd5TestHarness.buildRd5FromFile(new File(tmpDir, "map.pbf"), tmpDir, srtmDir);
 
     File rd5 = new File(segments, "E5_N50.rd5");
     assertTrue("rd5 segment not built", rd5.isFile());
     assertTrue("rd5 implausibly small: " + rd5.length(), rd5.length() > 1000);
 
     // 4. route over the segment file and check the elevation of every track point
-    RoutingContext rc = new RoutingContext();
-    rc.localFunction = new File(profileDir, "trekking.brf").getAbsolutePath();
-    List<OsmNodeNamed> waypoints = new RoutingParamCollector()
-      .getWayPointList("8.6832,50.0074|8.7250,49.9916");
-    RoutingEngine engine = new RoutingEngine(null, null, segments, waypoints, rc, 0);
-    engine.doRun(0);
-    assertNull("routing failed: " + engine.getErrorMessage(), engine.getErrorMessage());
-
-    OsmTrack track = engine.getFoundTrack();
-    assertNotNull("no track found", track);
+    OsmTrack track = Rd5TestHarness.route(segments, "trekking",
+      "8.6832,50.0074|8.7250,49.9916");
     assertTrue("track too short: " + track.nodes.size() + " points", track.nodes.size() >= 10);
 
     // The rd5 codec reconstructs transfer-node (shape point) elevations by integer
@@ -150,9 +114,4 @@ public class MapterhornSegmentTest {
     return builder.build();
   }
 
-  private static File mkdir(File parent, String name) {
-    File dir = new File(parent, name);
-    assertTrue("cannot create " + dir, dir.mkdirs() || dir.isDirectory());
-    return dir;
-  }
 }

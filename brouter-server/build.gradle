@@ -102,3 +102,8 @@ dependencies {
     testImplementation 'org.json:json:20180813'
     testImplementation testFixtures(project(':brouter-map-creator'))
 }
+
+test {
+    // MapterhornRealWorldTest builds full 1-arcsecond cell rasters (648 MB each)
+    maxHeapSize = '2g'
+}

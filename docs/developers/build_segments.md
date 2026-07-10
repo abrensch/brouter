@@ -85,3 +85,17 @@ To use 1sec and 3sec bef tiles at rd5 generation time you need an extra paramete
 E.g.
 `$ ... PosUnifier nodes55 unodes55 bordernids.dat bordernodes.dat ../srtm/srtm1_bef ../srtm/srtm3_bef
 `
+
+### Alternative source: Mapterhorn (planet-wide, LiDAR-based)
+
+Instead of downloading SRTM/hgt files, `.bef` tiles can be generated directly from the
+[Mapterhorn](https://mapterhorn.com) PMTiles terrain archive — planet-wide, openly
+licensed, LiDAR-based where national data exists, and readable over HTTP range requests
+(no bulk download needed). The generated `.bef` files use the same naming and format as
+above and drop into the same `srtm1_bef`/`srtm3_bef` folders, so `PosUnifier` and the
+rest of the pipeline run unchanged:
+
+`$ ... ConvertMapterhornTile https://download.mapterhorn.com/planet.pmtiles ./srtm/srtm1_bef srtm_38_03 -arcsec 1 -cache ./mapterhorn-cache`
+
+See [Mapterhorn elevation](mapterhorn_elevation.md) for the full guide, options and the
+validation results.
