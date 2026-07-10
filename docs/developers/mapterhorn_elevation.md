@@ -6,10 +6,13 @@ title: Mapterhorn elevation
 # Mapterhorn elevation data (PMTiles)
 
 `ConvertMapterhornTile` (brouter-map-creator) builds BRouter `.bef` elevation rasters
-from [Mapterhorn](https://mapterhorn.com) PMTiles archives — planet-wide, openly
-licensed terrain tiles (Terrarium-encoded lossless WebP, Web Mercator, max zoom 12,
-about 13 m ground resolution at Alpine latitudes). This addresses the Mapterhorn part
-of issue #558.
+from [Mapterhorn](https://mapterhorn.com) PMTiles archives. Mapterhorn publishes a
+planet archive at zooms 0-12 and regional archives at zooms 13-17. The tiles are
+Terrarium-encoded lossless WebP in Web Mercator; planet zoom 12 is about 13 m ground
+resolution at Alpine latitudes. See Mapterhorn's [data-access guide](https://mapterhorn.com/data-access/)
+for current archives and its [attribution page](https://mapterhorn.com/attribution/)
+for the open-data sources and required credits. This addresses the Mapterhorn part of
+issue #558.
 
 ## Design
 
@@ -20,17 +23,17 @@ source-specific logic in the converter. The pieces:
 
 - `PmTilesArchive` — PMTiles v3 reader written against the public spec; works on a
   local archive file or directly against the HTTP endpoint with range requests
-  (`accept-ranges: bytes`), so the 700 GB planet archive never needs a full download.
-  Byte-contiguous tiles (the archive is clustered in Hilbert order) are fetched with
-  coalesced range reads.
+  (`accept-ranges: bytes`), so the planet archive never needs a full download. Remote
+  reads are pinned to one strong ETag and content length. Byte-contiguous tiles (the
+  archive is clustered in Hilbert order) are fetched with coalesced range reads.
 - `TerrariumTileDecoder` — Terrarium RGB decoding (`(R*256 + G + B/256) - 32768`) with
   a hard lossless-VP8L check: lossy WebP would silently turn quantization noise into
   elevation error (1 count in the R channel is 256 m).
 - `ConvertMapterhornTile` — resamples Web Mercator pixels onto the lat/lon grid with an
   area-weighted box filter (each output cell covers roughly 2.4 x 1.6 source pixels at
   1"; point sampling would alias straight into total-ascent). Writes are atomic, every
-  written `.bef` is decoded back and compared pixel-for-pixel, and a tile cache
-  directory is cryptographically bound to the archive it was filled from.
+  written `.bef` is decoded back and compared pixel-for-pixel, and every output cell
+  has a provenance sidecar bound to the archive version and conversion settings.
 
 Usage:
 
@@ -43,6 +46,23 @@ java -Xmx3g -cp ... btools.mapcreator.ConvertMapterhornTile \
 `all` instead of a cell name converts the world grid (resumable: existing cells are
 skipped, failed cells reported at the end). `-bbox` windows a single cell for testing.
 
+## Choosing an input archive
+
+- `https://download.mapterhorn.com/planet.pmtiles` contains zooms 0-12 and supports
+  direct HTTP range reads. This is the normal input for full 1- or 3-arcsecond cells.
+- Regional archives contain zooms 13-17. Use the
+  [data-access guide](https://mapterhorn.com/data-access/) to find the archive covering
+  the requested area. Higher zooms normally need a narrow `-bbox`; the converter's
+  work limits reject unsafe full-cell requests.
+- The converter also accepts local planet, regional, extracted, or merged PMTiles
+  files. The `pmtiles extract` tool can cut the planet and regional archives to a
+  bounding box, and `pmtiles merge` can combine those extracts into one z0-z17 input.
+
+Without `-zoom`, 1-arcsecond output selects z12 and 3-arcsecond output selects z11.
+Each default is clamped to the archive's advertised zoom range. For example, a
+regional-only z13-z17 archive defaults to z13. An explicit `-zoom` must be inside that
+range.
+
 ## Using it in a segment build pipeline
 
 The output is a drop-in replacement for the SRTM/hgt-derived `.bef` tiles described in
@@ -51,8 +71,8 @@ The output is a drop-in replacement for the SRTM/hgt-derived `.bef` tiles descri
 at the folder your `PosUnifier` call consumes and nothing else changes:
 
 ```
-# 1. generate .bef tiles for the cells your region touches (1 arcsec)
-java -Xmx3g -cp brouter-<version>-all.jar btools.mapcreator.ConvertMapterhornTile \
+# 1. generate .bef tiles with the brouter-map-creator runtime classpath (1 arcsec)
+java -Xmx3g -cp '<map-creator runtime classpath>' btools.mapcreator.ConvertMapterhornTile \
     https://download.mapterhorn.com/planet.pmtiles ./srtm1_bef srtm_38_03 \
     -arcsec 1 -cache ./mapterhorn-cache
 
@@ -67,13 +87,14 @@ Practical notes:
   be named either way: `srtm_38_03` (legacy index scheme) or the corner form `5,45`
   (south-west corner, both meaning lon 5..10, lat 45..50). If unsure, run `PosUnifier`
   once — it logs the tile names it looks for.
-- **Everything is in the fat jar.** `brouter-<version>-all.jar` (the `fatJar` build)
-  contains the converter and the bundled WebP decoder; no extra installation.
-- **No download step.** The converter reads the 700 GB planet archive with HTTP range
-  requests; a single 5x5-degree cell transfers roughly 1.5 GB at 1 arcsec. Use
-  `-cache <dir>` so re-runs are free (the cache is bound to the archive build and
-  refuses to mix versions). Alternatively, run against a local `planet.pmtiles` or a
-  regional cut made with the official `pmtiles extract` tool.
+- **WebP runtime.** The `brouter-map-creator` runtime includes `webp-imageio` and its
+  Kotlin/native runtime dependencies. The server's `brouter-<version>-all.jar` keeps
+  the map-creator classes but deliberately excludes that optional runtime, so the
+  server fat JAR alone cannot decode WebP. Add the decoder runtime explicitly when
+  invoking the converter from the server JAR.
+- **No download step.** The converter can read a remote archive with HTTP range
+  requests; a single 5x5-degree planet-z12 cell transfers roughly 1.5 GB at 1
+  arcsecond. Use `-cache <dir>` to reuse tile content, or run against a local archive.
 - **Mixing sources.** Mapterhorn `.bef` files can sit in the primary folder with a
   CGIAR/hgt-derived pool as the `PosUnifier` fallback folder, or replace it entirely —
   the archive is planet-wide, so a fallback is optional.
@@ -81,12 +102,51 @@ Practical notes:
   "void"), 0 m is kept as a valid elevation — coastal land and polders keep their
   height, and lake/sea surfaces carry the water level.
 
+## Snapshot, cache, and output safety
+
+For a remote archive, the first successful range response establishes a strong ETag
+and total content length. Later requests send `If-Match` and must return the same ETag
+and length, so one conversion cannot silently mix two remote versions. A local archive
+is similarly held to the same real path, file key, length, and modification time for
+the lifetime of the reader.
+
+The archive ID combines that source-version identity with the PMTiles header and root
+directory. It binds the cache and output provenance to one source version, but it is
+not a cryptographic hash of every tile byte. Cached tile content is addressed by its
+PMTiles byte range inside that version. `-cache <dir>` has a 10 GiB default budget;
+`-cache-max-gb <n>` sets another positive integer budget. Existing entries remain
+readable when the budget is reached, but new cache writes stop. A cache refuses an
+archive ID different from the one recorded in its `archive.id` file.
+
+Each output has a sibling `<cell>.bef.mapterhorn.properties` file. It records the
+archive ID, converter schema, zoom, output resolution, tile size, naming mode,
+coverage, cell coordinates, and pending/complete state. A complete sidecar also records
+the `.bef` length, modification time, and SHA-256. Resumable runs skip only an output
+with matching provenance and valid file evidence; mismatches fail instead of silently
+reusing another build's cell.
+
+The converter holds an exclusive sibling lock for the output directory and, when
+`-cache` is enabled, another for the cache directory. This blocks concurrent processes
+from changing the same state. Output, sidecar, cache identity, and cache tile writes
+use temporary files and atomic moves.
+
+## Resource limits
+
+One decoded source stripe is limited to 512 MiB, and one box-filter conversion is
+limited to about 8 billion visited source pixels. A request over either limit fails
+before the large allocation or loop and tells the caller to lower `-zoom` or narrow
+`-bbox`. A full 1-arcsecond cell still needs roughly `-Xmx2g`: the raster is about
+648 MB and read-back verification temporarily holds a second copy.
+
 ## Validation
 
-**Vertical datum.** Mapterhorn heights are orthometric (MSL), same convention as
-SRTM — verified on lake surfaces (Lac Leman reads 372.0 m against the known 372.0 m).
-Water inside land-bearing tiles carries the water-surface elevation; fully-ocean tiles
-are absent from the archive and become no-data.
+**Vertical datum.** Mapterhorn combines regional source datasets, so the vertical datum
+is source-dependent rather than one global guarantee. Check the source for the region
+on the [attribution page](https://mapterhorn.com/attribution/). In the Swiss validation
+area, Lac Leman reads 372.0 m against the known 372.0 m and the comparisons below match
+swissALTI3D closely. Those checks validate this local Swiss area, not every Mapterhorn
+source or region. Water inside land-bearing tiles carries the water-surface elevation;
+fully-ocean tiles are absent from the archive and become no-data.
 
 **Against swissALTI3D (Swiss national LiDAR, +/-0.5 m).** Elevations were sampled every
 20 m along two professionally measured Swiss Cycling Talent-ID test climbs
@@ -144,7 +204,5 @@ and the Helgoland route must climb the cliff with a plausible island profile.
 - Coastal/shore cells average land with adjacent water pixels; a road within one cell
   (~31 m) of a cliff edge can read up to ~20 m low. Inherent to raster DEMs at this
   resolution.
-- Elevations above 8191.75 m overflow `ElevationRaster.getElevation`'s quarter-metre
-  short — a pre-existing limitation shared with the hgt path.
-- 1-arcsecond cells need roughly `-Xmx2g` (a 648 MB raster plus a transient copy during
-  the read-back verification).
+- Route elevations above 8191.75 m saturate at the quarter-metre `short` maximum instead
+  of wrapping around. This limit is shared with the hgt path.

@@ -52,6 +52,39 @@ application {
     }
 }
 
+def serverFatJar = tasks.named('fatJar', Jar)
+def forbiddenFatJarRoots = ['com/luciad', 'kotlin', 'native']
+
+tasks.register('verifyFatJarContents') {
+    group = 'verification'
+    description = 'Verifies that optional WebP runtime files are absent from the server fat JAR.'
+    dependsOn serverFatJar
+    inputs.file(serverFatJar.flatMap { it.archiveFile })
+
+    doLast {
+        def leakedEntries = []
+        zipTree(serverFatJar.get().archiveFile.get().asFile).visit { details ->
+            def path = details.relativePath.pathString
+            if (forbiddenFatJarRoots.any { root -> path == root || path.startsWith(root + '/') }) {
+                leakedEntries.add(path)
+            }
+        }
+
+        if (!leakedEntries.isEmpty()) {
+            leakedEntries.sort()
+            def sample = leakedEntries.take(10).collect { entry -> "  ${entry}" }.join('\n')
+            def remainder = leakedEntries.size() > 10
+                ? "\n  ... and ${leakedEntries.size() - 10} more"
+                : ''
+            throw new GradleException("Server fat JAR contains forbidden entries:\n${sample}${remainder}")
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyFatJarContents')
+}
+
 distZip {
     dependsOn fatJar
     dependsOn smallJar
@@ -84,18 +117,58 @@ distributions {
                 include '*.apk'
             }
             from ('../brouter-server/build/libs') {
-                include 'brouter-*-all.jar'
-                include 'brouter-*-ro.jar'
+                include "brouter-${project.version}-all.jar"
+                include "brouter-${project.version}-ro.jar"
             }
         }
     }
+}
+
+def serverSmallJar = tasks.named('smallJar', Jar)
+def serverDistributionZip = tasks.named('distZip', Zip)
+
+def verifyDistributionContents = tasks.register('verifyDistributionContents') {
+    group = 'verification'
+    description = 'Verifies that the server distribution contains only current-version classifier JARs.'
+    dependsOn serverDistributionZip
+    inputs.file(serverDistributionZip.flatMap { it.archiveFile })
+
+    doLast {
+        def expectedJarNames = [
+            serverFatJar.get().archiveFileName.get(),
+            serverSmallJar.get().archiveFileName.get()
+        ].sort()
+        def actualJarNames = []
+        new java.util.zip.ZipFile(serverDistributionZip.get().archiveFile.get().asFile).withCloseable { zip ->
+            zip.entries().each { entry ->
+                if (!entry.directory) {
+                    def fileName = entry.name.substring(entry.name.lastIndexOf('/') + 1)
+                    if (fileName ==~ /brouter-.+-(all|ro)\.jar/) {
+                        actualJarNames.add(fileName)
+                    }
+                }
+            }
+        }
+        actualJarNames.sort()
+
+        if (actualJarNames != expectedJarNames) {
+            throw new GradleException('Server distribution classifier JARs do not match the current version.'
+                + "\nExpected: ${expectedJarNames}\nFound: ${actualJarNames}")
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn verifyDistributionContents
 }
 
 dependencies {
     implementation project(':brouter-codec')
     implementation project(':brouter-core')
     implementation project(':brouter-expressions')
-    implementation project(':brouter-map-creator')
+    implementation(project(':brouter-map-creator')) {
+        exclude group: 'com.github.usefulness', module: 'webp-imageio'
+    }
     implementation project(':brouter-mapaccess')
     implementation project(':brouter-util')
 
