@@ -415,21 +415,123 @@ public class ConvertMapterhornTileTest {
   }
 
   @Test
-  public void cacheDirIsBoundToItsArchive() throws IOException {
+  public void testOnlyCacheConstructorBindsDirectoryToArchive() throws IOException {
     File cacheDir = tmp.newFolder("cache");
     try (PmTilesArchive archive = PmTilesArchive.open(
-      new PmTilesTestArchive().zoomRange(1, 1).put(1, 0, 0, new byte[]{1}).asByteSource())) {
-      ConvertMapterhornTile.bindCacheDir(cacheDir, archive);
-      // same archive again: fine
-      ConvertMapterhornTile.bindCacheDir(cacheDir, archive);
+        new PmTilesTestArchive().zoomRange(1, 1).put(1, 0, 0, new byte[]{1}).asByteSource());
+         ConvertMapterhornTile ignored = new ConvertMapterhornTile(archive, 1, cacheDir, TILE)) {
+      // construction initializes the cache identity
     }
     try (PmTilesArchive other = PmTilesArchive.open(
       new PmTilesTestArchive().zoomRange(1, 2).put(1, 0, 0, new byte[]{1}).asByteSource())) {
-      ConvertMapterhornTile.bindCacheDir(cacheDir, other);
+      new ConvertMapterhornTile(other, 1, cacheDir, TILE).close();
       fail("expected rejection of a cache dir filled from a different archive");
     } catch (IOException e) {
       assertTrue(e.getMessage(), e.getMessage().contains("different archive"));
     }
+  }
+
+  @Test
+  public void testOnlyConverterClosesTheCacheItCreates() throws IOException {
+    File cacheDir = tmp.newFolder("owned-cache");
+    String archiveId;
+    try (PmTilesArchive archive = PmTilesArchive.open(
+        new PmTilesTestArchive().zoomRange(1, 1).put(1, 0, 0, new byte[]{1}).asByteSource())) {
+      archiveId = archive.archiveId();
+      try (ConvertMapterhornTile ignored = new ConvertMapterhornTile(
+          archive, 1, cacheDir, TILE)) {
+        // converter owns the cache created by this constructor
+      }
+    }
+
+    try (MapterhornTileCache reopened = new MapterhornTileCache(
+        cacheDir, archiveId, 1024L)) {
+      assertEquals(0L, reopened.usedBytes());
+    }
+  }
+
+  @Test
+  public void failedTestOnlyConverterConstructionReleasesItsCache() throws IOException {
+    File cacheDir = tmp.newFolder("failed-owned-cache");
+    String archiveId;
+    try (PmTilesArchive archive = PmTilesArchive.open(
+        new PmTilesTestArchive().zoomRange(1, 1).put(1, 0, 0, new byte[]{1}).asByteSource())) {
+      archiveId = archive.archiveId();
+      try {
+        new ConvertMapterhornTile(archive, -1, cacheDir, TILE).close();
+        fail("expected invalid converter configuration");
+      } catch (IOException e) {
+        assertTrue(e.getMessage(), e.getMessage().contains("zoom"));
+      }
+    }
+
+    try (MapterhornTileCache reopened = new MapterhornTileCache(
+        cacheDir, archiveId, 1024L)) {
+      assertEquals(0L, reopened.usedBytes());
+    }
+  }
+
+  @Test
+  public void converterDoesNotCloseAPassedSharedCache() throws IOException {
+    File cacheDir = tmp.newFolder("shared-cache");
+    String archiveId;
+    try (PmTilesArchive archive = PmTilesArchive.open(
+        new PmTilesTestArchive().zoomRange(1, 1).put(1, 0, 0, new byte[]{1}).asByteSource())) {
+      archiveId = archive.archiveId();
+      try (MapterhornTileCache shared = new MapterhornTileCache(
+          cacheDir, archiveId, 1024L)) {
+        try (ConvertMapterhornTile ignored = new ConvertMapterhornTile(
+            archive, 1, shared, TILE, 1)) {
+          // one cell uses the shared cache
+        }
+        try (MapterhornTileCache ignored = new MapterhornTileCache(
+            cacheDir, archiveId, 1024L)) {
+          fail("expected the passed shared cache to remain locked");
+        } catch (IOException e) {
+          assertTrue(e.getMessage(), e.getMessage().contains("already in use"));
+        }
+      }
+    }
+
+    try (MapterhornTileCache reopened = new MapterhornTileCache(
+        cacheDir, archiveId, 1024L)) {
+      assertEquals(0L, reopened.usedBytes());
+    }
+  }
+
+  @Test
+  public void absentArchiveEntriesCreateNoTileCacheFiles() throws IOException {
+    File cacheDir = tmp.newFolder("absent-cache");
+    PmTilesTestArchive distant = new PmTilesTestArchive().zoomRange(ZOOM, ZOOM)
+      .put(ZOOM, 0, 0, TerrainTiles.constantPng(TILE, 10.0));
+    try (PmTilesArchive archive = PmTilesArchive.open(distant.asByteSource());
+         ConvertMapterhornTile converter = new ConvertMapterhornTile(
+           archive, ZOOM, cacheDir, TILE)) {
+      assertNull(converter.buildRaster(LON_START, LAT_START, ROW_LENGTH, null));
+    }
+
+    try (java.util.stream.Stream<java.nio.file.Path> files =
+           java.nio.file.Files.walk(cacheDir.toPath())) {
+      assertEquals(0L, files.filter(java.nio.file.Files::isRegularFile)
+        .filter(path -> path.getFileName().toString().endsWith(".tile"))
+        .count());
+    }
+  }
+
+  @Test
+  public void cacheBudgetDefaultsToExactlyTenGibibytes() {
+    assertEquals(10L * 1024L * 1024L * 1024L,
+      ConvertMapterhornTile.DEFAULT_CACHE_MAX_BYTES);
+  }
+
+  @Test
+  public void cacheMaxGigabytesMustBePositiveAndFitLong() {
+    assertEquals(3L * 1024L * 1024L * 1024L,
+      ConvertMapterhornTile.parseCacheMaxBytes("3"));
+    assertInvalidCacheBudget("0");
+    assertInvalidCacheBudget("-1");
+    assertInvalidCacheBudget("1.5");
+    assertInvalidCacheBudget(Long.toString(Long.MAX_VALUE));
   }
 
   /**
@@ -527,11 +629,11 @@ public class ConvertMapterhornTileTest {
         second.isContiguousWith(first));
 
       java.util.List<ConvertMapterhornTile.MissedTile> run = java.util.Arrays.asList(
-        new ConvertMapterhornTile.MissedTile(0, 10, first),
-        new ConvertMapterhornTile.MissedTile(1, 20, second));
+        new ConvertMapterhornTile.MissedTile(0, first),
+        new ConvertMapterhornTile.MissedTile(1, second));
       java.util.concurrent.atomic.AtomicReferenceArray<TerrariumTileDecoder.Tile> decoded =
         new java.util.concurrent.atomic.AtomicReferenceArray<>(2);
-      converter.fetchRun(run, 11, decoded);
+      converter.fetchRun(run, decoded);
 
       double firstValue = locA.offset <= locB.offset ? 500.0 : 700.0;
       assertEquals(firstValue, decoded.get(0).get(TILE / 2, TILE / 2), 1.0 / 256.0);
@@ -602,6 +704,15 @@ public class ConvertMapterhornTileTest {
     }
   }
 
+  private static void assertInvalidCacheBudget(String value) {
+    try {
+      ConvertMapterhornTile.parseCacheMaxBytes(value);
+      fail("expected rejection of cache budget " + value);
+    } catch (IllegalArgumentException expected) {
+      assertTrue(expected.getMessage(), expected.getMessage().contains("-cache-max-gb"));
+    }
+  }
+
   private static final class CountingByteSource implements PmTilesArchive.ByteSource {
     private final PmTilesArchive.ByteSource delegate;
     private int reads;
@@ -637,7 +748,7 @@ public class ConvertMapterhornTileTest {
   }
 
   private static ConvertMapterhornTile.MissedTile missed(int slot, long offset, int length) {
-    return new ConvertMapterhornTile.MissedTile(slot, slot,
+    return new ConvertMapterhornTile.MissedTile(slot,
       new PmTilesArchive.TileLocation(offset, length));
   }
 }

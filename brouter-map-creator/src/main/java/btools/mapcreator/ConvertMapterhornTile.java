@@ -8,7 +8,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -104,16 +103,16 @@ public class ConvertMapterhornTile implements AutoCloseable {
   /** Upper bound for source pixels visited by one conversion. */
   private static final long MAX_SOURCE_PIXELS = 8_000_000_000L;
 
-  /** Name of the marker file binding a cache directory to its source archive. */
-  static final String CACHE_ID_FILE = "archive.id";
+  private static final long GIBIBYTE = 1024L * 1024L * 1024L;
 
-  private static final byte[] ABSENT_MARKER = new byte[0];
+  static final long DEFAULT_CACHE_MAX_BYTES = 10L * GIBIBYTE;
 
   private static final AtomicInteger TMP_SEQ = new AtomicInteger();
 
   private final PmTilesArchive archive;
   private final int zoom;
-  private final File cacheDir;
+  private final MapterhornTileCache cache;
+  private final boolean closeCache;
 
   private final int tileSize;
   private final long worldPx;
@@ -143,35 +142,55 @@ public class ConvertMapterhornTile implements AutoCloseable {
   private final ExecutorService pool;
 
   ConvertMapterhornTile(PmTilesArchive archive, int zoom, File cacheDir, int tileSize) throws IOException {
-    this(archive, zoom, cacheDir, tileSize, FETCH_THREADS);
+    this(archive, zoom, cacheDir == null ? null : new MapterhornTileCache(
+      cacheDir, archive.archiveId(), DEFAULT_CACHE_MAX_BYTES), tileSize, FETCH_THREADS,
+      cacheDir != null);
   }
 
-  ConvertMapterhornTile(PmTilesArchive archive, int zoom, File cacheDir, int tileSize, int threads)
+  ConvertMapterhornTile(PmTilesArchive archive, int zoom, MapterhornTileCache cache,
+                       int tileSize, int threads) throws IOException {
+    this(archive, zoom, cache, tileSize, threads, false);
+  }
+
+  private ConvertMapterhornTile(PmTilesArchive archive, int zoom, MapterhornTileCache cache,
+                                int tileSize, int threads, boolean closeCache)
     throws IOException {
     this.archive = archive;
     this.zoom = zoom;
-    this.cacheDir = cacheDir;
+    this.cache = cache;
+    this.closeCache = closeCache;
     this.tileSize = tileSize;
-    if (zoom < 0 || zoom > 30) {
-      throw new IOException("zoom " + zoom + " is outside the supported range 0..30");
-    }
-    if (tileSize <= 0) {
-      throw new IOException("tile size must be positive: " + tileSize);
-    }
+    long computedWorldPx;
+    ExecutorService createdPool;
     try {
-      this.worldPx = Math.multiplyExact((long) tileSize, 1L << zoom);
-    } catch (ArithmeticException e) {
-      throw new IOException("Mapterhorn world pixel size is too large", e);
+      if (zoom < 0 || zoom > 30) {
+        throw new IOException("zoom " + zoom + " is outside the supported range 0..30");
+      }
+      if (tileSize <= 0) {
+        throw new IOException("tile size must be positive: " + tileSize);
+      }
+      try {
+        computedWorldPx = Math.multiplyExact((long) tileSize, 1L << zoom);
+      } catch (ArithmeticException e) {
+        throw new IOException("Mapterhorn world pixel size is too large", e);
+      }
+      createdPool = Executors.newFixedThreadPool(threads, r -> {
+        Thread t = new Thread(r, "mapterhorn-fetch");
+        t.setDaemon(true);
+        return t;
+      });
+    } catch (IOException | RuntimeException | Error e) {
+      if (closeCache && cache != null) {
+        try {
+          cache.close();
+        } catch (IOException closeFailure) {
+          e.addSuppressed(closeFailure);
+        }
+      }
+      throw e;
     }
-    if (cacheDir != null) {
-      // enforce the cache-archive binding for EVERY construction path, not only main()
-      bindCacheDir(cacheDir, archive);
-    }
-    this.pool = Executors.newFixedThreadPool(threads, r -> {
-      Thread t = new Thread(r, "mapterhorn-fetch");
-      t.setDaemon(true);
-      return t;
-    });
+    this.worldPx = computedWorldPx;
+    this.pool = createdPool;
   }
 
   public static void main(String[] args) throws Exception {
@@ -187,6 +206,7 @@ public class ConvertMapterhornTile implements AutoCloseable {
     int zoom = -1;
     int threads = FETCH_THREADS;
     File cacheDir = null;
+    long cacheMaxBytes = DEFAULT_CACHE_MAX_BYTES;
     double[] bbox = null;
 
     for (int i = 3; i < args.length; i++) {
@@ -214,6 +234,9 @@ public class ConvertMapterhornTile implements AutoCloseable {
         case "-cache":
           cacheDir = new File(val);
           break;
+        case "-cache-max-gb":
+          cacheMaxBytes = parseCacheMaxBytes(val);
+          break;
         case "-bbox":
           bbox = parseBbox(val);
           break;
@@ -228,12 +251,12 @@ public class ConvertMapterhornTile implements AutoCloseable {
       throw new IOException("cannot create output directory " + outDir);
     }
 
-    try (PmTilesArchive archive = PmTilesArchive.open(source)) {
+    int exitStatus = 0;
+    try (PmTilesArchive archive = PmTilesArchive.open(source);
+         MapterhornTileCache cache = cacheDir == null ? null
+           : new MapterhornTileCache(cacheDir, archive.archiveId(), cacheMaxBytes)) {
       if (archive.tileType() == PmTilesArchive.TILETYPE_WEBP) {
         TerrariumTileDecoder.requireWebPSupport();
-      }
-      if (cacheDir != null) {
-        bindCacheDir(cacheDir, archive);
       }
       zoom = selectZoom(archive, zoom, arcsec);
       System.out.println("mapterhorn: zoom=" + zoom + " arcsec=" + arcsec
@@ -258,7 +281,7 @@ public class ConvertMapterhornTile implements AutoCloseable {
             continue;
           }
           try {
-            convertOne(archive, zoom, cacheDir, outDir, corner[0], corner[1], rowLength,
+            convertOne(archive, zoom, cache, outDir, corner[0], corner[1], rowLength,
               null, threads, true);
           } catch (IOException | RuntimeException e) {
             failed++;
@@ -271,13 +294,16 @@ public class ConvertMapterhornTile implements AutoCloseable {
         }
         if (failed > 0) {
           System.err.println(failed + " cells failed; rerun to retry them");
-          System.exit(1);
+          exitStatus = 1;
         }
       } else {
         int[] corner = parseCell(cell);
-        convertOne(archive, zoom, cacheDir, outDir, corner[0], corner[1], rowLength,
+        convertOne(archive, zoom, cache, outDir, corner[0], corner[1], rowLength,
           bbox, threads, false);
       }
+    }
+    if (exitStatus != 0) {
+      System.exit(exitStatus);
     }
   }
 
@@ -289,41 +315,37 @@ public class ConvertMapterhornTile implements AutoCloseable {
     System.out.println("  -arcsec <1|3>  output resolution (default 3)");
     System.out.println("  -zoom <z>      source zoom (default 12 for 1\", 11 for 3\")");
     System.out.println("  -cache <dir>   on-disk raw tile cache (bound to the source archive)");
+    System.out.println("  -cache-max-gb <n>  positive integer cache budget (default 10)");
     System.out.println("  -threads <n>   concurrent tile fetches (default " + FETCH_THREADS + ")");
     System.out.println("  -bbox <minLon,minLat,maxLon,maxLat>  only fill this window");
   }
 
-  /**
-   * Bind a cache directory to the archive it is filled from, so a republished or
-   * different archive cannot silently mix stale tiles into a new conversion.
-   */
-  static void bindCacheDir(File cacheDir, PmTilesArchive archive) throws IOException {
-    if (!cacheDir.isDirectory() && !cacheDir.mkdirs()) {
-      throw new IOException("cannot create cache directory " + cacheDir);
+  static long parseCacheMaxBytes(String value) {
+    long gibibytes;
+    try {
+      gibibytes = Long.parseLong(value);
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("-cache-max-gb must be a positive integer", e);
     }
-    File idFile = new File(cacheDir, CACHE_ID_FILE);
-    String id = archive.archiveId();
-    if (idFile.isFile()) {
-      String existing = new String(Files.readAllBytes(idFile.toPath()), StandardCharsets.UTF_8).trim();
-      if (!existing.equals(id)) {
-        throw new IOException("tile cache " + cacheDir + " was filled from a different archive"
-          + " (cache id " + existing + ", archive id " + id + ");"
-          + " use an empty cache directory or delete this one");
-      }
-    } else {
-      Files.write(idFile.toPath(), id.getBytes(StandardCharsets.UTF_8));
+    if (gibibytes <= 0L) {
+      throw new IllegalArgumentException("-cache-max-gb must be a positive integer");
+    }
+    try {
+      return Math.multiplyExact(gibibytes, GIBIBYTE);
+    } catch (ArithmeticException e) {
+      throw new IllegalArgumentException("-cache-max-gb is too large", e);
     }
   }
 
-  static void convertOne(PmTilesArchive archive, int zoom, File cacheDir, File outDir,
+  static void convertOne(PmTilesArchive archive, int zoom, MapterhornTileCache cache, File outDir,
                          int lonStart, int latStart, int rowLength, double[] bbox,
                          int threads, boolean skipExisting)
     throws IOException {
-    convertOne(archive, zoom, cacheDir, outDir, lonStart, latStart, rowLength, bbox,
+    convertOne(archive, zoom, cache, outDir, lonStart, latStart, rowLength, bbox,
       threads, skipExisting, TILE_SIZE);
   }
 
-  static void convertOne(PmTilesArchive archive, int zoom, File cacheDir, File outDir,
+  static void convertOne(PmTilesArchive archive, int zoom, MapterhornTileCache cache, File outDir,
                          int lonStart, int latStart, int rowLength, double[] bbox,
                          int threads, boolean skipExisting, int tileSize)
     throws IOException {
@@ -348,7 +370,7 @@ public class ConvertMapterhornTile implements AutoCloseable {
     }
 
     try (ConvertMapterhornTile converter =
-           new ConvertMapterhornTile(archive, zoom, cacheDir, tileSize, threads)) {
+           new ConvertMapterhornTile(archive, zoom, cache, tileSize, threads)) {
       if (!converter.cellHasAnyTile(lonStart, latStart, rowLength, bbox)) {
         System.out.println("  no source tiles for " + name + ", skipped");
         return;
@@ -941,11 +963,12 @@ public class ConvertMapterhornTile implements AutoCloseable {
 
     for (int k = 0; k < count; k++) {
       int tx = (int) Math.floorMod(txMin + k, tiles);
-      byte[] cached = readCachedTile(tx, tileY);
-      if (cached == ABSENT_MARKER) {
+      PmTilesArchive.TileLocation loc = archive.locateTile(zoom, tx, tileY);
+      if (loc == null) {
         tilesMissing.incrementAndGet();
         continue;
       }
+      byte[] cached = cache == null ? null : cache.read(loc);
       if (cached != null) {
         tilesFound.incrementAndGet();
         int slot = k;
@@ -955,18 +978,12 @@ public class ConvertMapterhornTile implements AutoCloseable {
         }));
         continue;
       }
-      PmTilesArchive.TileLocation loc = archive.locateTile(zoom, tx, tileY);
-      if (loc == null) {
-        tilesMissing.incrementAndGet();
-        writeCachedTile(tx, tileY, ABSENT_MARKER);
-        continue;
-      }
-      misses.add(new MissedTile(k, tx, loc));
+      misses.add(new MissedTile(k, loc));
     }
 
     for (List<MissedTile> run : groupContiguousRuns(misses)) {
       tasks.add(pool.submit(() -> {
-        fetchRun(run, tileY, decoded);
+        fetchRun(run, decoded);
         return null;
       }));
     }
@@ -1016,12 +1033,10 @@ public class ConvertMapterhornTile implements AutoCloseable {
 
   static final class MissedTile {
     final int slot;
-    final int tx;
     final PmTilesArchive.TileLocation loc;
 
-    MissedTile(int slot, int tx, PmTilesArchive.TileLocation loc) {
+    MissedTile(int slot, PmTilesArchive.TileLocation loc) {
       this.slot = slot;
-      this.tx = tx;
       this.loc = loc;
     }
   }
@@ -1057,7 +1072,7 @@ public class ConvertMapterhornTile implements AutoCloseable {
   /**
    * One range request for a whole run, then slice, cache and decode each member.
    */
-  void fetchRun(List<MissedTile> run, int tileY,
+  void fetchRun(List<MissedTile> run,
                 AtomicReferenceArray<TerrariumTileDecoder.Tile> decoded) throws IOException {
     MissedTile first = run.get(0);
     MissedTile last = run.get(run.size() - 1);
@@ -1069,53 +1084,11 @@ public class ConvertMapterhornTile implements AutoCloseable {
       int from = (int) (m.loc.offset - start);
       byte[] raw = Arrays.copyOfRange(block, from, from + m.loc.length);
       raw = archive.decompressTile(raw);
-      writeCachedTile(m.tx, tileY, raw);
+      if (cache != null) {
+        cache.write(m.loc, raw);
+      }
       tilesFound.incrementAndGet();
       decoded.set(m.slot, TerrariumTileDecoder.decode(raw));
-    }
-  }
-
-  private File cacheFile(int tx, int ty) {
-    return new File(cacheDir, zoom + "/" + tx + "/" + ty + ".tile");
-  }
-
-  /**
-   * @return tile bytes, {@link #ABSENT_MARKER} for a recorded-absent tile, or null when
-   * this tile is not in the cache
-   */
-  private byte[] readCachedTile(int tx, int ty) throws IOException {
-    if (cacheDir == null) {
-      return null;
-    }
-    File f = cacheFile(tx, ty);
-    if (!f.isFile()) {
-      return null;
-    }
-    byte[] bytes = Files.readAllBytes(f.toPath());
-    return bytes.length == 0 ? ABSENT_MARKER : bytes;
-  }
-
-  /**
-   * Cache writes go through a temp file and an atomic rename: a killed run must never
-   * leave a truncated file, because a zero-length file means 'tile permanently absent'
-   * and would silently punch a NODATA hole into every later conversion.
-   */
-  private void writeCachedTile(int tx, int ty, byte[] bytes) throws IOException {
-    if (cacheDir == null) {
-      return;
-    }
-    File f = cacheFile(tx, ty);
-    File parent = f.getParentFile();
-    // mkdirs races against the other fetch threads, so re-check rather than trust it
-    if (!parent.mkdirs() && !parent.isDirectory()) {
-      throw new IOException("cannot create cache directory " + parent);
-    }
-    Path tmp = new File(parent, f.getName() + ".tmp" + TMP_SEQ.incrementAndGet()).toPath();
-    try {
-      Files.write(tmp, bytes);
-      atomicMove(tmp, f.toPath());
-    } finally {
-      Files.deleteIfExists(tmp);
     }
   }
 
@@ -1139,7 +1112,7 @@ public class ConvertMapterhornTile implements AutoCloseable {
   }
 
   @Override
-  public void close() {
+  public void close() throws IOException {
     // shut down gracefully first: shutdownNow() interrupts workers, and an interrupt
     // inside FileChannel.read closes the SHARED archive channel for all later cells
     pool.shutdown();
@@ -1150,6 +1123,9 @@ public class ConvertMapterhornTile implements AutoCloseable {
     } catch (InterruptedException e) {
       pool.shutdownNow();
       Thread.currentThread().interrupt();
+    }
+    if (closeCache && cache != null) {
+      cache.close();
     }
   }
 }
