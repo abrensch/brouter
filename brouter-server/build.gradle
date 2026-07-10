@@ -100,4 +100,5 @@ dependencies {
     implementation project(':brouter-util')
 
     testImplementation 'org.json:json:20180813'
+    testImplementation testFixtures(project(':brouter-map-creator'))
 }

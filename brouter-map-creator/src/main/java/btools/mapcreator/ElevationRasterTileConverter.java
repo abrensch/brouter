@@ -12,7 +12,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Arrays;
-import java.util.Locale;
 import java.util.StringTokenizer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -22,15 +21,15 @@ public class ElevationRasterTileConverter {
   public static final boolean DEBUG = false;
 
   public static final short NODATA2 = -32767; // hgt-formats nodata
-  public static final short NODATA = Short.MIN_VALUE;
+  public static final short NODATA = ElevationCells.NODATA;
 
   private static final String HGT_FILE_EXT = ".hgt";
   private static final int HGT_BORDER_OVERLAP = 1;
   private static final int HGT_3ASEC_ROWS = 1201; // 3 arc second resolution (90m)
   private static final int HGT_3ASEC_FILE_SIZE = HGT_3ASEC_ROWS * HGT_3ASEC_ROWS * Short.BYTES;
   private static final int HGT_1ASEC_ROWS = 3601; // 1 arc second resolution (30m)
-  private static final int SRTM3_ROW_LENGTH = 1200; // number of elevation values per line
-  private static final int SRTM1_ROW_LENGTH = 3600;
+  private static final int SRTM3_ROW_LENGTH = ElevationCells.SRTM3_ROW_LENGTH;
+  private static final int SRTM1_ROW_LENGTH = ElevationCells.SRTM1_ROW_LENGTH;
   private static final boolean SRTM_NO_ZERO = true;
 
   private int NROWS;
@@ -72,11 +71,9 @@ public class ElevationRasterTileConverter {
       // old filenames only
       String filename30 = filename90 + ".bef"; //filename90.substring(0, filename90.length() - 3) + "bef";
 
-      int srtmLonIdx = Integer.parseInt(filename90.substring(5, 7).toLowerCase());
-      int srtmLatIdx = Integer.parseInt(filename90.substring(8, 10).toLowerCase());
-
-      int ilon_base = (srtmLonIdx - 1) * 5 - 180;
-      int ilat_base = 150 - srtmLatIdx * 5 - 90;
+      int[] corner = ElevationCells.cornerFromCellName(filename90);
+      int ilon_base = corner[0];
+      int ilat_base = corner[1];
       int row_length = SRTM3_ROW_LENGTH;
       String fallbackdir = null;
       if (args.length > 3) {
@@ -84,7 +81,7 @@ public class ElevationRasterTileConverter {
         fallbackdir = (args.length == 5 ? args[4] : null);
       }
       //if (DEBUG)
-      System.out.println("raster convert " + ilon_base + " " + ilat_base + " from " + srtmLonIdx + " " + srtmLatIdx + " f: " + filename90 + " rowl " + row_length);
+      System.out.println("raster convert " + ilon_base + " " + ilat_base + " f: " + filename90 + " rowl " + row_length);
 
       new ElevationRasterTileConverter().doConvert(args[1], ilon_base, ilat_base, args[2] + "/" + filename30, row_length, fallbackdir);
     } else {
@@ -99,29 +96,26 @@ public class ElevationRasterTileConverter {
       row_length = (Integer.parseInt(rlen) == 1 ? SRTM1_ROW_LENGTH : SRTM3_ROW_LENGTH);
     }
     String filename30;
-    for (int ilon_base = -180; ilon_base < 180; ilon_base += 5) {
-      for (int ilat_base = 85; ilat_base > -90; ilat_base -= 5) {
-        if (PosUnifier.UseRasterRd5FileName) {
-          filename30 = genFilenameRd5(ilon_base, ilat_base);
-        } else {
-          filename30 = genFilenameOld(ilon_base, ilat_base);
-        }
-        if (DEBUG)
-          System.out.println("lidar convert all: " + filename30);
-        doConvert(hgtdata, ilon_base, ilat_base, outdir + "/" + filename30, row_length, hgtfallbackdata);
+    for (int[] corner : ElevationCells.worldCellCorners()) {
+      int ilon_base = corner[0];
+      int ilat_base = corner[1];
+      if (PosUnifier.UseRasterRd5FileName) {
+        filename30 = genFilenameRd5(ilon_base, ilat_base);
+      } else {
+        filename30 = genFilenameOld(ilon_base, ilat_base);
       }
+      if (DEBUG)
+        System.out.println("lidar convert all: " + filename30);
+      doConvert(hgtdata, ilon_base, ilat_base, outdir + "/" + filename30, row_length, hgtfallbackdata);
     }
   }
 
   static String genFilenameOld(int ilon_base, int ilat_base) {
-    int srtmLonIdx = ((ilon_base + 180) / 5) + 1;
-    int srtmLatIdx = (60 - ilat_base) / 5;
-    return String.format(Locale.US, "srtm_%02d_%02d.bef", srtmLonIdx, srtmLatIdx);
+    return ElevationCells.legacyCellName(ilon_base, ilat_base);
   }
 
   static String genFilenameRd5(int ilon_base, int ilat_base) {
-    return String.format("srtm_%s_%s.bef", ilon_base < 0 ? "W" + (-ilon_base) : "E" + ilon_base,
-      ilat_base < 0 ? "S" + (-ilat_base) : "N" + ilat_base);
+    return ElevationCells.rd5CellName(ilon_base, ilat_base);
   }
 
   private void readHgtZip(String filename, int rowOffset, int colOffset, int row_length, int scale) throws Exception {
@@ -421,13 +415,9 @@ public class ElevationRasterTileConverter {
 
     ElevationRaster raster = new ElevationRaster();
     if (hgtfound) {
-      raster.nrows = NROWS;
-      raster.ncols = NCOLS;
+      // extraBorder is 0, so the shared cell geometry applies unchanged
+      ElevationCells.configureCellRaster(raster, lonDegreeStart, latDegreeStart, row_length);
       raster.halfcol = halfCol5;
-      raster.noDataValue = NODATA;
-      raster.cellsize = 1. / row_length;
-      raster.xllcorner = lonDegreeStart - (0.5 + extraBorder) * raster.cellsize;
-      raster.yllcorner = latDegreeStart - (0.5 + extraBorder) * raster.cellsize;
       raster.eval_array = imagePixels;
     }
 

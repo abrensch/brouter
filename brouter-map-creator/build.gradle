@@ -1,5 +1,6 @@
 plugins {
     id 'brouter.application-conventions'
+    id 'java-test-fixtures'
 }
 
 dependencies {
@@ -8,4 +9,11 @@ dependencies {
     implementation project(':brouter-expressions')
 
     implementation 'org.openstreetmap.osmosis:osmosis-osm-binary:0.48.3'
+
+    // ImageIO plugin for the lossless WebP tiles in Mapterhorn's PMTiles archives.
+    // Wraps libwebp; a pure-Java decoder was rejected upstream in GraphHopper because
+    // it mis-decoded elevation in some coastal regions.
+    implementation 'com.github.usefulness:webp-imageio:0.10.0'
+
+    testImplementation testFixtures(project(':brouter-map-creator'))
 }
