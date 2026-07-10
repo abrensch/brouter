@@ -3,18 +3,29 @@ package btools.mapcreator;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -107,7 +118,7 @@ public class ConvertMapterhornTile implements AutoCloseable {
 
   static final long DEFAULT_CACHE_MAX_BYTES = 10L * GIBIBYTE;
 
-  private static final AtomicInteger TMP_SEQ = new AtomicInteger();
+  static final String OUTPUT_LOCK_SUFFIX = ".mapterhorn-output.lock";
 
   private final PmTilesArchive archive;
   private final int zoom;
@@ -247,14 +258,12 @@ public class ConvertMapterhornTile implements AutoCloseable {
 
     int rowLength = arcsec == 1 ? ElevationCells.SRTM1_ROW_LENGTH : ElevationCells.SRTM3_ROW_LENGTH;
 
-    if (!outDir.isDirectory() && !outDir.mkdirs()) {
-      throw new IOException("cannot create output directory " + outDir);
-    }
-
     int exitStatus = 0;
-    try (PmTilesArchive archive = PmTilesArchive.open(source);
+    try (OutputDirectoryLock outputLock = OutputDirectoryLock.acquire(outDir);
+         PmTilesArchive archive = PmTilesArchive.open(source);
          MapterhornTileCache cache = cacheDir == null ? null
            : new MapterhornTileCache(cacheDir, archive.archiveId(), cacheMaxBytes)) {
+      File lockedOutDir = outputLock.directory();
       if (archive.tileType() == PmTilesArchive.TILETYPE_WEBP) {
         TerrariumTileDecoder.requireWebPSupport();
       }
@@ -264,10 +273,10 @@ public class ConvertMapterhornTile implements AutoCloseable {
         + archive.minLat() + " .. " + archive.maxLon() + "," + archive.maxLat());
 
       if ("all".equals(cell)) {
-        // planet mode is resumable: existing cells are skipped and a failed cell does
-        // not abort the remaining ones
+        // Validate every selected target before any cell is changed.
         int failed = 0;
         int rimSkipped = 0;
+        List<int[]> selectedCorners = new ArrayList<>();
         for (int[] corner : ElevationCells.worldCellCorners()) {
           if (bbox != null && !(bbox[0] <= corner[0] && bbox[2] >= corner[0] + 5
             && bbox[1] <= corner[1] && bbox[3] >= corner[1] + 5)) {
@@ -280,9 +289,21 @@ public class ConvertMapterhornTile implements AutoCloseable {
             }
             continue;
           }
+          selectedCorners.add(corner);
+        }
+        Map<File, MapterhornOutputMetadata.Config> targets = new LinkedHashMap<>();
+        for (int[] corner : selectedCorners) {
+          File output = outputFile(lockedOutDir, corner[0], corner[1]);
+          targets.put(output, outputConfig(archive, zoom, rowLength, TILE_SIZE,
+            null, corner[0], corner[1]));
+        }
+        MapterhornOutputMetadata.preflightAll(targets);
+
+        // A failed conversion remains pending and does not stop later cells.
+        for (int[] corner : selectedCorners) {
           try {
-            convertOne(archive, zoom, cache, outDir, corner[0], corner[1], rowLength,
-              null, threads, true);
+            convertOneLocked(archive, zoom, cache, outputLock, corner[0], corner[1],
+              rowLength, null, threads, true, TILE_SIZE);
           } catch (IOException | RuntimeException e) {
             failed++;
             System.err.println("cell " + corner[0] + "," + corner[1] + " FAILED: " + e);
@@ -298,8 +319,8 @@ public class ConvertMapterhornTile implements AutoCloseable {
         }
       } else {
         int[] corner = parseCell(cell);
-        convertOne(archive, zoom, cache, outDir, corner[0], corner[1], rowLength,
-          bbox, threads, false);
+        convertOneLocked(archive, zoom, cache, outputLock, corner[0], corner[1],
+          rowLength, bbox, threads, false, TILE_SIZE);
       }
     }
     if (exitStatus != 0) {
@@ -349,6 +370,18 @@ public class ConvertMapterhornTile implements AutoCloseable {
                          int lonStart, int latStart, int rowLength, double[] bbox,
                          int threads, boolean skipExisting, int tileSize)
     throws IOException {
+    try (OutputDirectoryLock outputLock = OutputDirectoryLock.acquire(outDir)) {
+      convertOneLocked(archive, zoom, cache, outputLock, lonStart, latStart,
+        rowLength, bbox, threads, skipExisting, tileSize);
+    }
+  }
+
+  static void convertOneLocked(PmTilesArchive archive, int zoom, MapterhornTileCache cache,
+                               OutputDirectoryLock outputLock, int lonStart, int latStart,
+                               int rowLength, double[] bbox, int threads,
+                               boolean skipExisting, int tileSize)
+    throws IOException {
+    File outDir = outputLock.directory();
     if (bbox != null && (bbox[0] >= lonStart + 5 || bbox[2] <= lonStart
       || bbox[1] >= latStart + 5 || bbox[3] <= latStart)) {
       return; // cell entirely outside the requested window
@@ -356,31 +389,46 @@ public class ConvertMapterhornTile implements AutoCloseable {
     String name = PosUnifier.UseRasterRd5FileName
       ? ElevationRasterTileConverter.genFilenameRd5(lonStart, latStart)
       : ElevationRasterTileConverter.genFilenameOld(lonStart, latStart);
-    File out = new File(outDir, name);
-    if (out.exists()) {
-      if (skipExisting) {
-        System.out.println("  " + name + " exists, skipped");
-        return;
+    File out = outputFile(outDir, lonStart, latStart);
+    MapterhornOutputMetadata.Config config = outputConfig(
+      archive, zoom, rowLength, tileSize, bbox, lonStart, latStart);
+    boolean explicitFullOverwrite = !skipExisting && bbox == null;
+    boolean ownedBeforePrepare = MapterhornOutputMetadata.isOwned(out, config);
+
+    // Do not claim an unknown file until the immutable archive proves this cell has
+    // source data. Otherwise a no-source explicit overwrite could delete user data.
+    if (explicitFullOverwrite && !ownedBeforePrepare) {
+      try (ConvertMapterhornTile probe =
+             new ConvertMapterhornTile(archive, zoom, cache, tileSize, threads)) {
+        if (!probe.cellHasAnyTile(lonStart, latStart, rowLength, bbox)) {
+          System.out.println("  no source tiles for " + name + ", skipped");
+          return;
+        }
       }
-      if (bbox != null) {
-        throw new IOException("refusing to overwrite existing " + out
-          + " with a -bbox (windowed, mostly no-data) conversion; delete it first"
-          + " or use another output directory");
-      }
+    }
+
+    MapterhornOutputMetadata.Decision decision = MapterhornOutputMetadata.prepare(
+      out, config, explicitFullOverwrite);
+    if (decision == MapterhornOutputMetadata.Decision.SKIP) {
+      System.out.println("  " + name + " exists with matching provenance, skipped");
+      return;
     }
 
     try (ConvertMapterhornTile converter =
            new ConvertMapterhornTile(archive, zoom, cache, tileSize, threads)) {
       if (!converter.cellHasAnyTile(lonStart, latStart, rowLength, bbox)) {
+        MapterhornOutputMetadata.abandon(out, config, ownedBeforePrepare);
         System.out.println("  no source tiles for " + name + ", skipped");
         return;
       }
       ElevationRaster raster = converter.buildRaster(lonStart, latStart, rowLength, bbox);
       if (raster == null) {
+        MapterhornOutputMetadata.abandon(out, config, ownedBeforePrepare);
         System.out.println("  no source tiles for " + name + ", skipped");
         return;
       }
-      writeVerified(raster, out);
+      MapterhornOutputMetadata.CompletedFile completed = writeVerified(raster, out);
+      MapterhornOutputMetadata.complete(out, config, completed);
       System.out.println("  wrote " + out + " (" + converter.tilesFound.get() + " tiles read, "
         + converter.tilesMissing.get() + " missing)");
     }
@@ -391,37 +439,298 @@ public class ConvertMapterhornTile implements AutoCloseable {
    * it into place. A crash mid-write leaves only a temp file; a coder or disk fault is
    * caught before the file can be consumed.
    */
-  static void writeVerified(ElevationRaster raster, File out) throws IOException {
-    File tmp = new File(out.getParentFile(), out.getName() + ".tmp" + TMP_SEQ.incrementAndGet());
+  static MapterhornOutputMetadata.CompletedFile writeVerified(ElevationRaster raster,
+                                                               File out) throws IOException {
+    return writeVerified(raster, out,
+      input -> new ElevationRasterCoder().decodeRaster(input),
+      ConvertMapterhornTile::atomicMove);
+  }
+
+  @FunctionalInterface
+  interface RasterDecodeOperation {
+    ElevationRaster decode(InputStream input) throws IOException;
+  }
+
+  static MapterhornOutputMetadata.CompletedFile writeVerified(
+      ElevationRaster raster, File out, RasterDecodeOperation decodeOperation,
+      MapterhornOutputMetadata.AtomicMoveOperation atomicMoveOperation) throws IOException {
+    if (decodeOperation == null) {
+      throw new IllegalArgumentException("raster decode operation is required");
+    }
+    if (atomicMoveOperation == null) {
+      throw new IllegalArgumentException("atomic move operation is required");
+    }
+    Path outputPath = out.toPath();
+    requireRegularOrAbsentOutput(outputPath);
+    Path parent = outputPath.getParent() == null ? Path.of(".") : outputPath.getParent();
+    Path tmp = Files.createTempFile(parent, out.getName() + ".tmp-", null);
     try {
-      try (OutputStream os = new BufferedOutputStream(new FileOutputStream(tmp))) {
+      try (OutputStream os = new BufferedOutputStream(Channels.newOutputStream(
+          Files.newByteChannel(tmp, StandardOpenOption.WRITE,
+            StandardOpenOption.TRUNCATE_EXISTING, LinkOption.NOFOLLOW_LINKS)))) {
         new ElevationRasterCoder().encodeRaster(raster, os);
       }
       ElevationRaster decoded;
-      try (InputStream is = new BufferedInputStream(new FileInputStream(tmp))) {
-        decoded = new ElevationRasterCoder().decodeRaster(is);
-      }
-      if (decoded.nrows != raster.nrows || decoded.ncols != raster.ncols
-        || decoded.eval_array.length != raster.eval_array.length) {
-        throw new IOException("read-back mismatch on " + out + ": geometry differs");
-      }
-      for (int i = 0; i < raster.eval_array.length; i++) {
-        if (decoded.eval_array[i] != raster.eval_array[i]) {
-          throw new IOException("read-back mismatch on " + out + " at pixel " + i
-            + ": wrote " + raster.eval_array[i] + ", read " + decoded.eval_array[i]);
+      MessageDigest digest = sha256Digest();
+      try (InputStream fileInput = new BufferedInputStream(Channels.newInputStream(
+          Files.newByteChannel(tmp, StandardOpenOption.READ,
+            LinkOption.NOFOLLOW_LINKS)));
+           DigestInputStream digestInput = new DigestInputStream(fileInput, digest)) {
+        decoded = decodeOperation.decode(digestInput);
+        byte[] drain = new byte[8192];
+        while (digestInput.read(drain) >= 0) {
+          // The decoder may stop before EOF; provenance covers every encoded byte.
         }
       }
-      atomicMove(tmp.toPath(), out.toPath());
+      verifyReadBack(raster, decoded, out);
+      requireRegularOrAbsentOutput(outputPath);
+      atomicMoveOperation.move(tmp, outputPath);
+      BasicFileAttributes published = Files.readAttributes(outputPath,
+        BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+      if (published.isSymbolicLink() || !published.isRegularFile()) {
+        throw new IOException("published Mapterhorn output is not a regular file: " + out);
+      }
+      return new MapterhornOutputMetadata.CompletedFile(published.size(),
+        published.lastModifiedTime().toMillis(),
+        MapterhornOutputMetadata.hex(digest.digest()));
     } finally {
-      Files.deleteIfExists(tmp.toPath());
+      Files.deleteIfExists(tmp);
     }
   }
 
-  private static void atomicMove(Path from, Path to) throws IOException {
+  static void verifyReadBack(ElevationRaster expected, ElevationRaster actual, File out)
+      throws IOException {
+    if (actual == null || actual.ncols != expected.ncols || actual.nrows != expected.nrows
+      || actual.halfcol != expected.halfcol
+      || Double.doubleToLongBits(actual.xllcorner)
+        != Double.doubleToLongBits(expected.xllcorner)
+      || Double.doubleToLongBits(actual.yllcorner)
+        != Double.doubleToLongBits(expected.yllcorner)
+      || Double.doubleToLongBits(actual.cellsize)
+        != Double.doubleToLongBits(expected.cellsize)
+      || actual.noDataValue != expected.noDataValue) {
+      throw new IOException("read-back mismatch on " + out + ": raster header differs");
+    }
+    if (actual.eval_array == null || expected.eval_array == null
+      || actual.eval_array.length != expected.eval_array.length) {
+      throw new IOException("read-back mismatch on " + out + ": pixel count differs");
+    }
+    for (int i = 0; i < expected.eval_array.length; i++) {
+      if (actual.eval_array[i] != expected.eval_array[i]) {
+        throw new IOException("read-back mismatch on " + out + " at pixel " + i
+          + ": wrote " + expected.eval_array[i] + ", read " + actual.eval_array[i]);
+      }
+    }
+  }
+
+  static void atomicMove(Path from, Path to) throws IOException {
+    Files.move(from, to, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+  }
+
+  private static void requireRegularOrAbsentOutput(Path output) throws IOException {
+    BasicFileAttributes attributes;
     try {
-      Files.move(from, to, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-    } catch (AtomicMoveNotSupportedException e) {
-      Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
+      attributes = Files.readAttributes(output, BasicFileAttributes.class,
+        LinkOption.NOFOLLOW_LINKS);
+    } catch (NoSuchFileException e) {
+      return;
+    }
+    if (attributes.isSymbolicLink()) {
+      throw new IOException("refusing symbolic link Mapterhorn output entry: " + output);
+    }
+    if (!attributes.isRegularFile()) {
+      throw new IOException("Mapterhorn output is not a regular file: " + output);
+    }
+  }
+
+  private static MessageDigest sha256Digest() {
+    try {
+      return MessageDigest.getInstance("SHA-256");
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError("SHA-256 is required by the Java runtime", e);
+    }
+  }
+
+  private static File outputFile(File outDir, int lonStart, int latStart) {
+    String name = PosUnifier.UseRasterRd5FileName
+      ? ElevationRasterTileConverter.genFilenameRd5(lonStart, latStart)
+      : ElevationRasterTileConverter.genFilenameOld(lonStart, latStart);
+    return new File(outDir, name);
+  }
+
+  private static MapterhornOutputMetadata.Config outputConfig(
+      PmTilesArchive archive, int zoom, int rowLength, int tileSize, double[] bbox,
+      int lonStart, int latStart) {
+    String naming = PosUnifier.UseRasterRd5FileName ? "rd5" : "legacy";
+    String coverage = bbox == null ? "full" : "bbox="
+      + Double.toString(bbox[0]) + "," + Double.toString(bbox[1]) + ","
+      + Double.toString(bbox[2]) + "," + Double.toString(bbox[3]);
+    return new MapterhornOutputMetadata.Config(archive.archiveId(), zoom, rowLength,
+      tileSize, naming, coverage, lonStart, latStart);
+  }
+
+  static final class OutputDirectoryLock implements AutoCloseable {
+    private final Path outputDirectory;
+    private final FileChannel channel;
+    private final FileLock lock;
+    private boolean closed;
+
+    private OutputDirectoryLock(Path outputDirectory, FileChannel channel, FileLock lock) {
+      this.outputDirectory = outputDirectory;
+      this.channel = channel;
+      this.lock = lock;
+    }
+
+    static OutputDirectoryLock acquire(File requestedDirectory) throws IOException {
+      OutputLocation location = OutputLocation.resolve(requestedDirectory);
+      BasicFileAttributes lockAttributes = attributesIfPresent(location.lockFile);
+      if (lockAttributes != null) {
+        requireRegularFile(location.lockFile, lockAttributes,
+          "Mapterhorn output sibling lock file");
+      }
+
+      FileChannel channel = FileChannel.open(location.lockFile,
+        StandardOpenOption.CREATE, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS);
+      try {
+        lockAttributes = Files.readAttributes(location.lockFile,
+          BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        requireRegularFile(location.lockFile, lockAttributes,
+          "Mapterhorn output sibling lock file");
+        FileLock lock;
+        try {
+          lock = channel.tryLock();
+        } catch (OverlappingFileLockException e) {
+          throw alreadyLocked(location.outputDirectory, e);
+        }
+        if (lock == null) {
+          throw alreadyLocked(location.outputDirectory, null);
+        }
+        Path preparedDirectory = prepareDirectory(location.outputDirectory);
+        return new OutputDirectoryLock(preparedDirectory, channel, lock);
+      } catch (IOException | RuntimeException | Error e) {
+        try {
+          channel.close();
+        } catch (IOException closeFailure) {
+          e.addSuppressed(closeFailure);
+        }
+        throw e;
+      }
+    }
+
+    File directory() {
+      if (closed) {
+        throw new IllegalStateException("Mapterhorn output-directory lock is closed");
+      }
+      return outputDirectory.toFile();
+    }
+
+    @Override
+    public synchronized void close() throws IOException {
+      if (closed) {
+        return;
+      }
+      closed = true;
+      IOException failure = null;
+      try {
+        lock.release();
+      } catch (IOException e) {
+        failure = e;
+      }
+      try {
+        channel.close();
+      } catch (IOException e) {
+        if (failure == null) {
+          failure = e;
+        } else {
+          failure.addSuppressed(e);
+        }
+      }
+      if (failure != null) {
+        throw failure;
+      }
+    }
+
+    private static Path prepareDirectory(Path directory) throws IOException {
+      BasicFileAttributes attributes = attributesIfPresent(directory);
+      if (attributes == null) {
+        try {
+          Files.createDirectory(directory);
+        } catch (FileAlreadyExistsException e) {
+          // Validate a concurrent filesystem change below while holding our lock.
+        }
+        attributes = attributesIfPresent(directory);
+      }
+      if (attributes == null) {
+        throw new IOException("cannot create Mapterhorn output directory " + directory);
+      }
+      rejectSymbolicLink(directory, attributes);
+      if (!attributes.isDirectory()) {
+        throw new IOException("Mapterhorn output path is not a directory: " + directory);
+      }
+      return directory.toRealPath();
+    }
+
+    private static BasicFileAttributes attributesIfPresent(Path path) throws IOException {
+      try {
+        return Files.readAttributes(path, BasicFileAttributes.class,
+          LinkOption.NOFOLLOW_LINKS);
+      } catch (NoSuchFileException e) {
+        return null;
+      }
+    }
+
+    private static void requireRegularFile(Path path, BasicFileAttributes attributes,
+                                           String description) throws IOException {
+      rejectSymbolicLink(path, attributes);
+      if (!attributes.isRegularFile()) {
+        throw new IOException(description + " is not a regular file: " + path);
+      }
+    }
+
+    private static void rejectSymbolicLink(Path path, BasicFileAttributes attributes)
+        throws IOException {
+      if (attributes.isSymbolicLink()) {
+        throw new IOException("refusing symbolic link Mapterhorn output entry: " + path);
+      }
+    }
+
+    private static IOException alreadyLocked(Path directory, Throwable cause) {
+      return new IOException("Mapterhorn output directory " + directory
+        + " is already in use by another process or converter instance", cause);
+    }
+  }
+
+  private static final class OutputLocation {
+    final Path outputDirectory;
+    final Path lockFile;
+
+    OutputLocation(Path outputDirectory, Path lockFile) {
+      this.outputDirectory = outputDirectory;
+      this.lockFile = lockFile;
+    }
+
+    static OutputLocation resolve(File requestedDirectory) throws IOException {
+      if (requestedDirectory == null) {
+        throw new IllegalArgumentException("output directory is required");
+      }
+      Path requested = requestedDirectory.toPath().toAbsolutePath().normalize();
+      Path requestedParent = requested.getParent();
+      Path directoryName = requested.getFileName();
+      if (requestedParent == null || directoryName == null) {
+        throw new IOException("a filesystem root cannot be used as Mapterhorn output: "
+          + requested);
+      }
+      Files.createDirectories(requestedParent);
+      Path realParent = requestedParent.toRealPath();
+      BasicFileAttributes parentAttributes = Files.readAttributes(realParent,
+        BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+      if (parentAttributes.isSymbolicLink() || !parentAttributes.isDirectory()) {
+        throw new IOException("Mapterhorn output parent is not a real directory: "
+          + realParent);
+      }
+      Path outputDirectory = realParent.resolve(directoryName.toString()).normalize();
+      Path lockFile = realParent.resolve("." + directoryName + OUTPUT_LOCK_SUFFIX).normalize();
+      return new OutputLocation(outputDirectory, lockFile);
     }
   }
 

@@ -13,6 +13,15 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -408,7 +417,7 @@ public class ConvertMapterhornTileTest {
     }
     assertArrayEquals(first.eval_array, second.eval_array);
 
-    try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(cacheDir.toPath())) {
+    try (java.util.stream.Stream<java.nio.file.Path> walk = Files.walk(cacheDir.toPath())) {
       assertTrue("no temp files may remain in the cache",
         walk.noneMatch(p -> p.getFileName().toString().contains(".tmp")));
     }
@@ -511,8 +520,8 @@ public class ConvertMapterhornTileTest {
     }
 
     try (java.util.stream.Stream<java.nio.file.Path> files =
-           java.nio.file.Files.walk(cacheDir.toPath())) {
-      assertEquals(0L, files.filter(java.nio.file.Files::isRegularFile)
+           Files.walk(cacheDir.toPath())) {
+      assertEquals(0L, files.filter(Files::isRegularFile)
         .filter(path -> path.getFileName().toString().endsWith(".tile"))
         .count());
     }
@@ -535,8 +544,9 @@ public class ConvertMapterhornTileTest {
   }
 
   /**
-   * End-to-end convertOne: the .bef lands atomically, decodes to the same pixels, a
-   * second 'all-mode' run skips it, and a -bbox run refuses to clobber it.
+   * End-to-end convertOne: the .bef and completed provenance land atomically, decode
+   * to the same pixels, a second all-mode run skips them, and a -bbox run refuses to
+   * clobber the complete cell.
    */
   @Test
   public void convertOneWritesVerifiedFileAndGuardsOverwrites() throws IOException {
@@ -548,8 +558,18 @@ public class ConvertMapterhornTileTest {
 
       String name = ElevationRasterTileConverter.genFilenameOld(LON_START, LAT_START);
       File out = new File(outDir, name);
+      File metadataFile = new File(out.getPath() + MapterhornOutputMetadata.SUFFIX);
       assertTrue("output file must exist", out.isFile());
-      assertEquals("no temp files may remain", 1, outDir.list().length);
+      assertTrue("output provenance must exist", metadataFile.isFile());
+      assertEquals("no temp files may remain", 2, outDir.list().length);
+
+      Properties metadata = new Properties();
+      try (java.io.InputStream in = Files.newInputStream(metadataFile.toPath())) {
+        metadata.load(in);
+      }
+      assertEquals("complete", metadata.getProperty("state"));
+      assertEquals(PmTilesArchive.sha256Hex(Files.readAllBytes(out.toPath())),
+        metadata.getProperty("sha256"));
 
       ElevationRaster decoded;
       try (java.io.InputStream is = new java.io.BufferedInputStream(new java.io.FileInputStream(out))) {
@@ -573,6 +593,366 @@ public class ConvertMapterhornTileTest {
         assertTrue(e.getMessage(), e.getMessage().contains("refusing to overwrite"));
       }
     }
+  }
+
+  @Test
+  public void allModeRejectsUnknownOutputBeforeCreatingAnotherCellsSidecar()
+      throws Exception {
+    File archiveFile = tmp.newFile("preflight.pmtiles");
+    Files.write(archiveFile.toPath(),
+      new PmTilesTestArchive().zoomRange(ZOOM, ZOOM).build());
+    File outDir = tmp.newFolder("preflight-bef");
+    File first = new File(outDir,
+      ElevationRasterTileConverter.genFilenameOld(0, 45));
+    File unknown = new File(outDir,
+      ElevationRasterTileConverter.genFilenameOld(5, 45));
+    Files.write(unknown.toPath(), new byte[]{1, 2, 3});
+
+    try {
+      ConvertMapterhornTile.main(new String[]{archiveFile.getPath(), outDir.getPath(), "all",
+        "-zoom", Integer.toString(ZOOM), "-bbox", "0,45,10,50"});
+      fail("expected all-mode preflight to reject unknown output");
+    } catch (IOException expected) {
+      assertTrue(expected.getMessage(), expected.getMessage().contains("provenance"));
+    }
+
+    assertFalse(new File(first.getPath() + MapterhornOutputMetadata.SUFFIX).exists());
+    assertArrayEquals(new byte[]{1, 2, 3},
+      Files.readAllBytes(unknown.toPath()));
+  }
+
+  @Test
+  public void explicitNoSourceConversionPreservesUnknownExistingOutput()
+      throws IOException {
+    File outDir = tmp.newFolder("unknown-no-source");
+    File output = new File(outDir,
+      ElevationRasterTileConverter.genFilenameOld(LON_START, LAT_START));
+    byte[] unknown = {9, 8, 7};
+    Files.write(output.toPath(), unknown);
+    PmTilesTestArchive empty = new PmTilesTestArchive().zoomRange(ZOOM, ZOOM);
+
+    try (PmTilesArchive archive = PmTilesArchive.open(empty.asByteSource())) {
+      ConvertMapterhornTile.convertOne(archive, ZOOM, null, outDir,
+        LON_START, LAT_START, ROW_LENGTH, null, 1, false, TILE);
+    }
+
+    assertArrayEquals(unknown, Files.readAllBytes(output.toPath()));
+    assertFalse(new File(output.getPath() + MapterhornOutputMetadata.SUFFIX).exists());
+  }
+
+  @Test
+  public void explicitNoSourceConversionPreservesUnknownExistingSidecar()
+      throws IOException {
+    File outDir = tmp.newFolder("unknown-sidecar-no-source");
+    File output = new File(outDir,
+      ElevationRasterTileConverter.genFilenameOld(LON_START, LAT_START));
+    File sidecar = new File(output.getPath() + MapterhornOutputMetadata.SUFFIX);
+    byte[] unknown = "unrelated metadata\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    Files.write(sidecar.toPath(), unknown);
+    PmTilesTestArchive empty = new PmTilesTestArchive().zoomRange(ZOOM, ZOOM);
+
+    try (PmTilesArchive archive = PmTilesArchive.open(empty.asByteSource())) {
+      ConvertMapterhornTile.convertOne(archive, ZOOM, null, outDir,
+        LON_START, LAT_START, ROW_LENGTH, null, 1, false, TILE);
+    }
+
+    assertFalse(output.exists());
+    assertArrayEquals(unknown, Files.readAllBytes(sidecar.toPath()));
+  }
+
+  @Test
+  public void staleOutputTempNamesDoNotBlockVerifiedWrite() throws IOException {
+    File outDir = tmp.newFolder("stale-output-temp");
+    File output = new File(outDir, "cell.bef");
+    for (int i = 1; i <= 256; i++) {
+      Files.write(new File(output.getPath() + ".tmp" + i).toPath(),
+        new byte[]{1});
+    }
+    ElevationRaster raster = new ElevationRaster();
+    ElevationCells.configureCellRaster(raster, LON_START, LAT_START, 1);
+    raster.eval_array = new short[raster.ncols * raster.nrows];
+    java.util.Arrays.fill(raster.eval_array, (short) 123);
+
+    MapterhornOutputMetadata.CompletedFile completed =
+      ConvertMapterhornTile.writeVerified(raster, output);
+
+    assertTrue(output.isFile());
+    assertEquals(output.length(), completed.length);
+    assertEquals(PmTilesArchive.sha256Hex(Files.readAllBytes(output.toPath())),
+      completed.sha256);
+  }
+
+  @Test
+  public void verifiedWriteRejectsSymbolicLinkOutput() throws IOException {
+    File outDir = tmp.newFolder("verified-linked-output");
+    File external = tmp.newFile("verified-external-output");
+    File output = new File(outDir, "cell.bef");
+    Files.createSymbolicLink(output.toPath(), external.toPath());
+    ElevationRaster raster = new ElevationRaster();
+    ElevationCells.configureCellRaster(raster, LON_START, LAT_START, 1);
+    raster.eval_array = new short[raster.ncols * raster.nrows];
+
+    try {
+      ConvertMapterhornTile.writeVerified(raster, output);
+      fail("expected verified write to reject a symbolic output");
+    } catch (IOException expected) {
+      assertTrue(expected.getMessage(), expected.getMessage().contains("symbolic link"));
+    }
+    assertTrue(Files.isSymbolicLink(output.toPath()));
+  }
+
+  @Test
+  public void readBackVerifierChecksAllSevenHeaderFields() throws IOException {
+    ElevationRaster expected = smallRaster();
+    String[] fields = {
+      "ncols", "nrows", "halfcol", "xllcorner", "yllcorner", "cellsize", "noDataValue"
+    };
+    for (String field : fields) {
+      ElevationRaster actual = copyRaster(expected);
+      switch (field) {
+        case "ncols":
+          actual.ncols++;
+          break;
+        case "nrows":
+          actual.nrows++;
+          break;
+        case "halfcol":
+          actual.halfcol = !actual.halfcol;
+          break;
+        case "xllcorner":
+          actual.xllcorner += 1.0;
+          break;
+        case "yllcorner":
+          actual.yllcorner += 1.0;
+          break;
+        case "cellsize":
+          actual.cellsize *= 2.0;
+          break;
+        case "noDataValue":
+          actual.noDataValue++;
+          break;
+        default:
+          throw new AssertionError(field);
+      }
+      try {
+        ConvertMapterhornTile.verifyReadBack(expected, actual, new File(field + ".bef"));
+        fail("expected " + field + " mismatch");
+      } catch (IOException mismatch) {
+        assertTrue(mismatch.getMessage(), mismatch.getMessage().contains("header"));
+      }
+    }
+  }
+
+  @Test
+  public void injectedHeaderMismatchFailsBeforeOutputPublication() throws IOException {
+    File outDir = tmp.newFolder("header-mismatch-before-publish");
+    File output = new File(outDir, "cell.bef");
+    ElevationRaster raster = smallRaster();
+
+    try {
+      ConvertMapterhornTile.writeVerified(raster, output, input -> {
+        ElevationRaster decoded = new ElevationRasterCoder().decodeRaster(input);
+        decoded.cellsize *= 2.0;
+        return decoded;
+      }, ConvertMapterhornTile::atomicMove);
+      fail("expected injected header mismatch");
+    } catch (IOException expected) {
+      assertTrue(expected.getMessage(), expected.getMessage().contains("header"));
+    }
+
+    assertFalse("header mismatch must fail before publication", output.exists());
+  }
+
+  @Test
+  public void atomicBefMoveFailurePreservesTargetAndPendingRecovery() throws IOException {
+    File outDir = tmp.newFolder("atomic-bef-failure");
+    File output = new File(outDir, "cell.bef");
+    byte[] original = {7, 8, 9};
+    Files.write(output.toPath(), original);
+    ElevationRaster raster = smallRaster();
+    MapterhornOutputMetadata.Config config = new MapterhornOutputMetadata.Config(
+      "archive-a", ZOOM, 1, TILE, "legacy", "full", LON_START, LAT_START);
+    assertEquals(MapterhornOutputMetadata.Decision.WRITE,
+      MapterhornOutputMetadata.prepare(output, config, true));
+
+    try {
+      ConvertMapterhornTile.writeVerified(raster, output,
+        input -> new ElevationRasterCoder().decodeRaster(input), (from, to) -> {
+          throw new AtomicMoveNotSupportedException(
+            from.toString(), to.toString(), "injected .bef failure");
+        });
+      fail("expected atomic .bef publication failure");
+    } catch (AtomicMoveNotSupportedException expected) {
+      assertTrue(expected.getMessage(), expected.getMessage().contains("injected"));
+    }
+
+    assertArrayEquals(original, Files.readAllBytes(output.toPath()));
+    File sidecar = new File(output.getPath() + MapterhornOutputMetadata.SUFFIX);
+    assertEquals("pending", loadProperties(sidecar).getProperty("state"));
+
+    MapterhornOutputMetadata.CompletedFile completed =
+      ConvertMapterhornTile.writeVerified(raster, output);
+    MapterhornOutputMetadata.complete(output, config, completed);
+    assertEquals("complete", loadProperties(sidecar).getProperty("state"));
+  }
+
+  @Test
+  public void atomicSidecarMoveFailurePreservesPendingAndPublishedOutput()
+      throws IOException {
+    File outDir = tmp.newFolder("atomic-sidecar-failure");
+    File output = new File(outDir, "cell.bef");
+    ElevationRaster raster = smallRaster();
+    MapterhornOutputMetadata.Config config = new MapterhornOutputMetadata.Config(
+      "archive-a", ZOOM, 1, TILE, "legacy", "full", LON_START, LAT_START);
+    assertEquals(MapterhornOutputMetadata.Decision.WRITE,
+      MapterhornOutputMetadata.prepare(output, config, false));
+    MapterhornOutputMetadata.CompletedFile completed =
+      ConvertMapterhornTile.writeVerified(raster, output);
+    byte[] published = Files.readAllBytes(output.toPath());
+
+    try {
+      MapterhornOutputMetadata.complete(output, config, completed, (from, to) -> {
+        throw new AtomicMoveNotSupportedException(
+          from.toString(), to.toString(), "injected sidecar failure");
+      });
+      fail("expected atomic sidecar publication failure");
+    } catch (AtomicMoveNotSupportedException expected) {
+      assertTrue(expected.getMessage(), expected.getMessage().contains("injected"));
+    }
+
+    File sidecar = new File(output.getPath() + MapterhornOutputMetadata.SUFFIX);
+    assertArrayEquals(published, Files.readAllBytes(output.toPath()));
+    assertEquals("pending", loadProperties(sidecar).getProperty("state"));
+
+    MapterhornOutputMetadata.complete(output, config, completed);
+    assertEquals("complete", loadProperties(sidecar).getProperty("state"));
+  }
+
+  @Test(timeout = 10000L)
+  public void outputDirectoryLockPreventsMixedConfigInterleavingAndReopens()
+      throws Exception {
+    File outDir = new File(tmp.getRoot(), "locked-output");
+    File output = new File(outDir,
+      ElevationRasterTileConverter.genFilenameOld(LON_START, LAT_START));
+    MapterhornOutputMetadata.Config configA = new MapterhornOutputMetadata.Config(
+      "archive-a", ZOOM, 1, TILE, "legacy", "full", LON_START, LAT_START);
+    ElevationRaster raster = smallRaster();
+    CountDownLatch pendingWritten = new CountDownLatch(1);
+    CountDownLatch allowComplete = new CountDownLatch(1);
+    ExecutorService pool = Executors.newFixedThreadPool(2);
+    byte[] otherArchive = new PmTilesTestArchive().zoomRange(ZOOM, ZOOM).build();
+    Future<?> first = pool.submit(() -> {
+      try (ConvertMapterhornTile.OutputDirectoryLock ignored =
+             ConvertMapterhornTile.OutputDirectoryLock.acquire(outDir)) {
+        MapterhornOutputMetadata.prepare(output, configA, false);
+        pendingWritten.countDown();
+        await(allowComplete, "allow first output completion");
+        MapterhornOutputMetadata.CompletedFile completed =
+          ConvertMapterhornTile.writeVerified(raster, output);
+        MapterhornOutputMetadata.complete(output, configA, completed);
+      }
+      return null;
+    });
+    try {
+      await(pendingWritten, "first pending sidecar");
+      Future<?> second = pool.submit(() -> {
+        try (PmTilesArchive archive = PmTilesArchive.open(
+            new PmTilesTestArchive.MemoryByteSource(otherArchive))) {
+          ConvertMapterhornTile.convertOne(archive, ZOOM, null, outDir,
+            LON_START, LAT_START, 1, null, 1, false, TILE);
+        }
+        return null;
+      });
+      try {
+        second.get(2L, TimeUnit.SECONDS);
+        fail("expected the second output-directory run to fail fast");
+      } catch (ExecutionException expected) {
+        assertTrue(expected.getCause().getMessage(),
+          expected.getCause() instanceof IOException);
+        assertTrue(expected.getCause().getMessage(),
+          expected.getCause().getMessage().contains("already in use"));
+      }
+
+      File sidecar = new File(output.getPath() + MapterhornOutputMetadata.SUFFIX);
+      Properties pending = loadProperties(sidecar);
+      assertEquals("pending", pending.getProperty("state"));
+      assertEquals("archive-a", pending.getProperty("archiveId"));
+      assertFalse(output.exists());
+
+      allowComplete.countDown();
+      first.get(2L, TimeUnit.SECONDS);
+      try (ConvertMapterhornTile.OutputDirectoryLock ignored =
+             ConvertMapterhornTile.OutputDirectoryLock.acquire(outDir)) {
+        assertEquals(MapterhornOutputMetadata.Decision.SKIP,
+          MapterhornOutputMetadata.prepare(output, configA, false));
+      }
+      File siblingLock = new File(tmp.getRoot(), ".locked-output"
+        + ConvertMapterhornTile.OUTPUT_LOCK_SUFFIX);
+      assertTrue("the sibling lock file must persist", siblingLock.isFile());
+    } finally {
+      allowComplete.countDown();
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void outputDirectoryAndSiblingLockSymbolicLinksAreRejected() throws IOException {
+    File target = tmp.newFolder("linked-output-target");
+    File linkedOutput = new File(tmp.getRoot(), "linked-output-dir");
+    Files.createSymbolicLink(linkedOutput.toPath(), target.toPath());
+    assertOutputLockSymlinkRejected(linkedOutput);
+
+    File output = new File(tmp.getRoot(), "sibling-link-output");
+    File external = tmp.newFile("external-output-lock");
+    File sibling = new File(tmp.getRoot(), ".sibling-link-output"
+      + ConvertMapterhornTile.OUTPUT_LOCK_SUFFIX);
+    Files.createSymbolicLink(sibling.toPath(), external.toPath());
+    assertOutputLockSymlinkRejected(output);
+  }
+
+  @Test
+  public void noSourceConversionRemovesMatchingPendingOwnedOutput()
+      throws IOException {
+    File outDir = tmp.newFolder("owned-no-source");
+    File output = new File(outDir,
+      ElevationRasterTileConverter.genFilenameOld(LON_START, LAT_START));
+    Files.write(output.toPath(), new byte[]{4, 5, 6});
+    PmTilesTestArchive empty = new PmTilesTestArchive().zoomRange(ZOOM, ZOOM);
+
+    try (PmTilesArchive archive = PmTilesArchive.open(empty.asByteSource())) {
+      MapterhornOutputMetadata.Config config = new MapterhornOutputMetadata.Config(
+        archive.archiveId(), ZOOM, ROW_LENGTH, TILE, "legacy", "full",
+        LON_START, LAT_START);
+      assertEquals(MapterhornOutputMetadata.Decision.WRITE,
+        MapterhornOutputMetadata.prepare(output, config, true));
+
+      ConvertMapterhornTile.convertOne(archive, ZOOM, null, outDir,
+        LON_START, LAT_START, ROW_LENGTH, null, 1, true, TILE);
+    }
+
+    assertFalse(output.exists());
+    assertFalse(new File(output.getPath() + MapterhornOutputMetadata.SUFFIX).exists());
+  }
+
+  @Test
+  public void converterRejectsSymbolicLinkOutput() throws IOException {
+    File outDir = tmp.newFolder("linked-output");
+    File external = tmp.newFile("external-output");
+    File output = new File(outDir,
+      ElevationRasterTileConverter.genFilenameOld(LON_START, LAT_START));
+    Files.createSymbolicLink(output.toPath(), external.toPath());
+
+    try (PmTilesArchive archive = PmTilesArchive.open(
+        archiveOf((gx, gy) -> 200.0).asByteSource())) {
+      try {
+        ConvertMapterhornTile.convertOne(archive, ZOOM, null, outDir,
+          LON_START, LAT_START, ROW_LENGTH, null, 1, false, TILE);
+        fail("expected symbolic output rejection");
+      } catch (IOException expected) {
+        assertTrue(expected.getMessage(), expected.getMessage().contains("symbolic link"));
+      }
+    }
+    assertTrue(Files.isSymbolicLink(output.toPath()));
   }
 
   @Test
@@ -710,6 +1090,55 @@ public class ConvertMapterhornTileTest {
       fail("expected rejection of cache budget " + value);
     } catch (IllegalArgumentException expected) {
       assertTrue(expected.getMessage(), expected.getMessage().contains("-cache-max-gb"));
+    }
+  }
+
+  private static ElevationRaster smallRaster() {
+    ElevationRaster raster = new ElevationRaster();
+    ElevationCells.configureCellRaster(raster, LON_START, LAT_START, 1);
+    raster.eval_array = new short[raster.ncols * raster.nrows];
+    java.util.Arrays.fill(raster.eval_array, (short) 123);
+    return raster;
+  }
+
+  private static ElevationRaster copyRaster(ElevationRaster source) {
+    ElevationRaster copy = new ElevationRaster();
+    copy.ncols = source.ncols;
+    copy.nrows = source.nrows;
+    copy.halfcol = source.halfcol;
+    copy.xllcorner = source.xllcorner;
+    copy.yllcorner = source.yllcorner;
+    copy.cellsize = source.cellsize;
+    copy.noDataValue = source.noDataValue;
+    copy.eval_array = source.eval_array.clone();
+    return copy;
+  }
+
+  private static Properties loadProperties(File file) throws IOException {
+    Properties properties = new Properties();
+    try (java.io.InputStream in = Files.newInputStream(file.toPath())) {
+      properties.load(in);
+    }
+    return properties;
+  }
+
+  private static void await(CountDownLatch latch, String description) throws IOException {
+    try {
+      if (!latch.await(5L, TimeUnit.SECONDS)) {
+        throw new IOException("timed out waiting to " + description);
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException("interrupted waiting to " + description, e);
+    }
+  }
+
+  private static void assertOutputLockSymlinkRejected(File outDir) throws IOException {
+    try (ConvertMapterhornTile.OutputDirectoryLock ignored =
+           ConvertMapterhornTile.OutputDirectoryLock.acquire(outDir)) {
+      fail("expected output-directory symbolic link rejection");
+    } catch (IOException expected) {
+      assertTrue(expected.getMessage(), expected.getMessage().contains("symbolic link"));
     }
   }
 

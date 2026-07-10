@@ -34,10 +34,32 @@ public class ElevationRasterCoder {
   }
 
   public ElevationRaster decodeRaster(InputStream is) throws IOException {
-    DataInputStream dis = new DataInputStream(is);
-
     long t0 = System.currentTimeMillis();
 
+    ElevationRaster raster = decodeHeader(is);
+    int pixelCount;
+    try {
+      if (raster.ncols <= 0 || raster.nrows <= 0) {
+        throw new ArithmeticException("non-positive raster dimensions");
+      }
+      pixelCount = Math.multiplyExact(raster.ncols, raster.nrows);
+    } catch (ArithmeticException e) {
+      throw new IOException("raster dimensions are too large: " + raster.ncols
+        + " x " + raster.nrows, e);
+    }
+    raster.eval_array = new short[pixelCount];
+
+    _decodeRaster(raster, is);
+
+    raster.usingWeights = false; // raster.ncols > 6001;
+
+    long t1 = System.currentTimeMillis();
+    System.out.println("finished decoding in " + (t1 - t0) + " ms ncols=" + raster.ncols + " nrows=" + raster.nrows);
+    return raster;
+  }
+
+  public ElevationRaster decodeHeader(InputStream is) throws IOException {
+    DataInputStream dis = new DataInputStream(is);
     ElevationRaster raster = new ElevationRaster();
     raster.ncols = dis.readInt();
     raster.nrows = dis.readInt();
@@ -46,14 +68,6 @@ public class ElevationRasterCoder {
     raster.yllcorner = dis.readDouble();
     raster.cellsize = dis.readDouble();
     raster.noDataValue = dis.readShort();
-    raster.eval_array = new short[raster.ncols * raster.nrows];
-
-    _decodeRaster(raster, is);
-
-    raster.usingWeights = false; // raster.ncols > 6001;
-
-    long t1 = System.currentTimeMillis();
-    System.out.println("finished decoding in " + (t1 - t0) + " ms ncols=" + raster.ncols + " nrows=" + raster.nrows);
     return raster;
   }
 
