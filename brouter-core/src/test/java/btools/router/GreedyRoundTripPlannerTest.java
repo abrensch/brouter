@@ -38,6 +38,27 @@ public class GreedyRoundTripPlannerTest {
   }
 
   @Test
+  public void boundedEffortReducesRoutedTopK() {
+    GreedyRoundTripPlanner planner = new GreedyRoundTripPlanner(null, null);
+    // Default (full) effort: 3 routed candidates per step, 5 on late steps/retries.
+    Assert.assertEquals(3, planner.routeBudgetFor(false));
+    Assert.assertEquals(5, planner.routeBudgetFor(true));
+    // Bounded effort (BALANCED tier, issue #27): 2 / 3. K stays >= 2 so the
+    // routed comparison and the graph-native source quota remain functional.
+    planner.setBoundedEffort(true);
+    Assert.assertEquals(GreedyRoundTripPlanner.MAX_ROUTE_ATTEMPTS_BOUNDED,
+      planner.routeBudgetFor(false));
+    Assert.assertEquals(GreedyRoundTripPlanner.MAX_ROUTE_ATTEMPTS_LATE_BOUNDED,
+      planner.routeBudgetFor(true));
+    Assert.assertEquals(2, planner.routeBudgetFor(false));
+    Assert.assertEquals(3, planner.routeBudgetFor(true));
+    // And back off again — the flag must not latch.
+    planner.setBoundedEffort(false);
+    Assert.assertEquals(3, planner.routeBudgetFor(false));
+    Assert.assertEquals(5, planner.routeBudgetFor(true));
+  }
+
+  @Test
   public void directionPreferenceParsing() {
     Assert.assertEquals(DirectionPreference.N, DirectionPreference.fromString("N"));
     Assert.assertEquals(DirectionPreference.SW, DirectionPreference.fromString("sw"));

@@ -32,6 +32,15 @@ public class RoundTripAlgorithmTest {
   }
 
   @Test
+  public void balancedTierParses() {
+    // BALANCED is a real mode (bounded mobile tier, issue #27), not an alias —
+    // it must parse case-insensitively like the other user-facing names.
+    assertEquals(RoundTripAlgorithm.BALANCED, RoundTripAlgorithm.fromString("BALANCED"));
+    assertEquals(RoundTripAlgorithm.BALANCED, RoundTripAlgorithm.fromString("balanced"));
+    assertEquals(RoundTripAlgorithm.BALANCED, RoundTripAlgorithm.fromString("Balanced"));
+  }
+
+  @Test
   public void unknownAlgorithmFallsBackToAuto() {
     assertEquals(RoundTripAlgorithm.AUTO, RoundTripAlgorithm.fromString("UNKNOWN"));
     assertEquals(RoundTripAlgorithm.AUTO, RoundTripAlgorithm.fromString(""));

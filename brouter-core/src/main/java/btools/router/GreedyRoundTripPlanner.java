@@ -251,6 +251,16 @@ public class GreedyRoundTripPlanner {
   /** Raised cap on late steps or after a failed attempt, where extra exploration pays off. */
   private static final int MAX_ROUTE_ATTEMPTS_LATE = 5;
   /**
+   * Bounded-effort (BALANCED tier, issue #27) routed top-K: each routed
+   * candidate is a full Dijkstra leg, so this is the planner's main per-step
+   * cost multiplier. K=2 keeps the routed comparison and the source quota
+   * ({@code GRAPH_NATIVE_MIN_ROUTED}) functional — K=1 would degenerate the
+   * step to a heuristic-only pick.
+   */
+  static final int MAX_ROUTE_ATTEMPTS_BOUNDED = 2;
+  /** Bounded-effort cap on late steps / after a failed attempt. */
+  static final int MAX_ROUTE_ATTEMPTS_LATE_BOUNDED = 3;
+  /**
    * Min angular separation between routed candidates within a step. Top-K by raw
    * heuristic score is often spatially redundant in dense networks (two adjacent
    * road choices have similar scores); enforcing a 30° gap gives diverse routed
@@ -416,6 +426,27 @@ public class GreedyRoundTripPlanner {
   /** Set the round-trip variety seed (the request's alternativeidx). Negative values clamp to 0 (= inert). */
   public void setVarietySeed(int seed) {
     varietySeed = Math.max(0, seed);
+  }
+
+  /**
+   * Bounded-effort mode (BALANCED tier, issue #27): reduces the per-step
+   * routed candidate count to {@link #MAX_ROUTE_ATTEMPTS_BOUNDED}/
+   * {@link #MAX_ROUTE_ATTEMPTS_LATE_BOUNDED}. Everything else (scoring,
+   * quota, ladder, deadlines) is unchanged — wall-clock bounding comes from
+   * {@link #setExternalDeadline}.
+   */
+  private boolean boundedEffort;
+
+  public void setBoundedEffort(boolean bounded) {
+    boundedEffort = bounded;
+  }
+
+  /** Routed top-K for a step: late steps and retry attempts explore more. */
+  int routeBudgetFor(boolean lateStep) {
+    if (boundedEffort) {
+      return lateStep ? MAX_ROUTE_ATTEMPTS_LATE_BOUNDED : MAX_ROUTE_ATTEMPTS_BOUNDED;
+    }
+    return lateStep ? MAX_ROUTE_ATTEMPTS_LATE : MAX_ROUTE_ATTEMPTS;
   }
 
   /**
@@ -810,8 +841,8 @@ public class GreedyRoundTripPlanner {
         // picks are often spatially redundant in dense networks. Bump K from
         // MAX_ROUTE_ATTEMPTS to MAX_ROUTE_ATTEMPTS_LATE on late steps or after
         // an earlier failed attempt this step, where extra exploration pays off.
-        int routeBudget = (step >= subRouteCount - 1 || attempt > 1)
-          ? MAX_ROUTE_ATTEMPTS_LATE : MAX_ROUTE_ATTEMPTS;
+        boolean lateStep = step >= subRouteCount - 1 || attempt > 1;
+        int routeBudget = routeBudgetFor(lateStep);
         List<RoundTripCandidateProvider.CandidatePoint> toRoute =
           pickDiverseTopK(candidates, routeBudget);
         // Source fairness for the routed slots (blended ISO_GREEDY only; no-op
@@ -820,7 +851,7 @@ public class GreedyRoundTripPlanner {
         // routed truth, so a mixed sort lets iso picks monopolize the routed
         // top-K and the cost-aware routed comparison never prices the honest
         // local alternative. Guarantee it a seat; phase-2 stays the judge.
-        int minGraphNative = routeBudget > MAX_ROUTE_ATTEMPTS
+        int minGraphNative = lateStep
           ? GRAPH_NATIVE_MIN_ROUTED_LATE : GRAPH_NATIVE_MIN_ROUTED;
         // A DEGRADED pool cedes one more routed seat to graph-native truth —
         // the automatic influence reduction for thin/bunched/losing pools.

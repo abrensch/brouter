@@ -247,6 +247,25 @@ public class RoutingEngine extends Thread {
   }
 
   /**
+   * BALANCED tier (issue #27) wall-clock budget cap. The tier clamps
+   * {@link #roundTripRequestDeadline} to {@code min(request budget, this)} for
+   * its single bounded ISO_GREEDY run — predictable interactive latency is the
+   * tier's contract, so the cap applies even to otherwise-unbounded (CLI)
+   * requests. The top of the issue's 3-8s range: phone CPUs run the planner
+   * slower than the desktop this was calibrated on, so the upper bound keeps
+   * quality headroom.
+   */
+  static final long BALANCED_BUDGET_MS = 8_000;
+  /**
+   * Set for the duration of the BALANCED dispatch: planners constructed under
+   * it run with a reduced routed top-K (see
+   * {@link GreedyRoundTripPlanner#setBoundedEffort}), the Phase 2.1 axis retry
+   * is skipped, and the ISO_GREEDY→GREEDY recursion is replaced by the cheap
+   * WAYPOINT fallback in {@link #doBalancedRoundTrip}.
+   */
+  private boolean roundTripBoundedEffort;
+
+  /**
    * Per-call wall-clock bound for the next {@link #runIsochroneExpansion}
    * (epoch ms, 0 = none), set/cleared by the greedy planner around
    * candidatesForStep. The expansion loop historically had NO time or
@@ -965,7 +984,16 @@ public class RoutingEngine extends Thread {
         }
         logInfo("round trip algorithm: " + algo);
 
-        if (algo == RoundTripAlgorithm.GREEDY || algo == RoundTripAlgorithm.ISO_GREEDY) {
+        if (algo == RoundTripAlgorithm.BALANCED) {
+          if (!greedySupports(routingContext.allowSamewayback, waypoints.size())) {
+            // Same constraint as the greedy branch below: the planner generates
+            // its own intermediate points and does not honor allowSamewayback.
+            logInfo("BALANCED round trip does not support allowSamewayback, falling back to waypoint algorithm");
+            doWaypointBasedRoundTrip(searchRadius, direction, RoundTripAlgorithm.WAYPOINT);
+          } else {
+            doBalancedRoundTrip(searchRadius, direction);
+          }
+        } else if (algo == RoundTripAlgorithm.GREEDY || algo == RoundTripAlgorithm.ISO_GREEDY) {
           if (!greedySupports(routingContext.allowSamewayback, waypoints.size())) {
             // Greedy generates its own intermediate points and does not honor
             // allowSamewayback. (User vias are handled in explicitViaMode above.)
@@ -2563,6 +2591,59 @@ public class RoutingEngine extends Thread {
     doRouting(roundTripRoutingBudgetMs);
   }
 
+  /**
+   * BALANCED tier (issue #27): one bounded, graph-aware planning run with
+   * predictable latency for interactive/mobile use.
+   *
+   * <p>Policy: a single ISO_GREEDY dispatch (its internal graph-native
+   * comparison branch from issue #26 stays available) under a hard
+   * {@code min(request budget, }{@link #BALANCED_BUDGET_MS}{@code )} deadline
+   * and a reduced per-step routed top-K. The Phase 2.1 axis retry and the
+   * ISO_GREEDY→GREEDY recursion are skipped ({@link #roundTripBoundedEffort});
+   * a degraded-but-rideable planner loop is adopted best-effort for the
+   * lenient gate to grade. Only when the planner produces no track at all does
+   * the tier fall back to one FAST/WAYPOINT attempt — run under a fresh tier
+   * budget slice, because always returning some loop beats strict adherence
+   * to a single slice (the fallback fires mostly in constrained terrain
+   * where the greedy run burned its budget without closing a loop).
+   */
+  private void doBalancedRoundTrip(double searchRadius, double direction) {
+    long t0 = System.currentTimeMillis();
+    long savedDeadline = roundTripRequestDeadline;
+    roundTripRequestDeadline = savedDeadline == 0
+      ? t0 + BALANCED_BUDGET_MS
+      : Math.min(savedDeadline, t0 + BALANCED_BUDGET_MS);
+    roundTripBoundedEffort = true;
+    try {
+      doGreedyRoundTrip(searchRadius, direction, RoundTripAlgorithm.ISO_GREEDY);
+    } finally {
+      roundTripBoundedEffort = false;
+      roundTripRequestDeadline = savedDeadline;
+    }
+    long plannerMs = System.currentTimeMillis() - t0;
+    if (foundTrack == null) {
+      logInfo("BALANCED: bounded planner produced no loop in " + plannerMs
+        + "ms (budget " + BALANCED_BUDGET_MS + "ms)"
+        + (errorMessage == null ? "" : " — " + errorMessage)
+        + "; falling back to waypoint placement");
+      errorMessage = null;
+      // Fresh tier slice for the fallback (see method javadoc). Worst case is
+      // two slices; the request-level watchdog still applies on top.
+      long fallbackStart = System.currentTimeMillis();
+      roundTripRequestDeadline = savedDeadline == 0
+        ? fallbackStart + BALANCED_BUDGET_MS
+        : Math.min(savedDeadline, fallbackStart + BALANCED_BUDGET_MS);
+      try {
+        doWaypointBasedRoundTrip(searchRadius, direction, RoundTripAlgorithm.WAYPOINT);
+      } finally {
+        roundTripRequestDeadline = savedDeadline;
+      }
+    }
+    logInfo("BALANCED: finished in " + (System.currentTimeMillis() - t0)
+      + "ms (planner " + plannerMs + "ms, budget " + BALANCED_BUDGET_MS + "ms/slice, "
+      + (foundTrack == null ? "no track" : "track " + foundTrack.distance + "m") + ")");
+  }
+
   void doGreedyRoundTrip(double searchRadius, double direction, RoundTripAlgorithm algo) {
     // Initialize nodesCache — needed before the planner can match waypoints to the graph.
     resetCache(false);
@@ -2675,6 +2756,9 @@ public class RoutingEngine extends Thread {
     boolean phase21Succeeded = false;
     double phase21RetryDir = Double.NaN;
     if (!startGraphNativeOnly
+        // BALANCED: the axis retry re-runs the whole ladder exactly when the
+        // terrain is hard — the opposite of a bounded tier's contract.
+        && !roundTripBoundedEffort
         && isDegradedGreedyResult(result)
         && direction >= 0
         && frontierAxis.hasStrongAxis
@@ -2878,11 +2962,15 @@ public class RoutingEngine extends Thread {
       // ISO_GREEDY only fails over to plain GREEDY if it also failed; otherwise
       // ISO_GREEDY's planner already added graph-native per-step candidates
       // when the start-centered iso pool was insufficient (see buildCandidateProvider).
+      // BALANCED skips this recursion (another full ladder): it adopts the
+      // best-effort track below instead, and its caller falls back to the
+      // cheap WAYPOINT placement when no track exists at all.
       if (algo == RoundTripAlgorithm.ISO_GREEDY
+          && !roundTripBoundedEffort
           && remainingRequestBudgetMs() >= MIN_LADDER_RUNG_BUDGET_MS) {
         logInfo("ISO_GREEDY produced no loop, falling back to GREEDY with graph-native candidates");
         doGreedyRoundTrip(searchRadius, direction, RoundTripAlgorithm.GREEDY);
-      } else if (algo == RoundTripAlgorithm.ISO_GREEDY) {
+      } else if (algo == RoundTripAlgorithm.ISO_GREEDY && !roundTripBoundedEffort) {
         // Same recursion, but the request budget is spent — adopt/report what
         // we have instead of starting another multi-plan GREEDY ladder.
         logInfo("ISO_GREEDY produced no loop and request budget is exhausted ("
@@ -2925,7 +3013,9 @@ public class RoutingEngine extends Thread {
             foundTrack = null;
           }
         } else {
-          errorMessage = "greedy round trip planner produced no acceptable graph-native loop"
+          // Reached by plain GREEDY and by BALANCED's bounded ISO_GREEDY run
+          // (which skips the GREEDY recursion) — keep the wording source-neutral.
+          errorMessage = "greedy round trip planner produced no acceptable loop"
             + (result == null || result.getFallbackReason() == null ? "" : ": " + result.getFallbackReason());
           logInfo(errorMessage);
           lastRejectedTrack = result == null ? null : result.getTrack();
@@ -5108,6 +5198,7 @@ public class RoutingEngine extends Thread {
       planner.setHostilityActive(RoundTripQualityGate.isPavedProfile(routingContext.getProfileName()));
       planner.setProfileName(routingContext.getProfileName());
       planner.setVarietySeed(routingContext.getRoundTripSeed());
+      planner.setBoundedEffort(roundTripBoundedEffort);
       planner.setReturnOracle(returnOracle);
       // Fresh per-plan health tracker: dynamic evidence must not leak across
       // ladder rungs (a demotion earned at subRouteCount=5 says nothing about

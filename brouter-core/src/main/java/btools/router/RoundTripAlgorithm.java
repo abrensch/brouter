@@ -5,7 +5,7 @@ import java.util.Locale;
 /**
  * Round-trip loop generation modes.
  *
- * <p>Two user-facing modes are recommended:
+ * <p>Three user-facing modes are recommended:
  * <ul>
  *   <li><b>{@link #AUTO}</b> (default) — runs the iterative planners and keeps
  *       the best loop. {@link #GREEDY} and {@link #ISO_GREEDY} are the two
@@ -13,6 +13,12 @@ import java.util.Locale;
  *       matrix they cost the same (median ~3s) and score almost identically
  *       (mean composite 0.812 vs 0.817), so AUTO simply adopts the better one
  *       per request rather than exposing them as separate speed/quality tiers.</li>
+ *   <li><b>{@link #BALANCED}</b> — the bounded middle tier (issue #27): one
+ *       graph-aware {@link #ISO_GREEDY} run (with its internal graph-native
+ *       fallback) under a hard ~8s budget with a reduced per-step routed
+ *       candidate count, no axis retry and no planner competition. Meant as
+ *       the interactive default on phones: predictable latency, visibly
+ *       better loops than FAST, below AUTO quality in hard terrain.</li>
  *   <li><b>{@code FAST}</b> → {@link #WAYPOINT} — geometric waypoint placement
  *       with no routed-leg evaluation: ~10x faster (sub-second) at lower quality,
  *       useful as a quick preview on limited hardware.</li>
@@ -29,6 +35,9 @@ import java.util.Locale;
 public enum RoundTripAlgorithm {
   /** Pick a mode based on terrain, length, and request parameters. */
   AUTO,
+  /** Bounded quality tier: one budgeted ISO_GREEDY run, reduced routed top-K,
+   *  WAYPOINT fallback — predictable latency for interactive/mobile use. */
+  BALANCED,
   /** FAST mode: geometric probe/waypoint placement (sub-second preview, lower quality). */
   WAYPOINT,
   /** Direct isochrone-frontier waypoint placement (from AUTO only via the
@@ -41,8 +50,9 @@ public enum RoundTripAlgorithm {
 
   /**
    * Parse the algorithm name. Accepts the internal enum names ({@code WAYPOINT},
-   * {@code GREEDY}, {@code ISO_GREEDY}, {@code ISOCHRONE}, {@code AUTO}) plus the
-   * one user-facing alias {@code FAST} → {@code WAYPOINT} (quick-preview mode).
+   * {@code GREEDY}, {@code ISO_GREEDY}, {@code ISOCHRONE}, {@code AUTO}), the
+   * user-facing tier {@code BALANCED}, plus the one alias {@code FAST} →
+   * {@code WAYPOINT} (quick-preview mode).
    * Case-insensitive. Unknown input falls back to {@link #AUTO} — the
    * recommended choice for a best-quality loop.
    */

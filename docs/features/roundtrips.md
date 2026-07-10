@@ -26,7 +26,7 @@ You control the loop with a few request parameters:
 | `startDirection` / `heading` | compass bearing to bias the direction the loop heads out; without it the start bearing is drawn randomly, so fix it whenever the loop should be reproducible |
 | `alternativeidx` | deterministic loop variety seed (`0` = default loop, any value ≥ 0 gives a reproducible variant — see [note below](#loop-quality)) |
 | `roundTripDirectionAdd` | angle offset added to an auto-detected start bearing |
-| `roundTripAlgorithm` | `AUTO` (default — best loop) or `FAST` (quick preview); the internal engine names `WAYPOINT`, `GREEDY`, `ISO_GREEDY`, `ISOCHRONE` are also accepted for forced selection — see below |
+| `roundTripAlgorithm` | `AUTO` (default — best loop), `BALANCED` (graph-aware with a hard ~8 s budget — the recommended interactive/mobile default), or `FAST` (quick preview); the internal engine names `WAYPOINT`, `GREEDY`, `ISO_GREEDY`, `ISOCHRONE` are also accepted for forced selection — see below |
 | `roundTripStrictQuality` | `1` hard-rejects loops that fail the quality checks; default `0` is lenient — a failing loop is still returned, tagged with a `Warning:` advisory (see [Loop quality](#loop-quality)) |
 | `allowSamewayback` | `1` lets the return leg reuse ways from the outward leg; default `0` keeps the way out and the way back distinct |
 
@@ -41,14 +41,27 @@ via-points outward so the loop better honours the requested length.
 Generating a good loop is harder than routing between two fixed points: the
 waypoints are not given, so the planner has to *invent* a set of intermediate
 targets and then check whether the resulting route is actually a pleasant,
-closed loop. Two modes are recommended:
+closed loop. Three modes are recommended:
 
 - **AUTO** (default) — runs the iterative planners and keeps the best loop. This
-  is what you want almost always.
+  is what you want when calculation time is not a concern; on phones it can take
+  well beyond a minute for long loops.
+- **BALANCED** — one graph-aware planning run under a hard ~8 s wall-clock
+  budget with a reduced per-step search width, no retry ladders beyond the
+  budget, and a geometric fallback if no loop closes at all. Returns the best
+  loop it found inside the budget — with a `Warning:` advisory when quality is
+  degraded. This is the recommended default for interactive use on phones:
+  predictable latency, visibly better loops than FAST. (Measured on the test
+  machine: ~40% below AUTO's time on a 180 km request at nearly identical
+  length adherence; phones should expect the budget to be the limit instead.)
 - **FAST** — places the ring of waypoints geometrically and scores them by
   straight-line distance only, with no routed-leg evaluation. Roughly 10× faster
   (sub-second) at noticeably lower quality — useful as a quick preview on limited
   mobile hardware.
+
+Client guidance: `FAST` for a live preview while the user drags sliders,
+`BALANCED` for the normal calculate-a-loop action on a phone, `AUTO` when the
+user explicitly asks for the best possible loop and accepts the wait.
 
 Under the hood AUTO competes two iterative strategies — `GREEDY` (radial
 candidate placement) and `ISO_GREEDY` (candidates drawn from a bounded isochrone
