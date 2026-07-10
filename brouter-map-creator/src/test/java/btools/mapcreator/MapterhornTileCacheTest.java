@@ -133,6 +133,35 @@ public class MapterhornTileCacheTest {
   }
 
   @Test
+  public void staleIdentityTemporaryAloneDoesNotBlockInitialization() throws IOException {
+    File dir = tmp.newFolder();
+    File staleIdentity = new File(dir, "archive.id.tmp17");
+    Files.write(staleIdentity.toPath(), new byte[]{1, 2, 3});
+
+    try (MapterhornTileCache initialized = new MapterhornTileCache(
+        dir, "archive-a", 1024L)) {
+      assertFalse(staleIdentity.exists());
+      assertTrue(new File(dir, "archive.id").isFile());
+      assertEquals(0L, initialized.usedBytes());
+    }
+    try (MapterhornTileCache reopened = new MapterhornTileCache(
+        dir, "archive-a", 1024L)) {
+      assertEquals(0L, reopened.usedBytes());
+    }
+  }
+
+  @Test
+  public void unrelatedIdentityTemporaryDoesNotMakeRootEmpty() throws IOException {
+    File dir = tmp.newFolder();
+    File unrelated = new File(dir, "archive.id.tmp17.extra");
+    Files.write(unrelated.toPath(), new byte[]{1});
+
+    assertNeedsEmptyDirectory(dir);
+    assertTrue("unrelated temporary must be preserved", unrelated.isFile());
+    assertFalse(new File(dir, "archive.id").exists());
+  }
+
+  @Test
   public void startupCountsExistingTileBytes() throws IOException {
     File dir = tmp.newFolder();
     PmTilesArchive.TileLocation location = new PmTilesArchive.TileLocation(100L, 10);
@@ -396,6 +425,17 @@ public class MapterhornTileCacheTest {
 
     assertSymbolicLinkRejected(dir);
     assertTrue("startup must not delete through the link", Files.exists(external));
+  }
+
+  @Test
+  public void identityTemporarySymbolicLinkIsRejectedBeforeInitialization() throws IOException {
+    File dir = tmp.newFolder("identity-temp-link-cache");
+    Path external = tmp.newFile("external-identity-temp").toPath();
+    Files.createSymbolicLink(dir.toPath().resolve("archive.id.tmp17"), external);
+
+    assertSymbolicLinkRejected(dir);
+    assertTrue("startup must not delete through the link", Files.exists(external));
+    assertFalse(new File(dir, "archive.id").exists());
   }
 
   @Test

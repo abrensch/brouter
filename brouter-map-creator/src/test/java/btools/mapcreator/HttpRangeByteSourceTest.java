@@ -258,6 +258,27 @@ public class HttpRangeByteSourceTest {
     assertPermanentFailure("/encoded", "Content-Encoding");
   }
 
+  @Test
+  public void successfulResponseThatIgnoresRangeIsNotRetried() throws IOException {
+    server.createContext("/range-ignored", exchange -> {
+      hits.incrementAndGet();
+      exchange.sendResponseHeaders(200, DATA.length);
+      try (OutputStream body = exchange.getResponseBody()) {
+        body.write(DATA);
+      }
+    });
+    PmTilesArchive.HttpRangeByteSource src =
+      new PmTilesArchive.HttpRangeByteSource(baseUrl + "/range-ignored");
+
+    try {
+      src.read(0, 4);
+      fail("expected HTTP 200 range rejection");
+    } catch (IOException expected) {
+      // A full response cannot satisfy a range read, even when its body has enough bytes.
+    }
+    assertEquals("a server that ignores Range must not be retried", 1, hits.get());
+  }
+
   /**
    * A deterministic 404 must fail immediately: retrying it three times with sleeps
    * would only stall the build.

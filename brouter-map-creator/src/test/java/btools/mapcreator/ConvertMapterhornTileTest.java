@@ -972,6 +972,28 @@ public class ConvertMapterhornTileTest {
   }
 
   @Test
+  public void bboxMustBeFiniteOrderedAndInsideWorldBounds() {
+    assertArrayEquals(new double[]{-180.0, -90.0, 180.0, 90.0},
+      ConvertMapterhornTile.parseBbox("-180,-90,180,90"), 0.0);
+
+    String[] invalid = {
+      "NaN,-90,180,90",
+      "-180,NaN,180,90",
+      "-Infinity,-90,180,90",
+      "-180,-90,Infinity,90",
+      "-181,-90,180,90",
+      "-180,-91,180,90",
+      "-180,-90,181,90",
+      "-180,-90,180,91",
+      "0,0,0,1",
+      "0,1,1,1"
+    };
+    for (String bbox : invalid) {
+      assertInvalidBbox(bbox);
+    }
+  }
+
+  @Test
   public void contiguousRunsAreGroupedAndDeduplicated() {
     ConvertMapterhornTile.MissedTile a = missed(0, 100, 50);   // 100..149
     ConvertMapterhornTile.MissedTile b = missed(1, 150, 30);   // adjacent
@@ -1090,6 +1112,15 @@ public class ConvertMapterhornTileTest {
       fail("expected rejection of cache budget " + value);
     } catch (IllegalArgumentException expected) {
       assertTrue(expected.getMessage(), expected.getMessage().contains("-cache-max-gb"));
+    }
+  }
+
+  private static void assertInvalidBbox(String value) {
+    try {
+      ConvertMapterhornTile.parseBbox(value);
+      fail("expected rejection of bbox " + value);
+    } catch (IllegalArgumentException expected) {
+      assertTrue(expected.getMessage(), expected.getMessage().contains("-bbox"));
     }
   }
 

@@ -1,13 +1,24 @@
 package btools.mapcreator;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.awt.Transparency;
+import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
+import java.awt.image.DataBuffer;
+import java.awt.image.Raster;
+import java.awt.image.WritableRaster;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.zip.CRC32;
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
@@ -52,6 +63,65 @@ public class TerrariumTileDecoderTest {
   }
 
   @Test
+  public void expectedTileSizeIsCheckedFromTheImageHeader() throws IOException {
+    byte[] png = TerrainTiles.constantPng(8, 250.0);
+
+    assertEquals(8, TerrariumTileDecoder.decode(png, 8).size());
+    try {
+      TerrariumTileDecoder.decode(png, 16);
+      fail("expected a tile-size mismatch");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("expected 16x16"));
+      assertTrue(e.getMessage(), e.getMessage().contains("8x8"));
+    }
+  }
+
+  @Test
+  public void oversizedDimensionsAreRejectedFromAMalformedPngHeader() throws IOException {
+    byte[] png = TerrainTiles.constantPng(1, 250.0);
+    setPngDimensions(png, 4097, 4097);
+
+    try {
+      TerrariumTileDecoder.decode(png);
+      fail("expected oversized advertised dimensions to be rejected");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("4097x4097"));
+      assertTrue(e.getMessage(), e.getMessage().contains("maximum"));
+    }
+  }
+
+  @Test
+  public void nonSquareDimensionsAreRejectedFromTheImageHeader() throws IOException {
+    BufferedImage image = new BufferedImage(8, 4, BufferedImage.TYPE_INT_RGB);
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    assertTrue(ImageIO.write(image, "png", output));
+
+    try {
+      TerrariumTileDecoder.decode(output.toByteArray());
+      fail("expected non-square advertised dimensions to be rejected");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("not square"));
+      assertTrue(e.getMessage(), e.getMessage().contains("8x4"));
+    }
+  }
+
+  @Test
+  public void sixteenBitRgbPngIsRejectedBeforeSampleDecode() throws IOException {
+    byte[] png = sixteenBitRgbPng();
+    BufferedImage image = ImageIO.read(new ByteArrayInputStream(png));
+    assertArrayEquals("test PNG must preserve 16-bit RGB samples",
+      new int[]{16, 16, 16}, Arrays.copyOf(image.getSampleModel().getSampleSize(), 3));
+
+    try {
+      TerrariumTileDecoder.decode(png);
+      fail("expected 16-bit RGB samples to be rejected");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("8-bit"));
+      assertTrue(e.getMessage(), e.getMessage().contains("16"));
+    }
+  }
+
+  @Test
   public void mapsBlackPixelsToNoData() throws IOException {
     byte[] png = TerrainTiles.rgbPng(4, (x, y) -> new int[]{0, 0, 0});
     TerrariumTileDecoder.Tile tile = TerrariumTileDecoder.decode(png);
@@ -92,6 +162,17 @@ public class TerrariumTileDecoderTest {
     try {
       TerrariumTileDecoder.decode(webp);
       fail("expected an IOException for undecodable bytes");
+    } catch (IOException e) {
+      assertTrue(e.getMessage(), e.getMessage().contains("WebP"));
+    }
+  }
+
+  @Test
+  public void truncatedLosslessWebPStillReportsItsFormat() {
+    byte[] webp = webpHeader('V', 'P', '8', 'L');
+    try {
+      TerrariumTileDecoder.decode(webp);
+      fail("expected truncated lossless WebP to fail");
     } catch (IOException e) {
       assertTrue(e.getMessage(), e.getMessage().contains("WebP"));
     }
@@ -180,5 +261,40 @@ public class TerrariumTileDecoderTest {
     bytes[14] = (byte) c;
     bytes[15] = (byte) d;
     return bytes;
+  }
+
+  private static byte[] sixteenBitRgbPng() throws IOException {
+    int size = 2;
+    ColorModel colorModel = new ComponentColorModel(
+      ColorSpace.getInstance(ColorSpace.CS_sRGB), new int[]{16, 16, 16}, false, false,
+      Transparency.OPAQUE, DataBuffer.TYPE_USHORT);
+    WritableRaster raster = Raster.createInterleavedRaster(DataBuffer.TYPE_USHORT,
+      size, size, size * 3, 3, new int[]{0, 1, 2}, null);
+    for (int y = 0; y < size; y++) {
+      for (int x = 0; x < size; x++) {
+        raster.setPixel(x, y, new int[]{32768, 256 + x, 128 + y});
+      }
+    }
+    BufferedImage image = new BufferedImage(colorModel, raster, false, null);
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    if (!ImageIO.write(image, "png", output)) {
+      throw new IOException("no PNG writer available for 16-bit RGB test image");
+    }
+    return output.toByteArray();
+  }
+
+  private static void setPngDimensions(byte[] png, int width, int height) {
+    putIntBigEndian(png, 16, width);
+    putIntBigEndian(png, 20, height);
+    CRC32 crc = new CRC32();
+    crc.update(png, 12, 17); // IHDR type and payload
+    putIntBigEndian(png, 29, (int) crc.getValue());
+  }
+
+  private static void putIntBigEndian(byte[] bytes, int offset, int value) {
+    bytes[offset] = (byte) (value >>> 24);
+    bytes[offset + 1] = (byte) (value >>> 16);
+    bytes[offset + 2] = (byte) (value >>> 8);
+    bytes[offset + 3] = (byte) value;
   }
 }

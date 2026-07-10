@@ -741,7 +741,19 @@ public class ConvertMapterhornTile implements AutoCloseable {
     }
     double[] b = new double[4];
     for (int i = 0; i < 4; i++) {
-      b[i] = Double.parseDouble(p[i].trim());
+      try {
+        b[i] = Double.parseDouble(p[i].trim());
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException("-bbox values must be numbers", e);
+      }
+      if (!Double.isFinite(b[i])) {
+        throw new IllegalArgumentException("-bbox values must be finite");
+      }
+    }
+    if (b[0] < -180.0 || b[0] > 180.0 || b[2] < -180.0 || b[2] > 180.0
+        || b[1] < -90.0 || b[1] > 90.0 || b[3] < -90.0 || b[3] > 90.0) {
+      throw new IllegalArgumentException("-bbox longitude must be within -180..180 and latitude"
+        + " within -90..90");
     }
     if (b[0] >= b[2] || b[1] >= b[3]) {
       throw new IllegalArgumentException("-bbox min must be below max");
@@ -1282,7 +1294,7 @@ public class ConvertMapterhornTile implements AutoCloseable {
         tilesFound.incrementAndGet();
         int slot = k;
         tasks.add(pool.submit(() -> {
-          decoded.set(slot, TerrariumTileDecoder.decode(cached));
+          decoded.set(slot, TerrariumTileDecoder.decode(cached, tileSize));
           return null;
         }));
         continue;
@@ -1397,7 +1409,7 @@ public class ConvertMapterhornTile implements AutoCloseable {
         cache.write(m.loc, raw);
       }
       tilesFound.incrementAndGet();
-      decoded.set(m.slot, TerrariumTileDecoder.decode(raw));
+      decoded.set(m.slot, TerrariumTileDecoder.decode(raw, tileSize));
     }
   }
 

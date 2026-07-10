@@ -43,6 +43,52 @@ public class PmTilesArchiveTest {
     assertEquals(((1L << 24) - 1L) / 3L, PmTilesArchive.hilbertBase(12));
   }
 
+  @Test
+  public void tileIdsRejectNegativeAndUpperBoundCoordinates() {
+    assertInvalidTileCoordinates(0, -1, 0);
+    assertInvalidTileCoordinates(0, 0, -1);
+    assertInvalidTileCoordinates(0, 1, 0);
+    assertInvalidTileCoordinates(1, 2, 0);
+    assertInvalidTileCoordinates(1, 0, 2);
+    assertInvalidTileCoordinates(30, 1 << 30, 0);
+  }
+
+  @Test
+  public void hilbertHelpersRejectUnsupportedZoomsAndCoordinates() {
+    assertIllegalArgument(() -> PmTilesArchive.hilbertBase(-1));
+    assertIllegalArgument(() -> PmTilesArchive.hilbertBase(32));
+    assertIllegalArgument(() -> PmTilesArchive.xyToHilbertDistance(-1, 0, 0));
+    assertIllegalArgument(() -> PmTilesArchive.xyToHilbertDistance(32, 0, 0));
+    assertIllegalArgument(() -> PmTilesArchive.xyToHilbertDistance(2, -1, 0));
+    assertIllegalArgument(() -> PmTilesArchive.xyToHilbertDistance(2, 0, 4));
+    assertIllegalArgument(() -> PmTilesArchive.zxyToTileId(-1, 0, 0));
+    assertIllegalArgument(() -> PmTilesArchive.zxyToTileId(32, 0, 0));
+  }
+
+  @Test
+  public void zoomThirtyOneTileIdsStayInSignedLongRange() {
+    long levelTiles = 1L << 62;
+    long base = (levelTiles - 1L) / 3L;
+
+    assertEquals(base, PmTilesArchive.hilbertBase(31));
+    assertEquals(levelTiles - 1L,
+      PmTilesArchive.xyToHilbertDistance(31, Integer.MAX_VALUE, 0));
+    assertEquals(base + levelTiles - 1L,
+      PmTilesArchive.zxyToTileId(31, Integer.MAX_VALUE, 0));
+  }
+
+  @Test
+  public void locateTileValidatesCoordinatesButKeepsAbsentZoomsNormal() throws IOException {
+    try (PmTilesArchive archive = PmTilesArchive.open(new PmTilesTestArchive()
+      .zoomRange(1, 1).put(1, 0, 0, new byte[]{1}).asByteSource())) {
+      assertNull(archive.locateTile(0, 0, 0));
+      assertNull(archive.locateTile(2, 0, 0));
+      assertIllegalArgument(() -> archive.locateTile(1, -1, 0));
+      assertIllegalArgument(() -> archive.locateTile(1, 2, 0));
+      assertIllegalArgument(() -> archive.locateTile(32, 0, 0));
+    }
+  }
+
   /**
    * Within a zoom level the Hilbert mapping must be a bijection, otherwise tiles would
    * silently collide in the directory.
@@ -559,6 +605,26 @@ public class PmTilesArchiveTest {
     } catch (IOException expected) {
       assertTrue(expected.getMessage(), expected.getMessage().contains("range"));
     }
+  }
+
+  private static void assertInvalidTileCoordinates(int z, int x, int y) {
+    assertIllegalArgument(() -> PmTilesArchive.zxyToTileId(z, x, y));
+  }
+
+  private static void assertIllegalArgument(ThrowingOperation operation) {
+    try {
+      operation.run();
+      fail("expected invalid PMTiles tile coordinates to be rejected");
+    } catch (IllegalArgumentException expected) {
+      assertTrue(expected.getMessage(), expected.getMessage().contains("PMTiles"));
+    } catch (IOException e) {
+      throw new AssertionError("expected IllegalArgumentException", e);
+    }
+  }
+
+  @FunctionalInterface
+  private interface ThrowingOperation {
+    void run() throws IOException;
   }
 
   private static byte[] directory(long[]... entries) {

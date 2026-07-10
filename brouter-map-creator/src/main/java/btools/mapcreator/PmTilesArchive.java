@@ -58,6 +58,7 @@ public final class PmTilesArchive implements Closeable {
   static final int MAX_CACHED_LEAF_ENTRIES = 250_000;
 
   private static final int MAX_DIR_DEPTH = 4;
+  private static final int MAX_TILE_ZOOM = 31;
 
   /**
    * Random access to the raw archive bytes.
@@ -293,7 +294,7 @@ public final class PmTilesArchive implements Closeable {
     if (tileCompression != COMPRESSION_NONE && tileCompression != COMPRESSION_GZIP) {
       throw new IOException("unsupported PMTiles tile compression: " + tileCompression);
     }
-    if (minZoom > 31 || maxZoom > 31 || minZoom > maxZoom) {
+    if (minZoom > MAX_TILE_ZOOM || maxZoom > MAX_TILE_ZOOM || minZoom > maxZoom) {
       throw new IOException("invalid PMTiles zoom range: " + minZoom + ".." + maxZoom);
     }
     if (minLon < -180.0 || maxLon > 180.0 || minLon > maxLon
@@ -491,20 +492,31 @@ public final class PmTilesArchive implements Closeable {
    * Closed form of sum(4^i) for i in [0, z).
    */
   public static long hilbertBase(int z) {
+    validateZoom(z);
+    return hilbertBaseUnchecked(z);
+  }
+
+  private static long hilbertBaseUnchecked(int z) {
     return ((1L << (2 * z)) - 1L) / 3L;
   }
 
   public static long zxyToTileId(int z, int x, int y) {
-    if (z == 0) {
-      return 0L;
-    }
-    return hilbertBase(z) + xyToHilbertDistance(z, x, y);
+    validateTileCoordinates(z, x, y);
+    return hilbertBaseUnchecked(z) + xyToHilbertDistanceUnchecked(z, x, y);
   }
 
   /**
    * Standard Hilbert xy-to-distance, matching the PMTiles reference implementation.
    */
   public static long xyToHilbertDistance(int order, long x, long y) {
+    validateTileCoordinates(order, x, y);
+    return xyToHilbertDistanceUnchecked(order, x, y);
+  }
+
+  private static long xyToHilbertDistanceUnchecked(int order, long x, long y) {
+    if (order == 0) {
+      return 0L;
+    }
     long d = 0L;
     for (long s = 1L << (order - 1); s > 0L; s >>= 1) {
       long rx = (x & s) > 0L ? 1L : 0L;
@@ -521,6 +533,23 @@ public final class PmTilesArchive implements Closeable {
       }
     }
     return d;
+  }
+
+  private static void validateZoom(int z) {
+    if (z < 0 || z > MAX_TILE_ZOOM) {
+      throw new IllegalArgumentException("PMTiles zoom must be in 0.." + MAX_TILE_ZOOM
+        + ": " + z);
+    }
+  }
+
+  private static void validateTileCoordinates(int z, long x, long y) {
+    validateZoom(z);
+    long tilesPerAxis = 1L << z;
+    if (x < 0L || y < 0L || x >= tilesPerAxis || y >= tilesPerAxis) {
+      throw new IllegalArgumentException("PMTiles tile coordinates out of range at zoom "
+        + z + ": x=" + x + ", y=" + y + " (expected 0.." + (tilesPerAxis - 1L)
+        + ")");
+    }
   }
 
   // -------------------------------------------------------------- utilities
@@ -883,7 +912,7 @@ public final class PmTilesArchive implements Closeable {
           }
           throw new RateLimitedException(msg, ms);
         }
-        if (code >= 400 && code < 500) {
+        if ((code >= 200 && code < 300) || (code >= 400 && code < 500)) {
           throw new PermanentHttpException(msg);
         }
         throw new IOException(msg);

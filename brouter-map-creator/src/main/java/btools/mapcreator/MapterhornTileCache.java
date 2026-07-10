@@ -116,6 +116,7 @@ public final class MapterhornTileCache implements AutoCloseable {
     this.rootLock = acquiredLock;
 
     try {
+      cleanStaleIdentityTemporaryFiles();
       initializeIdentity(archiveId);
       usedBytes = cleanTemporaryFilesAndCountTiles();
       if (usedBytes > maxBytes) {
@@ -301,6 +302,22 @@ public final class MapterhornTileCache implements AutoCloseable {
       throw new IOException("tile cache " + root + " was filled from a different archive"
         + " (cache id " + existingArchiveId + ", archive id " + archiveId + ");"
         + " use an empty cache directory or delete this one");
+    }
+  }
+
+  private void cleanStaleIdentityTemporaryFiles() throws IOException {
+    try (DirectoryStream<Path> entries = Files.newDirectoryStream(root)) {
+      for (Path entry : entries) {
+        if (!ID_TEMPORARY.matcher(entry.getFileName().toString()).matches()) {
+          continue;
+        }
+        BasicFileAttributes attributes = attributesIfPresent(entry);
+        if (attributes == null) {
+          continue;
+        }
+        requireRegularFile(entry, attributes, "tile cache identity temporary file");
+        Files.delete(entry);
+      }
     }
   }
 

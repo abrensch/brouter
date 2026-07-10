@@ -4,9 +4,11 @@ import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 
 /**
  * Decodes a Terrarium-encoded terrain-RGB image tile into elevations in metres.
@@ -30,6 +32,10 @@ public final class TerrariumTileDecoder {
    * No land on earth is below -450 m; -1000 m leaves ample headroom.
    */
   public static final double MIN_VALID_ELEVATION = -1000.0;
+
+  private static final int MAX_TILE_DIMENSION = 4096;
+  private static final long MAX_TILE_PIXELS =
+    (long) MAX_TILE_DIMENSION * MAX_TILE_DIMENSION;
 
   static {
     // tiles arrive as in-memory byte arrays; the default ImageIO behaviour would back
@@ -76,32 +82,151 @@ public final class TerrariumTileDecoder {
    *                     silently corrupt elevations (a 1-count error in R is 256 m).
    */
   public static Tile decode(byte[] imageBytes) throws IOException {
+    return decodeImage(imageBytes, -1);
+  }
+
+  /**
+   * Decode a production tile and reject a size mismatch from the image header before
+   * allocating its pixel buffer.
+   */
+  public static Tile decode(byte[] imageBytes, int expectedTileSize) throws IOException {
+    if (expectedTileSize <= 0 || expectedTileSize > MAX_TILE_DIMENSION) {
+      throw new IllegalArgumentException("expected terrain tile size must be in 1.."
+        + MAX_TILE_DIMENSION + ": " + expectedTileSize);
+    }
+    return decodeImage(imageBytes, expectedTileSize);
+  }
+
+  private static Tile decodeImage(byte[] imageBytes, int expectedTileSize) throws IOException {
+    if (imageBytes == null) {
+      throw new IllegalArgumentException("terrain tile bytes are required");
+    }
     if (isWebP(imageBytes)) {
       requireLosslessWebP(imageBytes);
     }
-    BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
-    if (img == null) {
-      throw new IOException(describeUndecodable(imageBytes));
+
+    try (ImageInputStream input = ImageIO.createImageInputStream(
+        new ByteArrayInputStream(imageBytes))) {
+      if (input == null) {
+        throw new IOException(describeUndecodable(imageBytes));
+      }
+      Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+      if (!readers.hasNext()) {
+        throw new IOException(describeUndecodable(imageBytes));
+      }
+      ImageReader reader = readers.next();
+      try {
+        reader.setInput(input, false, true);
+        int width;
+        int height;
+        try {
+          width = reader.getWidth(0);
+          height = reader.getHeight(0);
+        } catch (IOException | RuntimeException e) {
+          throw readerFailure(imageBytes, "read the header of", e);
+        }
+        int pixelCount = validateDimensions(width, height, expectedTileSize);
+
+        BufferedImage image;
+        try {
+          image = reader.read(0);
+        } catch (IOException | RuntimeException e) {
+          throw readerFailure(imageBytes, "decode", e);
+        }
+        if (image == null) {
+          throw new IOException(describeUndecodable(imageBytes));
+        }
+        if (image.getWidth() != width || image.getHeight() != height) {
+          throw new IOException("terrain tile dimensions changed during decode: header "
+            + width + "x" + height + ", image " + image.getWidth() + "x"
+            + image.getHeight());
+        }
+        return decodePixels(image, pixelCount);
+      } finally {
+        reader.dispose();
+      }
     }
-    int w = img.getWidth();
-    int h = img.getHeight();
-    if (w != h) {
-      throw new IOException("terrain tile is not square: " + w + "x" + h);
+  }
+
+  private static int validateDimensions(int width, int height, int expectedTileSize)
+      throws IOException {
+    if (width <= 0 || height <= 0) {
+      throw new IOException("terrain tile has invalid dimensions: " + width + "x" + height);
+    }
+    if (width > MAX_TILE_DIMENSION || height > MAX_TILE_DIMENSION) {
+      throw new IOException("terrain tile dimensions " + width + "x" + height
+        + " exceed maximum " + MAX_TILE_DIMENSION + "x" + MAX_TILE_DIMENSION);
+    }
+    if (width != height) {
+      throw new IOException("terrain tile is not square: " + width + "x" + height);
+    }
+    if (expectedTileSize > 0 && width != expectedTileSize) {
+      throw new IOException("terrain tile size mismatch: expected " + expectedTileSize + "x"
+        + expectedTileSize + ", got " + width + "x" + height);
     }
 
-    Raster raster = img.getRaster();
+    long pixelCount;
+    try {
+      pixelCount = Math.multiplyExact((long) width, (long) height);
+    } catch (ArithmeticException e) {
+      throw new IOException("terrain tile pixel count overflow: " + width + "x" + height, e);
+    }
+    if (pixelCount > MAX_TILE_PIXELS) {
+      throw new IOException("terrain tile pixel count " + pixelCount + " exceeds maximum "
+        + MAX_TILE_PIXELS);
+    }
+    return (int) pixelCount;
+  }
+
+  private static Tile decodePixels(BufferedImage image, int pixelCount) throws IOException {
+    int width = image.getWidth();
+    int height = image.getHeight();
+    Raster raster = image.getRaster();
     int bands = raster.getNumBands();
     if (bands < 3) {
       throw new IOException("terrain tile needs 3 colour channels, found " + bands);
     }
-
-    int[] samples = raster.getPixels(0, 0, w, h, (int[]) null);
-    float[] elevations = new float[w * h];
-    for (int i = 0, p = 0; i < elevations.length; i++, p += bands) {
-      double e = decodeSample(samples[p], samples[p + 1], samples[p + 2]);
-      elevations[i] = e < MIN_VALID_ELEVATION ? Float.NaN : (float) e;
+    int[] sampleSizes = raster.getSampleModel().getSampleSize();
+    if (sampleSizes[0] != 8 || sampleSizes[1] != 8 || sampleSizes[2] != 8) {
+      throw new IOException("terrain tile needs 8-bit RGB channels, found sample sizes "
+        + Arrays.toString(Arrays.copyOf(sampleSizes, 3)));
     }
-    return new Tile(w, elevations);
+
+    long sampleCount;
+    try {
+      sampleCount = Math.multiplyExact((long) pixelCount, (long) bands);
+    } catch (ArithmeticException e) {
+      throw new IOException("terrain tile sample count overflow: " + pixelCount
+        + " pixels x " + bands + " bands", e);
+    }
+    if (sampleCount > Integer.MAX_VALUE) {
+      throw new IOException("terrain tile sample count exceeds Java array limit: "
+        + sampleCount);
+    }
+
+    int[] samples;
+    try {
+      samples = raster.getPixels(0, 0, width, height, (int[]) null);
+    } catch (RuntimeException e) {
+      throw new IOException("cannot read terrain tile pixels", e);
+    }
+    if (samples.length != (int) sampleCount) {
+      throw new IOException("terrain tile returned an unexpected sample count: expected "
+        + sampleCount + ", got " + samples.length);
+    }
+    float[] elevations = new float[pixelCount];
+    for (int i = 0, p = 0; i < elevations.length; i++, p += bands) {
+      double elevation = decodeSample(samples[p], samples[p + 1], samples[p + 2]);
+      elevations[i] = elevation < MIN_VALID_ELEVATION ? Float.NaN : (float) elevation;
+    }
+    return new Tile(width, elevations);
+  }
+
+  private static IOException readerFailure(byte[] imageBytes, String action, Exception cause) {
+    String format = isWebP(imageBytes) ? "WebP terrain tile" : "terrain tile";
+    String detail = cause.getMessage();
+    return new IOException("cannot " + action + " " + format
+      + (detail == null || detail.isEmpty() ? "" : ": " + detail), cause);
   }
 
   /**
