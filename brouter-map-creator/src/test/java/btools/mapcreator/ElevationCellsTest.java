@@ -2,9 +2,12 @@ package btools.mapcreator;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.Test;
 
 public class ElevationCellsTest {
@@ -16,8 +19,12 @@ public class ElevationCellsTest {
   @Test
   public void cellNamesRoundTripForTheWholeWorldGrid() {
     List<int[]> corners = ElevationCells.worldCellCorners();
-    assertEquals(72 * 35, corners.size());
+    assertEquals(72 * 36, corners.size());
+    assertTrue(corners.stream().anyMatch(c -> c[0] == -180 && c[1] == -90));
+    assertTrue(corners.stream().anyMatch(c -> c[0] == 175 && c[1] == -90));
+    Set<String> uniqueCorners = new HashSet<>();
     for (int[] corner : corners) {
+      assertTrue(uniqueCorners.add(corner[0] + "," + corner[1]));
       String oldName = ElevationRasterTileConverter.genFilenameOld(corner[0], corner[1]);
       assertArrayEquals(oldName, corner, ElevationCells.cornerFromCellName(oldName));
       String rd5Name = ElevationRasterTileConverter.genFilenameRd5(corner[0], corner[1]);

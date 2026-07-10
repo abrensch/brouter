@@ -57,9 +57,9 @@ public final class ElevationCells {
    * matching the iteration order of the existing converters.
    */
   public static List<int[]> worldCellCorners() {
-    List<int[]> corners = new ArrayList<>(72 * 35);
+    List<int[]> corners = new ArrayList<>(72 * 36);
     for (int lon = -180; lon < 180; lon += 5) {
-      for (int lat = 85; lat > -90; lat -= 5) {
+      for (int lat = 85; lat >= -90; lat -= 5) {
         corners.add(new int[]{lon, lat});
       }
     }

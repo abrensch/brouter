@@ -48,7 +48,7 @@ public class ElevationRaster {
       + (1. - wrow) * (wcol) * get(row, col + 1)
       + (wrow) * (wcol) * get(row + 1, col + 1);
 // System.out.println( "eval=" + eval );
-    return missingData ? Short.MIN_VALUE : (short) (eval * 4);
+    return missingData ? Short.MIN_VALUE : scaledElevation(eval, 4);
   }
 
   private short get(int r, int c) {
@@ -101,7 +101,14 @@ public class ElevationRaster {
 
     if (missingData) return Short.MIN_VALUE;
     double m = (1. - wlat) * m0 + wlat * m1;
-    return (short) (m * 2);
+    return scaledElevation(m, 2);
+  }
+
+  private static short scaledElevation(double elevation, double scale) {
+    double scaled = elevation * scale;
+    if (scaled >= Short.MAX_VALUE) return Short.MAX_VALUE;
+    if (scaled <= Short.MIN_VALUE + 1) return Short.MIN_VALUE + 1;
+    return (short) scaled;
   }
 
   private ReducedMedianFilter rmf = new ReducedMedianFilter(256);
