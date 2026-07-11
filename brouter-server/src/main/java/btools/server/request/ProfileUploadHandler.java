@@ -123,6 +123,7 @@ public class ProfileUploadHandler {
     // see https://github.com/abrensch/brouter/issues/14
     try {
       RoutingContext rc = new RoutingContext();
+      rc.profileBaseDir = serviceContext.profileDir;
       rc.localFunction = serviceContext.customProfileDir + "/" + id;
       new RoutingEngine(null, null, null, null, rc);
     } catch (Exception e) {

@@ -31,7 +31,18 @@ public final class ProfileCache {
   }
 
   public static synchronized boolean parseProfile(RoutingContext rc) {
-    String profileBaseDir = System.getProperty("profileBaseDir");
+    // Resolve the directory that a bare profile NAME is looked up in. Prefer the
+    // per-context profileBaseDir (set by trusted callers such as the HTTP server);
+    // fall back to the process-global system property only for a name-style
+    // localFunction. An absolute localFunction is a self-contained path to a
+    // concrete profile file and must NOT be reinterpreted against an ambient
+    // base dir - otherwise an unrelated server instance in the same JVM (which
+    // sets the global property and never clears it) would hijack an embedded
+    // caller's absolute profile path.
+    String profileBaseDir = rc.profileBaseDir;
+    if (profileBaseDir == null && !new File(rc.localFunction).isAbsolute()) {
+      profileBaseDir = System.getProperty("profileBaseDir");
+    }
     File profileDir;
     File profileFile;
     if (profileBaseDir == null) {

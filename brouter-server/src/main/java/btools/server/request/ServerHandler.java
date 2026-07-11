@@ -52,6 +52,9 @@ public class ServerHandler extends RequestHandler {
   public RoutingContext readRoutingContext() {
     rc = new RoutingContext();
     rc.memoryclass = 128;
+    // Resolve the requested profile name against the configured profile dir on this
+    // context, rather than a process-global system property (see ProfileCache).
+    rc.profileBaseDir = serviceContext.profileDir;
 
     String profile = params.get("profile");
     // when custom profile replace prefix with directory path

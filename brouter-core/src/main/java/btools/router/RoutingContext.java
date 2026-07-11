@@ -65,6 +65,17 @@ public final class RoutingContext {
 
   public int alternativeIdx = 0;
   public String localFunction;
+  /**
+   * Directory that a bare {@link #localFunction} profile name is resolved
+   * against (the profile file is {@code <profileBaseDir>/<localFunction>.brf}).
+   * Set by trusted callers that pass profile <em>names</em> rather than paths
+   * (the HTTP server). When {@code null}, an absolute {@link #localFunction} is
+   * treated as a concrete profile file directly; see {@link ProfileCache}.
+   * This replaces resolving against the process-global {@code profileBaseDir}
+   * system property, so an unrelated server instance in the same JVM can no
+   * longer hijack an embedded caller's absolute profile path.
+   */
+  public String profileBaseDir;
   public long profileTimestamp;
 
   public Map<String, String> keyValues;
@@ -698,6 +709,7 @@ public final class RoutingContext {
   public RoutingContext copyRequestFields() {
     RoutingContext c = new RoutingContext();
     c.localFunction = this.localFunction;
+    c.profileBaseDir = this.profileBaseDir;
     c.keyValues = this.keyValues;
     c.profileTimestamp = this.profileTimestamp;
     c.rawTrackPath = this.rawTrackPath;
