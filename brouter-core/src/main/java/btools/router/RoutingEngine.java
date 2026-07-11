@@ -1123,6 +1123,20 @@ public class RoutingEngine extends Thread {
     } catch (Exception e) {
       logException(e);
       logThrowable(e);
+      // Contract: a round trip ends with a usable track XOR a clean error. An
+      // exception can land here before any assignment, leaving foundTrack as
+      // the constructor's initial empty OsmTrack (or a partial one) — and
+      // logException copies e.getMessage(), which is null for message-less
+      // exceptions. Guarantee both halves of the contract: a non-empty error
+      // and no degenerate "success" track. Non-empty geometry is preserved on
+      // lastRejectedTrack for post-mortem inspection like other reject paths.
+      if (errorMessage == null || errorMessage.isEmpty()) {
+        errorMessage = "round trip failed: " + e.getClass().getSimpleName();
+      }
+      if (foundTrack != null && foundTrack.nodes != null && !foundTrack.nodes.isEmpty()) {
+        lastRejectedTrack = foundTrack;
+      }
+      foundTrack = null;
     } finally {
       cleanupRoutingResources();
     }
