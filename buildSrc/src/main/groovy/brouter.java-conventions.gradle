@@ -11,6 +11,17 @@ repositories {
     mavenCentral()
 }
 
+java {
+    // Pin the build JDK: PMD 7.0.0 mass-produces LooseCoupling false positives
+    // when run under newer JDKs (verified under Java 25), so builds must run
+    // on 17 — the same JDK CI uses. Bytecode stays Java 11 via options.release
+    // below. gradle/gradle-daemon-jvm.properties pins the daemon JVM to match
+    // (PMD executes in the daemon process).
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
 dependencies {
     testImplementation 'junit:junit:4.13.2'
 }
