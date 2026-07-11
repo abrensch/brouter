@@ -49,7 +49,7 @@ public enum RoundTripAlgorithm {
    * recommended choice for a best-quality loop.
    */
   public static RoundTripAlgorithm fromString(String s) {
-    if (s == null) return OLD;
+    if (s == null) return AUTO;
     String upper = s.toUpperCase(Locale.ROOT);
     if ("FAST".equals(upper)) {
       return WAYPOINT;   // quick-preview alias
@@ -57,7 +57,7 @@ public enum RoundTripAlgorithm {
     try {
       return valueOf(upper);
     } catch (IllegalArgumentException e) {
-      return OLD;
+      return AUTO;
     }
   }
 }
