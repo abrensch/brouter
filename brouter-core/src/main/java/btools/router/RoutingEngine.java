@@ -1721,6 +1721,11 @@ public class RoutingEngine extends Thread {
       r.track = child.foundTrack;
       r.errorMessage = child.errorMessage;
       r.runtimeMillis = System.currentTimeMillis() - t0;
+      // Aggregate the child's expansion work into the parent so
+      // getLinksProcessed() reports request-level totals (the perf budget
+      // suite's work metric). Same-thread for sequential children; the
+      // speculative parallel child is joined before its result is read.
+      linksProcessed += child.linksProcessed;
       if (child.lastRoundTripResult != null) {
         RoundTripResult cr = child.lastRoundTripResult;
         r.routedIsoCandidates = cr.getRoutedIsoCandidates();

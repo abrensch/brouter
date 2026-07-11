@@ -88,6 +88,7 @@ tasks.register('integrationTest', Test) {
     systemProperty 'loop.profiles', System.getProperty('loop.profiles', '')
     systemProperty 'loop.algorithms', System.getProperty('loop.algorithms', '')
     systemProperty 'golden.write', System.getProperty('golden.write', 'false')
+    systemProperty 'perf.calibrate', System.getProperty('perf.calibrate', 'false')
     systemProperty 'golden.tests', System.getProperty('golden.tests', 'false')
     // Ad-hoc loop overrides (region/dir/radius/profile for the loop suites) + the
     // direction-strength tuning overrides (loop.strongdir/dirmult/dirlate/dirfeas).
