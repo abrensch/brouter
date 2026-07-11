@@ -25,4 +25,22 @@ public class RequestHandlerTest {
     Assert.assertEquals("trekking", routingContext.localFunction);
     Assert.assertEquals("bar", routingContext.keyValues.get("test"));
   }
+
+  /**
+   * A routing request resolves its profile name against the service's configured
+   * profile dir via the per-context {@code profileBaseDir}, rather than a
+   * process-global system property (see {@code ProfileCache}).
+   */
+  @Test
+  public void readRoutingContextResolvesProfileAgainstServiceProfileDir() {
+    ServiceContext serviceContext = new ServiceContext();
+    serviceContext.profileDir = "/srv/profiles";
+    Map<String, String> params = new HashMap<>();
+    params.put("profile", "trekking");
+
+    RoutingContext rc = new ServerHandler(serviceContext, params).readRoutingContext();
+
+    Assert.assertEquals("trekking", rc.localFunction);
+    Assert.assertEquals("/srv/profiles", rc.profileBaseDir);
+  }
 }

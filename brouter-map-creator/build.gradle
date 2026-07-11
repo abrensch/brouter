@@ -29,8 +29,8 @@ sourceSets {
         // Conventional src/integrationTest/{java,resources} dirs are configured by the
         // Java plugin. Reuse production classes and the shared WebP/terrain test fixtures
         // rather than duplicating them.
-        compileClasspath += sourceSets.main.output + sourceSets.test.output + sourceSets.testFixtures.output
-        runtimeClasspath += sourceSets.main.output + sourceSets.test.output + sourceSets.testFixtures.output
+        compileClasspath += sourceSets.main.output + sourceSets.testFixtures.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.testFixtures.output
     }
 }
 

@@ -13,7 +13,8 @@ Swiss Cycling Talent-ID test climbs.
   2026-07-10. © swisstopo, Swiss open government data.
 
 The WebP terrain tiles this suite converts (Beggingen 2145/1427+1428, Wilderswil
-2137/1446) are shared fixtures — see `src/testFixtures/resources/mapterhorn/README.md`.
+2137/1446) are shared fixtures — see
+`brouter-map-creator/src/testFixtures/resources/mapterhorn/README.md`.
 
 ## Regenerating
 

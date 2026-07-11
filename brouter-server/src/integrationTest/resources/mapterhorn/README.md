@@ -1,10 +1,11 @@
 # OSM extracts (MapterhornRealWorldTest)
 
 OSM route geometry for `MapterhornRealWorldTest`: the two real-world test cases suggested
-by @afischerdev in issue #558, frozen for offline CI. The suite builds .bef cells from the
-shared real Mapterhorn WebP tiles (in brouter-map-creator's
-`src/testFixtures/resources/mapterhorn/`), runs the full map-creation pipeline over these
-extracts, and routes over the result.
+by @afischerdev in issue #558, frozen as bundled fixtures so the suite runs fully offline
+and deterministically (via `./gradlew integrationTest`). The suite builds .bef cells from
+the shared real Mapterhorn WebP tiles (in
+`brouter-map-creator/src/testFixtures/resources/mapterhorn/`), runs the full map-creation
+pipeline over these extracts, and routes over the result.
 
 ## Files
 
@@ -15,7 +16,7 @@ extracts, and routes over the result.
 
 The WebP terrain tiles this suite converts (Bad Wildbad 2145/1410+1411, Helgoland
 2137+2138/1311+1312) are shared fixtures — see
-`../../../../brouter-map-creator/src/testFixtures/resources/mapterhorn/README.md`.
+`brouter-map-creator/src/testFixtures/resources/mapterhorn/README.md`.
 
 ## What the tests prove
 
