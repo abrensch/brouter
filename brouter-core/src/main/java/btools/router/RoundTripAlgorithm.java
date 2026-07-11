@@ -37,7 +37,9 @@ public enum RoundTripAlgorithm {
   /** Iterative routed-leg planner, radial candidate provider — an AUTO competitor. */
   GREEDY,
   /** Iterative routed-leg planner, isochrone-derived candidates — an AUTO competitor. */
-  ISO_GREEDY;
+  ISO_GREEDY,
+  /** Previous implementation */
+  OLD;
 
   /**
    * Parse the algorithm name. Accepts the internal enum names ({@code WAYPOINT},

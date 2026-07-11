@@ -488,7 +488,10 @@ public class RoutingEngine extends Thread {
         // untimed callers (CLI, doRun(0) tests) unbounded.
         roundTripRequestDeadline = maxRunningTime > 0
           ? this.startTime + maxRunningTime : 0;
-        doRoundTrip();
+        if (routingContext.roundTripAlgorithm == RoundTripAlgorithm.OLD)
+          doRoundTripOld();
+        else
+          doRoundTrip();
         break;
       default:
         throw new IllegalArgumentException("not a valid engine mode");
@@ -1125,6 +1128,42 @@ public class RoutingEngine extends Thread {
       logThrowable(e);
     } finally {
       cleanupRoutingResources();
+    }
+
+  }
+
+  public void doRoundTripOld() {
+    try {
+      long startTime = System.currentTimeMillis();
+
+      routingContext.useDynamicDistance = true;
+      double searchRadius = (routingContext.roundTripDistance == null ? 1500 :routingContext.roundTripDistance);
+      double direction = (routingContext.startDirection == null ? -1 :routingContext.startDirection);
+      double directionAdd = (routingContext.roundTripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD :routingContext.roundTripDirectionAdd);
+      if (direction == -1) direction = getRandomDirectionFromData(waypoints.get(0), searchRadius);
+
+      if (routingContext.allowSamewayback) {
+        int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction);
+        MatchedWaypoint wpt2 = new MatchedWaypoint();
+        wpt2.waypoint = new OsmNode(pos[0], pos[1]);
+        wpt2.name = "rt1_" + direction;
+
+        OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
+        onn.name = "rt1";
+        waypoints.add(onn);
+      } else {
+        buildPointsFromCircle(waypoints, direction, searchRadius, routingContext.roundTripPoints == null ? 5 : routingContext.roundTripPoints);
+      }
+
+      routingContext.waypointCatchingRange = 250;
+
+      doRouting(0);
+
+      long endTime = System.currentTimeMillis();
+      logInfo("round trip execution time = " + (endTime - startTime) / 1000. + " seconds");
+    } catch (Exception e) {
+      e.getStackTrace();
+      logException(e);
     }
 
   }
