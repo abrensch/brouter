@@ -189,26 +189,27 @@ public class RoundTripQualityFixtureTest {
   }
 
   /**
-   * Wiring guard for the shared competition budget: a 1 ms overall deadline
+   * Wiring guard for the shared competition budget, on the QUALITY tier
+   * (which always runs the competition — AUTO with a tiny budget now
+   * resolves BOUNDED effort instead, covered below): a 1 ms overall deadline
    * lets only the FIRST candidate run (it still gets the MIN_CHILD floor so it
    * completes), and every later candidate is skipped once now >= deadline — so
-   * the adopted AUTO message records exactly one candidate, yet the first
+   * the adopted message records exactly one candidate, yet the first
    * candidate still ships thanks to the MIN budget floor. (The full-budget
-   * run below is a completion control only: since issue #26 AUTO skips the
-   * duplicate plain-GREEDY run when ISO_GREEDY is strong, so a full budget
-   * may ALSO legitimately record one candidate — candidate count signals
-   * competition strength, not budget.)
+   * run below is a completion control only: since issue #26 the standard
+   * competition skips the duplicate plain-GREEDY run when ISO_GREEDY is
+   * strong, so candidate count signals competition strength, not budget.)
    */
   @Test
   public void tinyBudgetRunsOnlyTheFirstCandidate() {
-    RoutingEngine re = autoEngineWithBudget(1L);
+    RoutingEngine re = engineWithBudget(RoundTripAlgorithm.QUALITY, 1L);
     Assert.assertNull("tiny budget must complete cleanly: " + re.getErrorMessage(),
       re.getErrorMessage());
     OsmTrack t = re.getFoundTrack();
     Assert.assertNotNull("first candidate still runs under the MIN budget floor", t);
     Assert.assertTrue("still a real loop", t.nodes.size() > 2);
     Assert.assertNotNull("adopted track carries the competition summary", t.message);
-    Assert.assertTrue("only the first AUTO candidate ran (rest skipped past the 1ms deadline): "
+    Assert.assertTrue("only the first candidate ran (rest skipped past the 1ms deadline): "
       + t.message, t.message.contains("after 1 candidate(s)"));
 
     // Control: the same request with a full budget must complete cleanly and
@@ -219,6 +220,25 @@ public class RoundTripQualityFixtureTest {
     Assert.assertNotNull("full budget must carry the competition summary", full.message);
     Assert.assertTrue("full budget must report the AUTO competition outcome: " + full.message,
       full.message.contains("AUTO selected") && full.message.contains("candidate(s)"));
+  }
+
+  /**
+   * Context-aware AUTO: a request budget too short to fund the full
+   * competition resolves BOUNDED effort — one bounded planner dispatch (with
+   * the minimum-slice floor, so even a 1 ms budget ships a loop) instead of
+   * the candidate competition. The result is a real loop with no competition
+   * summary attached.
+   */
+  @Test
+  public void tinyBudgetAutoResolvesBoundedEffort() {
+    RoutingEngine re = autoEngineWithBudget(1L);
+    Assert.assertNull("bounded dispatch must complete cleanly: " + re.getErrorMessage(),
+      re.getErrorMessage());
+    OsmTrack t = re.getFoundTrack();
+    Assert.assertNotNull("minimum-slice floor still ships a loop", t);
+    Assert.assertTrue("still a real loop", t.nodes.size() > 2);
+    Assert.assertTrue("no competition ran, so no AUTO summary: "
+      + t.message, t.message == null || !t.message.contains("AUTO selected"));
   }
 
   private OsmTrack autoLoopWithBudget(long budgetMs) {
@@ -276,12 +296,16 @@ public class RoundTripQualityFixtureTest {
   }
 
   private RoutingEngine autoEngineWithBudget(long budgetMs) {
+    return engineWithBudget(RoundTripAlgorithm.AUTO, budgetMs);
+  }
+
+  private RoutingEngine engineWithBudget(RoundTripAlgorithm algo, long budgetMs) {
     List<OsmNodeNamed> wps = new ArrayList<>();
     wps.add(RoundTripFixture.node("from", 8.72, 50.0));
     RoutingContext rc = new RoutingContext();
     rc.localFunction = RoundTripFixture.profileFile(PROFILE).getAbsolutePath();
     rc.roundTripDistance = RADIUS;
-    rc.roundTripAlgorithm = RoundTripAlgorithm.AUTO;
+    rc.roundTripAlgorithm = algo;
     rc.startDirection = EAST;
     rc.turnInstructionMode = 2;
     RoutingEngine re = new RoutingEngine(null, null, RoundTripFixture.segmentDir(), wps, rc,

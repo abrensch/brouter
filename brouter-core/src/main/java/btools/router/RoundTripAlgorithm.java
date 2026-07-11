@@ -38,6 +38,12 @@ public enum RoundTripAlgorithm {
   /** Bounded quality tier: one budgeted ISO_GREEDY run, reduced routed top-K,
    *  WAYPOINT fallback — predictable latency for interactive/mobile use. */
   BALANCED,
+  /** Max-effort tier: the full AUTO competition with both planners always
+   *  running, a wider routed top-K (4/6) and a doubled plan budget — "best
+   *  loop, take your time". Deliberately NOT an ISO_GREEDY alias: greedy wins
+   *  ~a quarter of the competition cells, so forcing one planner would ship
+   *  worse loops than AUTO at the same cost. */
+  QUALITY,
   /** FAST mode: geometric probe/waypoint placement (sub-second preview, lower quality). */
   WAYPOINT,
   /** Direct isochrone-frontier waypoint placement (from AUTO only via the

@@ -56,6 +56,10 @@ public class GreedyRoundTripPlannerTest {
     planner.setBoundedEffort(false);
     Assert.assertEquals(3, planner.routeBudgetFor(false));
     Assert.assertEquals(5, planner.routeBudgetFor(true));
+    // The generalized knob (effort policy presets: QUALITY = 4/6).
+    planner.setRouteBudgets(4, 6);
+    Assert.assertEquals(4, planner.routeBudgetFor(false));
+    Assert.assertEquals(6, planner.routeBudgetFor(true));
   }
 
   @Test

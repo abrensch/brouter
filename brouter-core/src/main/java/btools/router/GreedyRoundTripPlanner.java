@@ -429,24 +429,36 @@ public class GreedyRoundTripPlanner {
   }
 
   /**
-   * Bounded-effort mode (BALANCED tier, issue #27): reduces the per-step
-   * routed candidate count to {@link #MAX_ROUTE_ATTEMPTS_BOUNDED}/
-   * {@link #MAX_ROUTE_ATTEMPTS_LATE_BOUNDED}. Everything else (scoring,
-   * quota, ladder, deadlines) is unchanged — wall-clock bounding comes from
+   * Per-step routed top-K, settable by the effort policy
+   * ({@link RoundTripEffortPolicy}): BALANCED runs 2/3, standard AUTO 3/5,
+   * QUALITY 4/6. Each routed candidate is a full Dijkstra leg, so this is the
+   * planner's main per-step cost knob. Everything else (scoring, quota,
+   * ladder, deadlines) is unchanged — wall-clock bounding comes from
    * {@link #setExternalDeadline}.
    */
-  private boolean boundedEffort;
+  private int topKNormal = MAX_ROUTE_ATTEMPTS;
+  private int topKLate = MAX_ROUTE_ATTEMPTS_LATE;
+  /** Multiplier on the internal plan deadline (QUALITY: 2.0). */
+  private double planBudgetScale = 1.0;
 
+  public void setRouteBudgets(int normal, int late) {
+    topKNormal = normal;
+    topKLate = late;
+  }
+
+  /** Bounded-effort shorthand (BALANCED tier, issue #27): top-K 2/3. */
   public void setBoundedEffort(boolean bounded) {
-    boundedEffort = bounded;
+    setRouteBudgets(bounded ? MAX_ROUTE_ATTEMPTS_BOUNDED : MAX_ROUTE_ATTEMPTS,
+      bounded ? MAX_ROUTE_ATTEMPTS_LATE_BOUNDED : MAX_ROUTE_ATTEMPTS_LATE);
+  }
+
+  public void setPlanBudgetScale(double scale) {
+    planBudgetScale = scale <= 0 ? 1.0 : scale;
   }
 
   /** Routed top-K for a step: late steps and retry attempts explore more. */
   int routeBudgetFor(boolean lateStep) {
-    if (boundedEffort) {
-      return lateStep ? MAX_ROUTE_ATTEMPTS_LATE_BOUNDED : MAX_ROUTE_ATTEMPTS_BOUNDED;
-    }
-    return lateStep ? MAX_ROUTE_ATTEMPTS_LATE : MAX_ROUTE_ATTEMPTS;
+    return lateStep ? topKLate : topKNormal;
   }
 
   /**
@@ -575,7 +587,10 @@ public class GreedyRoundTripPlanner {
     // to 2x so bigger loops get proportionally more search; beyond that the
     // engine-level opt-in gate applies). Always hard-capped by the request
     // budget (externalDeadline).
-    long planBudgetMs = (long) (DEFAULT_PLAN_DEADLINE_MS
+    // planBudgetScale: the effort policy's multiplier (QUALITY: 2.0) applies
+    // on top of the distance scaling; the request budget (externalDeadline)
+    // stays the hard cap either way.
+    long planBudgetMs = (long) (DEFAULT_PLAN_DEADLINE_MS * planBudgetScale
       * Math.min(PLAN_BUDGET_MAX_SCALE,
           Math.max(1.0, desiredDistance / PLAN_BUDGET_REFERENCE_DISTANCE_M)));
     long deadline = Math.min(planStart + planBudgetMs, externalDeadline);

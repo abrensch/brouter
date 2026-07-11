@@ -26,7 +26,7 @@ You control the loop with a few request parameters:
 | `startDirection` / `heading` | compass bearing to bias the direction the loop heads out; without it the start bearing is drawn randomly, so fix it whenever the loop should be reproducible |
 | `alternativeidx` | deterministic loop variety seed (`0` = default loop, any value ≥ 0 gives a reproducible variant — see [note below](#loop-quality)) |
 | `roundTripDirectionAdd` | angle offset added to an auto-detected start bearing |
-| `roundTripAlgorithm` | `AUTO` (default — best loop), `BALANCED` (graph-aware with a hard ~8 s budget — the recommended interactive/mobile default), or `FAST` (quick preview); the internal engine names `WAYPOINT`, `GREEDY`, `ISO_GREEDY`, `ISOCHRONE` are also accepted for forced selection — see below |
+| `roundTripAlgorithm` | the speed/quality ladder `FAST` (quick preview), `BALANCED` (hard ~8 s budget — the recommended interactive/mobile default), `AUTO` (default; effort resolved from request context), `QUALITY` (max effort — both planners always, wider search, doubled budget); the internal engine names `WAYPOINT`, `GREEDY`, `ISO_GREEDY`, `ISOCHRONE` are also accepted for forced selection — see below |
 | `roundTripStrictQuality` | `1` hard-rejects loops that fail the quality checks; default `0` is lenient — a failing loop is still returned, tagged with a `Warning:` advisory (see [Loop quality](#loop-quality)) |
 | `allowSamewayback` | `1` lets the return leg reuse ways from the outward leg; default `0` keeps the way out and the way back distinct |
 
@@ -41,11 +41,12 @@ via-points outward so the loop better honours the requested length.
 Generating a good loop is harder than routing between two fixed points: the
 waypoints are not given, so the planner has to *invent* a set of intermediate
 targets and then check whether the resulting route is actually a pleasant,
-closed loop. Three modes are recommended:
+closed loop. Four modes are recommended, forming a speed/quality ladder:
 
-- **AUTO** (default) — runs the iterative planners and keeps the best loop. This
-  is what you want when calculation time is not a concern; on phones it can take
-  well beyond a minute for long loops.
+- **FAST** — places the ring of waypoints geometrically and scores them by
+  straight-line distance only, with no routed-leg evaluation. Roughly 10× faster
+  (sub-second) at noticeably lower quality — useful as a quick preview on limited
+  mobile hardware.
 - **BALANCED** — one graph-aware planning run under a hard ~8 s wall-clock
   budget with a reduced per-step search width, no retry ladders beyond the
   budget, and a geometric fallback if no loop closes at all. Returns the best
@@ -54,21 +55,42 @@ closed loop. Three modes are recommended:
   predictable latency, visibly better loops than FAST. (Measured on the test
   machine: ~40% below AUTO's time on a 180 km request at nearly identical
   length adherence; phones should expect the budget to be the limit instead.)
-- **FAST** — places the ring of waypoints geometrically and scores them by
-  straight-line distance only, with no routed-leg evaluation. Roughly 10× faster
-  (sub-second) at noticeably lower quality — useful as a quick preview on limited
-  mobile hardware.
+- **AUTO** (default) — runs the planner competition and keeps the best loop,
+  with its effort resolved from the request context (see below). This is what
+  you want when calculation time is not a major concern.
+- **QUALITY** — the full competition at maximum effort: both planners always
+  run, a wider per-step search (top-K 4/6 instead of 3/5) and a doubled
+  planning budget. "Best loop, take your time." Deliberately *not* a forced
+  single-planner mode: across the test matrix the radial planner still wins
+  about a quarter of the cells, so forcing `ISO_GREEDY` would ship worse loops
+  than the competition at the same cost.
 
 Client guidance: `FAST` for a live preview while the user drags sliders,
-`BALANCED` for the normal calculate-a-loop action on a phone, `AUTO` when the
-user explicitly asks for the best possible loop and accepts the wait.
+`BALANCED` for the normal calculate-a-loop action on a phone, `AUTO` as the
+general default, `QUALITY` when the user explicitly asks for the best possible
+loop and accepts the wait.
 
-Under the hood AUTO competes two iterative strategies — `GREEDY` (radial
+**Context-aware AUTO.** AUTO resolves its effort from the request context and
+logs the decision (`round trip effort: …`):
+
+- **Resources** — a request budget too short to fund the full competition
+  (≤ 10 s `maxRunningTime`) or a memory-constrained device
+  (`memoryclass` ≤ 48) resolves to BALANCED-grade bounded effort instead of
+  the competition. Unconstrained requests keep the standard competition.
+- **Profile class** — read from the profile's own `validForFoot` /
+  `validForBikes` / `validForCars` globals (name-independent). Motorized
+  profiles route but their loop quality is unvalidated — the log carries a
+  provisional-quality advisory.
+- **Length class** — small / standard / long / XL, recorded in the effort log.
+  Length-specific tuning lands as evidence accumulates; the >200 km opt-in
+  gate (raise the timeout explicitly) is unchanged.
+
+Under the hood the competition runs two iterative strategies — `GREEDY` (radial
 candidate placement) and `ISO_GREEDY` (candidates drawn from a bounded isochrone
 expansion) — and adopts whichever scores better. Measured across the test matrix
 they cost the same (median ~3 s) and score almost identically, so they are *not*
-exposed as separate speed/quality tiers; AUTO just picks the better one per
-request. You can still force a specific planner by name for testing or
+exposed as separate speed/quality tiers; the competition just picks the better
+one per request. You can still force a specific planner by name for testing or
 comparison: the parser accepts `WAYPOINT` (= `FAST`), `GREEDY`, `ISO_GREEDY`, and
 `ISOCHRONE` (direct isochrone-frontier placement, also selectable with
 `roundTripIsochrone=1`). Matching is case-insensitive; any unrecognised value falls back to `AUTO`.

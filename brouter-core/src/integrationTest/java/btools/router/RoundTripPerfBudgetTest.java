@@ -89,6 +89,8 @@ public class RoundTripPerfBudgetTest {
       // Standard class
       {LoopTestRegion.BASEL, 100_000, "fastbike", RoundTripAlgorithm.BALANCED, 64, 1_000_000, 120, "basel_100km_fastbike_BALANCED"},
       {LoopTestRegion.BASEL, 100_000, "fastbike", RoundTripAlgorithm.AUTO, 64, 2_500_000, -1, "basel_100km_fastbike_AUTO"},
+      // Max-effort tier: both planners always + top-K 4/6 + doubled plan budget
+      {LoopTestRegion.BASEL, 100_000, "fastbike", RoundTripAlgorithm.QUALITY, 64, 6_000_000, -1, "basel_100km_fastbike_QUALITY"},
       // Sentinel terrain under the bounded tier
       {LoopTestRegion.MALLORCA, 30_000, "gravel", RoundTripAlgorithm.BALANCED, 64, 1_000_000, 90, "mallorca_30km_gravel_BALANCED"},
       // Alpine worst case (the 20.7s AUTO cell of the 2026-07 sweep)

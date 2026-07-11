@@ -32,6 +32,14 @@ public class RoundTripAlgorithmTest {
   }
 
   @Test
+  public void qualityTierParses() {
+    // QUALITY is the max-effort competition tier (issue #27 follow-up), not an
+    // ISO_GREEDY alias.
+    assertEquals(RoundTripAlgorithm.QUALITY, RoundTripAlgorithm.fromString("QUALITY"));
+    assertEquals(RoundTripAlgorithm.QUALITY, RoundTripAlgorithm.fromString("quality"));
+  }
+
+  @Test
   public void balancedTierParses() {
     // BALANCED is a real mode (bounded mobile tier, issue #27), not an alias —
     // it must parse case-insensitively like the other user-facing names.
