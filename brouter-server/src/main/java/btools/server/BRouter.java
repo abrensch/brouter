@@ -26,6 +26,7 @@ public class BRouter {
         String lonlats = queryString.substring(lonIdx + 8, sepIdx);
 
         RoutingContext rc = new RoutingContext();
+        rc.profileBaseDir = args[1];
         RoutingParamCollector routingParamCollector = new RoutingParamCollector();
         List<OsmNodeNamed> wplist = routingParamCollector.getWayPointList(lonlats);
 
@@ -91,6 +92,7 @@ public class BRouter {
     }
 
     RoutingContext rc = new RoutingContext();
+    rc.profileBaseDir = args[1];
     rc.localFunction = args[3];
     if (moreParams != null) {
       Map<String, String> params = routingParamCollector.getUrlParams(moreParams);
