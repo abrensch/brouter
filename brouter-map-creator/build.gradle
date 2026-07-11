@@ -18,7 +18,34 @@ dependencies {
     testImplementation testFixtures(project(':brouter-map-creator'))
 }
 
-test {
+// --- Integration tests -----------------------------------------------------
+// Slow, real-tile validation (the converter run over REAL Mapterhorn tiles and
+// compared against the swissALTI3D LiDAR reference) lives in src/integrationTest
+// and runs only via `./gradlew integrationTest`, keeping `./gradlew test` fast.
+// The real WebP tiles are shared test fixtures (src/testFixtures/resources);
+// the per-climb reference CSVs sit next to the suite in src/integrationTest.
+sourceSets {
+    integrationTest {
+        // Conventional src/integrationTest/{java,resources} dirs are configured by the
+        // Java plugin. Reuse production classes and the shared WebP/terrain test fixtures
+        // rather than duplicating them.
+        compileClasspath += sourceSets.main.output + sourceSets.test.output + sourceSets.testFixtures.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.output + sourceSets.testFixtures.output
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+tasks.register('integrationTest', Test) {
+    description = 'Runs the slow, real-tile Mapterhorn validation suite (offline; builds a full 1-arcsecond raster).'
+    group = 'verification'
+    useJUnit()
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    shouldRunAfter test
     // SwissAlti3dValidationTest builds a full 1-arcsecond cell raster (648 MB)
     maxHeapSize = '2g'
 }

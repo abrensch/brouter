@@ -176,7 +176,35 @@ dependencies {
     testImplementation testFixtures(project(':brouter-map-creator'))
 }
 
-test {
+// --- Integration tests -----------------------------------------------------
+// The slow, real-tile end-to-end regression (real Mapterhorn WebP tiles + real
+// OSM extracts routed through the full map-creation + routing pipeline) lives in
+// src/integrationTest and runs only via `./gradlew integrationTest`, keeping
+// `./gradlew test` fast. The WebP tiles are shared fixtures published by
+// brouter-map-creator (pulled in via the existing testFixtures dependency); the
+// OSM .pbf extracts sit next to the suite in src/integrationTest.
+sourceSets {
+    integrationTest {
+        // Conventional src/integrationTest/{java,resources} dirs are configured by the
+        // Java plugin. Reuse the production classes and the shared test scaffolding
+        // (Rd5TestHarness) from src/test rather than duplicating them.
+        compileClasspath += sourceSets.main.output + sourceSets.test.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+tasks.register('integrationTest', Test) {
+    description = 'Runs the slow, real-tile Mapterhorn end-to-end routing regression (offline; builds full 1-arcsecond rasters).'
+    group = 'verification'
+    useJUnit()
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    shouldRunAfter test
     // MapterhornRealWorldTest builds full 1-arcsecond cell rasters (648 MB each)
     maxHeapSize = '2g'
 }
