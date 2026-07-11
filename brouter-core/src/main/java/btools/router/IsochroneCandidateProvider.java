@@ -46,40 +46,52 @@ final class IsochroneCandidateProvider implements RoundTripCandidateProvider {
 
   private final List<IsoCandidate> pool;
   private final boolean diverse;
+  /** Distinct angular buckets occupied by the filtered pool (0-36). */
+  private final int distinctSectors;
+  /** Angular span of the filtered pool in degrees (360 − largest bucket gap). */
+  private final double angularSpanDeg;
+  /** Distinct source contours (25/50/75/100) sampled by the filtered pool. */
+  private final int contourLevels;
 
   private IsochroneCandidateProvider(List<IsoCandidate> filteredPool) {
     this.pool = filteredPool;
-    this.diverse = isAngularlyDiverse(filteredPool);
+    java.util.BitSet bucketsPresent = new java.util.BitSet();
+    java.util.BitSet contoursPresent = new java.util.BitSet();
+    for (IsoCandidate c : filteredPool) {
+      bucketsPresent.set(c.bucket);
+      if (c.sourceContour >= 0) contoursPresent.set(c.sourceContour);
+    }
+    this.distinctSectors = bucketsPresent.cardinality();
+    this.angularSpanDeg = angularSpanDegrees(bucketsPresent);
+    this.contourLevels = contoursPresent.cardinality();
+    // The pool is "diverse" if it spans ≥ MIN_DISTINCT_BUCKETS distinct angular
+    // buckets AND covers ≥ MIN_ANGULAR_SPAN_DEG° of arc. Pools that fail either
+    // test are usually corridor-only (sparse rural lozere, or a single
+    // accessible valley) and lead to false-success loops. In that case the
+    // caller (RoutingEngine.buildCandidateProvider) falls back to the per-step
+    // GraphNativeCandidateProvider instead of the blend — see isDiverse().
+    this.diverse = filteredPool.size() >= MIN_DISTINCT_BUCKETS
+      && distinctSectors >= MIN_DISTINCT_BUCKETS
+      && angularSpanDeg >= MIN_ANGULAR_SPAN_DEG;
   }
 
   /**
-   * The pool is "diverse" if it spans ≥{@value #MIN_DISTINCT_BUCKETS} distinct angular
-   * buckets AND covers ≥{@value #MIN_ANGULAR_SPAN_DEG}° of arc. Pools that fail either
-   * test are usually corridor-only (sparse rural lozere, or a single accessible
-   * valley) and lead to false-success loops. In that case the caller
-   * ({@code RoutingEngine.buildCandidateProvider}) falls back to the per-step
-   * {@link GraphNativeCandidateProvider} instead of the blend — see {@link #isDiverse()}.
+   * Angular span covered by the occupied buckets: 360° minus the largest gap
+   * between consecutive occupied buckets (with wraparound). 0 for an empty or
+   * single-bucket set.
    */
-  private static boolean isAngularlyDiverse(List<IsoCandidate> filteredPool) {
-    if (filteredPool.size() < MIN_DISTINCT_BUCKETS) return false;
-    java.util.BitSet bucketsPresent = new java.util.BitSet();
-    for (IsoCandidate c : filteredPool) bucketsPresent.set(c.bucket);
-    int distinctBuckets = bucketsPresent.cardinality();
-    if (distinctBuckets < MIN_DISTINCT_BUCKETS) return false;
-    // Largest angular gap between consecutive occupied buckets (with wraparound).
-    // Span = 360 - largestGap.
-    int totalBuckets = 36; // matches runIsochroneExpansion bucketCount
-    int largestGap = 0;
+  private static double angularSpanDegrees(java.util.BitSet bucketsPresent) {
     int firstOccupied = bucketsPresent.nextSetBit(0);
+    if (firstOccupied < 0) return 0;
+    int largestGap = 0;
     int prev = firstOccupied;
     for (int b = bucketsPresent.nextSetBit(prev + 1); b >= 0; b = bucketsPresent.nextSetBit(b + 1)) {
       largestGap = Math.max(largestGap, b - prev);
       prev = b;
     }
     // Wraparound gap between the last and the first occupied bucket.
-    largestGap = Math.max(largestGap, totalBuckets - prev + firstOccupied);
-    double spanDeg = (totalBuckets - largestGap) * (360.0 / totalBuckets);
-    return spanDeg >= MIN_ANGULAR_SPAN_DEG;
+    largestGap = Math.max(largestGap, TOTAL_BUCKETS - prev + firstOccupied);
+    return (TOTAL_BUCKETS - largestGap) * (360.0 / TOTAL_BUCKETS);
   }
 
   /** Total angular buckets used by {@link RoutingEngine#runIsochroneExpansion}. */
@@ -238,6 +250,21 @@ final class IsochroneCandidateProvider implements RoundTripCandidateProvider {
    */
   boolean isDiverse() {
     return diverse;
+  }
+
+  /** Distinct angular buckets occupied by the filtered pool ({@link IsoPoolHealth} shape input). */
+  int distinctSectorCount() {
+    return distinctSectors;
+  }
+
+  /** Angular span of the filtered pool in degrees ({@link IsoPoolHealth} shape input). */
+  double angularSpanDegrees() {
+    return angularSpanDeg;
+  }
+
+  /** Distinct source contours sampled by the filtered pool ({@link IsoPoolHealth} shape input). */
+  int contourLevelCount() {
+    return contourLevels;
   }
 
   @Override

@@ -155,6 +155,25 @@ A couple of decisions are worth recording for anyone tuning the planner:
   from seeded score jitter (greedy family) and bounded geometry knobs
   (WAYPOINT/ISOCHRONE), so reproducibility needs both `startDirection` and the seed.
 
+- **`ISO_GREEDY` monitors its own candidate pool and falls back internally.**
+  The isochrone-fed planner scores the trustworthiness of its start-centered
+  candidate pool while the loop is being built (distinct sectors, angular span,
+  contour spread, return-oracle coverage, and in-plan evidence such as
+  graph-native candidates repeatedly winning the routed comparison). A degraded
+  pool loses its prior-based scoring advantages and cedes routed slots to fresh
+  per-step graph-native candidates; an unhealthy pool switches the remaining
+  steps to graph-native candidates entirely — the same local truth plain
+  `GREEDY` uses. A *re-expansion* refresh was deliberately not implemented: the
+  pool's staleness is positional (the loop has moved away from the start), so
+  re-running the same start-centered expansion would rebuild the same pool,
+  while the per-step graph-native expansion already re-samples the loop's
+  current lobe fresh on every step. Each accepted leg records a
+  `leg N source: …` diagnostic (source, quota injection, oracle vs EMA return
+  estimate, heuristic-vs-routed rank, pool health) so the long-term goal —
+  retiring `AUTO`'s separate plain-`GREEDY` comparison run once attribution
+  shows it no longer wins — can be decided from measurements rather than
+  guesswork ([issue #26](https://github.com/jonnybbb/brouter/issues/26)).
+
 - **The near-revisit (teardrop) detectors have no sub-600 m floor.** The
   teardrop/near-revisit detectors share a 600 m minimum-arc floor
   (`NEAR_REVISIT_MIN_ARC_M`). Lowering it was measured and rejected: the

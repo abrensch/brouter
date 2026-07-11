@@ -154,6 +154,52 @@ public class RoutingEngineAutoCompetitionTest {
   }
 
   @Test
+  public void roundTripResultExposesSourceAttributionTelemetry() {
+    // Issue #26 §4: quota-injection count, pool demotion step, and the final
+    // iso-pool health score — sentinel-valued (0 / -1 / NaN) when the plan ran
+    // without an iso pool so a reader can tell "not applicable" from zero.
+    RoundTripResult r = new RoundTripResult();
+    Assert.assertEquals(0, r.getAcceptedQuotaInjectedLegs());
+    Assert.assertEquals(-1, r.getPoolDemotedAtStep());
+    Assert.assertTrue("no-iso-pool sentinel is NaN", Double.isNaN(r.getIsoPoolHealthScore()));
+
+    r.setAcceptedQuotaInjectedLegs(2);
+    r.setPoolDemotedAtStep(3);
+    r.setIsoPoolHealthScore(0.42);
+    Assert.assertEquals(2, r.getAcceptedQuotaInjectedLegs());
+    Assert.assertEquals(3, r.getPoolDemotedAtStep());
+    Assert.assertEquals(0.42, r.getIsoPoolHealthScore(), 1e-9);
+  }
+
+  @Test
+  public void roundTripResultExposesInternalGraphNativeComparisonTelemetry() {
+    RoundTripResult r = new RoundTripResult();
+    Assert.assertFalse(r.isInternalGraphNativeCompared());
+
+    r.setInternalGraphNativeCompared(true);
+    Assert.assertTrue(r.isInternalGraphNativeCompared());
+  }
+
+  @Test
+  public void candidateResultToStringCarriesWinnerAttributionOnlyForIsoPoolRuns() {
+    // The AUTO competition log line is the surface the "plain GREEDY fallback
+    // wins are gone" acceptance check greps. Candidates without an iso pool
+    // (plain GREEDY, graph-native fallback) must not print misleading zeros.
+    RoundTripCandidateResult noPool = candidate(RoundTripAlgorithm.GREEDY, cleanSquareLoop(5000));
+    Assert.assertFalse("no iso pool → no attribution suffix",
+      noPool.toString().contains("poolHealth"));
+
+    RoundTripCandidateResult withPool = candidate(RoundTripAlgorithm.ISO_GREEDY, cleanSquareLoop(5000));
+    withPool.acceptedQuotaInjectedLegs = 1;
+    withPool.isoPoolHealthScore = 0.62;
+    withPool.poolDemotedAtStep = 4;
+    String s = withPool.toString();
+    Assert.assertTrue(s.contains("quotaAccepted=1"));
+    Assert.assertTrue(s.contains("poolHealth=0.62"));
+    Assert.assertTrue(s.contains("demotedAtStep=4"));
+  }
+
+  @Test
   public void candidateResultModelTracksAlgorithmAndAcceptance() {
     // The internal RoundTripCandidateResult wrapper aggregates the per-
     // candidate fields and exposes accepted() / scoreValue() helpers used
@@ -169,6 +215,99 @@ public class RoutingEngineAutoCompetitionTest {
     r.score = RouteChoiceScore.score(r.track, r.track.distance, "fastbike", r.gateVerdict);
     Assert.assertTrue("accepted now", r.accepted());
     Assert.assertTrue("scoreValue > 0", r.scoreValue() > 0);
+  }
+
+  @Test
+  public void autoSkipsPlainGreedyWhenIsoGreedyAlreadyAbsorbedGraphNativeTruth() {
+    RoundTripCandidateResult absorbed = candidate(RoundTripAlgorithm.ISO_GREEDY, cleanSquareLoop(5000));
+    absorbed.gateVerdict = RoundTripQualityResult.builder()
+      .accepted(true).shape(RouteShape.STRICT_LOOP).build();
+    absorbed.score = RouteChoiceScore.score(absorbed.track, absorbed.track.distance,
+      "fastbike", absorbed.gateVerdict);
+    // Force the weak-score branch that historically launched a separate GREEDY
+    // child. No pool-health score means ISO_GREEDY fell back to the graph-native
+    // provider before planning, so it used the same candidate source as GREEDY.
+    absorbed.score = new RouteChoiceScore.Verdict(0.70, 0.70, absorbed.score.reasons());
+    absorbed.acceptedIsoLegs = 0;
+    absorbed.acceptedNonIsoLegs = 4;
+
+    Assert.assertFalse("graph-native-only ISO_GREEDY result should not run duplicate GREEDY",
+      RoutingEngine.autoNeedsPlainGreedy(absorbed, 1_000L, 10_000L));
+    Assert.assertEquals("ISO_GREEDY absorbed graph-native truth",
+      RoutingEngine.autoPlainGreedyDiscardReason(absorbed, 1_000L, 10_000L));
+  }
+
+  @Test
+  public void autoStillRunsPlainGreedyWhenWeakIsoGreedyUsedAnIsoPool() {
+    RoundTripCandidateResult weakIso = candidate(RoundTripAlgorithm.ISO_GREEDY, cleanSquareLoop(5000));
+    weakIso.gateVerdict = RoundTripQualityResult.builder()
+      .accepted(true).shape(RouteShape.STRICT_LOOP).build();
+    weakIso.score = RouteChoiceScore.score(weakIso.track, weakIso.track.distance,
+      "fastbike", weakIso.gateVerdict);
+    weakIso.score = new RouteChoiceScore.Verdict(0.70, 0.70, weakIso.score.reasons());
+    weakIso.acceptedIsoLegs = 3;
+    weakIso.acceptedNonIsoLegs = 1;
+    weakIso.isoPoolHealthScore = 0.80;
+
+    Assert.assertTrue("weak iso-sourced result still deserves plain GREEDY comparison",
+      RoutingEngine.autoNeedsPlainGreedy(weakIso, 1_000L, 10_000L));
+    Assert.assertNull("weak iso-sourced result has no discard reason",
+      RoutingEngine.autoPlainGreedyDiscardReason(weakIso, 1_000L, 10_000L));
+  }
+
+  @Test
+  public void autoStillRunsPlainGreedyWhenWeakGraphNativeOnlyResultUsedIsoPool() {
+    RoundTripCandidateResult weakIso = candidate(RoundTripAlgorithm.ISO_GREEDY, cleanSquareLoop(5000));
+    weakIso.gateVerdict = RoundTripQualityResult.builder()
+      .accepted(true).shape(RouteShape.STRICT_LOOP).build();
+    weakIso.score = RouteChoiceScore.score(weakIso.track, weakIso.track.distance,
+      "fastbike", weakIso.gateVerdict);
+    weakIso.score = new RouteChoiceScore.Verdict(0.70, 0.70, weakIso.score.reasons());
+    weakIso.acceptedIsoLegs = 0;
+    weakIso.acceptedNonIsoLegs = 4;
+    weakIso.isoPoolHealthScore = 0.20;
+    weakIso.poolDemotedAtStep = 2;
+
+    Assert.assertTrue("graph-native-only after iso-pool demotion still used iso-pool context",
+      RoutingEngine.autoNeedsPlainGreedy(weakIso, 1_000L, 10_000L));
+    Assert.assertNull("demoted iso-pool result has no discard reason without matrix proof",
+      RoutingEngine.autoPlainGreedyDiscardReason(weakIso, 1_000L, 10_000L));
+  }
+
+  @Test
+  public void autoSkipsPlainGreedyWhenIsoGreedyAlreadyComparedInternalGraphNativeBranch() {
+    RoundTripCandidateResult weakIso = candidate(RoundTripAlgorithm.ISO_GREEDY, cleanSquareLoop(5000));
+    weakIso.gateVerdict = RoundTripQualityResult.builder()
+      .accepted(true).shape(RouteShape.STRICT_LOOP).build();
+    weakIso.score = RouteChoiceScore.score(weakIso.track, weakIso.track.distance,
+      "fastbike", weakIso.gateVerdict);
+    weakIso.score = new RouteChoiceScore.Verdict(0.70, 0.70, weakIso.score.reasons());
+    weakIso.acceptedIsoLegs = 3;
+    weakIso.acceptedNonIsoLegs = 1;
+    weakIso.isoPoolHealthScore = 0.62;
+    weakIso.internalGraphNativeCompared = true;
+
+    Assert.assertFalse("internal graph-native comparison replaces duplicate AUTO GREEDY",
+      RoutingEngine.autoNeedsPlainGreedy(weakIso, 1_000L, 10_000L));
+    Assert.assertEquals("ISO_GREEDY already compared graph-native branch",
+      RoutingEngine.autoPlainGreedyDiscardReason(weakIso, 1_000L, 10_000L));
+  }
+
+  @Test
+  public void internalGraphNativeBranchRunsForDegradedIsoResult() {
+    RoundTripResult degraded = result(cleanSquareLoop(5000));
+    degraded.setFallbackReason(GreedyRoundTripPlanner.DEGRADED_FALLBACK_PREFIX + "synthetic");
+
+    Assert.assertTrue(RoutingEngine.shouldRunInternalGraphNativeBranch(
+      degraded, degraded.getTrack().distance, "fastbike", 0, 1_000L, 10_000L));
+  }
+
+  @Test
+  public void internalGraphNativeBranchSkipsStrongIsoResult() {
+    RoundTripResult strong = result(cleanSquareLoop(5000));
+
+    Assert.assertFalse(RoutingEngine.shouldRunInternalGraphNativeBranch(
+      strong, strong.getTrack().distance, "fastbike", 0, 1_000L, 10_000L));
   }
 
   // ---- best-effort (lenient) candidate selection — Option C ----------------
@@ -283,6 +422,25 @@ public class RoutingEngineAutoCompetitionTest {
     RoundTripCandidateResult r = new RoundTripCandidateResult(algo);
     r.track = track;
     return r;
+  }
+
+  private static RoundTripResult result(OsmTrack track) {
+    RoundTripResult r = new RoundTripResult();
+    r.setTrack(track);
+    r.setLoopWaypoints(Arrays.asList(
+      node("from", 180000000, 90000000),
+      node("via1", 180005000, 90000000),
+      node("via2", 180005000, 90005000),
+      node("to", 180000000, 90000000)));
+    return r;
+  }
+
+  private static OsmNodeNamed node(String name, int ilon, int ilat) {
+    OsmNodeNamed n = new OsmNodeNamed();
+    n.name = name;
+    n.ilon = ilon;
+    n.ilat = ilat;
+    return n;
   }
 
   /**

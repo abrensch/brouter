@@ -43,6 +43,18 @@ final class RoundTripCandidateResult {
   int routedNonIsoCandidates;
   int acceptedIsoLegs;
   int acceptedNonIsoLegs;
+  /**
+   * Issue #26 winner-attribution telemetry, copied from the child's
+   * {@link RoundTripResult}: accepted legs that only reached the routed
+   * comparison via the source quota, the final iso-pool health score
+   * ({@code NaN} = no iso pool), and the step at which the pool's influence
+   * was reduced ({@code -1} = never). Together these answer "would this
+   * candidate have needed a plain-GREEDY fallback?" without a matrix rerun.
+   */
+  int acceptedQuotaInjectedLegs;
+  double isoPoolHealthScore = Double.NaN;
+  int poolDemotedAtStep = -1;
+  boolean internalGraphNativeCompared;
   String errorMessage;
   /**
    * Keep-when-forced marker from the child planner
@@ -79,6 +91,13 @@ final class RoundTripCandidateResult {
       "%s: accepted=%s, track=%dm, gateShape=%s, score=%.3f, runtime=%dms, isoRouted=%d, nonIsoRouted=%d",
       algorithm, accepted(), track.distance,
       gateVerdict == null ? "?" : gateVerdict.getShape(),
-      scoreValue(), runtimeMillis, routedIsoCandidates, routedNonIsoCandidates);
+      scoreValue(), runtimeMillis, routedIsoCandidates, routedNonIsoCandidates)
+      // Winner-attribution suffix, only for candidates that ran an iso pool —
+      // this is what the "plain GREEDY fallback wins are gone" acceptance
+      // check greps from AUTO competition logs.
+      + (Double.isNaN(isoPoolHealthScore) ? "" : String.format(java.util.Locale.US,
+        ", quotaAccepted=%d, poolHealth=%.2f, demotedAtStep=%d",
+        acceptedQuotaInjectedLegs, isoPoolHealthScore, poolDemotedAtStep))
+      + (internalGraphNativeCompared ? ", internalGraphNativeCompared=true" : "");
   }
 }

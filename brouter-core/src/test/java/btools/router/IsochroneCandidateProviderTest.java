@@ -465,4 +465,59 @@ public class IsochroneCandidateProviderTest {
     assertTrue("pool covers buckets in the far wedge (24..35), saw " + seenBuckets,
       hasFarWedge);
   }
+
+  // ----- pool-shape metrics (IsoPoolHealth inputs, issue #26) ---------------
+
+  @Test
+  public void shapeMetricsMeasureTheFilteredPool() {
+    // 8 buckets spread over 0..280° (b*4 buckets → 0,40,...,280°+bucket width),
+    // alternating two contour levels.
+    List<IsoCandidate> raw = new ArrayList<>();
+    for (int b = 0; b < 8; b++) raw.add(at(b * 4, 2000, 5, b % 2 == 0 ? 100 : 50));
+    IsochroneCandidateProvider p = IsochroneCandidateProvider.fromPool(SEARCH_RADIUS, 0.0, raw);
+
+    assertEquals(8, p.distinctSectorCount());
+    assertEquals(2, p.contourLevelCount());
+    // Occupied buckets 0,4,...,28: largest gap is the wraparound 28→36 (8
+    // buckets = 80°), so the span is 360 − 80 = 280°.
+    assertEquals(280.0, p.angularSpanDegrees(), 1e-9);
+  }
+
+  @Test
+  public void shapeMetricsOnEmptyAndSingleBucketPools() {
+    IsochroneCandidateProvider empty =
+      IsochroneCandidateProvider.fromPool(SEARCH_RADIUS, 0.0, new ArrayList<>());
+    assertEquals(0, empty.distinctSectorCount());
+    assertEquals(0.0, empty.angularSpanDegrees(), 1e-9);
+    assertEquals(0, empty.contourLevelCount());
+
+    // A single-bucket (corridor) pool spans 0°: the wraparound gap is the full circle.
+    List<IsoCandidate> raw = new ArrayList<>();
+    raw.add(at(3, 2000, 5, 100));
+    IsochroneCandidateProvider corridor = IsochroneCandidateProvider.fromPool(SEARCH_RADIUS, 0.0, raw);
+    assertEquals(1, corridor.distinctSectorCount());
+    assertEquals(0.0, corridor.angularSpanDegrees(), 1e-9);
+    assertFalse(corridor.isDiverse());
+  }
+
+  @Test
+  public void diversityVerdictMatchesShapeMetrics() {
+    // isDiverse() must stay consistent with the exposed metrics: ≥4 sectors
+    // AND ≥180° span (plus the ≥4 pool floor). Full circle → diverse.
+    List<IsoCandidate> full = new ArrayList<>();
+    for (int b = 0; b < 12; b++) full.add(at(b * 3, 2000, 5, 100));
+    IsochroneCandidateProvider pFull = IsochroneCandidateProvider.fromPool(SEARCH_RADIUS, 0.0, full);
+    assertTrue(pFull.isDiverse());
+    assertTrue(pFull.distinctSectorCount() >= 4);
+    assertTrue(pFull.angularSpanDegrees() >= 180.0);
+
+    // 4 sectors bunched into 0..30° (span 40° < 180) → not diverse, and the
+    // metrics say why.
+    List<IsoCandidate> bunched = new ArrayList<>();
+    for (int b = 0; b < 4; b++) bunched.add(at(b, 2000, 5, 100));
+    IsochroneCandidateProvider pBunched = IsochroneCandidateProvider.fromPool(SEARCH_RADIUS, 0.0, bunched);
+    assertFalse(pBunched.isDiverse());
+    assertEquals(4, pBunched.distinctSectorCount());
+    assertTrue(pBunched.angularSpanDegrees() < 180.0);
+  }
 }

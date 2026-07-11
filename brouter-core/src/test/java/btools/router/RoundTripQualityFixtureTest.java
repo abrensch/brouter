@@ -96,6 +96,62 @@ public class RoundTripQualityFixtureTest {
   }
 
   /**
+   * Issue #26 §4 — per-leg source attribution, end-to-end. Every accepted leg
+   * of a greedy-family plan records a grep-able "leg N source:" diagnostic,
+   * and the aggregate counters match the per-leg lines exactly (commits and
+   * undos stay in lock-step). Plain GREEDY runs without an iso pool, so its
+   * health telemetry stays at the sentinels and its legs are all graph-native;
+   * when ISO_GREEDY actually planned against an iso pool, the plan-exit
+   * "iso-pool health:" summary and per-leg poolHealth suffix are present too.
+   */
+  @Test
+  public void acceptedLegsCarrySourceAttributionDiagnostics() {
+    for (RoundTripAlgorithm algo : new RoundTripAlgorithm[]{
+        RoundTripAlgorithm.GREEDY, RoundTripAlgorithm.ISO_GREEDY}) {
+      RoutingEngine re = RoundTripFixture.engine(PROFILE, EAST, RADIUS,
+        rc -> rc.roundTripAlgorithm = algo);
+      Assert.assertNull(algo + " completed: " + re.getErrorMessage(), re.getErrorMessage());
+      RoundTripResult result = re.getLastRoundTripResult();
+      Assert.assertNotNull(algo + " recorded a planner result", result);
+
+      List<String> legLines = new ArrayList<>();
+      boolean healthSummary = false;
+      for (String d : result.getDiagnostics()) {
+        if (d.startsWith("leg ") && d.contains(" source: ")) legLines.add(d);
+        if (d.startsWith("iso-pool health: ")) healthSummary = true;
+      }
+      Assert.assertFalse(algo + " accepted legs must carry attribution lines",
+        legLines.isEmpty());
+      Assert.assertEquals(algo + " per-leg lines match the accepted-leg counters",
+        result.getAcceptedIsoLegs() + result.getAcceptedNonIsoLegs(), legLines.size());
+      for (String line : legLines) {
+        Assert.assertTrue(line, line.contains("quotaInjected="));
+        Assert.assertTrue(line, line.contains("return="));
+        Assert.assertTrue(line, line.contains("heurRank="));
+      }
+
+      boolean hasHealth = !Double.isNaN(result.getIsoPoolHealthScore());
+      Assert.assertEquals(algo + " health summary present iff an iso pool was tracked",
+        hasHealth, healthSummary);
+      if (algo == RoundTripAlgorithm.GREEDY) {
+        Assert.assertFalse("plain GREEDY never tracks pool health", hasHealth);
+        Assert.assertEquals(-1, result.getPoolDemotedAtStep());
+        for (String line : legLines) {
+          Assert.assertTrue("plain GREEDY legs are graph-native: " + line,
+            line.contains("source: graph-native"));
+          Assert.assertFalse("no poolHealth suffix without an iso pool: " + line,
+            line.contains("poolHealth="));
+        }
+      } else if (hasHealth) {
+        for (String line : legLines) {
+          Assert.assertTrue("iso-pool plans stamp health on every leg: " + line,
+            line.contains("poolHealth="));
+        }
+      }
+    }
+  }
+
+  /**
    * Profile policy: a paved-only road-bike profile must reject the fixture's
    * unpaved path/track terrain through the quality gate — a clear error and no
    * degenerate track, never a silently-bad loop on hostile ways.
@@ -136,9 +192,12 @@ public class RoundTripQualityFixtureTest {
    * Wiring guard for the shared competition budget: a 1 ms overall deadline
    * lets only the FIRST candidate run (it still gets the MIN_CHILD floor so it
    * completes), and every later candidate is skipped once now >= deadline — so
-   * the adopted AUTO message records exactly one candidate. With a full budget
-   * the same request runs more than one. This proves the budget is shared
-   * across the competition, not handed to each candidate in full.
+   * the adopted AUTO message records exactly one candidate, yet the first
+   * candidate still ships thanks to the MIN budget floor. (The full-budget
+   * run below is a completion control only: since issue #26 AUTO skips the
+   * duplicate plain-GREEDY run when ISO_GREEDY is strong, so a full budget
+   * may ALSO legitimately record one candidate — candidate count signals
+   * competition strength, not budget.)
    */
   @Test
   public void tinyBudgetRunsOnlyTheFirstCandidate() {
@@ -152,13 +211,14 @@ public class RoundTripQualityFixtureTest {
     Assert.assertTrue("only the first AUTO candidate ran (rest skipped past the 1ms deadline): "
       + t.message, t.message.contains("after 1 candidate(s)"));
 
-    // Sanity: the same request with a full budget runs more than one candidate,
-    // so the single-candidate result above is the deadline-skip at work, not an
-    // intrinsic property of the request.
+    // Control: the same request with a full budget must complete cleanly and
+    // carry the competition summary. It is NOT asserted to run more candidates
+    // — see the Javadoc note on issue #26.
     OsmTrack full = autoEngineWithBudget(60_000L).getFoundTrack();
     Assert.assertNotNull(full);
-    Assert.assertFalse("full budget should run more than one candidate: " + full.message,
-      full.message.contains("after 1 candidate(s)"));
+    Assert.assertNotNull("full budget must carry the competition summary", full.message);
+    Assert.assertTrue("full budget must report the AUTO competition outcome: " + full.message,
+      full.message.contains("AUTO selected") && full.message.contains("candidate(s)"));
   }
 
   private OsmTrack autoLoopWithBudget(long budgetMs) {

@@ -84,5 +84,14 @@ public interface RoundTripCandidateProvider {
      * corridors — the placement signature behind teardrop and stub artifacts.
      */
     public int reachableCells = -1;
+    /**
+     * Set by the planner's source quota when this candidate only got its
+     * routed slot via quota injection (it was not picked on heuristic score +
+     * angular spread). Source-attribution signal: a quota-injected candidate
+     * WINNING the routed comparison is direct evidence the iso pool had
+     * outranked a better local alternative. Candidate objects are built fresh
+     * per provider call, so the flag never leaks across steps or attempts.
+     */
+    public boolean quotaInjected;
   }
 }

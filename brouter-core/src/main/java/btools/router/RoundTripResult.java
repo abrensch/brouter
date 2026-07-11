@@ -43,6 +43,12 @@ public class RoundTripResult {
   private int routedNonIsoCandidates;
   private int acceptedIsoLegs;
   private int acceptedNonIsoLegs;
+  // Issue #26 source-attribution telemetry: sentinel-valued when the plan ran
+  // without an iso pool (plain GREEDY / graph-native-only provider).
+  private int acceptedQuotaInjectedLegs;
+  private int poolDemotedAtStep = -1;
+  private double isoPoolHealthScore = Double.NaN;
+  private boolean internalGraphNativeCompared;
 
   // Phase 2.0 telemetry — isochrone-asymmetry initial bearing.
   // Populated by RoutingEngine.doGreedyRoundTrip after running the
@@ -196,6 +202,29 @@ public class RoundTripResult {
   /** Number of non-iso candidates that became legs in the final loop. */
   public int getAcceptedNonIsoLegs() { return acceptedNonIsoLegs; }
   public void setAcceptedNonIsoLegs(int v) { this.acceptedNonIsoLegs = v; }
+
+  /** Accepted legs whose candidate held its routed slot only via source-quota
+   *  injection. A high value means the iso pool kept outranking the local
+   *  alternatives that then won on routed truth — the plain-GREEDY-win
+   *  signature the health tracker demotes on. */
+  public int getAcceptedQuotaInjectedLegs() { return acceptedQuotaInjectedLegs; }
+  public void setAcceptedQuotaInjectedLegs(int v) { this.acceptedQuotaInjectedLegs = v; }
+
+  /** First step at which iso-pool influence was reduced ({@code IsoPoolHealth}
+   *  DEGRADED or worse); {@code -1} = never demoted (or no iso pool). */
+  public int getPoolDemotedAtStep() { return poolDemotedAtStep; }
+  public void setPoolDemotedAtStep(int v) { this.poolDemotedAtStep = v; }
+
+  /** Final iso-pool health score in [0,1]; {@code NaN} when the plan ran
+   *  without an iso pool (plain GREEDY / graph-native-only provider). */
+  public double getIsoPoolHealthScore() { return isoPoolHealthScore; }
+  public void setIsoPoolHealthScore(double v) { this.isoPoolHealthScore = v; }
+
+  /** True when ISO_GREEDY ran an internal graph-native-only branch and compared
+   *  it before returning this result. AUTO can then skip a duplicate plain
+   *  GREEDY child for the same request. */
+  public boolean isInternalGraphNativeCompared() { return internalGraphNativeCompared; }
+  public void setInternalGraphNativeCompared(boolean v) { this.internalGraphNativeCompared = v; }
 
   /** Whether Phase 2.0 isochrone-asymmetry bearing bias fired for this loop.
    *  False when the algorithm wasn't ISO_GREEDY, when the user provided an

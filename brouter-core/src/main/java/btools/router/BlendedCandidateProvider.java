@@ -29,6 +29,11 @@ final class BlendedCandidateProvider implements RoundTripCandidateProvider {
     this.graphNative = graphNative;
   }
 
+  /** The start-centered iso half of the blend ({@link IsoPoolHealth} shape source). */
+  IsochroneCandidateProvider isoProvider() {
+    return iso;
+  }
+
   @Override
   public List<CandidatePoint> candidatesForStep(
     int fromIlon, int fromIlat, double airRadius,

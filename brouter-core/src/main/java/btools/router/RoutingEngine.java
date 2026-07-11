@@ -278,10 +278,26 @@ public class RoutingEngine extends Thread {
 
   /**
    * Greedy route-choice threshold for clear accept. If ISO_GREEDY scores
-   * below this, AUTO runs the plain GREEDY candidate as a comparison before
-   * considering the legacy WAYPOINT fallback.
+   * below this, AUTO normally runs the plain GREEDY candidate as a comparison
+   * before considering the legacy WAYPOINT fallback. Graph-native absorption
+   * inside ISO_GREEDY is the measured exception.
+   *
+   * <p>Absorption path (issue #26): ISO_GREEDY now carries an internal
+   * graph-native fallback (see {@link IsoPoolHealth}) that demotes a thin,
+   * bunched, or repeatedly-losing iso pool mid-plan, so this separate GREEDY
+   * comparison should win less and less. It is deliberately retained until
+   * winner-attribution evidence proves it is no longer needed — grep AUTO
+   * competition logs for GREEDY winners and check the ISO_GREEDY candidate's
+   * {@code quotaAccepted}/{@code poolHealth}/{@code demotedAtStep} suffix
+   * ({@link RoundTripCandidateResult#toString}) before removing it.
    */
   private static final double CLEAR_ACCEPT_THRESHOLD = 0.85;
+
+  enum IsoStartPolicy {
+    BLEND,
+    DUAL_IF_WEAK,
+    GRAPH_NATIVE_ONLY
+  }
 
   // AUTO competition runs its candidates sequentially in the calling thread and
   // cannot interrupt a child mid-run, so it shares one wall-clock budget across
@@ -313,14 +329,21 @@ public class RoutingEngine extends Thread {
    */
   private static final long AUTO_CHILD_JOIN_UNWIND_MS = 3_000;
   /**
+   * Issue #26 default: do not start plain GREEDY speculatively before
+   * ISO_GREEDY has proved it is needed. This avoids duplicate production
+   * algorithm runs on strong or provider-level graph-native-absorbed
+   * ISO_GREEDY results. Operators who prefer the old single-request latency
+   * tradeoff can opt back in with {@code -DroundTripSpeculativeAutoGreedy=true}.
+   */
+  private static final boolean SPECULATIVE_AUTO_GREEDY =
+    Boolean.getBoolean("roundTripSpeculativeAutoGreedy");
+  /**
    * Global bound on how many AUTO round-trip requests may run their speculative
-   * GREEDY child IN PARALLEL at once (a non-blocking permit pool). Routing is
-   * CPU-bound, so this caps the extra CPU-bound threads the parallelism adds
-   * across the whole JVM: default is spare cores ({@code cores - 1}), so a
-   * single-core box never parallelizes and a busy multi-core box stops
-   * spawning children once the spare cores are taken (each such request runs
-   * GREEDY sequentially instead). Tunable via {@code -DroundTripParallelAutoPermits};
-   * set 0 to force fully-sequential AUTO competition (zero oversubscription).
+   * GREEDY child IN PARALLEL at once when {@link #SPECULATIVE_AUTO_GREEDY} is
+   * enabled (a non-blocking permit pool). Routing is CPU-bound, so this caps
+   * the extra CPU-bound threads the opt-in parallelism adds across the whole
+   * JVM. Tunable via {@code -DroundTripParallelAutoPermits}; set 0 to force
+   * fully-sequential AUTO competition even when speculative mode is enabled.
    */
   private static final java.util.concurrent.Semaphore PARALLEL_AUTO_SEMAPHORE =
     new java.util.concurrent.Semaphore(Math.max(0,
@@ -1251,29 +1274,22 @@ public class RoutingEngine extends Thread {
     long deadline = t0 + (maxRunningTime > 0 ? maxRunningTime : DEFAULT_AUTO_BUDGET_MS);
     List<RoundTripCandidateResult> results = new ArrayList<>(3);
 
-    // 1+2. ISO_GREEDY and GREEDY children run CONCURRENTLY on isolated child
-    // engines (the server model is one engine per request thread anyway, and
-    // runChildCandidate already builds a fully isolated engine + context).
-    // Selection POLICY is unchanged from the sequential version: the GREEDY
-    // result is consulted only when ISO_GREEDY is weak/marginal/failed — a
-    // strong ISO_GREEDY discards the speculative GREEDY run exactly as the
-    // sequential code never started it. This halves the wall clock of AUTO's
-    // dominant path (both greedy families used to run back to back) at the
-    // cost of one speculative child's CPU when ISO_GREEDY is strong.
+    // 1+2. Run ISO_GREEDY first, then plain GREEDY only when the ISO result
+    // proves the comparison is still useful. This is the issue-#26 default:
+    // avoid duplicate production algorithm runs when ISO_GREEDY is strong or
+    // has already absorbed the graph-native provider fallback. An opt-in
+    // speculative mode can still start GREEDY in parallel for deployments that
+    // prefer lower single-request latency over duplicate CPU work.
     RoundTripCandidateResult[] parallel = new RoundTripCandidateResult[2];
     java.util.concurrent.atomic.AtomicReference<RoutingEngine> greedyEngineOut =
       new java.util.concurrent.atomic.AtomicReference<>();
     Thread greedyThread = null;
-    // Load-aware parallelism: routing is CPU-bound, so spawning the speculative
-    // GREEDY child unconditionally would 2x the CPU-bound threads per AUTO
-    // round trip. Under concurrent load that oversubscribes the cores and makes
-    // BOTH searches run slower against their wall-clock deadlines — a net loss.
-    // Gate the child on a NON-BLOCKING permit from a global pool sized to the
-    // spare cores (roundTripParallelAutoPermits, default cores-1): when the box
-    // has spare CPU the child runs in parallel (single-request latency win);
-    // when the pool is saturated the acquire fails and GREEDY runs sequentially
-    // below — bounding the extra CPU load instead of blindly oversubscribing.
-    boolean parallelPermit = System.currentTimeMillis() < deadline
+    // Optional load-aware parallelism: routing is CPU-bound, so speculative
+    // GREEDY is opt-in and also gated on a NON-BLOCKING permit. If the permit
+    // is unavailable, or speculation is disabled, GREEDY runs sequentially only
+    // if the ISO result needs it.
+    boolean parallelPermit = SPECULATIVE_AUTO_GREEDY
+      && System.currentTimeMillis() < deadline
       && PARALLEL_AUTO_SEMAPHORE.tryAcquire();
     if (parallelPermit) {
       greedyThread = new Thread(() -> {
@@ -1300,10 +1316,10 @@ public class RoutingEngine extends Thread {
     // candidate). Deciding now means a STRONG ISO_GREEDY never waits out the
     // speculative child: it is terminated instead, so AUTO latency on the
     // good path stays that of ISO_GREEDY alone.
-    boolean isoGreedyWeak = !isoGreedyR.accepted()
-      || isoGreedyR.scoreValue() < CLEAR_ACCEPT_THRESHOLD;
-    boolean greedyEntitled = System.currentTimeMillis() < deadline;
-    boolean greedyNeeded = isoGreedyWeak && greedyEntitled;
+    long greedyDecisionTime = System.currentTimeMillis();
+    boolean greedyNeeded = autoNeedsPlainGreedy(isoGreedyR, greedyDecisionTime, deadline);
+    String greedyDiscardReason = autoPlainGreedyDiscardReason(isoGreedyR, greedyDecisionTime, deadline);
+    boolean greedyResultIgnored = false;
     if (greedyThread != null) {
       RoutingEngine greedyChild = greedyEngineOut.get();
       if (!greedyNeeded && greedyChild != null) {
@@ -1338,6 +1354,7 @@ public class RoutingEngine extends Thread {
       // half-written result. The daemon thread cannot block JVM exit.
       if (greedyThread.isAlive()) {
         greedyNeeded = false;
+        greedyResultIgnored = true;
         logInfo("AUTO: GREEDY child did not stop in time; ignoring its result");
       }
     }
@@ -1356,9 +1373,9 @@ public class RoutingEngine extends Thread {
     if (greedyNeeded && parallel[1] != null) {
       results.add(parallel[1]);
       logInfo("AUTO candidate: " + parallel[1]);
-    } else if (greedyThread != null) {
+    } else if (greedyThread != null && !greedyResultIgnored) {
       logInfo("AUTO: speculative GREEDY child discarded ("
-        + (isoGreedyWeak ? "past deadline at decision point" : "ISO_GREEDY strong")
+        + (greedyDiscardReason == null ? "not needed" : greedyDiscardReason)
         + ") — policy parity with the sequential competition");
     }
 
@@ -1457,6 +1474,114 @@ public class RoutingEngine extends Thread {
       return;
     }
     adoptCandidateWinner(winner, results, totalMs);
+  }
+
+  /**
+   * AUTO's plain-GREEDY entitlement check.
+   *
+   * <p>Issue #26 absorption rule: a below-threshold ISO_GREEDY result does not
+   * automatically imply a useful second plain-GREEDY run. If ISO_GREEDY's
+   * provider fell back to graph-native candidates before planning, or if
+   * ISO_GREEDY already compared an internal graph-native-only branch, it has
+   * already used the same source truth as plain GREEDY. Running GREEDY again is
+   * duplicate work, not extra source truth.
+   */
+  static boolean autoNeedsPlainGreedy(RoundTripCandidateResult isoGreedyR,
+                                      long now, long deadline) {
+    return autoPlainGreedyDiscardReason(isoGreedyR, now, deadline) == null;
+  }
+
+  static String autoPlainGreedyDiscardReason(RoundTripCandidateResult isoGreedyR,
+                                             long now, long deadline) {
+    if (now >= deadline) {
+      return "past deadline at decision point";
+    }
+    if (isoGreedyR == null || !isoGreedyR.accepted()) {
+      return null;
+    }
+    if (isoGreedyR.scoreValue() >= CLEAR_ACCEPT_THRESHOLD) {
+      return "ISO_GREEDY strong";
+    }
+    if (isoGreedyR.internalGraphNativeCompared) {
+      return "ISO_GREEDY already compared graph-native branch";
+    }
+    if (isoGreedyAbsorbedGraphNativeTruth(isoGreedyR)) {
+      return "ISO_GREEDY absorbed graph-native truth";
+    }
+    return null;
+  }
+
+  static boolean shouldRunInternalGraphNativeBranch(RoundTripResult result,
+                                                    double desiredDistance,
+                                                    String profileName,
+                                                    double direction,
+                                                    long now,
+                                                    long deadline) {
+    if (now >= deadline) {
+      return false;
+    }
+    if (result == null || isDegradedGreedyResult(result)
+        || result.getTrack() == null
+        || result.getLoopWaypoints() == null
+        || result.getLoopWaypoints().size() < 4) {
+      return true;
+    }
+    RoundTripQualityResult gate = RoundTripQualityGate.evaluate(result.getTrack(),
+      desiredDistance, profileName, result.isForcedCorridorAccepted(), false, false);
+    if (gate == null || !gate.isAccepted()) {
+      return true;
+    }
+    RouteChoiceScore.Verdict score = RouteChoiceScore.score(result.getTrack(),
+      desiredDistance, profileName, gate, direction);
+    return score.score() < CLEAR_ACCEPT_THRESHOLD;
+  }
+
+  private RoundTripResult selectBetterInternalIsoGreedyResult(RoundTripResult blended,
+                                                              RoundTripResult graphNative,
+                                                              double desiredDistance,
+                                                              double direction) {
+    RouteChoiceScore.Verdict blendedScore = scoreInternalGreedyResult(blended,
+      desiredDistance, direction);
+    RouteChoiceScore.Verdict graphScore = scoreInternalGreedyResult(graphNative,
+      desiredDistance, direction);
+    if (graphScore == null) {
+      return blended;
+    }
+    if (blendedScore == null) {
+      return graphNative;
+    }
+    if (graphScore.score() > blendedScore.score() + 1e-9) {
+      return graphNative;
+    }
+    return blended;
+  }
+
+  private RouteChoiceScore.Verdict scoreInternalGreedyResult(RoundTripResult result,
+                                                            double desiredDistance,
+                                                            double direction) {
+    if (result == null || isDegradedGreedyResult(result)
+        || result.getTrack() == null
+        || result.getLoopWaypoints() == null
+        || result.getLoopWaypoints().size() < 4) {
+      return null;
+    }
+    String profileName = routingContext.getProfileName();
+    RoundTripQualityResult gate = RoundTripQualityGate.evaluate(result.getTrack(),
+      desiredDistance, profileName,
+      routingContext.allowSamewayback || result.isForcedCorridorAccepted(),
+      false, roundTripFerriesAllowed());
+    if (gate == null || !gate.isAccepted()) {
+      return null;
+    }
+    return RouteChoiceScore.score(result.getTrack(), desiredDistance,
+      profileName, gate, direction);
+  }
+
+  private static boolean isoGreedyAbsorbedGraphNativeTruth(RoundTripCandidateResult isoGreedyR) {
+    return isoGreedyR.algorithm == RoundTripAlgorithm.ISO_GREEDY
+      && isoGreedyR.acceptedNonIsoLegs > 0
+      && isoGreedyR.acceptedIsoLegs == 0
+      && Double.isNaN(isoGreedyR.isoPoolHealthScore);
   }
 
   /**
@@ -1574,6 +1699,10 @@ public class RoutingEngine extends Thread {
         r.routedNonIsoCandidates = cr.getRoutedNonIsoCandidates();
         r.acceptedIsoLegs = cr.getAcceptedIsoLegs();
         r.acceptedNonIsoLegs = cr.getAcceptedNonIsoLegs();
+        r.acceptedQuotaInjectedLegs = cr.getAcceptedQuotaInjectedLegs();
+        r.isoPoolHealthScore = cr.getIsoPoolHealthScore();
+        r.poolDemotedAtStep = cr.getPoolDemotedAtStep();
+        r.internalGraphNativeCompared = cr.isInternalGraphNativeCompared();
         // Keep-when-forced: the child accepted a same-way-back corridor because
         // nothing clean exists. Without carrying this, the re-gate below would
         // reject the track the child engine accepted by design (the direct
@@ -2489,7 +2618,9 @@ public class RoutingEngine extends Thread {
           + ", hits=" + bias.hits + ", airDist=" + bias.airDistMeters + "m)");
       }
     }
-    RoundTripCandidateProvider provider = buildCandidateProvider(algo, start, searchRadius, effectiveDirection, iso);
+    GraphNativeCandidateProvider graphNativeProvider = new GraphNativeCandidateProvider(this);
+    RoundTripCandidateProvider provider = buildCandidateProvider(algo, start, searchRadius,
+      effectiveDirection, iso, graphNativeProvider);
     int baseSubRouteCount = selectGreedySubRouteCount(desiredDistance, routingContext.getProfileName());
 
     // Return-distance oracle (F6): sector-resolved return estimates from the
@@ -2503,21 +2634,48 @@ public class RoutingEngine extends Thread {
         + String.format(Locale.ROOT, "%.2f", returnOracle.kappa()) + ")");
     }
 
+    // Iso-pool shape for the planner's health tracker (issue #26): measured
+    // once per pool, shared across the ladder rungs (each rung wraps it in a
+    // fresh per-plan IsoPoolHealth). Null when the provider is graph-native
+    // only — the planner then skips every health hook (plain GREEDY parity).
+    IsoPoolHealth.PoolShape poolShape = null;
+    if (provider instanceof BlendedCandidateProvider) {
+      IsochroneCandidateProvider isoProvider = ((BlendedCandidateProvider) provider).isoProvider();
+      poolShape = new IsoPoolHealth.PoolShape(isoProvider.poolSize(),
+        isoProvider.distinctSectorCount(), isoProvider.angularSpanDegrees(),
+        isoProvider.contourLevelCount(), returnOracle != null);
+      logInfo("ISO_GREEDY: iso-pool shape: " + poolShape.describe());
+    }
+
+    FrontierAxis frontierAxis = (algo == RoundTripAlgorithm.ISO_GREEDY && iso != null)
+      ? computeFrontierAxis(iso.frontier, searchRadius) : FrontierAxis.NONE;
+    IsoStartPolicy isoStartPolicy = algo == RoundTripAlgorithm.ISO_GREEDY
+      ? selectIsoStartPolicy(poolShape, frontierAxis, direction)
+      : IsoStartPolicy.BLEND;
+    if (algo == RoundTripAlgorithm.ISO_GREEDY) {
+      logInfo("ISO_GREEDY: start policy " + isoStartPolicy);
+    }
+
+    boolean startGraphNativeOnly = isoStartPolicy == IsoStartPolicy.GRAPH_NATIVE_ONLY;
+    RoundTripCandidateProvider primaryProvider = startGraphNativeOnly ? graphNativeProvider : provider;
+    ReturnDistanceOracle primaryReturnOracle = startGraphNativeOnly ? null : returnOracle;
+    IsoPoolHealth.PoolShape primaryPoolShape = startGraphNativeOnly ? null : poolShape;
+
     // First attempt — user direction (or Phase 2.0 biased bearing).
     RoundTripResult result = runGreedyAttempt(start, searchRadius, desiredDistance,
-      effectiveDirection, baseSubRouteCount, provider, bias, returnOracle);
+      effectiveDirection, baseSubRouteCount, primaryProvider, bias,
+      primaryReturnOracle, primaryPoolShape, isoStartPolicy);
 
     // Phase 2.1: if the first attempt degraded AND the user supplied an
     // explicit direction AND the frontier has a strong terrain axis AND
     // the user's direction is perpendicular to that axis, retry once
     // along the axis. This addresses the Inn-Valley pattern: 100km loop
     // requested heading N where the road network only supports E-W.
-    FrontierAxis frontierAxis = (algo == RoundTripAlgorithm.ISO_GREEDY && iso != null)
-      ? computeFrontierAxis(iso.frontier, searchRadius) : FrontierAxis.NONE;
     boolean phase21Triggered = false;
     boolean phase21Succeeded = false;
     double phase21RetryDir = Double.NaN;
-    if (isDegradedGreedyResult(result)
+    if (!startGraphNativeOnly
+        && isDegradedGreedyResult(result)
         && direction >= 0
         && frontierAxis.hasStrongAxis
         && isPerpendicularToAxis(direction, frontierAxis.axisBearingDegrees)
@@ -2531,7 +2689,8 @@ public class RoutingEngine extends Thread {
         + "° (strength=" + String.format("%.1fx", frontierAxis.strength)
         + "); retrying with axis-aligned direction " + (int) phase21RetryDir + "°");
       RoundTripResult retry = runGreedyAttempt(start, searchRadius, desiredDistance,
-        phase21RetryDir, baseSubRouteCount, provider, bias, returnOracle);
+        phase21RetryDir, baseSubRouteCount, provider, bias, returnOracle, poolShape,
+        IsoStartPolicy.DUAL_IF_WEAK);
       if (!isDegradedGreedyResult(retry)
           && retry != null && retry.getLoopWaypoints() != null
           && retry.getLoopWaypoints().size() >= 4) {
@@ -2543,6 +2702,44 @@ public class RoutingEngine extends Thread {
         // caller's error path below.
         logInfo("ISO_GREEDY: Phase 2.1 axis retry ALSO degraded — geographic infeasibility detected");
       }
+    }
+
+    if (algo == RoundTripAlgorithm.ISO_GREEDY
+        && !startGraphNativeOnly
+        && provider instanceof BlendedCandidateProvider
+        && shouldRunInternalGraphNativeBranch(result, desiredDistance,
+            routingContext.getProfileName(), effectiveDirection,
+            System.currentTimeMillis(), roundTripRequestDeadline == 0
+              ? Long.MAX_VALUE : roundTripRequestDeadline)) {
+      logInfo("ISO_GREEDY: running internal graph-native-only comparison branch");
+      // Ladder order: BLEND (base first), NOT GRAPH_NATIVE_ONLY (base-1 first).
+      // This branch replaced the ISO_GREEDY→GREEDY recursion, which ran the
+      // BLEND-order ladder — and the fewer-steps-first order is measurably
+      // wrong here: at mallorca_30km_gravel_W the base-1 rung returns a
+      // non-degraded 10.4%-error plan that STOPS the ladder with a 4-point
+      // loop routing to distR 0.62 (the undershoot-sentinel contraction
+      // class), while the base rung produces the healthy loop the old
+      // recursion shipped. Fewer-first remains correct for the START policy
+      // (pool unhealthy from step 0), which keeps GRAPH_NATIVE_ONLY.
+      RoundTripResult graphNativeResult = runGreedyAttempt(start, searchRadius, desiredDistance,
+        effectiveDirection, baseSubRouteCount, graphNativeProvider, bias, null, null,
+        IsoStartPolicy.BLEND);
+      boolean comparable = scoreInternalGreedyResult(graphNativeResult,
+        desiredDistance, effectiveDirection) != null;
+      RoundTripResult selected = selectBetterInternalIsoGreedyResult(result, graphNativeResult,
+        desiredDistance, effectiveDirection);
+      if (selected == graphNativeResult) {
+        logInfo("ISO_GREEDY: internal graph-native branch selected");
+      } else if (comparable) {
+        logInfo("ISO_GREEDY: blended branch kept after internal graph-native comparison");
+      } else {
+        logInfo("ISO_GREEDY: internal graph-native branch produced no comparable track");
+      }
+      result = selected;
+      if (comparable && result != null) {
+        result.setInternalGraphNativeCompared(true);
+      }
+      lastRoundTripResult = result;
     }
 
     if (result != null) {
@@ -2593,6 +2790,14 @@ public class RoutingEngine extends Thread {
         + ", returnChecks=" + result.getReturnChecksPerformed()
         + ", runtimeMs=" + result.getRuntimeMillis()
         + ", fallbackReason=" + (result.getFallbackReason() == null ? "none" : result.getFallbackReason()));
+      // Issue #26 source attribution — the aggregate view of the per-leg
+      // "leg N source:" diagnostics logged above.
+      logInfo("greedy source attribution: acceptedIso=" + result.getAcceptedIsoLegs()
+        + ", acceptedGraphNative=" + result.getAcceptedNonIsoLegs()
+        + ", quotaInjectedAccepted=" + result.getAcceptedQuotaInjectedLegs()
+        + ", poolHealth=" + (Double.isNaN(result.getIsoPoolHealthScore())
+            ? "n/a" : String.format(Locale.US, "%.2f", result.getIsoPoolHealthScore()))
+        + ", poolDemotedAtStep=" + result.getPoolDemotedAtStep());
       if (!result.isWithinTolerance()) {
         logInfo("greedy: fallback — " + result.getFallbackReason());
       }
@@ -2748,17 +2953,48 @@ public class RoutingEngine extends Thread {
   }
 
   static int[] greedySubRouteCountPlan(int base) {
+    return greedySubRouteCountPlan(base, IsoStartPolicy.BLEND);
+  }
+
+  static int[] greedySubRouteCountPlan(int base, IsoStartPolicy policy) {
     int clamped = Math.max(3, Math.min(6, base));
     List<Integer> counts = new ArrayList<>(6);
-    addUniqueCount(counts, clamped);
-    addUniqueCount(counts, clamped + 1);
-    addUniqueCount(counts, clamped - 1);
-    addUniqueCount(counts, clamped - 2);
-    addUniqueCount(counts, clamped + 2);
-    addUniqueCount(counts, clamped - 3);
+    if (policy == IsoStartPolicy.GRAPH_NATIVE_ONLY) {
+      addUniqueCount(counts, clamped - 1);
+      addUniqueCount(counts, clamped);
+      addUniqueCount(counts, clamped - 2);
+      addUniqueCount(counts, clamped + 1);
+      addUniqueCount(counts, clamped + 2);
+      addUniqueCount(counts, clamped - 3);
+    } else {
+      addUniqueCount(counts, clamped);
+      addUniqueCount(counts, clamped + 1);
+      addUniqueCount(counts, clamped - 1);
+      addUniqueCount(counts, clamped - 2);
+      addUniqueCount(counts, clamped + 2);
+      addUniqueCount(counts, clamped - 3);
+    }
     int[] result = new int[counts.size()];
     for (int i = 0; i < counts.size(); i++) result[i] = counts.get(i);
     return result;
+  }
+
+  static IsoStartPolicy selectIsoStartPolicy(IsoPoolHealth.PoolShape poolShape,
+                                             FrontierAxis frontierAxis,
+                                             double requestedDirection) {
+    if (poolShape == null) {
+      return IsoStartPolicy.GRAPH_NATIVE_ONLY;
+    }
+    IsoPoolHealth staticHealth = new IsoPoolHealth(poolShape);
+    if (staticHealth.state() != IsoPoolHealth.State.HEALTHY) {
+      return IsoStartPolicy.GRAPH_NATIVE_ONLY;
+    }
+    if (frontierAxis != null && frontierAxis.hasStrongAxis
+        && requestedDirection >= 0
+        && isPerpendicularToAxis(requestedDirection, frontierAxis.axisBearingDegrees)) {
+      return IsoStartPolicy.DUAL_IF_WEAK;
+    }
+    return IsoStartPolicy.BLEND;
   }
 
   private static void addUniqueCount(List<Integer> counts, int n) {
@@ -2782,8 +3018,8 @@ public class RoutingEngine extends Thread {
                                                             OsmNodeNamed start,
                                                             double searchRadius,
                                                             double startDirection,
-                                                            IsochroneExpansionResult iso) {
-    GraphNativeCandidateProvider graphNative = new GraphNativeCandidateProvider(this);
+                                                            IsochroneExpansionResult iso,
+                                                            GraphNativeCandidateProvider graphNative) {
     if (algo != RoundTripAlgorithm.ISO_GREEDY) {
       return graphNative;
     }
@@ -4851,9 +5087,11 @@ public class RoutingEngine extends Thread {
                                            int baseSubRouteCount,
                                            RoundTripCandidateProvider provider,
                                            IsoAsymmetryBias bias,
-                                           ReturnDistanceOracle returnOracle) {
+                                           ReturnDistanceOracle returnOracle,
+                                           IsoPoolHealth.PoolShape poolShape,
+                                           IsoStartPolicy subRoutePolicy) {
     RoundTripResult result = null;
-    for (int subRouteCount : greedySubRouteCountPlan(baseSubRouteCount)) {
+    for (int subRouteCount : greedySubRouteCountPlan(baseSubRouteCount, subRoutePolicy)) {
       // Request-budget gate on the retry ladder: each plan() used to get a
       // fresh 30s deadline regardless of remaining request budget, so the
       // ladder alone could run ~4x the requested timeout. Stop starting new
@@ -4871,6 +5109,10 @@ public class RoutingEngine extends Thread {
       planner.setProfileName(routingContext.getProfileName());
       planner.setVarietySeed(routingContext.getRoundTripSeed());
       planner.setReturnOracle(returnOracle);
+      // Fresh per-plan health tracker: dynamic evidence must not leak across
+      // ladder rungs (a demotion earned at subRouteCount=5 says nothing about
+      // the 4-step plan's pool usage).
+      planner.setPoolHealth(poolShape == null ? null : new IsoPoolHealth(poolShape));
       planner.setExternalDeadline(roundTripRequestDeadline == 0
         ? Long.MAX_VALUE : roundTripRequestDeadline);
       result = planner.plan(start, desiredDistance, tryDirection);

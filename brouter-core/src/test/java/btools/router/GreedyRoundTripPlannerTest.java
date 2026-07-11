@@ -130,6 +130,40 @@ public class GreedyRoundTripPlannerTest {
   }
 
   @Test
+  public void defaultSubRouteCountPlanStillTriesMoreStepsBeforeFewer() {
+    Assert.assertArrayEquals(new int[]{5, 6, 4, 3},
+      RoutingEngine.greedySubRouteCountPlan(5));
+  }
+
+  @Test
+  public void graphNativeOnlySubRouteCountPlanPrefersFewerStepsBeforeMore() {
+    Assert.assertArrayEquals(new int[]{4, 5, 3, 6},
+      RoutingEngine.greedySubRouteCountPlan(5, RoutingEngine.IsoStartPolicy.GRAPH_NATIVE_ONLY));
+  }
+
+  @Test
+  public void isoStartPolicyKeepsRichPoolBlended() {
+    IsoPoolHealth.PoolShape rich = new IsoPoolHealth.PoolShape(24, 12, 360.0, 4, true);
+    Assert.assertEquals(RoutingEngine.IsoStartPolicy.BLEND,
+      RoutingEngine.selectIsoStartPolicy(rich, FrontierAxis.NONE, -1));
+  }
+
+  @Test
+  public void isoStartPolicyStartsGraphNativeForWeakPool() {
+    IsoPoolHealth.PoolShape weak = new IsoPoolHealth.PoolShape(6, 4, 180.0, 1, false);
+    Assert.assertEquals(RoutingEngine.IsoStartPolicy.GRAPH_NATIVE_ONLY,
+      RoutingEngine.selectIsoStartPolicy(weak, FrontierAxis.NONE, -1));
+  }
+
+  @Test
+  public void isoStartPolicyUsesLazyBranchForPerpendicularStrongAxis() {
+    IsoPoolHealth.PoolShape rich = new IsoPoolHealth.PoolShape(24, 12, 360.0, 4, true);
+    FrontierAxis eastWest = new FrontierAxis(true, 90.0, 4.0);
+    Assert.assertEquals(RoutingEngine.IsoStartPolicy.DUAL_IF_WEAK,
+      RoutingEngine.selectIsoStartPolicy(rich, eastWest, 0));
+  }
+
+  @Test
   public void legacyRoundTripIsochroneParamMapsToIsochrone() {
     // Drive the real parser: roundTripIsochrone=1 promotes AUTO -> ISOCHRONE.
     RoutingContext rctx = new RoutingContext();
@@ -797,6 +831,45 @@ public class GreedyRoundTripPlannerTest {
     List<RoundTripCandidateProvider.CandidatePoint> picked = new ArrayList<>(sorted);
 
     Assert.assertFalse(GreedyRoundTripPlanner.enforceSourceQuota(picked, sorted, 3, 1));
+  }
+
+  @Test
+  public void enforceSourceQuota_marksInjectedCandidatesForAttribution() {
+    // Issue #26 source attribution: only candidates that got their routed slot
+    // via injection carry the quotaInjected flag — merit picks (in `picked`
+    // before the quota ran) stay unmarked, as do never-picked candidates.
+    RoundTripCandidateProvider.CandidatePoint iso1 = scoredCp(0, 1.0, true);
+    RoundTripCandidateProvider.CandidatePoint iso2 = scoredCp(90, 2.0, true);
+    RoundTripCandidateProvider.CandidatePoint iso3 = scoredCp(180, 3.0, true);
+    RoundTripCandidateProvider.CandidatePoint graph4 = scoredCp(270, 4.0, false);
+    RoundTripCandidateProvider.CandidatePoint graph5 = scoredCp(45, 5.0, false);
+    List<RoundTripCandidateProvider.CandidatePoint> sorted =
+      new ArrayList<>(List.of(iso1, iso2, iso3, graph4, graph5));
+    List<RoundTripCandidateProvider.CandidatePoint> picked =
+      new ArrayList<>(List.of(iso1, iso2, iso3));
+
+    Assert.assertTrue(GreedyRoundTripPlanner.enforceSourceQuota(picked, sorted, 3, 1));
+
+    Assert.assertTrue("injected graph-native pick is marked", graph4.quotaInjected);
+    Assert.assertFalse("never-picked candidate stays unmarked", graph5.quotaInjected);
+    Assert.assertFalse(iso1.quotaInjected);
+    Assert.assertFalse(iso2.quotaInjected);
+    Assert.assertFalse("evicted iso pick stays unmarked", iso3.quotaInjected);
+  }
+
+  @Test
+  public void enforceSourceQuota_meritGraphNativePickIsNotMarkedInjected() {
+    // A graph-native candidate already holding a slot on merit satisfies the
+    // quota without injection — nothing may be marked.
+    RoundTripCandidateProvider.CandidatePoint iso1 = scoredCp(0, 1.0, true);
+    RoundTripCandidateProvider.CandidatePoint graph2 = scoredCp(90, 2.0, false);
+    RoundTripCandidateProvider.CandidatePoint iso3 = scoredCp(180, 3.0, true);
+    List<RoundTripCandidateProvider.CandidatePoint> sorted =
+      new ArrayList<>(List.of(iso1, graph2, iso3));
+    List<RoundTripCandidateProvider.CandidatePoint> picked = new ArrayList<>(sorted);
+
+    Assert.assertFalse(GreedyRoundTripPlanner.enforceSourceQuota(picked, sorted, 3, 1));
+    Assert.assertFalse("merit pick must not read as quota-injected", graph2.quotaInjected);
   }
 
   @Test

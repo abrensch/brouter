@@ -43,6 +43,17 @@ import btools.util.CheapRuler;
  * All three fade with terrain freedom ({@link #headingTerrainFreedom}) and switch
  * off after repeated closure rejections, so constrained (coastal/valley) loops that
  * cannot sweep a full circle stay feasible.
+ * <p>
+ * In ISO_GREEDY mode (blended provider) the planner additionally tracks the
+ * start-centered pool's trustworthiness via {@link IsoPoolHealth} (issue #26):
+ * mixed-source routed comparisons, quota injections, iso-leg rejections, sector
+ * bunching, closure failures, and return-oracle coverage feed a per-plan health
+ * score. A DEGRADED pool loses its prior-based scoring terms and cedes an extra
+ * routed slot to graph-native candidates; an UNHEALTHY pool switches the plan to
+ * graph-native-only steps — the internal plain-GREEDY fallback that lets
+ * ISO_GREEDY preserve graph-native local truth when the pool goes stale. Every
+ * accepted leg records a source-attribution diagnostic ("leg N source: …") so
+ * matrix runs can prove whether separate plain-GREEDY runs are still needed.
  */
 public class GreedyRoundTripPlanner {
 
@@ -457,6 +468,29 @@ public class GreedyRoundTripPlanner {
   }
 
   /**
+   * Iso-pool health tracker (issue #26); null for plain GREEDY / graph-native
+   * providers, where every hook is a no-op and behaviour is bit-identical to
+   * the pre-health planner. Set by {@link RoutingEngine#doGreedyRoundTrip}
+   * alongside the return oracle, one fresh instance per plan.
+   */
+  private IsoPoolHealth poolHealth;
+  /** First step at which iso influence was reduced; -1 = never demoted. */
+  private int poolDemotedAtStep = -1;
+  /** First step of graph-native-only (internal GREEDY fallback) mode; -1 = never. */
+  private int graphNativeOnlyAtStep = -1;
+  /** Accepted legs whose candidate held its routed slot only via quota injection. */
+  private int acceptedQuotaInjectedLegs;
+
+  void setPoolHealth(IsoPoolHealth health) {
+    this.poolHealth = health;
+  }
+
+  /** Whether iso-pool prior terms are currently stripped from scoring. */
+  private boolean isoInfluenceReduced() {
+    return poolHealth != null && poolHealth.influenceReduced();
+  }
+
+  /**
    * Return-distance estimate in meters from the given position to the loop
    * start: sector-resolved when the oracle covers the position, the legacy
    * {@code airDist × indirectnessEst} guess otherwise. {@code air} is passed
@@ -467,8 +501,13 @@ public class GreedyRoundTripPlanner {
       double v = returnOracle.estimateReturnMeters(ilon, ilat, air);
       if (v >= 0) {
         oracleEstimates++;
+        if (poolHealth != null) poolHealth.recordReturnEstimate(true);
         return v;
       }
+      // Coverage miss — the expansion never reached where the plan is looking.
+      // Only meaningful as a health signal when an oracle exists at all (a
+      // null oracle is priced once by the static no-oracle deduction).
+      if (poolHealth != null) poolHealth.recordReturnEstimate(false);
     }
     fallbackEstimates++;
     return air * indirectnessEst;
@@ -615,6 +654,39 @@ public class GreedyRoundTripPlanner {
         }
         candidatesGenerated += candidates.size();
 
+        // Iso-pool health demotions (issue #26). Evaluated per attempt so
+        // evidence recorded mid-step applies to the retry's candidate set.
+        // DEGRADED strips the pool's prior-based scoring terms below and adds
+        // a routed-quota seat; UNHEALTHY drops iso-pool candidates entirely —
+        // the internal graph-native (plain GREEDY) fallback. The per-step
+        // graph-native expansion IS the pool refresh: re-expanding from the
+        // start would rebuild the same stale pool, while the blend's per-step
+        // source re-samples the loop's current lobe fresh on every step.
+        boolean stripIsoPriorTerms = isoInfluenceReduced();
+        if (stripIsoPriorTerms && poolDemotedAtStep < 0) {
+          poolDemotedAtStep = step;
+          result.addDiagnostic("step " + step + ": iso-pool influence reduced ("
+            + poolHealth.describe() + ")");
+        }
+        if (poolHealth != null && poolHealth.graphNativeOnly()) {
+          List<RoundTripCandidateProvider.CandidatePoint> graphOnly =
+            new ArrayList<>(candidates.size());
+          for (RoundTripCandidateProvider.CandidatePoint cp : candidates) {
+            if (!isIsoPoolCandidate(cp)) graphOnly.add(cp);
+          }
+          // Safety valve: when the blend produced no graph-native candidate
+          // this attempt, an unhealthy pool still beats an empty step.
+          if (!graphOnly.isEmpty()) {
+            if (graphNativeOnlyAtStep < 0) {
+              graphNativeOnlyAtStep = step;
+              result.addDiagnostic("step " + step
+                + ": iso pool UNHEALTHY — graph-native-only from here ("
+                + poolHealth.describe() + ")");
+            }
+            candidates = graphOnly;
+          }
+        }
+
         // Terrain-feasibility reference for the direction term: the best heading
         // actually reachable this step. When the requested direction is blocked
         // (sea/mountain), the best candidate is far off-bearing, and charging only
@@ -672,6 +744,12 @@ public class GreedyRoundTripPlanner {
             ? CheapRuler.distance(prevIlon, prevIlat, cp.ilon, cp.ilat) * indirectnessEst
             : -1;
 
+          // Health demotion: a DEGRADED pool's candidates lose their iso prior
+          // terms (density bonus, contour-depth preference, iso-hostility
+          // estimate) and compete on geometry + routed truth alone. The
+          // CandidatePoint is NOT mutated — source attribution and the routed
+          // quota still classify it as iso-pool via costFromStart.
+          boolean stripIso = stripIsoPriorTerms && isIsoPoolCandidate(cp);
           cp.score = scorer.score(
             estimatedRouteDist, subTarget,
             totalDistance, estimatedReturn, desiredDistance,
@@ -680,7 +758,9 @@ public class GreedyRoundTripPlanner {
             0.0, // can't estimate visited ratio without routing
             distFromStart, searchRadius,
             distFromPrevious,
-            cp.costFromStart, cp.bucketHits, cp.sourceContour)
+            stripIso ? RoundTripCandidateProvider.NO_ISO_COST : cp.costFromStart,
+            stripIso ? RoundTripCandidateProvider.NO_ISO_DENSITY : cp.bucketHits,
+            stripIso ? RoundTripCandidateProvider.NO_ISO_CONTOUR : cp.sourceContour)
             + POCKET_PENALTY_WEIGHT * pocketPenalty(cp.reachableCells);
 
           // Heading persistence: prefer candidates that keep turning gently
@@ -742,9 +822,27 @@ public class GreedyRoundTripPlanner {
         // local alternative. Guarantee it a seat; phase-2 stays the judge.
         int minGraphNative = routeBudget > MAX_ROUTE_ATTEMPTS
           ? GRAPH_NATIVE_MIN_ROUTED_LATE : GRAPH_NATIVE_MIN_ROUTED;
+        // A DEGRADED pool cedes one more routed seat to graph-native truth —
+        // the automatic influence reduction for thin/bunched/losing pools.
+        if (stripIsoPriorTerms) {
+          minGraphNative++;
+        }
         if (enforceSourceQuota(toRoute, candidates, routeBudget, minGraphNative)) {
           result.addDiagnostic("step " + step + " attempt " + attempt
             + ": source quota injected graph-native candidate(s) into routed top-" + routeBudget);
+        }
+        // Source-attribution context for this attempt: only a routed top-K
+        // that mixes both sources constitutes a real iso-vs-graph-native
+        // comparison (single-source steps prove nothing about the pool).
+        boolean mixedSourceRouting = false;
+        {
+          boolean anyIso = false;
+          boolean anyGraph = false;
+          for (RoundTripCandidateProvider.CandidatePoint cp : toRoute) {
+            if (isIsoPoolCandidate(cp)) anyIso = true;
+            else anyGraph = true;
+          }
+          mixedSourceRouting = anyIso && anyGraph;
         }
 
         // Phase 1 Step 2: keep a ranked list of routed candidates instead of
@@ -869,6 +967,9 @@ public class GreedyRoundTripPlanner {
             ? RoundTripQualityGate.worstContiguousCostlyMetersForScorer(subTrack, segLens)
             : -1;
 
+          // Same iso-prior stripping as phase 1 — the routed comparison must
+          // not re-apply the demoted pool's tie-break terms.
+          boolean stripIsoRouted = stripIsoPriorTerms && isIsoCandidate;
           double routedScorerScore = scorer.score(
             subTrack.distance, subTarget,
             totalDistance, estimatedReturn, desiredDistance,
@@ -877,7 +978,9 @@ public class GreedyRoundTripPlanner {
             actualVisitedRatio,
             airDistToStart, searchRadius,
             distFromPrevious,
-            cp.costFromStart, cp.bucketHits, cp.sourceContour,
+            stripIsoRouted ? RoundTripCandidateProvider.NO_ISO_COST : cp.costFromStart,
+            stripIsoRouted ? RoundTripCandidateProvider.NO_ISO_DENSITY : cp.bucketHits,
+            stripIsoRouted ? RoundTripCandidateProvider.NO_ISO_CONTOUR : cp.sourceContour,
             worstHostile);
 
           double costPerMeter = (double) subTrack.cost / subTrack.distance;
@@ -893,6 +996,9 @@ public class GreedyRoundTripPlanner {
           candidate.routeDistance = subTrack.distance;
           candidate.visitedRatio = actualVisitedRatio;
           candidate.fromIsoCandidate = isIsoCandidate;
+          candidate.fromQuotaInjection = cp.quotaInjected;
+          candidate.oracleBackedReturn = returnOracle != null
+            && returnOracle.covers(snappedIlon, snappedIlat);
           candidate.routedScore = routedScore;
           candidate.candidateIndex = r;
           candidate.tentativeSelfIntersections = tentativeSelfIntersections;
@@ -959,6 +1065,7 @@ public class GreedyRoundTripPlanner {
           totalDistance += accepted.routeDistance;
           if (accepted.fromIsoCandidate) acceptedIsoLegs++;
           else acceptedNonIsoLegs++;
+          if (accepted.fromQuotaInjection) acceptedQuotaInjectedLegs++;
           prevIlon = currentIlon;
           prevIlat = currentIlat;
 
@@ -1027,6 +1134,8 @@ public class GreedyRoundTripPlanner {
               totalDistance -= accepted.routeDistance;
               if (accepted.fromIsoCandidate) acceptedIsoLegs--;
               else acceptedNonIsoLegs--;
+              if (accepted.fromQuotaInjection) acceptedQuotaInjectedLegs--;
+              recordIsoTrialRejection(accepted);
               waypointStack.remove(waypointStack.size() - 1);
               currentMwp = waypointStack.get(waypointStack.size() - 1);
               prevIlon = savedPrevIlon;
@@ -1071,6 +1180,8 @@ public class GreedyRoundTripPlanner {
             totalDistance -= accepted.routeDistance;
             if (accepted.fromIsoCandidate) acceptedIsoLegs--;
             else acceptedNonIsoLegs--;
+            if (accepted.fromQuotaInjection) acceptedQuotaInjectedLegs--;
+            recordIsoTrialRejection(accepted);
             waypointStack.remove(waypointStack.size() - 1);
             currentMwp = waypointStack.get(waypointStack.size() - 1);
             prevIlon = savedPrevIlon;
@@ -1116,6 +1227,8 @@ public class GreedyRoundTripPlanner {
             // the return was not routable within budget — keep the leg
             // (legacy behaviour) and let the next step / force-close handle
             // closure.
+            recordAcceptedLegAttribution(result, accepted, step, trial, mixedSourceRouting,
+              start.ilon, start.ilat, currentMwp);
             legCommitted = true;
             break;
           }
@@ -1133,6 +1246,8 @@ public class GreedyRoundTripPlanner {
             totalDistance -= accepted.routeDistance;
             if (accepted.fromIsoCandidate) acceptedIsoLegs--;
             else acceptedNonIsoLegs--;
+            if (accepted.fromQuotaInjection) acceptedQuotaInjectedLegs--;
+            recordIsoTrialRejection(accepted);
             removeVisitedEdges(accepted.track, visitedEdges);
             waypointStack.remove(waypointStack.size() - 1);
             currentMwp = waypointStack.get(waypointStack.size() - 1);
@@ -1199,10 +1314,13 @@ public class GreedyRoundTripPlanner {
               result.addDiagnostic("closed loop rejected at step " + step
                 + ": " + reject + ", trying next candidate");
               closureRejections++;
+              if (poolHealth != null) poolHealth.recordClosureRejection();
               segments.remove(segments.size() - 1);
               totalDistance -= accepted.routeDistance;
               if (accepted.fromIsoCandidate) acceptedIsoLegs--;
               else acceptedNonIsoLegs--;
+              if (accepted.fromQuotaInjection) acceptedQuotaInjectedLegs--;
+              recordIsoTrialRejection(accepted);
               removeVisitedEdges(accepted.track, visitedEdges);
               waypointStack.remove(waypointStack.size() - 1);
               currentMwp = waypointStack.get(waypointStack.size() - 1);
@@ -1211,6 +1329,8 @@ public class GreedyRoundTripPlanner {
               continue;
             }
 
+            recordAcceptedLegAttribution(result, accepted, step, trial, mixedSourceRouting,
+              start.ilon, start.ilat, currentMwp);
             addVisitedEdges(returnTrack, visitedEdges, totalDistance);
             segments.add(returnTrack);
             totalDistance += returnTrack.distance; // keep consistent with segments
@@ -1227,6 +1347,8 @@ public class GreedyRoundTripPlanner {
 
           // Between (1-tol) and (1+tol) but not within tol → too short:
           // keep the leg and continue with the next step.
+          recordAcceptedLegAttribution(result, accepted, step, trial, mixedSourceRouting,
+            start.ilon, start.ilat, currentMwp);
           legCommitted = true;
           break;
         }
@@ -1399,6 +1521,10 @@ public class GreedyRoundTripPlanner {
    * diagnostics for "budget:" and look at the headroom distribution: a
    * healthy fleet has P95 headroom well above 0 and near-zero "EXHAUSTED"
    * lines for the standard 40-100km class.
+   *
+   * <p>Also stamps the instance-held plan-exit telemetry the static
+   * {@link #stampTelemetry} cannot reach: the return-oracle usage split and
+   * the iso-pool health summary + source-attribution counters (issue #26).
    */
   private void stampBudgetDiagnostic(RoundTripResult result, long planStart,
                                      long planBudgetMs, long deadline) {
@@ -1422,6 +1548,14 @@ public class GreedyRoundTripPlanner {
         + fallbackEstimates + " EMA-fallback estimates"
         + (returnOracle == null ? " (no oracle)" : ""));
     }
+    if (poolHealth != null) {
+      result.addDiagnostic("iso-pool health: " + poolHealth.describe()
+        + (poolDemotedAtStep >= 0 ? ", influence reduced at step " + poolDemotedAtStep : "")
+        + (graphNativeOnlyAtStep >= 0 ? ", graph-native-only from step " + graphNativeOnlyAtStep : ""));
+      result.setIsoPoolHealthScore(poolHealth.score());
+    }
+    result.setPoolDemotedAtStep(poolDemotedAtStep);
+    result.setAcceptedQuotaInjectedLegs(acceptedQuotaInjectedLegs);
   }
 
   private static void stampTelemetry(RoundTripResult result, long planStart,
@@ -1512,6 +1646,47 @@ public class GreedyRoundTripPlanner {
     return cp.costFromStart != RoundTripCandidateProvider.NO_ISO_COST;
   }
 
+  /** Health hook for an undone trial: an iso-sourced rejection is pool-loss evidence. */
+  private void recordIsoTrialRejection(ScoredRoute rejected) {
+    if (poolHealth != null && rejected.fromIsoCandidate) {
+      poolHealth.recordIsoLegRejection();
+    }
+  }
+
+  /**
+   * Source attribution for a leg that COMMITTED (issue #26 §4): one grep-able
+   * diagnostic per accepted leg recording its source, whether the source quota
+   * injected it, the return-estimate regime, where routed truth and closure
+   * trials moved it from its heuristic rank ({@code heurRank} &gt; 0 = the
+   * routed comparison overrode the heuristic winner; {@code trial} &gt; 0 =
+   * closure feasibility overrode the routed ranking), and the pool health at
+   * that step. Also feeds the health tracker: a mixed-source routed top-K that
+   * a graph-native candidate won is the pool-loss signal, and the committed
+   * via's bearing feeds the sector-bunching signal.
+   */
+  private void recordAcceptedLegAttribution(RoundTripResult result, ScoredRoute accepted,
+                                            int step, int trial, boolean mixedSourceRouting,
+                                            int startIlon, int startIlat,
+                                            MatchedWaypoint committedVia) {
+    if (poolHealth != null) {
+      if (mixedSourceRouting) {
+        poolHealth.recordRoutedComparison(accepted.fromIsoCandidate, accepted.fromQuotaInjection);
+      }
+      if (committedVia != null && committedVia.crosspoint != null) {
+        poolHealth.recordAcceptedLegBearing(CheapAngleMeter.getDirection(
+          startIlon, startIlat, committedVia.crosspoint.getILon(), committedVia.crosspoint.getILat()));
+      }
+    }
+    result.addDiagnostic("leg " + step + " source: "
+      + (accepted.fromIsoCandidate ? "iso-pool" : "graph-native")
+      + " quotaInjected=" + (accepted.fromQuotaInjection ? "yes" : "no")
+      + " return=" + (accepted.oracleBackedReturn ? "oracle" : "ema")
+      + " heurRank=" + accepted.candidateIndex
+      + " trial=" + trial
+      + (poolHealth == null ? "" : String.format(java.util.Locale.US,
+          " poolHealth=%.2f/%s", poolHealth.score(), poolHealth.state())));
+  }
+
   /**
    * Ensure at least {@code minNonIso} graph-native candidates hold routed
    * slots in {@code picked} when {@code sorted} has them to offer: add while
@@ -1549,6 +1724,7 @@ public class GreedyRoundTripPlanner {
         if (evict < 0) break; // no iso pick left to displace
         picked.remove(evict);
       }
+      cp.quotaInjected = true; // attribution: slot held only via injection
       picked.add(cp);
       need--;
       changed = true;
@@ -2415,6 +2591,10 @@ public class GreedyRoundTripPlanner {
     double visitedRatio;
     /** True iff this leg was selected from an iso-derived candidate. */
     boolean fromIsoCandidate;
+    /** True iff the candidate only held its routed slot via source-quota injection. */
+    boolean fromQuotaInjection;
+    /** True iff the routed re-score's return estimate was oracle-backed (vs EMA fallback). */
+    boolean oracleBackedReturn;
     /**
      * Final routed score after combinedRoutedScore() and the partial
      * self-intersection penalty (lower is better). Used to sort the

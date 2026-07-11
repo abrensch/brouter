@@ -96,6 +96,28 @@ public class RoutingEngineAutoCompetitionIntegrationTest {
   }
 
   @Test
+  public void isoGreedyComparesInternalGraphNativeBranchInRealRoute() {
+    Assume.assumeTrue("Segment data required", hasSegmentData("E5_N50.rd5"));
+    List<OsmNodeNamed> wps = new ArrayList<>();
+    wps.add(dreieichStart());
+    RoutingContext rctx = trekkingContext(6000);
+    rctx.roundTripAlgorithm = RoundTripAlgorithm.ISO_GREEDY;
+    rctx.startDirection = 90;
+
+    RoutingEngine re = new RoutingEngine(null, null, segmentDir, wps, rctx,
+      RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP);
+    re.quite = true;
+    re.doRun(120_000);
+
+    Assert.assertNull("ISO_GREEDY completed: " + re.getErrorMessage(), re.getErrorMessage());
+    Assert.assertNotNull("track produced", re.getFoundTrack());
+    RoundTripResult plannerResult = re.getLastRoundTripResult();
+    Assert.assertNotNull("ISO_GREEDY records planner telemetry", plannerResult);
+    Assert.assertTrue("ISO_GREEDY compared its internal graph-native branch",
+      plannerResult.isInternalGraphNativeCompared());
+  }
+
+  @Test
   public void smallLoopAutoUsesGreedyCompetition() {
     // Small generated AUTO loops now use the same greedy-first competition
     // path as larger loops. The cheap selector remains only as a fallback
@@ -236,6 +258,102 @@ public class RoutingEngineAutoCompetitionIntegrationTest {
       selfCrossings <= 5);
   }
 
+  @Test
+  public void autoSkipsPlainGreedyWhenIsoGreedyUsesGraphNativeProviderInRealRoute() {
+    LoopTestRegion region = LoopTestRegion.GARMISCH;
+    Assume.assumeTrue("Segment data required", hasSegmentData(region.segmentFile));
+
+    RoutingEngine greedy = runRoundTrip(region, "fastbike", 8000, 0,
+      RoundTripAlgorithm.GREEDY, 180_000);
+    RoutingEngine isoGreedy = runRoundTrip(region, "fastbike", 8000, 0,
+      RoundTripAlgorithm.ISO_GREEDY, 180_000);
+    RoutingEngine auto = runRoundTrip(region, "fastbike", 8000, 0,
+      RoundTripAlgorithm.AUTO, 180_000);
+
+    Assert.assertNull("GREEDY completed: " + greedy.getErrorMessage(), greedy.getErrorMessage());
+    Assert.assertNull("ISO_GREEDY completed: " + isoGreedy.getErrorMessage(), isoGreedy.getErrorMessage());
+    Assert.assertNull("AUTO completed: " + auto.getErrorMessage(), auto.getErrorMessage());
+
+    RoundTripResult isoResult = isoGreedy.getLastRoundTripResult();
+    Assert.assertNotNull("ISO_GREEDY recorded planner telemetry", isoResult);
+    Assert.assertEquals("the accepted ISO_GREEDY loop used no iso-pool legs",
+      0, isoResult.getAcceptedIsoLegs());
+    Assert.assertTrue("the accepted ISO_GREEDY loop used graph-native legs",
+      isoResult.getAcceptedNonIsoLegs() > 0);
+    Assert.assertTrue("provider-level graph-native fallback has no pool-health score",
+      Double.isNaN(isoResult.getIsoPoolHealthScore()));
+
+    assertSameRouteChoiceQuality("graph-native-provider ISO_GREEDY matches plain GREEDY",
+      greedy.getFoundTrack(), isoGreedy.getFoundTrack(), "fastbike", 8000, 0);
+    assertSameRouteChoiceQuality("AUTO kept the absorbed ISO_GREEDY route",
+      isoGreedy.getFoundTrack(), auto.getFoundTrack(), "fastbike", 8000, 0);
+
+    Assert.assertNotNull("AUTO track has message", auto.getFoundTrack().message);
+    Assert.assertTrue("AUTO stopped after the absorbed ISO_GREEDY candidate: "
+        + auto.getFoundTrack().message,
+      auto.getFoundTrack().message.contains("after 1 candidate(s)"));
+    Assert.assertFalse("AUTO did not run a duplicate plain GREEDY child: "
+        + auto.getFoundTrack().message,
+      auto.getFoundTrack().message.contains("Also tried GREEDY"));
+  }
+
+  @Test
+  public void targetedIsoGreedyAbsorptionComparisonDocumentsRemainingGreedyNeed() {
+    Scenario[] scenarios = {
+      new Scenario(LoopTestRegion.GARMISCH, "fastbike", 8000, 0),
+      new Scenario(LoopTestRegion.GARMISCH, "gravel", 8000, 0),
+      new Scenario(LoopTestRegion.MALLORCA, "fastbike", 11937, 180),
+      new Scenario(LoopTestRegion.MALLORCA, "gravel", 11937, 0),
+      new Scenario(LoopTestRegion.CRETE_SENESI, "gravel", 8000, 180),
+      new Scenario(LoopTestRegion.COASTAL_NICE, "gravel", 4800, 0),
+      new Scenario(LoopTestRegion.COASTAL_NICE, "gravel", 4800, 270),
+      new Scenario(LoopTestRegion.ANNECY, "gravel", 4800, 180),
+      new Scenario(LoopTestRegion.ANNECY, "gravel", 15900, 180)
+    };
+
+    List<String> separateGreedyNeeds = new ArrayList<>();
+    for (Scenario s : scenarios) {
+      Assume.assumeTrue("Segment data required for " + s.region, hasSegmentData(s.region.segmentFile));
+      RoutingEngine greedy = runRoundTrip(s.region, s.profileName, s.searchRadius, s.direction,
+        RoundTripAlgorithm.GREEDY, 180_000);
+      RoutingEngine isoGreedy = runRoundTrip(s.region, s.profileName, s.searchRadius, s.direction,
+        RoundTripAlgorithm.ISO_GREEDY, 180_000);
+      RoutingEngine auto = runRoundTrip(s.region, s.profileName, s.searchRadius, s.direction,
+        RoundTripAlgorithm.AUTO, 180_000);
+
+      double greedyScore = scoreOrNaN(greedy.getFoundTrack(), s.profileName, s.searchRadius, s.direction);
+      double isoScore = scoreOrNaN(isoGreedy.getFoundTrack(), s.profileName, s.searchRadius, s.direction);
+      String autoMessage = auto.getFoundTrack() == null ? auto.getErrorMessage() : auto.getFoundTrack().message;
+      RoundTripResult isoTelemetry = isoGreedy.getLastRoundTripResult();
+      boolean internalCompared = isoTelemetry != null && isoTelemetry.isInternalGraphNativeCompared();
+      boolean graphNativeProvider = isoTelemetry != null
+        && Double.isNaN(isoTelemetry.getIsoPoolHealthScore())
+        && isoTelemetry.getAcceptedIsoLegs() == 0
+        && isoTelemetry.getAcceptedNonIsoLegs() > 0;
+      System.out.println(String.format(java.util.Locale.US,
+        "[absorption] %s/%s r=%d dir=%d greedy=%.3f iso=%.3f internalCompared=%s graphNativeProvider=%s auto=%s",
+        s.region.name(), s.profileName, s.searchRadius, s.direction,
+        greedyScore, isoScore, internalCompared, graphNativeProvider, autoMessage));
+
+      if (auto.getFoundTrack() == null || auto.getErrorMessage() != null) {
+        separateGreedyNeeds.add(s + ": AUTO failed: " + auto.getErrorMessage());
+        continue;
+      }
+      if (autoMessage.contains("AUTO selected GREEDY")
+          || autoMessage.contains("Also tried GREEDY")) {
+        separateGreedyNeeds.add(s + ": AUTO still needed separate GREEDY");
+      }
+    }
+
+    List<String> allowedRemainingGreedyNeeds = java.util.Collections.singletonList(
+      "COASTAL_NICE/gravel/r=4800/dir=270: AUTO still needed separate GREEDY");
+    List<String> unexpectedGreedyNeeds = new ArrayList<>(separateGreedyNeeds);
+    unexpectedGreedyNeeds.removeAll(allowedRemainingGreedyNeeds);
+    Assert.assertTrue("unexpected targeted cells where AUTO still needs separate GREEDY: "
+      + unexpectedGreedyNeeds + "; all current cells: " + separateGreedyNeeds,
+      unexpectedGreedyNeeds.isEmpty());
+  }
+
   /**
    * Regression: AUTO must not hard-force the start direction on its child
    * candidates when the user supplied only a soft {@code direction}. Innsbruck
@@ -286,6 +404,79 @@ public class RoutingEngineAutoCompetitionIntegrationTest {
     re.quite = true;
     re.doRun(180_000);
     return re.getFoundTrack();
+  }
+
+  private RoutingEngine runRoundTrip(LoopTestRegion region, String profileName,
+      int searchRadius, int direction, RoundTripAlgorithm algo, long timeoutMs) {
+    OsmNodeNamed start = new OsmNodeNamed();
+    start.ilon = region.ilon;
+    start.ilat = region.ilat;
+    start.name = "from";
+    List<OsmNodeNamed> wps = new ArrayList<>();
+    wps.add(start);
+
+    RoutingContext rctx = new RoutingContext();
+    rctx.localFunction = new File(profileDir, profileName + ".brf").getAbsolutePath();
+    rctx.roundTripDistance = searchRadius;
+    rctx.roundTripAlgorithm = algo;
+    rctx.startDirection = direction;
+
+    RoutingEngine re = new RoutingEngine(null, null, segmentDir, wps, rctx,
+      RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP);
+    re.quite = true;
+    re.doRun(timeoutMs);
+    return re;
+  }
+
+  private static double scoreOrNaN(OsmTrack track, String profileName, int searchRadius,
+      int direction) {
+    if (track == null) return Double.NaN;
+    try {
+      return routeChoiceScore(track, 2 * Math.PI * searchRadius, profileName, direction).score();
+    } catch (AssertionError e) {
+      return Double.NaN;
+    }
+  }
+
+  private static final class Scenario {
+    final LoopTestRegion region;
+    final String profileName;
+    final int searchRadius;
+    final int direction;
+
+    Scenario(LoopTestRegion region, String profileName, int searchRadius, int direction) {
+      this.region = region;
+      this.profileName = profileName;
+      this.searchRadius = searchRadius;
+      this.direction = direction;
+    }
+
+    @Override
+    public String toString() {
+      return region.name() + "/" + profileName + "/r=" + searchRadius + "/dir=" + direction;
+    }
+  }
+
+  private static void assertSameRouteChoiceQuality(String message, OsmTrack expected,
+      OsmTrack actual, String profileName, int searchRadius, int direction) {
+    Assert.assertNotNull(message + ": expected track", expected);
+    Assert.assertNotNull(message + ": actual track", actual);
+    double expectedDistance = 2 * Math.PI * searchRadius;
+    RouteChoiceScore.Verdict expectedScore = routeChoiceScore(expected,
+      expectedDistance, profileName, direction);
+    RouteChoiceScore.Verdict actualScore = routeChoiceScore(actual,
+      expectedDistance, profileName, direction);
+    Assert.assertEquals(message + ": distance", expected.distance, actual.distance);
+    Assert.assertEquals(message + ": cost", expected.cost, actual.cost);
+    Assert.assertEquals(message + ": score", expectedScore.score(), actualScore.score(), 1e-9);
+  }
+
+  private static RouteChoiceScore.Verdict routeChoiceScore(OsmTrack track,
+      double expectedDistance, String profileName, int direction) {
+    RoundTripQualityResult gate = RoundTripQualityGate.evaluate(track,
+      expectedDistance, profileName, false, false, false);
+    Assert.assertTrue("track accepted by quality gate: " + gate, gate.isAccepted());
+    return RouteChoiceScore.score(track, expectedDistance, profileName, gate, direction);
   }
 
   /**
