@@ -129,9 +129,7 @@ This suppress the first question after installation for the BRouter path, genera
 
 "engineMode=4" generate routes returning to the start point.
 This needs some parameter:
-- roundTripLength - total length for the round trip in meters (main size parameter, no default; wins over roundTripDistance if both are set)
-- roundTripDistance - radius to the round trip points in meters (default 1500, legacy fallback when roundTripLength is not set)
+- roundTripDistance - radius to the round trip points in meters (default 1500)
 - direction - initial round-trip bearing; use a fixed angle for reproducible loops, -1/random otherwise
-- alternativeidx - deterministic round-trip variant seed (0 = default; for round trips any value >= 0 works, it is a seed, not an index)
 
-For more information about round trips please see [here](https://github.com/abrensch/brouter/blob/master/docs/features/roundtrips.md).
+F

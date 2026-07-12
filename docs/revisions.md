@@ -9,9 +9,6 @@ Android
 - modified download view #938
 - fixed some breaks #939
 
-Library
-
-- Improve round-trip routing quality #903
 
 [Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.7.10%22+is%3Aclosed)
 
