@@ -49,6 +49,10 @@ public class RoutingEngine extends Thread {
 
   private int nodeLimit; // used for target island search
   private int MAXNODES_ISLAND_CHECK = 500;
+  // Minimum intermediate vias for a non-degenerate loop (matches the legacy
+  // validateAndAdjustWaypoints floor). Below this the optimized FAST placement
+  // falls back to the circle path rather than emitting a start->start loop.
+  private static final int MIN_ROUNDTRIP_VIAS = 3;
   OsmNodePairSet islandNodePairs = new OsmNodePairSet(MAXNODES_ISLAND_CHECK);
   private boolean useNodePoints = false; // use the start/end nodes  instead of crosspoint
 
@@ -2617,21 +2621,31 @@ public class RoutingEngine extends Thread {
         // Probe at the perimeter-scaled radius so the reused snapped nodes land at
         // the target loop distance (the legacy envelope applied this scale after
         // placement via computeRadiusScale; here we apply it before, using an even
-        // full-circle spread as the nominal — FAST almost always gets a near-full
-        // ring, so nominal ≈ actual).
-        double[] evenDirs = new double[Math.max(3, targetPoints)];
+        // full-circle spread of the loop's via count as the nominal — FAST almost
+        // always gets a near-full ring, so nominal ≈ actual).
+        double[] evenDirs = new double[Math.max(3, targetPoints - 1)];
         for (int i = 0; i < evenDirs.length; i++) {
           evenDirs[i] = i * 360.0 / evenDirs.length;
         }
         double fastScale = computeRadiusScale(evenDirs, targetPoints);
         ProbeResult probe =
           probeReachableDirectionsFast(waypoints.get(0), searchRadius * fastScale);
-        if (probe != null && probe.viableDirections.length >= 3) {
+        int placed = (probe != null && probe.viableDirections.length >= 3)
+          ? placeWaypointsFromProbeMatches(waypoints, probe, direction, targetPoints)
+          : 0;
+        if (placed >= MIN_ROUNDTRIP_VIAS) {
           recordPlacementPath(PlacementPath.ENVELOPE_FAST);
-          placeWaypointsFromProbeMatches(waypoints, probe, direction, targetPoints);
           fastPlacedNoValidate = true; // vias are already road-snapped and deduped
         } else {
-          logInfo("reachability probe returned < 3 directions, falling back to circle");
+          // Too few reachable vias survived dedup/island filtering (or the probe
+          // was too thin): drop whatever we appended and fall back to the circle
+          // path, which validateAndAdjustWaypoints then snaps/prunes with its own
+          // min-via floor — so the loop never degenerates to start->start.
+          if (waypoints.size() > 1) {
+            waypoints.subList(1, waypoints.size()).clear();
+          }
+          logInfo("optimized FAST placement yielded " + placed
+            + " reachable vias (<" + MIN_ROUNDTRIP_VIAS + "); falling back to circle");
           recordPlacementPath(PlacementPath.CIRCLE);
           buildPointsFromCircle(waypoints, direction, searchRadius, targetPoints);
         }
@@ -4471,6 +4485,7 @@ public class RoutingEngine extends Thread {
     }
     boolean savedInverse = routingContext.inverseDirection;
     double savedAir = airDistanceCostFactor;
+    int savedNodeLimit = nodeLimit;
     try {
       routingContext.inverseDirection = true;
       airDistanceCostFactor = 0.0;
@@ -4489,7 +4504,7 @@ public class RoutingEngine extends Thread {
     } finally {
       routingContext.inverseDirection = savedInverse;
       airDistanceCostFactor = savedAir;
-      nodeLimit = 0;
+      nodeLimit = savedNodeLimit;
     }
   }
 
@@ -4500,7 +4515,7 @@ public class RoutingEngine extends Thread {
    * re-matching pass and fixes the stacked-waypoint bug (multiple bearings
    * snapping to one node were previously kept as duplicates).
    */
-  void placeWaypointsFromProbeMatches(List<OsmNodeNamed> waypoints, ProbeResult probe,
+  int placeWaypointsFromProbeMatches(List<OsmNodeNamed> waypoints, ProbeResult probe,
                                       double startDirection, int targetPoints) {
     OsmNodeNamed start = waypoints.get(0);
     double[] viable = probe.viableDirections;
@@ -4556,6 +4571,7 @@ public class RoutingEngine extends Thread {
         + (deduped > 0 ? " (" + deduped + " deduped)" : "")
         + (islanded > 0 ? " (" + islanded + " islanded dropped)" : "")
         + " from " + viable.length + " viable directions");
+    return added;
   }
 
   /**
