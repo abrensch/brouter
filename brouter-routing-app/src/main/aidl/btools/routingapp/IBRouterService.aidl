@@ -40,8 +40,10 @@ interface IBRouterService {
     //  "engineMode"      = 0 (optional, default 0, 2 = get elevation, 3 = get segment info, 4 = round trip)
     //
     //  extra round trip parameter
-    //  "roundTripDistance" = distance to the round trip points (default 1500)
-    //  "roundTripPoints"   = number of used points (default 5)
+    //  "roundTripLength"   = total length for the round trip in meters (main size parameter, no default; wins over roundTripDistance if both are set)
+    //  "roundTripDistance" = radius to the round trip points in meters (default 1500, legacy fallback when roundTripLength is not set)
+    //  "direction"         = initial round-trip bearing; use a fixed angle for reproducible loops, -1/random otherwise
+    //  "alternativeidx"    = deterministic round-trip variant seed (0 = default; for round trips any value >= 0 works, it is a seed, not an index)
     //
     // return null if all ok and no path given, the track if ok and path given, an error message if it was wrong
     //        the resultas string when 'pathToFileResult' is null, this should be default when Android Q or later

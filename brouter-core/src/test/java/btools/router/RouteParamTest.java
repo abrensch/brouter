@@ -59,6 +59,21 @@ public class RouteParamTest {
   }
 
   @Test
+  public void roundTripSeedSemantics() {
+    // ADR-0001: alternativeidx is a variety seed in round-trip mode — raw value
+    // with a lower clamp at 0 — while classic routing keeps the 0–3 clamp.
+    RoutingContext rc = new RoutingContext();
+    Assert.assertEquals("absent → seed 0 (inert baseline)", 0, rc.getRoundTripSeed());
+
+    rc.setAlternativeIdx(7);
+    Assert.assertEquals("round-trip mode reads the raw value", 7, rc.getRoundTripSeed());
+    Assert.assertEquals("classic-routing clamp unchanged", 3, rc.getAlternativeIdx(0, 3));
+
+    rc.setAlternativeIdx(-2);
+    Assert.assertEquals("negative clamps to 0 (= no jitter)", 0, rc.getRoundTripSeed());
+  }
+
+  @Test
   public void readParamsFromList() throws UnsupportedEncodingException {
     Map<String, String> params = new HashMap<>();
     params.put("timode", "3");

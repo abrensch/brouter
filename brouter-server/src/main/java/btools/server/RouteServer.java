@@ -152,7 +152,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       RoutingParamCollector routingParamCollector = new RoutingParamCollector();
       Map<String, String> params = routingParamCollector.getUrlParams(url);
 
-      long maxRunningTime = getMaxRunningTime();
+      long maxRunningTime = getMaxRunningTime(params);
 
       RequestHandler handler;
       if (params.containsKey("lonlats") && params.containsKey("profile")) {
@@ -384,13 +384,53 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
     return params;
   }
 
-  private static long getMaxRunningTime() {
-    long maxRunningTime = 60000;
+  /**
+   * Resolve the request's CPU-time budget (ms). The {@code maxRunningTime}
+   * system property is the operator-configured CEILING (default 60s); a
+   * request may ask for LESS, or for MORE up to that ceiling, via the
+   * {@code timeout} URL parameter (seconds). This lets a client that got a
+   * degraded round-trip (e.g. a distance-miss or a >200km opt-in rejection)
+   * resend with a larger budget and ask for a better route — without being
+   * able to exceed the operator's ceiling (a longer budget is a DoS lever, so
+   * the server cap always wins). A non-positive or unparseable {@code timeout}
+   * is ignored and the ceiling applies.
+   */
+  static final long DEFAULT_MAX_RUNNING_TIME_MS = 60000;
+
+  static long getMaxRunningTime(Map<String, String> params) {
+    long ceilingMs = DEFAULT_MAX_RUNNING_TIME_MS;
     String sMaxRunningTime = System.getProperty("maxRunningTime");
     if (sMaxRunningTime != null) {
-      maxRunningTime = Integer.parseInt(sMaxRunningTime) * 1000;
+      try {
+        ceilingMs = Integer.parseInt(sMaxRunningTime.trim()) * 1000L;
+      } catch (NumberFormatException e) {
+        // Operator-facing knob: fail closed to the default ceiling rather than
+        // turning every request into a 500 on a malformed -DmaxRunningTime.
+        System.err.println("ignoring malformed -DmaxRunningTime=" + sMaxRunningTime
+          + ", using default " + (ceilingMs / 1000) + "s");
+      }
     }
-    return maxRunningTime;
+    // A non-positive ceiling would flow to doRun(<=0), which means "no timeout"
+    // — a server-wide DoS footgun (a single request could run unbounded). Fail
+    // closed to the default so the timeout knob can never DISABLE the timeout.
+    if (ceilingMs <= 0) {
+      System.err.println("ignoring non-positive -DmaxRunningTime=" + sMaxRunningTime
+        + ", using default " + (DEFAULT_MAX_RUNNING_TIME_MS / 1000) + "s");
+      ceilingMs = DEFAULT_MAX_RUNNING_TIME_MS;
+    }
+    long requestedMs = ceilingMs;
+    String sTimeout = params == null ? null : params.get("timeout");
+    if (sTimeout != null) {
+      try {
+        long t = (long) (Double.parseDouble(sTimeout) * 1000.0);
+        if (t > 0) {
+          requestedMs = t;
+        }
+      } catch (NumberFormatException e) {
+        // ignore a malformed timeout — fall back to the ceiling
+      }
+    }
+    return Math.min(ceilingMs, requestedMs);
   }
 
   private static void writeHttpHeader(BufferedWriter bw, String status) throws IOException {
