@@ -92,7 +92,7 @@ tasks.register('integrationTest', Test) {
     systemProperty 'golden.tests', System.getProperty('golden.tests', 'false')
     // Ad-hoc loop overrides (region/dir/radius/profile for the loop suites) + the
     // direction-strength tuning overrides (loop.strongdir/dirmult/dirlate/dirfeas).
-    ['loop.lon', 'loop.lat', 'loop.km', 'loop.dir', 'loop.name', 'loop.profile', 'loop.profilepath', 'loop.region', 'loop.regions', 'loop.radius', 'loop.algo', 'loop.waypoints', 'loop.html', 'loop.strongdir', 'loop.dirmult', 'loop.dirlate', 'loop.dirfeas', 'loop.xpenalty', 'loop.teardroppenalty', 'loop.sweep.profile', 'loop.steervias', 'loop.denseboxwppenalty', 'loop.densebox.percentile', 'loop.densebox.mindensenodes', 'loop.densebox.mincells', 'loop.densebox.maxcells', 'loop.densebox.tilecells', 'mtb.sweep'].each { k ->
+    ['loop.lon', 'loop.lat', 'loop.km', 'loop.dir', 'loop.name', 'loop.profile', 'loop.profilepath', 'loop.region', 'loop.regions', 'loop.radius', 'loop.algo', 'loop.waypoints', 'loop.html', 'loop.strongdir', 'loop.dirmult', 'loop.dirlate', 'loop.dirfeas', 'loop.xpenalty', 'loop.teardroppenalty', 'loop.sweep.profile', 'loop.steervias', 'loop.denseboxwppenalty', 'loop.densebox.percentile', 'loop.densebox.mindensenodes', 'loop.densebox.mincells', 'loop.densebox.maxcells', 'loop.densebox.tilecells', 'mtb.sweep', 'roundtrip.fast.optimized', 'roundtrip.fast.directional', 'roundtrip.fast.maxvias'].each { k ->
         if (System.getProperty(k) != null) systemProperty k, System.getProperty(k)
     }
 
