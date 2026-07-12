@@ -2618,21 +2618,60 @@ public class RoutingEngine extends Thread {
           buildPointsFromCircle(waypoints, direction, searchRadius, targetPoints);
         }
       } else if (fastOptimized) {
-        // Probe at the perimeter-scaled radius so the reused snapped nodes land at
-        // the target loop distance (the legacy envelope applied this scale after
-        // placement via computeRadiusScale; here we apply it before, using an even
-        // full-circle spread of the loop's via count as the nominal — FAST almost
-        // always gets a near-full ring, so nominal ≈ actual).
-        double[] evenDirs = new double[Math.max(3, targetPoints - 1)];
-        for (int i = 0; i < evenDirs.length; i++) {
-          evenDirs[i] = i * 360.0 / evenDirs.length;
+        // Distribute the vias: a directional lobe toward the requested bearing (so
+        // the loop heads that way, like the pre-903 routine and AUTO/QUALITY), or a
+        // full ring when no bearing is set. Scale the probe radius from that exact
+        // distribution so the loop hits the target length — the lobe's
+        // perimeter/radius ratio differs from a ring, and using the real bearings
+        // keeps the length stable instead of jumping with a filtered grid.
+        // Cap the lobe's via count: like the pre-903 routine (5 points), a handful
+        // of well-spread vias gives a clean directional loop; many vias just add
+        // road detours between them that inflate the routed length past target.
+        // Directional lobe (opt-in): head the loop toward the requested bearing like
+        // the pre-903 routine, instead of encircling the start. Off by default while
+        // the sparse-terrain robustness (routing between forward-arc vias can fail
+        // where an encircling ring would not) is finished via a post-routing retry.
+        boolean directional = direction >= 0
+          && "true".equals(System.getProperty("roundtrip.fast.directional", "false"));
+        int lobeCap = Integer.getInteger("roundtrip.fast.maxvias", 5);
+        int viaCount = directional
+          ? Math.max(3, Math.min(targetPoints - 1, lobeCap))
+          : Math.max(3, targetPoints - 1);
+        double[] bearings;
+        double fastScale;
+        if (directional) {
+          bearings = directionalLobeBearings(direction, viaCount);
+          fastScale = computeRadiusScale(sortDirectionsForLoop(bearings, direction), targetPoints);
+        } else {
+          // Dense ring probe (matching the pre-refactor 12-direction sweep so forming
+          // stays as robust), scaled to the loop's via count; placement caps below.
+          bearings = fullCircleBearings(Math.max(12, viaCount));
+          fastScale = computeRadiusScale(sortDirectionsForLoop(fullCircleBearings(viaCount), 0), targetPoints);
         }
-        double fastScale = computeRadiusScale(evenDirs, targetPoints);
         ProbeResult probe =
-          probeReachableDirectionsFast(waypoints.get(0), searchRadius * fastScale);
+          probeReachableDirectionsFast(waypoints.get(0), searchRadius * fastScale, bearings);
         int placed = (probe != null && probe.viableDirections.length >= 3)
           ? placeWaypointsFromProbeMatches(waypoints, probe, direction, targetPoints)
           : 0;
+        // Fall back to an encircling ring when the directional lobe is too road-poor
+        // to close a loop OR its vias collapse onto a tiny cluster near the start (a
+        // degenerate loop). The ring finds spread-out roads and forms a real loop —
+        // the pre-directional behaviour — so a bearing never costs a result.
+        boolean degenerate = placed >= MIN_ROUNDTRIP_VIAS
+          && maxViaDistFromStart(waypoints) < 0.4 * searchRadius * fastScale;
+        if (directional && (placed < MIN_ROUNDTRIP_VIAS || degenerate)) {
+          if (waypoints.size() > 1) {
+            waypoints.subList(1, waypoints.size()).clear();
+          }
+          int ringCount = Math.max(3, targetPoints - 1);
+          double[] ring = fullCircleBearings(Math.max(12, ringCount));
+          double ringScale =
+            computeRadiusScale(sortDirectionsForLoop(fullCircleBearings(ringCount), 0), targetPoints);
+          probe = probeReachableDirectionsFast(waypoints.get(0), searchRadius * ringScale, ring);
+          placed = (probe != null && probe.viableDirections.length >= 3)
+            ? placeWaypointsFromProbeMatches(waypoints, probe, direction, targetPoints)
+            : 0;
+        }
         if (placed >= MIN_ROUNDTRIP_VIAS) {
           recordPlacementPath(PlacementPath.ENVELOPE_FAST);
           fastPlacedNoValidate = true; // vias are already road-snapped and deduped
@@ -4414,12 +4453,10 @@ public class RoutingEngine extends Thread {
    * already-snapped nodes as vias — replacing both the geometric placement and
    * the ~21-candidate-per-via re-matching in {@link #validateAndAdjustWaypoints}.
    */
-  ProbeResult probeReachableDirectionsFast(OsmNodeNamed start, double searchRadius) {
+  ProbeResult probeReachableDirectionsFast(OsmNodeNamed start, double searchRadius, double[] bearings) {
     resetCache(false);
     double maxSnapDist = Math.min(searchRadius * 0.3, 2000);
     double[] distFactors = {0.85, 1.15};
-    int probeCount = 12; // every 30 degrees
-    double angleStep = 360.0 / probeCount;
     int probesPerDirection = distFactors.length;
 
     List<MatchedWaypoint> allProbes = new ArrayList<>();
@@ -4429,10 +4466,9 @@ public class RoutingEngine extends Thread {
     startProbe.name = "probe_start";
     allProbes.add(startProbe);
 
-    for (int d = 0; d < probeCount; d++) {
-      double angle = d * angleStep;
+    for (int d = 0; d < bearings.length; d++) {
       for (double df : distFactors) {
-        int[] pos = CheapRuler.destination(start.ilon, start.ilat, searchRadius * df, angle);
+        int[] pos = CheapRuler.destination(start.ilon, start.ilat, searchRadius * df, bearings[d]);
         MatchedWaypoint mwp = new MatchedWaypoint();
         mwp.waypoint = new OsmNode(pos[0], pos[1]);
         mwp.name = "probe_" + d + "_" + (int) (df * 100);
@@ -4448,11 +4484,10 @@ public class RoutingEngine extends Thread {
     }
 
     int probeOffset = 1; // start probe is at index 0
-    double[] viable = new double[probeCount];
+    double[] viable = new double[bearings.length];
     int viableCount = 0;
     List<ProbeDirection> scored = new ArrayList<>();
-    for (int d = 0; d < probeCount; d++) {
-      double dir = d * angleStep;
+    for (int d = 0; d < bearings.length; d++) {
       int successCount = 0;
       MatchedWaypoint best = null;
       for (int f = 0; f < probesPerDirection; f++) {
@@ -4462,11 +4497,11 @@ public class RoutingEngine extends Thread {
         if (best == null || mwp.radius < best.radius) best = mwp;
       }
       if (successCount == 0) continue;
-      viable[viableCount++] = dir;
-      scored.add(new ProbeDirection(dir, successCount, best));
+      viable[viableCount++] = bearings[d];
+      scored.add(new ProbeDirection(bearings[d], successCount, best));
     }
 
-    logInfo("reachability probe (fast): " + viableCount + "/" + probeCount + " directions viable");
+    logInfo("reachability probe (fast): " + viableCount + "/" + bearings.length + " bearings snapped");
     if (viableCount == 0) return null;
     // allProbes.get(0) is the matched start (has node1/node2/crosspoint when the
     // start is on a road) — used by the reachability guard to drop islanded vias.
@@ -4514,6 +4549,43 @@ public class RoutingEngine extends Thread {
   }
 
   /**
+   * Bearings for a directional loop lobe: {@code count} vias fanned across the
+   * forward arc toward {@code direction}, reproducing the pre-903
+   * {@code buildPointsFromCircle} distribution (arc half-width 90-180/points, so
+   * a wider fan for more points). This is what makes FAST head in the requested
+   * direction instead of encircling the start. Deterministic given the inputs, so
+   * the derived radius scale — and thus the loop length — is stable.
+   */
+  static double[] directionalLobeBearings(double direction, int count) {
+    int points = count + 1;
+    double[] b = new double[count];
+    for (int i = 0; i < count; i++) {
+      double anAngle = 90.0 - 180.0 * (i + 1) / points;
+      b[i] = ((direction - anAngle) % 360 + 360) % 360;
+    }
+    return b;
+  }
+
+  /** Bearings for an encircling loop: {@code count} directions evenly around the compass. */
+  static double[] fullCircleBearings(int count) {
+    double[] b = new double[count];
+    for (int i = 0; i < count; i++) b[i] = i * 360.0 / count;
+    return b;
+  }
+
+  /** Largest distance (m) from the start (index 0) to any placed via — used to
+   *  detect a degenerate loop whose vias collapsed onto a tiny cluster. */
+  static double maxViaDistFromStart(List<OsmNodeNamed> wps) {
+    OsmNodeNamed s = wps.get(0);
+    double max = 0;
+    for (int i = 1; i < wps.size(); i++) {
+      double d = CheapRuler.distance(s.ilon, s.ilat, wps.get(i).ilon, wps.get(i).ilat);
+      if (d > max) max = d;
+    }
+    return max;
+  }
+
+  /**
    * FAST placement (optimization idea 1) that reuses the probe's already-snapped
    * road nodes as vias and dedups any that collapse onto the same node or the
    * start — which both removes the redundant {@link #validateAndAdjustWaypoints}
@@ -4523,17 +4595,18 @@ public class RoutingEngine extends Thread {
   int placeWaypointsFromProbeMatches(List<OsmNodeNamed> waypoints, ProbeResult probe,
                                       double startDirection, int targetPoints) {
     OsmNodeNamed start = waypoints.get(0);
-    double[] viable = probe.viableDirections;
-    int needed = targetPoints - 1;
-    if (needed > viable.length) needed = viable.length;
-    if (needed < 2) needed = 2;
+    // The caller distributed the bearings (a directional lobe toward the requested
+    // bearing, or a full ring). Cap to the target via count (the encircle fallback
+    // probes a denser ring than we want vias), order for the loop, reuse the
+    // snapped nodes, and drop islanded/duplicate ones below.
+    double anchor = startDirection >= 0 ? startDirection : 0;
+    double[] selected = probe.viableDirections;
+    if (selected.length > targetPoints - 1) {
+      selected = selectSpreadDirections(selected, targetPoints - 1, anchor);
+    }
+    selected = sortDirectionsForLoop(selected, anchor);
 
-    double[] selected = (needed >= viable.length)
-        ? viable
-        : selectSpreadDirections(viable, needed, startDirection);
-    selected = sortDirectionsForLoop(selected, startDirection);
-
-    java.util.Map<Double, MatchedWaypoint> byDir = new java.util.HashMap<>();
+    Map<Double, MatchedWaypoint> byDir = new HashMap<>();
     for (ProbeDirection pd : probe.scored) {
       if (pd.bestMatch != null && pd.bestMatch.crosspoint != null) {
         byDir.put(pd.direction, pd.bestMatch);
@@ -4575,7 +4648,7 @@ public class RoutingEngine extends Thread {
     logInfo("placeWaypointsFromProbeMatches: " + added + " road-snapped vias"
         + (deduped > 0 ? " (" + deduped + " deduped)" : "")
         + (islanded > 0 ? " (" + islanded + " islanded dropped)" : "")
-        + " from " + viable.length + " viable directions");
+        + " from " + probe.viableDirections.length + " snapped bearings");
     return added;
   }
 
