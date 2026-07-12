@@ -1,6 +1,7 @@
 package btools.router;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -599,6 +600,15 @@ public final class RoundTripQualityGate {
    */
   private static final int GRID_CELL_UNITS = 2000;
 
+  /** Java-8 Math#floorDiv, inlined for Android API &lt; 24 compatibility. */
+  private static int floorDiv(int x, int y) {
+    int q = x / y;
+    if ((x % y != 0) && ((x ^ y) < 0)) {
+      q--;
+    }
+    return q;
+  }
+
   /**
    * Count crossing segment pairs (j >= i+2, both outside the start/end
    * exemption windows and not bridge/tunnel, closure pair (0, n-2) excluded).
@@ -668,14 +678,19 @@ public final class RoundTripQualityGate {
       // floorDiv, not /: BRouter ilon/ilat are non-negative by convention,
       // but floor division keeps the cell partition uniform even for exotic
       // negative inputs (truncation would make cell 0 twice as wide).
-      int x0 = Math.floorDiv(Math.min(a.getILon(), b.getILon()), GRID_CELL_UNITS);
-      int x1 = Math.floorDiv(Math.max(a.getILon(), b.getILon()), GRID_CELL_UNITS);
-      int y0 = Math.floorDiv(Math.min(a.getILat(), b.getILat()), GRID_CELL_UNITS);
-      int y1 = Math.floorDiv(Math.max(a.getILat(), b.getILat()), GRID_CELL_UNITS);
+      int x0 = floorDiv(Math.min(a.getILon(), b.getILon()), GRID_CELL_UNITS);
+      int x1 = floorDiv(Math.max(a.getILon(), b.getILon()), GRID_CELL_UNITS);
+      int y0 = floorDiv(Math.min(a.getILat(), b.getILat()), GRID_CELL_UNITS);
+      int y1 = floorDiv(Math.max(a.getILat(), b.getILat()), GRID_CELL_UNITS);
       for (int x = x0; x <= x1; x++) {
         for (int y = y0; y <= y1; y++) {
-          grid.computeIfAbsent((((long) x) << 32) | (y & 0xFFFFFFFFL),
-            k -> new ArrayList<>()).add(i);
+          long cellHash = (((long) x) << 32) | (y & 0xFFFFFFFFL);
+          List<Integer> bucket = grid.get(cellHash);
+          if (bucket == null) {
+            bucket = new ArrayList<>();
+            grid.put(cellHash, bucket);
+          }
+          bucket.add(i);
         }
       }
     }
@@ -686,10 +701,10 @@ public final class RoundTripQualityGate {
       if (skip[i]) continue;
       OsmPathElement a1 = nodes.get(i);
       OsmPathElement a2 = nodes.get(i + 1);
-      int x0 = Math.floorDiv(Math.min(a1.getILon(), a2.getILon()), GRID_CELL_UNITS);
-      int x1 = Math.floorDiv(Math.max(a1.getILon(), a2.getILon()), GRID_CELL_UNITS);
-      int y0 = Math.floorDiv(Math.min(a1.getILat(), a2.getILat()), GRID_CELL_UNITS);
-      int y1 = Math.floorDiv(Math.max(a1.getILat(), a2.getILat()), GRID_CELL_UNITS);
+      int x0 = floorDiv(Math.min(a1.getILon(), a2.getILon()), GRID_CELL_UNITS);
+      int x1 = floorDiv(Math.max(a1.getILon(), a2.getILon()), GRID_CELL_UNITS);
+      int y0 = floorDiv(Math.min(a1.getILat(), a2.getILat()), GRID_CELL_UNITS);
+      int y1 = floorDiv(Math.max(a1.getILat(), a2.getILat()), GRID_CELL_UNITS);
       for (int x = x0; x <= x1; x++) {
         for (int y = y0; y <= y1; y++) {
           List<Integer> bucket = grid.get((((long) x) << 32) | (y & 0xFFFFFFFFL));
@@ -865,7 +880,7 @@ public final class RoundTripQualityGate {
       }
     }
     if (pairs.isEmpty()) return out;
-    pairs.sort((x, y) -> Integer.compare(x[0], y[0]));
+    Collections.sort(pairs, (x, y) -> Integer.compare(x[0], y[0]));
 
     List<int[]> run = new ArrayList<>();
     for (int i = 0; i <= pairs.size(); i++) {

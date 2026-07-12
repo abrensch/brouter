@@ -235,7 +235,12 @@ public final class LoopQualityMetrics {
     // so the report metric and the production gate cannot drift.
     Map<Long, List<Integer>> occ = new HashMap<>(n * 2);
     for (int k = 1; k < n - 1; k++) {
-      List<Integer> prev = occ.computeIfAbsent(pts.get(k).getIdFromPos(), x -> new ArrayList<>());
+      long id = pts.get(k).getIdFromPos();
+      List<Integer> prev = occ.get(id);
+      if (prev == null) {
+        prev = new ArrayList<>();
+        occ.put(id, prev);
+      }
       boolean kExempt = cum[k] <= RoundTripQualityGate.CROSSING_START_END_EXEMPT_M
         || cum[k] >= perim - RoundTripQualityGate.CROSSING_START_END_EXEMPT_M;
       for (int k1 : prev) {
@@ -317,7 +322,12 @@ public final class LoopQualityMetrics {
     }
     Map<Long, List<Integer>> occ = new HashMap<>(n * 2);
     for (int k = 1; k < n - 1; k++) {
-      List<Integer> prev = occ.computeIfAbsent(pts.get(k).getIdFromPos(), x -> new ArrayList<>());
+      long id = pts.get(k).getIdFromPos();
+      List<Integer> prev = occ.get(id);
+      if (prev == null) {
+        prev = new ArrayList<>();
+        occ.put(id, prev);
+      }
       boolean kExempt = cum[k] <= RoundTripQualityGate.CROSSING_START_END_EXEMPT_M
         || cum[k] >= perim - RoundTripQualityGate.CROSSING_START_END_EXEMPT_M;
       for (int k1 : prev) {

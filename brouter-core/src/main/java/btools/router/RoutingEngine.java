@@ -3854,7 +3854,12 @@ public class RoutingEngine extends Thread {
 
         // Register this node in the grid (even if it matched — we advanced past the match)
         long cell = ((long) cx) << 32 | (cy & 0xFFFFFFFFL);
-        grid.computeIfAbsent(cell, k -> new ArrayList<>()).add(i);
+        List<Integer> bucket = grid.get(cell);
+        if (bucket == null) {
+          bucket = new ArrayList<>();
+          grid.put(cell, bucket);
+        }
+        bucket.add(i);
       }
     }
   }
@@ -4165,7 +4170,7 @@ public class RoutingEngine extends Thread {
       }
       // Largest-arc first: the distance floor caps how much can be removed in
       // total, so spend that budget on the worst offender, not scan order.
-      spans.sort((a, b) -> Double.compare(cum[b[1]] - cum[b[0]], cum[a[1]] - cum[a[0]]));
+      Collections.sort(spans, (a, b) -> Double.compare(cum[b[1]] - cum[b[0]], cum[a[1]] - cum[a[0]]));
       for (int[] s : spans) {
         int i = s[0];
         int j = s[1];
@@ -4930,8 +4935,10 @@ public class RoutingEngine extends Thread {
       // (see AIR_REACH_BONUS_WEIGHT).
       int curIlon = currentNode.getILon();
       int curIlat = currentNode.getILat();
-      cellMinCost.putIfAbsent((((long) (curIlon / cellDivLon)) << 32)
-        | ((curIlat / cellDivLat) & 0xFFFFFFFFL), path.cost);
+      long cmcKey = (((long) (curIlon / cellDivLon)) << 32) | ((curIlat / cellDivLat) & 0xFFFFFFFFL);
+      if (!cellMinCost.containsKey(cmcKey)) {
+        cellMinCost.put(cmcKey, path.cost);
+      }
       double dist = CheapRuler.distance(start.ilon, start.ilat, curIlon, curIlat);
       if (dist > 50) { // skip very close nodes (noisy bearings)
         int pcost = path.cost;
@@ -5138,7 +5145,12 @@ public class RoutingEngine extends Thread {
     if (isoCandidates != null && !isoCandidates.isEmpty()) {
       candidatesByBucket = new HashMap<>();
       for (IsoCandidate c : isoCandidates) {
-        candidatesByBucket.computeIfAbsent(c.bucket, k -> new ArrayList<>(4)).add(c);
+        List<IsoCandidate> bucket = candidatesByBucket.get(c.bucket);
+        if (bucket == null) {
+          bucket = new ArrayList<>();
+          candidatesByBucket.put(c.bucket, bucket);
+        }
+        bucket.add(c);
       }
     } else {
       candidatesByBucket = Collections.emptyMap();
@@ -5362,7 +5374,7 @@ public class RoutingEngine extends Thread {
     if (merged.isEmpty()) return null;
 
     List<double[]> result = new ArrayList<>(merged.values());
-    result.sort((a, b) -> Double.compare(a[0], b[0]));
+    Collections.sort(result, (a, b) -> Double.compare(a[0], b[0]));
     return result.toArray(new double[0][]);
   }
 

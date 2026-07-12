@@ -1,6 +1,7 @@
 package btools.router;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -314,9 +315,9 @@ public class GreedyRoundTripPlanner {
    * is stable, so equal-key ties still resolve by pre-sort insertion order.
    */
   private static final Comparator<RoundTripCandidateProvider.CandidatePoint> BY_HEURISTIC_SCORE =
-    Comparator.comparingDouble(c -> c.score);
+    (a, b) -> Double.compare(a.score, b.score);
   private static final Comparator<ScoredRoute> BY_ROUTED_SCORE =
-    Comparator.comparingDouble(c -> c.routedScore);
+    (a, b) -> Double.compare(a.routedScore, b.routedScore);
 
   private final RoutingEngine engine;
   private final CandidateScorer scorer;
@@ -844,7 +845,7 @@ public class GreedyRoundTripPlanner {
         }
 
         // Rank by score (lowest = best)
-        candidates.sort(BY_HEURISTIC_SCORE);
+        Collections.sort(candidates, BY_HEURISTIC_SCORE);
 
         // --- Phase 2: Route top candidates, pick best by combined routed score ---
         // Heuristic score uses visitedEdgeRatio=0 since pre-routing can't know it.
@@ -1549,7 +1550,9 @@ public class GreedyRoundTripPlanner {
       double segLen = a.calcDistance(b);
       total += segLen;
       long key = edgeKey(a, b);
-      int prev = localCounts.merge(key, 1, Integer::sum);
+      Integer cur = localCounts.get(key);
+      int prev = (cur == null ? 0 : cur) + 1;
+      localCounts.put(key, prev);
       if (prev > 1) reused += segLen;
     }
     return total > 0 ? reused / total : 0.0;
@@ -1776,7 +1779,7 @@ public class GreedyRoundTripPlanner {
       changed = true;
     }
     if (changed) {
-      picked.sort(BY_HEURISTIC_SCORE);
+      Collections.sort(picked, BY_HEURISTIC_SCORE);
     }
     return changed;
   }
@@ -2670,6 +2673,6 @@ public class GreedyRoundTripPlanner {
    * penalty affects ordering").
    */
   static void sortByRoutedScore(List<ScoredRoute> candidates) {
-    candidates.sort(BY_ROUTED_SCORE);
+    Collections.sort(candidates, BY_ROUTED_SCORE);
   }
 }

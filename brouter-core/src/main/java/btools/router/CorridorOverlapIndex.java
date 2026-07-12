@@ -133,7 +133,13 @@ final class CorridorOverlapIndex {
     Map<Long, List<Integer>> grid = new HashMap<>(samples.size() * 2);
     for (int idx = 0; idx < samples.size(); idx++) {
       double[] sm = samples.get(idx);
-      grid.computeIfAbsent(cellKey(sm[0], sm[1]), k -> new ArrayList<>()).add(idx);
+      long ck = cellKey(sm[0], sm[1]);
+      List<Integer> bucket = grid.get(ck);
+      if (bucket == null) {
+        bucket = new ArrayList<>();
+        grid.put(ck, bucket);
+      }
+      bucket.add(idx);
     }
 
     boolean[] overlap = new boolean[edgeCount];

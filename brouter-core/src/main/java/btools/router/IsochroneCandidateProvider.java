@@ -1,7 +1,7 @@
 package btools.router;
 
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -171,7 +171,7 @@ final class IsochroneCandidateProvider implements RoundTripCandidateProvider {
     }
     for (List<IsoCandidate> entries : byBucket) {
       if (entries != null) {
-        entries.sort((a, b) -> Integer.compare(b.sourceContour, a.sourceContour));
+        Collections.sort(entries, (a, b) -> Integer.compare(b.sourceContour, a.sourceContour));
       }
     }
 
@@ -308,7 +308,7 @@ final class IsochroneCandidateProvider implements RoundTripCandidateProvider {
       results.add(cp);
     }
 
-    results.sort(Comparator.comparingDouble(p -> p.score));
+    Collections.sort(results, (a, b) -> Double.compare(a.score, b.score));
     return results;
   }
 }

@@ -1,6 +1,7 @@
 package btools.router;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -245,7 +246,7 @@ final class GraphNativeCandidateProvider implements RoundTripCandidateProvider {
         c.routedTrack));
     }
 
-    raw.sort(BY_TEMPLATE_RANK);
+    Collections.sort(raw, BY_TEMPLATE_RANK);
 
     if (raw.size() > CANDIDATE_CAP) {
       return new ArrayList<>(raw.subList(0, CANDIDATE_CAP));
