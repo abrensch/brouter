@@ -3,6 +3,8 @@ package btools.router;
 import java.util.Collections;
 import java.util.List;
 
+import btools.mapaccess.MatchedWaypoint;
+
 /**
  * Result of {@link RoutingEngine#probeReachableDirections}.
  *
@@ -19,8 +21,16 @@ final class ProbeResult {
   /** Per-direction scoring records, one per element of {@link #viableDirections}. */
   final List<ProbeDirection> scored;
 
+  /** The start point's road match (for reachability filtering), or {@code null}. */
+  final MatchedWaypoint startMatch;
+
   ProbeResult(double[] viableDirections, List<ProbeDirection> scored) {
+    this(viableDirections, scored, null);
+  }
+
+  ProbeResult(double[] viableDirections, List<ProbeDirection> scored, MatchedWaypoint startMatch) {
     this.viableDirections = viableDirections;
     this.scored = (scored != null) ? scored : Collections.emptyList();
+    this.startMatch = startMatch;
   }
 }

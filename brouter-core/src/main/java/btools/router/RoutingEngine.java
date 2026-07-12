@@ -2585,6 +2585,15 @@ public class RoutingEngine extends Thread {
           targetPoints + (int) Math.round(GreedyRoundTripPlanner.seededUnit(varietySeed, 3, 0)));
       }
 
+      // FAST perf optimization (ideas 1/2/4): when on, the FAST tier reuses the
+      // probe's already-snapped road nodes as vias and skips the redundant
+      // validateAndAdjustWaypoints re-matching pass (and its cache reset).
+      // Toggle off with -Droundtrip.fast.optimized=false to compare against the
+      // legacy probe+envelope+validate path. AUTO/QUALITY/ISOCHRONE unaffected.
+      boolean fastOptimized = !"false".equals(
+        System.getProperty("roundtrip.fast.optimized", "true"));
+      boolean fastPlacedNoValidate = false;
+
       if (algo == RoundTripAlgorithm.ISOCHRONE) {
         ProbeResult probe = probeReachableDirections(waypoints.get(0), searchRadius);
         double[] probeDirections = (probe != null) ? probe.viableDirections : null;
@@ -2604,6 +2613,28 @@ public class RoutingEngine extends Thread {
           recordPlacementPath(PlacementPath.CIRCLE);
           buildPointsFromCircle(waypoints, direction, searchRadius, targetPoints);
         }
+      } else if (fastOptimized) {
+        // Probe at the perimeter-scaled radius so the reused snapped nodes land at
+        // the target loop distance (the legacy envelope applied this scale after
+        // placement via computeRadiusScale; here we apply it before, using an even
+        // full-circle spread as the nominal — FAST almost always gets a near-full
+        // ring, so nominal ≈ actual).
+        double[] evenDirs = new double[Math.max(3, targetPoints)];
+        for (int i = 0; i < evenDirs.length; i++) {
+          evenDirs[i] = i * 360.0 / evenDirs.length;
+        }
+        double fastScale = computeRadiusScale(evenDirs, targetPoints);
+        ProbeResult probe =
+          probeReachableDirectionsFast(waypoints.get(0), searchRadius * fastScale);
+        if (probe != null && probe.viableDirections.length >= 3) {
+          recordPlacementPath(PlacementPath.ENVELOPE_FAST);
+          placeWaypointsFromProbeMatches(waypoints, probe, direction, targetPoints);
+          fastPlacedNoValidate = true; // vias are already road-snapped and deduped
+        } else {
+          logInfo("reachability probe returned < 3 directions, falling back to circle");
+          recordPlacementPath(PlacementPath.CIRCLE);
+          buildPointsFromCircle(waypoints, direction, searchRadius, targetPoints);
+        }
       } else {
         ProbeResult probe = probeReachableDirections(waypoints.get(0), searchRadius);
         // FAST tier: drop single-probe-success directions when enough strong
@@ -2619,7 +2650,11 @@ public class RoutingEngine extends Thread {
         }
       }
 
-      validateAndAdjustWaypoints(waypoints, searchRadius);
+      // Idea 4: the optimized FAST path already placed road-snapped vias, so it
+      // skips this second matching pass (and the resetCache inside it).
+      if (!fastPlacedNoValidate) {
+        validateAndAdjustWaypoints(waypoints, searchRadius);
+      }
 
       // Snap start/end waypoints to nearest road to prevent beeline segments.
       // Without this, if the user's click position is >250m from a road (park,
@@ -4345,12 +4380,182 @@ public class RoutingEngine extends Thread {
       }
       if (successCount == 0) continue;
       viable[viableCount++] = dir;
-      scored.add(new ProbeDirection(dir, successCount));
+      scored.add(new ProbeDirection(dir, successCount, null));
     }
 
     logInfo("reachability probe: " + viableCount + "/" + probeCount + " directions viable");
     if (viableCount == 0) return null;
     return new ProbeResult(java.util.Arrays.copyOf(viable, viableCount), scored);
+  }
+
+  /**
+   * FAST-tier reachability probe (optimization ideas 1 + 2). Trims the grid to
+   * 12 bearings × 2 radii (vs the legacy 24 × 3) AND retains the best road match
+   * per direction, so {@link #placeWaypointsFromProbeMatches} can reuse those
+   * already-snapped nodes as vias — replacing both the geometric placement and
+   * the ~21-candidate-per-via re-matching in {@link #validateAndAdjustWaypoints}.
+   */
+  ProbeResult probeReachableDirectionsFast(OsmNodeNamed start, double searchRadius) {
+    resetCache(false);
+    double maxSnapDist = Math.min(searchRadius * 0.3, 2000);
+    double[] distFactors = {0.85, 1.15};
+    int probeCount = 12; // every 30 degrees
+    double angleStep = 360.0 / probeCount;
+    int probesPerDirection = distFactors.length;
+
+    List<MatchedWaypoint> allProbes = new ArrayList<>();
+    // Include the start point itself to ensure its segment is loaded.
+    MatchedWaypoint startProbe = new MatchedWaypoint();
+    startProbe.waypoint = new OsmNode(start.ilon, start.ilat);
+    startProbe.name = "probe_start";
+    allProbes.add(startProbe);
+
+    for (int d = 0; d < probeCount; d++) {
+      double angle = d * angleStep;
+      for (double df : distFactors) {
+        int[] pos = CheapRuler.destination(start.ilon, start.ilat, searchRadius * df, angle);
+        MatchedWaypoint mwp = new MatchedWaypoint();
+        mwp.waypoint = new OsmNode(pos[0], pos[1]);
+        mwp.name = "probe_" + d + "_" + (int) (df * 100);
+        allProbes.add(mwp);
+      }
+    }
+
+    try {
+      nodesCache.matchWaypointsToNodes(allProbes, maxSnapDist, islandNodePairs);
+    } catch (Exception e) {
+      logInfo("reachability probe failed: " + e.getMessage());
+      return null;
+    }
+
+    int probeOffset = 1; // start probe is at index 0
+    double[] viable = new double[probeCount];
+    int viableCount = 0;
+    List<ProbeDirection> scored = new ArrayList<>();
+    for (int d = 0; d < probeCount; d++) {
+      double dir = d * angleStep;
+      int successCount = 0;
+      MatchedWaypoint best = null;
+      for (int f = 0; f < probesPerDirection; f++) {
+        MatchedWaypoint mwp = allProbes.get(probeOffset + d * probesPerDirection + f);
+        if (mwp.crosspoint == null || mwp.radius > maxSnapDist) continue;
+        successCount++;
+        if (best == null || mwp.radius < best.radius) best = mwp;
+      }
+      if (successCount == 0) continue;
+      viable[viableCount++] = dir;
+      scored.add(new ProbeDirection(dir, successCount, best));
+    }
+
+    logInfo("reachability probe (fast): " + viableCount + "/" + probeCount + " directions viable");
+    if (viableCount == 0) return null;
+    // allProbes.get(0) is the matched start (has node1/node2/crosspoint when the
+    // start is on a road) — used by the reachability guard to drop islanded vias.
+    MatchedWaypoint startMatch = allProbes.get(0);
+    return new ProbeResult(java.util.Arrays.copyOf(viable, viableCount), scored, startMatch);
+  }
+
+  /**
+   * Reachability guard (optimization idea 3): {@code true} unless {@code viaMatch}'s
+   * road component is a small island that cannot reach the start within
+   * {@link #MAXNODES_ISLAND_CHECK} nodes. Reuses the exact bounded-{@code findTrack}
+   * primitive as the routing-time "target island" check, so the FAST placement can
+   * drop islanded vias before routing instead of failing the whole loop. Cheap: a
+   * bounded search that exhausts a small island quickly and gives up on large
+   * (reachable) components at the node budget.
+   */
+  private boolean isViaReachableFromStart(MatchedWaypoint viaMatch, MatchedWaypoint startMatch) {
+    if (viaMatch == null || viaMatch.node1 == null || viaMatch.node2 == null
+        || startMatch == null || startMatch.node1 == null || startMatch.node2 == null) {
+      return true; // cannot test -> keep (conservative)
+    }
+    boolean savedInverse = routingContext.inverseDirection;
+    double savedAir = airDistanceCostFactor;
+    try {
+      routingContext.inverseDirection = true;
+      airDistanceCostFactor = 0.0;
+      nodeLimit = MAXNODES_ISLAND_CHECK;
+      OsmTrack seg = findTrack("rt-fast-island-check", viaMatch, startMatch, null, null, false);
+      // Reachable if a bounded path was found. null with budget left also means the
+      // via's whole component is a small island -> unreachable.
+      return !(seg == null && nodeLimit > 0);
+    } catch (RoutingIslandException rie) {
+      // The bounded search exhausted a small island around the via -> unreachable.
+      return false;
+    } catch (RuntimeException e) {
+      // Best-effort guard: a budget timeout or any other transient failure must
+      // not fail the request — keep the via (conservative) and let routing decide.
+      return true;
+    } finally {
+      routingContext.inverseDirection = savedInverse;
+      airDistanceCostFactor = savedAir;
+      nodeLimit = 0;
+    }
+  }
+
+  /**
+   * FAST placement (optimization idea 1) that reuses the probe's already-snapped
+   * road nodes as vias and dedups any that collapse onto the same node or the
+   * start — which both removes the redundant {@link #validateAndAdjustWaypoints}
+   * re-matching pass and fixes the stacked-waypoint bug (multiple bearings
+   * snapping to one node were previously kept as duplicates).
+   */
+  void placeWaypointsFromProbeMatches(List<OsmNodeNamed> waypoints, ProbeResult probe,
+                                      double startDirection, int targetPoints) {
+    OsmNodeNamed start = waypoints.get(0);
+    double[] viable = probe.viableDirections;
+    int needed = targetPoints - 1;
+    if (needed > viable.length) needed = viable.length;
+    if (needed < 2) needed = 2;
+
+    double[] selected = (needed >= viable.length)
+        ? viable
+        : selectSpreadDirections(viable, needed, startDirection);
+    selected = sortDirectionsForLoop(selected, startDirection);
+
+    java.util.Map<Double, MatchedWaypoint> byDir = new java.util.HashMap<>();
+    for (ProbeDirection pd : probe.scored) {
+      if (pd.bestMatch != null && pd.bestMatch.crosspoint != null) {
+        byDir.put(pd.direction, pd.bestMatch);
+      }
+    }
+
+    int added = 0;
+    int deduped = 0;
+    int islanded = 0;
+    for (double dir : selected) {
+      MatchedWaypoint m = byDir.get(dir);
+      if (m == null || m.crosspoint == null) continue;
+      int ilon = m.crosspoint.getILon();
+      int ilat = m.crosspoint.getILat();
+      // Dedup: drop a via that lands on the start or an already-placed via node.
+      boolean dup = (ilon == start.ilon && ilat == start.ilat);
+      for (int i = 1; !dup && i < waypoints.size(); i++) {
+        if (waypoints.get(i).ilon == ilon && waypoints.get(i).ilat == ilat) dup = true;
+      }
+      if (dup) {
+        deduped++;
+        continue;
+      }
+      // Reachability guard: drop a via stranded on a small island disconnected
+      // from the start, rather than letting it fail the whole loop at routing.
+      if (!isViaReachableFromStart(m, probe.startMatch)) {
+        islanded++;
+        continue;
+      }
+      OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(ilon, ilat));
+      onn.name = "rt" + (++added);
+      waypoints.add(onn);
+    }
+
+    OsmNodeNamed closing = new OsmNodeNamed(start);
+    closing.name = "to_rt";
+    waypoints.add(closing);
+
+    logInfo("placeWaypointsFromProbeMatches: " + added + " road-snapped vias"
+        + (deduped > 0 ? " (" + deduped + " deduped)" : "")
+        + (islanded > 0 ? " (" + islanded + " islanded dropped)" : "")
+        + " from " + viable.length + " viable directions");
   }
 
   /**
