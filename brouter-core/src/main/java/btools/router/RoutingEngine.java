@@ -732,7 +732,7 @@ public class RoutingEngine extends Thread {
         String lastMsg = "";
         double tmpincline = 0;
         double startincline = 0;
-        double selev = track.nodes.get(startIdx - 2).getSElev();
+        double selev = track.nodes.get(startIdx > 1 ? startIdx - 2 : startIdx - 1).getSElev();
         boolean hasInclineTags = false;
         for (int i = startIdx - 1; i < endIdx + 1; i++) {
           OsmPathElement tmp = track.nodes.get(i);
