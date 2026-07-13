@@ -884,7 +884,7 @@ public class BRouterView extends View {
           s = sm.params;
           p = sm.profile;
         }
-        if (!p.equals(profileName)) s = sparams;
+        if (p != null && !p.equals(profileName)) s = sparams;
         if (s == null || s.equals("")) s = "noparams";
         ServiceModeConfig smc = new ServiceModeConfig(routingModes[i], profileName, s);
         for (OsmNodeNamed nogo : nogoVetoList) {
