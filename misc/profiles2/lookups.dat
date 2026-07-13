@@ -61,6 +61,7 @@ surface;0000004398 clay
 surface;0000003760 metal
 surface;0000000001 rock rocks rocky
 surface;0000000001 stone
+surface;0000000001 laterite
 
 lit;0000809223 yes
 lit;0000000001 no
