@@ -13,6 +13,7 @@ on:
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
   pull_request:
+    types: [ opened, synchronize, reopened, ready_for_review ]
     branches: [ "master" ]
 
 env:
@@ -24,6 +25,8 @@ env:
 
 jobs:
   build:
+    # Skip draft PRs; schedule/push/dispatch events carry no pull_request payload, so they still run
+    if: ${{ !github.event.pull_request.draft }}
 
     runs-on: ubuntu-latest
     permissions:

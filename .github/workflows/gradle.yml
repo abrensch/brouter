@@ -7,11 +7,13 @@ on:
   push:
     branches: [ master ]
   pull_request:
+    types: [ opened, synchronize, reopened, ready_for_review ]
     branches: [ master ]
 
 jobs:
   build:
-
+    # Skip draft PRs; push events carry no pull_request payload, so master builds still run
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     environment: BRouter
     steps:
