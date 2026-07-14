@@ -54,11 +54,16 @@ There are thus three levels:
 
 - there are several docs, please have a view into the doc folder
 
+- the main source is in poor Java
+  A new feature should follow this way and not add more dependencies.
+  If it is unavoidable, please discuss this before adding it.
+
 
 ### Testing
 
 - keep in mind this software is used as a server and as an Android service
-  That means it should return for on the same input the same output as before.
+  That means it should return on the same input the same output as before when a new feature is added.
+  This will not work if the task is to change the output.
   New features normally have new parameter to activate them.
 
 - running `gradlew clean build` in your working copy generates several reports.
@@ -72,8 +77,23 @@ There are thus three levels:
 
 - new features must work like other routers and old version from day one, as it is what users expect
 
-- if AI adds too many new classes, they better be in separate packages for easy maintenance
+- if the pull request adds too many new classes, they better be in separate packages for easy maintenance
 
+- BRouter operates as a service: a client sends a request, BRouter responds, and the client proceeds to use the result.
+  This means that timing should be monitored whenever the code is modified or extended.
+
+### Using AI
+
+- feel free to use AI for your development
+
+- the description of a new feature should be done by the developer
+
+- you should understand each line the AI generates
+  Means you have to review all code before check in.
+
+- keep your AI outside the repository
+
+- check if AI licence meets BRouter [MIT licence](https://github.com/abrensch/brouter/tree/master?tab=MIT-1-ov-file)
 
 ### Review
 
