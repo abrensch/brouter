@@ -1,5 +1,5 @@
 ---lookupversion:11
----minorversion:2
+---minorversion:3
 
 ---context:way
 
@@ -61,6 +61,7 @@ surface;0000004398 clay
 surface;0000003760 metal
 surface;0000000001 rock rocks rocky
 surface;0000000001 stone
+surface;0000000001 laterite
 
 lit;0000809223 yes
 lit;0000000001 no
@@ -96,21 +97,24 @@ estimated_town_class;0000000001 4
 estimated_town_class;0000000001 5
 estimated_town_class;0000000001 6
 
-maxspeed;0001058313 50 55 56 30_mph 30mph
+maxspeed;0001058313 50 55 56 30_mph 30mph DE:urban FR:urban IT:urban RO:urban AT:urban UA:urban RS:urban GR:urban ES:urban
 maxspeed;0000860780 30 35 20_mph 20mph
 maxspeed;0000025232 10 15 5 6 8 5_mph 6_mph
-maxspeed;0000083989 20 25 10_mph 10mph 15_mph 15mph
+maxspeed;0000083989 20 10_mph 10mph
 maxspeed;0000195097 40 45 25_mph 25mph
-maxspeed;0000204646 60 65 35_mph 35mph 40_mph 40mph
+maxspeed;0000204646 60 35_mph 35mph RU:urban BY:urban
 maxspeed;0000130108 70 75 45_mph 45mph
-maxspeed;0000225071 80 85 50_mph 50mph
-maxspeed;0000106719 90 95 55_mph 55mph
-maxspeed;0000134522 100 60_mph 60mph 65_mph 65mph
-maxspeed;0000025242 110 70_mph 70mph
+maxspeed;0000225071 80 85 50_mph 50mph CH:rural
+maxspeed;0000106719 90 95 55_mph 55mph FR:rural IT:rural RO:rural UA:rural BY:rural
+maxspeed;0000134522 100 60_mph 60mph DE:rural AT:rural
+maxspeed;0000025242 110 70_mph 70mph RU:rural
 maxspeed;0000038763 120 75_mph 75mph
 maxspeed;0000026953 130 80_mph 79_mph
-maxspeed;0000138654 urban RO:urban RU:urban FR:urban IT:urban AT:urban DE:urban UA:urban
-maxspeed;0000138654 rural RO:rural RU:rural FR:rural IT:rural AT:rural DE:rural UA:rural
+maxspeed;0000138654 urban 50
+maxspeed;0000138654 rural 90
+maxspeed;0000083989 25 15_mph 15mph
+maxspeed;0000204646 65 40_mph 40mph
+maxspeed;0000134522 105 65_mph 65mph
 
 service;0001433919 parking_aisle
 service;0001305879 driveway driveway2
@@ -136,7 +140,7 @@ access;0000319927 yes public
 access;0000144799 no
 access;0000140215 permissive
 access;0000108802 destination visitors
-access;0000099899 agricultural forestry agricultural;forestry
+access;0000099899 agricultural
 access;0000039934 designated official
 access;0000011813 customers
 access;0000004007 delivery
@@ -144,6 +148,7 @@ access;0000000100 psv
 access;0000000100 hov
 access;0000000001 permit
 access;0000000001 military
+access;0000000001 forestry agricultural;forestry
 
 estimated_traffic_class;0000000001 1
 estimated_traffic_class;0000000001 2
@@ -245,7 +250,7 @@ railway;0000000001 monorail
 motor_vehicle;0000212692 no
 motor_vehicle;0000184982 yes
 motor_vehicle;0000045128 private
-motor_vehicle;0000032622 agricultural forestry agricultural;forestry forestry;agricultural agricultural;destination
+motor_vehicle;0000032622 agricultural agricultural;destination
 motor_vehicle;0000025396 designated official
 motor_vehicle;0000025092 destination customers delivery
 motor_vehicle;0000010895 permissive
@@ -253,10 +258,11 @@ motor_vehicle;0000000175 emergency Emergency
 motor_vehicle;0000000001 permit
 motor_vehicle;0000000001 psv
 motor_vehicle;0000000001 hov
+motor_vehicle;0000000001 forestry agricultural;forestry forestry;agricultural
 
 motorcar;0000135124 no
 motorcar;0000045407 yes
-motorcar;0000021494 agricultural forestry agricultural;forestry
+motorcar;0000021494 agricultural
 motorcar;0000012090 destination delivery
 motorcar;0000008733 private
 motorcar;0000005757 designated official
@@ -265,15 +271,17 @@ motorcar;0000000979 restricted
 motorcar;0000000001 permit
 motorcar;0000000001 psv
 motorcar;0000000001 hov
+motorcar;0000000001 forestry agricultural;forestry
 
 motorcycle;0000092079 no
 motorcycle;0000027978 yes
-motorcycle;0000014652 agricultural forestry agricultural;forestry
+motorcycle;0000014652 agricultural
 motorcycle;0000008862 destination delivery
 motorcycle;0000004877 designated official
 motorcycle;0000003936 private
 motorcycle;0000002209 permissive
 motorcycle;0000000001 permit
+motorcycle;0000000001 forestry agricultural;forestry
 
 moped;0000000001 no
 moped;0000000001 yes
@@ -294,7 +302,7 @@ atv;0000000001 permissive
 vehicle;0000030218 no
 vehicle;0000013333 destination delivery customers
 vehicle;0000011692 yes
-vehicle;0000007147 agricultural forestry agricultural;forestry
+vehicle;0000007147 agricultural
 vehicle;0000006305 private
 vehicle;0000001294 permissive
 vehicle;0000000105 designated
@@ -303,6 +311,7 @@ vehicle;0000000001 permit
 vehicle;0000000001 military
 vehicle;0000000001 emergency
 vehicle;0000000001 hov
+vehicle;0000000001 forestry agricultural;forestry
 
 horse;0000227398 no
 horse;0000144432 yes permissive
@@ -324,10 +333,11 @@ hgv;0000043783 no
 hgv;0000019115 destination
 hgv;0000005273 delivery
 hgv;0000003055 local
-hgv;0000001088 agricultural forestry agricultural;forestry
+hgv;0000001088 agricultural
 hgv;0000000461 private
 hgv;0000000320 unsuitable
 hgv;0000000306 permissive
+hgv;0000000001 forestry agricultural;forestry
 
 agricultural;0000000001 no
 agricultural;0000000001 yes
@@ -367,6 +377,7 @@ cycleway;0000000344 shoulder
 cycleway;0000000326 designated
 cycleway;0000000247 proposed planned virtual
 cycleway;0000000154 sidewalk
+cycleway;0000000001 asl
 
 conveying;0000000001 yes reversible
 conveying;0000000001 backward
@@ -730,37 +741,43 @@ footway:surface;0000000001 fine_gravel
 footway:surface;0000000001 sett
 footway:surface;0000000001 wood
 
-maxspeed:backward;0001058313 50 55 56 30_mph 30mph
+maxspeed:backward;0001058313 50 55 56 30_mph 30mph DE:urban FR:urban IT:urban RO:urban AT:urban UA:urban RS:urban GR:urban ES:urban
 maxspeed:backward;0000860780 30 35 20_mph 20mph
 maxspeed:backward;0000025232 10 15 5 6 8 5_mph 6_mph
-maxspeed:backward;0000083989 20 25 10_mph 10mph 15_mph 15mph
+maxspeed:backward;0000083989 20 10_mph 10mph
 maxspeed:backward;0000195097 40 45 25_mph 25mph
-maxspeed:backward;0000204646 60 65 35_mph 35mph 40_mph 40mph
+maxspeed:backward;0000204646 60 35_mph 35mph RU:urban BY:urban
 maxspeed:backward;0000130108 70 75 45_mph 45mph
-maxspeed:backward;0000225071 80 85 50_mph 50mph
-maxspeed:backward;0000106719 90 95 55_mph 55mph
-maxspeed:backward;0000134522 100 60_mph 60mph 65_mph 65mph
-maxspeed:backward;0000025242 110 70_mph 70mph
+maxspeed:backward;0000225071 80 85 50_mph 50mph CH:rural
+maxspeed:backward;0000106719 90 95 55_mph 55mph FR:rural IT:rural RO:rural UA:rural BY:rural
+maxspeed:backward;0000134522 100 60_mph 60mph DE:rural AT:rural
+maxspeed:backward;0000025242 110 70_mph 70mph RU:rural
 maxspeed:backward;0000038763 120 75_mph 75mph
 maxspeed:backward;0000026953 130 80_mph 79_mph
-maxspeed:backward;0000138654 urban RO:urban RU:urban FR:urban IT:urban AT:urban DE:urban UA:urban
-maxspeed:backward;0000138654 rural RO:rural RU:rural FR:rural IT:rural AT:rural DE:rural UA:rural
+maxspeed:backward;0000138654 urban 50
+maxspeed:backward;0000138654 rural 90
+maxspeed:backward;0000083989 25 15_mph 15mph
+maxspeed:backward;0000204646 65 40_mph 40mph
+maxspeed:backward;0000134522 105 65_mph 65mph
 
-maxspeed:forward;0001058313 50 55 56 30_mph 30mph
+maxspeed:forward;0001058313 50 55 56 30_mph 30mph DE:urban FR:urban IT:urban RO:urban AT:urban UA:urban RS:urban GR:urban ES:urban
 maxspeed:forward;0000860780 30 35 20_mph 20mph
 maxspeed:forward;0000025232 10 15 5 6 8 5_mph 6_mph
-maxspeed:forward;0000083989 20 25 10_mph 10mph 15_mph 15mph
+maxspeed:forward;0000083989 20 10_mph 10mph
 maxspeed:forward;0000195097 40 45 25_mph 25mph
-maxspeed:forward;0000204646 60 65 35_mph 35mph 40_mph 40mph
+maxspeed:forward;0000204646 60 35_mph 35mph RU:urban BY:urban
 maxspeed:forward;0000130108 70 75 45_mph 45mph
-maxspeed:forward;0000225071 80 85 50_mph 50mph
-maxspeed:forward;0000106719 90 95 55_mph 55mph
-maxspeed:forward;0000134522 100 60_mph 60mph 65_mph 65mph
-maxspeed:forward;0000025242 110 70_mph 70mph
+maxspeed:forward;0000225071 80 85 50_mph 50mph CH:rural
+maxspeed:forward;0000106719 90 95 55_mph 55mph FR:rural IT:rural RO:rural UA:rural BY:rural
+maxspeed:forward;0000134522 100 60_mph 60mph DE:rural AT:rural
+maxspeed:forward;0000025242 110 70_mph 70mph RU:rural
 maxspeed:forward;0000038763 120 75_mph 75mph
 maxspeed:forward;0000026953 130 80_mph 79_mph
-maxspeed:forward;0000138654 urban RO:urban RU:urban FR:urban IT:urban AT:urban DE:urban UA:urban
-maxspeed:forward;0000138654 rural RO:rural RU:rural FR:rural IT:rural AT:rural DE:rural UA:rural
+maxspeed:forward;0000138654 urban 50
+maxspeed:forward;0000138654 rural 90
+maxspeed:forward;0000083989 25 15_mph 15mph
+maxspeed:forward;0000204646 65 40_mph 40mph
+maxspeed:forward;0000134522 105 65_mph 65mph
 
 embedded_rails;0000000928 tram
 embedded_rails;0000000007 yes
@@ -940,9 +957,10 @@ access;0000014933 yes public
 access;0000014456 no
 access;0000008670 permissive
 access;0000006316 destination customers delivery
-access;0000000973 agricultural forestry
+access;0000000973 agricultural
 access;0000000942 designated official
 access;0000000001 permit
+access;0000000001 forestry
 
 bicycle;0000267569 yes
 bicycle;0000067796 no
@@ -987,33 +1005,37 @@ motorcar;0000009323 no
 motorcar;0000000895 private
 motorcar;0000000216 destination
 motorcar;0000000214 permissive
-motorcar;0000000093 agricultural forestry
+motorcar;0000000093 agricultural
 motorcar;0000000084 designated official
+motorcar;0000000001 forestry
 
 motor_vehicle;0000000066 yes
 motor_vehicle;0000000001 permissive
 motor_vehicle;0000000000 designated official
 motor_vehicle;0000000030 destination customers delivery
-motor_vehicle;0000000073 agricultural forestry
+motor_vehicle;0000000073 agricultural
 motor_vehicle;0000000136 private
 motor_vehicle;0000000469 no
 motor_vehicle;0000000001 permit
+motor_vehicle;0000000001 forestry
 
 motorcycle;0000028697 yes
 motorcycle;0000007061 no
 motorcycle;0000000243 private
 motorcycle;0000000237 designated
 motorcycle;0000000117 destination
-motorcycle;0000000029 agricultural forestry
+motorcycle;0000000029 agricultural
 motorcycle;0000000001 permissive
+motorcycle;0000000001 forestry
 
 vehicle;0000002176 no
 vehicle;0000000576 yes
 vehicle;0000000556 private
 vehicle;0000000262 destination
-vehicle;0000000138 agricultural forestry
+vehicle;0000000138 agricultural
 vehicle;0000000105 permissive
 vehicle;0000000003 designated official
+vehicle;0000000001 forestry
 
 horse;0000021837 yes permissive
 horse;0000010811 no
@@ -1040,7 +1062,8 @@ hgv;0000000359 yes true permissive
 hgv;0000000111 destination delivery
 hgv;0000000108 designated official
 hgv;0000000065 private
-hgv;0000000016 agricultural forestry
+hgv;0000000016 agricultural
+hgv;0000000001 forestry
 
 railway;0000312710 level_crossing
 railway;0000078746 station
