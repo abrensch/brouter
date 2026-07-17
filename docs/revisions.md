@@ -2,7 +2,7 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### [brouter-1.7.10.zip](../brouter_bin/brouter-1.7.10.zip) (current revision, XX.07.2026)
+### [brouter-1.7.10.zip](../brouter_bin/brouter-1.7.10.zip) (current revision, 17.07.2026)
 
 Android
 
