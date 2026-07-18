@@ -66,6 +66,24 @@ public class RoutingEngine extends Thread {
   static final double ISO_CALIBRATION_SAMPLE_LO = 0.7;
   /** Below this many band samples the calibration is skipped (sparse graph → keep the floor). */
   static final int ISO_CALIBRATION_MIN_SAMPLES = 30;
+  /**
+   * Fast-motorized profiles (car, motorbike) bypass the in-flight calibration
+   * entirely: at motor cost
+   * scales (~100+ cost per air-meter vs the bike ~1.5-4 the constants above
+   * assume) the sampling band sits ~100 m from the start and the cap is ~20x
+   * too small, so the frontier starves (measured: 4 nodes expanded on a
+   * car-vario 100 km request). Instead a tiny probe expansion (node-capped,
+   * milliseconds) measures the graph's cost-per-air-meter once per request,
+   * and the budget is sized from the measurement with the same reach formula.
+   * maxNodes, the 1.5x geographic cutoff and the expansion deadline remain the
+   * operational guards. Gated on {@code carMode} — bike and foot profiles keep
+   * the in-flight calibration bit-identical.
+   */
+  static final int FAST_MOTOR_ISO_PROBE_NODE_CAP = 400;
+  /** Fewer probe samples than this → keep the historical bike budget (probe failed). */
+  static final int FAST_MOTOR_ISO_MIN_PROBE_SAMPLES = 8;
+  /** Probe attempts per request (a pocketed request start may fail where a mid-plan node succeeds). */
+  static final int FAST_MOTOR_ISO_PROBE_MAX_ATTEMPTS = 3;
 
   private int MAX_DYNAMIC_RANGE = 60000;
 
@@ -1227,8 +1245,16 @@ public class RoutingEngine extends Thread {
   IsochroneExpansionResult runIsochroneExpansion(OsmNodeNamed start, double searchRadius) {
     // Start-centered expansion (ISO_GREEDY pool, frontier table): budget
     // calibration ON — searchRadius here is the loop radius the reach target
-    // is defined against.
-    return runIsochroneExpansion(start, searchRadius, null, false, true);
+    // is defined against. Fast-motorized profiles use the probed scale instead (see
+    // FAST_MOTOR_ISO_PROBE_NODE_CAP).
+    if (routingContext.carMode) {
+      ensureFastMotorIsoCostScale(start, searchRadius);
+      if (fastMotorIsoCostScale > 0) {
+        return runIsochroneExpansion(start, searchRadius, null, false, false,
+          fastMotorIsoBudget(searchRadius, fastMotorIsoCostScale), 0);
+      }
+    }
+    return runIsochroneExpansion(start, searchRadius, null, false, true, 0, 0);
   }
 
   IsochroneExpansionResult runIsochroneExpansion(OsmNodeNamed start, double searchRadius,
@@ -1237,14 +1263,98 @@ public class RoutingEngine extends Thread {
     // Per-step callers (GraphNativeCandidateProvider expands a local disk
     // around the current node each step): calibration OFF — their radius is a
     // step window, not the loop radius, so the reach-target formula does not
-    // apply and the historical fixed budget is the correct sizing.
-    return runIsochroneExpansion(start, searchRadius, refTrack, includeCandidateTracks, false);
+    // apply and the historical fixed budget is the correct sizing. That fixed
+    // budget is in bike cost units, so fast-motorized profiles size it from the probed
+    // scale here too (the cost scale is a graph property, not a radius one).
+    if (routingContext.carMode) {
+      ensureFastMotorIsoCostScale(start, searchRadius);
+      if (fastMotorIsoCostScale > 0) {
+        return runIsochroneExpansion(start, searchRadius, refTrack, includeCandidateTracks, false,
+          fastMotorIsoBudget(searchRadius, fastMotorIsoCostScale), 0);
+      }
+    }
+    return runIsochroneExpansion(start, searchRadius, refTrack, includeCandidateTracks, false, 0, 0);
+  }
+
+  /** Probed fast-motor cost scale (cost per air-meter); 0 = not yet measured. */
+  private double fastMotorIsoCostScale;
+  private int fastMotorIsoProbeAttempts;
+  private int fastMotorIsoProbeFailIlon = -1;
+  private int fastMotorIsoProbeFailIlat = -1;
+
+  /**
+   * Measure the graph's cost-per-air-meter around the start with a tiny
+   * node-capped expansion — lazily before a fast-motor expansion, at most once
+   * per distinct start. A probe can fail on a pocketed start (urban car
+   * pockets: the request start's car-legal component is a few dozen nodes);
+   * per-step callers probe from mid-plan road nodes, so a later attempt from a
+   * different position may succeed — bounded by
+   * {@code FAST_MOTOR_ISO_PROBE_MAX_ATTEMPTS}. While unmeasured, callers keep
+   * the historical bike budgets.
+   */
+  private void ensureFastMotorIsoCostScale(OsmNodeNamed start, double searchRadius) {
+    if (fastMotorIsoCostScale > 0) return;
+    if (fastMotorIsoProbeAttempts >= FAST_MOTOR_ISO_PROBE_MAX_ATTEMPTS) return;
+    if (fastMotorIsoProbeAttempts > 0
+        && start.ilon == fastMotorIsoProbeFailIlon && start.ilat == fastMotorIsoProbeFailIlat) {
+      return; // same start as the failed probe — nothing new to measure
+    }
+    fastMotorIsoProbeAttempts++;
+    IsochroneExpansionResult probe = runIsochroneExpansion(start, searchRadius, null, false, false,
+      Integer.MAX_VALUE / 2, FAST_MOTOR_ISO_PROBE_NODE_CAP);
+    double median = medianFrontierCostPerMeter(probe, FAST_MOTOR_ISO_MIN_PROBE_SAMPLES);
+    if (Double.isNaN(median)) {
+      fastMotorIsoProbeFailIlon = start.ilon;
+      fastMotorIsoProbeFailIlat = start.ilat;
+      logInfo("isochrone: fast-motor cost-scale probe failed (attempt "
+        + fastMotorIsoProbeAttempts + ") — keeping bike-unit budget");
+    } else {
+      fastMotorIsoCostScale = median;
+      logInfo("isochrone: fast-motor cost-scale probe "
+        + String.format(Locale.ROOT, "measured %.1f cost/m", median));
+    }
+  }
+
+  /**
+   * Median cost-per-air-meter over the frontier rows of a probe expansion
+   * (rows: {@code [bearing, airDist_m, cost, hits, ...]}); rows within the
+   * 50 m bearing-noise floor are skipped. NaN when fewer than
+   * {@code minSamples} usable rows — the caller keeps the bike budget then.
+   * Upper-median convention matches {@link #calibratedIsoBudget}.
+   */
+  static double medianFrontierCostPerMeter(IsochroneExpansionResult probe, int minSamples) {
+    if (probe == null || probe.frontier == null) return Double.NaN;
+    double[] samples = new double[probe.frontier.length];
+    int count = 0;
+    for (double[] row : probe.frontier) {
+      if (row.length >= 3 && row[1] > 50) {
+        samples[count++] = row[2] / row[1];
+      }
+    }
+    if (count < minSamples) return Double.NaN;
+    Arrays.sort(samples, 0, count);
+    return samples[count / 2];
+  }
+
+  /**
+   * Isochrone cost budget for a fast-motor request: the standard reach formula at
+   * the measured scale ({@code ISO_TARGET_REACH_FACTOR x searchRadius x
+   * costPerMeter}), never below the historical bike floor, clamped against
+   * int overflow. No bike-unit cap — maxNodes and the geographic cutoff are
+   * the operational guards.
+   */
+  static int fastMotorIsoBudget(double searchRadius, double costPerMeter) {
+    double target = ISO_TARGET_REACH_FACTOR * searchRadius * costPerMeter;
+    double floor = searchRadius * ISO_BUDGET_FLOOR_FACTOR;
+    return (int) Math.min(Integer.MAX_VALUE / 2.0, Math.max(floor, target));
   }
 
   private IsochroneExpansionResult runIsochroneExpansion(OsmNodeNamed start, double searchRadius,
                                                          OsmTrack refTrack,
                                                          boolean includeCandidateTracks,
-                                                         boolean calibrateBudget) {
+                                                         boolean calibrateBudget,
+                                                         int presetBudget,
+                                                         int probeNodeCap) {
     // Phase 1: Match start point (loads segments via directWeaving, consumes node data)
     resetCache(false);
     MatchedWaypoint startMwp = new MatchedWaypoint();
@@ -1288,7 +1398,9 @@ public class RoutingEngine extends Thread {
     // in-flight calibration below can only RAISE it — see the class-level
     // ISO_BUDGET_* comment. Healthy profiles (fastbike: costEff ≈ 2.0 →
     // calibrated 4×) land on the floor and keep bit-identical behavior.
-    int costBudget = (int) (searchRadius * ISO_BUDGET_FLOOR_FACTOR);
+    // A preset budget (fast-motor probe path) replaces the floor and implies
+    // calibration OFF — it was already sized from a measured scale.
+    int costBudget = presetBudget > 0 ? presetBudget : (int) (searchRadius * ISO_BUDGET_FLOOR_FACTOR);
     // Calibration state: sample cost-per-air-meter in the band
     // [ISO_CALIBRATION_SAMPLE_LO, 1.0] × searchRadius, finalize at the first
     // pop past the checkpoint. Pops arrive in increasing cost order, so the
@@ -1307,7 +1419,8 @@ public class RoutingEngine extends Thread {
     // the indirectness signal is dominated by per-link amortization noise.
     double radiusRatio = searchRadius / REFERENCE_LOOP_RADIUS_M;
     double areaScale = Math.max(1.0, radiusRatio * radiusRatio);
-    int maxNodes = (int) Math.min(CEILING_ISOCHRONE_MAX_NODES, BASE_ISOCHRONE_MAX_NODES * areaScale);
+    int maxNodes = probeNodeCap > 0 ? probeNodeCap
+      : (int) Math.min(CEILING_ISOCHRONE_MAX_NODES, BASE_ISOCHRONE_MAX_NODES * areaScale);
 
     // Angular bucketing: 36 buckets of 10 degrees. Per-bucket "best frontier
     // candidate" is picked by cost-contour score — a far-by-air dead-end can
