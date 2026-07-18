@@ -181,8 +181,14 @@ public final class FastWaypointPlanner {
     double fastScale;
     if (req.directional) {
       bearings = directionalLobeBearings(req.direction, viaCount);
-      fastScale = PlacementGeometry.computeRadiusScale(
-        PlacementGeometry.sortDirectionsForLoop(bearings, req.direction), req.targetPoints);
+      // The fan is already in loop-traversal order (direction-halfSpan ...
+      // direction+halfSpan). Do NOT sort it anchored at `direction`: for a fan
+      // straddling the anchor the relative-angle sort produces a zig-zag order
+      // (0,30,60,300,330) whose perimeter overestimates the real skeleton by
+      // ~30%, shrinking the radius scale to ~0.73 and every FAST loop with it
+      // (the systematic undershoot vs the old routine this scale exists to
+      // match — see computeReferencePerimeterFactor's v1.7.8 parity contract).
+      fastScale = PlacementGeometry.computeRadiusScale(bearings, req.targetPoints);
     } else {
       // Dense ring probe (matching the pre-refactor 12-direction sweep so forming
       // stays as robust), scaled to the loop's via count; placement caps below.
