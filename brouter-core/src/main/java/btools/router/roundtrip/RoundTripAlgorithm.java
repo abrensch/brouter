@@ -60,4 +60,18 @@ public enum RoundTripAlgorithm {
       return AUTO;
     }
   }
+
+  /**
+   * The algorithm a request gets when it names none: the
+   * {@code roundtrip.default.algorithm} system property (any name
+   * {@link #fromString} accepts), {@code FAST} otherwise. FAST is the shipped
+   * default because it keeps the latency envelope of the historic round-trip
+   * routine — no existing caller gets slower; the quality tiers are an opt-in
+   * (per request via {@code roundTripAlgorithm}, or per deployment via the
+   * property). Read per call so embedders and tests can change it at runtime;
+   * an explicit request parameter always wins.
+   */
+  public static RoundTripAlgorithm defaultAlgorithm() {
+    return fromString(System.getProperty("roundtrip.default.algorithm", "FAST"));
+  }
 }

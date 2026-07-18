@@ -26,7 +26,7 @@ You control the loop with a few request parameters:
 | `direction` / `heading` | compass bearing the loop heads out toward (`heading` additionally forces it for the opening leg); without it the start bearing is drawn randomly, so fix it whenever the loop should be reproducible. Same keys as upstream point-to-point routing |
 | `alternativeidx` | deterministic loop variety seed (`0` = default loop, any value ≥ 0 gives a reproducible variant — see [note below](#loop-quality)) |
 | `roundTripDirectionAdd` | angle offset added to an auto-detected start bearing |
-| `roundTripAlgorithm` | the speed/quality ladder `FAST` (quick preview), `BALANCED` (~8 s per slice, worst case two slices — the recommended interactive/mobile default), `AUTO` (default; effort resolved from request context), `QUALITY` (max effort — both planners always, wider search, doubled budget); the internal engine names `WAYPOINT`, `GREEDY`, `ISO_GREEDY`, `ISOCHRONE` are also accepted for forced selection — see below |
+| `roundTripAlgorithm` | the speed/quality ladder `FAST` (the default: one placement, one routing pass — the historic round-trip speed), `BALANCED` (~8 s per slice, worst case two slices — the recommended interactive/mobile quality tier), `AUTO` (effort resolved from request context), `QUALITY` (max effort — both planners always, wider search, doubled budget); the internal engine names `WAYPOINT`, `GREEDY`, `ISO_GREEDY`, `ISOCHRONE` are also accepted for forced selection — see below. Deployments change the default with the system property `roundtrip.default.algorithm`; the request parameter always wins |
 | `roundTripStrictQuality` | `1` hard-rejects loops that fail the quality checks; default `0` is lenient — a failing loop is still returned, tagged with a `Warning:` advisory (see [Loop quality](#loop-quality)) |
 | `allowSamewayback` | `1` lets the return leg reuse ways from the outward leg; default `0` keeps the way out and the way back distinct |
 
@@ -59,7 +59,7 @@ closed loop. Four modes are recommended, forming a speed/quality ladder:
   predictable latency, visibly better loops than FAST. (Measured on the test
   machine: ~40% below AUTO's time on a 180 km request at nearly identical
   length adherence; phones should expect the budget to be the limit instead.)
-- **AUTO** (default) — runs the planner competition and keeps the best loop,
+- **AUTO** — runs the planner competition and keeps the best loop,
   with its effort resolved from the request context (see below). This is what
   you want when calculation time is not a major concern.
 - **QUALITY** — the full competition at maximum effort: both planners always
@@ -107,12 +107,10 @@ any unrecognised value falls back to `AUTO`.
 ## Migrating from the old round-trip
 
 The old round-trip routine (a fixed ring of points, one routing pass) lives on
-as the `FAST` tier. The default is now `AUTO`, which works harder for a better
-loop. If you want the old speed and behaviour, request it directly:
-
-```
-roundTripAlgorithm=FAST
-```
+as the `FAST` tier — and `FAST` is the default, so existing callers keep the
+speed they know without changing anything. The quality tiers are an opt-in:
+per request with `roundTripAlgorithm` (`AUTO`, `BALANCED`, `QUALITY`), or per
+deployment with the system property `roundtrip.default.algorithm`.
 
 What stays the same with `FAST`:
 

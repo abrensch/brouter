@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import btools.mapaccess.MatchedWaypoint;
+import btools.router.roundtrip.RoundTripAlgorithm;
 import btools.router.roundtrip.RoundTripQualityGate;
 
 /**
@@ -118,6 +119,11 @@ public final class RoundTripFixture {
     rc.localFunction = profileFile(profile).getAbsolutePath();
     rc.startDirection = direction;
     rc.roundTripDistance = radius;
+    // These suites were written against the AUTO competition surface; pin it
+    // explicitly so the shipped default (FAST, property-configurable) cannot
+    // silently change what they test. Tests wanting another algorithm set it
+    // via tweak; the default itself is asserted in RoutingEngineTest.
+    rc.roundTripAlgorithm = RoundTripAlgorithm.AUTO;
     rc.turnInstructionMode = 2; // generate voice hints so they can be validated
     // These suites assert the gate's HARD-reject behaviour; the engine now
     // defaults to lenient (return quality-failed routes with a warning), so opt

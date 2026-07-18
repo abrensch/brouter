@@ -262,7 +262,7 @@ public final class RoutingContext {
   public Integer roundTripDirectionAdd;
   public Integer roundTripPoints;
   public boolean allowSamewayback;
-  public RoundTripAlgorithm roundTripAlgorithm = RoundTripAlgorithm.AUTO;
+  public RoundTripAlgorithm roundTripAlgorithm = RoundTripAlgorithm.defaultAlgorithm();
   /**
    * Quality-gate strictness for generated round-trips. When {@code false}
    * (the default), a route that fails only a QUALITY check

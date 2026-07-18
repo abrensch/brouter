@@ -161,6 +161,9 @@ public class RoutingEngineTest {
     // This test asserts the HARD-reject contract at the data edge; the engine
     // now defaults to lenient (return quality-failed routes with a warning).
     rctx.roundTripStrictQuality = true;
+    // The contract under test is the AUTO competition's failure surface (see
+    // the assertions below); pin it — the shipped default is FAST.
+    rctx.roundTripAlgorithm = RoundTripAlgorithm.AUTO;
 
     RoutingEngine re = calcRoundTrip(8.720, 50.000, "rtEdge", rctx);
 
@@ -429,8 +432,22 @@ public class RoutingEngineTest {
     RoutingContext rctx = new RoutingContext();
     rctx.startDirection = 0;
     rctx.roundTripDistance = 1000;
-    // no algorithm set — must default to AUTO (the probe-based competition)
-    Assert.assertEquals(RoundTripAlgorithm.AUTO, rctx.roundTripAlgorithm);
+    // No algorithm set — the shipped default is FAST (= WAYPOINT), keeping the
+    // historic round-trip latency envelope. Deployments opt into another
+    // default via -Droundtrip.default.algorithm; a request parameter wins.
+    Assert.assertEquals(RoundTripAlgorithm.WAYPOINT, rctx.roundTripAlgorithm);
+    try {
+      System.setProperty("roundtrip.default.algorithm", "AUTO");
+      Assert.assertEquals("property overrides the shipped default",
+        RoundTripAlgorithm.AUTO, new RoutingContext().roundTripAlgorithm);
+      System.setProperty("roundtrip.default.algorithm", "bogus");
+      Assert.assertEquals("unknown property value falls back to AUTO (fromString contract)",
+        RoundTripAlgorithm.AUTO, new RoutingContext().roundTripAlgorithm);
+    } finally {
+      System.clearProperty("roundtrip.default.algorithm");
+    }
+    Assert.assertEquals("cleared property restores the FAST default",
+      RoundTripAlgorithm.WAYPOINT, new RoutingContext().roundTripAlgorithm);
 
     RoutingEngine re = calcRoundTrip(8.720, 50.000, "rtDefaultProbe", rctx);
     Assert.assertNull(re.getErrorMessage());
