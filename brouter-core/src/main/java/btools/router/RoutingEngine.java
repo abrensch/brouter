@@ -1,33 +1,11 @@
 package btools.router;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import btools.mapaccess.*;
+import btools.router.roundtrip.*;
+import btools.util.*;
 
-import btools.mapaccess.MatchedWaypoint;
-import btools.mapaccess.NodesCache;
-import btools.mapaccess.OsmLink;
-import btools.mapaccess.OsmLinkHolder;
-import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmNodePairSet;
-import btools.mapaccess.OsmPos;
-import btools.util.CheapAngleMeter;
-import btools.util.CheapRuler;
-import btools.util.CompactLongMap;
-import btools.util.SortedHeap;
-import btools.util.StackSampler;
+import java.io.*;
+import java.util.*;
 
 public class RoutingEngine extends Thread {
 
@@ -37,9 +15,9 @@ public class RoutingEngine extends Thread {
   public final static int BROUTER_ENGINEMODE_GETINFO = 3;
   public final static int BROUTER_ENGINEMODE_ROUNDTRIP = 4;
 
-  private NodesCache nodesCache;
+  NodesCache nodesCache;
   private SortedHeap<OsmPath> openSet = new SortedHeap<>();
-  private boolean finished = false;
+  private volatile boolean finished = false;
 
   protected List<OsmNodeNamed> waypoints = null;
   List<OsmNodeNamed> extraWaypoints = null;
@@ -48,19 +26,58 @@ public class RoutingEngine extends Thread {
 
   private int nodeLimit; // used for target island search
   private int MAXNODES_ISLAND_CHECK = 500;
-  private OsmNodePairSet islandNodePairs = new OsmNodePairSet(MAXNODES_ISLAND_CHECK);
+  OsmNodePairSet islandNodePairs = new OsmNodePairSet(MAXNODES_ISLAND_CHECK);
   private boolean useNodePoints = false; // use the start/end nodes  instead of crosspoint
 
   private int engineMode = 0;
 
   private int MAX_STEPS_CHECK = 500;
 
-  private int ROUNDTRIP_DEFAULT_DIRECTIONADD = 45;
+  private static final String PROFILE_PARAM_ALLOW_FERRIES = "allow_ferries";
+
+  // A loop whose start/end gap exceeds this never returned to the origin.
+  private static final int MAX_ROUNDTRIP_CLOSURE_METERS = 400;
+  /** searchRadius for a 30km loop (=30km/2π); maxNodes baseline scales relative to this. */
+  private static final double REFERENCE_LOOP_RADIUS_M = 30_000.0 / (2 * Math.PI);
+  /** Per-area base maxNodes for isochrone Dijkstra at the reference radius. */
+  private static final int BASE_ISOCHRONE_MAX_NODES = 300_000;
+  /** Absolute ceiling for isochrone Dijkstra maxNodes (circuit breaker). */
+  private static final int CEILING_ISOCHRONE_MAX_NODES = 1_500_000;
+
+  /**
+   * Isochrone Dijkstra cost-budget calibration. A fixed cost budget gives very
+   * different physical pool depths per profile (fastbike reaches ~2× searchRadius;
+   * a high-penalty escape profile collapsed to ~0.45× — half-length loops). So the
+   * budget is calibrated in flight: pops in
+   * {@code [ISO_CALIBRATION_SAMPLE_LO, 1.0] × searchRadius} yield a median
+   * cost-per-air-meter, and at the first pop past searchRadius the budget becomes
+   * {@code ISO_TARGET_REACH_FACTOR × searchRadius × medianCostEff}, clamped to
+   * [floor, cap] × searchRadius. Safe: the floor keeps every contour target at or
+   * after the checkpoint, and a fired raise resets the frontier/contour
+   * best-scores, so nothing that could win is discarded; with no raise, behavior
+   * is bit-identical to the historical fixed budget. The 1.5× geographic cutoff,
+   * {@code maxNodes}, and the expansion deadline still bound worst-case work.
+   */
+  static final double ISO_BUDGET_FLOOR_FACTOR = 4.0;
+  static final double ISO_BUDGET_CAP_FACTOR = 12.0;
+  /** Target air reach as a multiple of searchRadius (33% margin past the 1.5× geo cutoff). */
+  static final double ISO_TARGET_REACH_FACTOR = 2.0;
+  /** Lower edge of the calibration sampling band, as a fraction of searchRadius (upper edge = 1.0). */
+  static final double ISO_CALIBRATION_SAMPLE_LO = 0.7;
+  /** Below this many band samples the calibration is skipped (sparse graph → keep the floor). */
+  static final int ISO_CALIBRATION_MIN_SAMPLES = 30;
 
   private int MAX_DYNAMIC_RANGE = 60000;
 
   protected OsmTrack foundTrack = new OsmTrack();
   private OsmTrack foundRawTrack = null;
+  /**
+   * Round-trip track rejected by the quality gate ({@link #foundTrack} is
+   * nulled on rejection), kept for diagnostics. Null in plain routing.
+   */
+  private OsmTrack lastRejectedTrack;
+  private RoundTripResult lastRoundTripResult;
+  private RoundTripQualityResult lastRoundTripQuality;
   private int alternativeIndex = 0;
 
   protected String outputMessage = null;
@@ -81,18 +98,78 @@ public class RoutingEngine extends Thread {
 
   private OsmTrack guideTrack;
 
+  OsmTrack[] greedyLegTracks; // per-leg cost-cutting tracks from greedy planner
+
   private OsmPathElement matchPath;
 
-  private long startTime;
-  private long maxRunningTime;
+  // Saved/restored across leg attempts by GreedyRoundTripPlanner.timedFindTrack
+  // and read by the _findTrack timeout arithmetic — all on the same worker
+  // thread (the cross-thread watchdog channel is the `terminated` flag, not
+  // these fields). volatile is defensive: it keeps the 64-bit reads/writes
+  // atomic should a watchdog ever read them, and is harmless otherwise.
+  volatile long startTime;
+  volatile long maxRunningTime;
+  // Wall-clock budget (ms) for the routing legs of a round trip, captured from
+  // doRun() so the WAYPOINT/ISOCHRONE/greedy-fallthrough doRouting() calls are
+  // bounded. 0 (the CLI default) keeps the legacy no-timeout behaviour.
+  private long roundTripRoutingBudgetMs;
+  /**
+   * Wall-clock deadline (epoch ms) for the whole round-trip request, set once
+   * by doRun() and consulted by every retry layer and the isochrone expansion
+   * loop — retries cannot multiply the request budget. 0 = unbounded.
+   */
+  volatile long roundTripRequestDeadline;
+
+  /** Milliseconds left until {@link #roundTripRequestDeadline} (MAX_VALUE when unbounded). */
+  long remainingRequestBudgetMs() {
+    return roundTripRequestDeadline == 0
+      ? Long.MAX_VALUE
+      : roundTripRequestDeadline - System.currentTimeMillis();
+  }
+
+  /**
+   * The request's resolved effort preset: BALANCED pins BOUNDED, QUALITY pins
+   * MAX, AUTO resolves from context ({@link RoundTripEffortPolicy#resolveAuto}).
+   * Planners read their knobs from it; AUTO child engines inherit it.
+   */
+  RoundTripEffortPolicy roundTripEffortPolicy = RoundTripEffortPolicy.STANDARD_PRESET;
+
+  /**
+   * Wall-clock bound (epoch ms, 0 = none) for the next
+   * {@link #runIsochroneExpansion}, set/cleared by the greedy planner — the
+   * expansion loop has no other time or termination check, only cost/geo/node
+   * caps.
+   */
+  volatile long transientExpansionDeadline;
   public SearchBoundary boundary;
 
   public boolean quite = false;
+
+  /**
+   * Reachability-cloud cell size for pocket-avoiding waypoint placement: every
+   * node an isochrone expansion pops is bucketed into cells of roughly this
+   * many meters. ~150m keeps a 5×5 neighborhood at ~750m — local enough that a
+   * dead-end corridor (cells along one line) is distinguishable from a
+   * junction-rich neighborhood (filled square).
+   */
+  static final int REACHABILITY_CELL_M = 150;
+  private boolean suppressRoutingIslandGuard = false;
 
   private Object[] extract;
 
   private boolean directWeaving = !Boolean.getBoolean("disableDirectWeaving");
   private String outfile;
+
+  double roundTripSearchRadius = 0;
+
+  /**
+   * True while routing a user-supplied-via round trip. Micro-detour and
+   * back-and-forth removal are skipped in this mode: they target auto-generated
+   * loops and would delete a route whose closing waypoint sits on the start
+   * (crow-fly 0 always trips the ratio threshold) — and user-picked shapes must
+   * not be post-edited away.
+   */
+  boolean explicitViaRoundTrip = false;
 
   public RoutingEngine(String outfileBase, String logfileBase, File segmentDir,
                        List<OsmNodeNamed> waypoints, RoutingContext rc) {
@@ -108,6 +185,14 @@ public class RoutingEngine extends Thread {
     this.infoLogEnabled = outfileBase != null;
     this.routingContext = rc;
     this.engineMode = engineMode;
+    if (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) {
+      // Mark the context as round-trip up front: this gates the anti-reuse
+      // refTrack penalty in OsmPath to its edge-membership form (see
+      // RoutingContext.roundTrip) so loop legs avoid retracing traveled ways,
+      // while general routing keeps the historic node-membership test unchanged.
+      rc.roundTrip = true;
+      applyRoundTripProfileDefaults(rc);
+    }
 
     File baseFolder = new File(routingContext.localFunction).getParentFile();
     baseFolder = baseFolder == null ? null : baseFolder.getParentFile();
@@ -137,11 +222,35 @@ public class RoutingEngine extends Thread {
 
   }
 
+  /**
+   * Generated loops default to no ferries: loop generation must not discover a
+   * ferry shortcut unless the caller opts in via {@code profile:allow_ferries=true}.
+   * Point-to-point routing keeps the profile defaults.
+   */
+  private static void applyRoundTripProfileDefaults(RoutingContext rc) {
+    if (rc == null) return;
+    if (rc.keyValues == null) {
+      rc.keyValues = new HashMap<>();
+      rc.keyValues.put(PROFILE_PARAM_ALLOW_FERRIES, "0");
+      return;
+    }
+    if (!rc.keyValues.containsKey(PROFILE_PARAM_ALLOW_FERRIES)) {
+      rc.keyValues = new HashMap<>(rc.keyValues);
+      rc.keyValues.put(PROFILE_PARAM_ALLOW_FERRIES, "0");
+    }
+  }
+
+  private boolean roundTripFerriesAllowed() {
+    if (routingContext == null || routingContext.keyValues == null) return false;
+    String v = routingContext.keyValues.get(PROFILE_PARAM_ALLOW_FERRIES);
+    return v != null && ("true".equalsIgnoreCase(v) || "1".equals(v) || "yes".equalsIgnoreCase(v));
+  }
+
   private boolean hasInfo() {
     return infoLogEnabled || infoLogWriter != null;
   }
 
-  private void logInfo(String s) {
+  void logInfo(String s) {
     if (infoLogEnabled) {
       System.out.println(s);
     }
@@ -168,7 +277,9 @@ public class RoutingEngine extends Thread {
   }
 
   public void doRun(long maxRunningTime) {
-
+    // Note: this.maxRunningTime is set by the branches that route (doRouting
+    // sets it; the round-trip branch sets it for the competition). GETINFO/
+    // GETELEV deliberately leave it at its default so they stay untimed.
     switch (engineMode) {
       case BROUTER_ENGINEMODE_ROUTING:
         if (waypoints.size() < 2) {
@@ -188,6 +299,26 @@ public class RoutingEngine extends Thread {
       case BROUTER_ENGINEMODE_ROUNDTRIP:
         if (waypoints.size() < 1)
           throw new IllegalArgumentException("we need one lat/lon point at least!");
+        // Capture the request's wall-clock budget so the round-trip routing
+        // legs (WAYPOINT/ISOCHRONE/greedy fallthrough) honour it instead of
+        // running untimed, and so the AUTO competition can share it. 0 keeps
+        // the legacy unbounded behaviour for the CLI.
+        this.maxRunningTime = maxRunningTime;
+        roundTripRoutingBudgetMs = maxRunningTime;
+        // Anchor the engine clock for searches that run outside doRouting /
+        // timedFindTrack (e.g. the repairViaPinnedBulges connector search in
+        // the greedy bypass path). Before this, engine.startTime stayed 0 in
+        // that path, so with maxRunningTime > 0 the connector's timeout check
+        // (now - startTime > budget) fired instantly and every bulge repair
+        // silently failed on servers.
+        this.startTime = System.currentTimeMillis();
+        // Absolute wall-clock deadline for the WHOLE round-trip request. This
+        // is what the greedy planner ladder, the isochrone expansions and the
+        // fallback doRouting consult so retries can never multiply the
+        // request budget (the historical minutes-long worst case). 0 keeps
+        // untimed callers (CLI, doRun(0) tests) unbounded.
+        roundTripRequestDeadline = maxRunningTime > 0
+          ? this.startTime + maxRunningTime : 0;
         doRoundTrip();
         break;
       default:
@@ -339,7 +470,16 @@ public class RoutingEngine extends Thread {
         nodesCache = null;
       }
       openSet.clear();
-      finished = true; // this signals termination to outside
+      // Signal termination to outside pollers — but NOT for the round-trip path.
+      // In round-trip mode doRouting only produces the raw loop skeleton; the
+      // outer doRoundTrip still runs the quality gate afterwards and can null
+      // foundTrack / set errorMessage. Publishing `finished` here would let a
+      // polling caller (e.g. BRouterView) read an intermediate result. The
+      // round-trip path publishes `finished` in cleanupRoutingResources(), which
+      // runs in doRoundTrip's finally after the gate has decided.
+      if (engineMode != BROUTER_ENGINEMODE_ROUNDTRIP) {
+        finished = true; // this signals termination to outside
+      }
 
       if (infoLogWriter != null) {
         try {
@@ -484,40 +624,1021 @@ public class RoutingEngine extends Thread {
     }
   }
 
+  private RoundTripOrchestrator roundTripOrchestrator;
+
+  /** The round-trip tier ladder and candidate competition, behind the ops seam. */
+  RoundTripOrchestrator roundTripOrchestrator() {
+    if (roundTripOrchestrator == null) {
+      roundTripOrchestrator = new RoundTripOrchestrator(roundTripOps());
+    }
+    return roundTripOrchestrator;
+  }
+
+  /** Round-trip entry point (kept for API compatibility; delegates to the orchestrator). */
   public void doRoundTrip() {
+    roundTripOrchestrator().doRoundTrip();
+  }
+
+  /**
+   * Single source of truth for lenient/strict acceptance: STRUCTURAL failures
+   * (broken / un-routable / not-a-loop) always hard-reject; QUALITY failures
+   * (rideable but suboptimal) are advisory unless
+   * {@link RoutingContext#roundTripStrictQuality} is set. Shared by the gate
+   * path and the AUTO best-effort fallback so the two never drift apart.
+   */
+  private boolean roundTripQualityHardReject(RoundTripQualityResult quality) {
+    return quality.getRejectionTier() != RoundTripQualityResult.RejectionTier.QUALITY
+      || routingContext.roundTripStrictQuality;
+  }
+
+  /**
+   * Round-trip equivalent of the {@link #doRouting(long)} finally block:
+   * release profile/cache/log resources and signal {@link #isFinished()}.
+   * Idempotent — some round-trip paths already clean up via doRouting, and
+   * direct planner-track adoption paths never enter it.
+   */
+  private void cleanupRoutingResources() {
+    if (hasInfo() && routingContext.expctxWay != null) {
+      logInfo("expression cache stats=" + routingContext.expctxWay.cacheStats());
+    }
+    ProfileCache.releaseProfile(routingContext);
+    if (nodesCache != null) {
+      if (hasInfo()) {
+        logInfo("NodesCache status before close=" + nodesCache.formatStatus());
+      }
+      nodesCache.close();
+      nodesCache = null;
+    }
+    openSet.clear();
+    finished = true;
+
+    if (infoLogWriter != null) {
+      try {
+        infoLogWriter.close();
+      } catch (Exception e) {
+      }
+      infoLogWriter = null;
+    }
+    if (stackSampler != null) {
+      try {
+        stackSampler.close();
+      } catch (Exception e) {
+      }
+      stackSampler = null;
+    }
+  }
+
+  /**
+   * Format and persist a candidate-adopted track in the configured
+   * {@code outputFormat}. When {@link #outfileBase} is null, keep the formatted
+   * output in {@link #outputMessage} and print it unless {@link #quite} is set.
+   * Mirrors the per-iteration write logic from {@link #doRouting} so the
+   * AUTO-competition path produces the same output artefacts as the direct
+   * algorithm dispatch.
+   */
+  private void writeAdoptedTrackOutput(OsmTrack track) {
+    if (track == null) return;
+    if (track.name == null) {
+      track.name = "brouter_" + routingContext.getProfileName() + "_0";
+    }
+    track.exportWaypoints = routingContext.exportWaypoints;
+    track.exportCorrectedWaypoints = routingContext.exportCorrectedWaypoints;
+    String output;
     try {
-      long startTime = System.currentTimeMillis();
+      switch (routingContext.outputFormat) {
+        case "gpx":     output = new FormatGpx(routingContext).format(track); break;
+        case "geojson":
+        case "json":
+          output = new FormatJson(routingContext).format(track);
+          break;
+        case "kml":     output = new FormatKml(routingContext).format(track); break;
+        case "csv":     output = null; break;
+        default:        output = null;
+      }
+      outputMessage = output;
+      if (outfileBase == null) {
+        if (!quite && output != null) {
+          System.out.println(output);
+        }
+        return;
+      }
+      String filename = outfileBase + "0." + routingContext.outputFormat;
+      if ("csv".equals(routingContext.outputFormat)) {
+        new FormatCsv(routingContext).write(filename, track);
+      }
+      if (output != null) {
+        try (FileWriter fw = new FileWriter(filename)) {
+          fw.write(output);
+        }
+      }
+      outfile = filename;
+      alternativeIndex = 0;
+    } catch (Exception e) {
+      logInfo("AUTO: failed to write adopted track: " + e.getClass().getSimpleName()
+        + (e.getMessage() == null ? "" : ": " + e.getMessage()));
+    }
+  }
 
-      routingContext.useDynamicDistance = true;
-      double searchRadius = (routingContext.roundTripDistance == null ? 1500 :routingContext.roundTripDistance);
-      double direction = (routingContext.startDirection == null ? -1 :routingContext.startDirection);
-      double directionAdd = (routingContext.roundTripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD :routingContext.roundTripDirectionAdd);
-      if (direction == -1) direction = getRandomDirectionFromData(waypoints.get(0), searchRadius);
+  // Hints closer together than this are treated as one maneuver for round-trip cleanup.
+  private static final double ROUNDTRIP_VOICEHINT_MERGE_DIST = 25.0; // meters
 
-      if (routingContext.allowSamewayback) {
-        int[] pos = CheapRuler.destination(waypoints.get(0).ilon, waypoints.get(0).ilat, searchRadius, direction);
-        MatchedWaypoint wpt2 = new MatchedWaypoint();
-        wpt2.waypoint = new OsmNode(pos[0], pos[1]);
-        wpt2.name = "rt1_" + direction;
-
-        OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(pos[0], pos[1]));
-        onn.name = "rt1";
-        waypoints.add(onn);
+  /**
+   * Collapse voice-hint clusters from synthetic round-trip geometry: within a
+   * run of hints closer than {@link #ROUNDTRIP_VOICEHINT_MERGE_DIST}, a
+   * near-straight net turn drops the whole cluster, otherwise only the dominant
+   * turn stays. Roundabouts, beelines, and the end marker are never merged.
+   * Round-trip only.
+   */
+  private void consolidateRoundTripVoiceHints(OsmTrack track) {
+    if (track.voiceHints == null || track.voiceHints.list.size() < 2) return;
+    List<VoiceHint> in = track.voiceHints.list;
+    List<VoiceHint> out = new ArrayList<>();
+    int i = 0;
+    while (i < in.size()) {
+      VoiceHint cur = in.get(i);
+      if (cur.cmd == VoiceHint.BL || cur.cmd == VoiceHint.END || cur.isRoundabout()) {
+        out.add(cur);
+        i++;
+        continue;
+      }
+      int j = i;
+      float netAngle = (cur.angle == Float.MAX_VALUE) ? 0f : cur.angle;
+      VoiceHint dominant = cur;
+      while (j + 1 < in.size()) {
+        VoiceHint next = in.get(j + 1);
+        if (next.cmd == VoiceHint.BL || next.cmd == VoiceHint.END || next.isRoundabout()) break;
+        if (in.get(j).distanceToNext >= ROUNDTRIP_VOICEHINT_MERGE_DIST) break;
+        netAngle += (next.angle == Float.MAX_VALUE) ? 0f : next.angle;
+        if (Math.abs(next.angle) > Math.abs(dominant.angle)) dominant = next;
+        j++;
+      }
+      if (j > i) {
+        if (Math.abs(netAngle) >= VoiceHintProcessor.SIGNIFICANT_ANGLE) {
+          // keep the cluster's sharpest turn, carrying the trailing distance forward
+          dominant.distanceToNext = in.get(j).distanceToNext;
+          out.add(dominant);
+        } else if (!out.isEmpty()) {
+          // net-straight wiggle — drop the cluster, but preserve its distance so the
+          // previous instruction's "distance to next" still reaches the following hint.
+          double dropped = 0;
+          for (int k = i; k <= j; k++) dropped += in.get(k).distanceToNext;
+          out.get(out.size() - 1).distanceToNext += dropped;
+        }
+        i = j + 1;
       } else {
-        buildPointsFromCircle(waypoints, direction, searchRadius, routingContext.roundTripPoints == null ? 5 : routingContext.roundTripPoints);
+        out.add(cur);
+        i++;
+      }
+    }
+    if (out.size() != in.size()) {
+      logInfo("roundtrip voicehints: consolidated " + in.size() + " -> " + out.size());
+      track.voiceHints.list.clear();
+      track.voiceHints.list.addAll(out);
+    }
+  }
+
+  /**
+   * Reachability guard: {@code true} unless {@code viaMatch}'s road component
+   * is a small island that cannot reach the start within
+   * {@link #MAXNODES_ISLAND_CHECK} nodes — lets FAST placement drop islanded
+   * vias before routing instead of failing the whole loop. Cheap: the bounded
+   * search exhausts a small island quickly and gives up on large (reachable)
+   * components at the node budget.
+   */
+  private boolean isViaReachableFromStart(MatchedWaypoint viaMatch, MatchedWaypoint startMatch) {
+    if (viaMatch == null || viaMatch.node1 == null || viaMatch.node2 == null
+        || startMatch == null || startMatch.node1 == null || startMatch.node2 == null) {
+      return true; // cannot test -> keep (conservative)
+    }
+    boolean savedInverse = routingContext.inverseDirection;
+    double savedAir = airDistanceCostFactor;
+    int savedNodeLimit = nodeLimit;
+    try {
+      routingContext.inverseDirection = true;
+      airDistanceCostFactor = 0.0;
+      nodeLimit = MAXNODES_ISLAND_CHECK;
+      OsmTrack seg = findTrack("rt-fast-island-check", viaMatch, startMatch, null, null, false);
+      // Reachable if a bounded path was found. null with budget left also means the
+      // via's whole component is a small island -> unreachable.
+      return !(seg == null && nodeLimit > 0);
+    } catch (RoutingIslandException rie) {
+      // The bounded search exhausted a small island around the via -> unreachable.
+      return false;
+    } catch (RuntimeException e) {
+      // Best-effort guard: a budget timeout or any other transient failure must
+      // not fail the request — keep the via (conservative) and let routing decide.
+      return true;
+    } finally {
+      routingContext.inverseDirection = savedInverse;
+      airDistanceCostFactor = savedAir;
+      nodeLimit = savedNodeLimit;
+    }
+  }
+
+  private GeometricWaypointPlacer waypointPlacer;
+
+  /** Envelope/isochrone via placement. */
+  GeometricWaypointPlacer waypointPlacer() {
+    if (waypointPlacer == null) {
+      waypointPlacer = new GeometricWaypointPlacer(roundTripOps());
+    }
+    return waypointPlacer;
+  }
+
+  private RoundTripTrackCleanup trackCleanup;
+
+  /** Round-trip track post-processing. */
+  RoundTripTrackCleanup trackCleanup() {
+    if (trackCleanup == null) {
+      RoundTripEngineOps ops = roundTripOps();
+      trackCleanup = new RoundTripTrackCleanup(waypointSnapper(), ops, ops, ops);
+    }
+    return trackCleanup;
+  }
+
+  private WaypointSnapper waypointSnapper;
+
+  /** Round-trip snap/validate/probe helpers. */
+  WaypointSnapper waypointSnapper() {
+    if (waypointSnapper == null) {
+      RoundTripEngineOps ops = roundTripOps();
+      waypointSnapper = new WaypointSnapper(ops, ops, ops);
+    }
+    return waypointSnapper;
+  }
+
+  /**
+   * Production adapter for the round-trip engine seam: delegates to the
+   * engine's leg router, matcher, expansion, timers, and logging, so engine
+   * members stay package-private. Delegates qualify with
+   * {@code RoutingEngine.this} so engine subclass overrides (tests) still
+   * receive the call.
+   */
+  public RoundTripEngineOps roundTripOps() {
+    return new RoundTripEngineOps() {
+      @Override
+      public RoutingContext routingContext() {
+        return RoutingEngine.this.routingContext;
       }
 
-      routingContext.waypointCatchingRange = 250;
+      @Override
+      public void logInfo(String msg) {
+        RoutingEngine.this.logInfo(msg);
+      }
 
-      doRouting(0);
+      @Override
+      public boolean isTerminated() {
+        return RoutingEngine.this.isTerminated();
+      }
 
-      long endTime = System.currentTimeMillis();
-      logInfo("round trip execution time = " + (endTime - startTime) / 1000. + " seconds");
+      @Override
+      public long startTime() {
+        return RoutingEngine.this.startTime;
+      }
+
+      @Override
+      public long maxRunningTime() {
+        return RoutingEngine.this.maxRunningTime;
+      }
+
+      @Override
+      public double roundTripSearchRadius() {
+        return RoutingEngine.this.roundTripSearchRadius;
+      }
+
+      @Override
+      public boolean isRoundTripMode() {
+        return engineMode == BROUTER_ENGINEMODE_ROUNDTRIP;
+      }
+
+      @Override
+      public boolean explicitViaRoundTrip() {
+        return RoutingEngine.this.explicitViaRoundTrip;
+      }
+
+      @Override
+      public void recalcTrack(OsmTrack track) {
+        RoutingEngine.this.recalcTrack(track);
+      }
+
+      @Override
+      public void buildPointsFromCircle(List<OsmNodeNamed> waypoints, double startAngle,
+                                        double searchRadius, int points) {
+        RoutingEngine.this.buildPointsFromCircle(waypoints, startAngle, searchRadius, points);
+      }
+
+      @Override
+      public void consolidateRoundTripVoiceHints(OsmTrack track) {
+        RoutingEngine.this.consolidateRoundTripVoiceHints(track);
+      }
+
+      @Override
+      public void setMatchedWaypoints(List<MatchedWaypoint> waypoints) {
+        matchedWaypoints = waypoints;
+      }
+
+      @Override
+      public List<MatchedWaypoint> matchedWaypoints() {
+        return matchedWaypoints;
+      }
+
+      @Override
+      public List<OsmNodeNamed> waypoints() {
+        return RoutingEngine.this.waypoints;
+      }
+
+      @Override
+      public OsmTrack foundTrack() {
+        return foundTrack;
+      }
+
+      @Override
+      public void setFoundTrack(OsmTrack track) {
+        foundTrack = track;
+      }
+
+      @Override
+      public String errorMessage() {
+        return errorMessage;
+      }
+
+      @Override
+      public void setErrorMessage(String message) {
+        errorMessage = message;
+      }
+
+      @Override
+      public RoutingOutcome doRouting(long budgetMs) {
+        RoutingEngine.this.doRouting(budgetMs);
+        return new RoutingOutcome(foundTrack, errorMessage);
+      }
+
+      @Override
+      public RoundTripEffortPolicy roundTripEffortPolicy() {
+        return roundTripEffortPolicy;
+      }
+
+      @Override
+      public void setRoundTripEffortPolicy(RoundTripEffortPolicy policy) {
+        roundTripEffortPolicy = policy;
+      }
+
+      @Override
+      public long roundTripRequestDeadline() {
+        return roundTripRequestDeadline;
+      }
+
+      @Override
+      public void setRoundTripRuntimeHints(RoundTripRuntimeHints hints) {
+        roundTripSearchRadius = hints.searchRadius;
+        roundTripRequestDeadline = hints.requestDeadline;
+        explicitViaRoundTrip = hints.explicitViaRoundTrip;
+        greedyLegTracks = hints.greedyLegTracks();
+      }
+
+      @Override
+      public long roundTripRoutingBudgetMs() {
+        return roundTripRoutingBudgetMs;
+      }
+
+      @Override
+      public void setLastRoundTripResult(RoundTripResult result) {
+        lastRoundTripResult = result;
+      }
+
+      @Override
+      public void setLastRoundTripQuality(RoundTripQualityResult quality) {
+        lastRoundTripQuality = quality;
+      }
+
+      @Override
+      public IsochroneExpansionResult runIsochroneExpansion(OsmNodeNamed start, double searchRadius) {
+        return RoutingEngine.this.runIsochroneExpansion(start, searchRadius);
+      }
+
+      @Override
+      public void writeAdoptedTrackOutput(OsmTrack track) {
+        RoutingEngine.this.writeAdoptedTrackOutput(track);
+      }
+
+      @Override
+      public void terminate() {
+        RoutingEngine.this.terminate();
+      }
+
+      @Override
+      public void addTerminationHook(Runnable hook) {
+        RoutingEngine.this.addTerminationHook(hook);
+      }
+
+      @Override
+      public void cleanupRoutingResources() {
+        RoutingEngine.this.cleanupRoutingResources();
+      }
+
+      @Override
+      public void logException(Throwable t) {
+        RoutingEngine.this.logException(t);
+      }
+
+      @Override
+      public FastPlacementOps fastPlacementOps() {
+        return RoutingEngine.this.fastPlacementOps();
+      }
+
+      @Override
+      public double getRandomDirectionFromData(OsmNodeNamed wp, double searchRadius) {
+        return RoutingEngine.this.getRandomDirectionFromData(wp, searchRadius);
+      }
+
+      @Override
+      public void setLastRejectedTrack(OsmTrack track) {
+        lastRejectedTrack = track;
+      }
+
+      @Override
+      public boolean roundTripFerriesAllowed() {
+        return RoutingEngine.this.roundTripFerriesAllowed();
+      }
+
+      @Override
+      public boolean roundTripQualityHardReject(RoundTripQualityResult quality) {
+        return RoutingEngine.this.roundTripQualityHardReject(quality);
+      }
+
+      @Override
+      public long remainingRequestBudgetMs() {
+        return RoutingEngine.this.remainingRequestBudgetMs();
+      }
+
+      @Override
+      public File segmentDir() {
+        return RoutingEngine.this.segmentDir;
+      }
+
+      @Override
+      public void logThrowable(Throwable t) {
+        RoutingEngine.this.logThrowable(t);
+      }
+
+      @Override
+      public void addLinksProcessed(long links) {
+        RoutingEngine.this.addLinksProcessed((int) links);
+      }
+
+      @Override
+      public void setMaxRunningTime(long maxRunningTimeMillis) {
+        RoutingEngine.this.maxRunningTime = maxRunningTimeMillis;
+      }
+
+      @Override
+      public void setTransientExpansionDeadline(long deadlineMillis) {
+        RoutingEngine.this.transientExpansionDeadline = deadlineMillis;
+      }
+
+      @Override
+      public OsmTrack findTrack(String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp,
+                                OsmTrack costCuttingTrack, OsmTrack refTrack, boolean fastPartialRecalc) {
+        return RoutingEngine.this.findTrack(operationName, startWp, endWp,
+          costCuttingTrack, refTrack, fastPartialRecalc);
+      }
+
+      @Override
+      public OsmTrack retrackForDetail(OsmTrack rawTrack, MatchedWaypoint startWp, MatchedWaypoint endWp,
+                                       OsmTrack refTrack) {
+        return RoutingEngine.this.retrackForDetail(rawTrack, startWp, endWp, refTrack);
+      }
+
+      @Override
+      public MatchedWaypoint profileAwareMatchPoint(int ilon, int ilat, String name, double maxSnapDist) {
+        return waypointSnapper().profileAwareMatchPoint(ilon, ilat, name, maxSnapDist);
+      }
+
+      @Override
+      public void resetCache(boolean detailed) {
+        RoutingEngine.this.resetCache(detailed);
+      }
+
+      @Override
+      public OsmTrack findTrackTimed(String operationName, MatchedWaypoint startWp,
+                                     MatchedWaypoint endWp, OsmTrack refTrack, long budgetMs) {
+        return RoutingEngine.this.findTrackTimed(operationName, startWp, endWp, refTrack, budgetMs);
+      }
+
+      @Override
+      public OsmTrack findTrackUnguided(String operationName, MatchedWaypoint startWp,
+                                        MatchedWaypoint endWp) {
+        OsmTrack savedGuide = guideTrack;
+        guideTrack = null; // a live guide track would corrupt the local search
+        try {
+          return RoutingEngine.this.findTrack(operationName, startWp, endWp, null, null, false);
+        } finally {
+          guideTrack = savedGuide;
+        }
+      }
+
+      @Override
+      public void matchWaypointsToNodes(List<MatchedWaypoint> waypoints, double maxDistance) {
+        nodesCache.matchWaypointsToNodes(waypoints, maxDistance, islandNodePairs);
+      }
+
+      @Override
+      public IsochroneExpansionResult runIsochroneExpansion(OsmNodeNamed start, double searchRadius,
+                                                            OsmTrack refTrack, boolean includeCandidateTracks) {
+        return RoutingEngine.this.runIsochroneExpansion(start, searchRadius, refTrack, includeCandidateTracks);
+      }
+    };
+  }
+
+  /**
+   * Weight of the air-distance "reach bonus" in the cost-contour scoring rule.
+   * The bonus is a soft tiebreaker; this weight is the trade-off threshold,
+   * i.e. a 10% normalized cost error completely cancels the max air-reach
+   * bonus (chosen so cost dominates whenever it's meaningfully different).
+   */
+  static final double AIR_REACH_BONUS_WEIGHT = 0.10;
+
+  /**
+   * Score a Dijkstra-popped node against a target cost level; lower wins.
+   * Normalized cost error, minus a soft air-reach tiebreaker for
+   * farther-reached nodes. Used by {@link #runIsochroneExpansion} for the
+   * per-bucket frontier node and the 25/50/75% contour candidates.
+   */
+  static double costContourScore(int pathCost, int targetCost, double dist, double searchRadius) {
+    return costContourScore(pathCost, targetCost, clampedAirReachBonus(dist, searchRadius));
+  }
+
+  /**
+   * Hot-loop overload: caller has already computed {@code airReachBonus} via
+   * {@link #clampedAirReachBonus} so the same value can be reused across the
+   * frontier + 3 contour evaluations per Dijkstra pop.
+   */
+  static double costContourScore(int pathCost, int targetCost, double airReachBonus) {
+    if (targetCost <= 0) return Double.POSITIVE_INFINITY;
+    double costError = Math.abs((double) pathCost - targetCost) / targetCost;
+    return costError - AIR_REACH_BONUS_WEIGHT * airReachBonus;
+  }
+
+  /**
+   * Calibrated isochrone cost budget from the sampled frontier band (see the
+   * ISO_BUDGET_* class comment): {@code ISO_TARGET_REACH_FACTOR × searchRadius
+   * × median cost-per-air-meter}. Returns the floor when the band is too
+   * sparse to trust ({@code sampleCount < ISO_CALIBRATION_MIN_SAMPLES}).
+   * Never below the floor (the historical fixed budget), never above the cap.
+   */
+  static int calibratedIsoBudget(double[] samples, int sampleCount, double searchRadius) {
+    int floor = (int) (searchRadius * ISO_BUDGET_FLOOR_FACTOR);
+    if (sampleCount < ISO_CALIBRATION_MIN_SAMPLES) return floor;
+    double[] band = Arrays.copyOf(samples, sampleCount);
+    Arrays.sort(band);
+    double medianCostEff = band[sampleCount / 2];
+    double budget = ISO_TARGET_REACH_FACTOR * searchRadius * medianCostEff;
+    double cap = searchRadius * ISO_BUDGET_CAP_FACTOR;
+    return (int) Math.min(cap, Math.max(floor, budget));
+  }
+
+  /** {@code clamp(dist / searchRadius, 0, 1)}; 0 when searchRadius is non-positive (avoids a 0/0 NaN). */
+  static double clampedAirReachBonus(double dist, double searchRadius) {
+    if (searchRadius <= 0.0) {
+      return 0.0;
+    }
+    return Math.min(1.0, Math.max(0.0, dist / searchRadius));
+  }
+
+  /**
+   * Decide whether the new candidate replaces the current best. Lower score wins;
+   * ties broken in order by (1) higher path cost, (2) higher air-distance, (3)
+   * existing candidate remains. See {@link #costContourScore}.
+   */
+  static boolean isBetterCandidate(double newScore, int newCost, double newDist,
+                                   double bestScore, int bestCost, double bestDist) {
+    if (newScore < bestScore) return true;
+    if (newScore > bestScore) return false;
+    if (newCost > bestCost) return true;
+    if (newCost < bestCost) return false;
+    return newDist > bestDist;
+  }
+
+  /**
+   * Cost-limited Dijkstra expansion from the start: the reachable road-network
+   * frontier in all directions. Returns frontier table + road-native candidate
+   * pool, or {@code null} on failure.
+   */
+  IsochroneExpansionResult runIsochroneExpansion(OsmNodeNamed start, double searchRadius) {
+    // Start-centered expansion (ISO_GREEDY pool, frontier table): budget
+    // calibration ON — searchRadius here is the loop radius the reach target
+    // is defined against.
+    return runIsochroneExpansion(start, searchRadius, null, false, true);
+  }
+
+  IsochroneExpansionResult runIsochroneExpansion(OsmNodeNamed start, double searchRadius,
+                                                 OsmTrack refTrack,
+                                                 boolean includeCandidateTracks) {
+    // Per-step callers (GraphNativeCandidateProvider expands a local disk
+    // around the current node each step): calibration OFF — their radius is a
+    // step window, not the loop radius, so the reach-target formula does not
+    // apply and the historical fixed budget is the correct sizing.
+    return runIsochroneExpansion(start, searchRadius, refTrack, includeCandidateTracks, false);
+  }
+
+  private IsochroneExpansionResult runIsochroneExpansion(OsmNodeNamed start, double searchRadius,
+                                                         OsmTrack refTrack,
+                                                         boolean includeCandidateTracks,
+                                                         boolean calibrateBudget) {
+    // Phase 1: Match start point (loads segments via directWeaving, consumes node data)
+    resetCache(false);
+    MatchedWaypoint startMwp = new MatchedWaypoint();
+    startMwp.waypoint = new OsmNode(start.ilon, start.ilat);
+    startMwp.name = "iso_start";
+    List<MatchedWaypoint> mwpList = new ArrayList<>();
+    mwpList.add(startMwp);
+    double maxSnapDist = Math.min(searchRadius * 0.3, 2000);
+    try {
+      nodesCache.matchWaypointsToNodes(mwpList, maxSnapDist, islandNodePairs);
     } catch (Exception e) {
-      e.getStackTrace();
-      logException(e);
+      logInfo("isochrone: match failed: " + e.getMessage());
+      return null;
+    }
+    if (startMwp.crosspoint == null || startMwp.node1 == null || startMwp.node2 == null) {
+      logInfo("isochrone: start match incomplete");
+      return null;
     }
 
+    // Phase 2: Reset cache — creates fresh nodesMap but preserves fileRows (cached segments).
+    // This is the critical step: matchWaypointsToNodes consumed segment data via directWeaving,
+    // so obtainNonHollowNode would fail without this reset. The reset makes the segments
+    // re-parseable while keeping file handles open. Same pattern as findTrack → _findTrack.
+    resetCache(false);
+    nodesCache.nodesMap.cleanupMode = 1;
+
+    // Phase 3: Get graph nodes — now obtainNonHollowNode can re-parse from cached segments
+    OsmNode n1 = nodesCache.getGraphNode(startMwp.node1);
+    OsmNode n2 = nodesCache.getGraphNode(startMwp.node2);
+    if (!nodesCache.obtainNonHollowNode(n1) || !nodesCache.obtainNonHollowNode(n2)) {
+      logInfo("isochrone: could not obtain start nodes");
+      return null;
+    }
+    nodesCache.expandHollowLinkTargets(n1);
+    nodesCache.expandHollowLinkTargets(n2);
+
+    OsmPath startPath1 = getStartPath(n1, n2, startMwp, null, false);
+    OsmPath startPath2 = getStartPath(n2, n1, startMwp, null, false);
+
+    // Provisional cost budget = the floor (the historical fixed constant). The
+    // in-flight calibration below can only RAISE it — see the class-level
+    // ISO_BUDGET_* comment. Healthy profiles (fastbike: costEff ≈ 2.0 →
+    // calibrated 4×) land on the floor and keep bit-identical behavior.
+    int costBudget = (int) (searchRadius * ISO_BUDGET_FLOOR_FACTOR);
+    // Calibration state: sample cost-per-air-meter in the band
+    // [ISO_CALIBRATION_SAMPLE_LO, 1.0] × searchRadius, finalize at the first
+    // pop past the checkpoint. Pops arrive in increasing cost order, so the
+    // band is populated completely before the checkpoint fires.
+    final int calibrationCheckpointCost = (int) searchRadius;
+    final int calibrationSampleLoCost = (int) (searchRadius * ISO_CALIBRATION_SAMPLE_LO);
+    // Starting "already calibrated" disables both the sampling and the
+    // finalize hook — per-step callers keep the fixed floor budget.
+    boolean isoBudgetCalibrated = !calibrateBudget;
+    double[] costEffSamples = calibrateBudget ? new double[256] : null;
+    int costEffSampleCount = 0;
+    // Geographic cutoff: don't expand beyond 1.5× searchRadius (prevents runaway)
+    double geoRadiusCutoff = searchRadius * 1.5;
+    // Scale maxNodes with search area so dense regions (Berlin) reach the cost
+    // budget instead of getting cut off at ~1/3 of it — without that headroom
+    // the indirectness signal is dominated by per-link amortization noise.
+    double radiusRatio = searchRadius / REFERENCE_LOOP_RADIUS_M;
+    double areaScale = Math.max(1.0, radiusRatio * radiusRatio);
+    int maxNodes = (int) Math.min(CEILING_ISOCHRONE_MAX_NODES, BASE_ISOCHRONE_MAX_NODES * areaScale);
+
+    // Angular bucketing: 36 buckets of 10 degrees. Per-bucket "best frontier
+    // candidate" is picked by cost-contour score — a far-by-air dead-end can
+    // sit at low cost and would outrank a budget-cost node on a usable road if
+    // we sorted by air-distance alone. See costContourScore + isBetterCandidate.
+    int bucketCount = 36;
+    double bucketSize = 360.0 / bucketCount;
+    double[] bucketBestScore = new double[bucketCount];
+    Arrays.fill(bucketBestScore, Double.POSITIVE_INFINITY);
+    double[] bucketBestDist = new double[bucketCount];
+    int[] bucketBestCost = new int[bucketCount];
+    int[] bucketBestIlon = new int[bucketCount];
+    int[] bucketBestIlat = new int[bucketCount];
+    OsmPath[] bucketBestPath = new OsmPath[bucketCount];
+    int[] bucketHits = new int[bucketCount]; // population count per bucket (sparseness signal)
+
+    // Cost contours for ISO_GREEDY candidate extraction. Per bucket, record the
+    // node whose path.cost is closest to each intermediate cost level — yields a
+    // road-native pool spread across both direction and cost depth.
+    int[] contourLabels = {25, 50, 75};
+    int contourCount = contourLabels.length;
+    int[] contourCosts = new int[contourCount];
+    for (int k = 0; k < contourCount; k++) contourCosts[k] = (int) (contourLabels[k] * 0.01 * costBudget);
+    double[][] bucketContourBestScore = new double[bucketCount][contourCount];
+    for (double[] row : bucketContourBestScore) Arrays.fill(row, Double.POSITIVE_INFINITY);
+    double[][] bucketContourDist = new double[bucketCount][contourCount];
+    int[][] bucketContourCost = new int[bucketCount][contourCount];
+    int[][] bucketContourIlon = new int[bucketCount][contourCount];
+    int[][] bucketContourIlat = new int[bucketCount][contourCount];
+    OsmPath[][] bucketContourPath = new OsmPath[bucketCount][contourCount];
+
+    // Local open set — not the instance field, to avoid state contamination
+    SortedHeap<OsmPath> isoOpenSet = new SortedHeap<>();
+    if (startPath1 != null) isoOpenSet.add(startPath1.cost, startPath1);
+    if (startPath2 != null) isoOpenSet.add(startPath2.cost, startPath2);
+
+    int nodesExpanded = 0;
+
+    // Reachability cloud (pocket-avoiding placement): fixed per-expansion
+    // scale, captured once at the start latitude — CheapRuler's banded scale
+    // cache could otherwise map one physical point into two cells.
+    double[] cellKxKy = CheapRuler.getLonLatToMeterScales(start.ilat);
+    int cellDivLon = Math.max(1, (int) (REACHABILITY_CELL_M / cellKxKy[0]));
+    int cellDivLat = Math.max(1, (int) (REACHABILITY_CELL_M / cellKxKy[1]));
+    // Cell -> min Dijkstra cost. Pops arrive in cost order, so the first touch
+    // of a cell records its minimum (putIfAbsent); key presence doubles as the
+    // reachability cloud, the value feeds the ReturnDistanceOracle.
+    Map<Long, Integer> cellMinCost = new HashMap<>(4096);
+
+    long expansionDeadline = transientExpansionDeadline;
+    if (roundTripRequestDeadline > 0) {
+      expansionDeadline = expansionDeadline > 0
+        ? Math.min(expansionDeadline, roundTripRequestDeadline) : roundTripRequestDeadline;
+    }
+
+    int popTick = 0;
+    for (;;) {
+      // Wall-clock + watchdog guard (same contract as _findTrack's pop loop):
+      // stop expanding and return the partial frontier — callers already
+      // handle sparse candidate sets gracefully, and a partial frontier beats
+      // an un-killable multi-second expansion overrunning every deadline.
+      // The volatile kill flag is checked every pop; the wall clock only every
+      // 4096 pops (a currentTimeMillis per pop is measurable at ~1.5M pops,
+      // and 4096 pops complete in well under any deadline granularity).
+      if (terminated
+          || (expansionDeadline > 0 && (++popTick & 0xFFF) == 0
+              && System.currentTimeMillis() > expansionDeadline)) {
+        logInfo("isochrone: expansion stopped early (" + (terminated ? "terminated" : "deadline")
+          + ") after " + nodesExpanded + " nodes");
+        break;
+      }
+
+      OsmPath path = isoOpenSet.popLowestKeyValue();
+      if (path == null) break;
+      if (path.airdistance == -1) continue; // invalidated
+
+      // In-flight budget calibration: finalize at the first pop past the
+      // checkpoint (pops arrive in increasing cost order, so the sample band
+      // below is complete here). Raising the budget resets the frontier and
+      // contour picks — every competitive fit for the raised targets (all
+      // ≥ checkpoint, guaranteed by the floor) pops after this point, so the
+      // reset discards nothing that could have won. No raise = bit-identical
+      // to the historical fixed budget.
+      if (!isoBudgetCalibrated && path.cost > calibrationCheckpointCost) {
+        isoBudgetCalibrated = true;
+        int calibrated = calibratedIsoBudget(costEffSamples, costEffSampleCount, searchRadius);
+        if (calibrated > costBudget) {
+          logInfo("isochrone: calibrated cost budget " + costBudget + " -> " + calibrated
+            + " (x" + String.format(Locale.ROOT, "%.1f",
+              calibrated / searchRadius) + " searchRadius, "
+            + costEffSampleCount + " band samples)");
+          costBudget = calibrated;
+          for (int k = 0; k < contourCount; k++) {
+            contourCosts[k] = (int) (contourLabels[k] * 0.01 * costBudget);
+          }
+          Arrays.fill(bucketBestScore, Double.POSITIVE_INFINITY);
+          for (double[] row : bucketContourBestScore) {
+            Arrays.fill(row, Double.POSITIVE_INFINITY);
+          }
+        }
+      }
+
+      // Cost cutoff — Dijkstra: once popped cost exceeds budget, all remaining do too
+      if (path.cost > costBudget) break;
+
+      OsmLink currentLink = path.getLink();
+      OsmNode sourceNode = path.getSourceNode();
+      OsmNode currentNode = path.getTargetNode();
+      if (currentLink.isLinkUnused()) continue;
+
+      // Count expansions only for real link processing — skipped links shouldn't
+      // consume the budget (could prematurely truncate exploration in dense graphs).
+      nodesExpanded++;
+      if (nodesExpanded > maxNodes) break;
+
+      // Record this node in angular buckets using true bearing (longitude-scaled).
+      // Selection is by cost-contour score; air-distance is only a soft tiebreaker
+      // (see AIR_REACH_BONUS_WEIGHT).
+      int curIlon = currentNode.getILon();
+      int curIlat = currentNode.getILat();
+      long cmcKey = (((long) (curIlon / cellDivLon)) << 32) | ((curIlat / cellDivLat) & 0xFFFFFFFFL);
+      if (!cellMinCost.containsKey(cmcKey)) {
+        cellMinCost.put(cmcKey, path.cost);
+      }
+      double dist = CheapRuler.distance(start.ilon, start.ilat, curIlon, curIlat);
+      if (dist > 50) { // skip very close nodes (noisy bearings)
+        int pcost = path.cost;
+        // Calibration band sample: cost-per-air-meter of frontier-band pops.
+        // The finalize check above flips the flag at the first pop past the
+        // checkpoint, so this band is exactly [SAMPLE_LO, 1.0] × searchRadius.
+        if (!isoBudgetCalibrated && pcost >= calibrationSampleLoCost) {
+          if (costEffSampleCount == costEffSamples.length) {
+            costEffSamples = Arrays.copyOf(costEffSamples, costEffSamples.length * 2);
+          }
+          costEffSamples[costEffSampleCount++] = pcost / dist;
+        }
+        double bearing = CheapRuler.getScaledBearing(start.ilon, start.ilat, curIlon, curIlat);
+        int bucket = ((int) (bearing / bucketSize)) % bucketCount;
+        if (bucket < 0) bucket += bucketCount;
+        bucketHits[bucket]++;
+        double airReachBonus = clampedAirReachBonus(dist, searchRadius);
+
+        // Frontier candidate: target = full cost budget (cost envelope edge).
+        double frontierScore = costContourScore(pcost, costBudget, airReachBonus);
+        if (isBetterCandidate(frontierScore, pcost, dist,
+          bucketBestScore[bucket], bucketBestCost[bucket], bucketBestDist[bucket])) {
+          bucketBestScore[bucket] = frontierScore;
+          bucketBestCost[bucket] = pcost;
+          bucketBestDist[bucket] = dist;
+          bucketBestIlon[bucket] = curIlon;
+          bucketBestIlat[bucket] = curIlat;
+          bucketBestPath[bucket] = path;
+        }
+
+        // Contour candidates: targets at 25/50/75% of budget. Score-based
+        // selection allows above-contour wins, so every pop is evaluated against
+        // every contour (3 cheap compares). Row hoist keeps bounds-check
+        // elimination working on the inner index.
+        double[] rowScore = bucketContourBestScore[bucket];
+        int[]    rowCost  = bucketContourCost[bucket];
+        double[] rowDist  = bucketContourDist[bucket];
+        int[]    rowIlon  = bucketContourIlon[bucket];
+        int[]    rowIlat  = bucketContourIlat[bucket];
+        for (int k = 0; k < contourCount; k++) {
+          double cscore = costContourScore(pcost, contourCosts[k], airReachBonus);
+          if (isBetterCandidate(cscore, pcost, dist, rowScore[k], rowCost[k], rowDist[k])) {
+            rowScore[k] = cscore;
+            rowCost[k] = pcost;
+            rowDist[k] = dist;
+            rowIlon[k] = curIlon;
+            rowIlat[k] = curIlat;
+            bucketContourPath[bucket][k] = path;
+          }
+        }
+      }
+
+      // Invalidate existing path holders for this link
+      OsmLinkHolder firstLinkHolder = currentLink.getFirstLinkHolder(sourceNode);
+      for (OsmLinkHolder lh = firstLinkHolder; lh != null; lh = lh.getNextForLink()) {
+        ((OsmPath) lh).airdistance = -1;
+      }
+
+      // Unlink processed link
+      if (path.treedepth > 1) {
+        boolean isBidir = currentLink.isBidirectional();
+        sourceNode.unlinkLink(currentLink);
+        if (isBidir && currentLink.getFirstLinkHolder(currentNode) == null
+          && !routingContext.considerTurnRestrictions) {
+          currentNode.unlinkLink(currentLink);
+        }
+      }
+
+      // Don't expand beyond geographic radius
+      if (dist > geoRadiusCutoff) continue;
+
+      // Two-pass neighbor expansion (prePath + path creation)
+      routingContext.firstPrePath = null;
+      for (OsmLink link = currentNode.firstlink; link != null; link = link.getNext(currentNode)) {
+        OsmNode nextNode = link.getTarget(currentNode);
+        if (!nodesCache.obtainNonHollowNode(nextNode)) continue;
+        if (nextNode.firstlink == null) continue;
+        if (nextNode == sourceNode) continue;
+
+        OsmPrePath prePath = routingContext.createPrePath(path, link);
+        if (prePath != null) {
+          prePath.next = routingContext.firstPrePath;
+          routingContext.firstPrePath = prePath;
+        }
+      }
+
+      for (OsmLink link = currentNode.firstlink; link != null; link = link.getNext(currentNode)) {
+        OsmNode nextNode = link.getTarget(currentNode);
+        if (!nodesCache.obtainNonHollowNode(nextNode)) continue;
+        if (nextNode.firstlink == null) continue;
+        if (nextNode == sourceNode) continue;
+
+        OsmPath bestPath = null;
+        for (OsmLinkHolder lh = firstLinkHolder; lh != null; lh = lh.getNextForLink()) {
+          OsmPath otherPath = (OsmPath) lh;
+          OsmPath testPath = routingContext.createPath(otherPath, link, refTrack, false);
+          if (testPath.cost >= 0 && (bestPath == null || testPath.cost < bestPath.cost)
+            && testPath.sourceNode.getIdFromPos() != testPath.targetNode.getIdFromPos()) {
+            bestPath = testPath;
+          }
+        }
+
+        if (bestPath != null) {
+          bestPath.airdistance = 0; // pure Dijkstra — no heuristic
+
+          // Domination check
+          OsmLinkHolder dominator = link.getFirstLinkHolder(currentNode);
+          while (dominator != null) {
+            OsmPath dp = (OsmPath) dominator;
+            if (dp.airdistance != -1 && bestPath.definitlyWorseThan(dp)) break;
+            dominator = dominator.getNextForLink();
+          }
+          if (dominator == null) {
+            bestPath.treedepth = path.treedepth + 1;
+            link.addLinkHolder(bestPath, currentNode);
+            isoOpenSet.add(bestPath.cost, bestPath);
+          }
+        }
+      }
+    }
+
+    // Compile per-bucket frontier entries — see IsochroneExpansionResult.frontier.
+    // hits<3 is the dead-end signal used by downstream filters.
+    List<double[]> results = new ArrayList<>();
+    // Road-native candidate list for ISO_GREEDY. Each populated bucket
+    // contributes one candidate per contour plus the frontier-max.
+    List<IsoCandidate> candidatePool = new ArrayList<>();
+    for (int b = 0; b < bucketCount; b++) {
+      if (bucketBestScore[b] < Double.POSITIVE_INFINITY) {
+        double bucketBearing = b * bucketSize + bucketSize / 2.0;
+        results.add(new double[]{
+          bucketBearing,
+          bucketBestDist[b],
+          bucketBestCost[b],
+          bucketHits[b],
+          bucketBestIlon[b],
+          bucketBestIlat[b]});
+        for (int k = 0; k < contourCount; k++) {
+          if (bucketContourBestScore[b][k] < Double.POSITIVE_INFINITY) {
+            candidatePool.add(new IsoCandidate(
+              bucketContourIlon[b][k], bucketContourIlat[b][k],
+              bucketBearing, bucketContourDist[b][k], bucketContourCost[b][k],
+              b, bucketHits[b], contourLabels[k],
+              includeCandidateTracks ? compileCandidateTrack(bucketContourPath[b][k]) : null));
+          }
+        }
+        candidatePool.add(new IsoCandidate(
+          bucketBestIlon[b], bucketBestIlat[b],
+          bucketBearing, bucketBestDist[b], bucketBestCost[b],
+          b, bucketHits[b], 100,
+          includeCandidateTracks ? compileCandidateTrack(bucketBestPath[b]) : null));
+      }
+    }
+    logInfo("isochrone: " + nodesExpanded + " nodes expanded"
+      + (nodesExpanded >= maxNodes ? " (maxNodes limit)" : "")
+      + ", " + results.size() + "/" + bucketCount + " buckets populated");
+    if (results.isEmpty()) return null;
+    return new IsochroneExpansionResult(results.toArray(new double[0][]), candidatePool,
+      cellMinCost, cellDivLon, cellDivLat);
+  }
+
+  private OsmTrack compileCandidateTrack(OsmPath path) {
+    if (path == null) return null;
+    try {
+      return compileTrack(path, false);
+    } catch (RuntimeException e) {
+      logInfo("graph-native candidate track compile failed: " + e.getMessage());
+      return null;
+    }
+  }
+
+  /**
+   * Production adapter for the {@link FastWaypointPlanner} seam. Placement uses
+   * per-direction indirectness from the isochrone (route cost / air distance:
+   * ~1.3 along a valley, 3–5× across mountains) to convert the per-leg
+   * route-distance budget into air distance — elongated loops in valleys,
+   * compact loops in open terrain.
+   */
+  private FastPlacementOps fastPlacementOps() {
+    return new FastPlacementOps() {
+      @Override
+      public ProbeResult probe(OsmNodeNamed start, double searchRadius, double[] bearings) {
+        return waypointSnapper().probeReachableDirectionsFast(start, searchRadius, bearings);
+      }
+
+      @Override
+      public SnapUsability snapUsability(MatchedWaypoint m) {
+        return waypointSnapper().snapUsability(m);
+      }
+
+      @Override
+      public boolean isViaReachable(MatchedWaypoint via, MatchedWaypoint startMatch) {
+        return isViaReachableFromStart(via, startMatch);
+      }
+
+      @Override
+      public void circleFallbackValidated(List<OsmNodeNamed> skeleton, double direction,
+                                          double searchRadius, int targetPoints) {
+        buildPointsFromCircle(skeleton, direction, searchRadius, targetPoints);
+        waypointSnapper().validateAndAdjustWaypoints(skeleton, searchRadius);
+      }
+
+      @Override
+      public void log(String msg) {
+        logInfo(msg);
+      }
+    };
   }
 
   void buildPointsFromCircle(List<OsmNodeNamed> waypoints, double startAngle, double searchRadius, int points) {
@@ -929,14 +2050,50 @@ public class RoutingEngine extends Thread {
         mwp.waypoint = waypoints.get(i);
         mwp.name = waypoints.get(i).name;
         mwp.wpttype = waypoints.get(i).wpttype;
+        mwp.generated = waypoints.get(i).generated;
         matchedWaypoints.add(mwp);
       }
       int startSize = matchedWaypoints.size();
       matchWaypointsToNodes(matchedWaypoints);
+
+      // filter bad round-trip waypoints after matching
+      if (roundTripSearchRadius > 0) {
+        int beforeFilter = matchedWaypoints.size();
+        waypointSnapper().filterRoundTripWaypoints(matchedWaypoints);
+        if (matchedWaypoints.size() != beforeFilter) {
+          logInfo("filterRoundTrip: reduced waypoints from " + beforeFilter + " to " + matchedWaypoints.size());
+          refTracks = new OsmTrack[matchedWaypoints.size() - 1];
+          lastTracks = new OsmTrack[matchedWaypoints.size() - 1];
+        }
+        // Snap intermediate waypoints to nearest intersection to avoid mid-edge detour tails
+        waypointSnapper().snapToIntersection(matchedWaypoints);
+        // No-beeline invariant: round-trip routes must not contain DIRECT
+        // segments. matchWaypointsToNodes flags DIRECT for points beyond
+        // catchingRange; fail rather than emit a beeline in a successful loop.
+        for (MatchedWaypoint mwp : matchedWaypoints) {
+          if (mwp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
+            throw new IllegalArgumentException(
+              "round-trip waypoint " + mwp.name + " could not be road-matched"
+                + " (would force beeline segment); aborting");
+          }
+        }
+      }
+
       if (startSize < matchedWaypoints.size()) {
         refTracks = new OsmTrack[matchedWaypoints.size() - 1]; // used ways for alternatives
         lastTracks = new OsmTrack[matchedWaypoints.size() - 1];
         hasDirectRouting = true;
+      }
+
+      // greedyLegTracks is indexed by leg position and only valid while the
+      // matched-waypoint count is unchanged. If matching/filtering above added or
+      // removed a waypoint, the leg-to-waypoint correspondence is broken, so drop
+      // the corridor constraints rather than route through a misaligned leg track.
+      if (greedyLegTracks != null && greedyLegTracks.length != matchedWaypoints.size() - 1) {
+        logInfo("greedy leg tracks (" + greedyLegTracks.length + ") no longer match "
+          + (matchedWaypoints.size() - 1) + " legs after matching/filtering; "
+          + "dropping corridor constraints");
+        greedyLegTracks = null;
       }
 
       for (MatchedWaypoint mwp : matchedWaypoints) {
@@ -984,6 +2141,12 @@ public class RoutingEngine extends Thread {
 
     routingContext.hasDirectRouting = hasDirectRouting;
 
+    // For roundtrip mode, accumulate all previous legs so each new leg
+    // penalizes reuse of edges from earlier legs (similar to GraphHopper's
+    // AvoidEdgesWeighting). BRouter's existing refTrack mechanism doubles
+    // the cost of edges found in the refTrack, discouraging road reuse.
+    OsmTrack roundTripPreviousLegs = (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) ? new OsmTrack() : null;
+
     OsmPath.seg = 1; // set segment counter
     for (int i = 0; i < matchedWaypoints.size() - 1; i++) {
       if (lastTracks[i] != null) {
@@ -991,15 +2154,46 @@ public class RoutingEngine extends Thread {
         refTracks[i].addNodes(lastTracks[i]);
       }
 
+      // In roundtrip mode, use accumulated previous legs as the refTrack
+      // to discourage reusing roads from earlier legs of the loop.
+      // Always create a fresh OsmTrack to avoid mutating refTracks[i] via alias.
+      OsmTrack effectiveRefTrack;
+      if (roundTripPreviousLegs != null && roundTripPreviousLegs.nodes != null
+          && !roundTripPreviousLegs.nodes.isEmpty()) {
+        effectiveRefTrack = new OsmTrack();
+        if (refTracks[i] != null) {
+          effectiveRefTrack.addNodes(refTracks[i]);
+        }
+        effectiveRefTrack.addNodes(roundTripPreviousLegs);
+      } else {
+        effectiveRefTrack = refTracks[i];
+      }
+
       OsmTrack seg;
       int wptIndex;
       if (routingContext.inverseRouting) {
         routingContext.inverseDirection = true;
-        seg = searchTrack(matchedWaypoints.get(i + 1), matchedWaypoints.get(i), null, refTracks[i]);
+        seg = searchTrack(matchedWaypoints.get(i + 1), matchedWaypoints.get(i), null, effectiveRefTrack);
         routingContext.inverseDirection = false;
         wptIndex = i + 1;
       } else {
-        seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), i == matchedWaypoints.size() - 2 ? nearbyTrack : null, refTracks[i]);
+        OsmTrack legNearbyTrack = (greedyLegTracks != null && i < greedyLegTracks.length)
+          ? greedyLegTracks[i]
+          : (i == matchedWaypoints.size() - 2 ? nearbyTrack : null);
+        if (legNearbyTrack != null && legNearbyTrack != nearbyTrack) {
+          // Corridor-constrained routing: try with greedy leg track first,
+          // fall back to unconstrained routing if it fails.
+          try {
+            seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), legNearbyTrack, effectiveRefTrack);
+          } catch (IllegalArgumentException e) {
+            seg = null;
+          }
+          if (seg == null) {
+            seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), null, effectiveRefTrack);
+          }
+        } else {
+          seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), legNearbyTrack, effectiveRefTrack);
+        }
         wptIndex = i;
         if (routingContext.continueStraight) {
           if (i < matchedWaypoints.size() - 2) {
@@ -1031,15 +2225,55 @@ public class RoutingEngine extends Thread {
 
       totaltrack.appendTrack(seg);
       lastTracks[i] = seg;
+
+      // Accumulate this leg for roundtrip edge-avoidance on subsequent legs
+      if (roundTripPreviousLegs != null) {
+        roundTripPreviousLegs.addNodes(seg);
+      }
     }
 
     postElevationCheck(totaltrack);
+
+    if (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) {
+      // allowSamewayback is an out-and-back: it intentionally retraces the outbound leg.
+      // Back-and-forth/micro-detour removal would see the two legs as an overlap and delete
+      // one of them, leaving a one-way segment that no longer closes — so skip it here.
+      // (This also affected loops that reduced to a single intermediate waypoint.)
+      //
+      // explicit-via round-trip mode hits the same problem: the closing waypoint sits at
+      // the same position as the start, so crow-fly between the first and last matched
+      // waypoint is 0 and removeMicroDetours sees the entire route as a "micro detour"
+      // and deletes it. User-via routes are also shape-preserving by intent — the user
+      // picked exact via points and does not want the engine to micro-edit them away.
+      if (!routingContext.allowSamewayback && !explicitViaRoundTrip) {
+        trackCleanup().removeBackAndForthSegments(totaltrack, matchedWaypoints);
+        trackCleanup().removeMicroDetours(totaltrack, 1500, matchedWaypoints);
+        // Same artifact-repair chain as the greedy adoption path
+        // (finalizeAdoptedRoundTripTrack): probe/isochrone are fast fallback
+        // algorithms worth keeping, and their generated "rt*" waypoints suffer
+        // the same via-pinned bulges and near-revisit petals. Both passes
+        // recognize rt-named waypoints as generated and carry the full guard
+        // set (user-via protection, distance floor, crossing guard).
+        waypointSnapper().repairViaPinnedBulges(totaltrack, matchedWaypoints);
+        trackCleanup().removeArtifactSpurSpans(totaltrack, matchedWaypoints);
+      }
+      // removeBackAndForthSegments/removeMicroDetours edit the nodes list in place but
+      // leave each node's origin back-pointer dangling through the removed nodes.
+      // processVoiceHints() walks the origin chain (not the list), so a chain longer
+      // than the list drives its node counter negative — producing voice hints with
+      // negative indexInTrack and stale, out-of-range turn angles at the loop seam.
+      // Relink origins to the surviving list order to restore the chain == list invariant.
+      trackCleanup().rebuildOriginChain(totaltrack);
+    }
 
     recalcTrack(totaltrack);
 
     matchedWaypoints.get(matchedWaypoints.size() - 1).indexInTrack = totaltrack.nodes.size() - 1;
     totaltrack.matchedWaypoints = matchedWaypoints;
     totaltrack.processVoiceHints(routingContext);
+    if (engineMode == BROUTER_ENGINEMODE_ROUNDTRIP) {
+      consolidateRoundTripVoiceHints(totaltrack);
+    }
     totaltrack.prepareSpeedProfile(routingContext);
 
     totaltrack.showTime = routingContext.showTime;
@@ -1606,7 +2840,7 @@ public class RoutingEngine extends Thread {
   }
 
   // geometric position matching finding the nearest routable way-section
-  private void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints) {
+  void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints) {
     resetCache(false);
     boolean useDynamicDistance = routingContext.useDynamicDistance;
     boolean bAddBeeline = routingContext.buildBeelineOnRange;
@@ -1805,9 +3039,78 @@ public class RoutingEngine extends Thread {
   }
 
 
-  private void resetCache(boolean detailed) {
+  /**
+   * Fallback time budget for the guided detail-retrack when the caller set no
+   * budget ({@code maxRunningTime <= 0}, e.g. an untimed CLI run): past the
+   * guide-track cost cap the pass can fall back to a free search, and this
+   * bounds it — on timeout the raw track is returned. Timed runs are already
+   * bounded by the request budget.
+   */
+  private static final long RETRACK_DETAIL_FALLBACK_BUDGET_MS = 60_000;
+
+  /**
+   * Re-run a raw single-pass {@link #findTrack} result at full detail: walks
+   * the same nodes via {@code guideTrack} and fills the per-edge
+   * {@code MessageData} (the {@code wayKeyValues} the gate's paved-hostility
+   * check needs) without the 2-pass routing cost. {@code refTrack} is accepted
+   * for call-site compatibility but not applied — reuse penalties belong to
+   * route choice, not to annotating an already-chosen route.
+   */
+  OsmTrack retrackForDetail(OsmTrack rawTrack, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack refTrack) {
+    if (rawTrack == null || rawTrack.nodes == null || rawTrack.nodes.size() < 2) return rawTrack;
+    double savedAirDistFactor = airDistanceCostFactor;
+    double savedLastFactor = lastAirDistanceCostFactor;
+    OsmTrack savedGuide = guideTrack;
+    long savedStartTime = startTime;
+    long savedMaxRunningTime = maxRunningTime;
+    boolean savedSuppressIslandGuard = suppressRoutingIslandGuard;
+    airDistanceCostFactor = 0.;
+    lastAirDistanceCostFactor = 0.;
+    guideTrack = rawTrack;
+    startTime = System.currentTimeMillis();
+    // Bound the retrack when the caller set no time budget (see constant above);
+    // production paths pass a positive maxRunningTime and are unaffected.
+    if (maxRunningTime <= 0) {
+      maxRunningTime = RETRACK_DETAIL_FALLBACK_BUDGET_MS;
+    }
+    // Guided retracking visits few nodes (the route is already known), so
+    // the island-check guard `nodesVisited < MAXNODES_ISLAND_CHECK` would
+    // false-positive every call. Suppress it only for this scoped retrack;
+    // do not mutate islandNodePairs.freezeCount, because the rest of the
+    // planner still needs normal island detection.
+    suppressRoutingIslandGuard = true;
+    try {
+      // The guide track already fixes the exact node sequence. Reuse
+      // poisoning is useful while choosing a route, but it can make this
+      // metadata-only pass exceed the guide-track cost cap and fall back to
+      // the raw no-message track. Keep retracking purely descriptive.
+      OsmTrack detailed = findTrack("re-tracking", startWp, endWp, null, null, false);
+      return detailed != null ? detailed : rawTrack;
+    } catch (IllegalArgumentException | RoutingIslandException e) {
+      logInfo("retrackForDetail failed: " + e.getClass().getSimpleName() + " "
+        + (e.getMessage() == null ? "" : e.getMessage()) + " — using raw track");
+      return rawTrack;
+    } finally {
+      guideTrack = savedGuide;
+      airDistanceCostFactor = savedAirDistFactor;
+      lastAirDistanceCostFactor = savedLastFactor;
+      startTime = savedStartTime;
+      maxRunningTime = savedMaxRunningTime;
+      suppressRoutingIslandGuard = savedSuppressIslandGuard;
+    }
+  }
+
+  void resetCache(boolean detailed) {
     if (hasInfo() && nodesCache != null) {
       logInfo("NodesCache status before reset=" + nodesCache.formatStatus());
+    }
+    if (routingContext.expctxWay == null) {
+      // A completed doRouting run in this same round-trip request released the
+      // parsed profile in its finally (ProfileCache.releaseProfile nulls the
+      // expression contexts). Round-trip flows legitimately probe and route
+      // again afterwards — the FAST ring retry, the bounded tier's waypoint
+      // fallback — so re-acquire the profile before building a NodesCache.
+      ProfileCache.parseProfile(routingContext);
     }
     long maxmem = routingContext.memoryclass * 1024L * 1024L; // in MB
 
@@ -1815,7 +3118,7 @@ public class RoutingEngine extends Thread {
     islandNodePairs.clearTempPairs();
   }
 
-  private OsmPath getStartPath(OsmNode n1, OsmNode n2, MatchedWaypoint mwp, OsmNodeNamed endPos, boolean sameSegmentSearch) {
+  OsmPath getStartPath(OsmNode n1, OsmNode n2, MatchedWaypoint mwp, OsmNodeNamed endPos, boolean sameSegmentSearch) {
     if (endPos != null) {
       endPos.radius = 1.5;
     }
@@ -1829,7 +3132,7 @@ public class RoutingEngine extends Thread {
   }
 
 
-  private OsmPath getStartPath(OsmNode n1, OsmNode n2, OsmNodeNamed wp, OsmNodeNamed endPos, boolean sameSegmentSearch) {
+  OsmPath getStartPath(OsmNode n1, OsmNode n2, OsmNodeNamed wp, OsmNodeNamed endPos, boolean sameSegmentSearch) {
     try {
       routingContext.setWaypoint(wp, sameSegmentSearch ? endPos : null, false);
       OsmPath bestPath = null;
@@ -1869,7 +3172,7 @@ public class RoutingEngine extends Thread {
     }
   }
 
-  private OsmTrack findTrack(String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack, boolean fastPartialRecalc) {
+  OsmTrack findTrack(String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack, boolean fastPartialRecalc) {
     try {
       List<OsmNode> wpts2 = new ArrayList<>();
       if (startWp != null) wpts2.add(startWp.waypoint);
@@ -1886,6 +3189,30 @@ public class RoutingEngine extends Thread {
     }
   }
 
+  /**
+   * One leg search under its own time budget: saves and restores the engine
+   * clock (startTime/maxRunningTime) and runs goal-directed at the profile's
+   * pass-1 coefficient — planner legs don't need exact optimality (they are
+   * re-scored on the routed result and detail-retracked on commit), and the
+   * historical inherited 0.0 meant a full omnidirectional Dijkstra per leg.
+   * Profiles that disable pass 1 (coefficient &le; 0) keep the exact search.
+   */
+  OsmTrack findTrackTimed(String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp,
+                          OsmTrack refTrack, long budgetMs) {
+    long savedStartTime = startTime;
+    long savedMaxRunningTime = maxRunningTime;
+    double savedAirDistanceCostFactor = airDistanceCostFactor;
+    try {
+      startTime = System.currentTimeMillis();
+      maxRunningTime = budgetMs;
+      airDistanceCostFactor = Math.max(0.0, routingContext.pass1coefficient);
+      return findTrack(operationName, startWp, endWp, null, refTrack, false);
+    } finally {
+      startTime = savedStartTime;
+      maxRunningTime = savedMaxRunningTime;
+      airDistanceCostFactor = savedAirDistanceCostFactor;
+    }
+  }
 
   private OsmTrack _findTrack(String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack, boolean fastPartialRecalc) {
     boolean verbose = guideTrack != null;
@@ -2253,7 +3580,8 @@ public class RoutingEngine extends Thread {
       }
     }
 
-    if (nodesVisited < MAXNODES_ISLAND_CHECK && islandNodePairs.getFreezeCount() < 5) {
+    if (!suppressRoutingIslandGuard
+        && nodesVisited < MAXNODES_ISLAND_CHECK && islandNodePairs.getFreezeCount() < 5) {
       throw new RoutingIslandException();
     }
 
@@ -2389,8 +3717,19 @@ public class RoutingEngine extends Thread {
     return finished;
   }
 
-  public int getLinksProcessed() {
+  public synchronized int getLinksProcessed() {
     return linksProcessed;
+  }
+
+  /**
+   * Aggregate a child engine's work count into this (parent) engine.
+   * Synchronized to match {@link #getLinksProcessed()}, which progress
+   * monitors may call from another thread while the request thread
+   * aggregates. The engine's own hot-loop {@code linksProcessed++} stays
+   * unsynchronized (single-threaded per engine).
+   */
+  private synchronized void addLinksProcessed(int childLinks) {
+    linksProcessed += childLinks;
   }
 
   public int getDistance() {
@@ -2413,6 +3752,33 @@ public class RoutingEngine extends Thread {
     return foundTrack;
   }
 
+  /** The last round-trip planning result (carries the planned loop waypoints), or null. */
+  public RoundTripResult getLastRoundTripResult() {
+    return lastRoundTripResult;
+  }
+
+  /**
+   * The last round-trip request's final quality-gate verdict (for the shipped
+   * track, or — on a hard reject — the track in {@link #getLastRejectedTrack()}).
+   * Null when the request never reached the gate (floors, budget, no loop).
+   * The AUTO competition reads this off child engines so a candidate is gated
+   * exactly once (in the child) instead of re-evaluated in the parent.
+   */
+  public RoundTripQualityResult getLastRoundTripQuality() {
+    return lastRoundTripQuality;
+  }
+
+  /**
+   * The last round-trip track that was rejected by the quality gate, if
+   * any. {@link #getFoundTrack()} returns null on rejection; this method
+   * returns the geometry that tripped the gate so post-mortem analysis
+   * tools can inspect WHY each rejection occurred. Returns null if no
+   * round-trip request was made or no track ever reached the gate.
+   */
+  public OsmTrack getLastRejectedTrack() {
+    return lastRejectedTrack;
+  }
+
   public String getFoundInfo() {
     return outputMessage;
   }
@@ -2429,8 +3795,33 @@ public class RoutingEngine extends Thread {
     return errorMessage;
   }
 
+  /**
+   * Hooks run when this engine is terminated — the cascade that lets a server
+   * pre-emption reach the child engines a round-trip request is running
+   * (children check their OWN kill flag per pop, so the parent's flag alone
+   * cannot stop them). Thread-safe; hooks must be idempotent and fast
+   * (typically {@code child::terminate}).
+   */
+  private final List<Runnable> terminationHooks =
+    new java.util.concurrent.CopyOnWriteArrayList<>();
+
   public void terminate() {
     terminated = true;
+    for (Runnable hook : terminationHooks) {
+      hook.run();
+    }
+  }
+
+  /**
+   * Register a termination cascade hook. Registering on an already-terminated
+   * engine runs the hook immediately — closes the race between a server
+   * pre-emption and a child engine being constructed.
+   */
+  void addTerminationHook(Runnable hook) {
+    terminationHooks.add(hook);
+    if (terminated) {
+      hook.run();
+    }
   }
 
   public boolean isTerminated() {
