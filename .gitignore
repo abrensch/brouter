@@ -16,7 +16,17 @@ build
 .cxx
 misc/segments4
 misc/customprofiles
+# rd5 tile cache for the integration suites (LoopTestSegments downloads on
+# demand into <projectRoot>/segments4; deliberately untracked — see the
+# integrationTest task notes in brouter-core/build.gradle).
+/segments4
 *.BAK
 .classpath
 .project
 !/.idea/runConfigurations
+
+# Local agent/session scratch — working notes, never part of the library.
+/.agents/
+/.codex/
+/AGENTS.md
+/ESCAPE-COUNTRYSIDE-FINDINGS.md

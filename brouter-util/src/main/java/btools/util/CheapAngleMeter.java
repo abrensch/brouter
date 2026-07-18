@@ -65,11 +65,21 @@ public final class CheapAngleMeter {
       : a < 0 ? a - (360 * ((int) (a / 360) - 1)) : a;
   }
 
+  /**
+   * Fold a bearing difference into the signed range {@code [-180, 180)}: a left
+   * turn stays negative, a right turn positive. Extracted from
+   * {@link #getDifferenceFromDirection} (which now just takes its absolute value)
+   * so callers needing the signed delta, not the magnitude, can reuse it.
+   */
+  public static double normalizeRelative(double angle) {
+    angle = angle % 360.0;
+    if (angle < -180.0) angle += 360.0;
+    if (angle >= 180.0) angle -= 360.0;
+    return angle;
+  }
+
   public static double getDifferenceFromDirection(double b1, double b2) {
-    double r = (b2 - b1) % 360.0;
-    if (r < -180.0) r += 360.0;
-    if (r >= 180.0) r -= 360.0;
-    return Math.abs(r);
+    return Math.abs(normalizeRelative(b2 - b1));
   }
 
 }

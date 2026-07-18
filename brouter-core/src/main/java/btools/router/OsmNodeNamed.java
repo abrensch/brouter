@@ -15,6 +15,10 @@ public class OsmNodeNamed extends OsmNode {
   public double nogoWeight;  // weight for nogopoint
   public boolean isNogo = false;
   public byte wpttype = MatchedWaypoint.WAYPOINT_TYPE_SHAPING; // set default type
+  // True for engine-generated waypoints (e.g. round-trip arc-densification
+  // "bulge" points) as opposed to user-supplied ones. Lets post-route cleanup
+  // target generated spurs without matching on the (display/log) name.
+  public boolean generated = false;
 
   public OsmNodeNamed() {
   }

@@ -19,6 +19,7 @@ public class CompactLongMap<V> {
   private int[] pa;
   private int size = 0;
   private int _maxKeepExponent = 14; // the maximum exponent to keep the invalid arrays
+  private boolean movedToFrozen; // set once the internal arrays are moved into a FrozenLongMap
 
   protected V value_in;
   protected V value_out;
@@ -69,6 +70,7 @@ public class CompactLongMap<V> {
 
 
   public boolean put(long id, V value) {
+    checkNotMoved();
     try {
       value_in = value;
       if (contains(id, true)) {
@@ -96,6 +98,7 @@ public class CompactLongMap<V> {
    * @throws IllegalArgumentException for duplicates if enabled
    */
   public void fastPut(long id, V value) {
+    checkNotMoved();
     if (earlyDuplicateCheck && contains(id)) {
       throw new IllegalArgumentException("duplicate key found in early check: " + id);
     }
@@ -110,6 +113,7 @@ public class CompactLongMap<V> {
    * @return the object, or null if id not known
    */
   public V get(long id) {
+    checkNotMoved();
     try {
       if (contains(id, false)) {
         return value_out;
@@ -197,6 +201,7 @@ public class CompactLongMap<V> {
    * @return true if "id" is contained in this set.
    */
   public boolean contains(long id) {
+    checkNotMoved();
     try {
       return contains(id, false);
     } finally {
@@ -278,9 +283,19 @@ public class CompactLongMap<V> {
       }
     }
 
-    // free the non-frozen arrays
+    // free the non-frozen arrays; the source map is now an unusable husk
     al = null;
     vla = null;
+    movedToFrozen = true;
+  }
+
+  // guards the public entry points that dereference the internal arrays: once
+  // moveToFrozenArrays has freed them, any access on the moved-from map would
+  // otherwise throw a raw NPE far from the cause
+  private void checkNotMoved() {
+    if (movedToFrozen) {
+      throw new IllegalStateException("map was moved into a FrozenLongMap; the source is no longer usable");
+    }
   }
 
 }

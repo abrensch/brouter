@@ -10,7 +10,7 @@ import java.util.List;
 
 public final class VoiceHintProcessor {
 
-  double SIGNIFICANT_ANGLE = 22.5;
+  static final double SIGNIFICANT_ANGLE = 22.5;
   double INTERNAL_CATCHING_RANGE_NEAR = 2.;
   double INTERNAL_CATCHING_RANGE_WIDE = 10.;
 

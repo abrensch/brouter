@@ -5,22 +5,13 @@
  */
 package btools.router;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.OsmPos;
 import btools.util.CompactLongMap;
 import btools.util.FrozenLongMap;
+
+import java.io.*;
+import java.util.*;
 
 public final class OsmTrack {
   final public static String version = OsmTrack.class.getPackage().getImplementationVersion();
@@ -60,11 +51,25 @@ public final class OsmTrack {
   public String name = "unset";
 
   protected List<MatchedWaypoint> matchedWaypoints;
+
+  /**
+   * The matched via points this track was routed through (read-only round-trip seam).
+   */
+  public List<MatchedWaypoint> getMatchedWaypoints() {
+    return matchedWaypoints;
+  }
+
+  /** Set the matched via points (round-trip finalization seam). */
+  public void setMatchedWaypoints(List<MatchedWaypoint> waypoints) {
+    matchedWaypoints = waypoints;
+  }
+
   public boolean exportWaypoints = false;
   public boolean exportCorrectedWaypoints = false;
 
   public void addNode(OsmPathElement node) {
     nodes.add(0, node);
+    traveledEdgeKeys = null; // node list changed; drop the lazily-built edge cache
   }
 
   public void registerDetourForId(long id, OsmPathElement detour) {
@@ -86,6 +91,35 @@ public final class OsmTrack {
 
   public void copyDetours(OsmTrack source) {
     detourMap = source.detourMap == null ? null : new FrozenLongMap<>(source.detourMap);
+    // The FrozenLongMap constructor MOVES the source map's internal arrays out,
+    // leaving the source an unusable husk (CompactLongMap now guards against
+    // reuse with an IllegalStateException). Drop the reference so that when the
+    // same track object later serves as a guide again (a second retrackForDetail
+    // pass), registerDetourForId starts a fresh map instead of hitting the guard.
+    source.detourMap = null;
+  }
+
+  /**
+   * Merge a routed leg's detour data into this track, mirroring the detour-merge
+   * branch of {@link #appendTrack}. Used by callers that concatenate detailed
+   * legs outside {@code appendTrack} (the greedy round-trip planner builds its
+   * own merged track), so {@link #processVoiceHints} — which returns early when
+   * {@code detourMap} is null — can still emit turn instructions.
+   *
+   * <p>Only legs that are already detailed (a frozen detourMap and a built
+   * nodesMap, as produced by {@code retrackForDetail}) are merged; an
+   * un-detailed or empty leg is skipped rather than re-frozen (re-freezing an
+   * already-frozen map throws). Skipping degrades gracefully — that leg's span
+   * simply contributes no hints — instead of breaking the assembled track.
+   */
+  public void mergeDetoursFrom(OsmTrack source) {
+    if (source == null || source.detourMap == null || source.nodesMap == null) return;
+    if (!(source.detourMap instanceof FrozenLongMap)) return;
+    if (detourMap == null) {
+      detourMap = source.detourMap;
+    } else {
+      addDetours(source);
+    }
   }
 
   public void addDetours(OsmTrack source) {
@@ -147,6 +181,7 @@ public final class OsmTrack {
   }
 
   public void buildMap() {
+    traveledEdgeKeys = null; // node list may have changed
     nodesMap = new CompactLongMap<>();
     for (OsmPathElement node : nodes) {
       long id = node.getIdFromPos();
@@ -255,7 +290,11 @@ public final class OsmTrack {
               last_pe = pe;
               t.nodes.add(pe);
             }
-            t.cost = last_pe.cost;
+            // last_pe is null only for a degenerate 0-node stored track; guard the
+            // deref so a corrupt/empty entry yields cost 0 instead of an NPE.
+            if (last_pe != null) {
+              t.cost = last_pe.cost;
+            }
             t.buildMap();
 
             // check cheecksums, too
@@ -328,7 +367,44 @@ public final class OsmTrack {
     return null;
   }
 
+  /**
+   * Lazily-built set of direction-insensitive keys for every consecutive node
+   * pair this track traveled. Detail-level agnostic: a raw track contributes
+   * junction-pair edges, a detailed track contributes its transfer-point
+   * sub-segments — callers test whichever granularity they walk at.
+   * Invalidated on mutation ({@link #addNode}, {@link #buildMap}, {@link #appendTrack}).
+   */
+  private Set<Long> traveledEdgeKeys;
+
+  private static long traveledEdgeKey(long idA, long idB) {
+    long lo = Math.min(idA, idB);
+    long hi = Math.max(idA, idB);
+    // 128->64-bit mix; collision odds are negligible for a penalty heuristic.
+    long h = lo * 0x9E3779B97F4A7C15L + hi * 0xC2B2AE3D27D4EB4FL;
+    return h ^ (h >>> 32);
+  }
+
+  /**
+   * Whether this track actually traveled the segment between the two
+   * positions (in either direction). Unlike the both-endpoints
+   * {@link #containsNode} test, a fresh connector road between two
+   * separately-visited nodes is NOT a member — the anti-reuse refTrack
+   * penalty must only tax roads the track used, not every edge whose
+   * endpoints happen to lie on it.
+   */
+  public boolean containsTraveledSegment(long idA, long idB) {
+    if (traveledEdgeKeys == null) {
+      Set<Long> keys = new HashSet<>(Math.max(16, nodes.size() * 2));
+      for (int i = 1; i < nodes.size(); i++) {
+        keys.add(traveledEdgeKey(nodes.get(i - 1).getIdFromPos(), nodes.get(i).getIdFromPos()));
+      }
+      traveledEdgeKeys = keys;
+    }
+    return traveledEdgeKeys.contains(traveledEdgeKey(idA, idB));
+  }
+
   public void appendTrack(OsmTrack t) {
+    traveledEdgeKeys = null; // node list changes below
     int i = 0;
 
     int ourSize = nodes.size();
@@ -497,7 +573,11 @@ public final class OsmTrack {
           MatchedWaypoint mwpt = getMatchedWaypoint(nodeNr);
           if (mwpt != null && mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
             input.cmd = VoiceHint.BL;
-            input.angle = (float) (nodeNr == 0 ? node.origin.message.turnangle : node.message.turnangle);
+            // node.origin.message can be null (see the fallback at the oldWay
+            // assignment above); fall back to node.message's turnangle rather
+            // than dereferencing a null origin message at nodeNr == 0.
+            input.angle = (float) (nodeNr == 0 && node.origin.message != null
+              ? node.origin.message.turnangle : node.message.turnangle);
             input.distanceToNext = node.calcDistance(node.origin);
           }
         }

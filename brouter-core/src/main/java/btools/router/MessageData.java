@@ -6,7 +6,22 @@
 package btools.router;
 
 
-final class MessageData implements Cloneable {
+public final class MessageData implements Cloneable {
+
+  /**
+   * Way-tag key/value dump of the matched way (read-only round-trip seam).
+   */
+  public String getWayKeyValues() {
+    return wayKeyValues;
+  }
+
+  /**
+   * Profile costfactor recorded for this edge (read-only round-trip seam).
+   */
+  public float getCostfactor() {
+    return costfactor;
+  }
+
   int linkdist = 0;
   int linkelevationcost = 0;
   int linkturncost = 0;

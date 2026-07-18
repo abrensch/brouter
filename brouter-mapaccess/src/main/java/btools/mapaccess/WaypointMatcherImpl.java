@@ -32,6 +32,8 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
   private int maxWptIdx;
   private double maxDistance;
   public boolean useDynamicRange = false;
+  /** Tag-value description of the way currently being fed by the decoder. */
+  private byte[] currentWayDescription;
 
   private Comparator<MatchedWaypoint> comparator;
 
@@ -133,6 +135,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
         }
         // new match for that waypoint
         mwp.radius = radius; // shortest distance to way
+        mwp.wayDescription = currentWayDescription; // tags of the matched way
         mwp.hasUpdate = true;
         anyUpdate = true;
         // calculate crosspoint
@@ -156,7 +159,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
   }
 
   @Override
-  public boolean start(int ilonStart, int ilatStart, int ilonTarget, int ilatTarget, boolean useAsStartWay) {
+  public boolean start(int ilonStart, int ilatStart, int ilonTarget, int ilatTarget, boolean useAsStartWay, byte[] wayDescription) {
     if (islandPairs.size() > 0) {
       long n1 = ((long) ilonStart) << 32 | ilatStart;
       long n2 = ((long) ilonTarget) << 32 | ilatTarget;
@@ -170,6 +173,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
     latTarget = ilatTarget;
     anyUpdate = false;
     this.useAsStartWay = useAsStartWay;
+    this.currentWayDescription = wayDescription;
     return true;
   }
 
@@ -204,6 +208,9 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
           mw.radius = mwp.radius;
           mw.directionDiff = diff;
           mw.directionToNext = mwp.directionToNext;
+          // tags of the way that produced this candidate — without this, the
+          // selection below can pair one way's geometry with another way's tags
+          mw.wayDescription = mwp.wayDescription;
 
           updateWayList(mwp.wayNearest, mw);
 
@@ -223,6 +230,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
           mw.radius = mwp.radius;
           mw.directionDiff = diff;
           mw.directionToNext = mwp.directionToNext;
+          mw.wayDescription = mwp.wayDescription;
 
           updateWayList(mwp.wayNearest, mw);
 
@@ -233,6 +241,11 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
           mwp.node2 = new OsmNode(way.node2.ilon, way.node2.ilat);
           mwp.directionDiff = way.directionDiff;
           mwp.radius = way.radius;
+          // keep the tags consistent with the SELECTED candidate: on a radius
+          // tie an earlier way can outrank the last updater (directionDiff
+          // tie-break), and checkSegment left the last updater's tags here —
+          // snapCandidateCostFactor would then score the wrong road's tags.
+          mwp.wayDescription = way.wayDescription;
 
         }
       }
