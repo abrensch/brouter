@@ -32,9 +32,7 @@ You control the loop with a few request parameters:
 
 If you instead supply more than one waypoint, BRouter treats those as explicit
 [via-points](vianogo.md) the loop must pass through in order, and the generated
-ring is not used. The same length settings then act only as guidance. On
-non-paved profiles, `roundTripDensify=1` opts into bulging the arcs between your
-via-points outward so the loop better honours the requested length.
+ring is not used. The same length settings then act only as guidance.
 
 ## Planning strategies
 
@@ -103,8 +101,39 @@ test matrix the two planners cost the same (median ~3 s) and score almost
 identically, so they are *not* exposed as separate speed/quality tiers.
 You can still force a specific planner by name for testing or
 comparison: the parser accepts `WAYPOINT` (= `FAST`), `GREEDY`, `ISO_GREEDY`, and
-`ISOCHRONE` (direct isochrone-frontier placement, also selectable with
-`roundTripIsochrone=1`). Matching is case-insensitive; any unrecognised value falls back to `AUTO`.
+`ISOCHRONE` (direct isochrone-frontier placement). Matching is case-insensitive;
+any unrecognised value falls back to `AUTO`.
+
+## Migrating from the old round-trip
+
+The old round-trip routine (a fixed ring of points, one routing pass) lives on
+as the `FAST` tier. The default is now `AUTO`, which works harder for a better
+loop. If you want the old speed and behaviour, request it directly:
+
+```
+roundTripAlgorithm=FAST
+```
+
+What stays the same with `FAST`:
+
+- **Direction and shape.** The generated points fan out toward the requested
+  bearing (`direction`), the same way the old routine placed them. The loop
+  heads out in that direction and comes back — it is a lobe pointing the way
+  you asked, not a circle around the start point.
+- **Speed.** One placement, one routing pass. Same speed class as before.
+
+What is different:
+
+- **Loops are shorter for the same `roundTripDistance`.** The old routine
+  reached the full `2π × radius` length partly by force-routing through
+  unreachable points — the same behaviour that caused stacked waypoints and
+  failing loops near rivers and islands. `FAST` drops such points instead, so
+  its loops come out shorter in constrained terrain (roughly 75% of the old
+  length in our A/B measurements). If you need a loop of a certain length,
+  ask for it with `roundTripLength` — or use `AUTO`, which corrects the
+  distance and is the reason it takes longer.
+- **The result is checked.** Every loop passes the quality gate. A loop with
+  problems is still returned, but tagged with a `Warning:` message.
 
 ## Loop quality
 
