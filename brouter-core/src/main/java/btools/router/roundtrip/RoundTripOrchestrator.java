@@ -60,10 +60,10 @@ public final class RoundTripOrchestrator {
   /**
    * Resolve the tier ladder for this request context. QUALITY pins the
    * competition to the MAX preset; AUTO resolves an effort preset from context
-   * and runs the competition — or, on constrained resources, the bounded tier;
-   * explicit BALANCED runs bounded; GREEDY/ISO_GREEDY run the planner when the
-   * request supports it; everything else (and every samewayback downgrade)
-   * runs the waypoint tier. Returns the rungs to attempt in order — currently
+   * and runs the competition — or, on constrained resources, the bounded tier,
+   * and on fast-motorized profiles the waypoint tier; explicit BALANCED runs
+   * bounded; GREEDY/ISO_GREEDY run the planner when the request supports it;
+   * everything else (and every samewayback downgrade) runs the waypoint tier. Returns the rungs to attempt in order — currently
    * always exactly one; multi-rung fallback is the extension point.
    */
   List<Rung> resolveLadder(RoundTripAlgorithm algo, double searchRadius, double direction) {
@@ -73,9 +73,9 @@ public final class RoundTripOrchestrator {
     RoundTripEffortPolicy.ProfileClass profileClass = classifyProfileClass();
     RoundTripEffortPolicy.LengthClass lengthClass =
       RoundTripEffortPolicy.classifyLength(2 * Math.PI * searchRadius);
-    if (profileClass == RoundTripEffortPolicy.ProfileClass.MOTOR) {
-      ops.logInfo("round trip: profile class MOTOR — loop quality is unvalidated for"
-        + " motorized profiles; using bike-derived policies (provisional)");
+    if (profileClass == RoundTripEffortPolicy.ProfileClass.FAST_MOTOR) {
+      ops.logInfo("round trip: profile class FAST_MOTOR — loop quality is unvalidated for"
+        + " fast-motorized profiles (car, motorbike); using bike-derived policies (provisional)");
     }
 
     boolean greedyCapable = greedySupports(ops.routingContext().allowSamewayback, ops.waypoints().size());
@@ -93,6 +93,23 @@ public final class RoundTripOrchestrator {
       // the silent rewrite below (QUALITY -> selectRoundTripAlgorithm ->
       // WAYPOINT) otherwise hides that the MAX effort request was downgraded.
       ops.logInfo("QUALITY round trip does not support allowSamewayback, falling back to waypoint algorithm");
+    }
+
+    // AUTO on a fast-motorized profile resolves straight to the waypoint tier.
+    // Measured (Basel, car-vario, 50-180km): the isochrone candidate pools
+    // starve on motor cost scales (the budget calibration cap assumes bike
+    // cost-per-meter), both planners fail with "could not build any loop",
+    // and the competition adopts its own WAYPOINT candidate at ~3x the wall
+    // clock — same loop, seconds wasted. Explicit tier requests are untouched:
+    // GREEDY/ISO_GREEDY/QUALITY/BALANCED remain the path for calibration work.
+    if (algo == RoundTripAlgorithm.AUTO
+        && profileClass == RoundTripEffortPolicy.ProfileClass.FAST_MOTOR) {
+      ops.logInfo("round trip effort: AUTO resolved WAYPOINT tier — fast-motorized profile"
+        + " (planner candidate pools are bike-calibrated and build no loops on motor"
+        + " cost scales; request a planner tier explicitly to override)");
+      return Collections.singletonList(new Rung(fastStrategy,
+        new TierSlice(RoundTripAlgorithm.WAYPOINT, null, searchRadius, direction,
+          greedyCapable, "AUTO(fastmotor)")));
     }
 
     // AUTO candidate competition, effort resolved from context. Constrained

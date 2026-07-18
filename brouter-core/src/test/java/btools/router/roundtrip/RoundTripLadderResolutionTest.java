@@ -12,6 +12,7 @@ import java.util.List;
 import org.junit.Test;
 
 import btools.router.OsmNodeNamed;
+import btools.router.ProfileCache;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
 
@@ -27,6 +28,13 @@ public class RoundTripLadderResolutionTest {
   private static final double RADIUS = 4800;
 
   private RoundTripOrchestrator orchestrator(boolean samewayback, int memoryclass, int vias) {
+    // The profile is never parsed on this path (resolution only, no routing),
+    // so classifyProfileClass sees UNKNOWN, which resolveAuto accepts.
+    return orchestrator(samewayback, memoryclass, vias, "trekking.brf", false);
+  }
+
+  private RoundTripOrchestrator orchestrator(boolean samewayback, int memoryclass, int vias,
+                                             String profile, boolean parseProfile) {
     List<OsmNodeNamed> wps = new ArrayList<>();
     for (int i = 0; i <= vias; i++) {
       OsmNodeNamed n = new OsmNodeNamed();
@@ -39,17 +47,20 @@ public class RoundTripLadderResolutionTest {
     rc.allowSamewayback = samewayback;
     rc.memoryclass = memoryclass;
     // A real profile path — the engine constructor derives its base folder
-    // from it. The profile is never parsed here (resolution only, no routing),
-    // so classifyProfileClass sees UNKNOWN, which resolveAuto accepts.
+    // from it. With parseProfile the profile's globals (validFor*) are loaded
+    // so classifyProfileClass sees the real profile class.
     File projectDir;
     try {
       projectDir = new File(".").getCanonicalFile().getParentFile();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    rc.localFunction = new File(projectDir, "misc/profiles2/trekking.brf").getAbsolutePath();
+    rc.localFunction = new File(projectDir, "misc/profiles2/" + profile).getAbsolutePath();
     RoutingEngine re = new RoutingEngine(null, null, new File(projectDir, "unused-segments"), wps, rc,
       RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP);
+    if (parseProfile) {
+      ProfileCache.parseProfile(rc);
+    }
     return new RoundTripOrchestrator(re.roundTripOps());
   }
 
@@ -121,6 +132,44 @@ public class RoundTripLadderResolutionTest {
     RoundTripOrchestrator.Rung r = resolveSingle(orchestrator(true, 256, 0), RoundTripAlgorithm.GREEDY);
     assertTrue(r.strategy instanceof FastStrategy);
     assertEquals(RoundTripAlgorithm.WAYPOINT, r.slice.algo);
+  }
+
+  @Test
+  public void autoOnFastMotorProfileResolvesToWaypointTier() {
+    // Evidence 2026-07-19 (Basel, car-vario, 50-180km): the isochrone frontier
+    // starves on motor cost scales (4 nodes expanded; the calibration cap of
+    // ISO_BUDGET_CAP_FACTOR x searchRadius assumes bike cost-per-meter), both
+    // planners return "could not build any loop", and the competition adopts
+    // its own WAYPOINT candidate at ~3x the wall clock. AUTO therefore resolves
+    // straight to the waypoint tier for FAST_MOTOR; the explicit planner tiers stay
+    // available for future car calibration work.
+    RoundTripOrchestrator.Rung r = resolveSingle(
+      orchestrator(false, 256, 0, "car-vario.brf", true), RoundTripAlgorithm.AUTO);
+    assertTrue("fast-motor AUTO runs the waypoint tier", r.strategy instanceof FastStrategy);
+    assertEquals(RoundTripAlgorithm.WAYPOINT, r.slice.algo);
+    assertEquals("AUTO(fastmotor)", r.slice.label);
+  }
+
+  @Test
+  public void explicitPlannerTiersStayAvailableOnFastMotorProfiles() {
+    // The FAST_MOTOR short-circuit applies only to AUTO ("choose for me"). Explicit
+    // tier requests keep running what was asked — the path for calibration work.
+    RoundTripOrchestrator.Rung greedy = resolveSingle(
+      orchestrator(false, 256, 0, "car-vario.brf", true), RoundTripAlgorithm.GREEDY);
+    assertTrue(greedy.strategy instanceof GreedyStrategy);
+    RoundTripOrchestrator.Rung quality = resolveSingle(
+      orchestrator(false, 256, 0, "car-vario.brf", true), RoundTripAlgorithm.QUALITY);
+    assertTrue(quality.strategy instanceof AutoCompetitionStrategy);
+  }
+
+  @Test
+  public void autoOnParsedBikeProfileStillResolvesToCompetition() {
+    // Control: a parsed bike profile classifies as BIKE and must keep today's
+    // resolution — guards the FAST_MOTOR condition against becoming too broad.
+    RoundTripOrchestrator.Rung r = resolveSingle(
+      orchestrator(false, 256, 0, "trekking.brf", true), RoundTripAlgorithm.AUTO);
+    assertTrue(r.strategy instanceof AutoCompetitionStrategy);
+    assertEquals("AUTO", r.slice.label);
   }
 
   @Test

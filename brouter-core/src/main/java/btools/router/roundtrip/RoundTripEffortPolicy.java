@@ -7,12 +7,16 @@ import java.util.Locale;
  * {@link #BOUNDED_PRESET}, QUALITY pins {@link #MAX_PRESET}; AUTO
  * {@link #resolveAuto resolves} a preset from request context.
  *
- * <p>Resolution changes behavior only on the evidence-backed rule: constrained
+ * <p>Resolution changes behavior on two evidence-backed rules: constrained
  * resources (short request budget or small memoryclass) resolve to BOUNDED
- * effort. Profile and length classes are only classified and logged (via
- * {@link #rationale}) so future rules land on recorded evidence; motorized
- * profiles get a provisional-quality advisory, as no loop-quality corpus covers
- * them yet.
+ * effort, and fast-motorized profiles (car, motorbike — `validForCars`)
+ * resolve AUTO straight to the waypoint tier (decided in the orchestrator's
+ * ladder — the planner candidate pools are bike-calibrated and build no loops
+ * on motor cost scales). Length classes are only classified and logged (via
+ * {@link #rationale}) so future rules land on recorded evidence;
+ * fast-motorized profiles additionally get a provisional-quality advisory, as
+ * no loop-quality corpus covers them yet. E-bike profiles declare
+ * {@code validForBikes} and stay in the bike class.
  */
 public final class RoundTripEffortPolicy {
 
@@ -81,13 +85,13 @@ public final class RoundTripEffortPolicy {
   }
 
   /**
-   * Classify from the profile's validFor* globals (name-independent). Motorized
+   * Classify from the profile's validFor* globals (name-independent). Fast-motorized
    * wins over bike for hybrid declarations so its provisional-quality advisory
    * is not lost.
    */
   public static ProfileClass classifyProfile(boolean validForFoot, boolean validForBikes,
                                       boolean validForCars) {
-    if (validForCars) return ProfileClass.MOTOR;
+    if (validForCars) return ProfileClass.FAST_MOTOR;
     if (validForBikes) return ProfileClass.BIKE;
     if (validForFoot) return ProfileClass.FOOT;
     return ProfileClass.UNKNOWN;
@@ -115,7 +119,7 @@ public final class RoundTripEffortPolicy {
   public enum Preset {BOUNDED, STANDARD, MAX}
 
   /** Coarse profile family, read from the profile's own validFor* globals. */
-  public enum ProfileClass {FOOT, BIKE, MOTOR, UNKNOWN}
+  public enum ProfileClass {FOOT, BIKE, FAST_MOTOR, UNKNOWN}
 
   /** Coarse request-size family (v1: logged in the rationale, no tuning). */
   public enum LengthClass {SMALL, STANDARD, LONG, XL}

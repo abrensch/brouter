@@ -72,9 +72,9 @@ public class RoundTripEffortPolicyTest {
   public void profileClassification() {
     Assert.assertEquals(ProfileClass.FOOT, RoundTripEffortPolicy.classifyProfile(true, false, false));
     Assert.assertEquals(ProfileClass.BIKE, RoundTripEffortPolicy.classifyProfile(false, true, false));
-    Assert.assertEquals(ProfileClass.MOTOR, RoundTripEffortPolicy.classifyProfile(false, false, true));
+    Assert.assertEquals(ProfileClass.FAST_MOTOR, RoundTripEffortPolicy.classifyProfile(false, false, true));
     // Motorized wins hybrids: its provisional-quality advisory must not be lost.
-    Assert.assertEquals(ProfileClass.MOTOR, RoundTripEffortPolicy.classifyProfile(false, true, true));
+    Assert.assertEquals(ProfileClass.FAST_MOTOR, RoundTripEffortPolicy.classifyProfile(false, true, true));
     Assert.assertEquals(ProfileClass.UNKNOWN, RoundTripEffortPolicy.classifyProfile(false, false, false));
   }
 }

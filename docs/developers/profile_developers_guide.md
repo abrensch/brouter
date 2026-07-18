@@ -92,6 +92,15 @@ Some variable names are pre-defined and accessed by the routing engine:
     - `validForFoot`
     - `validForCars`
 
+    These flags do more than label the profile. They select which turn
+    restrictions apply (car-type vs bicycle-type), pick the travel-time model
+    (Tobler's hiking function for foot, the bike-power model for bikes), set
+    the `maxSpeed` default (6 km/h for foot, 45 km/h otherwise), choose the
+    voice-hint transport mode, and classify the profile for round-trip effort
+    resolution (fast-motorized profiles — car, motorbike — resolve `AUTO` to
+    the `FAST` tier — see `docs/features/roundtrips.md`). A profile that
+    declares none of them gets none of these adaptions.
+
   - 2 variables to change the heuristic coefficients for the 2 routing passes (
     <0 disables a routing pass )
 

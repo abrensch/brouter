@@ -70,7 +70,9 @@ flowchart TD
     B -- no --> W[FastStrategy WAYPOINT<br/>every downgrade lands here]
     B -- yes --> C{algo}
     C -- QUALITY --> Q[AutoCompetition + MAX preset]
-    C -- AUTO --> D{effort policy:<br/>budget ≤ 10s or memoryclass ≤ 48?}
+    C -- AUTO --> M{profile class FAST_MOTOR?}
+    M -- yes --> W
+    M -- no --> D{effort policy:<br/>budget ≤ 10s or memoryclass ≤ 48?}
     D -- yes: BOUNDED --> BB[BoundedStrategy]
     D -- no: STANDARD --> AC[AutoCompetition + STANDARD preset]
     C -- BALANCED --> BB

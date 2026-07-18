@@ -82,9 +82,14 @@ logs the decision (`round trip effort: …`):
   (`memoryclass` ≤ 48) resolves to BALANCED-grade bounded effort instead of
   the competition. Unconstrained requests keep the standard competition.
 - **Profile class** — read from the profile's own `validForFoot` /
-  `validForBikes` / `validForCars` globals (name-independent). Motorized
-  profiles route but their loop quality is unvalidated — the log carries a
-  provisional-quality advisory.
+  `validForBikes` / `validForCars` globals (name-independent). On
+  fast-motorized profiles (car, motorbike — `validForCars`; e-bikes declare
+  `validForBikes` and stay in the bike class) AUTO resolves to the `FAST`
+  tier: the planner candidate pools are bike-calibrated and build no loops on
+  motor cost scales, so the competition would only burn seconds to return the
+  same waypoint loop (measured). The explicit tiers (`BALANCED`, `QUALITY`,
+  `GREEDY`, `ISO_GREEDY`) stay available, and the log carries a
+  provisional-quality advisory — motor loop quality is unvalidated.
 - **Length class** — small / standard / long / XL, recorded in the effort log.
   Length-specific tuning lands as evidence accumulates; the >200 km opt-in
   gate (raise the timeout explicitly) is unchanged.
