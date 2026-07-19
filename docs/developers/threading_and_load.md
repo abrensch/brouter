@@ -7,9 +7,9 @@ parent: Developers
 
 Route calculation in BRouter is **CPU-bound** (Dijkstra / weighted-A\* over the
 road graph). This page documents how the server admits and executes requests,
-what that means under high load, and where the round-trip planner adds its own
-concurrency. It distinguishes the **long-standing model** from the pieces the
-greedy round-trip work introduced, so it is clear which behaviour is which.
+what that means under high load, and how the round-trip child engines fit into
+that model. It distinguishes the **long-standing model** from the pieces the
+round-trip work introduced, so it is clear which behaviour is which.
 
 ## Three layers
 
