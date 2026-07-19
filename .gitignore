@@ -24,9 +24,3 @@ misc/customprofiles
 .classpath
 .project
 !/.idea/runConfigurations
-
-# Local agent/session scratch — working notes, never part of the library.
-/.agents/
-/.codex/
-/AGENTS.md
-/ESCAPE-COUNTRYSIDE-FINDINGS.md
