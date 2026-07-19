@@ -19,11 +19,10 @@ BRouter's concurrency lives at three independent layers:
 | :---- | :---- | :----- |
 | 1. Server admission | `maxthreads` thread pool, pre-empt the oldest in-flight request when full | Long-standing BRouter server design |
 | 2. Per request | One `RoutingEngine` (which `extends Thread`) per request, run synchronously | Foundational BRouter design |
-| 3. Intra-request (round trips only) | `AUTO` runs candidate algorithms in **isolated child engines**; the two greedy candidates may run **in parallel** | Child engines: round-trip work. Parallel execution: added with the greedy performance work |
+| 3. Intra-request (round trips only) | `AUTO` runs candidate algorithms in **isolated child engines**, sequentially on the request's own thread | Round-trip work |
 
-Layers 1 and 2 are unchanged by the round-trip performance work. Only the
-intra-request parallelism in layer 3 is new — see
-[Intra-request parallelism](#3-intra-request-parallelism-round-trips) below.
+Layers 1 and 2 are unchanged by the round-trip work. Only layer 3 is new —
+see [Child engines](#3-child-engines-round-trips) below.
 
 ## 1. Server admission — bounded concurrency with oldest-victim pre-emption
 
