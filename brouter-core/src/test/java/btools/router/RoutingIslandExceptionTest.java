@@ -48,6 +48,55 @@ public class RoutingIslandExceptionTest {
       System.currentTimeMillis() + 60_000L);
   }
 
+  /** A MatchedWaypoint with real node positions, so island pairs are recordable. */
+  private static MatchedWaypoint mwpAt(int ilon, int ilat) {
+    MatchedWaypoint m = new MatchedWaypoint();
+    m.waypoint = new btools.mapaccess.OsmNode(ilon, ilat);
+    m.crosspoint = new btools.mapaccess.OsmNode(ilon, ilat);
+    m.node1 = new btools.mapaccess.OsmNode(ilon, ilat + 500);
+    m.node2 = new btools.mapaccess.OsmNode(ilon + 500, ilat);
+    return m;
+  }
+
+  @Test
+  public void islandedLegRecordsEndpointPairsOnFastMotorProfiles() {
+    // Fast-motor island learning: an islanded greedy leg must record BOTH
+    // endpoints' match pairs into the engine's islandNodePairs (and freeze
+    // them), so the next match of the same point avoids the pocket — the same
+    // learn-and-re-match loop the engine's top-level findTrack retry uses.
+    RoutingEngine engine = engineThrowing(new RoutingIslandException());
+    engine.roundTripOps().routingContext().carMode = true;
+    MatchedWaypoint from = mwpAt(100_000_000, 100_000_000);
+    MatchedWaypoint to = mwpAt(101_000_000, 101_000_000);
+
+    GreedyRoundTripPlanner planner = new GreedyRoundTripPlanner(engine.roundTripOps(), new RadialCandidateProvider());
+    OsmTrack leg = planner.timedFindTrack("test-leg", from, to, null,
+      System.currentTimeMillis() + 60_000L);
+
+    Assert.assertNull("the islanded leg still maps to null", leg);
+    Assert.assertTrue("from-side pair recorded",
+      engine.islandNodePairs.hasPair(from.node1.getIdFromPos(), from.node2.getIdFromPos()));
+    Assert.assertTrue("to-side pair recorded",
+      engine.islandNodePairs.hasPair(to.node1.getIdFromPos(), to.node2.getIdFromPos()));
+  }
+
+  @Test
+  public void islandedLegRecordsNothingOnBikeProfiles() {
+    // Bike behavior must stay bit-identical: no island learning off carMode.
+    RoutingEngine engine = engineThrowing(new RoutingIslandException());
+    MatchedWaypoint from = mwpAt(100_000_000, 100_000_000);
+    MatchedWaypoint to = mwpAt(101_000_000, 101_000_000);
+
+    GreedyRoundTripPlanner planner = new GreedyRoundTripPlanner(engine.roundTripOps(), new RadialCandidateProvider());
+    Assert.assertNull(planner.timedFindTrack("test-leg", from, to, null,
+      System.currentTimeMillis() + 60_000L));
+
+    Assert.assertFalse("no pair recorded for bike profiles",
+      engine.islandNodePairs.hasPair(from.node1.getIdFromPos(), from.node2.getIdFromPos()));
+    Assert.assertFalse(
+      engine.islandNodePairs.hasPair(to.node1.getIdFromPos(), to.node2.getIdFromPos()));
+  }
+
   @Test
   public void routingIslandExceptionOnLegYieldsNullNotPropagation() {
     RoutingEngine engine = engineThrowing(new RoutingIslandException());

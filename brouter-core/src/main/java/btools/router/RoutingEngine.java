@@ -853,6 +853,33 @@ public class RoutingEngine extends Thread {
     }
   }
 
+  /**
+   * Fast-motor island learning for planner legs: record both endpoints' match
+   * pairs and freeze them, so the next match of the same point avoids the
+   * pocket ({@code matchWaypointsToNodes} consults {@code islandNodePairs}).
+   * Both sides are recorded because the island exception does not say which
+   * end is pocketed; the healthy road stays matchable via neighboring node
+   * pairs. Gated on {@code carMode}: bike and foot planner behavior stays
+   * bit-identical. Returns whether anything was learned.
+   */
+  boolean recordLegIslandPairs(MatchedWaypoint a, MatchedWaypoint b) {
+    if (!routingContext.carMode) {
+      return false;
+    }
+    boolean any = false;
+    MatchedWaypoint[] ends = {a, b};
+    for (MatchedWaypoint m : ends) {
+      if (m != null && m.node1 != null && m.node2 != null) {
+        islandNodePairs.addTempPair(m.node1.getIdFromPos(), m.node2.getIdFromPos());
+        any = true;
+      }
+    }
+    if (any) {
+      islandNodePairs.freezeTempPairs();
+    }
+    return any;
+  }
+
   private GeometricWaypointPlacer waypointPlacer;
 
   /** Envelope/isochrone via placement. */
@@ -1144,6 +1171,11 @@ public class RoutingEngine extends Thread {
       }
 
       @Override
+      public boolean recordLegIsland(MatchedWaypoint from, MatchedWaypoint to) {
+        return recordLegIslandPairs(from, to);
+      }
+
+      @Override
       public OsmTrack findTrackUnguided(String operationName, MatchedWaypoint startWp,
                                         MatchedWaypoint endWp) {
         OsmTrack savedGuide = guideTrack;
@@ -1349,12 +1381,35 @@ public class RoutingEngine extends Thread {
     return (int) Math.min(Integer.MAX_VALUE / 2.0, Math.max(floor, target));
   }
 
+  /**
+   * Expansion with fast-motor pocket escape: when the start match lands in a
+   * car pocket (the expansion exhausts a tiny component without ever touching
+   * the geographic cutoff), the pocket pair is already recorded by the
+   * expansion — re-match and re-run, at most twice. Bike and foot profiles
+   * never retry (the pocket flag is only computed under {@code carMode}).
+   */
   private IsochroneExpansionResult runIsochroneExpansion(OsmNodeNamed start, double searchRadius,
                                                          OsmTrack refTrack,
                                                          boolean includeCandidateTracks,
                                                          boolean calibrateBudget,
                                                          int presetBudget,
                                                          int probeNodeCap) {
+    IsochroneExpansionResult r = runIsochroneExpansionOnce(start, searchRadius, refTrack,
+      includeCandidateTracks, calibrateBudget, presetBudget, probeNodeCap);
+    for (int attempt = 1; r != null && r.startPocket && attempt <= 2; attempt++) {
+      logInfo("isochrone: start matched into a car pocket, re-matching (attempt " + attempt + ")");
+      r = runIsochroneExpansionOnce(start, searchRadius, refTrack,
+        includeCandidateTracks, calibrateBudget, presetBudget, probeNodeCap);
+    }
+    return r;
+  }
+
+  private IsochroneExpansionResult runIsochroneExpansionOnce(OsmNodeNamed start, double searchRadius,
+                                                             OsmTrack refTrack,
+                                                             boolean includeCandidateTracks,
+                                                             boolean calibrateBudget,
+                                                             int presetBudget,
+                                                             int probeNodeCap) {
     // Phase 1: Match start point (loads segments via directWeaving, consumes node data)
     resetCache(false);
     MatchedWaypoint startMwp = new MatchedWaypoint();
@@ -1458,6 +1513,10 @@ public class RoutingEngine extends Thread {
     if (startPath2 != null) isoOpenSet.add(startPath2.cost, startPath2);
 
     int nodesExpanded = 0;
+    // Pocket detection (fast-motor): exhausted-without-reaching-the-cutoff
+    // means the start's whole road component is a small island.
+    boolean openSetExhausted = false;
+    boolean geoCutoffHit = false;
 
     // Reachability cloud (pocket-avoiding placement): fixed per-expansion
     // scale, captured once at the start latitude — CheapRuler's banded scale
@@ -1494,7 +1553,10 @@ public class RoutingEngine extends Thread {
       }
 
       OsmPath path = isoOpenSet.popLowestKeyValue();
-      if (path == null) break;
+      if (path == null) {
+        openSetExhausted = true;
+        break;
+      }
       if (path.airdistance == -1) continue; // invalidated
 
       // In-flight budget calibration: finalize at the first pop past the
@@ -1614,7 +1676,10 @@ public class RoutingEngine extends Thread {
       }
 
       // Don't expand beyond geographic radius
-      if (dist > geoRadiusCutoff) continue;
+      if (dist > geoRadiusCutoff) {
+        geoCutoffHit = true;
+        continue;
+      }
 
       // Two-pass neighbor expansion (prePath + path creation)
       routingContext.firstPrePath = null;
@@ -1702,8 +1767,16 @@ public class RoutingEngine extends Thread {
       + (nodesExpanded >= maxNodes ? " (maxNodes limit)" : "")
       + ", " + results.size() + "/" + bucketCount + " buckets populated");
     if (results.isEmpty()) return null;
+    // Fast-motor pocket verdict: the start component exhausted as a small
+    // island (never even reached the geographic cutoff). Record the pocket
+    // pair so the wrapper's re-match escapes it.
+    boolean startPocket = routingContext.carMode && openSetExhausted && !geoCutoffHit
+      && nodesExpanded < MAXNODES_ISLAND_CHECK;
+    if (startPocket) {
+      startPocket = recordLegIslandPairs(startMwp, null);
+    }
     return new IsochroneExpansionResult(results.toArray(new double[0][]), candidatePool,
-      cellMinCost, cellDivLon, cellDivLat);
+      cellMinCost, cellDivLon, cellDivLat, startPocket);
   }
 
   private OsmTrack compileCandidateTrack(OsmPath path) {

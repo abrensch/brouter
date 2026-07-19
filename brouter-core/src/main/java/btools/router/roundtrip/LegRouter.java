@@ -39,6 +39,17 @@ public interface LegRouter {
   /** Batch waypoint matching through the engine's node cache. */
   void matchWaypointsToNodes(List<MatchedWaypoint> waypoints, double maxDistance);
 
+  /**
+   * Island-learning hook for an islanded leg (fast-motor profiles): record
+   * both endpoints' match pairs so the engine's matcher avoids the pocket on
+   * the next match of the same point. Returns whether anything was learned —
+   * {@code false} on bike/foot profiles (bit-identical behavior) and for
+   * endpoints without match nodes. Default no-op for test stubs.
+   */
+  default boolean recordLegIsland(MatchedWaypoint from, MatchedWaypoint to) {
+    return false;
+  }
+
   void resetCache(boolean detailed);
 
   /** Wall-clock bound for the next isochrone expansion; 0 clears it. */

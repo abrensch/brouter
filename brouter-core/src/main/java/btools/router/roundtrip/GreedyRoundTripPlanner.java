@@ -1336,6 +1336,30 @@ public class GreedyRoundTripPlanner {
       if (subTrack == null) {
         subTrack = timedFindTrack("greedy-sub", fromMwp, toMwp, cachedRefTrack, stepDeadline);
       }
+      if (subTrack == null && lastLegIslanded) {
+        // Fast-motor pocket escape: the leg died on a road island and the
+        // engine just learned the pocket pairs. A fresh match of the same
+        // points now avoids the pocket (the matcher consults the learned
+        // pairs) — re-match and retry the leg once. Never fires for
+        // bike/foot (lastLegIslanded stays false there).
+        MatchedWaypoint retryFrom = rematchPocketedStart(s, fromMwp);
+        MatchedWaypoint retryTo = matchCandidatePointProfileAware(cp.ilon, cp.ilat);
+        boolean fromMoved = retryFrom != fromMwp;
+        boolean toMoved = retryTo != null && retryTo.crosspoint != null && toMwp.crosspoint != null
+          && retryTo.crosspoint.getIdFromPos() != toMwp.crosspoint.getIdFromPos();
+        if (fromMoved || toMoved) {
+          fromMwp = retryFrom;
+          if (toMoved) {
+            toMwp = retryTo;
+            snappedIlon = toMwp.crosspoint.getILon();
+            snappedIlat = toMwp.crosspoint.getILat();
+          }
+          io.logInfo("greedy-sub: retrying islanded leg after pocket re-match ("
+            + (fromMoved ? "start" : "") + (fromMoved && toMoved ? "+" : "")
+            + (toMoved ? "via" : "") + ")");
+          subTrack = timedFindTrack("greedy-sub", fromMwp, toMwp, null, stepDeadline);
+        }
+      }
       s.candidatesRouted++;
       // Phase 2 v3 deliberate compromise: do NOT retrack candidate
       // sub-tracks here, even though it would give the scorer's
@@ -2004,8 +2028,17 @@ public class GreedyRoundTripPlanner {
     return router.retrackForDetail(rerouted, fromMwp, toMwp, refTrack);
   }
 
+  /**
+   * Whether the most recent {@link #timedFindTrack} failed on an islanded leg
+   * AND the engine learned the pocket pairs (fast-motor profiles only — the
+   * learning hook is a no-op for bike/foot, so this stays {@code false} there
+   * and the pocket-escape retry never fires).
+   */
+  private boolean lastLegIslanded;
+
   public OsmTrack timedFindTrack(String name, MatchedWaypoint from, MatchedWaypoint to,
                                   OsmTrack refTrack, long deadline) {
+    lastLegIslanded = false;
     long now = System.currentTimeMillis();
     long remaining = deadline - now;
     if (remaining < MIN_FIND_TRACK_MS) {
@@ -2024,20 +2057,35 @@ public class GreedyRoundTripPlanner {
     long budget = Math.min(scaledCap, remaining);
     try {
       return router.findTrackTimed(name, from, to, refTrack, budget);
-    } catch (IllegalArgumentException | RoutingIslandException e) {
+    } catch (IllegalArgumentException e) {
       // A watchdog kill surfaces as IllegalArgumentException; propagate it so
       // plan() aborts immediately instead of burning the remaining attempts
       // re-throwing-and-swallowing the same kill on every subsequent leg.
       if (router.isTerminated()) {
         throw e;
       }
-      // Treat an islanded / unroutable leg as "no track for this leg" (same as
-      // retrackForDetail does) so the planner falls back to its best-so-far loop
-      // instead of letting the exception abort plan() and discard all telemetry.
-      io.logInfo(name + ": no track (" + e.getClass().getSimpleName()
-        + (e.getMessage() == null ? "" : ": " + e.getMessage()) + ")");
-      return null;
+      return noTrackForLeg(name, e);
+    } catch (RoutingIslandException e) {
+      if (router.isTerminated()) {
+        throw e;
+      }
+      // Fast-motor island learning: remember the pocket so the caller's
+      // re-match avoids it (routeTopCandidates' pocket-escape retry).
+      // recordLegIsland returns false for bike/foot — no behavior change.
+      lastLegIslanded = router.recordLegIsland(from, to);
+      return noTrackForLeg(name, e);
     }
+  }
+
+  /**
+   * Treat an islanded / unroutable leg as "no track for this leg" (same as
+   * retrackForDetail does) so the planner falls back to its best-so-far loop
+   * instead of letting the exception abort plan() and discard all telemetry.
+   */
+  private OsmTrack noTrackForLeg(String name, RuntimeException e) {
+    io.logInfo(name + ": no track (" + e.getClass().getSimpleName()
+      + (e.getMessage() == null ? "" : ": " + e.getMessage()) + ")");
+    return null;
   }
 
   /**
@@ -2082,6 +2130,32 @@ public class GreedyRoundTripPlanner {
         + (e.getMessage() == null ? "" : ": " + e.getMessage()));
     }
     return matchPoint(ilon, ilat, "greedy_to");
+  }
+
+  /**
+   * After an islanded leg on a fast-motor profile: when the leg started at the
+   * plan's start match and nothing is committed yet, re-match the start — the
+   * just-learned pocket pair steers the matcher onto a connected road. The
+   * session start state (start/current/stack head) moves together. Returns the
+   * (possibly unchanged) leg start.
+   */
+  private MatchedWaypoint rematchPocketedStart(GreedyPlanSession s, MatchedWaypoint fromMwp) {
+    if (fromMwp != s.startMwp || !s.segments.isEmpty()) {
+      return fromMwp;
+    }
+    OsmNode w = s.startMwp.waypoint;
+    MatchedWaypoint rematch = matchPoint(w.getILon(), w.getILat(), "greedy_start");
+    if (rematch == null || rematch.crosspoint == null || s.startMwp.crosspoint == null
+        || rematch.crosspoint.getIdFromPos() == s.startMwp.crosspoint.getIdFromPos()) {
+      return fromMwp;
+    }
+    io.logInfo("greedy: start re-matched past learned car pocket");
+    s.startMwp = rematch;
+    s.currentMwp = rematch;
+    if (!s.waypointStack.isEmpty()) {
+      s.waypointStack.set(0, rematch);
+    }
+    return rematch;
   }
 
   private MatchedWaypoint matchPoint(int ilon, int ilat, String name) {

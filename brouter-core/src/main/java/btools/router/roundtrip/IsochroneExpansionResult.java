@@ -38,17 +38,32 @@ public final class IsochroneExpansionResult {
   /** ilat units per reachability cell (latitude divisor), 0 when no cloud. */
   final int cellDivLat;
 
+  /**
+   * Fast-motor pocket verdict: the start match landed on a small road island
+   * (the expansion exhausted its component without reaching the geographic
+   * cutoff) and the pocket pair was recorded for the matcher to avoid. Always
+   * {@code false} for bike/foot profiles.
+   */
+  public final boolean startPocket;
+
   public IsochroneExpansionResult(double[][] frontier, List<IsoCandidate> candidates) {
-    this(frontier, candidates, Collections.emptyMap(), 0, 0);
+    this(frontier, candidates, Collections.emptyMap(), 0, 0, false);
   }
 
   public IsochroneExpansionResult(double[][] frontier, List<IsoCandidate> candidates,
                            java.util.Map<Long, Integer> cellMinCost, int cellDivLon, int cellDivLat) {
+    this(frontier, candidates, cellMinCost, cellDivLon, cellDivLat, false);
+  }
+
+  public IsochroneExpansionResult(double[][] frontier, List<IsoCandidate> candidates,
+                           java.util.Map<Long, Integer> cellMinCost, int cellDivLon, int cellDivLat,
+                           boolean startPocket) {
     this.frontier = frontier;
     this.candidates = (candidates != null) ? candidates : Collections.emptyList();
     this.cellMinCost = (cellMinCost != null) ? cellMinCost : Collections.emptyMap();
     this.cellDivLon = cellDivLon;
     this.cellDivLat = cellDivLat;
+    this.startPocket = startPocket;
   }
 
   /**
