@@ -219,7 +219,7 @@ assign any_cycleroute
 
   assign defaultaccess =
          if access= then not motorroad=yes
-         else if access=private|no then false
+         else if access=private|no|unknown then false
          else true
 
   assign bikeaccess =
@@ -559,7 +559,7 @@ assign any_cycleroute
   assign defaultaccess =
          if ( access= ) then  if allow_default_barrier_restriction then not barrier=gate # add default barrier restrictions here! - modified v2.5.15, conditioned in 2.6
                                                                    else true
-         else if ( access=private|no ) then false
+         else if ( access=private|no|unknown ) then false
          else true
 
   assign bikeaccess =
