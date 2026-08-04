@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
@@ -170,6 +171,7 @@ public class DownloadWorker extends Worker {
       return Result.failure();
     }
     notificationBuilder.setContentText("Starting Download");
+    long startTime = System.currentTimeMillis();
     // Mark the Worker as important
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
       setForegroundAsync(new ForegroundInfo(NOTIFICATION_ID, notificationBuilder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC));
@@ -228,7 +230,22 @@ public class DownloadWorker extends Worker {
     } catch (InterruptedException e) {
       output.putString(KEY_OUTPUT_ERROR, e.getMessage());
       return Result.failure(output.build());
+    } finally {
+      if (versionChanged) {// remove old files on user break
+        File segmentFolder = new File(baseDir, SEGMENTS_DIR);
+        File[] files = segmentFolder.listFiles(new FileFilter() {
+          @Override
+          public boolean accept(File file) {
+            return (file.getPath().endsWith(SEGMENT_SUFFIX));
+          }
+        });
+        for (File f : files) {
+          if ((f.lastModified() < startTime)) f.delete();
+        }
+      }
+
     }
+
     if (DEBUG) Log.d(LOG_TAG, "doWork finished");
     return Result.success();
   }
@@ -408,6 +425,12 @@ public class DownloadWorker extends Worker {
       connection.disconnect();
     }
 
+  }
+
+  @Override
+  public void onStopped() {
+    super.onStopped();
+    if (DEBUG) Log.d(LOG_TAG, "onStopped ");
   }
 
   private boolean downloadFile(URL downloadUrl, File outputFile, int fileSize, boolean limitDownloadSpeed, DownloadType type) throws IOException, InterruptedException {
