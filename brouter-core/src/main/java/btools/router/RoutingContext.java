@@ -220,6 +220,7 @@ public final class RoutingContext {
   public Integer startDirection;
   public boolean startDirectionValid;
   public boolean forceUseStartDirection;
+  public Integer roundTripStartDirection;
   public Integer roundTripDistance;
   public Integer roundTripDirectionAdd;
   public Integer roundTripPoints;
