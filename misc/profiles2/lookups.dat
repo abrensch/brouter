@@ -139,7 +139,7 @@ access;0002688349 private restricted residents employees
 access;0000319927 yes public
 access;0000144799 no
 access;0000140215 permissive
-access;0000108802 destination visitors
+access;0000108802 destination visitors value_unknown
 access;0000099899 agricultural
 access;0000039934 designated official
 access;0000011813 customers
@@ -956,7 +956,7 @@ access;0000078544 private
 access;0000014933 yes public
 access;0000014456 no
 access;0000008670 permissive
-access;0000006316 destination customers delivery
+access;0000006316 destination customers delivery value_unknown
 access;0000000973 agricultural
 access;0000000942 designated official
 access;0000000001 permit
