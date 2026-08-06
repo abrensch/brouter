@@ -520,7 +520,7 @@ public class RoutingEngine extends Thread {
 
       routingContext.useDynamicDistance = true;
       double searchRadius = (routingContext.roundTripDistance == null ? 1500 :routingContext.roundTripDistance);
-      double direction = (routingContext.roundTripStartDirection == null ? -1 :routingContext.roundTripStartDirection);
+      double direction = (routingContext.roundTripStartDirection == null ? (routingContext.startDirection == null ? -1 : routingContext.startDirection) : routingContext.roundTripStartDirection);
       double directionAdd = (routingContext.roundTripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD :routingContext.roundTripDirectionAdd);
       if (direction == -1) direction = getRandomDirectionFromData(waypoints.get(0), searchRadius);
 
