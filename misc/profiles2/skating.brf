@@ -191,7 +191,7 @@ assign initialcost =
 # Unlike cycling, inline skating works on footways and sidewalks.
 assign defaultaccess =
        if access= then not motorroad=yes
-       else if access=private|no|unknown then false
+       else if access=private|no then false
        else true
 
 assign bikeaccess =
@@ -443,7 +443,7 @@ assign dummyUsage = or smoothness= surface=
 
 assign defaultaccess =
        if ( access= ) then true
-       else if ( access=private|no|unknown ) then false
+       else if ( access=private|no ) then false
        else true
 
 assign bikeaccess =

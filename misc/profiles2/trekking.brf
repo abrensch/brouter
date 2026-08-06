@@ -136,7 +136,7 @@ assign initialcost =
 #
 assign defaultaccess =
        if access= then not motorroad=yes
-       else if access=private|no|unknown then false
+       else if access=private|no then false
        else true
 
 #
@@ -412,7 +412,7 @@ assign dummyUsage = smoothness=
 
 assign defaultaccess =
        if ( access= ) then true # add default barrier restrictions here!
-       else if ( access=private|no|unknown ) then false
+       else if ( access=private|no ) then false
        else true
 
 assign bikeaccess =
