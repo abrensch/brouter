@@ -25,6 +25,7 @@ import java.util.Queue;
 import java.util.StringTokenizer;
 import java.util.zip.GZIPOutputStream;
 
+import btools.router.FormatJson;
 import btools.router.OsmNodeNamed;
 import btools.router.OsmTrack;
 import btools.router.ProfileCache;
@@ -223,17 +224,29 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         String headers = encodings == null || encodings.indexOf("gzip") < 0 ? null : "Content-Encoding: gzip\r\n";
         writeHttpHeader(bw, handler.getMimeType(), handler.getFileName(), headers, HTTP_STATUS_OK);
         if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING ||
-            engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP) {
+            engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP ||
+            engineMode == RoutingEngine.BROUTER_ENGINEMODE_LOOP) {
           if (track != null) {
+            // Loop mode can return the whole ranked list. For GeoJSON we emit one
+            // FeatureCollection with a Feature per loop; other formats return the best loop.
+            String body;
+            List<OsmTrack> loops = cr.getFoundTracks();
+            String fmt = params.get("format");
+            if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_LOOP && loops != null
+                && ("geojson".equals(fmt) || "json".equals(fmt))) {
+              body = new FormatJson(rc).format(loops);
+            } else {
+              body = handler.formatTrack(track);
+            }
             if (headers != null) { // compressed
               ByteArrayOutputStream baos = new ByteArrayOutputStream();
               Writer w = new OutputStreamWriter(new GZIPOutputStream(baos), "UTF-8");
-              w.write(handler.formatTrack(track));
+              w.write(body);
               w.close();
               bw.flush();
               clientSocket.getOutputStream().write(baos.toByteArray());
             } else {
-              bw.write(handler.formatTrack(track));
+              bw.write(body);
             }
           }
         } else if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_GETELEV ||

@@ -27,6 +27,8 @@ Here's what makes BRouter unique:
 - It offers [alternative route calculations](features/alternatives.md)
 - It supports [via and nogo-points](features/vianogo.md)
 - It can [consider long distance cycle routes](features/cycleroutes.md)
+- It can generate [round-trip loop routes](loop-api.md) of a target distance
+  (see the [algorithm deep-dive](loop-algorithm.md))
 
 Routing data is available worldwide with automatic weekly updates
 
