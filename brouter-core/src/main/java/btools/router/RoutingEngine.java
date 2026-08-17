@@ -36,6 +36,7 @@ public class RoutingEngine extends Thread {
   public final static int BROUTER_ENGINEMODE_GETELEV = 2;
   public final static int BROUTER_ENGINEMODE_GETINFO = 3;
   public final static int BROUTER_ENGINEMODE_ROUNDTRIP = 4;
+  public final static int BROUTER_ENGINEMODE_LOOP = 5;
 
   private NodesCache nodesCache;
   private SortedHeap<OsmPath> openSet = new SortedHeap<>();
@@ -60,6 +61,7 @@ public class RoutingEngine extends Thread {
   private int MAX_DYNAMIC_RANGE = 60000;
 
   protected OsmTrack foundTrack = new OsmTrack();
+  private List<OsmTrack> foundTracks = null; // ranked list, populated by loop mode
   private OsmTrack foundRawTrack = null;
   private int alternativeIndex = 0;
 
@@ -189,6 +191,11 @@ public class RoutingEngine extends Thread {
         if (waypoints.size() < 1)
           throw new IllegalArgumentException("we need one lat/lon point at least!");
         doRoundTrip();
+        break;
+      case BROUTER_ENGINEMODE_LOOP:
+        if (waypoints.size() < 1)
+          throw new IllegalArgumentException("we need one lat/lon point at least!");
+        doLoop();
         break;
       default:
         throw new IllegalArgumentException("not a valid engine mode");
@@ -518,6 +525,136 @@ public class RoutingEngine extends Thread {
       logException(e);
     }
 
+  }
+
+  /**
+   * Loop-route suggestion mode (BROUTER_ENGINEMODE_LOOP).
+   * <p>
+   * Given a single start waypoint and a target distance D (routingContext.loopDistance,
+   * meters), produce a ranked list of high-quality loops that start and end at the start
+   * node and are approximately D meters long. The heavy lifting lives in {@link LoopGenerator};
+   * this method only prepares the graph (waypoint matching + cache) and turns the ranked
+   * tracks into output, mirroring how doRouting emits alternatives.
+   */
+  public void doLoop() {
+    try {
+      long t0 = System.currentTimeMillis();
+
+      int targetDistance = routingContext.loopDistance == null
+        ? (routingContext.roundTripDistance == null ? 5000 : routingContext.roundTripDistance * 2)
+        : routingContext.loopDistance;
+
+      routingContext.useDynamicDistance = true;
+      if (routingContext.waypointCatchingRange <= 0) {
+        routingContext.waypointCatchingRange = 250;
+      }
+
+      // Snap the start point to the street network exactly like normal routing does:
+      // matchWaypointsToNodes projects it onto the nearest way (crosspoint) and reports the
+      // two ends (node1/node2) of that way segment, honouring waypointCatchingRange /
+      // useDynamicDistance. If it is not mappable this throws, same as standard routing.
+      MatchedWaypoint startPoint = new MatchedWaypoint();
+      startPoint.waypoint = waypoints.get(0);
+      startPoint.name = "loop_start";
+      List<MatchedWaypoint> listOne = new ArrayList<>();
+      listOne.add(startPoint);
+      matchWaypointsToNodes(listOne);
+
+      resetCache(true);
+      nodesCache.nodesMap.cleanupMode = 0;
+
+      // Anchor the loop at whichever end of the snapped segment is closer to the projected
+      // point, so start==end sits on the street nearest the user's input.
+      MatchedWaypoint mwp = listOne.get(0);
+      OsmNode anchor = mwp.node1;
+      if (mwp.crosspoint != null && mwp.node2 != null
+          && mwp.node2.calcDistance(mwp.crosspoint) < mwp.node1.calcDistance(mwp.crosspoint)) {
+        anchor = mwp.node2;
+      }
+      OsmNode startNode = nodesCache.getGraphNode(anchor);
+      if (!nodesCache.obtainNonHollowNode(startNode)) {
+        errorMessage = "loop start position not mapped in existing datafile";
+        return;
+      }
+      nodesCache.expandHollowLinkTargets(startNode);
+
+      LoopGenerator generator = new LoopGenerator(this, routingContext, nodesCache, startNode, targetDistance);
+      List<OsmTrack> loops = generator.generate();
+
+      if (loops.isEmpty()) {
+        if (errorMessage == null) errorMessage = "no loop found for the given distance";
+        return;
+      }
+
+      List<String> messageList = new ArrayList<>();
+      for (int i = 0; i < loops.size(); i++) {
+        OsmTrack track = loops.get(i);
+        recalcTrack(track);
+        track.name = "brouter_loop_" + routingContext.getProfileName() + "_" + i;
+        track.message = "track-length = " + track.distance + " cost=" + track.cost;
+        messageList.add(track.message);
+        track.messageList = messageList;
+        track.exportWaypoints = routingContext.exportWaypoints;
+        track.params = routingContext.keyValues;
+
+        if (outfileBase != null) {
+          String filename = outfileBase + i + "." + routingContext.outputFormat;
+          String formatted = formatTrack(track);
+          if (formatted != null) {
+            FileWriter fw = new FileWriter(filename);
+            fw.write(formatted);
+            fw.close();
+          }
+        }
+      }
+
+      foundTrack = loops.get(0);
+      foundTracks = loops;
+      // Callers reading a single track (getFoundTrack) get the best loop; getFoundTracks()
+      // exposes the full ranked list. For GeoJSON we serialize the whole list as one
+      // FeatureCollection, otherwise the best loop.
+      if ("geojson".equals(routingContext.outputFormat) || "json".equals(routingContext.outputFormat)) {
+        outputMessage = new FormatJson(routingContext).format(loops);
+      } else {
+        outputMessage = formatTrack(foundTrack);
+      }
+
+      logInfo("loop execution time = " + (System.currentTimeMillis() - t0) / 1000. + " seconds, loops=" + loops.size());
+    } catch (OutOfMemoryError e) {
+      // A large loop in a very dense area can exhaust the heap. Drop references so cleanup can
+      // reclaim memory, and report a clear error instead of crashing the request.
+      foundTrack = new OsmTrack();
+      foundTracks = null;
+      outputMessage = null;
+      cleanOnOOM();
+      errorMessage = "loop search ran out of memory - reduce loopDistance, loosen constraints, or give the server more heap (-Xmx)";
+      logInfo(errorMessage);
+    } catch (Exception e) {
+      logException(e);
+      logThrowable(e);
+    } finally {
+      ProfileCache.releaseProfile(routingContext);
+      if (nodesCache != null) {
+        nodesCache.close();
+        nodesCache = null;
+      }
+      openSet.clear();
+      finished = true;
+    }
+  }
+
+  private String formatTrack(OsmTrack track) {
+    switch (routingContext.outputFormat) {
+      case "gpx":
+        return new FormatGpx(routingContext).format(track);
+      case "geojson":
+      case "json":
+        return new FormatJson(routingContext).format(track);
+      case "kml":
+        return new FormatKml(routingContext).format(track);
+      default:
+        return new FormatGpx(routingContext).format(track);
+    }
   }
 
   void buildPointsFromCircle(List<OsmNodeNamed> waypoints, double startAngle, double searchRadius, int points) {
@@ -2411,6 +2548,14 @@ public class RoutingEngine extends Thread {
 
   public OsmTrack getFoundTrack() {
     return foundTrack;
+  }
+
+  /**
+   * The full ranked list of loops produced by BROUTER_ENGINEMODE_LOOP (best first),
+   * or null for other engine modes.
+   */
+  public List<OsmTrack> getFoundTracks() {
+    return foundTracks;
   }
 
   public String getFoundInfo() {

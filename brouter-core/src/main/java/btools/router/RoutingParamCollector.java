@@ -218,6 +218,49 @@ public class RoutingParamCollector {
           }
         } else if (key.equals("allowSamewayback")) {
           rctx.allowSamewayback = Integer.parseInt(value)==1;
+        } else if (key.equals("loopDistance")) {
+          rctx.loopDistance = Integer.valueOf(value);
+        } else if (key.equals("loopTolerance")) {
+          rctx.loopTolerance = Double.parseDouble(value);
+        } else if (key.equals("loopMaxResults")) {
+          rctx.loopMaxResults = Integer.parseInt(value);
+        } else if (key.equals("loopOverlapPenalty")) {
+          rctx.loopOverlapPenalty = Double.parseDouble(value);
+        } else if (key.equals("loopReachFactor")) {
+          rctx.loopReachFactor = Double.parseDouble(value);
+        } else if (key.equals("loopWeightHills")) {
+          rctx.loopWeightHills = Double.parseDouble(value);
+        } else if (key.equals("loopHillPreference")) {
+          rctx.loopHillPreference = value;
+        } else if (key.equals("loopWeightSurface")) {
+          rctx.loopWeightSurface = Double.parseDouble(value);
+        } else if (key.equals("loopSurface")) {
+          rctx.loopSurface = value;
+        } else if (key.equals("loopRandomness")) {
+          rctx.loopRandomness = Double.parseDouble(value);
+        } else if (key.equals("loopSeed")) {
+          rctx.loopSeed = Long.valueOf(value);
+        } else if (key.equals("hills")) {
+          // Convenience: drive the standard profile's elevation cost the way navigation does.
+          // "avoid" penalizes climbs/descents, "ignore" turns elevation cost off. Only affects
+          // profiles that expose these parameters (trekking, hiking, etc.).
+          // profile parameter overrides are parsed as numbers, so booleans are "1"/"0"
+          if (rctx.keyValues == null) rctx.keyValues = new HashMap<>();
+          if ("avoid".equalsIgnoreCase(value)) {
+            rctx.keyValues.put("consider_elevation", "1");
+            rctx.keyValues.put("uphillcost", "60");
+            rctx.keyValues.put("downhillcost", "60");
+          } else if ("ignore".equalsIgnoreCase(value)) {
+            rctx.keyValues.put("consider_elevation", "0");
+          }
+        } else if (key.equals("loopWeightCloseness")) {
+          rctx.loopWeightCloseness = Double.parseDouble(value);
+        } else if (key.equals("loopWeightQuality")) {
+          rctx.loopWeightQuality = Double.parseDouble(value);
+        } else if (key.equals("loopWeightOverlap")) {
+          rctx.loopWeightOverlap = Double.parseDouble(value);
+        } else if (key.equals("loopWeightDiversity")) {
+          rctx.loopWeightDiversity = Double.parseDouble(value);
         } else if (key.equals("alternativeidx")) {
           rctx.setAlternativeIdx(Integer.parseInt(value));
         } else if (key.equals("turnInstructionMode")) {

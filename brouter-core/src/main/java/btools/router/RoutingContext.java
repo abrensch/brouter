@@ -225,6 +225,41 @@ public final class RoutingContext {
   public Integer roundTripPoints;
   public boolean allowSamewayback;
 
+  // ---- loop-route generation (BROUTER_ENGINEMODE_LOOP) ----
+  // target loop length in meters (the "D" of the loop algorithm)
+  public Integer loopDistance;
+  // half-width of the acceptance band around D, as a fraction (0.10 == +/-10%)
+  public double loopTolerance = 0.10;
+  // how many ranked loops to return
+  public int loopMaxResults = 2;
+  // penalty weight applied to outbound-leg edges during an overlapping return re-search
+  public double loopOverlapPenalty = 4.0;
+  // fraction of D used as the straight-line search radius from the start. 0 = auto: full/safe
+  // 0.5 for short loops, tightening toward ~0.38 for long ones to keep dense-city searches
+  // fast (a tighter disk favors roundish loops over near out-and-back shapes).
+  public double loopReachFactor = 0.0;
+  // composite-score weights (see LoopGenerator); must be a starting point, tunable via params
+  public double loopWeightCloseness = 0.4;
+  public double loopWeightQuality = 0.3;
+  public double loopWeightOverlap = 0.2;
+  public double loopWeightDiversity = 0.1;
+  // Extra ranking factors (0 = off, backward compatible). These bias WHICH of the found loops
+  // win; the actual roads a loop uses are still chosen by the profile's cost model (hills via
+  // consider_elevation/uphillcost/downhillcost, surface via the profile), which loop mode
+  // honours exactly like navigation.
+  // Hills: weight applied to elevation gain per km; direction set by loopHillPreference.
+  public double loopWeightHills = 0.0;
+  public String loopHillPreference = "avoid"; // "avoid" (flatter ranks higher) | "prefer"
+  // Surface / way-type: weight applied to the fraction of the loop whose OSM way tags match
+  // loopSurface (comma-separated keywords or named classes: paved, unpaved, path, sidewalk).
+  public double loopWeightSurface = 0.0;
+  public String loopSurface = null;
+  // Randomness: perturbs ranking among high-quality candidates so repeated calls with the same
+  // start/settings return different (still good) loops. 0 = deterministic best-first. loopSeed
+  // fixes the randomness for reproducible results (null = fresh randomness each call).
+  public double loopRandomness = 0.2;
+  public Long loopSeed = null;
+
   public CheapAngleMeter anglemeter = new CheapAngleMeter();
 
   public double nogoCost = 0.;
