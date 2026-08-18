@@ -194,6 +194,9 @@ docker run --rm \
 
 More documentation is available in the [`docs`](docs) folder.
 
+## Contributing
+
+Please read the [developer guide](docs/developers/delevoper_guide.md)
 
 ## Related Projects
 
