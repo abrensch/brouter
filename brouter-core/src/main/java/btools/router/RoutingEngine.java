@@ -171,6 +171,12 @@ public class RoutingEngine extends Thread {
 
     switch (engineMode) {
       case BROUTER_ENGINEMODE_ROUTING:
+        if (waypoints.size() == 1 && waypoints.get(0).wpttype == MatchedWaypoint.WAYPOINT_TYPE_ROUNDTRIP) {
+          engineMode = BROUTER_ENGINEMODE_ROUNDTRIP;
+          routingContext.waypointCatchingRange = 250;
+          doRouting(maxRunningTime);
+          break;
+        }
         if (waypoints.size() < 2) {
           throw new IllegalArgumentException("we need two lat/lon points at least!");
         }
@@ -220,6 +226,30 @@ public class RoutingEngine extends Thread {
           waypoints.addAll(newpoints);
         }
       }
+
+      // check for round trip
+      List<OsmNodeNamed> tmppoints = new ArrayList<>();
+      for (OsmNodeNamed onn: waypoints) {
+        if (onn.wpttype == MatchedWaypoint.WAYPOINT_TYPE_ROUNDTRIP) {
+          double searchRadius = (routingContext.roundTripDistance == null ? 1500 :routingContext.roundTripDistance);
+          double direction = (routingContext.roundTripStartDirection == null ? -1 :routingContext.roundTripStartDirection);
+          double directionAdd = (routingContext.roundTripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD :routingContext.roundTripDirectionAdd);
+          if (direction == -1) direction = getRandomDirectionFromData(onn, searchRadius);
+          routingContext.useDynamicDistance = true;
+          routingContext.waypointCatchingRange = 250;
+
+          List<OsmNodeNamed> newpoints = new ArrayList<>();
+          onn.name = "from_rt";
+          newpoints.add(onn);
+          buildPointsFromCircle(newpoints, direction, searchRadius, routingContext.roundTripPoints == null ? 5 : routingContext.roundTripPoints);
+          tmppoints.addAll(newpoints);
+        } else {
+          tmppoints.add(onn);
+        }
+      }
+
+      waypoints.clear();
+      waypoints.addAll(tmppoints);
 
       int nsections = waypoints.size() - 1;
       OsmTrack[] refTracks = new OsmTrack[nsections]; // used ways for alternatives
@@ -490,7 +520,7 @@ public class RoutingEngine extends Thread {
 
       routingContext.useDynamicDistance = true;
       double searchRadius = (routingContext.roundTripDistance == null ? 1500 :routingContext.roundTripDistance);
-      double direction = (routingContext.startDirection == null ? -1 :routingContext.startDirection);
+      double direction = (routingContext.roundTripStartDirection == null ? (routingContext.startDirection == null ? -1 : routingContext.startDirection) : routingContext.roundTripStartDirection);
       double directionAdd = (routingContext.roundTripDirectionAdd == null ? ROUNDTRIP_DEFAULT_DIRECTIONADD :routingContext.roundTripDirectionAdd);
       if (direction == -1) direction = getRandomDirectionFromData(waypoints.get(0), searchRadius);
 
@@ -504,6 +534,7 @@ public class RoutingEngine extends Thread {
         onn.name = "rt1";
         waypoints.add(onn);
       } else {
+        waypoints.get(0).name = "from_rt";
         buildPointsFromCircle(waypoints, direction, searchRadius, routingContext.roundTripPoints == null ? 5 : routingContext.roundTripPoints);
       }
 
@@ -903,7 +934,14 @@ public class RoutingEngine extends Thread {
       hasDirectRouting = true;
     }
     for (OsmNodeNamed wp : waypoints) {
-      if (hasInfo()) logInfo("wp=" + wp + (wp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT ? " beeline" : (wp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_MEETING ? " via" : "")));
+      String type = "";
+      switch (wp.wpttype) {
+        case MatchedWaypoint.WAYPOINT_TYPE_DIRECT: type = " beeline"; break;
+        case MatchedWaypoint.WAYPOINT_TYPE_MEETING: type = " via"; break;
+        case MatchedWaypoint.WAYPOINT_TYPE_ROUNDTRIP: type = " roundtrip"; break;
+        default: break;
+      }
+      if (hasInfo()) logInfo("wp=" + wp + type);
       if (wp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) hasDirectRouting = true;
     }
 
@@ -940,8 +978,16 @@ public class RoutingEngine extends Thread {
       }
 
       for (MatchedWaypoint mwp : matchedWaypoints) {
-        if (hasInfo() && matchedWaypoints.size() != nUnmatched)
-          logInfo("new wp=" + mwp.waypoint + " " + mwp.crosspoint + (mwp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT ? " beeline" : (mwp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_MEETING ? " via" : "")));
+        if (hasInfo() && matchedWaypoints.size() != nUnmatched) {
+          String type = "";
+          switch (mwp.wpttype) {
+            case MatchedWaypoint.WAYPOINT_TYPE_DIRECT: type = " beeline"; break;
+            case MatchedWaypoint.WAYPOINT_TYPE_MEETING: type = " via"; break;
+            case MatchedWaypoint.WAYPOINT_TYPE_ROUNDTRIP: type = " roundtrip"; break;
+            default: break;
+          }
+          logInfo("new wp=" + mwp.waypoint + " " + mwp.crosspoint + type);
+        }
       }
 
       routingContext.checkMatchedWaypointAgainstNogos(matchedWaypoints);

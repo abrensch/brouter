@@ -38,6 +38,8 @@ public class RoutingParamCollector {
           wplist.get(wplist.size() - 1).wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
         } else if (lonLat[2].equals("m")) {
           wplist.get(wplist.size() - 1).wpttype = MatchedWaypoint.WAYPOINT_TYPE_MEETING;
+        } else if (lonLat[2].equals("r")) {
+          wplist.get(wplist.size() - 1).wpttype = MatchedWaypoint.WAYPOINT_TYPE_ROUNDTRIP;
         } else {
           wplist.get(wplist.size() - 1).name = lonLat[2];
           wplist.get(wplist.size() - 1).wpttype = MatchedWaypoint.WAYPOINT_TYPE_MEETING;
@@ -207,6 +209,8 @@ public class RoutingParamCollector {
           rctx.forceUseStartDirection = true;
         } else if (key.equals("direction")) {
           rctx.startDirection = Integer.valueOf(value);
+        } else if (key.equals("roundTripStartDirection")) {
+          rctx.roundTripStartDirection = Integer.valueOf(value);
         } else if (key.equals("roundTripDistance")) {
           rctx.roundTripDistance = Integer.valueOf(value);
         } else if (key.equals("roundTripDirectionAdd")) {
