@@ -317,13 +317,11 @@ horse;0000227398 no
 horse;0000144432 yes permissive
 horse;0000014566 designated official
 horse;0000004755 private
-horse;0000000968 unknown
 horse;0000000205 destination
 
 wheelchair;0000036603 no
 wheelchair;0000028451 yes
 wheelchair;0000002713 limited
-wheelchair;0000001043 unknown
 wheelchair;0000000439 designated official
 wheelchair;0000000184 destination
 
@@ -866,7 +864,6 @@ highway;0000002493 services
 highway;0000002133 emergency_bay
 highway;0000000244 construction
 highway;0000000213 proposed
-highway;0000000155 unknown
 highway;0000000134 traffic_sign
 highway;0000000115 trailhead
 
