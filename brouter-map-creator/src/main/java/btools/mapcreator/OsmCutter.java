@@ -130,6 +130,7 @@ public class OsmCutter extends MapCreatorBase {
     }
 
     if (n.getTagsOrNull() != null) {
+      generatePseudoTags(n.getTagsOrNull());
       int[] lookupData = _expctxNode.createNewLookupData();
       for (Map.Entry<String, String> e : n.getTagsOrNull().entrySet()) {
         _expctxNode.addLookupValue(e.getKey(), e.getValue(), lookupData);
@@ -149,6 +150,14 @@ public class OsmCutter extends MapCreatorBase {
 
 
   private void generatePseudoTags(Map<String, String> map) {
+    // access=unknown collides with the reserved lookup index used for
+    // absent/unrecognized values (see BExpressionContext#addLookupValue),
+    // so it decodes identically to no access tag at all. Rewrite it here
+    // so lookups.dat can alias it to a distinct, non-fallback value.
+    if ("unknown".equals(map.get("access"))) {
+      map.put("access", "value_unknown");
+    }
+
     // add pseudo.tags for concrete:lanes and concrete:plates
 
     String concrete = null;

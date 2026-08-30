@@ -24,6 +24,7 @@ interface IBRouterService {
     //                      variantes: lon,lat,d|... (from this point to the next  do a direct line)
     //                                 lon,lat,m|... (route point has no name and works as a meeting point)
     //                                 lon,lat,name|... (route point has a name and should not be ignored)
+    //                                 lon,lat,r|... (from this point start a round trip)
     //  "straight"        = idx1,idx2,.. (optional, minimum one value, index of a direct routing point in the waypoint list)
     //  "nogos"           = lon,lat,radius,weight|... (optional, list of lon, lat, radius in meters, weight (optional))
     //  "polylines"       = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)

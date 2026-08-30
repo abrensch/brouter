@@ -41,7 +41,7 @@ public class FormatJson extends Formatter {
       for (VoiceHint hint : t.voiceHints.list) {
         sb.append("          [");
         sb.append(hint.indexInTrack);
-        sb.append(',').append(hint.getJsonCommandIndex(turnInstructionMode));
+        sb.append(',').append(getJsonCommandIndex(hint.cmd, turnInstructionMode));
         sb.append(',').append(hint.getExitNumber());
         sb.append(',').append(hint.distanceToNext);
         sb.append(',').append((int) hint.angle);

@@ -234,8 +234,16 @@ public class BRouterView extends View {
         System.currentTimeMillis() - lastTimeoutTime < 1800000) {
         BufferedReader br = new BufferedReader(new FileReader(lastTimeoutFile));
         String repeatProfile = br.readLine();
+        String tmp = br.readLine();
+        tmp = br.readLine();
         br.close();
-        profiles.add(0, "<repeat:" + repeatProfile + ">");
+        int wptCount = 0;
+        try {
+          wptCount = Integer.parseInt(tmp);
+        } catch (NumberFormatException e) {}
+        if (wptCount > 1) {
+          profiles.add(0, "<repeat:" + repeatProfile + ">");
+        }
       }
 
       if (!lookupsFound) {
@@ -876,7 +884,7 @@ public class BRouterView extends View {
           s = sm.params;
           p = sm.profile;
         }
-        if (!p.equals(profileName)) s = sparams;
+        if (p != null && !p.equals(profileName)) s = sparams;
         if (s == null || s.equals("")) s = "noparams";
         ServiceModeConfig smc = new ServiceModeConfig(routingModes[i], profileName, s);
         for (OsmNodeNamed nogo : nogoVetoList) {

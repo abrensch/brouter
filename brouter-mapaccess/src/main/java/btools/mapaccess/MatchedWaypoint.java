@@ -13,9 +13,10 @@ import java.util.ArrayList;
 
 public final class MatchedWaypoint {
 
-  public static final byte WAYPOINT_TYPE_SHAPING = 1;  // route next to this point
-  public static final byte WAYPOINT_TYPE_MEETING = 2;  // visit this point
-  public static final byte WAYPOINT_TYPE_DIRECT  = 3;  // from this point go direct to next = beeline routing
+  public static final byte WAYPOINT_TYPE_SHAPING    = 1;  // route next to this point
+  public static final byte WAYPOINT_TYPE_MEETING    = 2;  // visit this point
+  public static final byte WAYPOINT_TYPE_DIRECT     = 3;  // from this point go direct to next = beeline routing
+  public static final byte WAYPOINT_TYPE_ROUNDTRIP  = 4;  // from this point start round trip routing
 
   public OsmNode node1;
   public OsmNode node2;
@@ -42,6 +43,9 @@ public final class MatchedWaypoint {
     dos.writeInt(waypoint.ilat);
     dos.writeInt(waypoint.ilon);
     dos.writeDouble(radius);
+    dos.writeByte(wpttype);
+    dos.writeShort(name.length());
+    dos.writeBytes(name);
   }
 
   public static MatchedWaypoint readFromStream(DataInput dis) throws IOException {
@@ -60,6 +64,11 @@ public final class MatchedWaypoint {
     mwp.waypoint.ilat = dis.readInt();
     mwp.waypoint.ilon = dis.readInt();
     mwp.radius = dis.readDouble();
+    mwp.wpttype = dis.readByte();
+    int len = dis.readShort();
+    byte[] bytes = new byte[len];
+    dis.readFully(bytes);
+    mwp.name = new String(bytes);
     return mwp;
   }
 

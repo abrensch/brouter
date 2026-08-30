@@ -111,8 +111,9 @@ public final class DirectWeaver extends ByteDataWriter {
         int linklon = ilon + dlon_remaining;
         int linklat = ilat + dlat_remaining;
         aboffset = 0;
+
+        WaypointMatcher matcher = wayTags == null || wayTags.accessType < 2 ? null : waypointMatcher;
         if (!isReverse) { // write geometry for forward links only
-          WaypointMatcher matcher = wayTags == null || wayTags.accessType < 2 ? null : waypointMatcher;
           int ilontarget = ilon + dlon_remaining;
           int ilattarget = ilat + dlat_remaining;
           if (matcher != null) {
@@ -136,9 +137,34 @@ public final class DirectWeaver extends ByteDataWriter {
               writeVarLengthSigned(dlat);
               writeVarLengthSigned(elediff);
             }
-
+            //if (matcher != null) System.out.println(FormatGpx.getWaypoint(ilontarget - dlon_remaining, ilattarget - dlat_remaining, "dw_t"+n+"_"+i, null));
             if (matcher != null)
               matcher.transferNode(ilontarget - dlon_remaining, ilattarget - dlat_remaining);
+          }
+          if (matcher != null) matcher.end();
+        } else if (matcher != null) {  // revers
+          int ilontarget = ilon + dlon_remaining;
+          int ilattarget = ilat + dlat_remaining;
+          boolean useAsStartWay = wayTags==null || wayValidator.checkStartWay(wayTags.data);
+          if (!matcher.start(ilon, ilat, ilontarget, ilattarget, useAsStartWay)) {
+            matcher = null;
+          }
+
+          if (matcher != null && node.firstlink != null) {
+            OsmLink link = node.firstlink;
+            OsmNode targetNode = new OsmNode(ilontarget, ilattarget);
+            if (link.geometry != null
+                 && (link.n1.equals(node) && link.n2.equals(targetNode))
+                 || (link.n2.equals(node) && link.n1.equals(targetNode))
+            ) {
+              GeometryDecoder geometryDecoder = new GeometryDecoder();
+              OsmTransferNode transferNode = link.geometry == null ? null
+                : geometryDecoder.decodeGeometry(link.geometry, node, targetNode, true);
+              while (transferNode != null) {
+                matcher.transferNode(transferNode.ilon, transferNode.ilat);
+                transferNode = transferNode.next;
+              }
+            }
           }
           if (matcher != null) matcher.end();
         }

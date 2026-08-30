@@ -2,7 +2,18 @@
 
 (ZIP-Archives including APK, readme + profiles)
 
-### [brouter-1.7.9.zip](../brouter_bin/brouter-1.7.9.zip) (current revision, 22.04.2026)
+### [brouter-1.7.10.zip](../brouter_bin/brouter-1.7.10.zip) (current revision, 17.07.2026)
+
+Android
+
+- modified download view #938
+- fixed some breaks #939
+
+
+[Solved issues](https://github.com/abrensch/brouter/issues?q=is%3Aissue+milestone%3A%22Version+1.7.10%22+is%3Aclosed)
+
+
+### [brouter-1.7.9.zip](../brouter_bin/brouter-1.7.9.zip) (22.04.2026)
 
 Android
 

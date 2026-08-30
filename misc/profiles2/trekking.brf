@@ -56,6 +56,8 @@ assign correctMisplacedViaPointsDistance = 400 # %correctMisplacedViaPointsDista
 
 assign processUnusedTags            = false # %processUnusedTags% | Set true to output unused tags in data tab | boolean
 
+assign unpavedPenalty = 1.0 # %unpavedPenalty% | Extra penalty multiplier applied to the non-probablyGood cost of track/road/path/footway ways depending on tracktype grade | number
+
 ---context:way   # following code refers to way-tags
 
 # classifier constants
@@ -332,12 +334,12 @@ assign costfactor
   #
   else if ( highway=track|road|path|footway ) then
   (
-    if      ( tracktype=grade1 ) then ( if probablyGood then 1.0 else 1.3 )
-    else if ( tracktype=grade2 ) then ( if probablyGood then 1.1 else 2.0 )
-    else if ( tracktype=grade3 ) then ( if probablyGood then 1.5 else 3.0 )
-    else if ( tracktype=grade4 ) then ( if probablyGood then 2.0 else 5.0 )
-    else if ( tracktype=grade5 ) then ( if probablyGood then 3.0 else 5.0 )
-    else                              ( if probablyGood then 1.0 else 5.0 )
+    if      ( tracktype=grade1 ) then ( if probablyGood then 1.0 else add 1.0 multiply 0.3 unpavedPenalty )
+    else if ( tracktype=grade2 ) then ( if probablyGood then 1.1 else add 1.1 multiply 0.9 unpavedPenalty )
+    else if ( tracktype=grade3 ) then ( if probablyGood then 1.5 else add 1.5 multiply 1.5 unpavedPenalty )
+    else if ( tracktype=grade4 ) then ( if probablyGood then 2.0 else add 2.0 multiply 3.0 unpavedPenalty )
+    else if ( tracktype=grade5 ) then ( if probablyGood then 3.0 else add 3.0 multiply 2.0 unpavedPenalty )
+    else                              ( if probablyGood then 1.0 else add 1.0 multiply 4.0 unpavedPenalty )
   )
 
   #
