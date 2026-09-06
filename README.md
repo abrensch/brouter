@@ -160,7 +160,29 @@ Example log output:
 
 ## BRouter with Docker
 
-To build the Docker image run (in the project's top level directory):
+A ready image for amd64 and arm64 is published at `ghcr.io/abrensch/brouter`. The tag `latest`
+points to the newest release, a tag such as `v1.7.10` to that release, `nightly` to the daily
+build of master. The container runs as user 1000 and starts `server.sh`, which reads these
+variables:
+
+| Variable      | Default                                                                | Meaning                             |
+| ------------- | ---------------------------------------------------------------------- | ----------------------------------- |
+| `JAVA_OPTS`   | `-Xmx128M -Xms128M -Xmn8M -DmaxRunningTime=300 -DuseRFCMimeType=false` | JVM options and the request timeout |
+| `MAXTHREADS`  | `1`                                                                    | Requests the server handles at once |
+| `PORT`        | `17777`                                                                | Listen port                         |
+| `BINDADDRESS` | all interfaces                                                         | Listen address                      |
+
+```
+docker run --rm \
+  -v ./misc/scripts/segments4:/segments4 \
+  -p 17777:17777 \
+  -e MAXTHREADS=4 \
+  -e JAVA_OPTS="-Xmx512M -DmaxRunningTime=300" \
+  --name brouter \
+  ghcr.io/abrensch/brouter:latest
+```
+
+To build the Docker image yourself run (in the project's top level directory):
 
 ```
 docker build -t brouter .
