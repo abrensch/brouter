@@ -5,7 +5,10 @@ cd "$(dirname "$0")"
 # java -cp brouter.jar btools.brouter.RouteServer <segmentdir> <profile-map> <customprofiledir> <port> <maxthreads> [bindaddress]
 
 # maxRunningTime is the request timeout in seconds, set to 0 to disable timeout
-JAVA_OPTS="-Xmx128M -Xms128M -Xmn8M -DmaxRunningTime=300 -DuseRFCMimeType=false"
+# Set -DusePOSTRequests=true to additionally accept routing parameters via
+# POST/PUT request body (see docs/developers/http_server.md). -DmaxRequestLength
+# caps the accepted body size in bytes (default 1000000).
+JAVA_OPTS="-Xmx128M -Xms128M -Xmn8M -DmaxRunningTime=300 -DuseRFCMimeType=false -DusePOSTRequests=false"
 
 # If paths are unset, first search in locations matching the directory structure
 # as found in the official BRouter zip archive
