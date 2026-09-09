@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <plurals name="numberOfSegments" tools:ignore="MissingQuantity">
+        <item quantity="one">%d szegmens</item>
+        <item quantity="other">%d szegmensek</item>
+    </plurals>
+    <string name="cancel_download">Letöltés megszakítása</string>
+    <string name="import_profile">Profil importálása</string>
+    <string name="action_download">%s letöltése</string>
+    <string name="action_delete">%s törlése</string>
+    <string name="action_update">Frissítés %s</string>
+    <string name="action_select">Szegmensek kiválasztása</string>
+    <string name="action_cancel">Letöltés leállítása</string>
+    <string name="summary_segments">Méret=%1$s\nIngyenes=%2$s</string>
+    <string name="notification_title">Szegmensek letöltése</string>
+
+    <string name="action_choose_folder">Válassza ki a brouter adatbázis könyvtárát:</string>
+    <string name="action_select_profile">Válasszon egy útválasztási profilt</string>
+    <string name="main_action">Fő művelet kiválasztása</string>
+    <string name="main_action_1">Letöltéskezelő</string>
+    <string name="main_action_2">BRouter App</string>
+
+    <string name="cancel">Mégsem</string>
+    <string name="i_know">Tudom</string>
+    <string name="close">Bezár</string>
+    <string name="exit">Kilépés</string>
+    <string name="ok">OK</string>
+    <string name="success">Siker</string>
+    <string name="error">Hiba történt</string>
+
+    <string name="title_download">BRouter letöltéskezelő</string>
+    <string name="summary_download">*** Figyelem:***
+        \n\nA Letöltéskezelő az útvonaladat-fájlok letöltésére szolgál, amelyek mérete egyenként legfeljebb 170 MB lehet. Ne indítsa el a Letöltéskezelőt mobilinternet-kapcsolaton adatforgalmi csomag nélkül!
+A letöltési sebesség 16 MBit/s-ra korlátozódik..</string>
+    <string name="title_timeoutfree">Sikeresen előkészített egy időtúllépés nélküli számítást</string>
+    <string name="summary_timeoutfree">Sikeresen megismételtél egy számítást, amely korábban időtúllépésbe ütközött, amikor a térképeszközödből indítottad. Ha megismétled ugyanazt a kérést a térképeszközödből, ugyanazzal a célponttal és egy közeli kiindulóponttal,
+akkor ez a kérés garantáltan nem fog időtúllépésbe kerülni.</string>
+    <string name="title_sdcard">Írja be az SD-kártya alapkockáját:</string>
+    <string name="title_action">Művelet kiválasztása</string>
+
+    <string name="action_via_select">VIA kiválasztásának ellenőrzése:</string>
+    <string name="action_nogo_select">Jelölje be a NoGo Selection-t:</string>
+    <string name="action_servermode">Szerver mód</string>
+    <string name="action_info">Info</string>
+    <string name="action_calc_route">Útvonal kalkulátor</string>
+    <string name="action_profile_settings">Profilbeállítások</string>
+    <string name="action_share">GPX megosztása</string>
+    <string name="action_select_from">Válasszon a következők közül</string>
+    <string name="action_select_to">Válasszon célállomást/útvonalat</string>
+
+    <string name="msg_no_profile">nincsenek profiladatok</string>
+    <string name="msg_too_much_data">Túl sok adat a letöltéshez. Kérjük, csökkentse a.</string>
+    <string name="msg_download_start">Letöltés ütemezve. Ellenőrizd az internetkapcsolatot, ha nem indul el.</string>
+    <string name="msg_wpt_selection">aktuális útpont kiválasztása:\n</string>
+    <string name="msg_no_wpt_selection">Útpont kiválasztásának várakozása\n</string>
+    <string name="msg_alternative">Alternatív</string>
+    <string name="msg_status_result">verzió = BRouter-%1$s \n
+        mem = %2$s \n
+        távolság = %3$s km\n
+        szűrt emelkedés = %4$s m\n
+        sima emelkedés = %5$s m\n
+        becsült idő = %6$s</string>
+    <string name="msg_read_wpt_error">Hiba az útpontok beolvasásakor</string>
+    <string name="msg_no_wpt">a koordinátaforrás nem tartalmaz útpontokat!</string>
+    <string name="msg_too_much_wpts">A koordinátaforrás túl sok útpontot tartalmaz: %1$d (kérjük, használja a "honnan/hová/via" neveket)</string>
+
+    <string name="no">Nem</string>
+    <string name="yes">Igen</string>
+
+    <string name="title_delete">Törlés megerősítése</string>
+    <string name="summary_delete">Tényleg törölni?</string>
+    <string name="title_version">Verzió probléma</string>
+    <string name="summary_version">A csempék alapverziója megváltozott. Mit tegyek?</string>
+    <string name="action_version1">Folytassa a jelenlegi letöltést, törölje a többi régi adatot</string>
+    <string name="action_version2">Összes kijelölése letöltésre és indításra</string>
+    <string name="action_version3">Most lemondom, egy másik napon befejezem</string>
+    <string name="title_version_diff">Verzióbeli különbségek</string>
+    <string name="summary_version_diff">Néhány csempe alapváltozata eltérő. Mit tegyek?</string>
+    <string name="action_version_diff1">Töltsd le az összes különböző csempéket</string>
+    <string name="action_version_diff2">Dobd el az összes különböző csempét</string>
+    <string name="action_version_diff3">Most lemondom, egy másik napon befejezem</string>
+    <string name="summary_new_version">Az új adatverzióhoz új alkalmazás szükséges. Kérjük, először frissítse a BRoutert.</string>
+
+    <string name="msg_download_failed">Letöltés sikertelen</string>
+    <string name="msg_download_cancel">Letöltés megszakítva</string>
+    <string name="msg_download_succeed">Sikeres letöltés</string>
+    <string name="msg_download_started">Letöltés…</string>
+
+
+</resources>
