@@ -35,6 +35,14 @@ assign   SAC_access_penalty       9000 # costfactor 9999 means the most horrible
 assign  SAC_K1 0.05                    # Penalizing of SAC levels below preferred
 assign  SAC_K2 0.6                     # Penalizing of SAC levels above preferred
 
+# Via ferrata difficulty is independent of sac_scale.
+# https://wiki.openstreetmap.org/wiki/Key:via_ferrata_scale
+# Recognised ferratas with missing/unknown grades are forbidden. A + needs a higher limit;
+# a - grade is conservatively treated as the corresponding whole grade.
+# Requires routing data generated with via_ferrata_scale in lookups.dat.
+# See docs/users/hiking-mountain.md for data requirements and limitations.
+assign   via_ferrata_scale_limit  -1    # %via_ferrata_scale_limit% | Maximum via ferrata difficulty; ungraded ferratas are excluded. OSM grades only approximately match A-F | [-1=no via ferratas, 0=OSM 0 (very easy), 1=OSM 1 (about A), 2=OSM 2 (about B), 3=OSM 3 (about C), 4=OSM 4 (about D), 5=OSM 5 (about E), 6=OSM 6 (about F)]
+
 #orientation/decision penalties, not used for preferred hiking routes
 assign   turncost_value           0 # not used now
 assign   initialcost_value        0 # not used now
@@ -113,6 +121,32 @@ assign  SAC_K2_6    add ( multiply ( add SAC_K2_5 1.0 ) SAC_K20 ) -1.0
 
 
 ---context:way   # following code refers to way-tags
+
+# Also recognise ferratas mapped as paths, including unrecognised grades.
+assign is_via_ferrata or highway=via_ferrata not via_ferrata_scale=
+
+assign via_ferrata_difficulty
+    if via_ferrata_scale=0|0- then 0
+    else if via_ferrata_scale=0+ then 0.5
+    else if via_ferrata_scale=1|1- then 1
+    else if via_ferrata_scale=1+ then 1.5
+    else if via_ferrata_scale=2|2- then 2
+    else if via_ferrata_scale=2+ then 2.5
+    else if via_ferrata_scale=3|3- then 3
+    else if via_ferrata_scale=3+ then 3.5
+    else if via_ferrata_scale=4|4- then 4
+    else if via_ferrata_scale=4+ then 4.5
+    else if via_ferrata_scale=5|5- then 5
+    else if via_ferrata_scale=5+ then 5.5
+    else if via_ferrata_scale=6|6- then 6
+    else if via_ferrata_scale=6+ then 6.5
+    else -1
+
+assign via_ferrata_forbidden
+    and is_via_ferrata
+        or lesser via_ferrata_scale_limit 0
+        or lesser via_ferrata_difficulty 0
+           greater via_ferrata_difficulty via_ferrata_scale_limit
 
 assign ispaved or surface=paved or surface=asphalt or surface=concrete surface=paving_stones
 assign isunpaved not or surface= or ispaved or surface=fine_gravel surface=cobblestone
@@ -368,6 +402,7 @@ assign town_penalty
 assign trafficpenalty = 0
 
 assign costfactor
+    if via_ferrata_forbidden then 100000 else
 add town_penalty
   add no_forest_penalty
   add no_river_penalty
@@ -377,6 +412,7 @@ if shortest_way  then  ( add 1 accesspenalty )
        else max 1.0 add rawcostfactor2 Offroad_factor_for_road
 
 assign downhillcostfactor
+    if via_ferrata_forbidden then 100000 else
     if shortest_way  then (   add 1 accesspenalty )   else
     max 1.0
     add rawcostfactor2
@@ -388,6 +424,7 @@ assign downhillcostfactor
                                                     else 0.0
 
 assign uphillcostfactor
+    if via_ferrata_forbidden then 100000 else
     if shortest_way  then (   add 1 accesspenalty )   else
     max 1.0
     add rawcostfactor2

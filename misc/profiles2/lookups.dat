@@ -1,5 +1,5 @@
 ---lookupversion:11
----minorversion:2
+---minorversion:3
 
 ---context:way
 
@@ -823,6 +823,27 @@ construction;0000442502 steps
 construction;0000360177 road highway
 construction;0000000049 bridleway
 
+via_ferrata_scale;0000000001 0
+via_ferrata_scale;0000000001 1
+via_ferrata_scale;0000000001 2
+via_ferrata_scale;0000000001 3
+via_ferrata_scale;0000000001 4
+via_ferrata_scale;0000000001 5
+via_ferrata_scale;0000000001 6
+via_ferrata_scale;0000000001 0-
+via_ferrata_scale;0000000001 1-
+via_ferrata_scale;0000000001 2-
+via_ferrata_scale;0000000001 3-
+via_ferrata_scale;0000000001 4-
+via_ferrata_scale;0000000001 5-
+via_ferrata_scale;0000000001 6-
+via_ferrata_scale;0000000001 0+
+via_ferrata_scale;0000000001 1+
+via_ferrata_scale;0000000001 2+
+via_ferrata_scale;0000000001 3+
+via_ferrata_scale;0000000001 4+
+via_ferrata_scale;0000000001 5+
+via_ferrata_scale;0000000001 6+
 
 ---context:node
 
