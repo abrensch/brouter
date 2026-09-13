@@ -124,7 +124,7 @@ assign smoothnesspenalty
         switch highway=cycleway                                                                1.2
         # handle non-specific tags last
         switch surface=unpaved                                  switch not assume_wet_conditions 1.6 3.0
-        switch surface=ground|grass|dirt|earth|mud|clay|sand    switch not assume_wet_conditions 2.6 4.0
+        switch surface=ground|grass|dirt|earth|mud|clay|laterite|sand    switch not assume_wet_conditions 2.6 4.0
         # default smoothness
                                         switch not assume_wet_conditions 1.6 3.2
 
@@ -168,7 +168,7 @@ assign tracktypepenalty
                                1.0
 
 assign is_paved
-    and not surface=ground|grass|dirt|earth|mud|clay|sand|pebblestone|gravel|fine_gravel|compacted
+    and not surface=ground|grass|dirt|earth|mud|clay|laterite|sand|pebblestone|gravel|fine_gravel|compacted
     or highway=primary|primary_link|secondary|secondary_link|tertiary|tertiary_link
     or surface=asphalt|concrete|paved|paving_stones|sett|cobblestone|metal
     or highway=road|unclassified|residential|living_street|service
