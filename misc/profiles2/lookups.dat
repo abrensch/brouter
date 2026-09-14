@@ -838,6 +838,15 @@ construction;0000442502 steps
 construction;0000360177 road highway
 construction;0000000049 bridleway
 
+via_ferrata_scale;0000000001 0 0+ 0-
+via_ferrata_scale;0000000001 1 1+ 1-
+via_ferrata_scale;0000000001 2 2+ 2-
+via_ferrata_scale;0000000001 3 3+ 3-
+via_ferrata_scale;0000000001 4 4+ 4-
+via_ferrata_scale;0000000001 5 5+ 5-
+via_ferrata_scale;0000000001 6 6+ 6-
+
+
 
 ---context:node
 
