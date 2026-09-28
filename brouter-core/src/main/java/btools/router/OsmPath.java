@@ -24,6 +24,11 @@ abstract class OsmPath implements OsmLinkHolder {
 
   public int airdistance = 0; // distance to endpos
 
+  // real track length in meters of the single link that produced this path (== linkdisttotal
+  // in addAddionalPenalty). Exposed so callers can accumulate real distance without a second
+  // geometry decode; not used by the core router itself.
+  public int linkDist = 0;
+
   protected OsmNode sourceNode;
   protected OsmNode targetNode;
 
@@ -117,6 +122,7 @@ abstract class OsmPath implements OsmLinkHolder {
         message.wayKeyValues = "direct_segment=" + seg;
         seg++;
       }
+      linkDist = sourceNode.calcDistance(targetNode);
       return;
     }
 
@@ -337,6 +343,7 @@ abstract class OsmPath implements OsmLinkHolder {
             originElement.message = message;
           }
         }
+        linkDist = linkdisttotal;
         if (rc.nogoCost < 0) {
           cost = -1;
         } else {
@@ -366,6 +373,8 @@ abstract class OsmPath implements OsmLinkHolder {
       lat1 = lat2;
       ele1 = ele2;
     }
+
+    linkDist = linkdisttotal;
 
     // check for nogo-matches (after the *actual* start of segment)
     if (rc.nogoCost < 0) {
