@@ -55,7 +55,7 @@ public class ServerHandler extends RequestHandler {
   @Override
   public RoutingContext readRoutingContext() {
     rc = new RoutingContext();
-    rc.memoryclass = 128;
+    rc.memoryclass = Integer.getInteger("memoryClass", 128);
 
     String profile = params.get("profile");
     // when custom profile replace prefix with directory path

@@ -10,6 +10,7 @@ MAXTHREADS=${MAXTHREADS:-1}
 # Set -DusePOSTRequests=true to additionally accept routing parameters via
 # POST/PUT request body (see docs/developers/http_server.md). -DmaxRequestLength
 # caps the accepted body size in bytes (default 1000000).
+# Set -DmemoryClass=<value> to override the HTTP server memory class (default: 128).
 JAVA_OPTS=${JAVA_OPTS:-"-Xmx128M -Xms128M -Xmn8M -DmaxRunningTime=300 -DuseRFCMimeType=false -DusePOSTRequests=false"}
 
 # If paths are unset, first search in locations matching the directory structure
