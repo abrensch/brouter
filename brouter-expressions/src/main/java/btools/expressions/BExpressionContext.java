@@ -960,7 +960,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     return sb.toString();
   }
 
-  int getLookupValueIdx(int nameIdx, String value) {
+  public int getLookupValueIdx(int nameIdx, String value) {
     BExpressionLookupValue[] values = lookupValues.get(nameIdx);
     for (int i = 0; i < values.length; i++) {
       if (values[i].equals(value)) return i;
