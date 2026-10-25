@@ -57,6 +57,8 @@ public class OsmCutter extends MapCreatorBase {
   private BExpressionContextWay _expctxWay;
   private BExpressionContextNode _expctxNode;
 
+  boolean showLookupEntries = Boolean.getBoolean("showLookupEntries");
+
   public void process(File lookupFile, File outTileDir, File wayFile, File relFile, File resFile, File profileFile, File mapFile) throws Exception {
     if (!lookupFile.exists()) {
       throw new IllegalArgumentException("lookup-file: " + lookupFile + " does not exist");
@@ -96,11 +98,13 @@ public class OsmCutter extends MapCreatorBase {
       restrictionsDos.close();
     }
 
-//    System.out.println( "-------- way-statistics -------- " );
-//    _expctxWayStat.dumpStatistics();
-//    System.out.println( "-------- node-statistics -------- " );
-//    _expctxNodeStat.dumpStatistics();
-
+    if (showLookupEntries) {
+      System.out.println("-------- way-statistics -------- ");
+      _expctxWay.dumpStatistics();
+      System.out.println("-------- node-statistics -------- ");
+      _expctxNode.dumpStatistics();
+      System.out.println("--------------------------------- ");
+    }
     System.out.println(statsLine());
   }
 

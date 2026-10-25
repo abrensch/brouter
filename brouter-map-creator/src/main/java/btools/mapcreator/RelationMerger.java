@@ -4,6 +4,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,6 +27,10 @@ public class RelationMerger extends MapCreatorBase {
   private BExpressionContextWay expctxReport;
   private BExpressionContextWay expctxCheck;
   // private BExpressionContext expctxStat;
+
+  private String[][] extraRelationTags = {{"cycle_highway", "yes"}};
+  private Map<String, CompactLongSet> routeTagSets;
+
 
   private DataOutputStream wayOutStream;
 
@@ -55,6 +61,7 @@ public class RelationMerger extends MapCreatorBase {
     // *** read the relation file into sets for each processed tag
     routesets = new HashMap<>();
     routesetall = new CompactLongSet();
+
     DataInputStream dis = createInStream(relationFileIn);
     try {
       for (; ; ) {
@@ -76,6 +83,25 @@ public class RelationMerger extends MapCreatorBase {
           }
         }
 
+        List<String> tmpRouteTagList = null;
+        for (String[] tag: extraRelationTags) {
+          int nameIdx = expctxCheck.getLookupNameIdx(tag[0]);
+          if (nameIdx >= 0 && value == 2) { // value for route is not proposed
+            int valueIdx = expctxCheck.getLookupValueIdx(nameIdx, tag[1]);
+            if (valueIdx > 1) {
+              String newTag = tag[0] + "_" + valueIdx;
+              if (routeTagSets == null) {
+                routeTagSets = new HashMap<>();
+                routeTagSets.put(newTag, new CompactLongSet());
+              }
+              if (tmpRouteTagList == null) tmpRouteTagList = new ArrayList<>();
+              tmpRouteTagList.add(newTag);
+            }
+          }
+        }
+
+
+
         for (; ; ) {
           long wid = readId(dis);
           if (wid == -1) break;
@@ -83,6 +109,12 @@ public class RelationMerger extends MapCreatorBase {
           if (routeset != null && !routeset.contains(wid)) {
             routeset.add(wid);
             routesetall.add(wid);
+          }
+          if (tmpRouteTagList != null) {
+            for (String newTag: tmpRouteTagList) {
+              CompactLongSet tmpRouteTags = routeTagSets.get(newTag);
+              if (tmpRouteTags != null) tmpRouteTags.add(wid);
+            }
           }
         }
       }
@@ -132,6 +164,19 @@ public class RelationMerger extends MapCreatorBase {
             String tagname = key.substring(0, sepIdx);
             int val = Integer.parseInt(key.substring(sepIdx + 1));
             expctxReport.addSmallestLookupValue(tagname, val);
+          }
+        }
+        if (routeTagSets != null) {
+          for (String key: routeTagSets.keySet()) {
+            CompactLongSet tmpRouteTags = routeTagSets.get(key);
+            if (tmpRouteTags != null) {
+              if (tmpRouteTags.contains(data.wid)) {
+                int sepIdx = key.lastIndexOf('_');
+                String tagname = key.substring(0, sepIdx);
+                int val = Integer.parseInt(key.substring(sepIdx + 1));
+                expctxReport.addLookupValue(tagname, val); // 2=yes
+              }
+            }
           }
         }
         data.description = expctxReport.encode();
