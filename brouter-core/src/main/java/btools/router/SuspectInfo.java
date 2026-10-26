@@ -2,6 +2,16 @@ package btools.router;
 
 import java.util.Map;
 
+/**
+* The SuspectInfo class is a specialized utility in the btools.router package designed to track and manage 
+* routing-related diagnostic information. It defines a set of predefined trigger constants 
+* (such as TRIGGER_DEAD_END, TRIGGER_NODE_BLOCK, etc.) that represent different types of potential routing issues. 
+* The class uses bitwise operations to efficiently store and manipulate trigger information through two key properties: 'prio' (priority) and 
+* 'triggers'. These constants allow for granular tracking of routing challenges, enabling detailed diagnosis of 
+* navigation problems by representing various routing scenarios like dead ends, blocked nodes, and access issues. 
+* The design supports flexible trigger combination and provides a mechanism for generating human-readable summaries of routing complications.
+*/
+
 public class SuspectInfo {
   public static final int TRIGGER_DEAD_END = 1;
   public static final int TRIGGER_DEAD_START = 2;
