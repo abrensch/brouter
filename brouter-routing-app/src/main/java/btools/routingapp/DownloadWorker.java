@@ -26,7 +26,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
@@ -162,7 +161,7 @@ public class DownloadWorker extends Worker {
   public Result doWork() {
     Data inputData = getInputData();
     Data.Builder output = new Data.Builder();
-    String[] segmentNames = inputData.getStringArray(KEY_INPUT_SEGMENT_NAMES);
+    String[] segmentNames = inputData.getNullableStringArray(KEY_INPUT_SEGMENT_NAMES);
     downloadAll = inputData.getInt(KEY_INPUT_SEGMENT_ALL, 0);
     if (DEBUG)
       Log.d(LOG_TAG, "doWork done " + done.size() + " segs " + segmentNames.length + " " + this);
