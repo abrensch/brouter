@@ -86,7 +86,9 @@ final class StdPath extends OsmPath {
     int dist = (int) distance; // legacy arithmetics needs int
 
     // penalty for turning angle
-    int turncost = (int) ((1. - cosangle) * turncostbase + 0.2); // e.g. turncost=90 -> 90 degree = 90m penalty
+    // a negative turncost switches it off, the value is reserved for a linkCostModifier
+    int turncost = turncostbase < 0.f ? 0
+      : (int) ((1. - cosangle) * turncostbase + 0.2); // e.g. turncost=90 -> 90 degree = 90m penalty
 
     int newPrio = (int) rc.expctxWay.getPriorityClassifier();
     int oldPrio = lastpriorityclassifier;

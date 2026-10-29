@@ -161,7 +161,8 @@ Some variable names are pre-defined and accessed by the routing engine:
 
 - for the way section these are
 
-  - `turncost`
+  - `turncost` (penalty for the turn angle at each point of a way; a negative value
+    switches the penalty off, negative values are reserved for a linkCostModifier)
   - `initialcost`
   - `costfactor`
   - `uphillcostfactor`
