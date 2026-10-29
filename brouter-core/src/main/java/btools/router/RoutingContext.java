@@ -228,6 +228,24 @@ public final class RoutingContext {
 
   public CheapAngleMeter anglemeter = new CheapAngleMeter();
 
+  // linkCostModifiers selected by a negative turncost of the way (see StdPath)
+  private static final LinkCostModifier LINK_COST_NONE = new ConstantLinkCostModifier(1.);
+  private static final LinkCostModifier LINK_COST_HALF = new ConstantLinkCostModifier(0.5); // for tests
+
+  /**
+   * @return the linkCostModifier selected by turncost, null if none
+   */
+  public static LinkCostModifier getLinkCostModifier(float turncost) {
+    switch ((int) turncost) {
+      case -10:
+        return LINK_COST_NONE;
+      case -11:
+        return LINK_COST_HALF;
+      default:
+        return null;
+    }
+  }
+
   public double nogoCost = 0.;
   public boolean isEndpoint = false;
 
