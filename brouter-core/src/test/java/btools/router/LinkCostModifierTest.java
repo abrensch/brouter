@@ -22,7 +22,7 @@ import java.util.List;
  * (cost 1 per metre), only the turncost of the copy differs. Every test compares
  * the cost of the track with the cost at turncost 0:
  * - a positive turncost still adds the turn angle penalty,
- * - a negative turncost without a modifier (-12) only switches the penalty off,
+ * - a negative turncost without a modifier (-13) only switches the penalty off,
  * - -10 selects a modifier with factor 1, the cost does not change,
  * - -11 selects a modifier with factor 0.5, the cost is halved.
  * The track itself (its distance) must stay the same.
@@ -44,7 +44,7 @@ public class LinkCostModifierTest {
   @Test
   public void negativeTurncostWithoutModifierKeepsCost() throws IOException {
     OsmTrack track0 = calcRoute("0");
-    OsmTrack track = calcRoute("-12");
+    OsmTrack track = calcRoute("-13");
     Assert.assertEquals(track0.distance, track.distance);
     Assert.assertEquals(track0.cost, track.cost);
   }

@@ -231,6 +231,7 @@ public final class RoutingContext {
   // linkCostModifiers selected by a negative turncost of the way (see StdPath)
   private static final LinkCostModifier LINK_COST_NONE = new ConstantLinkCostModifier(1.);
   private static final LinkCostModifier LINK_COST_HALF = new ConstantLinkCostModifier(0.5); // for tests
+  private static final LinkCostModifier LINK_COST_CURVATURE = new LinkCurvature();
 
   /**
    * @return the linkCostModifier selected by turncost, null if none
@@ -241,6 +242,8 @@ public final class RoutingContext {
         return LINK_COST_NONE;
       case -11:
         return LINK_COST_HALF;
+      case -12:
+        return LINK_COST_CURVATURE;
       default:
         return null;
     }
