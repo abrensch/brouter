@@ -25,7 +25,7 @@ documentation of the BRouter Android app in
 ### Android with Locus
 
 You can use BRouter as the offline routing engine for [Locus
-Map](https://www.locusmap.eu/) on your Android device. This is currently the
+Map](https://www.locusmap.app/) on your Android device. This is currently the
 most featureful and maintained solutions for using BRouter on your Android
 device.
 
