@@ -30,8 +30,7 @@ most featureful and maintained solutions for using BRouter on your Android
 device.
 
 A full documentation on how to set this up is available at
-[https://www.locusmap.eu/locus-map-can-navigate-offline/](https://www.locusmap.eu/locus-map-can-navigate-offline/).
-
+[https://www.locusmap.app/locus-map-can-navigate-offline/](https://www.locusmap.app/locus-map-can-navigate-offline/).
 
 ### Android with OSMAnd
 
@@ -218,7 +217,7 @@ More documentation is available in the [`docs`](docs) folder.
 
 ## Contributing
 
-Please read the [developer guide](docs/developers/delevoper_guide.md)
+Please read the [developer guide](docs/developers/developer_guide.md)
 
 ## Related Projects
 
