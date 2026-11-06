@@ -14,7 +14,7 @@ BRouter to be useful.
 Several map tools support routing with BRouter:
 
 - [_OsmAnd_](http://www.osmand.net): GPLv3, Free (limited features) and paid version available
-- [_Locus Map_](http://www.locusmap.eu): Proprietary, Free (ads) and paid version available
+- [_Locus Map_](http://www.locusmap.app): Proprietary, Free (ads) and paid version available
 - [_Oruxmaps_](http://www.oruxmaps.com): Proprietary, Free (previous version) and paid version available
 
 Install any of those map tools using your favorite app store.
@@ -58,7 +58,7 @@ can be used by map tools without starting the BRouter app.
 To use BRouter in your map tool you have to configure the map tool to use
 BRouter as navigation service.
 
-- [Instructions for LocusMap](https://docs.locusmap.eu/doku.php?id=manual:faq:how_to_navigate_offline)
+- [Instructions for LocusMap](https://docs.locusmap.app/doku.php?id=manual:faq:how_to_navigate_offline)
 - [Instructions for OsmAnd](osmand.md)
 - [Instructions for Kurviger](https://docs.kurviger.de/start?id=app/offline_routing)
 - [Orux Forum](https://oruxmaps.org/forum/)
