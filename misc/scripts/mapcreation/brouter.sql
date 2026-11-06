@@ -2012,20 +2012,14 @@ SELECT
     c.highway AS l_highway,
     estimated_traffic AS traffic,
     -- calculate the "speed_factor" (intermediate variable to modify the crossing-risk depending in the "maxspeed" tag of the highway to be crossed)
+    -- maxspeed was normalized to km/h above; numeric speeds scale with their square.
     CASE WHEN a.maxspeed IS NULL
         OR (NOT (a.maxspeed ~ '^\d+(\.\d+)?$'))
-        OR a.maxspeed::numeric > '105'
-        -- maxspeed not defined OR not numeric OR > 105 km/h  ==> unusable , set Default 0.9
+        -- maxspeed not defined or not numeric ==> use default 0.9
         THEN
         0.9
-    WHEN a.maxspeed::numeric > 85 THEN
-        1
-    WHEN a.maxspeed::numeric >= 55 THEN
-        0.8
-    WHEN a.maxspeed::numeric >= 35 THEN
-        0.65
     ELSE
-        0.5
+        power(a.maxspeed::numeric / 100, 2)
     END AS speed_factor,
     -- calculate the "lane_factor" (intermediate variable to modify the crossing-risk)
     -- it depends on:
