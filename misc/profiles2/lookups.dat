@@ -855,6 +855,7 @@ route_piste_;0000000001 yes
 
 cycle_highway;0000000001 yes
 
+towpath;0000000001 yes
 
 ---context:node
 
