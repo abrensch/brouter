@@ -42,12 +42,11 @@ public class ElevationRaster {
     double wcol = dcol - col;
     missingData = false;
 
-// System.out.println( "wrow=" + wrow + " wcol=" + wcol + " row=" + row + " col=" + col );
     double eval = (1. - wrow) * (1. - wcol) * get(row, col)
       + (wrow) * (1. - wcol) * get(row + 1, col)
       + (1. - wrow) * (wcol) * get(row, col + 1)
       + (wrow) * (wcol) * get(row + 1, col + 1);
-// System.out.println( "eval=" + eval );
+
     return missingData ? Short.MIN_VALUE : (short) (eval * 4);
   }
 
@@ -71,8 +70,6 @@ public class ElevationRaster {
 
     double dgx = (dcol - col) * gridSteps;
     double dgy = (drow - row) * gridSteps;
-
-//      System.out.println( "wrow=" + wrow + " wcol=" + wcol + " row=" + row + " col=" + col );
 
     int gx = (int) (dgx);
     int gy = (int) (dgy);
@@ -114,8 +111,6 @@ public class ElevationRaster {
     int ny = w.ny;
     int mx = nx / 2; // mean pixels
     int my = ny / 2;
-
-    // System.out.println( "nx="+ nx + " ny=" + ny );
 
     rmf.reset();
 

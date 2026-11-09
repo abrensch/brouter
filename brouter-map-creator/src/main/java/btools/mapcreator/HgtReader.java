@@ -84,7 +84,7 @@ public class HgtReader {
                   ZipEntry ze = zis.getNextEntry();
                   if (ze == null) break;
                   if (ze.getName().toLowerCase().endsWith(HGT_EXT)) {
-                    // System.out.println("read zip " + ze.getName());
+                    if (DEBUG) System.out.println("read zip " + ze.getName());
                     ShortBuffer data = readHgtStream(zis);
                     // ... and store result in cache
                     cache.put(file, data);
@@ -142,7 +142,7 @@ public class HgtReader {
               ZipEntry ze = zis.getNextEntry();
               if (ze == null) break;
               if (ze.getName().toLowerCase().endsWith(HGT_EXT)) {
-                // System.out.println("read zip " + ze.getName());
+                if (DEBUG) System.out.println("read zip " + ze.getName());
                 data = readHgtStream(zis);
                 break;
               }
