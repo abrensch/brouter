@@ -137,7 +137,6 @@ public final class DirectWeaver extends ByteDataWriter {
               writeVarLengthSigned(dlat);
               writeVarLengthSigned(elediff);
             }
-            //if (matcher != null) System.out.println(FormatGpx.getWaypoint(ilontarget - dlon_remaining, ilattarget - dlat_remaining, "dw_t"+n+"_"+i, null));
             if (matcher != null)
               matcher.transferNode(ilontarget - dlon_remaining, ilattarget - dlat_remaining);
           }

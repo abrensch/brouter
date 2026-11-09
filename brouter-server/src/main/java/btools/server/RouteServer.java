@@ -257,7 +257,8 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       } else {
         OsmTrack track = cr.getFoundTrack();
 
-        if (engineMode == 2) {
+        if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_GETELEV ||
+            engineMode == RoutingEngine.BROUTER_ENGINEMODE_GETINFO) {
           // no zip for this engineMode
           encodings = null;
         }
