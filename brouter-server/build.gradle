@@ -10,13 +10,14 @@ application {
             attributes "Main-Class": getMainClass(), "Implementation-Version": project.version
         }
     }
+}
 
-    task fatJar(type: Jar) {
+
+
+
+def fatJar = tasks.register('fatJar', Jar) {
         archiveFileName = 'brouter-' + project.version + '-all.jar'
 
-        manifest {
-            attributes "Main-Class": getMainClass(), "Implementation-Version": project.version
-        }
         archiveClassifier = 'all'
         dependsOn configurations.runtimeClasspath
         from {
@@ -29,12 +30,9 @@ application {
         with jar
     }
 
-    task smallJar(type: Jar) {
+def smallJar = tasks.register('smallJar', Jar) {
         archiveFileName = 'brouter-' + project.version + '-ro.jar'
 
-        manifest {
-            attributes "Main-Class": getMainClass(), "Implementation-Version": project.version
-        }
         dependsOn configurations.runtimeClasspath
         from {
             configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
@@ -49,7 +47,6 @@ application {
             exclude "META-INF/*.RSA"
         }
         with jar
-    }
 }
 
 distZip {

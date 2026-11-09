@@ -77,8 +77,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        //sourceCompatibility JavaVersion.VERSION_1_8
+        //targetCompatibility JavaVersion.VERSION_1_8
     }
     buildFeatures {
         aidl = true
@@ -125,7 +125,7 @@ gradle.projectsEvaluated {
 
 check.dependsOn 'checkstyle'
 
-task checkstyle(type: Checkstyle) {
+tasks.register('checkstyle', Checkstyle) {
     source 'src'
     include '**/*.java'
     exclude '**/gen/**'
@@ -133,11 +133,11 @@ task checkstyle(type: Checkstyle) {
     classpath = files()
 }
 
-task generateProfiles(type: Exec) {
+tasks.register('generateProfiles', Exec) {
     commandLine = "../misc/scripts/generate_profile_variants.sh"
 }
 
-task generateProfilesZip(type: Zip) {
+tasks.register('generateProfilesZip', Zip) {
     if (DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) {
         logger.warn("Note: On Windows run script '../misc/scripts/generate_profile_variants.sh' manually to include all profiles")
     } else {
@@ -153,7 +153,7 @@ task generateProfilesZip(type: Zip) {
     destinationDirectory = layout.buildDirectory.dir("assets")
 }
 
-task generateReadmesZip(type: Zip) {
+tasks.register('generateReadmesZip', Zip) {
     archiveFileName = "readmes.zip"
     from("../docs") {
         include("users/android_quickstart.md")
