@@ -69,4 +69,19 @@ public class RouteParamTest {
     Assert.assertEquals("result content timode ", 3, rc.turnInstructionMode);
   }
 
+  @Test
+  public void readUrlEncodedParams() throws UnsupportedEncodingException {
+    String url = "lonlats=1,1;2,2&pois=11.202278,49.425085,a test%20POI%201|11.22468,49.433073,Caf%C3%A9 test%20POI%202%3F|11.248198,49.440279,test%20POI%204&more=1";
+    System.out.println("in  " + url);
+    RoutingParamCollector rpc = new RoutingParamCollector();
+    Map<String, String> map = rpc.getUrlParams(url);
+    System.out.println("out " + map);
+    
+    Assert.assertEquals("result content ", 3, map.size());
+
+    String poistring = map.get("pois");
+    String[] poilist = poistring.split("\\|");
+
+    Assert.assertEquals("poilist length ", 3, poilist.length);
+  }
 }
