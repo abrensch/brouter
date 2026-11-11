@@ -109,8 +109,7 @@ public class RoutingParamCollector {
    */
   public Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
     Map<String, String> params = new HashMap<>();
-    String decoded = URLDecoder.decode(url, "UTF-8");
-    StringTokenizer tk = new StringTokenizer(decoded, "?&");
+    StringTokenizer tk = new StringTokenizer(url, "?&");
     while (tk.hasMoreTokens()) {
       String t = tk.nextToken();
       StringTokenizer tk2 = new StringTokenizer(t, "=");
@@ -118,7 +117,7 @@ public class RoutingParamCollector {
         String key = tk2.nextToken();
         if (tk2.hasMoreTokens()) {
           String value = tk2.nextToken();
-          params.put(key, value);
+          params.put(key, URLDecoder.decode(value, "UTF-8"));
         }
       }
     }
