@@ -4,8 +4,11 @@ import java.io.BufferedWriter;
 import java.io.StringWriter;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import btools.mapaccess.MatchedWaypoint;
 import btools.util.StringUtils;
@@ -177,6 +180,92 @@ public class FormatJson extends Formatter {
     sb.append("}\n");
 
     return sb.toString();
+  }
+
+  /**
+   * Format several tracks as a single GeoJSON FeatureCollection, one LineString Feature per
+   * track. Used by the loop-route mode (BROUTER_ENGINEMODE_LOOP) to return the whole ranked
+   * list of loops in one response. Each feature carries a {@code rank} property (0 = best).
+   */
+  public String format(List<OsmTrack> tracks) {
+    StringBuilder sb = new StringBuilder(8192);
+    sb.append("{\n");
+    sb.append("  \"type\": \"FeatureCollection\",\n");
+    sb.append("  \"features\": [\n");
+    for (int i = 0; i < tracks.size(); i++) {
+      appendLoopFeature(sb, tracks.get(i), i);
+      sb.append(i < tracks.size() - 1 ? ",\n" : "\n");
+    }
+    sb.append("  ]\n");
+    sb.append("}\n");
+    return sb.toString();
+  }
+
+  private void appendLoopFeature(StringBuilder sb, OsmTrack t, int rank) {
+    sb.append("    {\n");
+    sb.append("      \"type\": \"Feature\",\n");
+    sb.append("      \"properties\": {\n");
+    sb.append("        \"creator\": \"BRouter-").append(t.version).append("\",\n");
+    sb.append("        \"name\": \"").append(t.name).append("\",\n");
+    sb.append("        \"rank\": ").append(rank).append(",\n");
+    sb.append("        \"track-length\": \"").append(t.distance).append("\",\n");
+    sb.append("        \"filtered ascend\": \"").append(t.ascend).append("\",\n");
+    sb.append("        \"plain-ascend\": \"").append(t.plainAscend).append("\",\n");
+    sb.append("        \"total-time\": \"").append(t.getTotalSeconds()).append("\",\n");
+    sb.append("        \"total-energy\": \"").append(t.energy).append("\",\n");
+    // tag breakdowns (share of length) help callers see how their area is tagged and verify
+    // surface targeting — e.g. whether sidewalks are highway=footway, footway=sidewalk, ...
+    appendTagMix(sb, "way-types", t, "highway");
+    appendTagMix(sb, "way-detail", t, "footway");
+    appendTagMix(sb, "surfaces", t, "surface");
+    sb.append("        \"cost\": \"").append(t.cost).append("\"\n");
+    sb.append("      },\n");
+    sb.append("      \"geometry\": {\n");
+    sb.append("        \"type\": \"LineString\",\n");
+    sb.append("        \"coordinates\": [\n");
+    for (int j = 0; j < t.nodes.size(); j++) {
+      OsmPathElement n = t.nodes.get(j);
+      String sele = n.getSElev() == Short.MIN_VALUE ? "" : ", " + n.getElev();
+      sb.append("          [").append(formatILon(n.getILon())).append(", ").append(formatILat(n.getILat()))
+        .append(sele).append(j < t.nodes.size() - 1 ? "],\n" : "]\n");
+    }
+    sb.append("        ]\n");
+    sb.append("      }\n");
+    sb.append("    }");
+  }
+
+  // Emit a "<label>": { "<tagKey>=<value>": <percent>, ... } property giving the share of the
+  // loop's length carrying each value of the given OSM tag key (top entries). Purely diagnostic.
+  private void appendTagMix(StringBuilder sb, String label, OsmTrack t, String tagKey) {
+    Map<String, Long> byValue = new LinkedHashMap<>();
+    long total = 0;
+    String prefix = tagKey + "=";
+    for (int i = 1; i < t.nodes.size(); i++) {
+      OsmPathElement n = t.nodes.get(i);
+      int d = n.calcDistance(t.nodes.get(i - 1));
+      total += d;
+      String tags = (n.message != null && n.message.wayKeyValues != null) ? n.message.wayKeyValues : "";
+      int p = tags.indexOf(prefix);
+      if (p < 0) {
+        continue;
+      }
+      int end = tags.indexOf(' ', p);
+      String value = end < 0 ? tags.substring(p + prefix.length()) : tags.substring(p + prefix.length(), end);
+      byValue.merge(value, (long) d, Long::sum);
+    }
+    sb.append("        \"").append(label).append("\": {");
+    if (total > 0 && !byValue.isEmpty()) {
+      List<Map.Entry<String, Long>> entries = new ArrayList<>(byValue.entrySet());
+      entries.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
+      int limit = Math.min(6, entries.size());
+      for (int i = 0; i < limit; i++) {
+        Map.Entry<String, Long> e = entries.get(i);
+        int pct = (int) Math.round(100.0 * e.getValue() / total);
+        sb.append(i == 0 ? "" : ", ").append('"').append(tagKey).append('=')
+          .append(StringUtils.escapeJson(e.getKey())).append("\": ").append(pct);
+      }
+    }
+    sb.append("},\n");
   }
 
   private void addFeature(StringBuilder sb, String type, String name, int ilat, int ilon, short selev) {
