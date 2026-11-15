@@ -172,7 +172,7 @@ public final class OsmTile {
     }
 
 
-    hollowNodes.cleanupAndCount(nodes);
+    hollowNodes.countNodes(nodes);
     return buffer.length - bis.available();
   }
 

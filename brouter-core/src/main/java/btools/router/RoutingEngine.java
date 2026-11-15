@@ -318,7 +318,6 @@ public class RoutingEngine extends Thread {
       matchWaypointsToNodes(listOne);
 
       resetCache(true);
-      nodesCache.nodesMap.cleanupMode = 0;
 
       int dist_cn1 = listOne.get(0).crossPoint.calcDistance(listOne.get(0).node1);
       int dist_cn2 = listOne.get(0).crossPoint.calcDistance(listOne.get(0).node2);
@@ -1123,7 +1122,7 @@ public class RoutingEngine extends Thread {
 
       boolean detailed = guideTrack != null;
       resetCache(detailed);
-      nodesCache.nodesMap.cleanupMode = detailed ? 0 : (routingContext.considerTurnRestrictions ? 2 : 1);
+
       return _findTrack(operationName, startWp, endWp, costCuttingTrack, refTrack, fastPartialRecalc);
     } finally {
       routingContext.restoreNogoList();
@@ -1158,8 +1157,6 @@ public class RoutingEngine extends Thread {
     if (endWp != null) {
       end1 = nodesCache.getGraphNode(endWp.node1);
       end2 = nodesCache.getGraphNode(endWp.node2);
-      nodesCache.nodesMap.endNode1 = end1;
-      nodesCache.nodesMap.endNode2 = end2;
       endPos = new OsmNodeNamed(endWp.crossPoint);
       sameSegmentSearch = (start1 == end1 && start2 == end2) || (start1 == end2 && start2 == end1);
     }
@@ -1244,23 +1241,6 @@ public class RoutingEngine extends Thread {
         if (nodesCache.hasHollowLinkTargets(path.getTargetNode())) {
           if (!memoryPanicMode) {
             if (!nodesCache.nodesMap.isInMemoryBounds(openSet.getSize(), false)) {
-              int nodesBefore = nodesCache.nodesMap.nodesCreated;
-              int pathsBefore = openSet.getSize();
-
-              nodesCache.nodesMap.collectOutreachers();
-              for (; ; ) {
-                OsmPath p3 = openSet.popLowestKeyValue();
-                if (p3 == null) break;
-                if (nodesCache.nodesMap.canEscape(p3.getTargetNode())) {
-                  openBorderList.add(p3);
-                }
-              }
-              nodesCache.nodesMap.clearTemp();
-              for (OsmPath p : openBorderList) {
-                openSet.add(p.cost + (int) (p.airDistance * airDistanceCostFactor), p);
-              }
-              openBorderList.clear();
-              logInfo("collected, nodes/paths before=" + nodesBefore + "/" + pathsBefore + " after=" + nodesCache.nodesMap.nodesCreated + "/" + openSet.getSize() + " maxTotalCost=" + maxTotalCost);
               if (!nodesCache.nodesMap.isInMemoryBounds(openSet.getSize(), true)) {
                 if (maxTotalCost < 1000000000 || needNonPanicProcessing || fastPartialRecalc) {
                   throw new IllegalArgumentException("memory limit reached");
@@ -1373,9 +1353,6 @@ public class RoutingEngine extends Thread {
           continue;
         }
 
-        nodesCache.nodesMap.currentMaxCost = maxTotalCost;
-        nodesCache.nodesMap.currentPathCost = path.cost;
-        nodesCache.nodesMap.destination = endPos;
 
         routingContext.firstPrePath = null;
 
