@@ -66,7 +66,6 @@ public class RoutingEngine {
 
   private long startTime;
   private long maxRunningTime;
-  public SearchBoundary boundary;
 
   public boolean quite = false;
 
@@ -1254,11 +1253,9 @@ public class RoutingEngine {
           if (bestPath != null) {
             bestPath.airDistance = isFinalLink ? 0 : nextNode.calcDistance(endPos);
 
-            boolean inRadius = boundary == null || boundary.isInBoundary(nextNode, bestPath.cost);
-
-            if (inRadius && (isFinalLink || bestPath.cost + bestPath.airDistance <= (lastAirDistanceCostFactor != 0. ? maxTotalCost * lastAirDistanceCostFactor : maxTotalCost) + addDiff)) {
-                bestPath.treeDepth = path.treeDepth + 1;
-                addToOpenset(bestPath);
+            if (isFinalLink || bestPath.cost + bestPath.airDistance <= (lastAirDistanceCostFactor != 0. ? maxTotalCost * lastAirDistanceCostFactor : maxTotalCost) + addDiff) {
+              bestPath.treeDepth = path.treeDepth + 1;
+              addToOpenset(bestPath);
             }
           }
         }
