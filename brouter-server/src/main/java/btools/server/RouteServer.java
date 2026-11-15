@@ -179,10 +179,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
           bw.flush();
           return;
         }
-      } else if (url.startsWith("/brouter/suspects")) {
-        writeHttpHeader(bw, url.endsWith(".json") ? "application/json" : "text/html", HTTP_STATUS_OK);
-        SuspectManager.process(url, bw);
-        return;
       } else {
         writeHttpHeader(bw, HTTP_STATUS_NOT_FOUND);
         bw.flush();
@@ -191,9 +187,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       RoutingContext rc = handler.readRoutingContext();
       List<OsmNodeNamed> wplist = routingParamCollector.getWayPointList(params.get("lonlats"));
 
-      if (wplist.size() < 10) {
-        SuspectManager.nearRecentWps.add(wplist);
-      }
       int engineMode = 0;
       if (params.containsKey("engineMode")) {
         engineMode = Integer.parseInt(params.get("engineMode"));
