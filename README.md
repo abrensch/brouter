@@ -1,68 +1,21 @@
 BRouter
 =======
 
-BRouter is a configurable OSM offline router with elevation awareness, Java +
-Android. Designed to be multi-modal with a particular emphasis on bicycle
+BRouter is a configurable OSM offline router with elevation awareness, written
+in Java. Designed to be multi-modal with a particular emphasis on bicycle
 and energy-based car routing.
 
 For more infos see [http://brouter.de/brouter](http://brouter.de/brouter).
-
-
-## BRouter on Android
-
-You can install the BRouter app on your Android device from
-[F-Droid](https://f-droid.org/packages/btools.routingapp) or [Google Play
-Store](https://play.google.com/store/apps/details?id=btools.routingapp). You
-can also [build BRouter](#build-and-install) yourself. You can find detailed
-documentation of the BRouter Android app in
-[`docs/users/android_quickstart.md`](docs/users/android_quickstart.md).
-
-<a href="https://f-droid.org/packages/btools.routingapp" target="_blank">
-<img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="90"/></a>
-<a href="https://play.google.com/store/apps/details?id=btools.routingapp" target="_blank">
-<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" alt="Get it on Google Play" height="90"/></a>
-
-### Android with Locus
-
-You can use BRouter as the offline routing engine for [Locus
-Map](https://www.locusmap.eu/) on your Android device. This is currently the
-most featureful and maintained solutions for using BRouter on your Android
-device.
-
-A full documentation on how to set this up is available at
-[https://www.locusmap.eu/locus-map-can-navigate-offline/](https://www.locusmap.eu/locus-map-can-navigate-offline/).
-
-
-### Android with OSMAnd
-
-Alternatively, you can also use BRouter as the offline routing engine for
-[OSMAnd](https://osmand.net/) on your Android device.
-
-A full documentation on how to set this up is available at
-[`docs/users/osmand.md`](docs/users/osmand.md).
 
 
 ## BRouter on Windows/Linux/Mac OS
 
 ### Build and Install
 
-To compile the BRouter Android app, the Android SDK path must first be set in a file called `local.properties` in the main folder:
-
-```
-sdk.dir=<your/android/sdk/path>
-```
-
-
-Build BRouter with the Android app (if Android SDK path is set):
+Build BRouter:
 
 ```
 ./gradlew clean build
-```
-
-Build BRouter without the Android app:
-
-```
-./gradlew clean build -x :brouter-routing-app:build
 ```
 
 Build JAR file for server and map creator with all dependent classes:
@@ -71,7 +24,7 @@ Build JAR file for server and map creator with all dependent classes:
 ./gradlew clean build fatJar # places JAR file in brouter-server/build/libs/
 ```
 
-Build ZIP file for distribution with readmes, profiles, APK and JAR:
+Build ZIP file for distribution with readmes, profiles and JAR:
 
 ```
 ./gradlew distZip # places ZIP file in brouter-server/build/distributions/

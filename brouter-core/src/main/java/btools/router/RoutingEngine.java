@@ -1061,7 +1061,7 @@ public class RoutingEngine extends Thread {
   private void resetCache(boolean detailed) {
     long maxMem = routingContext.memoryclass * 1024L * 1024L; // in MB
 
-    nodesCache = new NodesCache(segmentDir, routingContext.expCtxWay, routingContext.forceSecondaryData, maxMem, detailed);
+    nodesCache = new NodesCache(segmentDir, routingContext.expCtxWay, maxMem, detailed);
     islandNodePairs.clearTempPairs();
   }
 

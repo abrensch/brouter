@@ -20,8 +20,7 @@ result.
 Here's what makes BRouter unique:
 
 - It uses [freely configurable routing profiles](features/costfunctions.md)
-- It works [fully offline on any Android phone](features/offline.md) and is
-  interfaced to some of the most popular Android map tools
+- It works [fully offline](features/offline.md)
 - It uses a sophisticated [routing-algorithm](developers/algorithm.md) with
   [elevation consideration](features/elevation.md)
 - It offers [alternative route calculations](features/alternatives.md)
@@ -42,19 +41,11 @@ description](http://www.openstreetmap.org/copyright) for details.
 Check [brouter-web](/brouter-web) or [bikerouter.de](https://www.bikerouter.de/)
 if you want to use BRouter online.
 
-### Android app for offline routing
-
-See [Android quickstart guide](users/android_quickstart.md) for how to setup BRouter for
-offline routing on an Android smartphone.
-
 ### Revision history
 
-See the [revision history](revisions.md) for older revisions of the app and the
+See the [revision history](revisions.md) for older revisions and the
 change-log.
 
-### Privacy Policy
-
-Please see [privacy policy](privacy_policy.md)
 
 ### Google group for support questions and feedback
 

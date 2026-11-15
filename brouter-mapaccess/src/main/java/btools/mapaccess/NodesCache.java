@@ -15,12 +15,10 @@ import btools.expressions.BExpressionContextWay;
 
 public final class NodesCache {
   private final File segmentDir;
-  private final File secondarySegmentsDir;
 
   public OsmNodesMap nodesMap;
   private final BExpressionContextWay expCtxWay;
 
-  private final boolean forceSecondaryData;
   private String currentFileName;
 
   private final Map<String, OsmFile> fileCache;
@@ -31,12 +29,11 @@ public final class NodesCache {
   public boolean first_file_access_failed;
   public String first_file_access_name;
 
-  public NodesCache(File segmentDir, BExpressionContextWay ctxWay, boolean forceSecondaryData, long maxMem, boolean detailed) {
+  public NodesCache(File segmentDir, BExpressionContextWay ctxWay, long maxMem, boolean detailed) {
     this.segmentDir = segmentDir;
     this.nodesMap = new OsmNodesMap();
     this.nodesMap.maxmem = (2L * maxMem) / 3L;
     this.expCtxWay = ctxWay;
-    this.forceSecondaryData = forceSecondaryData;
 
     ctxWay.setDecodeForbidden(detailed);
 
@@ -45,7 +42,6 @@ public final class NodesCache {
 
     fileCache = new HashMap<>(4);
     dataBuffers = new DataBuffers();
-    secondarySegmentsDir = StorageConfigHelper.getSecondarySegmentDir(segmentDir);
   }
 
   public void clean() {
@@ -206,18 +202,9 @@ public final class NodesCache {
     if (fileCache.containsKey(filenameBase)) {
       return fileCache.get(filenameBase);
     }
-    File f = null;
-    if (!forceSecondaryData) {
-      File primary = new File(segmentDir, currentFileName);
-      if (primary.exists()) {
-        f = primary;
-      }
-    }
-    if (f == null) {
-      File secondary = new File(secondarySegmentsDir, currentFileName);
-      if (secondary.exists()) {
-        f = secondary;
-      }
+    File f = new File(segmentDir, currentFileName);
+    if (!f.exists()) {
+      f = null;
     }
     OsmFile osmf = null;
     if (f != null) {

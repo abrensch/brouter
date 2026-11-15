@@ -2,9 +2,9 @@
 parent: Features
 ---
 
-# Ofline routing on Android phones
+# Offline routing
 
-BRouter is first and foremost an offline tool. It runs on any Android phone. The
+BRouter is first and foremost an offline tool. The
 online version offered here is just for a trial and for convenience. While many
 smartphone routing software use online services to do the actual route
 calculations, the advantages of the offline approach are evident:

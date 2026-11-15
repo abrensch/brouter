@@ -54,7 +54,6 @@ public final class RoutingContext {
   public boolean footMode;
   public boolean considerTurnRestrictions;
   public boolean processUnusedTags;
-  public boolean forceSecondaryData;
   public double pass1coefficient;
   public double pass2coefficient;
   public int elevationpenaltybuffer;
@@ -121,7 +120,7 @@ public final class RoutingContext {
     // process tags not used in the profile (to have them in the data-tab)
     processUnusedTags = 0.f != expctxGlobal.getVariableValue("processUnusedTags", 0.f);
 
-    forceSecondaryData = 0.f != expctxGlobal.getVariableValue("forceSecondaryData", 0.f);
+
     pass1coefficient = expctxGlobal.getVariableValue("pass1coefficient", 1.5f);
     pass2coefficient = expctxGlobal.getVariableValue("pass2coefficient", 0.f);
     elevationpenaltybuffer = (int) (expctxGlobal.getVariableValue("elevationpenaltybuffer", 5.f) * 1000000);

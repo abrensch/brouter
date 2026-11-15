@@ -15,4 +15,3 @@ BRouter HTTP server for various platforms.
 The API endpoints exposed by this HTTP server are documented in the
 `ServerHandler.java`
 
-Please see also [IBRouterService.aidl](./android_service.md) for calling parameter.
