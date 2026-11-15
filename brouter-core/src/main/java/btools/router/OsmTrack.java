@@ -29,10 +29,6 @@ public final class OsmTrack {
   // csv-header-line
   private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy";
 
-  public MatchedWaypoint endPoint;
-  public long[] nogoChecksums;
-  public long profileTimestamp;
-  public boolean isDirty;
 
   public boolean showspeed;
   public boolean showSpeedProfile;
@@ -206,101 +202,6 @@ public final class OsmTrack {
       }
     }
     return res;
-  }
-
-
-  /**
-   * writes the track in binary-format to a file
-   *
-   * @param filename the filename to write to
-   */
-  public void writeBinary(String filename) throws Exception {
-    DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(filename)));
-
-    endPoint.writeToStream(dos);
-    dos.writeInt(nodes.size());
-    for (OsmPathElement node : nodes) {
-      node.writeToStream(dos);
-    }
-    dos.writeLong(nogoChecksums[0]);
-    dos.writeLong(nogoChecksums[1]);
-    dos.writeLong(nogoChecksums[2]);
-    dos.writeBoolean(isDirty);
-    dos.writeLong(profileTimestamp);
-    dos.close();
-  }
-
-  public static OsmTrack readBinary(String filename, OsmNodeNamed newEp, long[] nogoChecksums, long profileChecksum, StringBuilder debugInfo) {
-    OsmTrack t = null;
-    if (filename != null) {
-      File f = new File(filename);
-      if (f.exists()) {
-        try {
-          DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(f)));
-          MatchedWaypoint ep = MatchedWaypoint.readFromStream(dis);
-          int dlon = ep.waypoint.iLon - newEp.iLon;
-          int dlat = ep.waypoint.iLat - newEp.iLat;
-          boolean targetMatch = dlon < 20 && dlon > -20 && dlat < 20 && dlat > -20;
-          if (debugInfo != null) {
-            debugInfo.append("target-delta = " + dlon + "/" + dlat + " targetMatch=" + targetMatch);
-          }
-          if (targetMatch) {
-            t = new OsmTrack();
-            t.endPoint = ep;
-            int n = dis.readInt();
-            OsmPathElement last_pe = null;
-            for (int i = 0; i < n; i++) {
-              OsmPathElement pe = OsmPathElement.readFromStream(dis);
-              pe.origin = last_pe;
-              last_pe = pe;
-              t.nodes.add(pe);
-            }
-            t.cost = last_pe.cost;
-            t.buildMap();
-
-            // check cheecksums, too
-            long[] al = new long[3];
-            long pchecksum = 0;
-            try {
-              al[0] = dis.readLong();
-              al[1] = dis.readLong();
-              al[2] = dis.readLong();
-            } catch (EOFException eof) { /* kind of expected */ }
-            try {
-              t.isDirty = dis.readBoolean();
-            } catch (EOFException eof) { /* kind of expected */ }
-            try {
-              pchecksum = dis.readLong();
-            } catch (EOFException eof) { /* kind of expected */ }
-            boolean nogoCheckOk = Math.abs(al[0] - nogoChecksums[0]) <= 20
-              && Math.abs(al[1] - nogoChecksums[1]) <= 20
-              && Math.abs(al[2] - nogoChecksums[2]) <= 20;
-            boolean profileCheckOk = pchecksum == profileChecksum;
-
-            if (debugInfo != null) {
-              debugInfo.append(" nogoCheckOk=" + nogoCheckOk + " profileCheckOk=" + profileCheckOk);
-              debugInfo.append(" al=" + formatLongs(al) + " nogoChecksums=" + formatLongs(nogoChecksums));
-            }
-            if (!(nogoCheckOk && profileCheckOk)) return null;
-          }
-          dis.close();
-        } catch (Exception e) {
-          throw new RuntimeException("Exception reading rawTrack: " + e);
-        }
-      }
-    }
-    return t;
-  }
-
-  private static String formatLongs(long[] al) {
-    StringBuilder sb = new StringBuilder();
-    sb.append('{');
-    for (long l : al) {
-      sb.append(l);
-      sb.append(' ');
-    }
-    sb.append('}');
-    return sb.toString();
   }
 
 

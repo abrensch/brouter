@@ -25,32 +25,4 @@ public final class MatchedWaypoint {
 
   public List<MatchedWaypoint> wayNearest = new ArrayList<>();
   public boolean hasUpdate;
-
-  public void writeToStream(DataOutput dos) throws IOException {
-    writeNode(node1,dos);
-    writeNode(node2,dos);
-    writeNode(crossPoint,dos);
-    writeNode(waypoint,dos);
-  }
-
-  public static MatchedWaypoint readFromStream(DataInput dis) throws IOException {
-    MatchedWaypoint mwp = new MatchedWaypoint();
-    mwp.node1 = readNode(dis);
-    mwp.node2 = readNode(dis);
-    mwp.crossPoint = readNode(dis);
-    mwp.waypoint = readNode(dis);
-    mwp.radius = dis.readDouble();
-    return mwp;
-  }
-
-  private static void writeNode(OsmNode node, DataOutput dos) throws IOException {
-    dos.writeInt(node.iLat);
-    dos.writeInt(node.iLon);
-  }
-  private static OsmNode readNode(DataInput dis) throws IOException {
-    int iLat = dis.readInt();
-    int iLon = dis.readInt();
-    return new OsmNode( iLon, iLat );
-  }
-
 }

@@ -34,7 +34,6 @@ public final class RoutingContext {
 
   public Map<String, String> keyValues;
 
-  public String rawTrackPath;
 
   public String getProfileName() {
     String name = localFunction == null ? "unknown" : localFunction;
@@ -320,19 +319,6 @@ public final class RoutingContext {
       allInTotal |= allIn;
     }
     return allInTotal;
-  }
-
-  public long[] getNogoChecksums() {
-    long[] cs = new long[3];
-    int n = nogopoints == null ? 0 : nogopoints.size();
-    for (int i = 0; i < n; i++) {
-      OsmNodeNamed nogo = nogopoints.get(i);
-      cs[0] += nogo.iLon;
-      cs[1] += nogo.iLat;
-      // 10 is an arbitrary constant to get sub-integer precision in the checksum
-      cs[2] += (long) (nogo.radius * 10.);
-    }
-    return cs;
   }
 
   public void setWaypoint(OsmNodeNamed wp, boolean endpoint) {

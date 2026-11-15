@@ -107,20 +107,4 @@ public class OsmPathElement {
   public boolean positionEquals(OsmPathElement e) {
     return this.ilat == e.ilat && this.ilon == e.ilon;
   }
-
-  public void writeToStream(DataOutput dos) throws IOException {
-    dos.writeInt(ilat);
-    dos.writeInt(ilon);
-    dos.writeShort(selev);
-    dos.writeInt(cost);
-  }
-
-  public static OsmPathElement readFromStream(DataInput dis) throws IOException {
-    OsmPathElement pe = new OsmPathElement();
-    pe.ilat = dis.readInt();
-    pe.ilon = dis.readInt();
-    pe.selev = dis.readShort();
-    pe.cost = dis.readInt();
-    return pe;
-  }
 }
