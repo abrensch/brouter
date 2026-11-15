@@ -5,7 +5,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmPos;
 import btools.util.CheapRuler;
 
 /**
@@ -14,7 +13,7 @@ import btools.util.CheapRuler;
  * @author ab
  */
 
-public class OsmPathElement implements OsmPos {
+public class OsmPathElement {
   private int ilat; // latitude
   private int ilon; // longitude
   private short selev; // longitude
@@ -74,7 +73,7 @@ public class OsmPathElement implements OsmPos {
     return ((long) ilon) << 32 | ilat;
   }
 
-  public final int calcDistance(OsmPos p) {
+  public final int calcDistance(OsmPathElement p) {
     return (int) Math.max(1.0, Math.round(CheapRuler.distance(ilon, ilat, p.getILon(), p.getILat())));
   }
 

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import btools.mapaccess.MatchedWaypoint;
-import btools.mapaccess.OsmPos;
+import btools.mapaccess.OsmNode;
 import btools.util.CompactLongMap;
 import btools.util.FrozenLongMap;
 
@@ -310,7 +310,7 @@ public final class OsmTrack {
     buildMap();
   }
 
-  public boolean containsNode(OsmPos node) {
+  public boolean containsNode(OsmNode node) {
     return nodesMap.contains(node.getIdFromPos());
   }
 

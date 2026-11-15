@@ -7,7 +7,7 @@ package btools.mapaccess;
 
 import btools.util.CheapRuler;
 
-public class OsmNode extends OsmLink implements OsmPos {
+public class OsmNode extends OsmLink {
   /**
    * The latitude
    */
@@ -133,7 +133,7 @@ public class OsmNode extends OsmLink implements OsmPos {
     return link;
   }
 
-  public final int calcDistance(OsmPos p) {
+  public final int calcDistance(OsmNode p) {
     return (int) Math.max(1.0, Math.round(CheapRuler.distance(iLon, iLat, p.getILon(), p.getILat())));
   }
 
