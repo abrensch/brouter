@@ -181,21 +181,6 @@ public class FormatJson extends Formatter {
     sb.append("    }");
   }
 
-  public String formatAsWaypoint(OsmNodeNamed n) {
-    try {
-      StringWriter sw = new StringWriter(8192);
-      BufferedWriter bw = new BufferedWriter(sw);
-      addJsonHeader(bw);
-      addJsonFeature(bw, "info", "wpinfo", n.iLon, n.iLat, n.getElev(), (n.nodeDescription != null ? rc.expCtxWay.getKeyValueDescription(false, n.nodeDescription) : null));
-      addJsonFooter(bw);
-      bw.close();
-      sw.close();
-      return sw.toString();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   private void addJsonFeature(BufferedWriter sb, String type, String name, int ilon, int ilat, double elev, String desc) {
     try {
       sb.append("    {\n");

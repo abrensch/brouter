@@ -110,28 +110,6 @@ public final class NodesCache {
     return false;
   }
 
-  /**
-   * get a node for the given id with all link-targets also non-hollow
-   * <p>
-   * It is required that an instance of the start-node does not yet
-   * exist, not even a hollow instance, so getStartNode should only
-   * be called once right after resetting the cache
-   *
-   * @param id the id of the node to load
-   * @return the fully expanded node for id, or null if it was not found
-   */
-  public OsmNode getStartNode(long id) {
-    // initialize the start-node
-    OsmNode n = new OsmNode(id);
-    n.setHollow();
-    nodesMap.put(n);
-    if (!obtainNonHollowNode(n)) {
-      return null;
-    }
-    expandHollowLinkTargets(n);
-    return n;
-  }
-
   public OsmNode getGraphNode(OsmNode template) {
     OsmNode graphNode = new OsmNode(template.iLon, template.iLat);
     graphNode.setHollow();

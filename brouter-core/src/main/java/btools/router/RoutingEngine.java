@@ -24,10 +24,6 @@ import btools.util.SortedHeap;
 
 public class RoutingEngine {
 
-  public final static int BROUTER_ENGINEMODE_ROUTING = 0;
-  public final static int BROUTER_ENGINEMODE_SEED = 1;
-  public final static int BROUTER_ENGINEMODE_GETELEV = 2;
-
   private NodesCache nodesCache;
   private SortedHeap<OsmPath> openSet = new SortedHeap<>();
 
@@ -38,8 +34,6 @@ public class RoutingEngine {
   private int nodeLimit; // used for target island search
   private int MAXNODES_ISLAND_CHECK = 500;
   private OsmNodePairSet islandNodePairs = new OsmNodePairSet(MAXNODES_ISLAND_CHECK);
-
-  private int engineMode = 0;
 
   private int MAX_STEPS_CHECK = 10;
 
@@ -69,18 +63,12 @@ public class RoutingEngine {
 
   public RoutingEngine(String outfileBase, String logfileBase, File segmentDir,
                        List<OsmNodeNamed> waypoints, RoutingContext rc) {
-    this(outfileBase, logfileBase, segmentDir, waypoints, rc, 0);
-  }
-
-  public RoutingEngine(String outfileBase, String logfileBase, File segmentDir,
-                       List<OsmNodeNamed> waypoints, RoutingContext rc, int engineMode) {
     this.segmentDir = segmentDir;
     this.outfileBase = outfileBase;
     this.logfileBase = logfileBase;
     this.waypoints = waypoints;
     this.infoLogEnabled = outfileBase != null;
     this.routingContext = rc;
-    this.engineMode = engineMode;
 
     File baseFolder = new File(routingContext.localFunction).getParentFile();
     baseFolder = baseFolder == null ? null : baseFolder.getParentFile();
@@ -130,25 +118,10 @@ public class RoutingEngine {
   }
 
   public void doRun(long maxRunningTime) {
-
-    switch (engineMode) {
-      case BROUTER_ENGINEMODE_ROUTING:
-        if (waypoints.size() < 2) {
-          throw new IllegalArgumentException("we need two lat/lon points at least!");
-        }
-        doRouting(maxRunningTime);
-        break;
-      case BROUTER_ENGINEMODE_SEED: /* do nothing, handled the old way */
-        throw new IllegalArgumentException("not a valid engine mode");
-      case BROUTER_ENGINEMODE_GETELEV:
-        if (waypoints.size() < 1) {
-          throw new IllegalArgumentException("we need one lat/lon point at least!");
-        }
-        doGetElev();
-        break;
-      default:
-        throw new IllegalArgumentException("not a valid engine mode");
+    if (waypoints.size() < 2) {
+      throw new IllegalArgumentException("we need two lat/lon points at least!");
     }
+    doRouting(maxRunningTime);
   }
 
 
@@ -267,67 +240,6 @@ public class RoutingEngine {
         }
         infoLogWriter = null;
       }
-    }
-  }
-
-  public void doGetElev() {
-    try {
-      startTime = System.currentTimeMillis();
-
-      routingContext.turnInstructionMode = 9;
-      MatchedWaypoint wpt1 = new MatchedWaypoint();
-      wpt1.waypoint = waypoints.get(0);
-      wpt1.name = "wpt_info";
-      List<MatchedWaypoint> listOne = new ArrayList<>();
-      listOne.add(wpt1);
-      matchWaypointsToNodes(listOne);
-
-      resetCache(true);
-
-      int dist_cn1 = listOne.get(0).crossPoint.calcDistance(listOne.get(0).node1);
-      int dist_cn2 = listOne.get(0).crossPoint.calcDistance(listOne.get(0).node2);
-
-      OsmNode startNode;
-      if (dist_cn1 < dist_cn2) {
-        startNode = nodesCache.getStartNode(listOne.get(0).node1.getIdFromPos());
-      } else {
-        startNode = nodesCache.getStartNode(listOne.get(0).node2.getIdFromPos());
-      }
-
-      OsmNodeNamed n = new OsmNodeNamed(listOne.get(0).crossPoint);
-      n.sElev = startNode != null ? startNode.getSElev() : Short.MIN_VALUE;
-
-      switch (routingContext.outputFormat) {
-        case "gpx":
-          outputMessage = new FormatGpx(routingContext).formatAsWaypoint(n);
-          break;
-        case "geojson":
-        case "json":
-          outputMessage = new FormatJson(routingContext).formatAsWaypoint(n);
-          break;
-        case "kml":
-        case "csv":
-        default:
-          outputMessage = null;
-          break;
-      }
-      if (outfileBase != null) {
-        String filename = outfileBase + "." + routingContext.outputFormat;
-        File out = new File(filename);
-        FileWriter fw = new FileWriter(filename);
-        fw.write(outputMessage);
-        fw.close();
-        outputMessage = null;
-      } else {
-        if (!quite && outputMessage != null) {
-          System.out.println(outputMessage);
-        }
-      }
-      long endTime = System.currentTimeMillis();
-      logInfo("execution time = " + (endTime - startTime) / 1000. + " seconds");
-    } catch (Exception e) {
-      e.getStackTrace();
-      logException(e);
     }
   }
 
@@ -1318,10 +1230,6 @@ public class RoutingEngine {
 
   public OsmTrack getFoundTrack() {
     return foundTrack;
-  }
-
-  public String getFoundInfo() {
-    return outputMessage;
   }
 
   public String getErrorMessage() {

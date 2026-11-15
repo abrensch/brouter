@@ -450,21 +450,6 @@ public class FormatGpx extends Formatter {
     return sb.toString();
   }
 
-  public String formatAsWaypoint(OsmNodeNamed n) {
-    try {
-      StringWriter sw = new StringWriter(8192);
-      BufferedWriter bw = new BufferedWriter(sw);
-      formatGpxHeader(bw);
-      formatWaypointGpx(bw, n);
-      formatGpxFooter(bw);
-      bw.close();
-      sw.close();
-      return sw.toString();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   public void formatGpxHeader(BufferedWriter sb) throws IOException {
     sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     sb.append("<gpx \n");

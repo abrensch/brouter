@@ -13,7 +13,7 @@ import btools.router.RoutingParamCollector;
 
 public class BRouter {
   public static void main(String[] args) throws Exception {
-    if (args.length == 3 || args.length == 4) { // cgi-input-mode
+    if ((args.length == 3 || args.length == 4) && args[2].contains("lonlats=")) { // cgi-input-mode
       try {
         System.setProperty("segmentBaseDir", args[0]);
         System.setProperty("profileBaseDir", args[1]);
@@ -30,10 +30,6 @@ public class BRouter {
         List<OsmNodeNamed> wplist = routingParamCollector.getWayPointList(lonlats);
 
         Map<String, String> params = routingParamCollector.getUrlParams(queryString);
-        int engineMode = 0;
-        if (params.containsKey("engineMode")) {
-          engineMode = Integer.parseInt(params.get("engineMode"));
-        }
         routingParamCollector.setParams(rc, wplist, params);
 
         String exportName = null;
@@ -51,7 +47,7 @@ public class BRouter {
           maxRunningTime = Integer.parseInt(sMaxRunningTime) * 1000;
         }
 
-        RoutingEngine re = new RoutingEngine(exportName, null, new File(args[0]), wplist, rc, engineMode);
+        RoutingEngine re = new RoutingEngine(exportName, null, new File(args[0]), wplist, rc);
         re.doRun(maxRunningTime);
         if (re.getErrorMessage() != null) {
           System.out.println(re.getErrorMessage());
@@ -62,36 +58,30 @@ public class BRouter {
       System.exit(0);
     }
     System.out.println("BRouter " + OsmTrack.version + " / " + OsmTrack.versionDate);
-    if (args.length < 5) {
+    if (args.length < 4) {
       System.out.println("Find routes in an OSM map");
-      System.out.println("usage: java -jar brouter.jar <segmentdir> <profiledir> <engineMode> <profile> <lonlats-list> [parameter-list] [profile-parameter-list] ");
-      System.out.println("   or: java -cp %CLASSPATH% btools.server.BRouter <segmentdir>> <profiledir> <engineMode> <profile> <lonlats-list> [parameter-list] [profile-parameter-list]");
+      System.out.println("usage: java -jar brouter.jar <segmentdir> <profiledir> <profile> <lonlats-list> [parameter-list] [profile-parameter-list] ");
+      System.out.println("   or: java -cp %CLASSPATH% btools.server.BRouter <segmentdir>> <profiledir> <profile> <lonlats-list> [parameter-list] [profile-parameter-list]");
       System.out.println("   or: java -jar brouter.jar <segmentdir> <profiledir> <parameter-list> [output-filename]");
       System.exit(0);
     }
 
-    int engineMode = 0;
-    try {
-      engineMode = Integer.parseInt(args[2]);
-    } catch (NumberFormatException e) {
-    }
-
     RoutingParamCollector routingParamCollector = new RoutingParamCollector();
-    List<OsmNodeNamed> wplist = routingParamCollector.getWayPointList(args[4]);
+    List<OsmNodeNamed> wplist = routingParamCollector.getWayPointList(args[3]);
 
     System.setProperty("segmentBaseDir", args[0]);
     System.setProperty("profileBaseDir", args[1]);
     String moreParams = null;
     String profileParams = null;
-    if (args.length >= 6) {
-      moreParams = args[5];
+    if (args.length >= 5) {
+      moreParams = args[4];
     }
-    if (args.length == 7) {
-      profileParams = args[6];
+    if (args.length == 6) {
+      profileParams = args[5];
     }
 
     RoutingContext rc = new RoutingContext();
-    rc.localFunction = args[3];
+    rc.localFunction = args[2];
     if (moreParams != null) {
       Map<String, String> params = routingParamCollector.getUrlParams(moreParams);
       routingParamCollector.setParams(rc, wplist, params);
@@ -101,12 +91,7 @@ public class BRouter {
       routingParamCollector.setProfileParams(rc, params);
     }
     try {
-      RoutingEngine re = null;
-      if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_GETELEV) {
-        re = new RoutingEngine("testinfo", null, new File(args[0]), wplist, rc, engineMode);
-      } else {
-        re = new RoutingEngine("testtrack", null, new File(args[0]), wplist, rc, engineMode);
-      }
+      RoutingEngine re = new RoutingEngine("testtrack", null, new File(args[0]), wplist, rc);
       re.doRun(0);
     } catch (Exception e) {
       System.out.println(e.getMessage());

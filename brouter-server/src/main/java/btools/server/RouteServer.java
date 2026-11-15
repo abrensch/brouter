@@ -186,13 +186,9 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       RoutingContext rc = handler.readRoutingContext();
       List<OsmNodeNamed> wplist = routingParamCollector.getWayPointList(params.get("lonlats"));
 
-      int engineMode = 0;
-      if (params.containsKey("engineMode")) {
-        engineMode = Integer.parseInt(params.get("engineMode"));
-      }
       routingParamCollector.setParams(rc, wplist, params);
 
-      cr = new RoutingEngine(null, null, serviceContext.segmentDir, wplist, rc, engineMode);
+      cr = new RoutingEngine(null, null, serviceContext.segmentDir, wplist, rc);
       cr.quite = true;
       cr.doRun(maxRunningTime);
 
@@ -203,29 +199,18 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       } else {
         OsmTrack track = cr.getFoundTrack();
 
-        if (engineMode == 2) {
-          // no zip for this engineMode
-          encodings = null;
-        }
         String headers = encodings == null || encodings.indexOf("gzip") < 0 ? null : "Content-Encoding: gzip\n";
         writeHttpHeader(bw, handler.getMimeType(), handler.getFileName(), headers, HTTP_STATUS_OK);
-        if (engineMode == 0) {
-          if (track != null) {
-            if (headers != null) { // compressed
-              ByteArrayOutputStream baos = new ByteArrayOutputStream();
-              Writer w = new OutputStreamWriter(new GZIPOutputStream(baos), "UTF-8");
-              w.write(handler.formatTrack(track));
-              w.close();
-              bw.flush();
-              clientSocket.getOutputStream().write(baos.toByteArray());
-            } else {
-              bw.write(handler.formatTrack(track));
-            }
-          }
-        } else if (engineMode == 2) {
-          String s = cr.getFoundInfo();
-          if (s != null) {
-            bw.write(s);
+        if (track != null) {
+          if (headers != null) { // compressed
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            Writer w = new OutputStreamWriter(new GZIPOutputStream(baos), "UTF-8");
+            w.write(handler.formatTrack(track));
+            w.close();
+            bw.flush();
+            clientSocket.getOutputStream().write(baos.toByteArray());
+          } else {
+            bw.write(handler.formatTrack(track));
           }
         }
       }
