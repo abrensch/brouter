@@ -211,9 +211,6 @@ public final class RoutingContext {
 
   public static void prepareNogoPoints(List<OsmNodeNamed> nogos) {
     for (OsmNodeNamed nogo : nogos) {
-      if (nogo instanceof OsmNogoPolygon) {
-        continue;
-      }
       String s = nogo.name;
       int idx = s.indexOf(' ');
       if (idx > 0) s = s.substring(0, idx);
@@ -248,11 +245,7 @@ public final class RoutingContext {
     for (OsmNodeNamed nogo : nogopoints) {
       boolean goodGuy = true;
       for (OsmNode wp : waypoints) {
-        if (wp.calcDistance(nogo) < nogo.radius
-          && (!(nogo instanceof OsmNogoPolygon)
-          || (((OsmNogoPolygon) nogo).isClosed
-          ? ((OsmNogoPolygon) nogo).isWithin(wp.iLon, wp.iLat)
-          : ((OsmNogoPolygon) nogo).isOnPolyline(wp.iLon, wp.iLat)))) {
+        if (wp.calcDistance(nogo) < nogo.radius) {
           goodGuy = false;
         }
       }
@@ -275,11 +268,7 @@ public final class RoutingContext {
       OsmNode wp = mwp.crossPoint;
       for (OsmNodeNamed nogo : nogopoints) {
         if (Double.isNaN(nogo.nogoWeight)
-          && wp.calcDistance(nogo) < nogo.radius
-          && (!(nogo instanceof OsmNogoPolygon)
-          || (((OsmNogoPolygon) nogo).isClosed
-          ? ((OsmNogoPolygon) nogo).isWithin(wp.iLon, wp.iLat)
-          : ((OsmNogoPolygon) nogo).isOnPolyline(wp.iLon, wp.iLat)))) {
+          && wp.calcDistance(nogo) < nogo.radius) {
           isInsideNogo = true;
           break;
         }
@@ -323,11 +312,7 @@ public final class RoutingContext {
       boolean allIn = Double.isNaN(nogo.nogoWeight);
       for (OsmNode wp : waypoints) {
         int dist = wp.calcDistance(nogo);
-        if (dist < nogo.radius
-          && (!(nogo instanceof OsmNogoPolygon)
-          || (((OsmNogoPolygon) nogo).isClosed
-          ? ((OsmNogoPolygon) nogo).isWithin(wp.iLon, wp.iLat)
-          : ((OsmNogoPolygon) nogo).isOnPolyline(wp.iLon, wp.iLat)))) {
+        if (dist < nogo.radius) {
           continue;
         }
         allIn = false;
@@ -414,29 +399,12 @@ public final class RoutingContext {
             if (radius > nogo.radius) continue;
           }
           if (nogo.isNogo) {
-            if (!(nogo instanceof OsmNogoPolygon)) {  // nogo is a circle
-              if (Double.isNaN(nogo.nogoWeight)) {
-                // default nogo behaviour (ignore completely)
-                nogoCost = -1;
-              } else {
-                // nogo weight, compute distance within the circle
-                nogoCost = nogo.distanceWithinRadius(lon1, lat1, lon2, lat2, d) * nogo.nogoWeight;
-              }
-            } else if (((OsmNogoPolygon) nogo).intersects(lon1, lat1, lon2, lat2)) {
-              // nogo is a polyline/polygon, we have to check there is indeed
-              // an intersection in this case (radius check is not enough).
-              if (Double.isNaN(nogo.nogoWeight)) {
-                // default nogo behaviour (ignore completely)
-                nogoCost = -1;
-              } else {
-                if (((OsmNogoPolygon) nogo).isClosed) {
-                  // compute distance within the polygon
-                  nogoCost = ((OsmNogoPolygon) nogo).distanceWithinPolygon(lon1, lat1, lon2, lat2) * nogo.nogoWeight;
-                } else {
-                  // for a polyline, just add a constant penalty
-                  nogoCost = nogo.nogoWeight;
-                }
-              }
+            if (Double.isNaN(nogo.nogoWeight)) {
+              // default nogo behaviour (ignore completely)
+              nogoCost = -1;
+            } else {
+              // nogo weight, compute distance within the circle
+              nogoCost = nogo.distanceWithinRadius(lon1, lat1, lon2, lat2, d) * nogo.nogoWeight;
             }
           } else {
             shortestmatch = true;

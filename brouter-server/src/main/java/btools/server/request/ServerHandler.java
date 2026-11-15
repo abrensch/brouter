@@ -19,8 +19,6 @@ import btools.server.ServiceContext;
  * <p>
  * lonlats = lon,lat|... (unlimited list of lon,lat waypoints separated by |)
  * nogos = lon,lat,radius,weight|... (optional, list of lon, lat, radius in meters, weight (optional) separated by |)
- * polylines = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
- * polygons        = lon,lat,lon,lat,...,weight|... (unlimited list of lon,lat and weight (optional), lists separated by |)
  * profile = profile file name without .brf
  * alternativeidx = [0|1|2|3] (optional, default 0)
  * format = [kml|gpx|geojson] (optional, default gpx)
