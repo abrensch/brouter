@@ -21,7 +21,6 @@ import btools.mapaccess.OsmNode;
 import btools.mapaccess.OsmNodePairSet;
 import btools.util.CompactLongMap;
 import btools.util.SortedHeap;
-import btools.util.StackSampler;
 
 public class RoutingEngine {
 
@@ -56,7 +55,6 @@ public class RoutingEngine {
   private String logfileBase;
   private boolean infoLogEnabled;
   private Writer infoLogWriter;
-  private StackSampler stackSampler;
   protected RoutingContext routingContext;
 
   public double airDistanceCostFactor;
@@ -96,13 +94,6 @@ public class RoutingEngine {
         }
       } catch (IOException ioe) {
         throw new RuntimeException("cannot open debug-log:" + ioe);
-      }
-
-      File stackLog = new File(baseFolder, "stacks.txt");
-      if (stackLog.exists()) {
-        stackSampler = new StackSampler(stackLog, 1000);
-        stackSampler.start();
-        logInfo("********** started stacksampling");
       }
     }
     boolean cachedProfile = ProfileCache.parseProfile(rc);
@@ -276,15 +267,6 @@ public class RoutingEngine {
         }
         infoLogWriter = null;
       }
-
-      if (stackSampler != null) {
-        try {
-          stackSampler.close();
-        } catch (Exception e) {
-        }
-        stackSampler = null;
-      }
-
     }
   }
 

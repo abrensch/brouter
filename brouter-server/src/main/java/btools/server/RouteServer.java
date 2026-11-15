@@ -33,7 +33,6 @@ import btools.router.RoutingParamCollector;
 import btools.server.request.ProfileUploadHandler;
 import btools.server.request.RequestHandler;
 import btools.server.request.ServerHandler;
-import btools.util.StackSampler;
 
 public class RouteServer extends Thread implements Comparable<RouteServer> {
   public static final String PROFILE_UPLOAD_URL = "/brouter/profile";
@@ -291,17 +290,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
     PriorityQueue<RouteServer> threadQueue = new PriorityQueue<>();
 
     ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]), 100, InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
-
-    // stacksample for performance profiling
-    // ( caution: start stacksampler only after successfully creating the server socket
-    //   because that thread prevents the process from terminating, so the start-attempt
-    //   by the watchdog cron would create zombies )
-    File stackLog = new File("stacks.txt");
-    if (stackLog.exists()) {
-      StackSampler stackSampler = new StackSampler(stackLog, 1000);
-      stackSampler.start();
-      System.out.println("*** sampling stacks into stacks.txt *** ");
-    }
 
     for (; ; ) {
       Socket clientSocket = serverSocket.accept();
