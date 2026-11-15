@@ -24,13 +24,16 @@ public class OsmNode extends OsmLink implements OsmPos {
   public short sElev = Short.MIN_VALUE;
 
   /**
+   * Bit flags, used by the map creator only (see the *_BIT constants)
+   */
+  private short bits;
+
+  /**
    * The node-tags, if any
    */
   public byte[] nodeDescription;
 
   public TurnRestriction firstRestriction;
-
-  public int visitID;
 
   public final static int NO_BRIDGE_BIT = 1;
   public final static int NO_TUNNEL_BIT = 2;
@@ -40,11 +43,11 @@ public class OsmNode extends OsmLink implements OsmPos {
   public final static int DP_SURVIVOR_BIT = 64;
 
   public boolean hasBits( int mask ) {
-    return (visitID & mask ) != 0;
+    return (bits & mask ) != 0;
   }
 
   public void setBits( int mask ) {
-    visitID |= mask;
+    bits |= mask;
   }
 
   public void addTurnRestriction(TurnRestriction tr) {

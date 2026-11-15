@@ -136,7 +136,6 @@ public final class OsmTile {
           if (waypointMatcher != null) {
             waypointMatcher.match(sourceNode, targetNode);
           }
-          sourceNode.visitID = 1;
         }
       }  // ... loop over links
 
@@ -185,7 +184,6 @@ public final class OsmTile {
       if (node == null) {
         node = new OsmNode(iLon, iLat);
       } else {
-        node.visitID = 1;
         hollowNodes.remove(node);
       }
       nodes[idx] = node;
