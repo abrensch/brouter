@@ -8,7 +8,6 @@ package btools.router;
 import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmNode;
 import btools.mapaccess.TurnRestriction;
-import btools.util.CheapRuler;
 
 abstract class OsmPath {
   /**
@@ -241,17 +240,10 @@ abstract class OsmPath {
         message.linkdist += distance;
       }
 
-      // apply a start-direction if appropriate (by faking the origin position)
+      // for the start point, fake the origin position (straight ahead)
       if (isStartpoint) {
-        if (rc.startDirectionValid) {
-          double dir = rc.startDirection.intValue() * CheapRuler.DEG_TO_RAD;
-          double[] lonlat2m = CheapRuler.getLonLatToMeterScales((lon0 + lat1) >> 1);
-          lon0 = lon1 - (int) (1000. * Math.sin(dir) / lonlat2m[0]);
-          lat0 = lat1 - (int) (1000. * Math.cos(dir) / lonlat2m[1]);
-        } else {
-          lon0 = lon1 - (lon2 - lon1);
-          lat0 = lat1 - (lat2 - lat1);
-        }
+        lon0 = lon1 - (lon2 - lon1);
+        lat0 = lat1 - (lat2 - lat1);
       }
       double angle = rc.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
       double cosangle = rc.anglemeter.getCosAngle();

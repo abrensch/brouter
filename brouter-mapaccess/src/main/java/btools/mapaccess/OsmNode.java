@@ -24,7 +24,7 @@ public class OsmNode extends OsmLink {
   public short sElev = Short.MIN_VALUE;
 
   /**
-   * Bit flags, used by the map creator only (see the *_BIT constants)
+   * Bit flags (see the *_BIT constants)
    */
   private short bits;
 
@@ -41,6 +41,7 @@ public class OsmNode extends OsmLink {
   public final static int TRANSFERNODE_BIT = 8;
   public final static int TR_TARGET_BIT = 16;
   public final static int DP_SURVIVOR_BIT = 64;
+  public final static int HOLLOW_BIT = 128;
 
   public boolean hasBits( int mask ) {
     return (bits & mask ) != 0;
@@ -143,11 +144,15 @@ public class OsmNode extends OsmLink {
 
 
   public final boolean isHollow() {
-    return sElev == -12345;
+    return hasBits(HOLLOW_BIT);
   }
 
   public final void setHollow() {
-    sElev = -12345;
+    setBits(HOLLOW_BIT);
+  }
+
+  public final void clearHollow() {
+    bits &= ~HOLLOW_BIT;
   }
 
   public final long getIdFromPos() {

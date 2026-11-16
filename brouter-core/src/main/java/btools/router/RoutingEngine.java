@@ -25,7 +25,6 @@ import btools.util.SortedHeap;
 public class RoutingEngine {
 
   private NodesCache nodesCache;
-  private SortedHeap<OsmPath> openSet = new SortedHeap<>();
 
   protected List<OsmNodeNamed> waypoints = null;
   protected List<MatchedWaypoint> matchedWaypoints;
@@ -231,7 +230,6 @@ public class RoutingEngine {
         nodesCache.close();
         nodesCache = null;
       }
-      openSet.clear();
 
       if (infoLogWriter != null) {
         try {
@@ -360,7 +358,7 @@ public class RoutingEngine {
 
   private void logException(Throwable t) {
     errorMessage = t instanceof RuntimeException ? t.getMessage() : t.toString();
-    logInfo("Error (linksProcessed=" + linksProcessed + " open paths: " + openSet.getSize() + "): " + errorMessage);
+    logInfo("Error (linksProcessed=" + linksProcessed + "): " + errorMessage);
   }
 
   public void cleanOnOOM() {
@@ -825,13 +823,11 @@ public class RoutingEngine {
   }
 
   private OsmPath getStartPath(OsmNode n1, OsmNode n2, MatchedWaypoint mwp, OsmNodeNamed endPos, boolean sameSegmentSearch) {
-    if (endPos != null) {
-      endPos.radius = 1.5;
-    }
+    endPos.radius = 1.5;
     OsmPath p = getStartPath(n1, n2, new OsmNodeNamed(mwp.crossPoint), endPos, sameSegmentSearch);
 
     // special case: start+end on same segment
-    if (p.cost >= 0 && sameSegmentSearch && endPos != null && endPos.radius < 1.5) {
+    if (p.cost >= 0 && sameSegmentSearch && endPos.radius < 1.5) {
       p.treeDepth = 0; // hack: mark for the final-check
     }
     return p;
@@ -858,7 +854,7 @@ public class RoutingEngine {
 
         wp.radius = 1.5;
         OsmPath testPath = routingContext.createPath(startPath, link, null, guideTrack != null);
-        testPath.airDistance = endPos == null ? 0 : nextNode.calcDistance(endPos);
+        testPath.airDistance = nextNode.calcDistance(endPos);
         if (wp.radius < minradius) {
           bestPath = testPath;
           minradius = wp.radius;
@@ -875,8 +871,8 @@ public class RoutingEngine {
   private OsmTrack findTrack(String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack) {
     try {
       List<OsmNode> wpts2 = new ArrayList<>();
-      if (startWp != null) wpts2.add(startWp.waypoint);
-      if (endWp != null) wpts2.add(endWp.waypoint);
+      wpts2.add(startWp.waypoint);
+      wpts2.add(endWp.waypoint);
       routingContext.cleanNogoList(wpts2);
 
       boolean detailed = guideTrack != null;
@@ -902,21 +898,16 @@ public class RoutingEngine {
 
     long startNodeId1 = startWp.node1.getIdFromPos();
     long startNodeId2 = startWp.node2.getIdFromPos();
-    long endNodeId1 = endWp == null ? -1L : endWp.node1.getIdFromPos();
-    long endNodeId2 = endWp == null ? -1L : endWp.node2.getIdFromPos();
-    OsmNode end1 = null;
-    OsmNode end2 = null;
-    OsmNodeNamed endPos = null;
+    long endNodeId1 = endWp.node1.getIdFromPos();
+    long endNodeId2 = endWp.node2.getIdFromPos();
 
-    boolean sameSegmentSearch = false;
     OsmNode start1 = nodesCache.getGraphNode(startWp.node1);
     OsmNode start2 = nodesCache.getGraphNode(startWp.node2);
-    if (endWp != null) {
-      end1 = nodesCache.getGraphNode(endWp.node1);
-      end2 = nodesCache.getGraphNode(endWp.node2);
-      endPos = new OsmNodeNamed(endWp.crossPoint);
-      sameSegmentSearch = (start1 == end1 && start2 == end2) || (start1 == end2 && start2 == end1);
-    }
+    OsmNode end1 = nodesCache.getGraphNode(endWp.node1);
+    OsmNode end2 = nodesCache.getGraphNode(endWp.node2);
+    OsmNodeNamed endPos = new OsmNodeNamed(endWp.crossPoint);
+    boolean sameSegmentSearch = (start1 == end1 && start2 == end2) || (start1 == end2 && start2 == end1);
+
     if (!nodesCache.obtainNonHollowNode(start1)) {
       return null;
     }
@@ -927,20 +918,13 @@ public class RoutingEngine {
     nodesCache.expandHollowLinkTargets(start2);
 
 
-    routingContext.startDirectionValid = routingContext.forceUseStartDirection;
-    routingContext.startDirectionValid &= routingContext.startDirection != null && !routingContext.inverseDirection;
-    if (routingContext.startDirectionValid) {
-      logInfo("using start direction " + routingContext.startDirection);
-    }
 
     OsmPath startPath1 = getStartPath(start1, start2, startWp, endPos, sameSegmentSearch);
     OsmPath startPath2 = getStartPath(start2, start1, startWp, endPos, sameSegmentSearch);
 
-    synchronized (openSet) {
-      openSet.clear();
-      addToOpenset(startPath1);
-      addToOpenset(startPath2);
-    }
+    SortedHeap<OsmPath> openSet = new SortedHeap<>();
+    addToOpenset(openSet, startPath1);
+    addToOpenset(openSet, startPath2);
     ArrayList<OsmPath> openBorderList = new ArrayList<>(4096);
     boolean memoryPanicMode = false;
     boolean needNonPanicProcessing = false;
@@ -957,200 +941,198 @@ public class RoutingEngine {
         }
       }
 
-      synchronized (openSet) {
 
-        OsmPath path = openSet.popLowestKeyValue();
-        if (path == null) {
-          if (openBorderList.isEmpty()) {
-            break;
-          }
-          for (OsmPath p : openBorderList) {
-            openSet.add(p.cost + (int) (p.airDistance * airDistanceCostFactor), p);
-          }
-          openBorderList.clear();
-          memoryPanicMode = false;
-          needNonPanicProcessing = true;
-          continue;
+      OsmPath path = openSet.popLowestKeyValue();
+      if (path == null) {
+        if (openBorderList.isEmpty()) {
+          break;
         }
+        for (OsmPath p : openBorderList) {
+          openSet.add(p.cost + (int) (p.airDistance * airDistanceCostFactor), p);
+        }
+        openBorderList.clear();
+        memoryPanicMode = false;
+        needNonPanicProcessing = true;
+        continue;
+      }
 
-        if (nodesCache.hasHollowLinkTargets(path.getTargetNode())) {
-          if (!memoryPanicMode) {
-            if (!nodesCache.nodesMap.isInMemoryBounds(openSet.getSize(), false)) {
-              if (!nodesCache.nodesMap.isInMemoryBounds(openSet.getSize(), true)) {
-                if (maxTotalCost < 1000000000 || needNonPanicProcessing) {
-                  throw new IllegalArgumentException("memory limit reached");
-                }
-                memoryPanicMode = true;
-                logInfo("************************ memory limit reached, enabled memory panic mode *************************");
+      if (nodesCache.hasHollowLinkTargets(path.getTargetNode())) {
+        if (!memoryPanicMode) {
+          if (!nodesCache.nodesMap.isInMemoryBounds(openSet.getSize(), false)) {
+            if (!nodesCache.nodesMap.isInMemoryBounds(openSet.getSize(), true)) {
+              if (maxTotalCost < 1000000000 || needNonPanicProcessing) {
+                throw new IllegalArgumentException("memory limit reached");
               }
+              memoryPanicMode = true;
+              logInfo("************************ memory limit reached, enabled memory panic mode *************************");
             }
           }
-          if (memoryPanicMode) {
-            openBorderList.add(path);
+        }
+        if (memoryPanicMode) {
+          openBorderList.add(path);
+          continue;
+        }
+      }
+      needNonPanicProcessing = false;
+
+
+      if (nodeLimit > 0) { // check node-limit for target island search
+        if (--nodeLimit == 0) {
+          return null;
+        }
+      }
+
+      nodesVisited++;
+      linksProcessed++;
+
+      OsmLink currentLink = path.getLink();
+      OsmNode sourceNode = path.getSourceNode();
+      OsmNode currentNode = path.getTargetNode();
+
+      if (!sourceNode.linkStillValid(currentLink)) {
+        continue; // probably processed by another path
+      }
+
+      long currentNodeId = currentNode.getIdFromPos();
+      long sourceNodeId = sourceNode.getIdFromPos();
+
+      if (!path.didEnterDestinationArea()) {
+        islandNodePairs.addTempPair(sourceNodeId, currentNodeId);
+      }
+
+      if (path.treeDepth != 1) {
+        if (path.treeDepth == 0) { // hack: sameSegment Paths marked treedepth=0 to pass above check
+          path.treeDepth = 1;
+        }
+
+        if ((sourceNodeId == endNodeId1 && currentNodeId == endNodeId2)
+          || (sourceNodeId == endNodeId2 && currentNodeId == endNodeId1)) {
+          // track found, compile
+          logInfo("found track at cost " + path.cost + " nodesVisited = " + nodesVisited);
+          OsmTrack t = compileTrack(path, verbose);
+          t.showspeed = routingContext.showspeed;
+          t.showSpeedProfile = routingContext.showSpeedProfile;
+          return t;
+        }
+
+        // check for a match with the cost-cutting-track
+        if (costCuttingTrack != null) {
+          OsmPathElement pe = costCuttingTrack.getLink(sourceNodeId, currentNodeId);
+          if (pe != null) {
+            int costEstimate = path.cost
+              + path.elevationCorrection()
+              + (costCuttingTrack.cost - pe.cost);
+            if (costEstimate < maxTotalCost) {
+              logInfo("maxcost " + maxTotalCost + " -> " + costEstimate);
+              maxTotalCost = costEstimate;
+            }
+          }
+        }
+      }
+
+      if (path.treeDepth > 1) {
+        boolean isBidir = currentLink.isBidirectional();
+        sourceNode.unlinkLink(currentLink);
+
+        // if the counterlink is alive and does not yet have a path, remove it
+        if (isBidir && !routingContext.considerTurnRestrictions) {
+          currentNode.unlinkLink(currentLink);
+        }
+      }
+
+      // recheck cutoff before doing expensive stuff
+      int addDiff = 100;
+      if (path.cost + path.airDistance > maxTotalCost + addDiff) {
+        continue;
+      }
+
+
+      routingContext.firstPrePath = null;
+
+      for (OsmLink link = currentNode.firstLink; link != null; link = link.getNext(currentNode)) {
+        OsmNode nextNode = link.getTarget(currentNode);
+
+        if (!nodesCache.obtainNonHollowNode(nextNode)) {
+          continue; // border node?
+        }
+        if (nextNode.firstLink == null) {
+          continue; // don't care about dead ends
+        }
+        if (nextNode == sourceNode) {
+          continue; // border node?
+        }
+
+        OsmPrePath prePath = routingContext.createPrePath(path, link);
+        if (prePath != null) {
+          prePath.next = routingContext.firstPrePath;
+          routingContext.firstPrePath = prePath;
+        }
+      }
+
+      for (OsmLink link = currentNode.firstLink; link != null; link = link.getNext(currentNode)) {
+        OsmNode nextNode = link.getTarget(currentNode);
+
+        if (!nodesCache.obtainNonHollowNode(nextNode)) {
+          continue; // border node?
+        }
+        if (nextNode.firstLink == null) {
+          continue; // don't care about dead ends
+        }
+        if (nextNode == sourceNode) {
+          continue; // border node?
+        }
+
+        if (guideTrack != null) {
+          int gidx = path.treeDepth + 1;
+          if (gidx >= guideTrack.nodes.size()) {
+            continue;
+          }
+          OsmPathElement guideNode = guideTrack.nodes.get(routingContext.inverseRouting ? guideTrack.nodes.size() - 1 - gidx : gidx);
+          long nextId = nextNode.getIdFromPos();
+          if (nextId != guideNode.getIdFromPos()) {
+            // not along the guide-track, discard, but register for voice-hint processing
+            if (routingContext.turnInstructionMode > 0) {
+              OsmPath detour = routingContext.createPath(path, link, refTrack, true);
+              if (detour.cost >= 0. && nextId != startNodeId1 && nextId != startNodeId2) {
+                guideTrack.registerDetourForId(currentNode.getIdFromPos(), OsmPathElement.create(detour));
+              }
+            }
             continue;
           }
         }
-        needNonPanicProcessing = false;
 
-
-        if (nodeLimit > 0) { // check node-limit for target island search
-          if (--nodeLimit == 0) {
-            return null;
+        boolean isFinalLink = false;
+        long targetNodeId = nextNode.getIdFromPos();
+        if (currentNodeId == endNodeId1 || currentNodeId == endNodeId2) {
+          if (targetNodeId == endNodeId1 || targetNodeId == endNodeId2) {
+            isFinalLink = true;
           }
         }
 
-        nodesVisited++;
-        linksProcessed++;
-
-        OsmLink currentLink = path.getLink();
-        OsmNode sourceNode = path.getSourceNode();
-        OsmNode currentNode = path.getTargetNode();
-
-        if (!sourceNode.linkStillValid(currentLink)) {
-          continue; // probably processed by another path
-        }
-
-        long currentNodeId = currentNode.getIdFromPos();
-        long sourceNodeId = sourceNode.getIdFromPos();
-
-        if (!path.didEnterDestinationArea()) {
-          islandNodePairs.addTempPair(sourceNodeId, currentNodeId);
-        }
-
-        if (path.treeDepth != 1) {
-          if (path.treeDepth == 0) { // hack: sameSegment Paths marked treedepth=0 to pass above check
-            path.treeDepth = 1;
-          }
-
-          if ((sourceNodeId == endNodeId1 && currentNodeId == endNodeId2)
-            || (sourceNodeId == endNodeId2 && currentNodeId == endNodeId1)) {
-            // track found, compile
-            logInfo("found track at cost " + path.cost + " nodesVisited = " + nodesVisited);
-            OsmTrack t = compileTrack(path, verbose);
-            t.showspeed = routingContext.showspeed;
-            t.showSpeedProfile = routingContext.showSpeedProfile;
-            return t;
-          }
-
-          // check for a match with the cost-cutting-track
-          if (costCuttingTrack != null) {
-            OsmPathElement pe = costCuttingTrack.getLink(sourceNodeId, currentNodeId);
-            if (pe != null) {
-              int costEstimate = path.cost
-                + path.elevationCorrection()
-                + (costCuttingTrack.cost - pe.cost);
-              if (costEstimate < maxTotalCost) {
-                logInfo("maxcost " + maxTotalCost + " -> " + costEstimate);
-                maxTotalCost = costEstimate;
-              }
+        OsmPath bestPath = null;
+        {
+          try {
+            if (isFinalLink) {
+              endPos.radius = 1.5; // 1.5 meters is the upper limit that will not change the unit-test result..
+              routingContext.setWaypoint(endPos, true);
+            }
+            OsmPath testPath = routingContext.createPath(path, link, refTrack, guideTrack != null);
+            if (testPath.cost >= 0 &&
+              (testPath.sourceNode.getIdFromPos() != testPath.targetNode.getIdFromPos())) {
+              bestPath = testPath;
+            }
+          } finally {
+            if (isFinalLink) {
+              routingContext.unsetWaypoint();
             }
           }
         }
+        if (bestPath != null) {
+          bestPath.airDistance = isFinalLink ? 0 : nextNode.calcDistance(endPos);
 
-        if (path.treeDepth > 1) {
-          boolean isBidir = currentLink.isBidirectional();
-          sourceNode.unlinkLink(currentLink);
-
-          // if the counterlink is alive and does not yet have a path, remove it
-          if (isBidir && !routingContext.considerTurnRestrictions) {
-            currentNode.unlinkLink(currentLink);
-          }
-        }
-
-        // recheck cutoff before doing expensive stuff
-        int addDiff = 100;
-        if (path.cost + path.airDistance > maxTotalCost + addDiff) {
-          continue;
-        }
-
-
-        routingContext.firstPrePath = null;
-
-        for (OsmLink link = currentNode.firstLink; link != null; link = link.getNext(currentNode)) {
-          OsmNode nextNode = link.getTarget(currentNode);
-
-          if (!nodesCache.obtainNonHollowNode(nextNode)) {
-            continue; // border node?
-          }
-          if (nextNode.firstLink == null) {
-            continue; // don't care about dead ends
-          }
-          if (nextNode == sourceNode) {
-            continue; // border node?
-          }
-
-          OsmPrePath prePath = routingContext.createPrePath(path, link);
-          if (prePath != null) {
-            prePath.next = routingContext.firstPrePath;
-            routingContext.firstPrePath = prePath;
-          }
-        }
-
-        for (OsmLink link = currentNode.firstLink; link != null; link = link.getNext(currentNode)) {
-          OsmNode nextNode = link.getTarget(currentNode);
-
-          if (!nodesCache.obtainNonHollowNode(nextNode)) {
-            continue; // border node?
-          }
-          if (nextNode.firstLink == null) {
-            continue; // don't care about dead ends
-          }
-          if (nextNode == sourceNode) {
-            continue; // border node?
-          }
-
-          if (guideTrack != null) {
-            int gidx = path.treeDepth + 1;
-            if (gidx >= guideTrack.nodes.size()) {
-              continue;
-            }
-            OsmPathElement guideNode = guideTrack.nodes.get(routingContext.inverseRouting ? guideTrack.nodes.size() - 1 - gidx : gidx);
-            long nextId = nextNode.getIdFromPos();
-            if (nextId != guideNode.getIdFromPos()) {
-              // not along the guide-track, discard, but register for voice-hint processing
-              if (routingContext.turnInstructionMode > 0) {
-                OsmPath detour = routingContext.createPath(path, link, refTrack, true);
-                if (detour.cost >= 0. && nextId != startNodeId1 && nextId != startNodeId2) {
-                  guideTrack.registerDetourForId(currentNode.getIdFromPos(), OsmPathElement.create(detour));
-                }
-              }
-              continue;
-            }
-          }
-
-          boolean isFinalLink = false;
-          long targetNodeId = nextNode.getIdFromPos();
-          if (currentNodeId == endNodeId1 || currentNodeId == endNodeId2) {
-            if (targetNodeId == endNodeId1 || targetNodeId == endNodeId2) {
-              isFinalLink = true;
-            }
-          }
-
-          OsmPath bestPath = null;
-          {
-            try {
-              if (isFinalLink) {
-                endPos.radius = 1.5; // 1.5 meters is the upper limit that will not change the unit-test result..
-                routingContext.setWaypoint(endPos, true);
-              }
-              OsmPath testPath = routingContext.createPath(path, link, refTrack, guideTrack != null);
-              if (testPath.cost >= 0 &&
-                (testPath.sourceNode.getIdFromPos() != testPath.targetNode.getIdFromPos())) {
-                bestPath = testPath;
-              }
-            } finally {
-              if (isFinalLink) {
-                routingContext.unsetWaypoint();
-              }
-            }
-          }
-          if (bestPath != null) {
-            bestPath.airDistance = isFinalLink ? 0 : nextNode.calcDistance(endPos);
-
-            if (isFinalLink || bestPath.cost + bestPath.airDistance <= (lastAirDistanceCostFactor != 0. ? maxTotalCost * lastAirDistanceCostFactor : maxTotalCost) + addDiff) {
-              bestPath.treeDepth = path.treeDepth + 1;
-              addToOpenset(bestPath);
-            }
+          if (isFinalLink || bestPath.cost + bestPath.airDistance <= (lastAirDistanceCostFactor != 0. ? maxTotalCost * lastAirDistanceCostFactor : maxTotalCost) + addDiff) {
+            bestPath.treeDepth = path.treeDepth + 1;
+            addToOpenset(openSet, bestPath);
           }
         }
       }
@@ -1163,7 +1145,7 @@ public class RoutingEngine {
     return null;
   }
 
-  private void addToOpenset(OsmPath path) {
+  private void addToOpenset(SortedHeap<OsmPath> openSet, OsmPath path) {
     if (path.cost >= 0) {
       openSet.add(path.cost + (int) (path.airDistance * airDistanceCostFactor), path);
     }

@@ -65,7 +65,11 @@ public final class OsmFile {
   }
 
   /**
-   * Opens the file for reading, parses the header and the tile index
+   * creates a new datafile  with the given list of nodes. The nodes must be within the bounds of this OsmFile (iLonBase, iLatBase).
+   * The nodes are sorted into tiles and each tile is encoded separately. The tile index is written at the end of the file,
+   * and the position of the index is written at the beginning of the file.
+   * @param nodes the list of nodes to write
+   * @throws IOException if an I/O error occurs
    */
   public void createWithNodes(List<OsmNode> nodes) throws IOException {
     int nTiles = divisor * divisor;

@@ -26,7 +26,6 @@ import btools.server.ServiceContext;
  * exportWaypoints = 1 to export them (optional, default is no export)
  * pois = lon,lat,name|... (optional)
  * timode = turnInstructionMode [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style] default 0
- * heading = angle (optional to give a route a start direction)
  * profile:xxx = parameter in profile (optional)
  * straight = idx1,idx2,.. (optional, minimum one value, index of a direct routing point in the waypoint list)
  * <p>

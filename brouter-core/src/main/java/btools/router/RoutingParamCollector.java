@@ -177,11 +177,6 @@ public class RoutingParamCollector {
           }
         } else if (key.equals("pois")) {
           rctx.poipoints = readPoisList(value);
-        } else if (key.equals("heading")) {
-          rctx.startDirection = Integer.valueOf(value);
-          rctx.forceUseStartDirection = true;
-        } else if (key.equals("direction")) {
-          rctx.startDirection = Integer.valueOf(value);
         } else if (key.equals("alternativeidx")) {
           rctx.setAlternativeIdx(Integer.parseInt(value));
         } else if (key.equals("turnInstructionMode")) {

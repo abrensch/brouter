@@ -171,9 +171,6 @@ public final class RoutingContext {
   private List<OsmNodeNamed> keepnogopoints = null;
   private OsmNodeNamed pendingEndpoint = null;
 
-  public Integer startDirection;
-  public boolean startDirectionValid;
-  public boolean forceUseStartDirection;
 
   public CheapAngleMeter anglemeter = new CheapAngleMeter();
 

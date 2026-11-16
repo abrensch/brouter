@@ -141,6 +141,8 @@ public final class OsmTile {
 
       OsmNode node = nodes[n] != null ? nodes[n] : dummy;
       node.sElev = (short) nodeEleDiff.decode();
+      node.clearHollow(); // node now has its data
+
 
       if ( isTransferNode ) {
         continue; // node feature processing only for network nodes
