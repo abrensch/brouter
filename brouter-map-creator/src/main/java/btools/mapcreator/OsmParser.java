@@ -156,29 +156,6 @@ public class OsmParser {
     nodeCutter.nextNode(n);
   }
 
-  private void generatePseudoTags(Map<String, String> map) {
-    // add pseudo.tags for concrete:lanes and concrete:plates
-
-    String concrete = null;
-    for (Map.Entry<String, String> e : map.entrySet()) {
-      String key = e.getKey();
-
-      if ("concrete".equals(key)) {
-        return;
-      }
-      if ("surface".equals(key)) {
-        String value = e.getValue();
-        if (value.startsWith("concrete:")) {
-          concrete = value.substring("concrete:".length());
-        }
-      }
-    }
-    if (concrete != null) {
-      map.put("concrete", concrete);
-    }
-  }
-
-
   public void addWay(WayData w) throws IOException {
     waysParsed++;
     checkStats();
@@ -189,8 +166,6 @@ public class OsmParser {
     if (dbPseudoTagProvider != null) {
       dbPseudoTagProvider.addTags(w.wid, w.getTagsOrNull());
     }
-
-    generatePseudoTags(w.getTagsOrNull());
 
     int[] lookupData = expCtxWay.createNewLookupData();
     for (String key : w.getTagsOrNull().keySet()) {

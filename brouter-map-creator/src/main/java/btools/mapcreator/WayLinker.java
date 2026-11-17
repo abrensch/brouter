@@ -92,9 +92,6 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
     }
 
     new WayLinker(new File(args[0])).process(new File(args[1]), new File(args[2]), args[3]);
-
-    System.out.println("dumping bad TRs");
-    RestrictionData.dumpBadTRs();
   }
 
   public WayLinker(File tmpDir) {
@@ -258,9 +255,6 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
           r.fromLon = n1.iLon;
           r.fromLat = n1.iLat;
           n1.setBits(OsmNode.TR_TARGET_BIT);
-          if (isInnerNode(n2, w)) {
-            r.badWayMatch = true;
-          }
         }
       }
       if (r.toWid == w.wid) {
@@ -268,18 +262,12 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
           r.toLon = n1.iLon;
           r.toLat = n1.iLat;
           n1.setBits(OsmNode.TR_TARGET_BIT);
-          if (isInnerNode(n2, w)) {
-            r.badWayMatch = true;
-          }
         }
       }
       tr = tr.next;
     }
   }
 
-  private boolean isInnerNode(OsmNode n, WayData w) {
-    return n != nodesMap.get(w.nodes.get(0)) && n != nodesMap.get(w.nodes.get(w.nodes.size() - 1));
-  }
 
   @Override
   public void nextWay(WayData way) {

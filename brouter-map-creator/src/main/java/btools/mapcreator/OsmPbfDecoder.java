@@ -173,7 +173,7 @@ public class OsmPbfDecoder {
       Map<String, String> tags = buildTags(node.getKeysList(), node.getValsList(), fieldDecoder);
 
       NodeData n = new NodeData(node.getId(),
-        fieldDecoder.decodeLongitude(node.getLat()), fieldDecoder.decodeLatitude(node.getLon()));
+        fieldDecoder.decodeLongitude(node.getLon()), fieldDecoder.decodeLatitude(node.getLat()));
       n.setTags(tags);
 
 

@@ -70,7 +70,6 @@ public class RelationMerger implements ItemListener {
     int size = r.ways.size();
     for (int i = 0; i < size; i++) {
       long wid = r.ways.get(i);
-      // expctxStat.addLookupValue( tagname, "yes", null );
       if (routeset != null && !routeset.contains(wid)) {
         routeset.add(wid);
         routesetall.add(wid);

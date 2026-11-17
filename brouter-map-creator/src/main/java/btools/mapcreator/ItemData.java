@@ -1,7 +1,7 @@
 /**
  * common base class for the OSM items
  *
- * (basically providing lwzy tag-handling)
+ * (basically providing lazy tag-handling)
  */
 package btools.mapcreator;
 

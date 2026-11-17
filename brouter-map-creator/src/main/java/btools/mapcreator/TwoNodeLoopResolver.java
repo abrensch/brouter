@@ -152,7 +152,7 @@ private long splits;
           c.fromLat = n3.iLat;
         }
         if ( toMatch ) {
-          c.toLat = n3.iLon;
+          c.toLon = n3.iLon;
           c.toLat = n3.iLat;
         }
         n1.addTurnRestriction(c);

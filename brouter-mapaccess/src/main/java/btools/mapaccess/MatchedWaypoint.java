@@ -5,9 +5,6 @@
  */
 package btools.mapaccess;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
 
