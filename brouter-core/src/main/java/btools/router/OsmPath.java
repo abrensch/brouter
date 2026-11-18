@@ -196,6 +196,11 @@ abstract class OsmPath implements OsmLinkHolder {
     OsmTransferNode transferNode = link.geometry == null ? null
       : rc.geometryDecoder.decodeGeometry(link.geometry, sourceNode, targetNode, isReverse);
 
+    // a negative turncost can select a linkCostModifier for the section costs of the link
+    LinkCostModifier linkCostModifier = RoutingContext.getLinkCostModifier(rc.expctxWay.getTurncost());
+    double linkCostFactor = linkCostModifier == null ? 1.
+      : linkCostModifier.linkCostFactor(lon0, lat0, sourceNode, transferNode, targetNode);
+
     for (int nsection = 0; ; nsection++) {
 
       originLon = lon1;
@@ -302,7 +307,8 @@ abstract class OsmPath implements OsmLinkHolder {
 
       double elevation = ele2 == Short.MIN_VALUE ? 100. : ele2 / 4.;
 
-      double sectionCost = processWaySection(rc, dist, delta_h, elevation, angle, cosangle, isStartpoint, nsection, lastpriorityclassifier);
+      double sectionCost = processWaySection(rc, dist, delta_h, elevation, angle, cosangle, isStartpoint, nsection, lastpriorityclassifier)
+        * linkCostFactor;
       if ((sectionCost < 0. || costfactor > 9998. && !detailMode) || sectionCost + cost >= 2000000000.) {
         cost = -1;
         return;
