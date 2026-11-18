@@ -99,7 +99,6 @@ public class ServerHandler extends RequestHandler {
       result = new FormatCsv(rc).format(track);
     } else {
       System.out.println("unknown track format '" + format + "', using default");
-      //result = track.formatAsGpx();
       result = new FormatGpx(rc).format(track);
     }
 

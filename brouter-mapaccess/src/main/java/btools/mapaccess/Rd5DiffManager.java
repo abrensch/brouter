@@ -46,8 +46,6 @@ final public class Rd5DiffManager {
 
       String md5New = getMD5(fn);
 
-      System.out.println("name=" + name + " md5=" + md5);
-
       File specificNewDiffs = new File(newDiffDir, basename);
       specificNewDiffs.mkdirs();
 

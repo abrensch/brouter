@@ -121,7 +121,6 @@ public class AreaReader {
     try {
       for (Map.Entry<Long, String> entry : list) {
         OsmNode n = new OsmNode(entry.getKey());
-        // System.out.println("areareader set " + n.getILon() + "_" + n.getILat() + " " + entry.getValue());
         String filenameBase = entry.getValue();
         if (!filenameBase.equals(lastFilenameBase)) {
           if (pf != null) pf.close();

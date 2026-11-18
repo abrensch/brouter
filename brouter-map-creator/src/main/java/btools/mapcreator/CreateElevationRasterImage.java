@@ -58,9 +58,7 @@ public class CreateElevationRasterImage {
       return;
     }
     System.out.println("srtm " + srtm.toString());
-    //System.out.println("srtm elev " + srtm.getElevation(n.ilon, n.ilat));
     double[] pos = getElevationPos(srtm, n.ilon, n.ilat);
-    //System.out.println("srtm pos " + Math.round(pos[0]) + " "  + Math.round(pos[1]));
     short[] raster = srtm.eval_array;
     int rasterX = srtm.ncols;
     int rasterY = srtm.nrows;

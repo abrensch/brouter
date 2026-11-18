@@ -40,8 +40,6 @@ final public class Rd5DiffValidator {
 
       String md5New = Rd5DiffManager.getMD5(fn);
 
-      System.out.println("name=" + name + " md5=" + md5);
-
       File specificNewDiffs = new File(newDiffDir, basename);
 
       String diffFileName = md5 + ".df5";

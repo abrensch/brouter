@@ -217,7 +217,6 @@ public class RoutingEngine extends Thread {
           waypoints.get(waypoints.size() - 1).name = "via" + (waypoints.size() - 1) + "_center";
           List<OsmNodeNamed> newpoints = new ArrayList<>();
           for (int i = waypoints.size() - 2; i >= 0; i--) {
-            // System.out.println("back " + waypoints.get(i));
             OsmNodeNamed onn = new OsmNodeNamed(new OsmNode(waypoints.get(i).ilon, waypoints.get(i).ilat));
             onn.name = "via";
             newpoints.add(onn);
@@ -688,10 +687,6 @@ public class RoutingEngine extends Thread {
 
     logInfo("round trip execution time = " + (System.currentTimeMillis() - start) / 1000. + " seconds");
 
-    // for (AreaInfo ai: ais) {
-    //  System.out.println("\n" + ai.toString());
-    //}
-
     switch (preferredRandomType) {
       case AreaInfo.RESULT_TYPE_ELEV50:
         Collections.sort(ais, new Comparator<>() {
@@ -1022,10 +1017,6 @@ public class RoutingEngine extends Thread {
         lastTracks = new OsmTrack[matchedWaypoints.size() - 1];
         hasDirectRouting = true;
       }
-    }
-    for (MatchedWaypoint mwp : matchedWaypoints) {
-      //System.out.println(FormatGpx.getWaypoint(mwp.waypoint.ilon, mwp.waypoint.ilat, mwp.name, null));
-      //System.out.println(FormatGpx.getWaypoint(mwp.crosspoint.ilon, mwp.crosspoint.ilat, mwp.name+"_cp", null));
     }
 
     routingContext.hasDirectRouting = hasDirectRouting;
@@ -1384,7 +1375,7 @@ public class RoutingEngine extends Thread {
         indexback--;
         indexfore++;
       }
-      //System.out.println("snap round result " + indexback + ": " + bBackRoundAbout + " - " + indexfore + "; " + bForeRoundAbout + " pts " + differentLanePoints);
+
       if (bCheckRoundAbout) {
 
         tmpback = tt.nodes.get(--indexback);

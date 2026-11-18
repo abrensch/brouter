@@ -64,8 +64,8 @@ public class ElevationRasterTileConverter {
     if (args.length == 3 || args.length == 4 || args.length == 5) {
       String filename90 = args[0];
       if ("all".equals(filename90)) {
-        //if (DEBUG)
-        System.out.println("raster convert all ");
+        if (DEBUG)
+          System.out.println("raster convert all ");
         new ElevationRasterTileConverter().doConvertAll(args[1], args[2], (args.length > 3 ? args[3] : null), (args.length == 5 ? args[4] : null));
         return;
       }
@@ -83,8 +83,8 @@ public class ElevationRasterTileConverter {
         row_length = (Integer.parseInt(args[3]) == 1 ? SRTM1_ROW_LENGTH : SRTM3_ROW_LENGTH);
         fallbackdir = (args.length == 5 ? args[4] : null);
       }
-      //if (DEBUG)
-      System.out.println("raster convert " + ilon_base + " " + ilat_base + " from " + srtmLonIdx + " " + srtmLatIdx + " f: " + filename90 + " rowl " + row_length);
+      if (DEBUG)
+        System.out.println("raster convert " + ilon_base + " " + ilat_base + " from " + srtmLonIdx + " " + srtmLatIdx + " f: " + filename90 + " rowl " + row_length);
 
       new ElevationRasterTileConverter().doConvert(args[1], ilon_base, ilat_base, args[2] + "/" + filename30, row_length, fallbackdir);
     } else {
