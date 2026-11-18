@@ -231,7 +231,7 @@ assign surfacepenalty
  switch surface=concrete|paving_stones|wood|metal 0.5 #Zusatzkosten für Beton, Pflastersteine, Holz oder Metall
  switch surface=cobblestone|fine_gravel|compacted|sett|grass_paver 5 #Zusatzkosten für Kopfsteinpflaster, Splitt, verdichtete Deckschicht, behauene Pflastersteine oder Rasengittersteine
  switch surface=gravel|sand|pebblestone 10 #Zusatzkosten für Schotter, Sand oder Kies
- switch surface=ground|grass|unpaved|dirt|earth|mud|clay 50 #Zusatzkosten für naturbelassene Wege, Grasswege, unbefestigte Wege, Schmutzwege, erdige Wege, schlammige Wege oder Lehmwege
+ switch surface=ground|grass|unpaved|dirt|earth|mud|clay|laterite 50 #Zusatzkosten für naturbelassene Wege, Grasswege, unbefestigte Wege, Schmutzwege, erdige Wege, schlammige Wege, Lehmwege oder Lateritwege
  0
 
 assign smoothnesspenalty
