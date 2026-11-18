@@ -35,6 +35,28 @@ public final class OsmTile {
   private OsmNode[] nodes;
   private OsmNodesMap hollowNodes;
 
+  /**
+   * Decodes the nodes of this tile from the serialized format and weaves them
+   * into the routing graph. That's the twin of {@link #encodeTile(List, byte[], Map)}.
+   * <p>
+   * Nodes are created lazily: an {@link OsmNode} instance is only allocated
+   * (or taken over from {@code hollowNodes}) when at least one routable link
+   * (way description != null, as decided by {@code wayValidator}) touches it.
+   * <p>
+   * The codec uses advanced statistical coding techniques as provided by the
+   * {@link btools.statcoding} package.
+   * <p>
+   * If a node is decoded that pre-exists as a hollow node in {@code hollowNodes},
+   * it is removed from hollow noded and has it's hollow bit cleared.
+   *
+   * @param buffer          the serialized tile data
+   * @param dataBuffers     shared buffers for the tag value decoders
+   * @param wayValidator    validator deciding which way tags are routable
+   * @param waypointMatcher optional matcher called for each woven link, may be null
+   * @param hollowNodes     global map of known hollow nodes, maintaining object identity across tiles
+   * @return the number of bytes consumed from the buffer
+   * @throws IOException      if shit happens
+   */
   public int decodeTile(byte[] buffer, DataBuffers dataBuffers, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) throws IOException {
 
     BitInputStream bis = new BitInputStream( new ByteArrayInputStream( buffer ) );
@@ -121,7 +143,7 @@ public final class OsmTile {
               targetNode = hollowNodes.get(linkLon, linkLat);
               if (targetNode == null) { // node not yet known, create a new hollow proxy
                 targetNode = new OsmNode(linkLon, linkLat);
-                targetNode.setHollow();
+                targetNode.setBits( OsmNode.HOLLOW_BIT );
                 hollowNodes.put(targetNode);
               }
             }
@@ -141,10 +163,9 @@ public final class OsmTile {
 
       OsmNode node = nodes[n] != null ? nodes[n] : dummy;
       node.sElev = (short) nodeEleDiff.decode();
-      node.clearHollow(); // node now has its data
 
-
-      if ( isTransferNode ) {
+      if (isTransferNode) {
+        node.setBits(OsmNode.TRANSFERNODE_BIT); // preserve the transfer-node info
         continue; // node feature processing only for network nodes
       }
 
@@ -172,7 +193,6 @@ public final class OsmTile {
       }
     }
 
-
     hollowNodes.countNodes(nodes);
     return buffer.length - bis.available();
   }
@@ -187,6 +207,7 @@ public final class OsmTile {
         node = new OsmNode(iLon, iLat);
       } else {
         hollowNodes.remove(node);
+        node.clearBits( OsmNode.HOLLOW_BIT );
       }
       nodes[idx] = node;
     }

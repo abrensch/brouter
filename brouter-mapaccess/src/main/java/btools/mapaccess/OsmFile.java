@@ -130,10 +130,10 @@ public final class OsmFile {
     System.out.println("***************************");
 
     // re-open random-access to write the index position
-    RandomAccessFile ra = new RandomAccessFile(file, "rw");
-    ra.writeLong(tileIndex[nTiles]);
-    ra.writeInt(indexSize);
-    ra.close();
+    try ( RandomAccessFile ra = new RandomAccessFile(file, "rw") ) {
+      ra.writeLong( tileIndex[nTiles] );
+      ra.writeInt( indexSize );
+    }
   }
 
   private byte[] getDataFromFile(long startPos, int size, String crcMessage ) throws IOException {
@@ -172,7 +172,11 @@ public final class OsmFile {
                                  WaypointMatcher waypointMatcher, boolean reallyDecode, OsmNodesMap hollowNodes) throws IOException {
     long startPos = tileIndex[tileIdx];
     long endPos = tileIndex[tileIdx+1];
-    int size = (int)(endPos-startPos);
+    long sizeLong = endPos-startPos;
+    if (sizeLong < 0L || sizeLong > Integer.MAX_VALUE) {
+      throw new IllegalArgumentException( "invalid tile size: " + sizeLong );
+    }
+    int size = (int)sizeLong;
     if (size == 0) {
       return;
     }
@@ -205,35 +209,5 @@ public final class OsmFile {
    */
   public void close() throws IOException {
     is.close();
-  }
-
-  public static String checkFileIntegrity(File f) throws IOException {
-    OsmFile osmf = null;
-    try {
-      int nTiles = 160*160;
-      DataBuffers dataBuffers = new DataBuffers();
-      osmf = new OsmFile(f, 0, 0, dataBuffers.ioBuffer);
-      osmf.openForReading();
-      for (int tileIdx = 0; tileIdx < nTiles; tileIdx++) {
-        osmf.decodeTileForIndex(tileIdx, 0, 0, dataBuffers, null, null, false, null);
-      }
-    } finally {
-      if (osmf != null)
-        try {
-          osmf.close();
-        } catch (Exception ee) {
-        }
-    }
-    return null;
-  }
-
-  public static void main(String[] args) {
-    try {
-      checkFileIntegrity(new File(args[0]));
-    } catch (IOException e) {
-      System.err.println("************************************");
-      e.printStackTrace();
-      System.err.println("************************************");
-    }
   }
 }

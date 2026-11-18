@@ -775,10 +775,10 @@ public class RoutingEngine {
         continue;
       }
 
-      if (nodesCache.hasHollowLinkTargets(path.getTargetNode())) {
+      if (path.getTargetNode().hasHollowLinkTargets()) {
         if (!memoryPanicMode) {
-          if (!nodesCache.nodesMap.isInMemoryBounds(openSet.getSize(), false)) {
-            if (!nodesCache.nodesMap.isInMemoryBounds(openSet.getSize(), true)) {
+          if (!nodesCache.isInMemoryBounds(openSet.getSize(), false)) {
+            if (!nodesCache.isInMemoryBounds(openSet.getSize(), true)) {
               if (maxTotalCost < 1000000000 || needNonPanicProcessing) {
                 throw new IllegalArgumentException("memory limit reached");
               }

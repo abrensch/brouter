@@ -16,7 +16,8 @@ import btools.expressions.BExpressionContextWay;
 public final class NodesCache {
   private final File segmentDir;
 
-  public OsmNodesMap nodesMap;
+  private final OsmNodesMap hollowNodes;
+
   private final BExpressionContextWay expCtxWay;
 
   private String currentFileName;
@@ -31,8 +32,8 @@ public final class NodesCache {
 
   public NodesCache(File segmentDir, BExpressionContextWay ctxWay, long maxMem, boolean detailed) {
     this.segmentDir = segmentDir;
-    this.nodesMap = new OsmNodesMap();
-    this.nodesMap.maxmem = (2L * maxMem) / 3L;
+    this.hollowNodes = new OsmNodesMap();
+    this.hollowNodes.maxmem = (2L * maxMem) / 3L;
     this.expCtxWay = ctxWay;
 
     ctxWay.setDecodeForbidden(detailed);
@@ -42,6 +43,10 @@ public final class NodesCache {
 
     fileCache = new HashMap<>(4);
     dataBuffers = new DataBuffers();
+  }
+
+  public boolean isInMemoryBounds(int npaths, boolean extend) {
+    return hollowNodes.isInMemoryBounds(npaths, extend);
   }
 
   public void clean() {
@@ -58,7 +63,7 @@ public final class NodesCache {
       if (osmf == null) {
         return false;
       }
-      osmf.checkDecodeTile(ilon, ilat, dataBuffers, expCtxWay, waypointMatcher, nodesMap);
+      osmf.checkDecodeTile(ilon, ilat, dataBuffers, expCtxWay, waypointMatcher, hollowNodes);
       return true;
     } catch (IOException re) {
       throw new RuntimeException(re.getMessage());
@@ -98,26 +103,15 @@ public final class NodesCache {
     }
   }
 
-  /**
-   * make sure all link targets of the given node are non-hollow
-   */
-  public boolean hasHollowLinkTargets(OsmNode n) {
-    for (OsmLink link = n.firstLink; link != null; link = link.getNext(n)) {
-      if (link.getTarget(n).isHollow()) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   public OsmNode getGraphNode(OsmNode template) {
     OsmNode graphNode = new OsmNode(template.iLon, template.iLat);
-    graphNode.setHollow();
-    OsmNode existing = nodesMap.put(graphNode);
+    OsmNode existing = hollowNodes.put(graphNode);
     if (existing == null) {
+      graphNode.setBits( OsmNode.HOLLOW_BIT );
       return graphNode;
     }
-    nodesMap.put(existing);
+    hollowNodes.put(existing);
     return existing;
   }
 

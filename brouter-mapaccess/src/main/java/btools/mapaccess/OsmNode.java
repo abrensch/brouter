@@ -51,6 +51,10 @@ public class OsmNode extends OsmLink {
     bits |= mask;
   }
 
+  public void clearBits( int mask ) {
+    bits &= ~mask;
+  }
+
   public void addTurnRestriction(TurnRestriction tr) {
     tr.next = firstRestriction;
     firstRestriction = tr;
@@ -106,6 +110,21 @@ public class OsmNode extends OsmLink {
     return cnt;
   }
 
+  /**
+   * Checks whether this node has at least one link whose target node
+   * is still hollow (i.e. only its id is known, its data not yet decoded).
+   *
+   * @return true if at least one link target is hollow, false otherwise
+   */
+  public boolean hasHollowLinkTargets() {
+    for (OsmLink link = firstLink; link != null; link = link.getNext(this)) {
+      if (link.getTarget(this).isHollow()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public OsmLink linkForTarget( int targetLon, int targetLat ) {
     for (OsmLink l = firstLink; l != null; l = l.getNext(this)) {
       OsmNode t = l.getTarget(this);
@@ -116,8 +135,23 @@ public class OsmNode extends OsmLink {
     return null;
   }
 
-  // populate and return the inherited link, if available,
-  // else create a new one
+  /**
+   * Create a link to the specified target node.
+   * The link is bidirectional, but has a logical direction
+   * pointing from this node to the target node, so for the reverse
+   * direction e.g. the one-way information in the given wayDescription
+   * must be inverted.
+   *
+   * There's technical inheritance between OsmNode and OsmLink, so if
+   * one of this or the target node has it's "own" link yet unused, then
+   * this is used instead of creating a new OsmLink instance. This way
+   * a linear chain of nodes connected by links uses just one object
+   * instance per node.
+   *
+   * @param wayDescription the way description for the link
+   * @param target the target node to link to
+   * @return the created OsmLink instance
+   */
   public OsmLink createLink(byte[] wayDescription, OsmNode target) {
 
     if ( target == this ) {
@@ -145,14 +179,6 @@ public class OsmNode extends OsmLink {
 
   public final boolean isHollow() {
     return hasBits(HOLLOW_BIT);
-  }
-
-  public final void setHollow() {
-    setBits(HOLLOW_BIT);
-  }
-
-  public final void clearHollow() {
-    bits &= ~HOLLOW_BIT;
   }
 
   public final long getIdFromPos() {
@@ -196,8 +222,7 @@ public class OsmNode extends OsmLink {
     }
     OsmLink l = firstLink;
     while (l != null) {
-      // if ( l.isReverse( this ) )
-      if (l.sourceNode != this && l.sourceNode != null) { // isReverse inline
+      if ( l.isReverse( this ) ) {
         OsmLink nl = l.previous;
         if (nl == link) {
           l.previous = n;
