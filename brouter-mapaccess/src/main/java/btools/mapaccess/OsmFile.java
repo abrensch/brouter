@@ -79,6 +79,9 @@ public final class OsmFile {
     for (OsmNode n : nodes) {
       int subLonIdx = (n.iLon - iLonBase) / cellSize;
       int subLatIdx = (n.iLat - iLatBase) / cellSize;
+      if ( subLonIdx < 0 || subLonIdx >= divisor || subLatIdx < 0 || subLatIdx >= divisor ) {
+        throw new IllegalArgumentException("node " + n + " is out of bounds for this OsmFile");
+      }
       int si = subLatIdx * divisor + subLonIdx;
       subs.getList(si).add(n);
     }

@@ -637,7 +637,8 @@ public class RoutingEngine {
   private void resetCache(boolean detailed) {
     long maxMem = routingContext.memoryclass * 1024L * 1024L; // in MB
 
-    nodesCache = new NodesCache(segmentDir, routingContext.expCtxWay, maxMem, detailed);
+    routingContext.expCtxWay.setDecodeForbidden(detailed);
+    nodesCache = new NodesCache(segmentDir, routingContext.expCtxWay, maxMem);
     islandNodePairs.clearTempPairs();
   }
 

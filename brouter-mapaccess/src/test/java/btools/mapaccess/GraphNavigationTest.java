@@ -1,26 +1,29 @@
 package btools.mapaccess;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import btools.util.TagValueValidator;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Basic graph navigation on OsmNode / OsmLink / TurnRestriction,
- * built in memory (no segment files required).
+ * The graph is build in memory and persisted to a temp file.
  */
 public class GraphNavigationTest {
 
+  // temporary directory, deleted automatically after each test
+  @Rule
+  public TemporaryFolder tmpDir = new TemporaryFolder();
+
   private static final byte[] WAY = new byte[] { 0x4a }; // a very simple valid way description
+  private static final byte[] WAY2 = new byte[] { 0x6a }; // another one
 
   private static OsmNode node(int lon, int lat) {
     return new OsmNode(180000000 + lon, 90000000 + lat);
@@ -28,64 +31,60 @@ public class GraphNavigationTest {
 
   @Test
   public void navigateRing() {
-    OsmNode start = createRing();
-    assertEquals(10, navigateRing(start, false).size() );
-    assertEquals(10, navigateRing(start, true).size() );
+    int nodeCount = 100;
+    OsmNode start = createRing(nodeCount);
+    assertEquals(nodeCount, navigateRing(start, false, null).size() );
+    assertEquals(nodeCount, navigateRing(start, true, null ).size() );
   }
 
   @Test
   public void serializeDeserializeRing() throws IOException
   {
-    OsmNode start = createRing();
-    List<OsmNode> nodes = navigateRing( start, false );
+    int nodeCount = 100;
+    OsmNode start = createRing(nodeCount);
 
-    // attach additional node outside tile boundary
-    OsmNode extern = node( 0, -100 );
-    start.createLink( WAY, extern );
+    List<OsmNode> nodes = navigateRing( start, false, null );
 
-    OsmNode n0 = node( 0, 0 );
-    OsmTile tile = new OsmTile( n0.iLon, n0.iLon );
-    byte[] bigBuffer = new byte[10000];
-    int len = tile.encodeTile( nodes, bigBuffer, null );
+    // write the nodes into a file
+    File segmentDir = tmpDir.newFolder("segments");
+    new OsmFile(new File(segmentDir, "E0_N0.rd5"), 180000000, 90000000, new byte[10 * 1024 * 1024]).createWithNodes(nodes);
 
-    byte[] buffer = new byte[len];
-    System.arraycopy(bigBuffer, 0, buffer, 0, len);
+    // now recover the ring from the file and navigate again
+    NodesCache nc = new NodesCache(segmentDir, null, 10000000);
 
-    // now we have the ring in a buffer
+    // .. match a point near the start node
+    MatchedWaypoint mwp = new MatchedWaypoint();
+    mwp.waypoint = new OsmNode(start.iLon, start.iLat + 500 );
+    mwp.name = "some point near the start";
+    List<MatchedWaypoint> matchedWaypoints = new ArrayList<>();
+    matchedWaypoints.add(mwp);
+    nc.matchWaypointsToNodes( matchedWaypoints, 1000., new OsmNodePairSet(1000 ) );
+    assertNotNull( "start node not matched", mwp.node1 );
 
-    // we put a copy of the extern node in a hollowNodes map
-    // to have a handle to the decoded ring
-    OsmNodesMap hollowNodes = new OsmNodesMap();
-    OsmNode hollowExtern = new OsmNode( extern.iLon, extern.iLat );
-    hollowNodes.put(hollowExtern);
-    hollowExtern.setBits( OsmNode.HOLLOW_BIT );
+    // the matcher only delivers position templates, not graph nodes.
+    // before turning that into a (hollow) graph node, clean the nodes cache
+    nc.clean();
+    OsmNode decodedStart = nc.getGraphNode( mwp.node1 );
 
-    // decode the ring
-    len = tile.decodeTile(buffer, new DataBuffers(), null, null, hollowNodes);;
-    assertEquals( len, buffer.length ); // all data decoded?
-
-    // extern node should still be hollow and have a link to the ring start
-    assertTrue( hollowExtern.isHollow() );
-    OsmNode decodedStart = hollowExtern.firstLink.getTarget( hollowExtern );
-
-    // to get a navigable ring again, we must unkink the external node
-    decodedStart.unlinkLink( hollowExtern.firstLink );
-
-    // result should be a navigable ring again
-    assertEquals(10, navigateRing(decodedStart, false).size() );
-    assertEquals(10, navigateRing(decodedStart, true).size() );
+    // result should be a navigable ring again (supported by the nodes cache)
+    assertEquals(nodeCount, navigateRing(decodedStart, false, nc).size() );
+    assertEquals(nodeCount, navigateRing(decodedStart, true, nc).size() );
   }
 
-  public OsmNode createRing ( ) {
-    // create a ring
+
+  private OsmNode createRing ( int nodeCount ) {
+    // create a ring around a tile-crossing, so that we can test the hollow node handling
     OsmNode last = null;
     OsmNode first = null;
-    for ( int i = 0; i < 10; i++ )
+    double angleStep = 2.0 * Math.PI / nodeCount;
+    int cellsize = 1000000 / 32;
+    for ( int i = 0; i < nodeCount; i++ )
     {
-      OsmNode n = node( 0, i*10 + 5 );
+      double angle = i * angleStep;
+      OsmNode n = node( (int)(cellsize + 1000*Math.cos(angle)), (int)(cellsize + 1000*Math.sin(angle)) );
       if ( last != null )
       {
-        last.createLink( WAY, n );
+        last.createLink( i % 5 == 0 ? WAY2 : WAY, n );
       }
       if ( first == null )
       {
@@ -97,12 +96,23 @@ public class GraphNavigationTest {
     return first;
   }
 
-    private List<OsmNode> navigateRing ( OsmNode start,boolean reverse)
+    private List<OsmNode> navigateRing ( OsmNode start,boolean reverse, NodesCache nc )
     {
       List<OsmNode> result = new ArrayList<>();
       OsmNode n = start;
       while ( result.size() < 100 )
       {
+        if ( n.isHollow() )
+        {
+          if ( nc != null )
+          {
+            nc.obtainNonHollowNode( n );
+          }
+          if ( n.isHollow() )
+          {
+            throw new IllegalStateException( "hollow node in ring: " + n );
+          }
+        }
         result.add( n );
         n = searchLink( n, reverse ).getTarget( n );
         if ( n == start )
@@ -123,7 +133,7 @@ public class GraphNavigationTest {
         {
           if ( result != null )
           {
-            throw new IllegalStateException( "multiple links in same direction" );
+            throw new IllegalStateException( "multiple links for direction: " + reverse );
           }
           result = l;
         }

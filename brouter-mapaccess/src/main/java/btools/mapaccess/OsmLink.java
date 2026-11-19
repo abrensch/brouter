@@ -33,19 +33,6 @@ public class OsmLink {
    */
   public final OsmNode getTarget(OsmNode source) {
     return targetNode != source && targetNode != null ? targetNode : sourceNode;
-    /* if ( n2 != null && n2 != source )
-    {
-      return n2;
-    }
-    else if ( n1 != null && n1 != source )
-    {
-      return n1;
-    }
-    else
-    {
-      new Throwable( "ups" ).printStackTrace();
-      throw new IllegalArgumentException( "internal error: getTarget: unknown source; " + source + " n1=" + n1 + " n2=" + n2 );
-    } */
   }
 
   /**
@@ -53,18 +40,6 @@ public class OsmLink {
    */
   public final OsmLink getNext(OsmNode source) {
     return targetNode != source && targetNode != null ? next : previous;
-    /* if ( n2 != null && n2 != source )
-    {
-      return next;
-    }
-    else if ( n1 != null && n1 != source )
-    {
-      return previous;
-    }
-    else
-    {
-      throw new IllegalArgumentException( "internal error: gextNext: unknown source" );
-    } */
   }
 
   /**
@@ -81,7 +56,7 @@ public class OsmLink {
       previous = null;
       sourceNode = null;
     } else {
-      throw new IllegalArgumentException("internal error: clear: unknown source");
+      throw new IllegalArgumentException("internal error: clear: bad source");
     }
     if (sourceNode == null && targetNode == null) {
       wayDescription = null;
@@ -91,18 +66,6 @@ public class OsmLink {
 
   public final boolean isReverse(OsmNode source) {
     return sourceNode != source && sourceNode != null;
-    /* if ( n2 != null && n2 != source )
-    {
-      return false;
-    }
-    else if ( n1 != null && n1 != source )
-   {
-      return true;
-    }
-    else
-    {
-      throw new IllegalArgumentException( "internal error: isReverse: unknown source" );
-    } */
   }
 
   public final boolean isBidirectional() {

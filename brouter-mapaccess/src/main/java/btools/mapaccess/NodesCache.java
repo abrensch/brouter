@@ -11,14 +11,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import btools.expressions.BExpressionContextWay;
+import btools.util.TagValueValidator;
 
 public final class NodesCache {
   private final File segmentDir;
 
   private final OsmNodesMap hollowNodes;
 
-  private final BExpressionContextWay expCtxWay;
+  private final TagValueValidator wayValidator;
 
   private String currentFileName;
 
@@ -30,13 +30,11 @@ public final class NodesCache {
   public boolean first_file_access_failed;
   public String first_file_access_name;
 
-  public NodesCache(File segmentDir, BExpressionContextWay ctxWay, long maxMem, boolean detailed) {
+  public NodesCache(File segmentDir, TagValueValidator wayValidator, long maxMem) {
     this.segmentDir = segmentDir;
     this.hollowNodes = new OsmNodesMap();
     this.hollowNodes.maxmem = (2L * maxMem) / 3L;
-    this.expCtxWay = ctxWay;
-
-    ctxWay.setDecodeForbidden(detailed);
+    this.wayValidator = wayValidator;
 
     if (!this.segmentDir.isDirectory())
       throw new RuntimeException("segment directory " + segmentDir.getAbsolutePath() + " does not exist");
@@ -63,7 +61,7 @@ public final class NodesCache {
       if (osmf == null) {
         return false;
       }
-      osmf.checkDecodeTile(ilon, ilat, dataBuffers, expCtxWay, waypointMatcher, hollowNodes);
+      osmf.checkDecodeTile(ilon, ilat, dataBuffers, wayValidator, waypointMatcher, hollowNodes);
       return true;
     } catch (IOException re) {
       throw new RuntimeException(re.getMessage());
@@ -116,15 +114,10 @@ public final class NodesCache {
   }
 
   public void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints, double maxDistance, OsmNodePairSet islandNodePairs) {
-    waypointMatcher = new WaypointMatcherImpl(unmatchedWaypoints, maxDistance, islandNodePairs);
+    waypointMatcher = new WaypointMatcher(unmatchedWaypoints, maxDistance, islandNodePairs);
     for (MatchedWaypoint mwp : unmatchedWaypoints) {
-      int cellsize = 12500;
+      int cellsize = 1000000 / 32;
       preloadPosition(mwp.waypoint, cellsize);
-      // get a second chance
-      if (mwp.crossPoint == null) {
-        cellsize = 1000000 / 32;
-        preloadPosition(mwp.waypoint, cellsize);
-      }
     }
 
     if (first_file_access_failed) {
