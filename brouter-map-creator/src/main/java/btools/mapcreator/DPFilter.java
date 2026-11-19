@@ -28,7 +28,7 @@ public class DPFilter {
         || n.hasBits(OsmNode.BORDER_BIT) || n.hasBits(OsmNode.TR_TARGET_BIT) || n.linkCount() != 2) {
       return false;
     }
-    OsmLink l1 = n.getFirstLink();
+    OsmLink l1 = n.firstLink;
     OsmLink l2 = l1.getNext( n );
     if ( l1.isReverse(n) == l2.isReverse(n) ) {
       return false;
@@ -43,7 +43,7 @@ public class DPFilter {
     if ( !isTransferNode(n) ) {
       throw new RuntimeException( "not a transfer node!" );
     }
-    OsmLink l1 = n.getFirstLink();
+    OsmLink l1 = n.firstLink;
     OsmLink l2 = l1.getNext( n );
     OsmNode n1 = l1.getTarget( n );
     OsmNode n2 = l2.getTarget( n );

@@ -11,6 +11,4 @@ public interface TagValueValidator {
   byte[] unify(byte[] tagValueSet, int offset, int len);
 
   boolean isLookupIdxUsed(int idx);
-
-  void setDecodeForbidden(boolean decodeForbidden);
 }

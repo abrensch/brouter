@@ -278,7 +278,7 @@ public final class OsmTile {
         // check classify as transfer node
         boolean isTransferNode = false;
         if (node.nodeDescription == null && node.firstRestriction == null && node.linkCount() == 2) {
-            OsmLink l1 = node.getFirstLink();
+            OsmLink l1 = node.firstLink;
             OsmLink l2 = l1.getNext(node);
             if (Arrays.equals(l1.wayDescription, l2.wayDescription)) {
               if (l1.isReverse(node) != l2.isReverse(node)) {

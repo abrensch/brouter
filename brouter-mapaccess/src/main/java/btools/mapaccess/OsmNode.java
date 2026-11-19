@@ -65,9 +65,6 @@ public class OsmNode extends OsmLink {
    */
   public OsmLink firstLink;
 
-  public OsmLink getFirstLink() {
-    return firstLink;
-  }
 
   public OsmNode() {
   }
@@ -83,18 +80,6 @@ public class OsmNode extends OsmLink {
   }
 
 
-  // interface OsmPos
-  public final int getILat() {
-    return iLat;
-  }
-
-  public final int getILon() {
-    return iLon;
-  }
-
-  public final short getSElev() {
-    return sElev;
-  }
 
   public final double getElev() {
     return sElev / 4.;
@@ -169,7 +154,7 @@ public class OsmNode extends OsmLink {
   }
 
   public final int calcDistance(OsmNode p) {
-    return (int) Math.max(1.0, Math.round(CheapRuler.distance(iLon, iLat, p.getILon(), p.getILat())));
+    return (int) Math.max(1.0, Math.round(CheapRuler.distance(iLon, iLat, p.iLon, p.iLat)));
   }
 
   public String toString() {

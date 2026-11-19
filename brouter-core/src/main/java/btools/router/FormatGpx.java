@@ -466,7 +466,7 @@ public class FormatGpx extends Formatter {
   public void formatWaypointGpx(BufferedWriter sb, OsmNodeNamed n) throws IOException {
     sb.append(" <wpt lon=\"").append(formatILon(n.iLon)).append("\" lat=\"")
       .append(formatILat(n.iLat)).append("\">");
-    if (n.getSElev() != Short.MIN_VALUE) {
+    if (n.sElev != Short.MIN_VALUE) {
       sb.append("<ele>").append("" + n.getElev()).append("</ele>");
     }
     if (n.name != null) {

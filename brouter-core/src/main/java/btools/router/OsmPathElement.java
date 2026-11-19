@@ -82,7 +82,7 @@ public class OsmPathElement {
   // construct a path element from a path
   public static final OsmPathElement create(OsmPath path) {
     OsmNode n = path.getTargetNode();
-    OsmPathElement pe = create(n.getILon(), n.getILat(), n.getSElev(), path.originElement);
+    OsmPathElement pe = create(n.iLon, n.iLat, n.sElev, path.originElement);
     pe.cost = path.cost;
     pe.message = path.message;
     return pe;

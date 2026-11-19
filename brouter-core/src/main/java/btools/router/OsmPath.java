@@ -65,7 +65,7 @@ abstract class OsmPath {
   public void init(OsmLink link) {
     this.link = link;
     targetNode = link.getTarget(null);
-    sElev = targetNode.getSElev();
+    sElev = targetNode.sElev;
 
     originLon = -1;
     originLat = -1;
@@ -103,8 +103,8 @@ abstract class OsmPath {
       message.energy = (float) 0;
       message.priorityclassifier = 0;
       message.classifiermask = 0;
-      message.lon = targetNode.getILon();
-      message.lat = targetNode.getILat();
+      message.lon = targetNode.iLon;
+      message.lat = targetNode.iLat;
       message.ele = Short.MIN_VALUE;
       message.linkdist = sourceNode.calcDistance(targetNode);
       message.wayKeyValues = "direct_segment=" + seg;
@@ -118,8 +118,8 @@ abstract class OsmPath {
     int lon0 = origin.originLon;
     int lat0 = origin.originLat;
 
-    int lon1 = sourceNode.getILon();
-    int lat1 = sourceNode.getILat();
+    int lon1 = sourceNode.iLon;
+    int lat1 = sourceNode.iLat;
     short ele1 = origin.sElev;
 
     message = detailMode ? new MessageData() : null;

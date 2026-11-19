@@ -21,8 +21,8 @@ final class KinematicPrePath extends OsmPrePath {
     int lat0 = origin.originLat;
 
     OsmNode p1 = sourceNode;
-    int lon1 = p1.getILon();
-    int lat1 = p1.getILat();
+    int lon1 = p1.iLon;
+    int lat1 = p1.iLat;
 
     boolean isReverse = link.isReverse(sourceNode);
 

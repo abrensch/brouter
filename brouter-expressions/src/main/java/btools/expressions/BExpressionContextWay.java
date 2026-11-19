@@ -101,7 +101,6 @@ public final class BExpressionContextWay extends BExpressionContext implements T
     return minCostFactor < 9999.f ? 2 : decodeForbidden ? (minCostFactor < 10000.f ? 1 : 0) : 0;
   }
 
-  @Override
   public void setDecodeForbidden(boolean decodeForbidden) {
     this.decodeForbidden = decodeForbidden;
   }

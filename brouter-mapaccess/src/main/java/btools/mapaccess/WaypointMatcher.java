@@ -136,7 +136,7 @@ public final class WaypointMatcher {
 
   public boolean match(OsmNode start, OsmNode target) {
     if (islandPairs.size() > 0) {
-      if (islandPairs.hasPair(start.getILat(), target.getIdFromPos())) {
+      if (islandPairs.hasPair(start.iLat, target.getIdFromPos())) {
         return false;
       }
     }
