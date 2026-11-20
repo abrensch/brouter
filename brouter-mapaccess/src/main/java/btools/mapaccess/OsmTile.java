@@ -375,7 +375,9 @@ public final class OsmTile {
     TreeMap<Long, OsmNode> sortedList = new TreeMap<>();
     for (OsmNode n : nodes) {
       long il = BitInterleavedConverter.xy2Interleaved(n.iLon-lonBase,n.iLat-latBase);
-      sortedList.put(il, n);
+      if ( sortedList.put(il, n) != null ) {
+        throw new IllegalStateException("duplicate node: " + n );
+      }
     }
     return sortedList;
   }

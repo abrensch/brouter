@@ -1,6 +1,8 @@
 package btools.util;
 
 
+import java.io.IOException;
+
 public interface TagValueValidator {
   /**
    * @param tagValueSet the way description to check
@@ -15,5 +17,5 @@ public interface TagValueValidator {
    * @param tagValueSet the way description (raw)
    * @return the reduced description, or null if nothing is left
    */
-  byte[] reduce(byte[] tagValueSet);
+  byte[] reduce(byte[] tagValueSet) throws IOException;
 }

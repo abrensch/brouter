@@ -47,7 +47,7 @@ public class GraphNavigationTest {
 
     // write the nodes into a file
     File segmentDir = tmpDir.newFolder("segments");
-    new OsmFile(new File(segmentDir, "E0_N0.rd5"), 180000000, 90000000, new byte[10 * 1024 * 1024]).createWithNodes(nodes);
+    new OsmFile(new File(segmentDir, "E0_N0.rd5"), 180000000, 90000000, null ).createWithNodes(nodes);
 
     // now recover the ring from the file and navigate again
     NodesCache nc = new NodesCache(segmentDir, null, 10000000);

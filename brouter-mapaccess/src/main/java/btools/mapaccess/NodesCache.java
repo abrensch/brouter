@@ -123,20 +123,9 @@ public final class NodesCache {
     if (first_file_access_failed) {
       throw new IllegalArgumentException("datafile " + first_file_access_name + " not found");
     }
-    int len = unmatchedWaypoints.size();
-    for (int i = 0; i < len; i++) {
-      MatchedWaypoint mwp = unmatchedWaypoints.get(i);
+    for (MatchedWaypoint mwp : unmatchedWaypoints) {
       if (mwp.crossPoint == null) {
-        if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
-          mwp.crossPoint = new OsmNode(mwp.waypoint.iLon, mwp.waypoint.iLat);
-          mwp.direct = true;
-        } else {
-          throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
-        }
-      }
-      if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
-        mwp.crossPoint = new OsmNode(mwp.waypoint.iLon, mwp.waypoint.iLat);
-        mwp.direct = true;
+        throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
       }
     }
   }
