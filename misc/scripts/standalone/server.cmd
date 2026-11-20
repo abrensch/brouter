@@ -1,7 +1,7 @@
 @echo off
 
 REM BRouter standalone server
-REM java -cp brouter.jar btools.brouter.RouteServer <segmentdir> <profile-map> <customprofiledir> <port> <maxthreads>
+REM java -cp brouter.jar btools.brouter.RouteServer <segmentdir> <profile-map> <port> <maxthreads>
 
 pushd %~dp0
 
@@ -12,7 +12,6 @@ REM First search in locations matching the directory structure as found in the o
 set CLASSPATH=../brouter.jar
 set SEGMENTSPATH=..\segments4
 set PROFILESPATH=..\profiles2
-set CUSTOMPROFILESPATH=..\customprofiles
 
 REM Otherwise try to locate files inside the source checkout
 if not exist "%CLASSPATH%" (
@@ -28,10 +27,7 @@ if not exist "%SEGMENTSPATH%" (
 if not exist "%PROFILESPATH%" (
     set PROFILESPATH=..\..\profiles2
 )
-if not exist "%CUSTOMPROFILESPATH%" (
-    set CUSTOMPROFILESPATH=..\..\customprofiles
-)
 
-java %JAVA_OPTS% -cp %CLASSPATH% btools.server.RouteServer "%SEGMENTSPATH%" "%PROFILESPATH%" "%CUSTOMPROFILESPATH%" 17777 1
+java %JAVA_OPTS% -cp %CLASSPATH% btools.server.RouteServer "%SEGMENTSPATH%" "%PROFILESPATH%" 17777 1
 
 popd

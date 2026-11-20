@@ -30,12 +30,10 @@ import btools.router.ProfileCache;
 import btools.router.RoutingContext;
 import btools.router.RoutingEngine;
 import btools.router.RoutingParamCollector;
-import btools.server.request.ProfileUploadHandler;
 import btools.server.request.RequestHandler;
 import btools.server.request.ServerHandler;
 
 public class RouteServer extends Thread implements Comparable<RouteServer> {
-  public static final String PROFILE_UPLOAD_URL = "/brouter/profile";
   static final String HTTP_STATUS_OK = "200 OK";
   static final String HTTP_STATUS_BAD_REQUEST = "400 Bad Request";
   static final String HTTP_STATUS_FORBIDDEN = "403 Forbidden";
@@ -71,7 +69,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
     // first line
     String getline = null;
-    String sessionInfo = null;
     String sIp = null;
 
     try {
@@ -111,26 +108,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
       InetAddress ip = clientSocket.getInetAddress();
       sIp = xff == null ? (ip == null ? "null" : ip.toString()) : xff;
-      boolean newSession = IpAccessMonitor.touchIpAccess(sIp);
-      sessionInfo = " new";
-      if (!newSession) {
-        int sessionCount = IpAccessMonitor.getSessionCount();
-        sessionInfo = "    " + Math.min(sessionCount, 999);
-        sessionInfo = sessionInfo.substring(sessionInfo.length() - 4);
-      }
-
-      String excludedAgents = System.getProperty("excludedAgents");
-      if (agent != null && excludedAgents != null) {
-        StringTokenizer tk = new StringTokenizer(excludedAgents, ",");
-        while (tk.hasMoreTokens()) {
-          if (agent.indexOf(tk.nextToken()) >= 0) {
-            writeHttpHeader(bw, HTTP_STATUS_FORBIDDEN);
-            bw.write("Bad agent: " + agent);
-            bw.flush();
-            return;
-          }
-        }
-      }
 
       if (getline.startsWith("GET /favicon.ico")) {
         writeHttpHeader(bw, HTTP_STATUS_NOT_FOUND);
@@ -155,29 +132,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       RequestHandler handler;
       if (params.containsKey("lonlats") && params.containsKey("profile")) {
         handler = new ServerHandler(serviceContext, params);
-      } else if (url.startsWith(PROFILE_UPLOAD_URL)) {
-        if (getline.startsWith("OPTIONS")) {
-          // handle CORS preflight request (Safari)
-          String corsHeaders = "Access-Control-Allow-Methods: GET, POST\n"
-            + "Access-Control-Allow-Headers: Content-Type\n";
-          writeHttpHeader(bw, "text/plain", null, corsHeaders, HTTP_STATUS_OK);
-          bw.flush();
-          return;
-        } else {
-          writeHttpHeader(bw, "application/json", HTTP_STATUS_OK);
-
-          String profileId = null;
-          if (url.length() > PROFILE_UPLOAD_URL.length() + 1) {
-            // e.g. /brouter/profile/custom_1400767688382
-            profileId = url.substring(PROFILE_UPLOAD_URL.length() + 1);
-          }
-
-          ProfileUploadHandler uploadHandler = new ProfileUploadHandler(serviceContext);
-          uploadHandler.handlePostRequest(profileId, br, bw);
-
-          bw.flush();
-          return;
-        }
       } else {
         writeHttpHeader(bw, HTTP_STATUS_NOT_FOUND);
         bw.flush();
@@ -246,16 +200,16 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       }
       long t = System.currentTimeMillis();
       long ms = t - starttime;
-      System.out.println(formattedTimeStamp(t) + sessionInfo + " ip=" + sIp + " ms=" + ms + " -> " + getline);
+      System.out.println(formattedTimeStamp(t) + " ip=" + sIp + " ms=" + ms + " -> " + getline);
     }
   }
 
 
   public static void main(String[] args) throws Exception {
     System.out.println("BRouter " + OsmTrack.version + " / " + OsmTrack.versionDate);
-    if (args.length != 5 && args.length != 6) {
+    if (args.length != 4 && args.length != 5) {
       System.out.println("serve BRouter protocol");
-      System.out.println("usage: java RouteServer <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads> [bindaddress]");
+      System.out.println("usage: java RouteServer <segmentdir> <profiledir> <port> <maxthreads> [bindaddress]");
       return;
     }
 
@@ -263,18 +217,14 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
     serviceContext.segmentDir = new File(args[0]);
     serviceContext.profileDir = args[1];
     System.setProperty("profileBaseDir", serviceContext.profileDir);
-    String dirs = args[2];
-    StringTokenizer tk = new StringTokenizer(dirs, ",");
-    serviceContext.customProfileDir = tk.nextToken();
-    serviceContext.sharedProfileDir = tk.hasMoreTokens() ? tk.nextToken() : serviceContext.customProfileDir;
 
-    int maxthreads = Integer.parseInt(args[4]);
+    int maxthreads = Integer.parseInt(args[3]);
 
     ProfileCache.setSize(2 * maxthreads);
 
     PriorityQueue<RouteServer> threadQueue = new PriorityQueue<>();
 
-    ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]), 100, InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
+    ServerSocket serverSocket = args.length > 4 ? new ServerSocket(Integer.parseInt(args[2]), 100, InetAddress.getByName(args[4])) : new ServerSocket(Integer.parseInt(args[2]));
 
     for (; ; ) {
       Socket clientSocket = serverSocket.accept();

@@ -1,6 +1,5 @@
 package btools.server.request;
 
-import java.io.File;
 import java.util.Map;
 
 import btools.router.FormatCsv;
@@ -46,16 +45,7 @@ public class ServerHandler extends RequestHandler {
     rc = new RoutingContext();
     rc.memoryclass = 128;
 
-    String profile = params.get("profile");
-    // when custom profile replace prefix with directory path
-    if (profile.startsWith(ProfileUploadHandler.CUSTOM_PREFIX)) {
-      String customProfile = profile.substring(ProfileUploadHandler.CUSTOM_PREFIX.length());
-      profile = new File(serviceContext.customProfileDir, customProfile).getPath();
-    } else if (profile.startsWith(ProfileUploadHandler.SHARED_PREFIX)) {
-      String customProfile = profile.substring(ProfileUploadHandler.SHARED_PREFIX.length());
-      profile = new File(serviceContext.sharedProfileDir, customProfile).getPath();
-    }
-    rc.localFunction = profile;
+    rc.localFunction = params.get("profile");
 
     return rc;
   }
