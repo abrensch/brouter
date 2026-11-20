@@ -22,8 +22,8 @@ public class GraphNavigationTest {
   @Rule
   public TemporaryFolder tmpDir = new TemporaryFolder();
 
-  private static final byte[] WAY = new byte[] { 0x4a }; // a very simple valid way description
-  private static final byte[] WAY2 = new byte[] { 0x6a }; // another one
+  private static final byte[] WAY = new byte[] { 1 }; // just any description
+  private static final byte[] WAY2 = new byte[] { 2 }; // another one
 
   private static OsmNode node(int lon, int lat) {
     return new OsmNode(180000000 + lon, 90000000 + lat);

@@ -8,7 +8,12 @@ public interface TagValueValidator {
    */
   int accessType(byte[] tagValueSet);
 
-  byte[] unify(byte[] tagValueSet, int offset, int len);
-
-  boolean isLookupIdxUsed(int idx);
+  /**
+   * Remove all tag-values that are not used by this validator.
+   * Knowledge about the inner structure of the description lives here.
+   *
+   * @param tagValueSet the way description (raw)
+   * @return the reduced description, or null if nothing is left
+   */
+  byte[] reduce(byte[] tagValueSet);
 }

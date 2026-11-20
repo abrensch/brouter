@@ -906,6 +906,40 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     return idx < lookupIdxUsed.length && lookupIdxUsed[idx];
   }
 
+  public final byte[] reduce(byte[] description) throws IOException {
+    if (description == null || description.length == 0) {
+      return null;
+    }
+    ByteArrayOutputStream buf = new ByteArrayOutputStream(description.length + 8);
+    try ( BitOutputStream bos = new BitOutputStream(buf) )
+    {
+      int inum = 0;
+      int lastEncodedInum = 0;
+      try ( BitInputStream bis = new BitInputStream( description ) )
+      {
+        for ( ; ; )
+        {
+          long delta = bis.decodeUnsignedVarBits();
+          if ( delta == 0L )
+          {
+            break;
+          }
+          inum += (int) delta;
+          long data = bis.decodeUnsignedVarBits();
+          if ( isLookupIdxUsed( inum ) )
+          {
+            bos.encodeUnsignedVarBits( inum - lastEncodedInum );
+            bos.encodeUnsignedVarBits( data );
+            lastEncodedInum = inum;
+          }
+        }
+      }
+      bos.encodeUnsignedVarBits( 0 );
+    }
+    byte[] result = buf.toByteArray();
+    return unify(result, 0, result.length);
+  }
+
   public final void setAllTagsUsed() {
     for (int i = 0; i < lookupIdxUsed.length; i++) {
       lookupIdxUsed[i] = true;

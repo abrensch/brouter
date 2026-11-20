@@ -23,7 +23,7 @@ public final class NodesCache {
   private String currentFileName;
 
   private final Map<String, OsmFile> fileCache;
-  private final DataBuffers dataBuffers;
+  private final byte[] ioBuffer;
 
   public WaypointMatcher waypointMatcher;
 
@@ -40,7 +40,7 @@ public final class NodesCache {
       throw new RuntimeException("segment directory " + segmentDir.getAbsolutePath() + " does not exist");
 
     fileCache = new HashMap<>(4);
-    dataBuffers = new DataBuffers();
+    ioBuffer = new byte[102400];
   }
 
   public boolean isInMemoryBounds(int npaths, boolean extend) {
@@ -55,13 +55,13 @@ public final class NodesCache {
     }
   }
 
-  public boolean decodeSegmentFor(int ilon, int ilat) {
+  public boolean decodeSegmentFor(OsmNode template) {
     try {
-      OsmFile osmf = fileForSegment(ilon, ilat);
+      OsmFile osmf = fileForSegment(template);
       if (osmf == null) {
         return false;
       }
-      osmf.checkDecodeTile(ilon, ilat, dataBuffers, wayValidator, waypointMatcher, hollowNodes);
+      osmf.checkDecodeTile(template, wayValidator, waypointMatcher, hollowNodes);
       return true;
     } catch (IOException re) {
       throw new RuntimeException(re.getMessage());
@@ -81,7 +81,7 @@ public final class NodesCache {
    */
   public boolean obtainNonHollowNode(OsmNode node) {
     if (node.isHollow()) {
-      if ( !decodeSegmentFor(node.iLon, node.iLat) ) {
+      if ( !decodeSegmentFor(node) ) {
         return false;
       }
       if (node.isHollow()) {
@@ -103,14 +103,14 @@ public final class NodesCache {
 
 
   public OsmNode getGraphNode(OsmNode template) {
-    OsmNode graphNode = new OsmNode(template.iLon, template.iLat);
-    OsmNode existing = hollowNodes.put(graphNode);
-    if (existing == null) {
-      graphNode.setBits( OsmNode.HOLLOW_BIT );
-      return graphNode;
+    OsmNode existing = hollowNodes.get(template.iLon, template.iLat);
+    if (existing != null) {
+      return existing;
     }
-    hollowNodes.put(existing);
-    return existing;
+    OsmNode graphNode = new OsmNode(template.iLon, template.iLat);
+    graphNode.setBits(OsmNode.HOLLOW_BIT);
+    hollowNodes.put(graphNode);
+    return graphNode;
   }
 
   public void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints, double maxDistance, OsmNodePairSet islandNodePairs) {
@@ -144,21 +144,21 @@ public final class NodesCache {
   private void preloadPosition(OsmNode n, int d) {
     first_file_access_failed = false;
     first_file_access_name = null;
-    decodeSegmentFor(n.iLon, n.iLat);
+    decodeSegmentFor(n);
     if (first_file_access_failed) {
       throw new IllegalArgumentException("datafile " + first_file_access_name + " not found");
     }
     for (int idxLat = -1; idxLat <= 1; idxLat++)
       for (int idxLon = -1; idxLon <= 1; idxLon++) {
         if (idxLon != 0 || idxLat != 0) {
-          decodeSegmentFor(n.iLon + d * idxLon, n.iLat + d * idxLat);
+          decodeSegmentFor(new OsmNode(n.iLon + d * idxLon, n.iLat + d * idxLat));
         }
       }
   }
 
-  private OsmFile fileForSegment(int iLon, int iLat) throws Exception {
-    int iLonBase = (iLon / 5000000)*5000000;
-    int iLatBase = (iLat / 5000000)*5000000;
+  private OsmFile fileForSegment(OsmNode template) throws Exception {
+    int iLonBase = (template.iLon / 5000000)*5000000;
+    int iLatBase = (template.iLat / 5000000)*5000000;
     int lonBase5 = iLonBase / 1000000 - 180;
     int latBase5 = iLatBase / 1000000 -  90;
     String filenameBase = OsmFile.getBaseName(lonBase5, latBase5);
@@ -173,7 +173,7 @@ public final class NodesCache {
     }
     OsmFile osmf = null;
     if (f != null) {
-      osmf = new OsmFile(f, iLonBase, iLatBase, dataBuffers.ioBuffer);
+      osmf = new OsmFile(f, iLonBase, iLatBase, ioBuffer);
       osmf.openForReading();
     }
     fileCache.put(filenameBase, osmf);

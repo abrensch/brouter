@@ -1,6 +1,5 @@
 package btools.mapaccess;
 
-import btools.mapaccess.TagValueWrapper;
 import btools.statcoding.huffman.HuffmanEncoder;
 
 import java.io.IOException;
@@ -13,22 +12,20 @@ import java.io.IOException;
  */
 public final class TagValueEncoder extends HuffmanEncoder<TagValueWrapper> {
   @Override
-  protected  void encodeObjectToStream(TagValueWrapper tagValues) throws IOException {
-    tagValues.writeToBitstream( bos );
+  protected void encodeObjectToStream(TagValueWrapper tagValues) throws IOException {
+    // write byte array bit-aligned to stream, null/empty aware
+    byte[] data = tagValues.data;
+    bos.encodeUnsignedVarBits(data == null ? 0L : (long) data.length + 1L);
+    if (data != null) {
+      for (byte b : data) {
+        bos.encodeBits(8, b & 0xffL);
+      }
+    }
   }
-
-  private TagValueWrapper lastObject ;
 
   public void encodeTagValues( byte[] tagValues ) throws IOException {
     TagValueWrapper w = new TagValueWrapper();
     w.data = tagValues;
-
-    if ( w.equals( lastObject))  {
-      // System.out.println( "tw-repeat!" );
-    } else {
-      // System.out.println( "tw-new" );
-      lastObject = w;
-    }
     encodeObject(w);
   }
 }

@@ -48,7 +48,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
   private long starttime;
 
   private static Object threadPoolSync = new Object();
-  private static boolean debug = Boolean.getBoolean("debugThreadPool");
 
   public void stopRouter() {
     RoutingEngine e = cr;
@@ -237,19 +236,12 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
       cleanupThreadQueue(threadQueue);
 
-      if (debug) System.out.println("threadQueue.size()=" + threadQueue.size());
       if (threadQueue.size() >= maxthreads) {
         synchronized (threadPoolSync) {
           // wait up to 2000ms (maybe notified earlier)
           // to prevent killing short-running threads
           long maxage = server.starttime - threadQueue.peek().starttime;
           long maxWaitTime = 2000L - maxage;
-          if (debug) System.out.println("maxage=" + maxage + " maxWaitTime=" + maxWaitTime);
-          if (debug) {
-            for (RouteServer t : threadQueue) {
-              System.out.println("age=" + (server.starttime - t.starttime));
-            }
-          }
           if (maxWaitTime > 0) {
             threadPoolSync.wait(maxWaitTime);
           }
@@ -258,7 +250,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         }
         cleanupThreadQueue(threadQueue);
         if (threadQueue.size() >= maxthreads) {
-          if (debug) System.out.println("stopping oldest thread...");
           // no way... stop the oldest thread
           RouteServer oldest = threadQueue.poll();
           oldest.stopRouter();
@@ -270,7 +261,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       threadQueue.add(server);
 
       server.start();
-      if (debug) System.out.println("thread started...");
     }
   }
 

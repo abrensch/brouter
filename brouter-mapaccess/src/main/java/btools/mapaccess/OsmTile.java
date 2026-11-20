@@ -9,11 +9,11 @@ import btools.statcoding.codecs.Number2PassDecoder;
 import btools.statcoding.codecs.Number2PassEncoder;
 import btools.statcoding.huffman.HuffmanDecoder;
 import btools.statcoding.huffman.HuffmanEncoder;
-import btools.util.SimpleByteArrayOutputStream;
 import btools.util.TagValueValidator;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.*;
 
 /**
@@ -37,7 +37,7 @@ public final class OsmTile {
 
   /**
    * Decodes the nodes of this tile from the serialized format and weaves them
-   * into the routing graph. That's the twin of {@link #encodeTile(List, byte[], Map)}.
+   * into the routing graph. That's the twin of {@link #encodeTile(List, BitOutputStream, Map)}.
    * <p>
    * Nodes are created lazily: an {@link OsmNode} instance is only allocated
    * (or taken over from {@code hollowNodes}) when at least one routable link
@@ -50,18 +50,17 @@ public final class OsmTile {
    * it is removed from hollow noded and has it's hollow bit cleared.
    *
    * @param buffer          the serialized tile data
-   * @param dataBuffers     shared buffers for the tag value decoders
    * @param wayValidator    validator deciding which way tags are routable
    * @param waypointMatcher optional matcher called for each woven link, may be null
    * @param hollowNodes     global map of known hollow nodes, maintaining object identity across tiles
    * @return the number of bytes consumed from the buffer
    * @throws IOException      if shit happens
    */
-  public int decodeTile(byte[] buffer, DataBuffers dataBuffers, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) throws IOException {
+  public int decodeTile(byte[] buffer, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) throws IOException {
 
     BitInputStream bis = new BitInputStream( new ByteArrayInputStream( buffer ) );
-    TagValueDecoder wayTagDecoder = new TagValueDecoder(dataBuffers,wayValidator);
-    TagValueDecoder nodeTagDecoder = new TagValueDecoder(dataBuffers,null);
+    TagValueDecoder wayTagDecoder = new TagValueDecoder(wayValidator);
+    TagValueDecoder nodeTagDecoder = new TagValueDecoder(null);
     HuffmanDecoder<Integer> indexDeltaDecoder1 = new HuffmanDecoder<>() {
       protected Integer decodeObjectFromStream() throws IOException {
         return (int)bis.decodeBits(3); // 0=no more link 1=big delta 2..30 = delta+16
@@ -214,7 +213,12 @@ public final class OsmTile {
     return nodes[idx];
   }
 
-  public int encodeTile(List<OsmNode> nodes, byte[] buffer, Map<String,long[]> bitStatistics) throws IOException {
+  /**
+   * Encodes the given nodes into the given stream (2 passes: the first one
+   * only gathers statistics and writes to a null stream).
+   * The stream is not closed or re-aligned.
+   */
+  public void encodeTile(List<OsmNode> nodes, BitOutputStream out, Map<String,long[]> bitStatistics) throws IOException {
     SortedMap<Long,OsmNode> sortedNodes = sortNodes(nodes);
 
     HashMap<Long, Integer> idMap = new HashMap<>();
@@ -252,7 +256,8 @@ public final class OsmTile {
 
       int[] linksReceived = new int[size];
 
-      BitOutputStream bos = new BitOutputStream( new SimpleByteArrayOutputStream( buffer ) );
+      // pass 1 only collects statistics and writes to /dev/null
+      BitOutputStream bos = pass == 2 ? out : new BitOutputStream( OutputStream.nullOutputStream() );
       if ( pass == 2 ) {
         bos.registerBitStatistics(bitStatistics);
       }
@@ -360,8 +365,7 @@ public final class OsmTile {
         }
       }
       if (pass == 2) {
-        bos.close();
-        return (int)(bos.getBitPosition() >> 3);
+        return; // caller owns the stream and is responsible for re-alignment/closing
       }
     }
   }

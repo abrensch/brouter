@@ -106,9 +106,8 @@ public final class OsmFile {
           OsmNode n0 = subList.get(0);
           int lonBase = n0.iLon - n0.iLon % cellSize;
           int latBase = n0.iLat - n0.iLat % cellSize;
-          int len = new OsmTile(lonBase, latBase).encodeTile(subList, ioBuffer, bitStatistics);
           bos.startCRC();
-          bos.write(ioBuffer, 0, len);
+          new OsmTile(lonBase, latBase).encodeTile(subList, bos, bitStatistics);
           bos.writeLong(bos.finishCRC());
         }
         tileIndex[si + 1] = bos.getBitPosition() >> 3;
@@ -157,22 +156,22 @@ public final class OsmFile {
     }
   }
 
-  public void checkDecodeTile(int iLon, int iLat, DataBuffers dataBuffers, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes)
+  public void checkDecodeTile(OsmNode template, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes)
     throws Exception {
-    int lonIdx = (iLon-iLonBase) / cellSize;
-    int latIdx = (iLat-iLatBase) / cellSize;
+    int lonIdx = (template.iLon-iLonBase) / cellSize;
+    int latIdx = (template.iLat-iLatBase) / cellSize;
     int subIdx = latIdx * divisor + lonIdx;
     if ( !tileDecoded.get(subIdx) ) {
       int lonBase = lonIdx * cellSize + iLonBase;
       int latBase = latIdx * cellSize + iLatBase;
 
-      decodeTileForIndex(subIdx, lonBase, latBase, dataBuffers, wayValidator, waypointMatcher, true, hollowNodes);
+      decodeTileForIndex(subIdx, lonBase, latBase, wayValidator, waypointMatcher, hollowNodes);
       tileDecoded.set(subIdx);
     }
   }
 
-  private void decodeTileForIndex(int tileIdx, int lonBase, int latBase, DataBuffers dataBuffers, TagValueValidator wayValidator,
-                                 WaypointMatcher waypointMatcher, boolean reallyDecode, OsmNodesMap hollowNodes) throws IOException {
+  private void decodeTileForIndex(int tileIdx, int lonBase, int latBase, TagValueValidator wayValidator,
+                                 WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) throws IOException {
     long startPos = tileIndex[tileIdx];
     long endPos = tileIndex[tileIdx+1];
     long sizeLong = endPos-startPos;
@@ -186,12 +185,7 @@ public final class OsmFile {
     byte[] ab = getDataFromFile(startPos, size, null);
     int decodedBytes = 0;
     try {
-      if (reallyDecode) {
-        if (hollowNodes == null) {
-          throw new IllegalArgumentException("expected hollowNodes non-null");
-        }
-        decodedBytes = new OsmTile(lonBase,latBase).decodeTile(ab, dataBuffers, wayValidator, waypointMatcher, hollowNodes);
-      }
+      decodedBytes = new OsmTile(lonBase,latBase).decodeTile(ab, wayValidator, waypointMatcher, hollowNodes);
     } finally {
       if (decodedBytes != size - 8) {
         checkCrc( ab, size, "tile-data" );
