@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.GraphNode;
 import btools.util.CompactLongMap;
 import btools.util.FrozenLongMap;
@@ -55,9 +54,6 @@ public final class OsmTrack {
   public List<String> messageList = null;
 
   public String name = "unset";
-
-  protected List<MatchedWaypoint> matchedWaypoints;
-  public boolean exportWaypoints = false;
 
   public void addNode(OsmPathElement node) {
     nodes.add(0, node);
@@ -295,15 +291,6 @@ public final class OsmTrack {
     return null;
   }
 
-  public MatchedWaypoint getMatchedWaypoint(int idx) {
-    if (matchedWaypoints == null) return null;
-    for (MatchedWaypoint wp : matchedWaypoints) {
-      if (idx == wp.indexInTrack) {
-        return wp;
-      }
-    }
-    return null;
-  }
 
   private int getVNode(int i) {
     MessageData m1 = i + 1 < nodes.size() ? nodes.get(i + 1).message : null;

@@ -290,21 +290,15 @@ public class RoutingEngine {
       }
 
       OsmTrack seg;
-      int wptIndex;
       if (routingContext.inverseRouting) {
         routingContext.inverseDirection = true;
         seg = searchTrack(matchedWaypoints.get(i + 1), matchedWaypoints.get(i), refTracks[i]);
         routingContext.inverseDirection = false;
-        wptIndex = i + 1;
       } else {
         seg = searchTrack(matchedWaypoints.get(i), matchedWaypoints.get(i + 1), refTracks[i]);
-        wptIndex = i;
       }
       if (seg == null)
         return null;
-
-      if (wptIndex > 0)
-        matchedWaypoints.get(wptIndex).indexInTrack = totaltrack.nodes.size() - 1;
 
       totaltrack.appendTrack(seg);
       lastTracks[i] = seg;
@@ -314,8 +308,6 @@ public class RoutingEngine {
 
     recalcTrack(totaltrack);
 
-    matchedWaypoints.get(matchedWaypoints.size() - 1).indexInTrack = totaltrack.nodes.size() - 1;
-    totaltrack.matchedWaypoints = matchedWaypoints;
     totaltrack.processVoiceHints(routingContext);
     totaltrack.prepareSpeedProfile(routingContext);
 
@@ -324,7 +316,6 @@ public class RoutingEngine {
 
     if (routingContext.poipoints != null)
       totaltrack.pois = routingContext.poipoints;
-    totaltrack.matchedWaypoints = matchedWaypoints;
     return totaltrack;
   }
 

@@ -9,7 +9,6 @@ import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.util.Map;
 
-import btools.mapaccess.MatchedWaypoint;
 import btools.util.StringUtils;
 
 public class FormatGpx extends Formatter {
@@ -193,22 +192,6 @@ public class FormatGpx extends Formatter {
         .append(" </wpt>\n");
     }
 
-    if (t.exportWaypoints) {
-      for (int i = 0; i <= t.matchedWaypoints.size() - 1; i++) {
-        MatchedWaypoint wt = t.matchedWaypoints.get(i);
-        sb.append(" <wpt lon=\"").append(formatILon(wt.waypoint.iLon)).append("\" lat=\"")
-          .append(formatILat(wt.waypoint.iLat)).append("\">\n")
-          .append("  <name>").append(StringUtils.escapeXml10(wt.name)).append("</name>\n");
-        if (i == 0) {
-          sb.append("  <type>from</type>\n");
-        } else if (i == t.matchedWaypoints.size() - 1) {
-          sb.append("  <type>to</type>\n");
-        } else {
-          sb.append("  <type>via</type>\n");
-        }
-        sb.append(" </wpt>\n");
-      }
-    }
     sb.append(" <trk>\n");
     if (turnInstructionMode == 9
       || turnInstructionMode == 2
@@ -238,31 +221,17 @@ public class FormatGpx extends Formatter {
       OsmPathElement n = t.nodes.get(idx);
       String sele = n.getSElev() == Short.MIN_VALUE ? "" : "<ele>" + n.getElev() + "</ele>";
       VoiceHint hint = t.getVoiceHint(idx);
-      MatchedWaypoint mwpt = t.getMatchedWaypoint(idx);
 
       if (t.showTime) {
         sele += "<time>" + getFormattedTime3(n.getTime()) + "</time>";
-      }
-      if (turnInstructionMode == 8) {
-        if (mwpt != null &&
-          !mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
-          sele += "<name>" + mwpt.name + "</name>";
-        }
       }
       boolean bNeedHeader = false;
       if (turnInstructionMode == 9) { // trkpt/sym style
 
         if (hint != null) {
 
-          if (mwpt != null &&
-            !mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
-            sele += "<name>" + mwpt.name + "</name>";
-          }
           sele += "<desc>" + hint.getCruiserMessageString() + "</desc>";
           sele += "<sym>" + hint.getCommandString(hint.cmd) + "</sym>";
-          if (mwpt != null) {
-            sele += "<type>Via</type>";
-          }
           sele += "<extensions>";
           if (t.showspeed) {
             double speed = 0;
@@ -296,11 +265,6 @@ public class FormatGpx extends Formatter {
           sele += "<desc>end</desc>";
           sele += "<type>Via</type>";
 
-        } else {
-          if (mwpt != null && hint == null) {
-            sele += "<desc>" + mwpt.name + "</desc>";
-            sele += "<type>Via</type>";
-          }
         }
 
 
@@ -334,51 +298,15 @@ public class FormatGpx extends Formatter {
 
       if (turnInstructionMode == 2) { // locus style new
         if (hint != null) {
-          if (mwpt != null) {
-            if (!mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
-              sele += "<name>" + mwpt.name + "</name>";
-            }
-            sele += "<sym>" + hint.getLocusSymbolString() + "</sym><type>Via</type>";
-          } else {
-            sele += "<sym>" + hint.getLocusSymbolString() + "</sym>";
-          }
+          sele += "<sym>" + hint.getLocusSymbolString() + "</sym>";
         } else {
-          if (idx == 0 && hint == null) {
-
+          if (idx == 0 || idx == t.nodes.size() - 1) {
             int pos = sele.indexOf("<sym");
             if (pos != -1) {
               sele = sele.substring(0, pos);
             }
-            if (mwpt != null && !mwpt.name.startsWith("from"))
-              sele += "<name>" + mwpt.name + "</name>";
             sele += "<sym>pass_place</sym>";
             sele += "<type>Via</type>";
-
-          } else if (idx == t.nodes.size() - 1 && hint == null) {
-
-            int pos = sele.indexOf("<sym");
-            if (pos != -1) {
-              sele = sele.substring(0, pos);
-            }
-            if (mwpt != null && mwpt.name != null && !mwpt.name.startsWith("to"))
-              sele += "<name>" + mwpt.name + "</name>";
-            sele += "<sym>pass_place</sym>";
-            sele += "<type>Via</type>";
-
-          } else {
-            if (mwpt != null) {
-              if (!mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
-                sele += "<name>" + mwpt.name + "</name>";
-              }
-              if (mwpt.name.startsWith("via") ||
-                mwpt.name.startsWith("from") ||
-                mwpt.name.startsWith("to")) {
-                sele += "<sym>pass_place</sym><type>Via</type>";
-              } else {
-                sele += "<name>" + mwpt.name + "</name>";
-                sele += "<sym>pass_place</sym><type>Via</type>";
-              }
-            }
           }
         }
       }

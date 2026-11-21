@@ -186,7 +186,6 @@ public final class RoutingContext {
   public boolean showTime;
 
   public String outputFormat = "gpx";
-  public boolean exportWaypoints = false;
 
   public OsmPrePath firstPrePath;
 

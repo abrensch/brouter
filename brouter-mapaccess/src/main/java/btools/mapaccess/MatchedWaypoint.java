@@ -12,5 +12,4 @@ public final class MatchedWaypoint {
   public GraphNode waypoint;
   public String name;  // waypoint name used in error messages
   public double radius;  // distance in meter between waypoint and crosspoint
-  public int indexInTrack = 0;
 }

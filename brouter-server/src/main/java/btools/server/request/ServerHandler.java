@@ -21,7 +21,6 @@ import btools.server.ServiceContext;
  * alternativeidx = [0|1|2|3] (optional, default 0)
  * format = [gpx|geojson|csv] (optional, default gpx)
  * trackname = name used for filename and format specific trackname (optional, default brouter)
- * exportWaypoints = 1 to export them (optional, default is no export)
  * pois = lon,lat,name|... (optional)
  * timode = turnInstructionMode [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style] default 0
  * profile:xxx = parameter in profile (optional)
@@ -56,10 +55,6 @@ public class ServerHandler extends RequestHandler {
     String trackName = getTrackName();
     if (trackName != null) {
       track.name = trackName;
-    }
-    String exportWaypointsStr = params.get("exportWaypoints");
-    if (exportWaypointsStr != null && Integer.parseInt(exportWaypointsStr) != 0) {
-      track.exportWaypoints = true;
     }
 
     if (format == null || "gpx".equals(format)) {
