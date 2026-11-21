@@ -129,7 +129,7 @@ public class FormatJson extends Formatter {
     if (t.exportWaypoints || !t.pois.isEmpty()) {
       sb.append("    },\n");
       for (int i = 0; i <= t.pois.size() - 1; i++) {
-        OsmNodeNamed poi = t.pois.get(i);
+        GraphNodeNamed poi = t.pois.get(i);
         addFeature(sb, "poi", poi.name, poi.iLat, poi.iLon);
         if (i < t.matchedWaypoints.size() - 1) {
           sb.append(",");

@@ -14,8 +14,8 @@ import btools.expressions.BExpressionContext;
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.mapaccess.MatchedWaypoint;
-import btools.mapaccess.OsmLink;
-import btools.mapaccess.OsmNode;
+import btools.mapaccess.GraphLink;
+import btools.mapaccess.GraphNode;
 import btools.util.CheapAngleMeter;
 import btools.util.CheapRuler;
 
@@ -160,12 +160,12 @@ public final class RoutingContext {
     bikerPower = expctxGlobal.getVariableValue("bikerPower", 100.f);
   }
 
-  public List<OsmNodeNamed> poipoints;
+  public List<GraphNodeNamed> poipoints;
 
-  public List<OsmNodeNamed> nogopoints = null;
-  private List<OsmNodeNamed> nogopoints_all = null; // full list not filtered for wayoints-in-nogos
-  private List<OsmNodeNamed> keepnogopoints = null;
-  private OsmNodeNamed pendingEndpoint = null;
+  public List<GraphNodeNamed> nogopoints = null;
+  private List<GraphNodeNamed> nogopoints_all = null; // full list not filtered for wayoints-in-nogos
+  private List<GraphNodeNamed> keepnogopoints = null;
+  private GraphNodeNamed pendingEndpoint = null;
 
 
   public CheapAngleMeter anglemeter = new CheapAngleMeter();
@@ -201,8 +201,8 @@ public final class RoutingContext {
   public double defaultC_r;
   public double bikerPower;
 
-  public static void prepareNogoPoints(List<OsmNodeNamed> nogos) {
-    for (OsmNodeNamed nogo : nogos) {
+  public static void prepareNogoPoints(List<GraphNodeNamed> nogos) {
+    for (GraphNodeNamed nogo : nogos) {
       String s = nogo.name;
       int idx = s.indexOf(' ');
       if (idx > 0) s = s.substring(0, idx);
@@ -230,13 +230,13 @@ public final class RoutingContext {
    *
    * @return true if all wayoints are all in the same (full-weigth) nogo area (triggering bee-line-mode)
    */
-  public void cleanNogoList(List<OsmNode> waypoints) {
+  public void cleanNogoList(List<GraphNode> waypoints) {
     nogopoints_all = nogopoints;
     if (nogopoints == null) return;
-    List<OsmNodeNamed> nogos = new ArrayList<>();
-    for (OsmNodeNamed nogo : nogopoints) {
+    List<GraphNodeNamed> nogos = new ArrayList<>();
+    for (GraphNodeNamed nogo : nogopoints) {
       boolean goodGuy = true;
-      for (OsmNode wp : waypoints) {
+      for (GraphNode wp : waypoints) {
         if (wp.calcDistance(nogo) < nogo.radius) {
           goodGuy = false;
         }
@@ -257,8 +257,8 @@ public final class RoutingContext {
     for (int i = 0; i < theSize; i++) {
       MatchedWaypoint mwp = matchedWaypoints.get(i);
       boolean isInsideNogo = false;
-      OsmNode wp = mwp.crossPoint;
-      for (OsmNodeNamed nogo : nogopoints) {
+      GraphNode wp = mwp.crossPoint;
+      for (GraphNodeNamed nogo : nogopoints) {
         if (Double.isNaN(nogo.nogoWeight)
           && wp.calcDistance(nogo) < nogo.radius) {
           isInsideNogo = true;
@@ -297,12 +297,12 @@ public final class RoutingContext {
     }
   }
 
-  public boolean allInOneNogo(List<OsmNode> waypoints) {
+  public boolean allInOneNogo(List<GraphNode> waypoints) {
     if (nogopoints == null) return false;
     boolean allInTotal = false;
-    for (OsmNodeNamed nogo : nogopoints) {
+    for (GraphNodeNamed nogo : nogopoints) {
       boolean allIn = Double.isNaN(nogo.nogoWeight);
-      for (OsmNode wp : waypoints) {
+      for (GraphNode wp : waypoints) {
         int dist = wp.calcDistance(nogo);
         if (dist < nogo.radius) {
           continue;
@@ -314,11 +314,11 @@ public final class RoutingContext {
     return allInTotal;
   }
 
-  public void setWaypoint(OsmNodeNamed wp, boolean endpoint) {
+  public void setWaypoint(GraphNodeNamed wp, boolean endpoint) {
     setWaypoint(wp, null, endpoint);
   }
 
-  public void setWaypoint(OsmNodeNamed wp, OsmNodeNamed pendingEndpoint, boolean endpoint) {
+  public void setWaypoint(GraphNodeNamed wp, GraphNodeNamed pendingEndpoint, boolean endpoint) {
     keepnogopoints = nogopoints;
     nogopoints = new ArrayList<>();
     nogopoints.add(wp);
@@ -355,7 +355,7 @@ public final class RoutingContext {
 
     if (nogopoints != null && !nogopoints.isEmpty() && d > 0.) {
       for (int ngidx = 0; ngidx < nogopoints.size(); ngidx++) {
-        OsmNodeNamed nogo = nogopoints.get(ngidx);
+        GraphNodeNamed nogo = nogopoints.get(ngidx);
         double x1 = (lon1 - nogo.iLon) * dlon2m;
         double y1 = (lat1 - nogo.iLat) * dlat2m;
         double x2 = (lon2 - nogo.iLon) * dlon2m;
@@ -430,7 +430,7 @@ public final class RoutingContext {
 
   public OsmPathModel pm;
 
-  public OsmPrePath createPrePath(OsmPath origin, OsmLink link) {
+  public OsmPrePath createPrePath(OsmPath origin, GraphLink link) {
     OsmPrePath p = pm.createPrePath();
     if (p != null) {
       p.init(origin, link, this);
@@ -438,13 +438,13 @@ public final class RoutingContext {
     return p;
   }
 
-  public OsmPath createPath(OsmLink link) {
+  public OsmPath createPath(GraphLink link) {
     OsmPath p = pm.createPath();
     p.init(link);
     return p;
   }
 
-  public OsmPath createPath(OsmPath origin, OsmLink link, OsmTrack refTrack, boolean detailMode) {
+  public OsmPath createPath(OsmPath origin, GraphLink link, OsmTrack refTrack, boolean detailMode) {
     OsmPath p = pm.createPath();
     p.init(origin, link, refTrack, detailMode, this);
     return p;

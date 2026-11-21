@@ -1,5 +1,8 @@
 /**
- * Container for an osm node
+ * Container for a node.
+ *
+ * Inheriting from GraphLink is just technical inheritance
+ * to keep the memory footprint of the Graph small
  *
  * @author ab
  */
@@ -7,7 +10,7 @@ package btools.mapaccess;
 
 import btools.util.CheapRuler;
 
-public class OsmNode extends OsmLink {
+public class GraphNode extends GraphLink {
   /**
    * The latitude
    */
@@ -24,14 +27,20 @@ public class OsmNode extends OsmLink {
   public short sElev = Short.MIN_VALUE;
 
   /**
-   * Bit flags (see the *_BIT constants)
+   * The links to other nodes
    */
-  private short bits;
+  public GraphLink firstLink;
 
   /**
    * The node-tags, if any
    */
   public byte[] nodeDescription;
+
+  /**
+   * Bit flags (see the *_BIT constants)
+   */
+  private short bits;
+
 
   public TurnRestriction firstRestriction;
 
@@ -60,21 +69,15 @@ public class OsmNode extends OsmLink {
     firstRestriction = tr;
   }
 
-  /**
-   * The links to other nodes
-   */
-  public OsmLink firstLink;
-
-
-  public OsmNode() {
+  public GraphNode() {
   }
 
-  public OsmNode(int iLon, int iLat) {
+  public GraphNode(int iLon, int iLat) {
     this.iLon = iLon;
     this.iLat = iLat;
   }
 
-  public OsmNode(long id) {
+  public GraphNode(long id) {
     iLon = (int) (id >> 32);
     iLat = (int) (id & 0xffffffff);
   }
@@ -87,7 +90,7 @@ public class OsmNode extends OsmLink {
 
   public int linkCount() {
     int cnt = 0;
-    OsmLink l = firstLink;
+    GraphLink l = firstLink;
     while ( l != null ) {
       cnt++;
       l = l.getNext(this);
@@ -95,9 +98,9 @@ public class OsmNode extends OsmLink {
     return cnt;
   }
 
-  public OsmLink linkForTarget( int targetLon, int targetLat ) {
-    for (OsmLink l = firstLink; l != null; l = l.getNext(this)) {
-      OsmNode t = l.getTarget(this);
+  public GraphLink linkForTarget( int targetLon, int targetLat ) {
+    for (GraphLink l = firstLink; l != null; l = l.getNext(this)) {
+      GraphNode t = l.getTarget(this);
       if (t.iLon == targetLon && t.iLat == targetLat) {
         return l;
       }
@@ -112,22 +115,22 @@ public class OsmNode extends OsmLink {
    * direction e.g. the one-way information in the given wayDescription
    * must be inverted.
    *
-   * There's technical inheritance between OsmNode and OsmLink, so if
+   * There's technical inheritance between GraphNode and GraphLink, so if
    * one of this or the target node has it's "own" link yet unused, then
-   * this is used instead of creating a new OsmLink instance. This way
+   * this is used instead of creating a new GraphLink instance. This way
    * a linear chain of nodes connected by links uses just one object
    * instance per node.
    *
    * @param wayDescription the way description for the link
    * @param target the target node to link to
-   * @return the created OsmLink instance
+   * @return the created GraphLink instance
    */
-  public OsmLink createLink(byte[] wayDescription, OsmNode target) {
+  public GraphLink createLink(byte[] wayDescription, GraphNode target) {
 
     if ( target == this ) {
       throw new RuntimeException(" self ref!");
     }
-    OsmLink link = isLinkUnused() ? this : (target.isLinkUnused() ? target : new OsmLink() );
+    GraphLink link = isLinkUnused() ? this : (target.isLinkUnused() ? target : new GraphLink() );
     link.wayDescription = wayDescription;
     link.sourceNode = this;
     link.targetNode = target;
@@ -138,7 +141,7 @@ public class OsmNode extends OsmLink {
     return link;
   }
 
-  public final int calcDistance(OsmNode p) {
+  public final int calcDistance(GraphNode p) {
     return (int) Math.max(1.0, Math.round(CheapRuler.distance(iLon, iLat, p.iLon, p.iLat)));
   }
 
@@ -160,10 +163,10 @@ public class OsmNode extends OsmLink {
 
   public void vanish() {
     if (!isHollow()) {
-      OsmLink l = firstLink;
+      GraphLink l = firstLink;
       while (l != null) {
-        OsmNode target = l.getTarget(this);
-        OsmLink nextLink = l.getNext(this);
+        GraphNode target = l.getTarget(this);
+        GraphLink nextLink = l.getNext(this);
         if (!target.isHollow()) {
           unlinkLink(l);
           if (!l.isLinkUnused()) {
@@ -175,8 +178,8 @@ public class OsmNode extends OsmLink {
     }
   }
 
-  public boolean linkStillValid( OsmLink link ) {
-    OsmLink l = firstLink;
+  public boolean linkStillValid( GraphLink link ) {
+    GraphLink l = firstLink;
     while ( l != null ) {
       if ( l == link ) {
         return true;
@@ -186,24 +189,24 @@ public class OsmNode extends OsmLink {
     return false;
   }
 
-  public final void unlinkLink(OsmLink link) {
-    OsmLink n = link.clear(this);
+  public final void unlinkLink(GraphLink link) {
+    GraphLink n = link.clear(this);
 
     if (link == firstLink) {
       firstLink = n;
       return;
     }
-    OsmLink l = firstLink;
+    GraphLink l = firstLink;
     while (l != null) {
       if ( l.isReverse( this ) ) {
-        OsmLink nl = l.previous;
+        GraphLink nl = l.previous;
         if (nl == link) {
           l.previous = n;
           return;
         }
         l = nl;
       } else if (l.targetNode != this && l.targetNode != null) {
-        OsmLink nl = l.next;
+        GraphLink nl = l.next;
         if (nl == link) {
           l.next = n;
           return;

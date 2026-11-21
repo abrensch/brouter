@@ -6,7 +6,7 @@ import org.junit.Test;
 
 import btools.util.CheapRuler;
 
-public class OsmNodeNamedTest {
+public class GraphNodeNamedTest {
   static int toOsmLon(double lon) {
     return (int) ((lon + 180.) / CheapRuler.ILATLNG_TO_LATLNG + 0.5);
   }
@@ -20,7 +20,7 @@ public class OsmNodeNamedTest {
     // Segment ends
     int lon1, lat1, lon2, lat2;
     // Circle definition
-    OsmNodeNamed node = new OsmNodeNamed();
+    GraphNodeNamed node = new GraphNodeNamed();
     // Center
     node.iLon = toOsmLon(2.334243);
     node.iLat = toOsmLat(48.824017);

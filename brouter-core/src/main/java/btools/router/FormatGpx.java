@@ -194,7 +194,7 @@ public class FormatGpx extends Formatter {
     }
 
     for (int i = 0; i <= t.pois.size() - 1; i++) {
-      OsmNodeNamed poi = t.pois.get(i);
+      GraphNodeNamed poi = t.pois.get(i);
       sb.append(" <wpt lon=\"").append(formatILon(poi.iLon)).append("\" lat=\"")
         .append(formatILat(poi.iLat)).append("\">\n")
         .append("  <name>").append(StringUtils.escapeXml10(poi.name)).append("</name>\n")
@@ -463,7 +463,7 @@ public class FormatGpx extends Formatter {
     sb.append("</gpx>\n");
   }
 
-  public void formatWaypointGpx(BufferedWriter sb, OsmNodeNamed n) throws IOException {
+  public void formatWaypointGpx(BufferedWriter sb, GraphNodeNamed n) throws IOException {
     sb.append(" <wpt lon=\"").append(formatILon(n.iLon)).append("\" lat=\"")
       .append(formatILat(n.iLat)).append("\">");
     if (n.sElev != Short.MIN_VALUE) {

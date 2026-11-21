@@ -1,29 +1,29 @@
 /**
- * Container for link between two Osm nodes
+ * Container for link between two nodes
  *
  * @author ab
  */
 package btools.mapaccess;
 
 
-public class OsmLink {
+public class GraphLink {
   /**
    * The description bitmap contains the waytags (valid for both directions)
    */
   public byte[] wayDescription;
 
   // a link logically knows only its target, but for the reverse link, source and target are swapped
-  protected OsmNode sourceNode;
-  protected OsmNode targetNode;
+  protected GraphNode sourceNode;
+  protected GraphNode targetNode;
 
   // same for the next-link-for-node pointer: previous applies to the reverse link
-  protected OsmLink previous;
-  protected OsmLink next;
+  protected GraphLink previous;
+  protected GraphLink next;
 
-  protected OsmLink() {
+  protected GraphLink() {
   }
 
-  public OsmLink(OsmNode source, OsmNode target) {
+  public GraphLink(GraphNode source, GraphNode target) {
     sourceNode = source;
     targetNode = target;
   }
@@ -31,22 +31,22 @@ public class OsmLink {
   /**
    * Get the relevant target-node for the given source
    */
-  public final OsmNode getTarget(OsmNode source) {
+  public final GraphNode getTarget(GraphNode source) {
     return targetNode != source && targetNode != null ? targetNode : sourceNode;
   }
 
   /**
    * Get the relevant next-pointer for the given source
    */
-  public final OsmLink getNext(OsmNode source) {
+  public final GraphLink getNext(GraphNode source) {
     return targetNode != source && targetNode != null ? next : previous;
   }
 
   /**
    * Reset this link for the given direction
    */
-  protected final OsmLink clear(OsmNode source) {
-    OsmLink n;
+  protected final GraphLink clear(GraphNode source) {
+    GraphLink n;
     if (targetNode != null && targetNode != source) {
       n = next;
       next = null;
@@ -64,7 +64,7 @@ public class OsmLink {
     return n;
   }
 
-  public final boolean isReverse(OsmNode source) {
+  public final boolean isReverse(GraphNode source) {
     return sourceNode != source && sourceNode != null;
   }
 

@@ -5,20 +5,20 @@
  */
 package btools.router;
 
-import btools.mapaccess.OsmNode;
+import btools.mapaccess.GraphNode;
 import btools.util.CheapRuler;
 
-public class OsmNodeNamed extends OsmNode {
+public class GraphNodeNamed extends GraphNode {
   public String name;
   public double radius; // radius of nogopoint (in meters)
   public double nogoWeight;  // weight for nogopoint
   public boolean isNogo = false;
   public boolean direct = false; // mark direct routing
 
-  public OsmNodeNamed() {
+  public GraphNodeNamed() {
   }
 
-  public OsmNodeNamed(OsmNode n) {
+  public GraphNodeNamed(GraphNode n) {
     super(n.iLon, n.iLat);
   }
 
@@ -79,8 +79,8 @@ public class OsmNodeNamed extends OsmNode {
     return 2 * halfDistanceWithin;
   }
 
-  public static OsmNodeNamed decodeNogo(String s) {
-    OsmNodeNamed n = new OsmNodeNamed();
+  public static GraphNodeNamed decodeNogo(String s) {
+    GraphNodeNamed n = new GraphNodeNamed();
     int idx1 = s.indexOf(',');
     n.iLon = Integer.parseInt(s.substring(0, idx1));
     int idx2 = s.indexOf(',', idx1 + 1);

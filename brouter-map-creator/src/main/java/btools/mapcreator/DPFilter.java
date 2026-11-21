@@ -9,8 +9,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import btools.mapaccess.OsmLink;
-import btools.mapaccess.OsmNode;
+import btools.mapaccess.GraphLink;
+import btools.mapaccess.GraphNode;
 import btools.util.CheapRuler;
 
 public class DPFilter {
@@ -23,30 +23,30 @@ public class DPFilter {
    *
    * @return true if this is a transfer node
    */
-  private static boolean isTransferNode(OsmNode n) {
+  private static boolean isTransferNode(GraphNode n) {
     if (n.nodeDescription != null || n.firstRestriction != null
-        || n.hasBits(OsmNode.BORDER_BIT) || n.hasBits(OsmNode.TR_TARGET_BIT) || n.linkCount() != 2) {
+        || n.hasBits(GraphNode.BORDER_BIT) || n.hasBits(GraphNode.TR_TARGET_BIT) || n.linkCount() != 2) {
       return false;
     }
-    OsmLink l1 = n.firstLink;
-    OsmLink l2 = l1.getNext( n );
+    GraphLink l1 = n.firstLink;
+    GraphLink l2 = l1.getNext( n );
     if ( l1.isReverse(n) == l2.isReverse(n) ) {
       return false;
     }
     return Arrays.equals( l1.wayDescription, l2.wayDescription );
   }
 
-  private static void dropTransferNode(OsmNode n) {
+  private static void dropTransferNode(GraphNode n) {
     if ( n.linkCount() == 0 ) {
       return; // self-dropped (last member of a tranfernode-ring)
     }
     if ( !isTransferNode(n) ) {
       throw new RuntimeException( "not a transfer node!" );
     }
-    OsmLink l1 = n.firstLink;
-    OsmLink l2 = l1.getNext( n );
-    OsmNode n1 = l1.getTarget( n );
-    OsmNode n2 = l2.getTarget( n );
+    GraphLink l1 = n.firstLink;
+    GraphLink l2 = l1.getNext( n );
+    GraphNode n1 = l1.getTarget( n );
+    GraphNode n2 = l2.getTarget( n );
     if ( n1.linkForTarget( n2.iLon, n2.iLat ) != null ) {
       return; // do not create a new 2-node loop
     }
@@ -66,24 +66,24 @@ public class DPFilter {
   /*
    * for each node (except first+last), eventually set the DP_SURVIVOR_BIT
    */
-  public static void doDPFilter(List<OsmNode> nodes) {
+  public static void doDPFilter(List<GraphNode> nodes) {
 
     // find the transfer-nodes
-    for( OsmNode n : nodes ) {
+    for( GraphNode n : nodes ) {
       if ( isTransferNode(n) ) {
-        n.setBits( OsmNode.TRANSFERNODE_BIT );
+        n.setBits( GraphNode.TRANSFERNODE_BIT );
       }
     }
 
     // loop over network nodes and follow forward links
-    for( OsmNode n : nodes ) {
-      if ( n.hasBits( OsmNode.TRANSFERNODE_BIT ) ) {
+    for( GraphNode n : nodes ) {
+      if ( n.hasBits( GraphNode.TRANSFERNODE_BIT ) ) {
         continue;
       }
-      OsmLink l = n.firstLink;
+      GraphLink l = n.firstLink;
       while (l != null) {
         if ( !l.isReverse(n)) {
-          if ( l.getTarget(n).hasBits(OsmNode.TRANSFERNODE_BIT) ) {
+          if ( l.getTarget(n).hasBits(GraphNode.TRANSFERNODE_BIT) ) {
             doDPFilter( n, l );
           }
         }
@@ -91,24 +91,24 @@ public class DPFilter {
       }
     }
     // and finally drop all non-survivors
-    for( OsmNode n : nodes ) {
-      if (n.hasBits(OsmNode.TRANSFERNODE_BIT) && !n.hasBits(OsmNode.DP_SURVIVOR_BIT)) {
+    for( GraphNode n : nodes ) {
+      if (n.hasBits(GraphNode.TRANSFERNODE_BIT) && !n.hasBits(GraphNode.DP_SURVIVOR_BIT)) {
         dropTransferNode(n);
       }
     }
   }
 
-  private static void doDPFilter(OsmNode node, OsmLink link) {
+  private static void doDPFilter(GraphNode node, GraphLink link) {
 
-    List<OsmNode> nodeList = new ArrayList<>(8);
+    List<GraphNode> nodeList = new ArrayList<>(8);
     nodeList.add(node);
-    OsmNode n = node;
-    OsmLink l = link;
+    GraphNode n = node;
+    GraphLink l = link;
     while( n != null ) {
-      OsmNode target = l.getTarget(n);
+      GraphNode target = l.getTarget(n);
       nodeList.add(target);
       n = null;
-      if (target.hasBits(OsmNode.TRANSFERNODE_BIT)) {
+      if (target.hasBits(GraphNode.TRANSFERNODE_BIT)) {
         l = target.firstLink;
         while (l != null) {
           if (!l.isReverse(target)) {
@@ -124,11 +124,11 @@ public class DPFilter {
     }
   }
 
-  private static void doDPFilter(List<OsmNode> nodes, int first, int last) {
+  private static void doDPFilter(List<GraphNode> nodes, int first, int last) {
     double maxSqDist = -1.;
     int index = -1;
-    OsmNode p1 = nodes.get(first);
-    OsmNode p2 = nodes.get(last);
+    GraphNode p1 = nodes.get(first);
+    GraphNode p2 = nodes.get(last);
 
     double[] lonlat2m = CheapRuler.getLonLatToMeterScales((p1.iLat + p2.iLat) >> 1);
     double dlon2m = lonlat2m[0];
@@ -137,7 +137,7 @@ public class DPFilter {
     double dy = (p2.iLat - p1.iLat) * dlat2m;
     double d2 = dx * dx + dy * dy;
     for (int i = first + 1; i < last; i++) {
-      OsmNode p = nodes.get(i);
+      GraphNode p = nodes.get(i);
       double t = 0.;
       if (d2 != 0f) {
         t = ((p.iLon - p1.iLon) * dlon2m * dx + (p.iLat - p1.iLat) * dlat2m * dy) / d2;
@@ -156,7 +156,7 @@ public class DPFilter {
         doDPFilter(nodes, first, index);
       }
       if (maxSqDist >= dp_sql_threshold) {
-        nodes.get(index).setBits(OsmNode.DP_SURVIVOR_BIT);
+        nodes.get(index).setBits(GraphNode.DP_SURVIVOR_BIT);
       }
       if (last - index > 1) {
         doDPFilter(nodes, index, last);

@@ -14,9 +14,9 @@ import btools.util.CheapRuler;
 public final class WaypointMatcher {
 
   private final List<MatchedWaypoint> waypoints;
-  private final OsmNodePairSet islandPairs;
+  private final NodePairSet islandPairs;
 
-  public WaypointMatcher(List<MatchedWaypoint> waypoints, double maxDistance, OsmNodePairSet islandPairs) {
+  public WaypointMatcher(List<MatchedWaypoint> waypoints, double maxDistance, NodePairSet islandPairs) {
     this.waypoints = waypoints;
     this.islandPairs = islandPairs;
     for (MatchedWaypoint mwp : waypoints) {
@@ -24,7 +24,7 @@ public final class WaypointMatcher {
     }
   }
 
-  public void match(OsmNode start, OsmNode target) {
+  public void match(GraphNode start, GraphNode target) {
     if (islandPairs.size() > 0) {
       if (islandPairs.hasPair(start.getIdFromPos(), target.getIdFromPos())) {
         return;
@@ -48,7 +48,7 @@ public final class WaypointMatcher {
 
     for (int i = 0; i < waypoints.size(); i++) {
       MatchedWaypoint mwp = waypoints.get(i);
-      OsmNode wp = mwp.waypoint;
+      GraphNode wp = mwp.waypoint;
       double x1 = (lon1 - wp.iLon) * dlon2m;
       double y1 = (lat1 - wp.iLat) * dlat2m;
       double x2 = (lon2 - wp.iLon) * dlon2m;
@@ -72,11 +72,11 @@ public final class WaypointMatcher {
         }
         // new match for that waypoint
         mwp.radius = radius; // shortest distance to way
-        mwp.node1 = new OsmNode( start.getIdFromPos() );
-        mwp.node2 = new OsmNode( target.getIdFromPos() );
+        mwp.node1 = new GraphNode( start.getIdFromPos() );
+        mwp.node2 = new GraphNode( target.getIdFromPos() );
 
         // calculate crosspoint
-        mwp.crossPoint = new OsmNode();
+        mwp.crossPoint = new GraphNode();
         if (s2 < 0.) {
           double wayfraction = -s2 / (d * d);
           double xm = x2 - wayfraction * dx;

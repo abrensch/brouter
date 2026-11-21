@@ -17,29 +17,29 @@ import java.io.OutputStream;
 import java.util.*;
 
 /**
- * OsmTile handles the encoding and decoding of the nodes in a tile
+ * GraphTile handles the encoding and decoding of the nodes in a tile
  * (typically a 1/32*1/32 degree square)
  * to and from the serialized file format.
  */
-public final class OsmTile {
+public final class GraphTile {
 
   private final int lonBase;
   private final int latBase;
 
-  public OsmTile(int lonBase, int latBase) {
+  public GraphTile(int lonBase, int latBase) {
     this.lonBase = lonBase;
     this.latBase = latBase;
   }
 
   private long[] shrinkIDs;
-  private OsmNode[] nodes;
-  private Map<Long, OsmNode> hollowNodes;
+  private GraphNode[] nodes;
+  private Map<Long, GraphNode> hollowNodes;
 
   /**
    * Decodes the nodes of this tile from the serialized format and weaves them
    * into the routing graph. That's the twin of {@link #encodeTile(List, BitOutputStream)}.
    * <p>
-   * Nodes are created lazily: an {@link OsmNode} instance is only allocated
+   * Nodes are created lazily: an {@link GraphNode} instance is only allocated
    * (or taken over from {@code hollowNodes}) when at least one routable link
    * (way description != null, as decided by {@code wayValidator}) touches it.
    * <p>
@@ -56,7 +56,7 @@ public final class OsmTile {
    * @return the number of bytes consumed from the buffer
    * @throws IOException      if shit happens
    */
-  public int decodeTile(byte[] buffer, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, Map<Long, OsmNode> hollowNodes) throws IOException {
+  public int decodeTile(byte[] buffer, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, Map<Long, GraphNode> hollowNodes) throws IOException {
 
     BitInputStream bis = new BitInputStream( new ByteArrayInputStream( buffer ) );
     TagValueDecoder wayTagDecoder = new TagValueDecoder(wayValidator);
@@ -88,11 +88,11 @@ public final class OsmTile {
     extDiffDecoder.init(bis);
     shrinkIDs = bis.decodeUniqueSortedArray();
     int size = shrinkIDs.length;
-    nodes = new OsmNode[size];
+    nodes = new GraphNode[size];
     this.hollowNodes = hollowNodes;
 
     int[] linksReceived = new int[size];
-    OsmNode dummy = new OsmNode(0,0);
+    GraphNode dummy = new GraphNode(0,0);
 
     for (int n = 0; n < size; n++) { // loop over nodes
 
@@ -112,7 +112,7 @@ public final class OsmTile {
         boolean isReverse = false;
         if (isTransferNode && linksReceived[n] > 0) {
           if (nodes[n] != null) {
-            OsmLink template = nodes[n].firstLink;
+            GraphLink template = nodes[n].firstLink;
             wayDescription = template.wayDescription;
             isReverse = !template.isReverse(nodes[n]);
           }
@@ -127,9 +127,9 @@ public final class OsmTile {
         }
         // do the actual weaving only if the way is routable
         if (wayDescription != null) {
-          OsmNode sourceNode = getNode(n);
-          OsmLink link = null;
-          OsmNode targetNode = getNode(nodeIdx);
+          GraphNode sourceNode = getNode(n);
+          GraphLink link = null;
+          GraphNode targetNode = getNode(nodeIdx);
           if (isExternal) {
             int linkLon = sourceNode.iLon + lonDiff;
             int linkLat = sourceNode.iLat + latDiff;
@@ -139,11 +139,11 @@ public final class OsmTile {
               targetNode = link.getTarget(sourceNode);
             } else {
               // .. not found, check the hollow nodes
-              targetNode = hollowNodes.get(OsmNode.idFromPos(linkLon, linkLat));
+              targetNode = hollowNodes.get(GraphNode.idFromPos(linkLon, linkLat));
               if (targetNode == null) { // node not yet known, create a new hollow proxy
-                targetNode = new OsmNode(linkLon, linkLat);
-                targetNode.setBits( OsmNode.HOLLOW_BIT );
-                hollowNodes.put(OsmNode.idFromPos(linkLon, linkLat), targetNode);
+                targetNode = new GraphNode(linkLon, linkLat);
+                targetNode.setBits( GraphNode.HOLLOW_BIT );
+                hollowNodes.put(GraphNode.idFromPos(linkLon, linkLat), targetNode);
               }
             }
           }
@@ -160,11 +160,11 @@ public final class OsmTile {
         }
       }  // ... loop over links
 
-      OsmNode node = nodes[n] != null ? nodes[n] : dummy;
+      GraphNode node = nodes[n] != null ? nodes[n] : dummy;
       node.sElev = (short) nodeEleDiff.decode();
 
       if (isTransferNode) {
-        node.setBits(OsmNode.TRANSFERNODE_BIT); // preserve the transfer-node info
+        node.setBits(GraphNode.TRANSFERNODE_BIT); // preserve the transfer-node info
         continue; // node feature processing only for network nodes
       }
 
@@ -194,16 +194,16 @@ public final class OsmTile {
     return buffer.length - bis.available();
   }
 
-  private OsmNode getNode( int idx ) {
+  private GraphNode getNode( int idx ) {
     if ( nodes[idx] == null ) {
       long s32 = BitInterleavedConverter.interleaved2Shift32(shrinkIDs[idx]);
       int iLon = lonBase + BitInterleavedConverter.xFromShift32(s32);
       int iLat = latBase + BitInterleavedConverter.yFromShift32(s32);
-      OsmNode node = hollowNodes.remove(OsmNode.idFromPos(iLon, iLat));
+      GraphNode node = hollowNodes.remove(GraphNode.idFromPos(iLon, iLat));
       if (node == null) {
-        node = new OsmNode(iLon, iLat);
+        node = new GraphNode(iLon, iLat);
       } else {
-        node.clearBits( OsmNode.HOLLOW_BIT );
+        node.clearBits( GraphNode.HOLLOW_BIT );
       }
       nodes[idx] = node;
     }
@@ -215,16 +215,16 @@ public final class OsmTile {
    * only gathers statistics and writes to a null stream).
    * The stream is not closed or re-aligned.
    */
-  public void encodeTile(List<OsmNode> nodes, BitOutputStream out) throws IOException {
-    SortedMap<Long,OsmNode> sortedNodes = sortNodes(nodes);
+  public void encodeTile(List<GraphNode> nodes, BitOutputStream out) throws IOException {
+    SortedMap<Long,GraphNode> sortedNodes = sortNodes(nodes);
 
     HashMap<Long, Integer> idMap = new HashMap<>();
     int size = sortedNodes.size();
-    OsmNode[] nodeArray = new OsmNode[size];
+    GraphNode[] nodeArray = new GraphNode[size];
     long[] shrinkIDs = new long[size];
     int nodeIdx = 0;
-    for (Map.Entry<Long,OsmNode> e : sortedNodes.entrySet() ) { // loop over nodes
-      OsmNode node = e.getValue();
+    for (Map.Entry<Long,GraphNode> e : sortedNodes.entrySet() ) { // loop over nodes
+      GraphNode node = e.getValue();
       shrinkIDs[nodeIdx] = e.getKey();
       nodeArray[nodeIdx] = node;
       idMap.put(node.getIdFromPos(), nodeIdx++);
@@ -267,13 +267,13 @@ public final class OsmTile {
       bos.encodeUniqueSortedArray( shrinkIDs );
 
       for (int nodeIndex = 0; nodeIndex<size; nodeIndex++ ) { // loop over nodes
-        OsmNode node = nodeArray[nodeIndex];
+        GraphNode node = nodeArray[nodeIndex];
 
         // check classify as transfer node
         boolean isTransferNode = false;
         if (node.nodeDescription == null && node.firstRestriction == null && node.linkCount() == 2) {
-            OsmLink l1 = node.firstLink;
-            OsmLink l2 = l1.getNext(node);
+            GraphLink l1 = node.firstLink;
+            GraphLink l2 = l1.getNext(node);
             if (Arrays.equals(l1.wayDescription, l2.wayDescription)) {
               if (l1.isReverse(node) != l2.isReverse(node)) {
                 Integer idx1 = idMap.get(l1.getTarget(node).getIdFromPos());
@@ -285,9 +285,9 @@ public final class OsmTile {
             }
         }
         linkCountEncoder.encodeObject( isTransferNode ? 0  : node.linkCount() );
-        for (OsmLink link = node.firstLink; link != null; link = link.getNext(node)) { // loop over links
+        for (GraphLink link = node.firstLink; link != null; link = link.getNext(node)) { // loop over links
 
-          OsmNode target = link.getTarget(node);
+          GraphNode target = link.getTarget(node);
           boolean isReverse = link.isReverse(node);
           Integer idx = idMap.get(target.getIdFromPos());
           boolean isInternal = idx != null;
@@ -348,10 +348,10 @@ public final class OsmTile {
     }
   }
 
-  private SortedMap<Long,OsmNode> sortNodes(List<OsmNode> nodes ) {
+  private SortedMap<Long,GraphNode> sortNodes(List<GraphNode> nodes ) {
     // sort via treemap
-    TreeMap<Long, OsmNode> sortedList = new TreeMap<>();
-    for (OsmNode n : nodes) {
+    TreeMap<Long, GraphNode> sortedList = new TreeMap<>();
+    for (GraphNode n : nodes) {
       long il = BitInterleavedConverter.xy2Interleaved(n.iLon-lonBase,n.iLat-latBase);
       if ( sortedList.put(il, n) != null ) {
         throw new IllegalStateException("duplicate node: " + n );

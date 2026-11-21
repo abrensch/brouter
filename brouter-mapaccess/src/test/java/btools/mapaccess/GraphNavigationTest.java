@@ -13,7 +13,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * Basic graph navigation on OsmNode / OsmLink / TurnRestriction,
+ * Basic graph navigation on GraphNode / GraphLink / TurnRestriction,
  * The graph is build in memory and persisted to a temp file.
  */
 public class GraphNavigationTest {
@@ -25,14 +25,14 @@ public class GraphNavigationTest {
   private static final byte[] WAY = new byte[] { 1 }; // just any description
   private static final byte[] WAY2 = new byte[] { 2 }; // another one
 
-  private static OsmNode node(int lon, int lat) {
-    return new OsmNode(180000000 + lon, 90000000 + lat);
+  private static GraphNode node(int lon, int lat) {
+    return new GraphNode(180000000 + lon, 90000000 + lat);
   }
 
   @Test
   public void navigateRing() {
     int nodeCount = 100;
-    OsmNode start = createRing(nodeCount);
+    GraphNode start = createRing(nodeCount);
     assertEquals(nodeCount, navigateRing(start, false, null).size() );
     assertEquals(nodeCount, navigateRing(start, true, null ).size() );
   }
@@ -41,30 +41,30 @@ public class GraphNavigationTest {
   public void serializeDeserializeRing() throws IOException
   {
     int nodeCount = 100;
-    OsmNode start = createRing(nodeCount);
+    GraphNode start = createRing(nodeCount);
 
-    List<OsmNode> nodes = navigateRing( start, false, null );
+    List<GraphNode> nodes = navigateRing( start, false, null );
 
     // write the nodes into a file
     File segmentDir = tmpDir.newFolder("segments");
-    new OsmFile(new File(segmentDir, "E0_N0.rd5"), 180000000, 90000000).createWithNodes(nodes);
+    new GraphFile(new File(segmentDir, "E0_N0.rd5"), 180000000, 90000000).createWithNodes(nodes);
 
     // now recover the ring from the file and navigate again
     NodesCache nc = new NodesCache(segmentDir, null, 10000000);
 
     // .. match a point near the start node
     MatchedWaypoint mwp = new MatchedWaypoint();
-    mwp.waypoint = new OsmNode(start.iLon, start.iLat + 500 );
+    mwp.waypoint = new GraphNode(start.iLon, start.iLat + 500 );
     mwp.name = "some point near the start";
     List<MatchedWaypoint> matchedWaypoints = new ArrayList<>();
     matchedWaypoints.add(mwp);
-    nc.matchWaypointsToNodes( matchedWaypoints, 1000., new OsmNodePairSet(1000 ) );
+    nc.matchWaypointsToNodes( matchedWaypoints, 1000., new NodePairSet(1000 ) );
     assertNotNull( "start node not matched", mwp.node1 );
 
     // the matcher only delivers position templates, not graph nodes.
     // before turning that into a (hollow) graph node, clean the nodes cache
     nc.clean();
-    OsmNode decodedStart = nc.getGraphNode( mwp.node1 );
+    GraphNode decodedStart = nc.getGraphNode( mwp.node1 );
 
     // result should be a navigable ring again (supported by the nodes cache)
     assertEquals(nodeCount, navigateRing(decodedStart, false, nc).size() );
@@ -72,16 +72,16 @@ public class GraphNavigationTest {
   }
 
 
-  private OsmNode createRing ( int nodeCount ) {
+  private GraphNode createRing ( int nodeCount ) {
     // create a ring around a tile-crossing, so that we can test the hollow node handling
-    OsmNode last = null;
-    OsmNode first = null;
+    GraphNode last = null;
+    GraphNode first = null;
     double angleStep = 2.0 * Math.PI / nodeCount;
     int cellsize = 1000000 / 32;
     for ( int i = 0; i < nodeCount; i++ )
     {
       double angle = i * angleStep;
-      OsmNode n = node( (int)(cellsize + 1000*Math.cos(angle)), (int)(cellsize + 1000*Math.sin(angle)) );
+      GraphNode n = node( (int)(cellsize + 1000*Math.cos(angle)), (int)(cellsize + 1000*Math.sin(angle)) );
       if ( last != null )
       {
         last.createLink( i % 5 == 0 ? WAY2 : WAY, n );
@@ -96,10 +96,10 @@ public class GraphNavigationTest {
     return first;
   }
 
-    private List<OsmNode> navigateRing ( OsmNode start,boolean reverse, NodesCache nc )
+    private List<GraphNode> navigateRing ( GraphNode start,boolean reverse, NodesCache nc )
     {
-      List<OsmNode> result = new ArrayList<>();
-      OsmNode n = start;
+      List<GraphNode> result = new ArrayList<>();
+      GraphNode n = start;
       while ( result.size() < 100 )
       {
         if ( n.isHollow() )
@@ -123,10 +123,10 @@ public class GraphNavigationTest {
       throw new IllegalStateException( "ring not closed" );
     }
 
-    private OsmLink searchLink ( OsmNode n,boolean reverse)
+    private GraphLink searchLink ( GraphNode n,boolean reverse)
     {
-      OsmLink result = null;
-      OsmLink l = n.firstLink;
+      GraphLink result = null;
+      GraphLink l = n.firstLink;
       while ( l != null )
       {
         if ( l.isReverse( n ) == reverse )

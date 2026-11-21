@@ -48,7 +48,7 @@ public class FormatKml extends Formatter {
         sb.append("    <Folder>\n");
         sb.append("      <name>poi</name>\n");
         for (int i = 0; i < t.pois.size(); i++) {
-          OsmNodeNamed poi = t.pois.get(i);
+          GraphNodeNamed poi = t.pois.get(i);
           createPlaceMark(sb, poi.name, poi.iLat, poi.iLon);
         }
         sb.append("    </Folder>\n");

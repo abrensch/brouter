@@ -6,10 +6,10 @@
 package btools.mapaccess;
 
 public final class MatchedWaypoint {
-  public OsmNode node1;
-  public OsmNode node2;
-  public OsmNode crossPoint;
-  public OsmNode waypoint;
+  public GraphNode node1;
+  public GraphNode node2;
+  public GraphNode crossPoint;
+  public GraphNode waypoint;
   public String name;  // waypoint name used in error messages
   public double radius;  // distance in meter between waypoint and crosspoint
   public boolean direct;  // from this point go direct to next = beeline routing

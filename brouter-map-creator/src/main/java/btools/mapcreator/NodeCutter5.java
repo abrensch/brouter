@@ -1,6 +1,6 @@
 package btools.mapcreator;
 
-import btools.mapaccess.OsmFile;
+import btools.mapaccess.GraphFile;
 import btools.util.DenseLongMap;
 import btools.util.TinyDenseLongMap;
 
@@ -67,7 +67,7 @@ public class NodeCutter5 extends ItemCutter implements ItemListener {
   public String getBaseNameForTile55(int tileIndex) {
     int lon = (tileIndex / 6) * 5 + lonOffset - 180;
     int lat = (tileIndex % 6) * 5 + latOffset - 90;
-    return OsmFile.getBaseName( lon,lat);
+    return GraphFile.getBaseName( lon,lat);
   }
 
 }

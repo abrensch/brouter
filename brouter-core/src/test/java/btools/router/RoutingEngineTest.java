@@ -55,15 +55,15 @@ public class RoutingEngineTest {
   private String calcRoute(double flon, double flat, double tlon, double tlat, String trackname, RoutingContext rctx) {
     String wd = workingDir.getAbsolutePath();
 
-    List<OsmNodeNamed> wplist = new ArrayList<>();
-    OsmNodeNamed n;
-    n = new OsmNodeNamed();
+    List<GraphNodeNamed> wplist = new ArrayList<>();
+    GraphNodeNamed n;
+    n = new GraphNodeNamed();
     n.name = "from";
     n.iLon = 180000000 + (int) (flon * 1000000 + 0.5);
     n.iLat = 90000000 + (int) (flat * 1000000 + 0.5);
     wplist.add(n);
 
-    n = new OsmNodeNamed();
+    n = new GraphNodeNamed();
     n.name = "to";
     n.iLon = 180000000 + (int) (tlon * 1000000 + 0.5);
     n.iLat = 90000000 + (int) (tlat * 1000000 + 0.5);

@@ -15,7 +15,7 @@ public class RouteParamTest {
   public void readWptsNull() {
 
     RoutingParamCollector rpc = new RoutingParamCollector();
-    List<OsmNodeNamed> map = rpc.getWayPointList(null);
+    List<GraphNodeNamed> map = rpc.getWayPointList(null);
 
     Assert.assertEquals("result content null", 0, map.size());
 
@@ -25,7 +25,7 @@ public class RouteParamTest {
   public void readWpts() {
     String data = "1.0,1.2;2.0,2.2";
     RoutingParamCollector rpc = new RoutingParamCollector();
-    List<OsmNodeNamed> map = rpc.getWayPointList(data);
+    List<GraphNodeNamed> map = rpc.getWayPointList(data);
 
     Assert.assertEquals("result content 1 ", 2, map.size());
 

@@ -21,7 +21,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
   private File tmpDir;
   private String dataTilesSuffix;
   private boolean readingBorder;
-  private CompactLongMap<OsmNode> nodesMap;
+  private CompactLongMap<GraphNode> nodesMap;
   private CompactLongSet borderSet;
   private BExpressionContextWay expCtxWay;
   private ByteArrayUnifier abUnifier;
@@ -198,7 +198,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
 
   @Override
   public void nextNode(NodeData data) {
-    OsmNode n = new OsmNode();
+    GraphNode n = new GraphNode();
     n.iLon = data.iLon;
     n.iLat = data.iLat;
     n.sElev = data.sElev;
@@ -209,7 +209,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
     }
 
     if (readingBorder) {
-      n.setBits( OsmNode.BORDER_BIT );
+      n.setBits( GraphNode.BORDER_BIT );
       borderSet.fastAdd(data.nid);
       return;
     }
@@ -227,7 +227,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
 
   @Override
   public void nextRestriction(RestrictionData res) {
-    OsmNode n = nodesMap.get(res.viaNid);
+    GraphNode n = nodesMap.get(res.viaNid);
     if (n != null) {
       res.viaLon = n.iLon;
       res.viaLat = n.iLat;
@@ -241,12 +241,12 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
   // starts or ends at it's via node. However, we allow
   // ways not ending at the via node, and in this case we take
   // the leg according to the mapped direction
-  private void checkRestriction(OsmNode n1, OsmNode n2, WayData w) {
+  private void checkRestriction(GraphNode n1, GraphNode n2, WayData w) {
     checkRestriction(n1, n2, w, true);
     checkRestriction(n2, n1, w, false);
   }
 
-  private void checkRestriction(OsmNode n1, OsmNode n2, WayData w, boolean checkFrom) {
+  private void checkRestriction(GraphNode n1, GraphNode n2, WayData w, boolean checkFrom) {
     TurnRestriction tr = n2.firstRestriction;
     while (tr != null) {
       RestrictionData r = (RestrictionData)tr;
@@ -254,14 +254,14 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
         if (r.fromLon == 0 || checkFrom) {
           r.fromLon = n1.iLon;
           r.fromLat = n1.iLat;
-          n1.setBits(OsmNode.TR_TARGET_BIT);
+          n1.setBits(GraphNode.TR_TARGET_BIT);
         }
       }
       if (r.toWid == w.wid) {
         if (r.toLon == 0 || !checkFrom) {
           r.toLon = n1.iLon;
           r.toLat = n1.iLat;
-          n1.setBits(OsmNode.TR_TARGET_BIT);
+          n1.setBits(GraphNode.TR_TARGET_BIT);
         }
       }
       tr = tr.next;
@@ -284,14 +284,14 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
     byte wayBits = 0;
     expCtxWay.decode(wayDescription);
     if (!expCtxWay.getBooleanLookupValue("bridge"))
-      wayBits |= OsmNode.NO_BRIDGE_BIT;
+      wayBits |= GraphNode.NO_BRIDGE_BIT;
     if (!expCtxWay.getBooleanLookupValue("tunnel"))
-      wayBits |= OsmNode.NO_TUNNEL_BIT;
+      wayBits |= GraphNode.NO_TUNNEL_BIT;
 
-    OsmNode n2 = null;
+    GraphNode n2 = null;
     for (int i = 0; i < way.nodes.size(); i++) {
       long nid = way.nodes.get(i);
-      OsmNode n1 = n2;
+      GraphNode n1 = n2;
       n2 = nodesMap.get(nid);
 
       if (n1 != null && n2 != null && n1 != n2) {
@@ -308,7 +308,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
   public void itemFileEnd(File wayfile) throws IOException {
 
     // strip down the nodes-map to it's value-list
-    List<OsmNode> nodesList = ((FrozenLongMap)nodesMap).getValueList();
+    List<GraphNode> nodesList = ((FrozenLongMap)nodesMap).getValueList();
     nodesMap = null;
 
     // do Douglas Peuker elimination of too dense transfer nodes
@@ -321,7 +321,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
     nodesList = filterNodes( nodesList );
 
     // filter-out invalid TRs
-    for (OsmNode n : nodesList) {
+    for (GraphNode n : nodesList) {
       TurnRestriction rd = n.firstRestriction;
       n.firstRestriction = null;
       while (rd != null) {
@@ -342,14 +342,14 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
 
     // and write the filtered nodes to a file
     File outFile = fileFromTemplate(wayfile, outTileDir, dataTilesSuffix);
-    new OsmFile( outFile, minLon, minLat).createWithNodes( nodesList );
+    new GraphFile( outFile, minLon, minLat).createWithNodes( nodesList );
   }
 
-  private List<OsmNode> filterNodes( List<OsmNode> nodes ) {
+  private List<GraphNode> filterNodes( List<GraphNode> nodes ) {
     int maxLon = minLon + 5000000;
     int maxLat = minLat + 5000000;
-    ArrayList<OsmNode> filtered = new ArrayList<>(nodes.size());
-    for (OsmNode n : nodes) {
+    ArrayList<GraphNode> filtered = new ArrayList<>(nodes.size());
+    for (GraphNode n : nodes) {
       if (n.linkCount() == 0 || n.iLon < minLon || n.iLon >= maxLon || n.iLat < minLat || n.iLat >= maxLat) {
         continue;
       }

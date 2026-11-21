@@ -5,8 +5,8 @@
  */
 package btools.router;
 
-import btools.mapaccess.OsmLink;
-import btools.mapaccess.OsmNode;
+import btools.mapaccess.GraphLink;
+import btools.mapaccess.GraphNode;
 import btools.mapaccess.TurnRestriction;
 
 abstract class OsmPath {
@@ -21,10 +21,10 @@ abstract class OsmPath {
 
   public int airDistance = 0; // distance to endpos
 
-  protected OsmNode sourceNode;
-  protected OsmNode targetNode;
+  protected GraphNode sourceNode;
+  protected GraphNode targetNode;
 
-  protected OsmLink link;
+  protected GraphLink link;
   public OsmPathElement originElement;
   public OsmPathElement myElement;
   public int treeDepth = 0;
@@ -62,7 +62,7 @@ abstract class OsmPath {
 
   public MessageData message;
 
-  public void init(OsmLink link) {
+  public void init(GraphLink link) {
     this.link = link;
     targetNode = link.getTarget(null);
     sElev = targetNode.sElev;
@@ -71,7 +71,7 @@ abstract class OsmPath {
     originLat = -1;
   }
 
-  public void init(OsmPath origin, OsmLink link, OsmTrack refTrack, boolean detailMode, RoutingContext rc) {
+  public void init(OsmPath origin, GraphLink link, OsmTrack refTrack, boolean detailMode, RoutingContext rc) {
     if (origin.myElement == null) {
       origin.myElement = OsmPathElement.create(origin);
     }
@@ -94,7 +94,7 @@ abstract class OsmPath {
 
   static int seg = 1;
 
-  protected void addAdditionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, OsmLink link, RoutingContext rc) {
+  protected void addAdditionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, GraphLink link, RoutingContext rc) {
     byte[] description = link.wayDescription;
     if (description == null) { // could be a beeline path
       message = new MessageData();
@@ -341,15 +341,15 @@ abstract class OsmPath {
 
   public abstract int elevationCorrection();
 
-  public OsmNode getSourceNode() {
+  public GraphNode getSourceNode() {
     return sourceNode;
   }
 
-  public OsmNode getTargetNode() {
+  public GraphNode getTargetNode() {
     return targetNode;
   }
 
-  public OsmLink getLink() {
+  public GraphLink getLink() {
     return link;
   }
 

@@ -16,22 +16,22 @@ import java.util.TreeSet;
 
 import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.NodesCache;
-import btools.mapaccess.OsmLink;
-import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmNodePairSet;
+import btools.mapaccess.GraphLink;
+import btools.mapaccess.GraphNode;
+import btools.mapaccess.NodePairSet;
 import btools.util.SortedHeap;
 
 public class RoutingEngine {
 
   private NodesCache nodesCache;
 
-  protected List<OsmNodeNamed> waypoints = null;
+  protected List<GraphNodeNamed> waypoints = null;
   protected List<MatchedWaypoint> matchedWaypoints;
   private int linksProcessed = 0;
 
   private int nodeLimit; // used for target island search
   private int MAXNODES_ISLAND_CHECK = 500;
-  private OsmNodePairSet islandNodePairs = new OsmNodePairSet(MAXNODES_ISLAND_CHECK);
+  private NodePairSet islandNodePairs = new NodePairSet(MAXNODES_ISLAND_CHECK);
 
 
   protected OsmTrack foundTrack = new OsmTrack();
@@ -58,7 +58,7 @@ public class RoutingEngine {
   public boolean quite = false;
 
   public RoutingEngine(String outfileBase, String logfileBase, File segmentDir,
-                       List<OsmNodeNamed> waypoints, RoutingContext rc) {
+                       List<GraphNodeNamed> waypoints, RoutingContext rc) {
     this.segmentDir = segmentDir;
     this.outfileBase = outfileBase;
     this.logfileBase = logfileBase;
@@ -377,7 +377,7 @@ public class RoutingEngine {
   private OsmTrack tryFindTrack(OsmTrack[] refTracks, OsmTrack[] lastTracks) {
     OsmTrack totaltrack = new OsmTrack();
     if (hasInfo()) {
-      for (OsmNodeNamed wp : waypoints) {
+      for (GraphNodeNamed wp : waypoints) {
         logInfo("wp=" + wp + (wp.direct ? " direct" : ""));
       }
     }
@@ -588,8 +588,8 @@ public class RoutingEngine {
         return searchRoutedTrack(startWp, endWp, refTrack);
 
       // we want a beeline-segment
-      OsmPath path = routingContext.createPath(new OsmLink(null, startWp.crossPoint));
-      path = routingContext.createPath(path, new OsmLink(startWp.crossPoint, endWp.crossPoint), null, false);
+      OsmPath path = routingContext.createPath(new GraphLink(null, startWp.crossPoint));
+      path = routingContext.createPath(path, new GraphLink(startWp.crossPoint, endWp.crossPoint), null, false);
       return compileTrack(path, false);
     } finally {
       routingContext.restoreNogoList();
@@ -642,9 +642,9 @@ public class RoutingEngine {
     islandNodePairs.clearTempPairs();
   }
 
-  private OsmPath getStartPath(OsmNode n1, OsmNode n2, MatchedWaypoint mwp, OsmNodeNamed endPos, boolean sameSegmentSearch) {
+  private OsmPath getStartPath(GraphNode n1, GraphNode n2, MatchedWaypoint mwp, GraphNodeNamed endPos, boolean sameSegmentSearch) {
     endPos.radius = 1.5;
-    OsmPath p = getStartPath(n1, n2, new OsmNodeNamed(mwp.crossPoint), endPos, sameSegmentSearch);
+    OsmPath p = getStartPath(n1, n2, new GraphNodeNamed(mwp.crossPoint), endPos, sameSegmentSearch);
 
     // special case: start+end on same segment
     if (p.cost >= 0 && sameSegmentSearch && endPos.radius < 1.5) {
@@ -654,15 +654,15 @@ public class RoutingEngine {
   }
 
 
-  private OsmPath getStartPath(OsmNode n1, OsmNode n2, OsmNodeNamed wp, OsmNodeNamed endPos, boolean sameSegmentSearch) {
+  private OsmPath getStartPath(GraphNode n1, GraphNode n2, GraphNodeNamed wp, GraphNodeNamed endPos, boolean sameSegmentSearch) {
     try {
       routingContext.setWaypoint(wp, sameSegmentSearch ? endPos : null, false);
       OsmPath bestPath = null;
-      OsmLink startLink = new OsmLink(null, n1);
+      GraphLink startLink = new GraphLink(null, n1);
       OsmPath startPath = routingContext.createPath(startLink);
       double minradius = 1e10;
-      for (OsmLink link = n1.firstLink; link != null; link = link.getNext(n1)) {
-        OsmNode nextNode = link.getTarget(n1);
+      for (GraphLink link = n1.firstLink; link != null; link = link.getNext(n1)) {
+        GraphNode nextNode = link.getTarget(n1);
         if (nextNode.isHollow())
           continue; // border node?
         if (nextNode.firstLink == null)
@@ -690,7 +690,7 @@ public class RoutingEngine {
 
   private OsmTrack findTrack(String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack) {
     try {
-      List<OsmNode> wpts2 = new ArrayList<>();
+      List<GraphNode> wpts2 = new ArrayList<>();
       wpts2.add(startWp.waypoint);
       wpts2.add(endWp.waypoint);
       routingContext.cleanNogoList(wpts2);
@@ -721,11 +721,11 @@ public class RoutingEngine {
     long endNodeId1 = endWp.node1.getIdFromPos();
     long endNodeId2 = endWp.node2.getIdFromPos();
 
-    OsmNode start1 = nodesCache.getGraphNode(startWp.node1);
-    OsmNode start2 = nodesCache.getGraphNode(startWp.node2);
-    OsmNode end1 = nodesCache.getGraphNode(endWp.node1);
-    OsmNode end2 = nodesCache.getGraphNode(endWp.node2);
-    OsmNodeNamed endPos = new OsmNodeNamed(endWp.crossPoint);
+    GraphNode start1 = nodesCache.getGraphNode(startWp.node1);
+    GraphNode start2 = nodesCache.getGraphNode(startWp.node2);
+    GraphNode end1 = nodesCache.getGraphNode(endWp.node1);
+    GraphNode end2 = nodesCache.getGraphNode(endWp.node2);
+    GraphNodeNamed endPos = new GraphNodeNamed(endWp.crossPoint);
     boolean sameSegmentSearch = (start1 == end1 && start2 == end2) || (start1 == end2 && start2 == end1);
 
     if (!nodesCache.obtainNonHollowNode(start1)) {
@@ -773,9 +773,9 @@ public class RoutingEngine {
       nodesVisited++;
       linksProcessed++;
 
-      OsmLink currentLink = path.getLink();
-      OsmNode sourceNode = path.getSourceNode();
-      OsmNode currentNode = path.getTargetNode();
+      GraphLink currentLink = path.getLink();
+      GraphNode sourceNode = path.getSourceNode();
+      GraphNode currentNode = path.getTargetNode();
 
       if (!sourceNode.linkStillValid(currentLink)) {
         continue; // probably processed by another path
@@ -837,8 +837,8 @@ public class RoutingEngine {
 
       routingContext.firstPrePath = null;
 
-      for (OsmLink link = currentNode.firstLink; link != null; link = link.getNext(currentNode)) {
-        OsmNode nextNode = link.getTarget(currentNode);
+      for (GraphLink link = currentNode.firstLink; link != null; link = link.getNext(currentNode)) {
+        GraphNode nextNode = link.getTarget(currentNode);
 
         if (!nodesCache.obtainNonHollowNode(nextNode)) {
           continue; // border node?
@@ -857,8 +857,8 @@ public class RoutingEngine {
         }
       }
 
-      for (OsmLink link = currentNode.firstLink; link != null; link = link.getNext(currentNode)) {
-        OsmNode nextNode = link.getTarget(currentNode);
+      for (GraphLink link = currentNode.firstLink; link != null; link = link.getNext(currentNode)) {
+        GraphNode nextNode = link.getTarget(currentNode);
 
         if (!nodesCache.obtainNonHollowNode(nextNode)) {
           continue; // border node?

@@ -1,8 +1,8 @@
 /**
- * OsmFile represents a large square of OSM data, typically a 5*5 degree area.
+ * GraphFile represents a large square of a Graph, typically a 5*5 degree area.
  * The class is responsible for converting the data between:
  * - the file format (which is a compact, statistically encoded, serialized representation)
- * - the runtime-representation (a weaved graph of OsmNode's)
+ * - the runtime-representation (a weaved graph of GraphNode's)
  */
 package btools.mapaccess;
 
@@ -19,7 +19,7 @@ import btools.statcoding.codecs.AdaptiveDiffDecoder;
 import btools.statcoding.codecs.AdaptiveDiffEncoder;
 import btools.util.LazyArrayOfLists;
 
-public final class OsmFile {
+public final class GraphFile {
   private final File file;
   private RandomAccessFile is;
 
@@ -30,7 +30,7 @@ public final class OsmFile {
   private final int divisor = 160;
   private final int cellSize = 5000000 / divisor;
 
-  public OsmFile(File file, int iLonBase, int iLatBase) {
+  public GraphFile(File file, int iLonBase, int iLatBase) {
     this.file = file;
     this.iLonBase = iLonBase;
     this.iLatBase = iLatBase;
@@ -62,22 +62,22 @@ public final class OsmFile {
   }
 
   /**
-   * creates a new datafile  with the given list of nodes. The nodes must be within the bounds of this OsmFile (iLonBase, iLatBase).
+   * creates a new datafile  with the given list of nodes. The nodes must be within the bounds of this GraphFile (iLonBase, iLatBase).
    * The nodes are sorted into tiles and each tile is encoded separately. The tile index is written at the end of the file,
    * and the position of the index is written at the beginning of the file.
    * @param nodes the list of nodes to write
    * @throws IOException if an I/O error occurs
    */
-  public void createWithNodes(List<OsmNode> nodes) throws IOException {
+  public void createWithNodes(List<GraphNode> nodes) throws IOException {
     int nTiles = divisor * divisor;
 
     // sort the nodes in sub-lists for the tiles...
-    LazyArrayOfLists<OsmNode> subs = new LazyArrayOfLists<>(nTiles);
-    for (OsmNode n : nodes) {
+    LazyArrayOfLists<GraphNode> subs = new LazyArrayOfLists<>(nTiles);
+    for (GraphNode n : nodes) {
       int subLonIdx = (n.iLon - iLonBase) / cellSize;
       int subLatIdx = (n.iLat - iLatBase) / cellSize;
       if ( subLonIdx < 0 || subLonIdx >= divisor || subLatIdx < 0 || subLatIdx >= divisor ) {
-        throw new IllegalArgumentException("node " + n + " is out of bounds for this OsmFile");
+        throw new IllegalArgumentException("node " + n + " is out of bounds for this GraphFile");
       }
       int si = subLatIdx * divisor + subLonIdx;
       subs.getList(si).add(n);
@@ -98,12 +98,12 @@ public final class OsmFile {
       for (int si = 0; si < nTiles; si++) {
         int size = subs.getSize(si);
         if (size > 0) {
-          List<OsmNode> subList = subs.getList(si);
-          OsmNode n0 = subList.get(0);
+          List<GraphNode> subList = subs.getList(si);
+          GraphNode n0 = subList.get(0);
           int lonBase = n0.iLon - n0.iLon % cellSize;
           int latBase = n0.iLat - n0.iLat % cellSize;
           bos.startCRC();
-          new OsmTile(lonBase, latBase).encodeTile(subList, bos);
+          new GraphTile(lonBase, latBase).encodeTile(subList, bos);
           bos.writeLong(bos.finishCRC());
         }
         tileIndex[si + 1] = bos.getBitPosition() >> 3;
@@ -144,7 +144,7 @@ public final class OsmFile {
     }
   }
 
-  public void checkDecodeTile(OsmNode template, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, Map<Long, OsmNode> hollowNodes)
+  public void checkDecodeTile(GraphNode template, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, Map<Long, GraphNode> hollowNodes)
     throws Exception {
     int lonIdx = (template.iLon-iLonBase) / cellSize;
     int latIdx = (template.iLat-iLatBase) / cellSize;
@@ -159,7 +159,7 @@ public final class OsmFile {
   }
 
   private void decodeTileForIndex(int tileIdx, int lonBase, int latBase, TagValueValidator wayValidator,
-                                 WaypointMatcher waypointMatcher, Map<Long, OsmNode> hollowNodes) throws IOException {
+                                 WaypointMatcher waypointMatcher, Map<Long, GraphNode> hollowNodes) throws IOException {
     long startPos = tileIndex[tileIdx];
     long endPos = tileIndex[tileIdx+1];
     long sizeLong = endPos-startPos;
@@ -173,7 +173,7 @@ public final class OsmFile {
     byte[] ab = getDataFromFile(startPos, size, null);
     int decodedBytes = 0;
     try {
-      decodedBytes = new OsmTile(lonBase,latBase).decodeTile(ab, wayValidator, waypointMatcher, hollowNodes);
+      decodedBytes = new GraphTile(lonBase,latBase).decodeTile(ab, wayValidator, waypointMatcher, hollowNodes);
     } finally {
       if (decodedBytes != size - 8) {
         checkCrc( ab, size, "tile-data" );
@@ -182,7 +182,7 @@ public final class OsmFile {
   }
 
   /**
-   * Reset this OsmFile to the state after
+   * Reset this GraphFile to the state after
    * is was opened (index decoded, bot no tile yet)
    */
   void clean() {

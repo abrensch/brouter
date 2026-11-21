@@ -5,7 +5,7 @@
  */
 package btools.router;
 
-import btools.mapaccess.OsmNode;
+import btools.mapaccess.GraphNode;
 
 final class KinematicPrePath extends OsmPrePath {
   public double angle;
@@ -20,7 +20,7 @@ final class KinematicPrePath extends OsmPrePath {
     int lon0 = origin.originLon;
     int lat0 = origin.originLat;
 
-    OsmNode p1 = sourceNode;
+    GraphNode p1 = sourceNode;
     int lon1 = p1.iLon;
     int lat1 = p1.iLat;
 

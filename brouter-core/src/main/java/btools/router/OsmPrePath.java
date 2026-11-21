@@ -5,17 +5,17 @@
  */
 package btools.router;
 
-import btools.mapaccess.OsmLink;
-import btools.mapaccess.OsmNode;
+import btools.mapaccess.GraphLink;
+import btools.mapaccess.GraphNode;
 
 public abstract class OsmPrePath {
-  protected OsmNode sourceNode;
-  protected OsmNode targetNode;
-  protected OsmLink link;
+  protected GraphNode sourceNode;
+  protected GraphNode targetNode;
+  protected GraphLink link;
 
   public OsmPrePath next;
 
-  public void init(OsmPath origin, OsmLink link, RoutingContext rc) {
+  public void init(OsmPath origin, GraphLink link, RoutingContext rc) {
     this.link = link;
     this.sourceNode = origin.getTargetNode();
     this.targetNode = link.getTarget(sourceNode);

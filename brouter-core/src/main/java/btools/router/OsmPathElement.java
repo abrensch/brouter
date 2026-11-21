@@ -4,7 +4,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import btools.mapaccess.OsmNode;
+import btools.mapaccess.GraphNode;
 import btools.util.CheapRuler;
 
 /**
@@ -81,7 +81,7 @@ public class OsmPathElement {
 
   // construct a path element from a path
   public static final OsmPathElement create(OsmPath path) {
-    OsmNode n = path.getTargetNode();
+    GraphNode n = path.getTargetNode();
     OsmPathElement pe = create(n.iLon, n.iLat, n.sElev, path.originElement);
     pe.cost = path.cost;
     pe.message = path.message;

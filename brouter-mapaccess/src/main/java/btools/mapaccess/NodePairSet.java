@@ -7,7 +7,7 @@ package btools.mapaccess;
 
 import btools.util.CompactLongMap;
 
-public class OsmNodePairSet {
+public class NodePairSet {
   private long[] n1a;
   private long[] n2a;
   private int tempNodes = 0;
@@ -15,18 +15,18 @@ public class OsmNodePairSet {
   private int npairs = 0;
   private int freezecount = 0;
 
-  public OsmNodePairSet(int maxTempNodeCount) {
+  public NodePairSet(int maxTempNodeCount) {
     maxTempNodes = maxTempNodeCount;
     n1a = new long[maxTempNodes];
     n2a = new long[maxTempNodes];
   }
 
-  private static class OsmNodePair {
+  private static class NodePair {
     public long node2;
-    public OsmNodePair next;
+    public NodePair next;
   }
 
-  private CompactLongMap<OsmNodePair> map;
+  private CompactLongMap<NodePair> map;
 
   public void addTempPair(long n1, long n2) {
     if (tempNodes < maxTempNodes) {
@@ -54,12 +54,12 @@ public class OsmNodePairSet {
     }
     npairs++;
 
-    OsmNodePair e = getElement(n1, n2);
+    NodePair e = getElement(n1, n2);
     if (e == null) {
-      e = new OsmNodePair();
+      e = new NodePair();
       e.node2 = n2;
 
-      OsmNodePair e0 = map.get(n1);
+      NodePair e0 = map.get(n1);
       if (e0 != null) {
         while (e0.next != null) {
           e0 = e0.next;
@@ -83,8 +83,8 @@ public class OsmNodePairSet {
     return map != null && (getElement(n1, n2) != null || getElement(n2, n1) != null);
   }
 
-  private OsmNodePair getElement(long n1, long n2) {
-    OsmNodePair e = map.get(n1);
+  private NodePair getElement(long n1, long n2) {
+    NodePair e = map.get(n1);
     while (e != null) {
       if (e.node2 == n2) {
         return e;

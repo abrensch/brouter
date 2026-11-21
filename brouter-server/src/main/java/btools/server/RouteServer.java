@@ -24,7 +24,7 @@ import java.util.PriorityQueue;
 import java.util.StringTokenizer;
 import java.util.zip.GZIPOutputStream;
 
-import btools.router.OsmNodeNamed;
+import btools.router.GraphNodeNamed;
 import btools.router.OsmTrack;
 import btools.router.ProfileCache;
 import btools.router.RoutingContext;
@@ -137,7 +137,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         return;
       }
       RoutingContext rc = handler.readRoutingContext();
-      List<OsmNodeNamed> wplist = routingParamCollector.getWayPointList(params.get("lonlats"));
+      List<GraphNodeNamed> wplist = routingParamCollector.getWayPointList(params.get("lonlats"));
 
       routingParamCollector.setParams(rc, wplist, params);
 

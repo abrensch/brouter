@@ -18,14 +18,14 @@ public class RoutingParamCollector {
    * @param lonLats  linked list separated by ';' or '|'
    * @return         a list
    */
-  public List<OsmNodeNamed> getWayPointList(String lonLats) {
+  public List<GraphNodeNamed> getWayPointList(String lonLats) {
     if (lonLats == null) throw new IllegalArgumentException("lonlats parameter not set");
 
     String[] coords = lonLats.split(";|\\|"); // use both variantes
     if (coords.length < 1 || !coords[0].contains(","))
       throw new IllegalArgumentException("we need one lat/lon point at least!");
 
-    List<OsmNodeNamed> wplist = new ArrayList<>();
+    List<GraphNodeNamed> wplist = new ArrayList<>();
     for (int i = 0; i < coords.length; i++) {
       String[] lonLat = coords[i].split(",");
       if (lonLat.length < 1)
@@ -55,15 +55,15 @@ public class RoutingParamCollector {
    * @param lats  array with latitudes
    * @return      a list
    */
-  public List<OsmNodeNamed> readPositions(double[] lons, double[] lats) {
-    List<OsmNodeNamed> wplist = new ArrayList<>();
+  public List<GraphNodeNamed> readPositions(double[] lons, double[] lats) {
+    List<GraphNodeNamed> wplist = new ArrayList<>();
 
     if (lats == null || lats.length < 2 || lons == null || lons.length < 2) {
       return wplist;
     }
 
     for (int i = 0; i < lats.length && i < lons.length; i++) {
-      OsmNodeNamed n = new OsmNodeNamed();
+      GraphNodeNamed n = new GraphNodeNamed();
       n.name = "via" + i;
       n.iLon = (int) ((lons[i] + 180.) * 1000000. + 0.5);
       n.iLat = (int) ((lats[i] + 90.) * 1000000. + 0.5);
@@ -78,15 +78,15 @@ public class RoutingParamCollector {
     return wplist;
   }
 
-  private OsmNodeNamed readPosition(String vlon, String vlat, String name) {
+  private GraphNodeNamed readPosition(String vlon, String vlat, String name) {
     if (vlon == null) throw new IllegalArgumentException("lon " + name + " not found in input");
     if (vlat == null) throw new IllegalArgumentException("lat " + name + " not found in input");
 
     return readPosition(Double.parseDouble(vlon), Double.parseDouble(vlat), name);
   }
 
-  private OsmNodeNamed readPosition(double lon, double lat, String name) {
-    OsmNodeNamed n = new OsmNodeNamed();
+  private GraphNodeNamed readPosition(double lon, double lat, String name) {
+    GraphNodeNamed n = new GraphNodeNamed();
     n.name = name;
     n.iLon = (int) ((lon + 180.) * 1000000. + 0.5);
     n.iLat = (int) ((lat + 90.) * 1000000. + 0.5);
@@ -125,7 +125,7 @@ public class RoutingParamCollector {
    * @param wplist  the list of way points needed for 'straight' parameter
    * @param params  the list of parameters
    */
-  public void setParams(RoutingContext rctx, List<OsmNodeNamed> wplist, Map<String, String> params) {
+  public void setParams(RoutingContext rctx, List<GraphNodeNamed> wplist, Map<String, String> params) {
     if (params != null) {
       if (params.size() == 0) return;
 
@@ -134,7 +134,7 @@ public class RoutingParamCollector {
         rctx.localFunction = params.get("profile");
       }
       if (params.containsKey("nogoLats") && params.get("nogoLats").length() > 0) {
-        List<OsmNodeNamed> nogoList = readNogos(params.get("nogoLons"), params.get("nogoLats"), params.get("nogoRadi"));
+        List<GraphNodeNamed> nogoList = readNogos(params.get("nogoLons"), params.get("nogoLats"), params.get("nogoRadi"));
         if (nogoList != null) {
           RoutingContext.prepareNogoPoints(nogoList);
           if (rctx.nogopoints == null) {
@@ -148,7 +148,7 @@ public class RoutingParamCollector {
         params.remove("nogoRadi");
       }
       if (params.containsKey("nogos")) {
-        List<OsmNodeNamed> nogoList = readNogoList(params.get("nogos"));
+        List<GraphNodeNamed> nogoList = readNogoList(params.get("nogos"));
         if (nogoList != null) {
           RoutingContext.prepareNogoPoints(nogoList);
           if (rctx.nogopoints == null) {
@@ -224,20 +224,20 @@ public class RoutingParamCollector {
   }
 
 
-  public List<OsmNodeNamed> readPoisList(String pois) {
+  public List<GraphNodeNamed> readPoisList(String pois) {
     // lon,lat,name|...
     if (pois == null) return null;
 
     String[] lonLatNameList = pois.split("\\|");
 
-    List<OsmNodeNamed> poisList = new ArrayList<>();
+    List<GraphNodeNamed> poisList = new ArrayList<>();
     for (int i = 0; i < lonLatNameList.length; i++) {
       String[] lonLatName = lonLatNameList[i].split(",");
 
       if (lonLatName.length != 3)
         continue;
 
-      OsmNodeNamed n = new OsmNodeNamed();
+      GraphNodeNamed n = new GraphNodeNamed();
       n.iLon = (int) ((Double.parseDouble(lonLatName[0]) + 180.) * 1000000. + 0.5);
       n.iLat = (int) ((Double.parseDouble(lonLatName[1]) + 90.) * 1000000. + 0.5);
       n.name = lonLatName[2];
@@ -247,14 +247,14 @@ public class RoutingParamCollector {
     return poisList;
   }
 
-  public List<OsmNodeNamed> readNogoList(String nogos) {
+  public List<GraphNodeNamed> readNogoList(String nogos) {
     // lon,lat,radius[,weight]|...
 
     if (nogos == null) return null;
 
     String[] lonLatRadList = nogos.split("\\|");
 
-    List<OsmNodeNamed> nogoList = new ArrayList<>();
+    List<GraphNodeNamed> nogoList = new ArrayList<>();
     for (int i = 0; i < lonLatRadList.length; i++) {
       String[] lonLatRad = lonLatRadList[i].split(",");
       String nogoWeight = "NaN";
@@ -267,29 +267,29 @@ public class RoutingParamCollector {
     return nogoList;
   }
 
-  public List<OsmNodeNamed> readNogos(String nogoLons, String nogoLats, String nogoRadi) {
+  public List<GraphNodeNamed> readNogos(String nogoLons, String nogoLats, String nogoRadi) {
     if (nogoLons == null || nogoLats == null || nogoRadi == null) return null;
-    List<OsmNodeNamed> nogoList = new ArrayList<>();
+    List<GraphNodeNamed> nogoList = new ArrayList<>();
 
     String[] lons = nogoLons.split(",");
     String[] lats = nogoLats.split(",");
     String[] radi = nogoRadi.split(",");
     String nogoWeight = "undefined";
     for (int i = 0; i < lons.length && i < lats.length && i < radi.length; i++) {
-      OsmNodeNamed n = readNogo(lons[i].trim(), lats[i].trim(), radi[i].trim(), nogoWeight);
+      GraphNodeNamed n = readNogo(lons[i].trim(), lats[i].trim(), radi[i].trim(), nogoWeight);
       nogoList.add(n);
     }
     return nogoList;
   }
 
 
-  private OsmNodeNamed readNogo(String lon, String lat, String radius, String nogoWeight) {
+  private GraphNodeNamed readNogo(String lon, String lat, String radius, String nogoWeight) {
     double weight = "undefined".equals(nogoWeight) ? Double.NaN : Double.parseDouble(nogoWeight);
     return readNogo(Double.parseDouble(lon), Double.parseDouble(lat), (int) Double.parseDouble(radius), weight);
   }
 
-  private OsmNodeNamed readNogo(double lon, double lat, int radius, double nogoWeight) {
-    OsmNodeNamed n = new OsmNodeNamed();
+  private GraphNodeNamed readNogo(double lon, double lat, int radius, double nogoWeight) {
+    GraphNodeNamed n = new GraphNodeNamed();
     n.name = "nogo" + radius;
     n.iLon = (int) ((lon + 180.) * 1000000. + 0.5);
     n.iLat = (int) ((lat + 90.) * 1000000. + 0.5);
