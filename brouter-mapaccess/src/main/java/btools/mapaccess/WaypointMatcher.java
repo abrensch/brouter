@@ -72,8 +72,8 @@ public final class WaypointMatcher {
         }
         // new match for that waypoint
         mwp.radius = radius; // shortest distance to way
-        mwp.node1 = start;
-        mwp.node2 = target;
+        mwp.node1 = new OsmNode( start.getIdFromPos() );
+        mwp.node2 = new OsmNode( target.getIdFromPos() );
 
         // calculate crosspoint
         mwp.crossPoint = new OsmNode();

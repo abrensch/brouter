@@ -29,7 +29,6 @@ public final class OsmNodesMap {
 
 
   public boolean isInMemoryBounds(int npaths, boolean extend) {
-//    long total = nodesCreated * 76L + linksCreated * 48L;
     long total = nodesCreated * 95L + npaths * 200L;
 
     if (extend) {
