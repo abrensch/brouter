@@ -141,7 +141,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
       routingParamCollector.setParams(rc, wplist, params);
 
-      cr = new RoutingEngine(null, null, serviceContext.segmentDir, wplist, rc);
+      cr = new RoutingEngine(serviceContext.segmentDir, wplist, rc);
       cr.quite = true;
       cr.doRun(maxRunningTime);
 

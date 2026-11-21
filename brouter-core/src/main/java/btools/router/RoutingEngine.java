@@ -1,13 +1,7 @@
 package btools.router;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,9 +19,8 @@ public class RoutingEngine {
 
   private NodesCache nodesCache;
 
-  protected List<GraphNodeNamed> waypoints = null;
+  protected List<GraphNodeNamed> waypoints;
   protected List<MatchedWaypoint> matchedWaypoints;
-  private int linksProcessed = 0;
 
   private int nodeLimit; // used for target island search
   private int MAXNODES_ISLAND_CHECK = 500;
@@ -36,16 +29,11 @@ public class RoutingEngine {
 
   protected OsmTrack foundTrack = new OsmTrack();
 
-  protected String outputMessage = null;
   protected String errorMessage = null;
 
   private volatile boolean terminated;
 
   protected File segmentDir;
-  private String outfileBase;
-  private String logfileBase;
-  private boolean infoLogEnabled;
-  private Writer infoLogWriter;
   protected RoutingContext routingContext;
 
   public double airDistanceCostFactor;
@@ -57,60 +45,13 @@ public class RoutingEngine {
 
   public boolean quite = false;
 
-  public RoutingEngine(String outfileBase, String logfileBase, File segmentDir,
+  public RoutingEngine(File segmentDir,
                        List<GraphNodeNamed> waypoints, RoutingContext rc) {
     this.segmentDir = segmentDir;
-    this.outfileBase = outfileBase;
-    this.logfileBase = logfileBase;
     this.waypoints = waypoints;
-    this.infoLogEnabled = outfileBase != null;
     this.routingContext = rc;
 
-    File baseFolder = new File(routingContext.localFunction).getParentFile();
-    baseFolder = baseFolder == null ? null : baseFolder.getParentFile();
-    if (baseFolder != null) {
-      try {
-        File debugLog = new File(baseFolder, "debug.txt");
-        if (debugLog.exists()) {
-          infoLogWriter = new FileWriter(debugLog, true);
-          logInfo("********** start request at ");
-          logInfo("********** " + new Date());
-        }
-      } catch (IOException ioe) {
-        throw new RuntimeException("cannot open debug-log:" + ioe);
-      }
-    }
-    boolean cachedProfile = ProfileCache.parseProfile(rc);
-    if (hasInfo()) {
-      logInfo("parsed profile " + rc.localFunction + " cached=" + cachedProfile);
-    }
-
-  }
-
-  private boolean hasInfo() {
-    return infoLogEnabled || infoLogWriter != null;
-  }
-
-  private void logInfo(String s) {
-    if (infoLogEnabled) {
-      System.out.println(s);
-    }
-    if (infoLogWriter != null) {
-      try {
-        infoLogWriter.write(s);
-        infoLogWriter.write('\n');
-        infoLogWriter.flush();
-      } catch (IOException io) {
-        infoLogWriter = null;
-      }
-    }
-  }
-
-  private void logThrowable(Throwable t) {
-    StringWriter sw = new StringWriter();
-    PrintWriter pw = new PrintWriter(sw);
-    t.printStackTrace(pw);
-    logInfo(sw.toString());
+    ProfileCache.parseProfile(rc);
   }
 
   public void doRun(long maxRunningTime) {
@@ -124,7 +65,6 @@ public class RoutingEngine {
   public void doRouting(long maxRunningTime) {
     try {
       startTime = System.currentTimeMillis();
-      long startTime0 = startTime;
       this.maxRunningTime = maxRunningTime;
       int nsections = waypoints.size() - 1;
       OsmTrack[] refTracks = new OsmTrack[nsections]; // used ways for alternatives
@@ -142,94 +82,30 @@ public class RoutingEngine {
 
         messageList.add(track.message);
         track.messageList = messageList;
-        if (outfileBase != null) {
-          String filename = outfileBase + i + "." + routingContext.outputFormat;
-          OsmTrack oldTrack = null;
-          switch (routingContext.outputFormat) {
-            case "gpx":
-              oldTrack = new FormatGpx(routingContext).read(filename);
-              break;
-            case "geojson": // read only gpx at the moment
-            case "json":
-            default:
-              break;
+        if (i == routingContext.getAlternativeIdx(0, 3)) {
+          if (!quite) {
+            System.out.println(new FormatGpx(routingContext).format(track));
           }
-          if (oldTrack != null && track.equalsTrack(oldTrack)) {
-            continue;
-          }
-          track.exportWaypoints = routingContext.exportWaypoints;
-          filename = outfileBase + i + "." + routingContext.outputFormat;
-          switch (routingContext.outputFormat) {
-            case "gpx":
-              outputMessage = new FormatGpx(routingContext).format(track);
-              break;
-            case "geojson":
-            case "json":
-              outputMessage = new FormatJson(routingContext).format(track);
-              break;
-            case "csv":
-            default:
-              outputMessage = null;
-              break;
-          }
-          if (outputMessage != null) {
-            FileWriter fw = new FileWriter(filename);
-            fw.write(outputMessage);
-            fw.close();
-            outputMessage = null;
-          }
-
           foundTrack = track;
         } else {
-          if (i == routingContext.getAlternativeIdx(0, 3)) {
-            if ("CSV".equals(System.getProperty("reportFormat"))) {
-              String filename = outfileBase + i + ".csv";
-              new FormatCsv(routingContext).write(filename, track);
-            } else {
-              if (!quite) {
-                System.out.println(new FormatGpx(routingContext).format(track));
-              }
-            }
-            foundTrack = track;
-          } else {
-            continue;
-          }
-        }
-        if (logfileBase != null) {
-          String logfilename = logfileBase + i + ".csv";
-          new FormatCsv(routingContext).write(logfilename, track);
+          continue;
         }
         break;
       }
-      long endTime = System.currentTimeMillis();
-      logInfo("execution time = " + (endTime - startTime0) / 1000. + " seconds");
     } catch (IllegalArgumentException e) {
-      logException(e);
+      setError(e);
     } catch (Exception e) {
-      logException(e);
-      logThrowable(e);
+      setError(e);
     } catch (Error e) {
       cleanOnOOM();
-      logException(e);
-      logThrowable(e);
+      setError(e);
     } finally {
-      if (hasInfo() && routingContext.expCtxWay != null) {
-        logInfo("expression cache stats=" + routingContext.expCtxWay.cacheStats());
-      }
 
       ProfileCache.releaseProfile(routingContext);
 
       if (nodesCache != null) {
         nodesCache.close();
         nodesCache = null;
-      }
-
-      if (infoLogWriter != null) {
-        try {
-          infoLogWriter.close();
-        } catch (Exception e) {
-        }
-        infoLogWriter = null;
       }
     }
   }
@@ -349,9 +225,8 @@ public class RoutingEngine {
 
   }
 
-  private void logException(Throwable t) {
+  private void setError(Throwable t) {
     errorMessage = t instanceof RuntimeException ? t.getMessage() : t.toString();
-    logInfo("Error (linksProcessed=" + linksProcessed + "): " + errorMessage);
   }
 
   public void cleanOnOOM() {
@@ -372,11 +247,6 @@ public class RoutingEngine {
 
   private OsmTrack tryFindTrack(OsmTrack[] refTracks, OsmTrack[] lastTracks) {
     OsmTrack totaltrack = new OsmTrack();
-    if (hasInfo()) {
-      for (GraphNodeNamed wp : waypoints) {
-        logInfo("wp=" + wp + (wp.direct ? " direct" : ""));
-      }
-    }
 
     if (matchedWaypoints == null) { // could exist from the previous alternative level
       matchedWaypoints = new ArrayList<>();
@@ -461,9 +331,7 @@ public class RoutingEngine {
 
   private void recalcTrack(OsmTrack t) {
     int totaldist = 0;
-    int totaltime = 0;
     float lasttime = 0;
-    float lastenergy = 0;
     float speed_min = 9999;
     Map<Integer, Integer> directMap = new HashMap<>();
     float tmptime = 1;
@@ -504,7 +372,6 @@ public class RoutingEngine {
       n.message.linkdist = dist;
       n.message.turnangle = (float) angle;
       totaldist += dist;
-      totaltime += n.getTime();
       tmptime = (n.getTime() - lasttime);
       if (dist > 0) {
         speed = dist / tmptime * 3.6f;
@@ -514,7 +381,6 @@ public class RoutingEngine {
         directMap.put(i, dist);
       }
 
-      lastenergy = n.getEnergy();
       lasttime = n.getTime();
 
       short ele = n.getSElev();
@@ -542,7 +408,6 @@ public class RoutingEngine {
     t.plainAscend = (int) ((ele_start - ele_end) * eleFactor + 0.5);
 
     t.distance = totaldist;
-    //t.energy = totalenergy;
 
     SortedSet<Integer> keys = new TreeSet<>(directMap.keySet());
     for (Integer key : keys) {
@@ -565,8 +430,6 @@ public class RoutingEngine {
     }
     t.energy = (int) t.nodes.get(t.nodes.size() - 1).getEnergy();
 
-    logInfo("track-length total = " + t.distance);
-    logInfo("filtered ascend = " + t.ascend);
   }
 
   // geometric position matching finding the nearest routable way-section
@@ -707,8 +570,6 @@ public class RoutingEngine {
 
     int maxTotalCost = guideTrack != null ? guideTrack.cost + 5000 : 1000000000;
 
-    logInfo("findtrack with airDistanceCostFactor=" + airDistanceCostFactor);
-    if (costCuttingTrack != null) logInfo("costCuttingTrack.cost=" + costCuttingTrack.cost);
 
     int nodesVisited = 0;
 
@@ -767,7 +628,6 @@ public class RoutingEngine {
       }
 
       nodesVisited++;
-      linksProcessed++;
 
       GraphLink currentLink = path.getLink();
       GraphNode sourceNode = path.getSourceNode();
@@ -792,7 +652,6 @@ public class RoutingEngine {
         if ((sourceNodeId == endNodeId1 && currentNodeId == endNodeId2)
           || (sourceNodeId == endNodeId2 && currentNodeId == endNodeId1)) {
           // track found, compile
-          logInfo("found track at cost " + path.cost + " nodesVisited = " + nodesVisited);
           OsmTrack t = compileTrack(path, verbose);
           t.showspeed = routingContext.showspeed;
           t.showSpeedProfile = routingContext.showSpeedProfile;
@@ -807,7 +666,6 @@ public class RoutingEngine {
               + path.elevationCorrection()
               + (costCuttingTrack.cost - pe.cost);
             if (costEstimate < maxTotalCost) {
-              logInfo("maxcost " + maxTotalCost + " -> " + costEstimate);
               maxTotalCost = costEstimate;
             }
           }
@@ -976,7 +834,6 @@ public class RoutingEngine {
       element = nextElement;
     }
     track.distance = distance;
-    logInfo("track-length = " + track.distance);
     track.buildMap();
 
     // for final track..
@@ -984,14 +841,6 @@ public class RoutingEngine {
       track.copyDetours(guideTrack);
     }
     return track;
-  }
-
-  public int getDistance() {
-    return foundTrack.distance;
-  }
-
-  public String getTime() {
-    return Formatter.getFormattedTime2(foundTrack.getTotalSeconds());
   }
 
   public OsmTrack getFoundTrack() {
