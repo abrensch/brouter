@@ -342,7 +342,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
 
     // and write the filtered nodes to a file
     File outFile = fileFromTemplate(wayfile, outTileDir, dataTilesSuffix);
-    new OsmFile( outFile, minLon, minLat, new byte[10*1024*1024]).createWithNodes( nodesList );
+    new OsmFile( outFile, minLon, minLat).createWithNodes( nodesList );
   }
 
   private List<OsmNode> filterNodes( List<OsmNode> nodes ) {

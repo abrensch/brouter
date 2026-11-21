@@ -9,8 +9,6 @@ package btools.mapaccess;
 import java.io.*;
 import java.util.BitSet;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 import btools.util.TagValueValidator;
 import btools.statcoding.BitInputStream;
@@ -30,13 +28,11 @@ public final class OsmFile {
   private final int iLatBase;
   private final int divisor = 160;
   private final int cellSize = 5000000 / divisor;
-  private final byte[] ioBuffer;
 
-  public OsmFile(File file, int iLonBase, int iLatBase, byte[] ioBuffer) {
+  public OsmFile(File file, int iLonBase, int iLatBase) {
     this.file = file;
     this.iLonBase = iLonBase;
     this.iLatBase = iLatBase;
-    this.ioBuffer = ioBuffer;
   }
 
   public static String getBaseName( int lon, int lat ) {
@@ -90,7 +86,6 @@ public final class OsmFile {
 
     tileIndex= new long[nTiles + 1];
     int indexSize;
-    Map<String,long[]> bitStatistics = new TreeMap<>();
 
     // ... and write them to a file
     try (BitOutputStream bos = new BitOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
@@ -107,7 +102,7 @@ public final class OsmFile {
           int lonBase = n0.iLon - n0.iLon % cellSize;
           int latBase = n0.iLat - n0.iLat % cellSize;
           bos.startCRC();
-          new OsmTile(lonBase, latBase).encodeTile(subList, bos, bitStatistics);
+          new OsmTile(lonBase, latBase).encodeTile(subList, bos);
           bos.writeLong(bos.finishCRC());
         }
         tileIndex[si + 1] = bos.getBitPosition() >> 3;
@@ -123,14 +118,6 @@ public final class OsmFile {
       indexSize = (int)((bos.getBitPosition() >> 3) - tileIndex[nTiles]);
     }
 
-    // report the bit statistics
-    System.out.println("**** bit stats report ****");
-    for (String name : bitStatistics.keySet()) {
-      long[] stats = bitStatistics.get(name);
-      System.out.println(name + " count=" + stats[1] + " bits=" + stats[0] );
-    }
-    System.out.println("***************************");
-
     // re-open random-access to write the index position
     try ( RandomAccessFile ra = new RandomAccessFile(file, "rw") ) {
       ra.writeLong( tileIndex[nTiles] );
@@ -139,7 +126,7 @@ public final class OsmFile {
   }
 
   private byte[] getDataFromFile(long startPos, int size, String crcMessage ) throws IOException {
-    byte[] ab = ioBuffer == null || size > ioBuffer.length ? new byte[size] : ioBuffer;
+    byte[] ab = new byte[size];
     is.seek(startPos);
     is.readFully(ab, 0, size);
     checkCrc( ab, size, crcMessage );

@@ -37,7 +37,7 @@ public final class OsmTile {
 
   /**
    * Decodes the nodes of this tile from the serialized format and weaves them
-   * into the routing graph. That's the twin of {@link #encodeTile(List, BitOutputStream, Map)}.
+   * into the routing graph. That's the twin of {@link #encodeTile(List, BitOutputStream)}.
    * <p>
    * Nodes are created lazily: an {@link OsmNode} instance is only allocated
    * (or taken over from {@code hollowNodes}) when at least one routable link
@@ -218,7 +218,7 @@ public final class OsmTile {
    * only gathers statistics and writes to a null stream).
    * The stream is not closed or re-aligned.
    */
-  public void encodeTile(List<OsmNode> nodes, BitOutputStream out, Map<String,long[]> bitStatistics) throws IOException {
+  public void encodeTile(List<OsmNode> nodes, BitOutputStream out) throws IOException {
     SortedMap<Long,OsmNode> sortedNodes = sortNodes(nodes);
 
     HashMap<Long, Integer> idMap = new HashMap<>();
@@ -258,24 +258,16 @@ public final class OsmTile {
 
       // pass 1 only collects statistics and writes to /dev/null
       BitOutputStream bos = pass == 2 ? out : new BitOutputStream( OutputStream.nullOutputStream() );
-      if ( pass == 2 ) {
-        bos.registerBitStatistics(bitStatistics);
-      }
       wayTagEncoder.init(bos);
-      bos.assignBits( "dictionary way");
       nodeTagEncoder.init(bos);
-      bos.assignBits( "dictionary node");
       indexDeltaEncoder1.init(bos);
       indexDeltaEncoder2.init(bos);
-      bos.assignBits( "dictionary delta");
       linkCountEncoder.init(bos);
       largeDiffEncoder.init(bos);
       extDiffEncoder.init(bos);
-      bos.assignBits( "dictionary linkcount");
       AdaptiveDiffEncoder nodeEleDiff = new AdaptiveDiffEncoder(bos);
 
       bos.encodeUniqueSortedArray( shrinkIDs );
-      bos.assignBits( "lon/lat coords");
 
       for (int nodeIndex = 0; nodeIndex<size; nodeIndex++ ) { // loop over nodes
         OsmNode node = nodeArray[nodeIndex];
@@ -296,7 +288,6 @@ public final class OsmTile {
             }
         }
         linkCountEncoder.encodeObject( isTransferNode ? 0  : node.linkCount() );
-        bos.assignBits( "link count");
         for (OsmLink link = node.firstLink; link != null; link = link.getNext(node)) { // loop over links
 
           OsmNode target = link.getTarget(node);
@@ -312,25 +303,19 @@ public final class OsmTile {
             if (delta <= 0) throw new RuntimeException("ups: self ref?");
             if ( delta< 7 ) {
               indexDeltaEncoder.encodeObject( delta );
-              bos.assignBits( "delta small");
             } else {
               indexDeltaEncoder.encodeObject( 7 );
-              bos.assignBits( "delta large marker");
               largeDiffEncoder.encode(delta-7 );
-              bos.assignBits( "delta large");
             }
             linksReceived[idx]++;
           } else {
             indexDeltaEncoder.encodeObject( 0 );
-            bos.assignBits( "delta extern marker ");
             extDiffEncoder.encode(target.iLon - node.iLon );
             extDiffEncoder.encode(target.iLat - node.iLat );
-            bos.assignBits( "delta extern");
           }
           if ( !isTransferNode || linksReceived[nodeIndex] == 0 ) {
             bos.encodeBit(isReverse);
             wayTagEncoder.encodeTagValues(link.wayDescription);
-            bos.assignBits( "tags way");
           }
           linksReceived[nodeIndex]++;
         }
@@ -338,13 +323,11 @@ public final class OsmTile {
         // write elevation and node tags
         int sElev = node.sElev;
         nodeEleDiff.encode(sElev);
-        bos.assignBits( "elevation");
 
          if ( !isTransferNode ) { // node features for network nodes only
           if ( node.nodeDescription != null ) {
             bos.encodeUnsignedVarBits(1L );  // node tags follow
             nodeTagEncoder.encodeTagValues(node.nodeDescription);
-            bos.assignBits("tags node");
           }
 
           // write turn restrictions
@@ -358,10 +341,8 @@ public final class OsmTile {
             bos.encodeSignedVarBits(tr.toLon - node.iLon, 10);
             bos.encodeSignedVarBits(tr.toLat - node.iLat, 10);
             tr = tr.next;
-            bos.assignBits("turn restrictions");
           }
           bos.encodeUnsignedVarBits(0L );  // node features finished
-          bos.assignBits("feature stop");
         }
       }
       if (pass == 2) {

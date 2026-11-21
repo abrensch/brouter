@@ -23,7 +23,6 @@ public final class NodesCache {
   private String currentFileName;
 
   private final Map<String, OsmFile> fileCache;
-  private final byte[] ioBuffer;
 
   public WaypointMatcher waypointMatcher;
 
@@ -40,7 +39,6 @@ public final class NodesCache {
       throw new RuntimeException("segment directory " + segmentDir.getAbsolutePath() + " does not exist");
 
     fileCache = new HashMap<>(4);
-    ioBuffer = new byte[102400];
   }
 
   public boolean isInMemoryBounds(int npaths, boolean extend) {
@@ -162,7 +160,7 @@ public final class NodesCache {
     }
     OsmFile osmf = null;
     if (f != null) {
-      osmf = new OsmFile(f, iLonBase, iLatBase, ioBuffer);
+      osmf = new OsmFile(f, iLonBase, iLatBase);
       osmf.openForReading();
     }
     fileCache.put(filenameBase, osmf);
