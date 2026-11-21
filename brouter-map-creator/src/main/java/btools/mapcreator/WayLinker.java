@@ -131,7 +131,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
 
     expCtxWay.parseFile(profileFile, "global");
 
-    abUnifier = new ByteArrayUnifier(16384, false);
+    abUnifier = new ByteArrayUnifier(16384);
   }
 
   @Override

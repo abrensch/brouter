@@ -20,11 +20,10 @@ import java.util.Locale;
 import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
 import btools.statcoding.Crc64;
-import btools.util.IByteArrayUnifier;
 import btools.util.LruMap;
 
 
-public abstract class BExpressionContext implements IByteArrayUnifier {
+public abstract class BExpressionContext {
   private static final String CONTEXT_TAG = "---context:";
   private static final String MODEL_TAG = "---model:";
 
@@ -320,17 +319,17 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
 
   private CacheNode lastCacheNode = new CacheNode();
 
-  // @Override
-  public final byte[] unify(byte[] ab, int offset, int len) {
+  public final byte[] unify(byte[] ab) {
+    int len = ab.length;
     probeCacheNode.ab = null; // crc based cache lookup only
-    probeCacheNode.hash = (int) Crc64.crc(ab, offset, len);
+    probeCacheNode.hash = (int) Crc64.crc(ab, 0, len);
 
     CacheNode cn = (CacheNode) cache.get(probeCacheNode);
     if (cn != null) {
       byte[] cab = cn.ab;
       if (cab.length == len) {
         for (int i = 0; i < len; i++) {
-          if (cab[i] != ab[i + offset]) {
+          if (cab[i] != ab[i]) {
             cn = null;
             break;
           }
@@ -342,7 +341,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       }
     }
     byte[] nab = new byte[len];
-    System.arraycopy(ab, offset, nab, 0, len);
+    System.arraycopy(ab, 0, nab, 0, len);
     return nab;
   }
 
@@ -426,42 +425,6 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
     }
   }
 
-
-  public void dumpStatistics() {
-    TreeMap<String, String> counts = new TreeMap<>();
-    // first count
-    for (String name : lookupNumbers.keySet()) {
-      int cnt = 0;
-      int inum = lookupNumbers.get(name).intValue();
-      int[] histo = lookupHistograms.get(inum);
-//    if ( histo.length == 500 ) continue;
-      for (int i = 2; i < histo.length; i++) {
-        cnt += histo[i];
-      }
-      counts.put("" + (1000000000 + cnt) + "_" + name, name);
-    }
-
-    while (counts.size() > 0) {
-      String key = counts.lastEntry().getKey();
-      String name = counts.get(key);
-      counts.remove(key);
-      int inum = lookupNumbers.get(name).intValue();
-      BExpressionLookupValue[] values = lookupValues.get(inum);
-      int[] histo = lookupHistograms.get(inum);
-      if (values.length == 1000) continue;
-      String[] svalues = new String[values.length];
-      for (int i = 0; i < values.length; i++) {
-        String scnt = "0000000000" + histo[i];
-        scnt = scnt.substring(scnt.length() - 10);
-        svalues[i] = scnt + " " + values[i].toString();
-      }
-      Arrays.sort(svalues);
-      for (int i = svalues.length - 1; i >= 0; i--) {
-        System.out.println(name + ";" + svalues[i]);
-      }
-    }
-  }
-
   /**
    * @return a new lookupData array, or null if no metadata defined
    */
@@ -470,43 +433,6 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       return new int[lookupValues.size()];
     }
     return null;
-  }
-
-  /**
-   * generate random values for regression testing
-   */
-  public int[] generateRandomValues(Random rnd) {
-    int[] data = createNewLookupData();
-    data[0] = 2 * rnd.nextInt(2); // reverse-direction = 0 or 2
-    for (int inum = 1; inum < data.length; inum++) {
-      int nvalues = lookupValues.get(inum).length;
-      data[inum] = 0;
-      if (inum > 1 && rnd.nextInt(10) > 0) continue; // tags other than highway only 10%
-      data[inum] = rnd.nextInt(nvalues);
-    }
-    lookupDataValid = true;
-    return data;
-  }
-
-  public void assertAllVariablesEqual(BExpressionContext other) {
-    int nv = variableData.length;
-    int nv2 = other.variableData.length;
-    if (nv != nv2) throw new RuntimeException("mismatch in variable-count: " + nv + "<->" + nv2);
-    for (int i = 0; i < nv; i++) {
-      if (variableData[i] != other.variableData[i]) {
-        throw new RuntimeException("mismatch in variable " + variableName(i) + " " + variableData[i] + "<->" + other.variableData[i]
-          + "\ntags = " + getKeyValueDescription(false, encode()));
-      }
-    }
-  }
-
-  public String variableName(int idx) {
-    for (Map.Entry<String, Integer> e : variableNumbers.entrySet()) {
-      if (e.getValue().intValue() == idx) {
-        return e.getKey();
-      }
-    }
-    throw new RuntimeException("no variable for index" + idx);
   }
 
   /**
@@ -937,7 +863,7 @@ public abstract class BExpressionContext implements IByteArrayUnifier {
       bos.encodeUnsignedVarBits( 0 );
     }
     byte[] result = buf.toByteArray();
-    return unify(result, 0, result.length);
+    return unify(result);
   }
 
   public final void setAllTagsUsed() {
