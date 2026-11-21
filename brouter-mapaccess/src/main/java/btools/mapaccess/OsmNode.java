@@ -95,21 +95,6 @@ public class OsmNode extends OsmLink {
     return cnt;
   }
 
-  /**
-   * Checks whether this node has at least one link whose target node
-   * is still hollow (i.e. only its id is known, its data not yet decoded).
-   *
-   * @return true if at least one link target is hollow, false otherwise
-   */
-  public boolean hasHollowLinkTargets() {
-    for (OsmLink link = firstLink; link != null; link = link.getNext(this)) {
-      if (link.getTarget(this).isHollow()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   public OsmLink linkForTarget( int targetLon, int targetLat ) {
     for (OsmLink l = firstLink; l != null; l = l.getNext(this)) {
       OsmNode t = l.getTarget(this);
