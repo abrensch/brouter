@@ -248,7 +248,7 @@ public class RoutingParamCollector {
   }
 
   public List<GraphNodeNamed> readNogoList(String nogos) {
-    // lon,lat,radius[,weight]|...
+    // lon,lat,radius|...
 
     if (nogos == null) return null;
 
@@ -257,11 +257,7 @@ public class RoutingParamCollector {
     List<GraphNodeNamed> nogoList = new ArrayList<>();
     for (int i = 0; i < lonLatRadList.length; i++) {
       String[] lonLatRad = lonLatRadList[i].split(",");
-      String nogoWeight = "NaN";
-      if (lonLatRad.length > 3) {
-        nogoWeight = lonLatRad[3];
-      }
-      nogoList.add(readNogo(lonLatRad[0], lonLatRad[1], lonLatRad[2], nogoWeight));
+      nogoList.add(readNogo(lonLatRad[0], lonLatRad[1], lonLatRad[2]));
     }
 
     return nogoList;
@@ -274,27 +270,24 @@ public class RoutingParamCollector {
     String[] lons = nogoLons.split(",");
     String[] lats = nogoLats.split(",");
     String[] radi = nogoRadi.split(",");
-    String nogoWeight = "undefined";
     for (int i = 0; i < lons.length && i < lats.length && i < radi.length; i++) {
-      GraphNodeNamed n = readNogo(lons[i].trim(), lats[i].trim(), radi[i].trim(), nogoWeight);
+      GraphNodeNamed n = readNogo(lons[i].trim(), lats[i].trim(), radi[i].trim() );
       nogoList.add(n);
     }
     return nogoList;
   }
 
 
-  private GraphNodeNamed readNogo(String lon, String lat, String radius, String nogoWeight) {
-    double weight = "undefined".equals(nogoWeight) ? Double.NaN : Double.parseDouble(nogoWeight);
-    return readNogo(Double.parseDouble(lon), Double.parseDouble(lat), (int) Double.parseDouble(radius), weight);
+  private GraphNodeNamed readNogo(String lon, String lat, String radius) {
+    return readNogo(Double.parseDouble(lon), Double.parseDouble(lat), (int) Double.parseDouble(radius) );
   }
 
-  private GraphNodeNamed readNogo(double lon, double lat, int radius, double nogoWeight) {
+  private GraphNodeNamed readNogo(double lon, double lat, int radius) {
     GraphNodeNamed n = new GraphNodeNamed();
     n.name = "nogo" + radius;
     n.iLon = (int) ((lon + 180.) * 1000000. + 0.5);
     n.iLat = (int) ((lat + 90.) * 1000000. + 0.5);
     n.isNogo = true;
-    n.nogoWeight = nogoWeight;
     return n;
   }
 

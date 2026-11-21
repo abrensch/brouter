@@ -259,8 +259,7 @@ public final class RoutingContext {
       boolean isInsideNogo = false;
       GraphNode wp = mwp.crossPoint;
       for (GraphNodeNamed nogo : nogopoints) {
-        if (Double.isNaN(nogo.nogoWeight)
-          && wp.calcDistance(nogo) < nogo.radius) {
+        if (wp.calcDistance(nogo) < nogo.radius) {
           isInsideNogo = true;
           break;
         }
@@ -301,7 +300,7 @@ public final class RoutingContext {
     if (nogopoints == null) return false;
     boolean allInTotal = false;
     for (GraphNodeNamed nogo : nogopoints) {
-      boolean allIn = Double.isNaN(nogo.nogoWeight);
+      boolean allIn = true;
       for (GraphNode wp : waypoints) {
         int dist = wp.calcDistance(nogo);
         if (dist < nogo.radius) {
@@ -378,13 +377,7 @@ public final class RoutingContext {
             if (radius > nogo.radius) continue;
           }
           if (nogo.isNogo) {
-            if (Double.isNaN(nogo.nogoWeight)) {
-              // default nogo behaviour (ignore completely)
-              nogoCost = -1;
-            } else {
-              // nogo weight, compute distance within the circle
-              nogoCost = nogo.distanceWithinRadius(lon1, lat1, lon2, lat2, d) * nogo.nogoWeight;
-            }
+            nogoCost = -1;
           } else {
             shortestmatch = true;
             nogo.radius = radius; // shortest distance to way
