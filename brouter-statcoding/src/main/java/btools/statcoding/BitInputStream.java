@@ -327,6 +327,9 @@ public class BitInputStream extends InputStream implements DataInput {
         if (count == 0) {
             return 0L;
         }
+        if (count < 0 || count > 64) {
+            throw new IllegalArgumentException("count out of range (0..64): " + count);
+        }
         fillBuffer();
         if (count > bits) {
             return (decodeBits(count-32) << 32) | decodeBits( 32 ); // buffer too small, split

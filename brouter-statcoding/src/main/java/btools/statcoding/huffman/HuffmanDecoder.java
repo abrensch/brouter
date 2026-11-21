@@ -29,6 +29,9 @@ public abstract class HuffmanDecoder<V> {
      * @return obj the decoded object
      */
     public final V decodeObject() throws IOException {
+        if ( subtrees == null ) {
+            throw new IllegalStateException("empty huffman tree, cannot decode object");
+        }
         int idx = bis.decodeLookupIndex(lengths,m64lookupBits);
         Object node = subtrees[idx];
         while (node instanceof TreeNode) {

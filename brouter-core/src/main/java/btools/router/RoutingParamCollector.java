@@ -188,26 +188,6 @@ public class RoutingParamCollector {
     }
   }
 
-  /**
-   * fill profile parameter list
-   *
-   * @param rctx    the routing context
-   * @param params  the list of parameters
-   */
-  public void setProfileParams(RoutingContext rctx, Map<String, String> params) {
-    if (params != null) {
-      if (params.size() == 0) return;
-      if (rctx.keyValues == null) rctx.keyValues = new HashMap<>();
-      for (Map.Entry<String, String> e : params.entrySet()) {
-        String key = e.getKey();
-        String value = e.getValue();
-        if (DEBUG) System.out.println("params " + key + " " + value);
-        rctx.keyValues.put(key, value);
-      }
-    }
-  }
-
-
   public List<GraphNodeNamed> readPoisList(String pois) {
     // lon,lat,name|...
     if (pois == null) return null;
