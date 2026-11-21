@@ -31,9 +31,7 @@ public final class BExpressionMetaData {
   }
 
   public void readMetaData(File lookupsFile) {
-    try {
-      BufferedReader br = new BufferedReader(new FileReader(lookupsFile));
-
+    try ( BufferedReader br = new BufferedReader(new FileReader(lookupsFile))) {
       BExpressionContext ctx = null;
 
       for (; ; ) {
@@ -62,12 +60,9 @@ public final class BExpressionMetaData {
         }
         if (ctx != null) ctx.parseMetaLine(line);
       }
-      br.close();
-
       for (BExpressionContext c : listeners.values()) {
         c.finishMetaParsing();
       }
-
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

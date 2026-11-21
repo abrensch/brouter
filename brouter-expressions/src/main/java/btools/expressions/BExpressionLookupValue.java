@@ -32,13 +32,10 @@ final class BExpressionLookupValue {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof String) {
-      String v = (String) o;
+    if (o instanceof String v) {
       return value.equals(v);
     }
-    if (o instanceof BExpressionLookupValue) {
-      BExpressionLookupValue v = (BExpressionLookupValue) o;
-
+    if (o instanceof BExpressionLookupValue v) {
       return value.equals(v.value);
     }
     return false;

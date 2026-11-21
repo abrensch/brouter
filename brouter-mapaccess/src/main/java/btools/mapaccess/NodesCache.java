@@ -24,14 +24,23 @@ public final class NodesCache {
 
   private final Map<String, GraphFile> fileCache;
 
-  public NodesCache(File segmentDir, TagValueValidator wayValidator, long maxMem) {
+  /**
+   * @param oldCache optional previous cache (may be null): its open files (with parsed headers and
+   *                 tile indexes) are taken over, but cleaned of all decoded tile data
+   */
+  public NodesCache(File segmentDir, TagValueValidator wayValidator, long maxMem, NodesCache oldCache) {
     this.segmentDir = segmentDir;
     this.wayValidator = wayValidator;
 
     if (!this.segmentDir.isDirectory()) {
       throw new RuntimeException("segment directory " + segmentDir.getAbsolutePath() + " does not exist");
     }
-    fileCache = new HashMap<>(4);
+    if (oldCache != null) {
+      fileCache = oldCache.fileCache;
+      clean();
+    } else {
+      fileCache = new HashMap<>(4);
+    }
   }
 
   public void clean() {
