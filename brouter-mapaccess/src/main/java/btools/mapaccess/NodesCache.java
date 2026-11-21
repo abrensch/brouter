@@ -16,7 +16,7 @@ import btools.util.TagValueValidator;
 public final class NodesCache {
   private final File segmentDir;
 
-  private final OsmNodesMap hollowNodes;
+  private final Map<Long, OsmNode> hollowNodes = new HashMap<>(4096);
 
   private final TagValueValidator wayValidator;
 
@@ -26,18 +26,12 @@ public final class NodesCache {
 
   public NodesCache(File segmentDir, TagValueValidator wayValidator, long maxMem) {
     this.segmentDir = segmentDir;
-    this.hollowNodes = new OsmNodesMap();
-    this.hollowNodes.maxmem = (2L * maxMem) / 3L;
     this.wayValidator = wayValidator;
 
-    if (!this.segmentDir.isDirectory())
+    if (!this.segmentDir.isDirectory()) {
       throw new RuntimeException("segment directory " + segmentDir.getAbsolutePath() + " does not exist");
-
+    }
     fileCache = new HashMap<>(4);
-  }
-
-  public boolean isInMemoryBounds(int npaths, boolean extend) {
-    return hollowNodes.isInMemoryBounds(npaths, extend);
   }
 
   public void clean() {
@@ -96,13 +90,13 @@ public final class NodesCache {
 
 
   public OsmNode getGraphNode(OsmNode template) {
-    OsmNode existing = hollowNodes.get(template.iLon, template.iLat);
+    OsmNode existing = hollowNodes.get(OsmNode.idFromPos(template.iLon, template.iLat));
     if (existing != null) {
       return existing;
     }
     OsmNode graphNode = new OsmNode(template.iLon, template.iLat);
     graphNode.setBits(OsmNode.HOLLOW_BIT);
-    hollowNodes.put(graphNode);
+    hollowNodes.put(OsmNode.idFromPos(graphNode.iLon, graphNode.iLat), graphNode);
     return graphNode;
   }
 

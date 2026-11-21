@@ -33,7 +33,7 @@ public final class OsmTile {
 
   private long[] shrinkIDs;
   private OsmNode[] nodes;
-  private OsmNodesMap hollowNodes;
+  private Map<Long, OsmNode> hollowNodes;
 
   /**
    * Decodes the nodes of this tile from the serialized format and weaves them
@@ -56,7 +56,7 @@ public final class OsmTile {
    * @return the number of bytes consumed from the buffer
    * @throws IOException      if shit happens
    */
-  public int decodeTile(byte[] buffer, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) throws IOException {
+  public int decodeTile(byte[] buffer, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, Map<Long, OsmNode> hollowNodes) throws IOException {
 
     BitInputStream bis = new BitInputStream( new ByteArrayInputStream( buffer ) );
     TagValueDecoder wayTagDecoder = new TagValueDecoder(wayValidator);
@@ -139,11 +139,11 @@ public final class OsmTile {
               targetNode = link.getTarget(sourceNode);
             } else {
               // .. not found, check the hollow nodes
-              targetNode = hollowNodes.get(linkLon, linkLat);
+              targetNode = hollowNodes.get(OsmNode.idFromPos(linkLon, linkLat));
               if (targetNode == null) { // node not yet known, create a new hollow proxy
                 targetNode = new OsmNode(linkLon, linkLat);
                 targetNode.setBits( OsmNode.HOLLOW_BIT );
-                hollowNodes.put(targetNode);
+                hollowNodes.put(OsmNode.idFromPos(linkLon, linkLat), targetNode);
               }
             }
           }
@@ -191,8 +191,6 @@ public final class OsmTile {
         }
       }
     }
-
-    hollowNodes.countNodes(nodes);
     return buffer.length - bis.available();
   }
 
@@ -201,11 +199,10 @@ public final class OsmTile {
       long s32 = BitInterleavedConverter.interleaved2Shift32(shrinkIDs[idx]);
       int iLon = lonBase + BitInterleavedConverter.xFromShift32(s32);
       int iLat = latBase + BitInterleavedConverter.yFromShift32(s32);
-      OsmNode node = hollowNodes.get(iLon, iLat);
+      OsmNode node = hollowNodes.remove(OsmNode.idFromPos(iLon, iLat));
       if (node == null) {
         node = new OsmNode(iLon, iLat);
       } else {
-        hollowNodes.remove(node);
         node.clearBits( OsmNode.HOLLOW_BIT );
       }
       nodes[idx] = node;

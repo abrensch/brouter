@@ -745,9 +745,6 @@ public class RoutingEngine {
     SortedHeap<OsmPath> openSet = new SortedHeap<>();
     addToOpenset(openSet, startPath1);
     addToOpenset(openSet, startPath2);
-    ArrayList<OsmPath> openBorderList = new ArrayList<>(4096);
-    boolean memoryPanicMode = false;
-    boolean needNonPanicProcessing = false;
 
     for (; ; ) {
       if (terminated) {
@@ -764,37 +761,8 @@ public class RoutingEngine {
 
       OsmPath path = openSet.popLowestKeyValue();
       if (path == null) {
-        if (openBorderList.isEmpty()) {
-          break;
-        }
-        for (OsmPath p : openBorderList) {
-          openSet.add(p.cost + (int) (p.airDistance * airDistanceCostFactor), p);
-        }
-        openBorderList.clear();
-        memoryPanicMode = false;
-        needNonPanicProcessing = true;
-        continue;
+        break;
       }
-
-      if (path.getTargetNode().hasHollowLinkTargets()) {
-        if (!memoryPanicMode) {
-          if (!nodesCache.isInMemoryBounds(openSet.getSize(), false)) {
-            if (!nodesCache.isInMemoryBounds(openSet.getSize(), true)) {
-              if (maxTotalCost < 1000000000 || needNonPanicProcessing) {
-                throw new IllegalArgumentException("memory limit reached");
-              }
-              memoryPanicMode = true;
-              logInfo("************************ memory limit reached, enabled memory panic mode *************************");
-            }
-          }
-        }
-        if (memoryPanicMode) {
-          openBorderList.add(path);
-          continue;
-        }
-      }
-      needNonPanicProcessing = false;
-
 
       if (nodeLimit > 0) { // check node-limit for target island search
         if (--nodeLimit == 0) {

@@ -166,8 +166,11 @@ public class OsmNode extends OsmLink {
     return hasBits(HOLLOW_BIT);
   }
 
+  /**
+   * The unique id of this node, derived from its position.
+   */
   public final long getIdFromPos() {
-    return ((long) iLon) << 32 | iLat;
+    return idFromPos(iLon, iLat);
   }
 
   public void vanish() {
@@ -228,13 +231,10 @@ public class OsmNode extends OsmLink {
   }
 
 
-  @Override
-  public final boolean equals(Object o) {
-    return ((OsmNode) o).iLon == iLon && ((OsmNode) o).iLat == iLat;
-  }
-
-  @Override
-  public final int hashCode() {
-    return iLon + iLat;
+  /**
+   * The unique id for the given position (also used as map key).
+   */
+  public static long idFromPos(int iLon, int iLat) {
+    return ((long) iLon << 32) | (iLat & 0xFFFFFFFFL);
   }
 }

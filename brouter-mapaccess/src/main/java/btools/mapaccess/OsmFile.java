@@ -9,6 +9,7 @@ package btools.mapaccess;
 import java.io.*;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Map;
 
 import btools.util.TagValueValidator;
 import btools.statcoding.BitInputStream;
@@ -143,7 +144,7 @@ public final class OsmFile {
     }
   }
 
-  public void checkDecodeTile(OsmNode template, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes)
+  public void checkDecodeTile(OsmNode template, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, Map<Long, OsmNode> hollowNodes)
     throws Exception {
     int lonIdx = (template.iLon-iLonBase) / cellSize;
     int latIdx = (template.iLat-iLatBase) / cellSize;
@@ -158,7 +159,7 @@ public final class OsmFile {
   }
 
   private void decodeTileForIndex(int tileIdx, int lonBase, int latBase, TagValueValidator wayValidator,
-                                 WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) throws IOException {
+                                 WaypointMatcher waypointMatcher, Map<Long, OsmNode> hollowNodes) throws IOException {
     long startPos = tileIndex[tileIdx];
     long endPos = tileIndex[tileIdx+1];
     long sizeLong = endPos-startPos;
