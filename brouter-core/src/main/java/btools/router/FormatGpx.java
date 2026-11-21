@@ -106,15 +106,7 @@ public class FormatGpx extends Formatter {
         }
         first.append("    <offset>0</offset>\n  </extensions>\n </rtept>\n");
       }
-      if (turnInstructionMode == 8) {
-        if (t.matchedWaypoints.get(0).direct && t.voiceHints.list.get(0).indexInTrack == 0) {
-          // has a voice hint do nothing, voice hint will do
-        } else {
-          sb.append(first.toString());
-        }
-      } else {
-        sb.append(first.toString());
-      }
+      sb.append(first.toString());
 
       for (int i = 0; i < t.voiceHints.list.size(); i++) {
         VoiceHint hint = t.voiceHints.list.get(i);
@@ -239,7 +231,6 @@ public class FormatGpx extends Formatter {
     // all points
     sb.append("  <trkseg>\n");
     String lastway = "";
-    boolean bNextDirect = false;
     OsmPathElement nn = null;
     String aSpeed;
 
@@ -296,12 +287,8 @@ public class FormatGpx extends Formatter {
           sele += "</extensions>";
 
         }
-        if (idx == 0 && hint == null) {
-          if (mwpt != null && mwpt.direct) {
-            sele += "<desc>beeline</desc>";
-          } else {
-            sele += "<desc>start</desc>";
-          }
+          if (idx == 0 && hint == null) {
+          sele += "<desc>start</desc>";
           sele += "<type>Via</type>";
 
         } else if (idx == t.nodes.size() - 1 && hint == null) {
@@ -311,14 +298,8 @@ public class FormatGpx extends Formatter {
 
         } else {
           if (mwpt != null && hint == null) {
-            if (mwpt.direct) {
-              // bNextDirect = true;
-              sele += "<desc>beeline</desc>";
-            } else {
-              sele += "<desc>" + mwpt.name + "</desc>";
-            }
+            sele += "<desc>" + mwpt.name + "</desc>";
             sele += "<type>Via</type>";
-            bNextDirect = false;
           }
         }
 
@@ -357,21 +338,7 @@ public class FormatGpx extends Formatter {
             if (!mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
               sele += "<name>" + mwpt.name + "</name>";
             }
-            if (mwpt.direct && bNextDirect) {
-              sele += "<src>" + hint.getLocusSymbolString() + "</src><sym>pass_place</sym><type>Shaping</type>";
-              // bNextDirect = false;
-            } else if (mwpt.direct) {
-              if (idx == 0)
-                sele += "<sym>pass_place</sym><type>Via</type>";
-              else
-                sele += "<sym>pass_place</sym><type>Shaping</type>";
-              bNextDirect = true;
-            } else if (bNextDirect) {
-              sele += "<src>beeline</src><sym>" + hint.getLocusSymbolString() + "</sym><type>Shaping</type>";
-              bNextDirect = false;
-            } else {
-              sele += "<sym>" + hint.getLocusSymbolString() + "</sym><type>Via</type>";
-            }
+            sele += "<sym>" + hint.getLocusSymbolString() + "</sym><type>Via</type>";
           } else {
             sele += "<sym>" + hint.getLocusSymbolString() + "</sym>";
           }
@@ -384,9 +351,6 @@ public class FormatGpx extends Formatter {
             }
             if (mwpt != null && !mwpt.name.startsWith("from"))
               sele += "<name>" + mwpt.name + "</name>";
-            if (mwpt != null && mwpt.direct) {
-              bNextDirect = true;
-            }
             sele += "<sym>pass_place</sym>";
             sele += "<type>Via</type>";
 
@@ -398,9 +362,6 @@ public class FormatGpx extends Formatter {
             }
             if (mwpt != null && mwpt.name != null && !mwpt.name.startsWith("to"))
               sele += "<name>" + mwpt.name + "</name>";
-            if (bNextDirect) {
-              sele += "<src>beeline</src>";
-            }
             sele += "<sym>pass_place</sym>";
             sele += "<type>Via</type>";
 
@@ -409,26 +370,10 @@ public class FormatGpx extends Formatter {
               if (!mwpt.name.startsWith("via") && !mwpt.name.startsWith("from") && !mwpt.name.startsWith("to")) {
                 sele += "<name>" + mwpt.name + "</name>";
               }
-              if (mwpt.direct && bNextDirect) {
-                sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
-              } else if (mwpt.direct) {
-                if (idx == 0)
-                  sele += "<sym>pass_place</sym><type>Via</type>";
-                else
-                  sele += "<sym>pass_place</sym><type>Shaping</type>";
-                bNextDirect = true;
-              } else if (bNextDirect) {
-                sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
-                bNextDirect = false;
-              } else if (mwpt.name.startsWith("via") ||
+              if (mwpt.name.startsWith("via") ||
                 mwpt.name.startsWith("from") ||
                 mwpt.name.startsWith("to")) {
-                if (bNextDirect) {
-                  sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>";
-                } else {
-                  sele += "<sym>pass_place</sym><type>Via</type>";
-                }
-                bNextDirect = false;
+                sele += "<sym>pass_place</sym><type>Via</type>";
               } else {
                 sele += "<name>" + mwpt.name + "</name>";
                 sele += "<sym>pass_place</sym><type>Via</type>";

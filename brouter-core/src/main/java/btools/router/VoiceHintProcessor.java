@@ -65,10 +65,6 @@ public final class VoiceHintProcessor {
     for (int hintIdx = 0; hintIdx < inputs.size(); hintIdx++) {
       VoiceHint input = inputs.get(hintIdx);
 
-      if (input.cmd == VoiceHint.BL) {
-        results.add(input);
-        continue;
-      }
       float turnAngle = input.goodWay.turnangle;
       distance += input.goodWay.linkdist;
       int currentPrio = input.goodWay.getPrio();
@@ -209,7 +205,7 @@ public final class VoiceHintProcessor {
       if (hint.cmd == 0) {
         hint.calcCommand();
       }
-      if (!(hint.needsRealTurn && (hint.cmd == VoiceHint.C || hint.cmd == VoiceHint.BL))) {
+      if (!(hint.needsRealTurn && hint.cmd == VoiceHint.C)) {
         double dist = hint.distanceToNext;
         // sum up other hints within the catching range (e.g. 40m)
         while (dist < INTERNAL_CATCHING_RANGE && i > 0) {
@@ -229,8 +225,6 @@ public final class VoiceHintProcessor {
           hint.roundaboutExit = 0; // use an angular hint instead
         }
         hint.calcCommand();
-        results2.add(hint);
-      } else if (hint.cmd == VoiceHint.BL) {
         results2.add(hint);
       } else {
         if (results2.size() > 0)

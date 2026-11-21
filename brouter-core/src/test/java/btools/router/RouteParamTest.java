@@ -38,11 +38,6 @@ public class RouteParamTest {
     map = rpc.getWayPointList(data);
 
     Assert.assertEquals("result content 3 ", "Name", map.get(0).name);
-
-    data = "1.0,1.2,d;2.0,2.2";
-    map = rpc.getWayPointList(data);
-
-    Assert.assertTrue("result content 4 ", map.get(0).direct);
   }
 
   @Test

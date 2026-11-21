@@ -254,7 +254,6 @@ public class RoutingEngine {
         MatchedWaypoint mwp = new MatchedWaypoint();
         mwp.waypoint = waypoints.get(i);
         mwp.name = waypoints.get(i).name;
-        mwp.direct = waypoints.get(i).direct;
         matchedWaypoints.add(mwp);
       }
       matchWaypointsToNodes(matchedWaypoints);
@@ -266,7 +265,7 @@ public class RoutingEngine {
       airDistanceCostFactor = 0.;
       for (int i = 0; i < matchedWaypoints.size() - 1; i++) {
         nodeLimit = MAXNODES_ISLAND_CHECK;
-        if (matchedWaypoints.get(i).direct) continue;
+
         if (routingContext.inverseRouting) {
           OsmTrack seg = findTrack("start-island-check", matchedWaypoints.get(i), matchedWaypoints.get(i + 1), null, null);
           if (seg == null && nodeLimit > 0) {
@@ -441,15 +440,7 @@ public class RoutingEngine {
   private OsmTrack searchTrack(MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack refTrack) {
     // remove nogos with waypoints inside
     try {
-      boolean calcBeeline = startWp.direct;
-
-      if (!calcBeeline)
-        return searchRoutedTrack(startWp, endWp, refTrack);
-
-      // we want a beeline-segment
-      OsmPath path = routingContext.createPath(new GraphLink(null, startWp.crossPoint));
-      path = routingContext.createPath(path, new GraphLink(startWp.crossPoint, endWp.crossPoint), null, false);
-      return compileTrack(path, false);
+      return searchRoutedTrack(startWp, endWp, refTrack);
     } finally {
       routingContext.restoreNogoList();
     }

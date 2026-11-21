@@ -32,11 +32,7 @@ public class RoutingParamCollector {
         throw new IllegalArgumentException("we need one lat/lon point at least!");
       wplist.add(readPosition(lonLat[0], lonLat[1], "via" + i));
       if (lonLat.length > 2) {
-        if (lonLat[2].equals("d")) {
-          wplist.get(wplist.size() - 1).direct = true;
-        } else {
-          wplist.get(wplist.size() - 1).name = lonLat[2];
-        }
+        wplist.get(wplist.size() - 1).name = lonLat[2];
       }
     }
 
@@ -165,17 +161,7 @@ public class RoutingParamCollector {
         String value = e.getValue();
         if (DEBUG) System.out.println("params " + key + " " + value);
 
-        if (key.equals("straight")) {
-          try {
-            String[] sa = value.split(",");
-            for (int i = 0; i < sa.length; i++) {
-              int v = Integer.parseInt(sa[i]);
-              if (wplist.size() > v) wplist.get(v).direct = true;
-            }
-          } catch (Exception ex) {
-            System.err.println("error " + ex.getStackTrace()[0].getLineNumber() + " " + ex.getStackTrace()[0] + "\n" + ex);
-          }
-        } else if (key.equals("pois")) {
+        if (key.equals("pois")) {
           rctx.poipoints = readPoisList(value);
         } else if (key.equals("alternativeidx")) {
           rctx.setAlternativeIdx(Integer.parseInt(value));

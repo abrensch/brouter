@@ -25,7 +25,6 @@ public class VoiceHint {
   static final int RNDB = 13; // Roundabout
   static final int RNLB = 14; // Roundabout left
   static final int TU = 15; // 180 degree u-turn
-  static final int BL = 16; // Beeline routing
 
   int ilon;
   int ilat;
@@ -91,8 +90,6 @@ public class VoiceHint {
         return 13;
       case RNLB:
         return 14;
-      case BL:
-        return 16;
       case OFFR:
         return 12;
       default:
@@ -137,8 +134,6 @@ public class VoiceHint {
         return "RNDB" + roundaboutExit;
       case RNLB:
         return "RNLB" + (-roundaboutExit);
-      case BL:
-        return "BL";
       case OFFR:
         return "OFFR";
       default:
@@ -179,8 +174,6 @@ public class VoiceHint {
         return "RNDB" + roundaboutExit;
       case RNLB:
         return "RNLB" + (-roundaboutExit);
-      case BL:
-        return "BL";
       case OFFR:
         return "OFFR";
       default:
@@ -221,8 +214,6 @@ public class VoiceHint {
         return "RNDB" + roundaboutExit;
       case RNLB:
         return "RNLB" + (-roundaboutExit);
-      case BL:
-        return "BL";
       case OFFR:
         return "OFFR";
       default:
@@ -263,8 +254,6 @@ public class VoiceHint {
         return "roundabout_e" + roundaboutExit;
       case RNLB:
         return "roundabout_e" + (-roundaboutExit);
-      case BL:
-        return "beeline";
       default:
         throw new IllegalArgumentException("unknown command: " + cmd);
     }
@@ -417,8 +406,6 @@ public class VoiceHint {
         return "RNDB" + roundaboutExit;
       case RNLB:
         return "RNLB" + (-roundaboutExit);
-      case BL:
-        return "BL";
       case OFFR:
         return "OFFR";
       default:
@@ -459,8 +446,6 @@ public class VoiceHint {
         return "take exit " + roundaboutExit;
       case RNLB:
         return "take exit " + (-roundaboutExit);
-      case BL:
-        return "beeline";
       case OFFR:
         return "offroad";
       default:
@@ -495,7 +480,8 @@ public class VoiceHint {
     if (angle == Float.MAX_VALUE) {
       cmdAngle = goodWay.turnangle;
     }
-    if (cmd == BL) return;
+
+
 
     if (roundaboutExit > 0) {
       cmd = RNDB;

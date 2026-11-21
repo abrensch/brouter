@@ -25,7 +25,6 @@ import btools.server.ServiceContext;
  * pois = lon,lat,name|... (optional)
  * timode = turnInstructionMode [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style] default 0
  * profile:xxx = parameter in profile (optional)
- * straight = idx1,idx2,.. (optional, minimum one value, index of a direct routing point in the waypoint list)
  * <p>
  * Example URLs:
  * {@code http://localhost:17777/brouter?lonlats=8.799297,49.565883|8.811764,49.563606&nogos=&profile=trekking&alternativeidx=0&format=gpx}

@@ -105,18 +105,6 @@ public class RouteServerTest {
     Assert.assertEquals(2, geoJson.query("/features/0/properties/voicehints/0/1")); // TL
   }
 
-  @Test
-  public void directRoutingMiddle() throws IOException {
-    URL requestUrl = new URL(baseUrl + "brouter?lonlats=8.718539,50.006581|8.718198,50.006065,d|8.71785,50.006034|8.7169,50.004456&nogos=&profile=trekking&alternativeidx=0&format=geojson&timode=3");
-    HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
-    httpConnection.connect();
-
-    Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
-
-    InputStream inputStream = httpConnection.getInputStream();
-    JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("347", geoJson.query("/features/0/properties/track-length"));
-  }
 
   @Test
   public void robots() throws IOException {

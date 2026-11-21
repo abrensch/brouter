@@ -12,7 +12,6 @@ public class GraphNodeNamed extends GraphNode {
   public String name;
   public double radius; // radius of nogopoint (in meters)
   public boolean isNogo = false;
-  public boolean direct = false; // mark direct routing
 
   public GraphNodeNamed() {
   }
