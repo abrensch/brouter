@@ -151,7 +151,6 @@ public class RoutingEngine {
               break;
             case "geojson": // read only gpx at the moment
             case "json":
-            case "kml":
             default:
               break;
           }
@@ -167,9 +166,6 @@ public class RoutingEngine {
             case "geojson":
             case "json":
               outputMessage = new FormatJson(routingContext).format(track);
-              break;
-            case "kml":
-              outputMessage = new FormatKml(routingContext).format(track);
               break;
             case "csv":
             default:

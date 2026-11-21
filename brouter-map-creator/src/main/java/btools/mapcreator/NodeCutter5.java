@@ -2,7 +2,6 @@ package btools.mapcreator;
 
 import btools.mapaccess.GraphFile;
 import btools.util.DenseLongMap;
-import btools.util.TinyDenseLongMap;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +16,7 @@ import java.io.IOException;
  * @author ab
  */
 public class NodeCutter5 extends ItemCutter implements ItemListener {
-  private final DenseLongMap tileIndexMap = Boolean.getBoolean("useDenseMaps") ? new DenseLongMap() : new TinyDenseLongMap();
+  private final DenseLongMap tileIndexMap = new DenseLongMap();
 
   private final DenseLongMap nodeFilter;
 

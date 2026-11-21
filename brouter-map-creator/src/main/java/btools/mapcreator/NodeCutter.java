@@ -9,7 +9,6 @@ package btools.mapcreator;
 
 import btools.mapaccess.GraphFile;
 import btools.util.DenseLongMap;
-import btools.util.TinyDenseLongMap;
 
 import java.io.*;
 
@@ -26,7 +25,7 @@ public class NodeCutter extends ItemCutter {
     super( new File( tmpDir, "nodes" ) );
 
     // *** read all nodes into tileIndexMap
-    tileIndexMap = Boolean.getBoolean("useDenseMaps") ? new DenseLongMap() : new TinyDenseLongMap();
+    tileIndexMap = new DenseLongMap();
   }
 
   public int getTileIndexForNid(long nid) {

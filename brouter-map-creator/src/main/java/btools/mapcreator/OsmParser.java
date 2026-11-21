@@ -19,7 +19,6 @@ import btools.expressions.BExpressionMetaData;
 import btools.statcoding.BitOutputStream;
 import btools.util.DenseLongMap;
 import btools.util.LongList;
-import btools.util.TinyDenseLongMap;
 
 public class OsmParser {
   private long recordCnt;
@@ -75,7 +74,7 @@ public class OsmParser {
     nodeCutter = new NodeCutter(tmpDir);
     wayCutter = new WayCutter(tmpDir,nodeCutter);
     restrictionCutter = new RestrictionCutter(tmpDir,nodeCutter);
-    nodeFilter = Boolean.getBoolean("useDenseMaps") ? new DenseLongMap(512) : new TinyDenseLongMap();
+    nodeFilter = new DenseLongMap(512);
 
     if (!lookupFile.exists()) {
       throw new IllegalArgumentException("lookup-file: " + lookupFile + " does not exist");
