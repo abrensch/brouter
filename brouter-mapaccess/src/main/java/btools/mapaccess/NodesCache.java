@@ -24,11 +24,6 @@ public final class NodesCache {
 
   private final Map<String, OsmFile> fileCache;
 
-  public WaypointMatcher waypointMatcher;
-
-  public boolean first_file_access_failed;
-  public String first_file_access_name;
-
   public NodesCache(File segmentDir, TagValueValidator wayValidator, long maxMem) {
     this.segmentDir = segmentDir;
     this.hollowNodes = new OsmNodesMap();
@@ -53,9 +48,9 @@ public final class NodesCache {
     }
   }
 
-  public boolean decodeSegmentFor(OsmNode template) {
+  public boolean decodeSegmentFor(OsmNode template, boolean failOnNoFile, WaypointMatcher waypointMatcher  ) {
     try {
-      OsmFile osmf = fileForSegment(template);
+      OsmFile osmf = fileForSegment(template, failOnNoFile);
       if (osmf == null) {
         return false;
       }
@@ -79,7 +74,7 @@ public final class NodesCache {
    */
   public boolean obtainNonHollowNode(OsmNode node) {
     if (node.isHollow()) {
-      if ( !decodeSegmentFor(node) ) {
+      if ( !decodeSegmentFor(node, false, null) ) {
         return false;
       }
       if (node.isHollow()) {
@@ -112,14 +107,10 @@ public final class NodesCache {
   }
 
   public void matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints, double maxDistance, OsmNodePairSet islandNodePairs) {
-    waypointMatcher = new WaypointMatcher(unmatchedWaypoints, maxDistance, islandNodePairs);
+    WaypointMatcher waypointMatcher = new WaypointMatcher(unmatchedWaypoints, maxDistance, islandNodePairs);
     for (MatchedWaypoint mwp : unmatchedWaypoints) {
       int cellsize = 1000000 / 32;
-      preloadPosition(mwp.waypoint, cellsize);
-    }
-
-    if (first_file_access_failed) {
-      throw new IllegalArgumentException("datafile " + first_file_access_name + " not found");
+      preloadPosition(mwp.waypoint, waypointMatcher, cellsize);
     }
     for (MatchedWaypoint mwp : unmatchedWaypoints) {
       if (mwp.crossPoint == null) {
@@ -128,22 +119,17 @@ public final class NodesCache {
     }
   }
 
-  private void preloadPosition(OsmNode n, int d) {
-    first_file_access_failed = false;
-    first_file_access_name = null;
-    decodeSegmentFor(n);
-    if (first_file_access_failed) {
-      throw new IllegalArgumentException("datafile " + first_file_access_name + " not found");
-    }
+  private void preloadPosition(OsmNode n, WaypointMatcher waypointMatcher, int d) {
+    decodeSegmentFor(n, true, waypointMatcher);
     for (int idxLat = -1; idxLat <= 1; idxLat++)
       for (int idxLon = -1; idxLon <= 1; idxLon++) {
         if (idxLon != 0 || idxLat != 0) {
-          decodeSegmentFor(new OsmNode(n.iLon + d * idxLon, n.iLat + d * idxLat));
+          decodeSegmentFor(new OsmNode(n.iLon + d * idxLon, n.iLat + d * idxLat), false, waypointMatcher );
         }
       }
   }
 
-  private OsmFile fileForSegment(OsmNode template) throws Exception {
+  private OsmFile fileForSegment(OsmNode template, boolean failOnNoFile ) throws Exception {
     int iLonBase = (template.iLon / 5000000)*5000000;
     int iLatBase = (template.iLat / 5000000)*5000000;
     int lonBase5 = iLonBase / 1000000 - 180;
@@ -156,20 +142,15 @@ public final class NodesCache {
     }
     File f = new File(segmentDir, currentFileName);
     if (!f.exists()) {
-      f = null;
+      if (failOnNoFile) {
+        throw new IllegalArgumentException("datafile " + currentFileName + " not found");
+      }
+      fileCache.put(filenameBase, null);
+      return null;
     }
-    OsmFile osmf = null;
-    if (f != null) {
-      osmf = new OsmFile(f, iLonBase, iLatBase);
-      osmf.openForReading();
-    }
+    OsmFile  osmf = new OsmFile(f, iLonBase, iLatBase);
+    osmf.openForReading();
     fileCache.put(filenameBase, osmf);
-
-    if (first_file_access_name == null) {
-      first_file_access_name = currentFileName;
-      first_file_access_failed = osmf == null;
-    }
-
     return osmf;
   }
 
