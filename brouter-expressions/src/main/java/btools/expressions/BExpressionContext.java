@@ -833,9 +833,6 @@ public abstract class BExpressionContext {
   }
 
   public final byte[] reduce(byte[] description) throws IOException {
-    if (description == null || description.length == 0) {
-      return null;
-    }
     ByteArrayOutputStream buf = new ByteArrayOutputStream(description.length + 8);
     try ( BitOutputStream bos = new BitOutputStream(buf) )
     {
@@ -862,27 +859,13 @@ public abstract class BExpressionContext {
       }
       bos.encodeUnsignedVarBits( 0 );
     }
-    byte[] result = buf.toByteArray();
-    return unify(result);
+    return buf.toByteArray();
   }
 
   public final void setAllTagsUsed() {
     for (int i = 0; i < lookupIdxUsed.length; i++) {
       lookupIdxUsed[i] = true;
     }
-  }
-
-  public String usedTagList() {
-    StringBuilder sb = new StringBuilder();
-    for (int inum = 0; inum < lookupValues.size(); inum++) {
-      if (lookupIdxUsed[inum]) {
-        if (sb.length() > 0) {
-          sb.append(',');
-        }
-        sb.append(lookupNames.get(inum));
-      }
-    }
-    return sb.toString();
   }
 
   int getLookupValueIdx(int nameIdx, String value) {

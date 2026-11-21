@@ -18,4 +18,7 @@ public interface TagValueValidator {
    * @return the reduced description, or null if nothing is left
    */
   byte[] reduce(byte[] tagValueSet) throws IOException;
+
+  byte[] unify(byte[] tagValueSet) throws IOException;
+
 }

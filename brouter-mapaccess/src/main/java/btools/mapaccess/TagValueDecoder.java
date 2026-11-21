@@ -20,6 +20,8 @@ public final class TagValueDecoder extends HuffmanDecoder<TagValueWrapper> {
   }
   @Override
   protected TagValueWrapper decodeObjectFromStream() throws IOException {
+
+    // decode the byte array from the bitstream
     long size = bis.decodeUnsignedVarBits();
     if (size == 0L) {
       return null;
@@ -28,17 +30,15 @@ public final class TagValueDecoder extends HuffmanDecoder<TagValueWrapper> {
     for (int i = 0; i < res.length; i++) {
       res[i] = (byte) bis.decodeBits(8);
     }
-    if (validator != null) {
-      res = validator.reduce(res);
-    }
-    if (res == null || res.length == 0) {
-      return null;
-    }
 
+    // reduce it to the tags actually used
+    res = validator == null ? res : validator.reduce(res);
+
+    // check access type, unify if accessible
     int accessType = validator == null ? 2 : validator.accessType(res);
     if (accessType > 0) {
       TagValueWrapper w = new TagValueWrapper();
-      w.data = res;
+      w.data = validator == null ? res : validator.unify(res);
       w.accessType = accessType;
       return w;
     }

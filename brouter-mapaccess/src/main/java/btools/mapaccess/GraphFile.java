@@ -7,7 +7,9 @@
 package btools.mapaccess;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,7 +19,6 @@ import btools.statcoding.BitOutputStream;
 import btools.statcoding.Crc64;
 import btools.statcoding.codecs.AdaptiveDiffDecoder;
 import btools.statcoding.codecs.AdaptiveDiffEncoder;
-import btools.util.LazyArrayOfLists;
 
 public final class GraphFile {
   private final File file;
@@ -72,7 +73,10 @@ public final class GraphFile {
     int nTiles = divisor * divisor;
 
     // sort the nodes in sub-lists for the tiles...
-    LazyArrayOfLists<GraphNode> subs = new LazyArrayOfLists<>(nTiles);
+    List<ArrayList<GraphNode>> subs = new ArrayList<>(nTiles);
+    for (int i = 0; i < nTiles; i++) {
+      subs.add(null);
+    }
     for (GraphNode n : nodes) {
       int subLonIdx = (n.iLon - iLonBase) / cellSize;
       int subLatIdx = (n.iLat - iLatBase) / cellSize;
@@ -80,9 +84,16 @@ public final class GraphFile {
         throw new IllegalArgumentException("node " + n + " is out of bounds for this GraphFile");
       }
       int si = subLatIdx * divisor + subLonIdx;
-      subs.getList(si).add(n);
+      if ( subs.get(si) == null ) {
+        subs.set(si, new ArrayList<>());
+      }
+      subs.get(si).add(n);
     }
-    subs.trimAll();
+    for( ArrayList<GraphNode> sub : subs) {
+      if (sub != null) {
+        sub.trimToSize();
+      }
+    }
 
 
     tileIndex= new long[nTiles + 1];
@@ -96,9 +107,8 @@ public final class GraphFile {
       tileIndex[0] = bos.getBitPosition() >> 3;
 
       for (int si = 0; si < nTiles; si++) {
-        int size = subs.getSize(si);
-        if (size > 0) {
-          List<GraphNode> subList = subs.getList(si);
+        List<GraphNode> subList = subs.get(si);
+        if (subList != null && !subList.isEmpty()) {
           GraphNode n0 = subList.get(0);
           int lonBase = n0.iLon - n0.iLon % cellSize;
           int latBase = n0.iLat - n0.iLat % cellSize;
