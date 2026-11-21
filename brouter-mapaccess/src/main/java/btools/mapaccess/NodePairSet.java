@@ -5,7 +5,8 @@
  */
 package btools.mapaccess;
 
-import btools.util.CompactLongMap;
+import java.util.HashMap;
+import java.util.Map;
 
 public class NodePairSet {
   private long[] n1a;
@@ -14,6 +15,7 @@ public class NodePairSet {
   private int maxTempNodes = 0;
   private int npairs = 0;
   private int freezecount = 0;
+  private Map<Long, NodePair> map;
 
   public NodePairSet(int maxTempNodeCount) {
     maxTempNodes = maxTempNodeCount;
@@ -25,8 +27,6 @@ public class NodePairSet {
     public long node2;
     public NodePair next;
   }
-
-  private CompactLongMap<NodePair> map;
 
   public void addTempPair(long n1, long n2) {
     if (tempNodes < maxTempNodes) {
@@ -50,7 +50,7 @@ public class NodePairSet {
 
   private void addPair(long n1, long n2) {
     if (map == null) {
-      map = new CompactLongMap<>();
+      map = new HashMap<>();
     }
     npairs++;
 
@@ -66,7 +66,7 @@ public class NodePairSet {
         }
         e0.next = e;
       } else {
-        map.fastPut(n1, e);
+        map.put(n1, e);
       }
     }
   }
