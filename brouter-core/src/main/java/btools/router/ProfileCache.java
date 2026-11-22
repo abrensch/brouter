@@ -24,32 +24,19 @@ public final class ProfileCache {
   private long lastUseTime;
 
   private static ProfileCache[] apc = new ProfileCache[1];
-  private static boolean debug = Boolean.getBoolean("debugProfileCache");
 
   public static synchronized void setSize(int size) {
     apc = new ProfileCache[size];
   }
 
-  public static synchronized boolean parseProfile(RoutingContext rc) {
-    String profileBaseDir = System.getProperty("profileBaseDir");
-    File profileDir;
-    File profileFile;
-    if (profileBaseDir == null) {
-      profileDir = new File(rc.localFunction).getParentFile();
-      profileFile = new File(rc.localFunction);
-    } else {
-      profileDir = new File(profileBaseDir);
-      profileFile = new File(profileDir, rc.localFunction + ".brf");
-    }
+  public static synchronized boolean parseProfile(File profileDir, RoutingContext rc) {
+    File profileFile = new File(profileDir, rc.profileName + ".brf" ) ;
 
     rc.profileTimestamp = profileFile.lastModified() + rc.getKeyValueChecksum() << 24;
     File lookupFile = new File(profileDir, "lookups.dat");
 
     // invalidate cache at lookup-table update
     if (!(lookupFile.equals(lastLookupFile) && lookupFile.lastModified() == lastLookupTimestamp)) {
-      if (lastLookupFile != null) {
-        System.out.println("******** invalidating profile-cache after lookup-file update ******** ");
-      }
       apc = new ProfileCache[apc.length];
       lastLookupFile = lookupFile;
       lastLookupTimestamp = lookupFile.lastModified();
@@ -104,14 +91,7 @@ public final class ProfileCache {
       lru = new ProfileCache();
       if (unusedSlot >= 0) {
         apc[unusedSlot] = lru;
-        if (debug)
-          System.out.println("******* adding new profile at idx=" + unusedSlot + " for " + profileFile);
       }
-    }
-
-    if (lru.lastProfileFile != null) {
-      if (debug)
-        System.out.println("******* replacing profile of age " + ((System.currentTimeMillis() - lru.lastUseTime) / 1000L) + " sec " + lru.lastProfileFile + "->" + profileFile);
     }
 
     lru.lastProfileTimestamp = rc.profileTimestamp;

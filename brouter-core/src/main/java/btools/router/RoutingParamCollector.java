@@ -10,8 +10,6 @@ import java.util.StringTokenizer;
 
 public class RoutingParamCollector {
 
-  final static boolean DEBUG = false;
-
   /**
    * get a list of points and optional extra info for the points
    *
@@ -127,7 +125,7 @@ public class RoutingParamCollector {
 
       // prepare nogos extra
       if (params.containsKey("profile")) {
-        rctx.localFunction = params.get("profile");
+        rctx.profileName = params.get("profile" );
       }
       if (params.containsKey("nogoLats") && params.get("nogoLats").length() > 0) {
         List<GraphNodeNamed> nogoList = readNogos(params.get("nogoLons"), params.get("nogoLats"), params.get("nogoRadi"));
@@ -159,11 +157,8 @@ public class RoutingParamCollector {
       for (Map.Entry<String, String> e : params.entrySet()) {
         String key = e.getKey();
         String value = e.getValue();
-        if (DEBUG) System.out.println("params " + key + " " + value);
 
-        if (key.equals("pois")) {
-          rctx.poipoints = readPoisList(value);
-        } else if (key.equals("alternativeidx")) {
+        if (key.equals("alternativeidx")) {
           rctx.setAlternativeIdx(Integer.parseInt(value));
         } else if (key.equals("turnInstructionMode")) {
           rctx.turnInstructionMode = Integer.parseInt(value);
@@ -186,29 +181,6 @@ public class RoutingParamCollector {
         // ignore other params
       }
     }
-  }
-
-  public List<GraphNodeNamed> readPoisList(String pois) {
-    // lon,lat,name|...
-    if (pois == null) return null;
-
-    String[] lonLatNameList = pois.split("\\|");
-
-    List<GraphNodeNamed> poisList = new ArrayList<>();
-    for (int i = 0; i < lonLatNameList.length; i++) {
-      String[] lonLatName = lonLatNameList[i].split(",");
-
-      if (lonLatName.length != 3)
-        continue;
-
-      GraphNodeNamed n = new GraphNodeNamed();
-      n.iLon = (int) ((Double.parseDouble(lonLatName[0]) + 180.) * 1000000. + 0.5);
-      n.iLat = (int) ((Double.parseDouble(lonLatName[1]) + 90.) * 1000000. + 0.5);
-      n.name = lonLatName[2];
-      poisList.add(n);
-    }
-
-    return poisList;
   }
 
   public List<GraphNodeNamed> readNogoList(String nogos) {

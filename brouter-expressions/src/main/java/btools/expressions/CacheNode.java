@@ -16,12 +16,6 @@ public final class CacheNode extends LruMapNode {
   @Override
   public boolean equals(Object o) {
     CacheNode n = (CacheNode) o;
-    if (hash != n.hash) {
-      return false;
-    }
-    if (ab == null) {
-      return true; // hack: null = crc match only
-    }
-    return Arrays.equals(ab, n.ab);
+    return hash == n.hash && Arrays.equals(ab, n.ab);
   }
 }

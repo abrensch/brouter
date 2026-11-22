@@ -5,7 +5,6 @@
  */
 package btools.router;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,19 +28,10 @@ public final class RoutingContext {
   }
 
   public int alternativeIdx = 0;
-  public String localFunction;
+  public String profileName;
   public long profileTimestamp;
 
   public Map<String, String> keyValues;
-
-
-  public String getProfileName() {
-    String name = localFunction == null ? "unknown" : localFunction;
-    if (name.endsWith(".brf")) name = name.substring(0, localFunction.length() - 4);
-    int idx = name.lastIndexOf(File.separatorChar);
-    if (idx >= 0) name = name.substring(idx + 1);
-    return name;
-  }
 
   public BExpressionContextWay expCtxWay;
   public BExpressionContextNode expCtxNode;
@@ -159,8 +149,6 @@ public final class RoutingContext {
     // Constant power of the biker (in W)
     bikerPower = expctxGlobal.getVariableValue("bikerPower", 100.f);
   }
-
-  public List<GraphNodeNamed> poipoints;
 
   public List<GraphNodeNamed> nogopoints = null;
   private List<GraphNodeNamed> nogopoints_all = null; // full list not filtered for wayoints-in-nogos
@@ -291,23 +279,6 @@ public final class RoutingContext {
       matchedWaypoints.clear();
       matchedWaypoints.addAll(newMatchedWaypoints);
     }
-  }
-
-  public boolean allInOneNogo(List<GraphNode> waypoints) {
-    if (nogopoints == null) return false;
-    boolean allInTotal = false;
-    for (GraphNodeNamed nogo : nogopoints) {
-      boolean allIn = true;
-      for (GraphNode wp : waypoints) {
-        int dist = wp.calcDistance(nogo);
-        if (dist < nogo.radius) {
-          continue;
-        }
-        allIn = false;
-      }
-      allInTotal |= allIn;
-    }
-    return allInTotal;
   }
 
   public void setWaypoint(GraphNodeNamed wp, boolean endpoint) {

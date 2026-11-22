@@ -43,15 +43,13 @@ public class RoutingEngine {
   private long startTime;
   private long maxRunningTime;
 
-  public boolean quite = false;
-
-  public RoutingEngine(File segmentDir,
+  public RoutingEngine(File segmentDir, File profileDir,
                        List<GraphNodeNamed> waypoints, RoutingContext rc) {
     this.segmentDir = segmentDir;
     this.waypoints = waypoints;
     this.routingContext = rc;
 
-    ProfileCache.parseProfile(rc);
+    ProfileCache.parseProfile(profileDir, rc);
   }
 
   public void doRun(long maxRunningTime) {
@@ -78,14 +76,11 @@ public class RoutingEngine {
         if (track.energy != 0) {
           track.message += " energy=" + Formatter.getFormattedEnergy(track.energy) + " time=" + Formatter.getFormattedTime2(track.getTotalSeconds());
         }
-        track.name = "brouter_" + routingContext.getProfileName() + "_" + i;
+        track.name = "brouter" + "_" + i;
 
         messageList.add(track.message);
         track.messageList = messageList;
         if (i == routingContext.getAlternativeIdx(0, 3)) {
-          if (!quite) {
-            System.out.println(new FormatGpx(routingContext).format(track));
-          }
           foundTrack = track;
         } else {
           continue;
@@ -314,8 +309,6 @@ public class RoutingEngine {
     totaltrack.showTime = routingContext.showTime;
     totaltrack.params = routingContext.keyValues;
 
-    if (routingContext.poipoints != null)
-      totaltrack.pois = routingContext.poipoints;
     return totaltrack;
   }
 

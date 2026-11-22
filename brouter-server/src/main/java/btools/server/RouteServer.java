@@ -74,7 +74,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
       bw = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
 
-      String agent = null;
       String encodings = null;
       String xff = null; // X-Forwarded-For
 
@@ -94,9 +93,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
           getline = line;
         }
         line = line.toLowerCase();
-        if (line.startsWith("user-agent: ")) {
-          agent = line.substring("user-agent: ".length());
-        }
         if (line.startsWith("accept-encoding: ")) {
           encodings = line.substring("accept-encoding: ".length());
         }
@@ -107,19 +103,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
       InetAddress ip = clientSocket.getInetAddress();
       sIp = xff == null ? (ip == null ? "null" : ip.toString()) : xff;
-
-      if (getline.startsWith("GET /favicon.ico")) {
-        writeHttpHeader(bw, HTTP_STATUS_NOT_FOUND);
-        bw.flush();
-        return;
-      }
-      if (getline.startsWith("GET /robots.txt")) {
-        writeHttpHeader(bw, HTTP_STATUS_OK);
-        bw.write("User-agent: *\n");
-        bw.write("Disallow: /\n");
-        bw.flush();
-        return;
-      }
 
       String url = getline.split(" ")[1];
 
@@ -136,13 +119,12 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
         bw.flush();
         return;
       }
-      RoutingContext rc = handler.readRoutingContext();
+      RoutingContext rc = new RoutingContext();
       List<GraphNodeNamed> wplist = routingParamCollector.getWayPointList(params.get("lonlats"));
 
       routingParamCollector.setParams(rc, wplist, params);
 
-      cr = new RoutingEngine(serviceContext.segmentDir, wplist, rc);
-      cr.quite = true;
+      cr = new RoutingEngine(serviceContext.segmentDir, new File( serviceContext.profileDir ), wplist, rc);
       cr.doRun(maxRunningTime);
 
       if (cr.getErrorMessage() != null) {
@@ -215,7 +197,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
     ServiceContext serviceContext = new ServiceContext();
     serviceContext.segmentDir = new File(args[0]);
     serviceContext.profileDir = args[1];
-    System.setProperty("profileBaseDir", serviceContext.profileDir);
 
     int maxthreads = Integer.parseInt(args[3]);
 
@@ -262,25 +243,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
       server.start();
     }
-  }
-
-
-  private static Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
-    HashMap<String, String> params = new HashMap<>();
-    String decoded = URLDecoder.decode(url, "UTF-8");
-    StringTokenizer tk = new StringTokenizer(decoded, "?&");
-    while (tk.hasMoreTokens()) {
-      String t = tk.nextToken();
-      StringTokenizer tk2 = new StringTokenizer(t, "=");
-      if (tk2.hasMoreTokens()) {
-        String key = tk2.nextToken();
-        if (tk2.hasMoreTokens()) {
-          String value = tk2.nextToken();
-          params.put(key, value);
-        }
-      }
-    }
-    return params;
   }
 
   private static long getMaxRunningTime() {

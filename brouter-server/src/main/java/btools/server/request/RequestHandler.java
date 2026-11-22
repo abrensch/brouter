@@ -14,9 +14,6 @@ public abstract class RequestHandler {
     this.serviceContext = serviceContext;
     this.params = params;
   }
-
-  public abstract RoutingContext readRoutingContext();
-
   public abstract String formatTrack(OsmTrack track);
 
   public abstract String getMimeType();

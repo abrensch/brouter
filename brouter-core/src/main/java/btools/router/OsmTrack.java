@@ -5,14 +5,6 @@
  */
 package btools.router;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -303,18 +295,6 @@ public final class OsmTrack {
   public int getTotalSeconds() {
     float s = nodes.size() < 2 ? 0 : nodes.get(nodes.size() - 1).getTime() - nodes.get(0).getTime();
     return (int) (s + 0.5);
-  }
-
-  public boolean equalsTrack(OsmTrack t) {
-    if (nodes.size() != t.nodes.size())
-      return false;
-    for (int i = 0; i < nodes.size(); i++) {
-      OsmPathElement e1 = nodes.get(i);
-      OsmPathElement e2 = t.nodes.get(i);
-      if (e1.getILon() != e2.getILon() || e1.getILat() != e2.getILat())
-        return false;
-    }
-    return true;
   }
 
   public void prepareSpeedProfile(RoutingContext rc) {

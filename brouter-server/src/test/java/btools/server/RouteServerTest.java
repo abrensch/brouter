@@ -105,19 +105,6 @@ public class RouteServerTest {
     Assert.assertEquals(2, geoJson.query("/features/0/properties/voicehints/0/1")); // TL
   }
 
-
-  @Test
-  public void robots() throws IOException {
-    URL requestUrl = new URL(baseUrl + "robots.txt");
-    HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
-    httpConnection.connect();
-
-    Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
-
-    String content = new String(httpConnection.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-    Assert.assertTrue(content.contains("Disallow: /"));
-  }
-
   @Test
   public void invalidUrl() throws IOException {
     URL requestUrl = new URL(baseUrl + "invalid");

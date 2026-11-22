@@ -38,16 +38,6 @@ public class ServerHandler extends RequestHandler {
   }
 
   @Override
-  public RoutingContext readRoutingContext() {
-    rc = new RoutingContext();
-    rc.memoryclass = 128;
-
-    rc.localFunction = params.get("profile");
-
-    return rc;
-  }
-
-  @Override
   public String formatTrack(OsmTrack track) {
     String result;
     // optional, may be null
@@ -65,7 +55,6 @@ public class ServerHandler extends RequestHandler {
       result = new FormatCsv(rc).format(track);
     } else {
       System.out.println("unknown track format '" + format + "', using default");
-      //result = track.formatAsGpx();
       result = new FormatGpx(rc).format(track);
     }
 

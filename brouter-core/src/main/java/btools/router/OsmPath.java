@@ -186,7 +186,7 @@ abstract class OsmPath {
 
       boolean isStartpoint = lon0 == -1 && lat0 == -1;
 
-      // check turn restrictions (n detail mode (=final pass) no TR to not mess up voice hints)
+      // check turn restrictions (in detail mode (=final pass) no TR to not mess up voice hints)
       if (rc.considerTurnRestrictions && !detailMode && !isStartpoint) {
         if (rc.inverseDirection
           ? TurnRestriction.isTurnForbidden(sourceNode.firstRestriction, lon2, lat2, lon0, lat0, rc.bikeMode || rc.footMode, rc.carMode)
