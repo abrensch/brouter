@@ -4,47 +4,65 @@ import java.io.*;
 
 import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
+import btools.statcoding.PrefixedBitInputStream;
+import btools.statcoding.PrefixedBitOutputStream;
 
-//
-// Encode/decode a raster
-//
-
+/**
+ * Encode/decode a raster.
+ * <p>
+ * File layout: magic word, a length-prefixed header block carrying major/minor version,
+ * then the pixel data directly on the main stream.
+ * Readers accept any minor version of a known major version and ignore trailing data
+ * in the header block, so header fields can be appended in later minor versions.
+ */
 public class ElevationRasterCoder {
-  public void encodeRaster(ElevationRaster raster, BitOutputStream bos) throws IOException {
+  private static final int MAGIC = 51423; // BEF
+  private static final long MAJOR_VERSION = 1;
+  private static final long MINOR_VERSION = 1;
+
+  public void encodeRaster(ElevationRaster raster, BitOutputStream out) throws IOException {
     long t0 = System.currentTimeMillis();
 
-    bos.writeInt(51423); // magic word BEF version 2
-    bos.writeInt(raster.ncols);
-    bos.writeInt(raster.nrows);
-    bos.writeBoolean(raster.halfcol);
-    bos.writeDouble(raster.xllcorner);
-    bos.writeDouble(raster.yllcorner);
-    bos.writeDouble(raster.cellsize);
-    bos.writeShort(raster.noDataValue);
+    out.writeInt(MAGIC);
+    try (PrefixedBitOutputStream bos = new PrefixedBitOutputStream(out, MAJOR_VERSION, MINOR_VERSION)) {
+      bos.writeInt(raster.ncols);
+      bos.writeInt(raster.nrows);
+      bos.writeBoolean(raster.halfcol);
+      bos.writeDouble(raster.xllcorner);
+      bos.writeDouble(raster.yllcorner);
+      bos.writeDouble(raster.cellsize);
+      bos.writeShort(raster.noDataValue);
+    }
 
-    encodeRasterData(raster, bos);
+    // pixel data follows the header block directly on the main stream (too large to be buffered)
+    encodeRasterData(raster, out);
     long t1 = System.currentTimeMillis();
 
     System.out.println("finished encoding in " + (t1 - t0) + " ms");
   }
 
-  public ElevationRaster decodeRaster(BitInputStream bis) throws IOException {
-    ElevationRaster raster = new ElevationRaster();
-    int befMagic =  bis.readInt();
-    if ( befMagic != 51423 ) {
-      throw new IllegalArgumentException( "this is not a BRouter Elevation File in BEF Version 2" );
+  public ElevationRaster decodeRaster(BitInputStream in) throws IOException {
+    if (in.readInt() != MAGIC) {
+      throw new IllegalArgumentException("this is not a BRouter Elevation File");
     }
-    raster.ncols = bis.readInt();
-    raster.nrows = bis.readInt();
-    raster.halfcol = bis.readBoolean();
-    raster.xllcorner = bis.readDouble();
-    raster.yllcorner = bis.readDouble();
-    raster.cellsize = bis.readDouble();
-    raster.noDataValue = bis.readShort();
-    raster.eval_array = new short[raster.ncols * raster.nrows];
+    ElevationRaster raster = new ElevationRaster();
+    // throws if the major version is newer than we know
+    try (PrefixedBitInputStream bis = new PrefixedBitInputStream(in, MAJOR_VERSION)) {
+      raster.ncols = bis.readInt();
+      raster.nrows = bis.readInt();
+      raster.halfcol = bis.readBoolean();
+      raster.xllcorner = bis.readDouble();
+      raster.yllcorner = bis.readDouble();
+      raster.cellsize = bis.readDouble();
+      raster.noDataValue = bis.readShort();
+    }
+    long arraySize = (long) raster.ncols * (long) raster.nrows;
+    if ( arraySize > Integer.MAX_VALUE / 2 ) { // we allow 2 GB
+      throw new IllegalArgumentException("raster too large: " + arraySize + " pixels");
+    }
+    raster.eval_array = new short[(int) arraySize];
 
-    decodeRasterData(raster, bis);
-
+    decodeRasterData(raster, in);
     return raster;
   }
 
@@ -126,8 +144,8 @@ public class ElevationRasterCoder {
       }
       if (raster.halfcol) {
         for (int col = 1; col < ncols - 1; col += colstep) {
-          int l = (int) pixels[row * ncols + col - 1];
-          int r = (int) pixels[row * ncols + col + 1];
+          int l = pixels[row * ncols + col - 1];
+          int r = pixels[row * ncols + col + 1];
           short v30 = Short.MIN_VALUE; // nodata
           if (l > -32766 && r > -32766) {
             v30 = (short) ((l + r) / 2);

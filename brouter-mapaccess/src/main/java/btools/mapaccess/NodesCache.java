@@ -15,6 +15,7 @@ import btools.util.TagValueValidator;
 
 public final class NodesCache {
   private final File segmentDir;
+  private final String fileSuffix;
 
   private final Map<Long, GraphNode> hollowNodes = new HashMap<>(4096);
 
@@ -28,8 +29,9 @@ public final class NodesCache {
    * @param oldCache optional previous cache (may be null): its open files (with parsed headers and
    *                 tile indexes) are taken over, but cleaned of all decoded tile data
    */
-  public NodesCache(File segmentDir, TagValueValidator wayValidator, long maxMem, NodesCache oldCache) {
+  public NodesCache(File segmentDir, String fileSuffix, TagValueValidator wayValidator, NodesCache oldCache) {
     this.segmentDir = segmentDir;
+    this.fileSuffix = fileSuffix;
     this.wayValidator = wayValidator;
 
     if (!this.segmentDir.isDirectory()) {
@@ -139,7 +141,7 @@ public final class NodesCache {
     int latBase5 = iLatBase / 1000000 -  90;
     String filenameBase = GraphFile.getBaseName(lonBase5, latBase5);
 
-    currentFileName = filenameBase + ".rd5";
+    currentFileName = filenameBase + "." + fileSuffix;
     if (fileCache.containsKey(filenameBase)) {
       return fileCache.get(filenameBase);
     }
