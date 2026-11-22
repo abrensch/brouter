@@ -8,12 +8,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import btools.util.LongList;
 /**
  * OsmPbfDecoder decodes a .osm.pbf file containing OSM data.
  * <p>
@@ -97,7 +97,7 @@ public class OsmPbfDecoder extends BinaryParser {
   @Override
   protected void parseWays(List<Osmformat.Way> ways) {
     for (Osmformat.Way way : ways) {
-      LongList wayNodes = new LongList(16);
+      List<Long> wayNodes = new ArrayList<>(16);
       long nodeId = 0;
       for (long delta : way.getRefsList()) {
         nodeId += delta;
@@ -115,10 +115,10 @@ public class OsmPbfDecoder extends BinaryParser {
   @Override
   protected void parseRelations(List<Osmformat.Relation> relations) {
     for (Osmformat.Relation relation : relations) {
-      LongList wayIds = new LongList(16);
-      LongList fromWid = null;
-      LongList toWid = null;
-      LongList viaNid = null;
+      List<Long> wayIds = new ArrayList<>(16);
+      List<Long> fromWid = null;
+      List<Long> toWid = null;
+      List<Long> viaNid = null;
       long refId = 0;
       for (int i = 0; i < relation.getMemidsCount(); i++) {
         refId += relation.getMemids(i);
@@ -143,8 +143,8 @@ public class OsmPbfDecoder extends BinaryParser {
       throw new UncheckedIOException(e);
     }
   }
-  private static LongList addLong(LongList ll, long l) {
-    LongList list = ll == null ? new LongList(1) : ll;
+  private static List<Long> addLong(List<Long> ll, long l) {
+    List<Long> list = ll == null ? new ArrayList<>(1) : ll;
     list.add(l);
     return list;
   }

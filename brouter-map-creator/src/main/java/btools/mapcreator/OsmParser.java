@@ -13,6 +13,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import btools.expressions.BExpressionContextNode;
@@ -20,7 +21,6 @@ import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.statcoding.BitOutputStream;
 import btools.util.DenseLongMap;
-import btools.util.LongList;
 
 public class OsmParser {
   private long recordCnt;
@@ -122,7 +122,7 @@ public class OsmParser {
     dbPseudoTagProvider = new DatabasePseudoTagProvider(filename);
   }
 
-  public void addRelation(long rid, Map<String, String> tags, LongList wayIds, LongList fromWid, LongList toWid, LongList viaNid) {
+  public void addRelation(long rid, Map<String, String> tags, List<Long> wayIds, List<Long> fromWid, List<Long> toWid, List<Long> viaNid) {
     RelationData r = new RelationData(rid, wayIds);
     r.setTags(tags);
 

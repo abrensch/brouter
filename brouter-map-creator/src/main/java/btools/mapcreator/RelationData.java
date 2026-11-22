@@ -2,9 +2,10 @@ package btools.mapcreator;
 
 import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
-import btools.util.LongList;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Container for relation data on the preprocessor level
@@ -17,15 +18,15 @@ public class RelationData extends ItemData {
   public String route;
   public String network;
   public String state;
-  public LongList ways;
+  public List<Long> ways;
 
-  public RelationData(long id, LongList ways) {
+  public RelationData(long id, List<Long> ways) {
     rid = id;
     this.ways = ways;
   }
 
   public RelationData(BitInputStream bis) throws IOException {
-    ways = new LongList(16);
+    ways = new ArrayList<>(16);
     rid = bis.decodeVarBytes();
     route = bis.readUTF();
     network = bis.readUTF();
