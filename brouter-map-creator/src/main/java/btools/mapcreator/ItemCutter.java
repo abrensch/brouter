@@ -1,8 +1,3 @@
-/**
- * common base class for the map-filters
- *
- * @author ab
- */
 package btools.mapcreator;
 
 import btools.statcoding.BitOutputStream;

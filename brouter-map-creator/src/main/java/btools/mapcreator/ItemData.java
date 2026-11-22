@@ -1,12 +1,12 @@
+package btools.mapcreator;
+
+import java.util.Map;
+
 /**
  * common base class for the OSM items
  *
  * (basically providing lazy tag-handling)
  */
-package btools.mapcreator;
-
-import java.util.Map;
-
 public abstract class ItemData {
 
   protected Map<String, String> tags;

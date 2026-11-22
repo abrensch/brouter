@@ -86,7 +86,7 @@ public final class ProfileCache {
     BExpressionMetaData meta = new BExpressionMetaData();
 
     rc.expCtxWay = new BExpressionContextWay(rc.memoryclass * 512, meta);
-    rc.expCtxNode = new BExpressionContextNode(0, meta);
+    rc.expCtxNode = new BExpressionContextNode(meta);
     rc.expCtxNode.setForeignContext(rc.expCtxWay);
 
     meta.readMetaData(new File(profileDir, "lookups.dat"));

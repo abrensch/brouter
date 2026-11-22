@@ -20,16 +20,12 @@ public final class BExpressionContextNode extends BExpressionContext {
   }
 
 
-  public BExpressionContextNode(BExpressionMetaData meta) {
-    super("node", meta);
-  }
-
   /**
-   * Create an Expression-Context for way context
-   *
-   * @param hashSize size of hashmap for result caching
+   * Create an Expression-Context for node context.
+   * This is always without result caching (hashSize=0)
+   * because node-evaluation is not context free (it depends on the way-context)
    */
-  public BExpressionContextNode(int hashSize, BExpressionMetaData meta) {
-    super("node", hashSize, meta);
+  public BExpressionContextNode(BExpressionMetaData meta) {
+    super("node", 0, meta);
   }
 }

@@ -1,5 +1,7 @@
 /**
- * Filter to eliminate some transfer nodes (Douglas-Peucker algorithm)
+ * TwoNodeLoopResolver checks for double-connected node-pairs
+ * and splits one of the links to avoid 2-node loops in the graph.
+ * (Routing cannot handle 2-node loops)
  *
  * @author ab
  */
@@ -8,10 +10,8 @@ package btools.mapcreator;
 import btools.mapaccess.GraphLink;
 import btools.mapaccess.GraphNode;
 import btools.mapaccess.TurnRestriction;
-import btools.util.CheapRuler;
 import btools.util.CompactLongSet;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 

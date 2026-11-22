@@ -1,7 +1,3 @@
-/**
- * DatabasePseudoTagProvider reads Pseudo Tags from a database and adds them
- * to the osm-data
- */
 package btools.mapcreator;
 
 import java.io.BufferedReader;
@@ -25,6 +21,10 @@ import java.util.zip.GZIPOutputStream;
 import btools.util.CompactLongMap;
 import btools.util.FrozenLongMap;
 
+/**
+ * DatabasePseudoTagProvider reads Pseudo Tags from a database and adds them
+ * to the osm-data
+ */
 public class DatabasePseudoTagProvider {
 
   private long cntOsmWays = 0L;
@@ -158,7 +158,7 @@ public class DatabasePseudoTagProvider {
     return l;
   }
 
-  private static void addTag(Map<String, String> row, String s, String name) {    
+  private static void addTag(Map<String, String> row, String s, String name) {
     if (!s.isEmpty()) {
       row.put(name, s);
     }
@@ -194,6 +194,6 @@ public class DatabasePseudoTagProvider {
       pseudoTagsFound.put(key, cnt + 1L);
     }
   }
-  
-  
+
+
 }

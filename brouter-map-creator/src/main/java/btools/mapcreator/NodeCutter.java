@@ -1,10 +1,3 @@
-/**
- * This program
- * - reads an *.osm from stdin
- * - writes 45*30 degree node tiles + a way file + a rel file
- *
- * @author ab
- */
 package btools.mapcreator;
 
 import btools.mapaccess.GraphFile;
@@ -13,7 +6,7 @@ import btools.util.DenseLongMap;
 import java.io.*;
 
 /**
- * NodeCutter does two step in map-processing:
+ * NodeCutter does two steps in map-processing:
  * <p>
  * - distribute nodes into 45*30 temp files
  * - build a memory map with the tile index for each node

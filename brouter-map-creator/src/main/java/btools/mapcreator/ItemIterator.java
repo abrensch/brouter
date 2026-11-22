@@ -9,7 +9,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 /**
- * Iterate over a singe file or a directory
+ * Iterate over a single file or a directory
  * of files containing OSM items and feed the
  * items to the callback listener
  */

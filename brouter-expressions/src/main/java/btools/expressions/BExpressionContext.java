@@ -104,8 +104,6 @@ public abstract class BExpressionContext {
 
     if (meta != null) meta.registerListener(context, this);
 
-    if (Boolean.getBoolean("disableExpressionCache")) hashSize = 1;
-
     // create the expression cache
     if (hashSize > 0) {
       cache = new LruMap(4 * hashSize, hashSize);
@@ -309,13 +307,6 @@ public abstract class BExpressionContext {
     }
   }
 
-  private long requests;
-  private long requests2;
-  private long cachemisses;
-
-  public String cacheStats() {
-    return "requests=" + requests + " requests2=" + requests2 + " cachemisses=" + cachemisses;
-  }
 
   private CacheNode lastCacheNode = new CacheNode();
 
@@ -347,7 +338,6 @@ public abstract class BExpressionContext {
 
 
   public final void evaluate(boolean inverseDirection, byte[] ab) {
-    requests++;
     lookupDataValid = false; // this is an assertion for a nasty pifall
 
     if (cache == null) {
@@ -370,7 +360,6 @@ public abstract class BExpressionContext {
     }
 
     if (cn == null) {
-      cachemisses++;
 
       cn = (CacheNode) cache.removeLru();
       if (cn == null) {
@@ -408,7 +397,6 @@ public abstract class BExpressionContext {
       }
       cn.vars = vw.vars;
     } else {
-      if (ab == cn.ab) requests2++;
 
       cache.touch(cn);
     }

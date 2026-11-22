@@ -17,10 +17,11 @@ public class DPFilter {
   private static double dp_sql_threshold = 0.4 * 0.4;
 
   /**
-   * A Transfer-Node has 2 links only (one forwrad/one reverse)
+   * A Transfer-Node has 2 links only (one forward/one reverse)
    * with the same way-tags, no node tags, no turn-restrictions,
    * is not a TR target and is not part of the global border
    *
+   * @param n the node to check
    * @return true if this is a transfer node
    */
   private static boolean isTransferNode(GraphNode n) {
@@ -63,8 +64,9 @@ public class DPFilter {
   }
 
 
-  /*
-   * for each node (except first+last), eventually set the DP_SURVIVOR_BIT
+  /**
+   * look for forward transfer node chains and apply
+   * Douglas-Peucker filtering to them
    */
   public static void doDPFilter(List<GraphNode> nodes) {
 
@@ -124,6 +126,12 @@ public class DPFilter {
     }
   }
 
+  /**
+   * for each node (except first+last), eventually set the DP_SURVIVOR_BIT
+   * @param nodes the list of nodes
+   * @param first the index of the first node
+   * @param last the index of the last node
+   */
   private static void doDPFilter(List<GraphNode> nodes, int first, int last) {
     double maxSqDist = -1.;
     int index = -1;

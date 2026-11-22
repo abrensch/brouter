@@ -1,7 +1,9 @@
 /**
  * This program
- * - reads an *.osm from stdin
- * - writes 45*30 degree node tiles + a way file + a rel file
+ * - parses OSM data (nodes/ways/relations)
+ * - filters ways according to a profile
+ * - write 45*30 bigtiles for nodes, ways and restrictions
+ * - writes a relations.dat file
  *
  * @author ab
  */
@@ -28,10 +30,10 @@ public class OsmParser {
 
   private BitOutputStream relationsBos;
 
-  public WayCutter wayCutter;
-  public NodeCutter nodeCutter;
-  public RestrictionCutter restrictionCutter;
-  public DenseLongMap nodeFilter;
+  private WayCutter wayCutter;
+  private NodeCutter nodeCutter;
+  private RestrictionCutter restrictionCutter;
+  private DenseLongMap nodeFilter;
 
   private DatabasePseudoTagProvider dbPseudoTagProvider;
 
@@ -66,7 +68,7 @@ public class OsmParser {
     new WayCutter5(tmpDir).process(nodeFilter, lookupFile, profileReport, profileCheck);
   }
 
-  public DenseLongMap process(File lookupFile, File tmpDir, File profileFile, File mapFile, String dbTagFilename ) throws Exception {
+  private DenseLongMap process(File lookupFile, File tmpDir, File profileFile, File mapFile, String dbTagFilename ) throws Exception {
 
     if (dbTagFilename != null) {
       setDbTagFilename(dbTagFilename);
@@ -190,7 +192,7 @@ public class OsmParser {
     }
   }
 
-  public void nextRelation(RelationData r) throws IOException {
+  private void nextRelation(RelationData r) throws IOException {
     relationsParsed++;
     checkStats();
 
@@ -207,7 +209,7 @@ public class OsmParser {
     r.writeTo(relationsBos);
   }
 
-  public void nextRestriction(RelationData r, long fromWid, long toWid, long viaNid) throws IOException {
+  private void nextRestriction(RelationData r, long fromWid, long toWid, long viaNid) throws IOException {
     String type = r.getTag("type");
     if (type == null || !"restriction".equals(type)) {
       return;

@@ -1,48 +1,36 @@
 package btools.mapcreator;
-
-import com.google.protobuf.InvalidProtocolBufferException;
-
-import org.openstreetmap.osmosis.osmbinary.Fileformat;
+import org.openstreetmap.osmosis.osmbinary.BinaryParser;
 import org.openstreetmap.osmosis.osmbinary.Osmformat;
-
-import java.io.*;
-import java.util.ArrayList;
+import org.openstreetmap.osmosis.osmbinary.file.BlockInputStream;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.DataFormatException;
-import java.util.zip.Inflater;
-
+import java.util.stream.Collectors;
 import btools.util.LongList;
-
 /**
- * OsmPbfDecoder decodes a .osm.pbf file containing OSM data
- *
- * The code ist mostly copied from the Osmmosis project
- * (see PbfBlobDecoder/PbfFieldDecoder in https://github.com/openstreetmap/osmosis )
- * and adapted for the needs of our MapCreator.
- * It needs the dependency to the osmosis project, which implies a transient
- * dependency to Google protobuf
- *
- * OsmPbfDecoder contains additional logic for reading from a file
- * while it is written, to support pipelining in BRouter map creation.
+ * OsmPbfDecoder decodes a .osm.pbf file containing OSM data.
+ * <p>
+ * The PBF block handling (blob decompression, string tables, delta decoding,
+ * coordinate granularity) is done by the osmosis {@link BinaryParser}, so this
+ * class only maps the decoded primitives to the data classes of the MapCreator.
+ * <p>
+ * It contains additional logic for reading from a file while it is written,
+ * to support pipelining in BRouter map creation.
  */
-public class OsmPbfDecoder {
-  private String blobType;
-  private byte[] rawBlob;
-
+public class OsmPbfDecoder extends BinaryParser {
+  private static final List<String> SUPPORTED_FEATURES = Arrays.asList("OsmSchema-V0.6", "DenseNodes");
   private OsmParser parser;
-
   public void readMap(File mapFile, OsmParser parser) throws Exception {
     this.parser = parser;
-
     System.out.println("*** PBF Parsing: " + mapFile);
-
-    long bytesRead = 0L;
     boolean avoidMapPolling = Boolean.getBoolean("avoidMapPolling");
-
     if (!avoidMapPolling) {
       // wait for file to become available
       while (!mapFile.exists()) {
@@ -50,316 +38,191 @@ public class OsmPbfDecoder {
         Thread.sleep(10000);
       }
     }
-
-    long currentSize = mapFile.length();
-    long currentSizeTime = System.currentTimeMillis();
-
-    DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(mapFile)));
-
-
-    for (; ; ) {
-      if (!avoidMapPolling) {
-        // continue reading if either more then a 100 MB unread, or the current-size is known for more than 2 Minutes
-        while (currentSize - bytesRead < 100000000L) {
-          long newSize = mapFile.length();
+    try (InputStream in = new BufferedInputStream(new GrowingFileInputStream(mapFile, !avoidMapPolling))) {
+      new BlockInputStream(in, this).process();
+    } catch (UncheckedIOException e) {
+      throw e.getCause();
+    }
+  }
+  @Override
+  public void complete() {
+    // nothing to do
+  }
+  @Override
+  protected void parse(Osmformat.HeaderBlock header) {
+    // we can't continue if there are unsupported features, so collect all of them for the message
+    List<String> unsupported = header.getRequiredFeaturesList().stream()
+      .filter(f -> !SUPPORTED_FEATURES.contains(f))
+      .collect(Collectors.toList());
+    if (!unsupported.isEmpty()) {
+      throw new RuntimeException("PBF file contains unsupported features " + unsupported);
+    }
+  }
+  @Override
+  protected void parseNodes(List<Osmformat.Node> nodes) {
+    for (Osmformat.Node node : nodes) {
+      NodeData n = new NodeData(node.getId(), parseLon(node.getLon()), parseLat(node.getLat()));
+      n.setTags(buildTags(node.getKeysList(), node.getValsList()));
+      addNode(n);
+    }
+  }
+  @Override
+  protected void parseDense(Osmformat.DenseNodes nodes) {
+    long nodeId = 0;
+    long lat = 0;
+    long lon = 0;
+    int kvIndex = 0;
+    List<Integer> kvs = nodes.getKeysValsList();
+    for (int i = 0; i < nodes.getIdCount(); i++) {
+      nodeId += nodes.getId(i);
+      lat += nodes.getLat(i);
+      lon += nodes.getLon(i);
+      // key/value string indexes are sequential, each node's tags are terminated by a 0
+      Map<String, String> tags = null;
+      while (kvIndex < kvs.size()) {
+        int key = kvs.get(kvIndex++);
+        if (key == 0) {
+          break;
+        }
+        if (tags == null) {
+          tags = new HashMap<>();
+        }
+        tags.put(getStringById(key), getStringById(kvs.get(kvIndex++)));
+      }
+      NodeData n = new NodeData(nodeId, parseLon(lon), parseLat(lat));
+      n.setTags(tags);
+      addNode(n);
+    }
+  }
+  @Override
+  protected void parseWays(List<Osmformat.Way> ways) {
+    for (Osmformat.Way way : ways) {
+      LongList wayNodes = new LongList(16);
+      long nodeId = 0;
+      for (long delta : way.getRefsList()) {
+        nodeId += delta;
+        wayNodes.add(nodeId);
+      }
+      WayData w = new WayData(way.getId(), wayNodes);
+      w.setTags(buildTags(way.getKeysList(), way.getValsList()));
+      try {
+        parser.addWay(w);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+  }
+  @Override
+  protected void parseRelations(List<Osmformat.Relation> relations) {
+    for (Osmformat.Relation relation : relations) {
+      LongList wayIds = new LongList(16);
+      LongList fromWid = null;
+      LongList toWid = null;
+      LongList viaNid = null;
+      long refId = 0;
+      for (int i = 0; i < relation.getMemidsCount(); i++) {
+        refId += relation.getMemids(i);
+        String role = getStringById(relation.getRolesSid(i));
+        Osmformat.Relation.MemberType type = relation.getTypes(i);
+        if (type == Osmformat.Relation.MemberType.WAY) { // currently just way members
+          wayIds.add(refId);
+          if ("from".equals(role)) fromWid = addLong(fromWid, refId);
+          if ("to".equals(role)) toWid = addLong(toWid, refId);
+        } else if (type == Osmformat.Relation.MemberType.NODE && "via".equals(role)) {
+          viaNid = addLong(viaNid, refId);
+        }
+      }
+      parser.addRelation(relation.getId(), buildTags(relation.getKeysList(), relation.getValsList()),
+        wayIds, fromWid, toWid, viaNid);
+    }
+  }
+  private void addNode(NodeData n) {
+    try {
+      parser.addNode(n);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+  private static LongList addLong(LongList ll, long l) {
+    LongList list = ll == null ? new LongList(1) : ll;
+    list.add(l);
+    return list;
+  }
+  private Map<String, String> buildTags(List<Integer> keys, List<Integer> values) {
+    if (keys.isEmpty()) {
+      return null;
+    }
+    Map<String, String> tags = new HashMap<>();
+    for (int i = 0; i < keys.size(); i++) {
+      tags.put(getStringById(keys.get(i)), getStringById(values.get(i)));
+    }
+    return tags;
+  }
+  /**
+   * Reads a file that may still be written by another process: reading
+   * continues if either more than 100 MB are unread, or the file size
+   * is known to be unchanged for more than 2 minutes.
+   */
+  private static final class GrowingFileInputStream extends InputStream {
+    private static final long MIN_UNREAD = 100_000_000L;
+    private static final long STABLE_MILLIS = 120_000L;
+    private final File file;
+    private final InputStream in;
+    private final boolean poll;
+    private long bytesRead;
+    private long currentSize;
+    private long currentSizeTime = System.currentTimeMillis();
+    GrowingFileInputStream(File file, boolean poll) throws IOException {
+      this.file = file;
+      this.poll = poll;
+      this.currentSize = file.length();
+      this.in = new FileInputStream(file);
+    }
+    private void waitForData() throws IOException {
+      try {
+        while (currentSize - bytesRead < MIN_UNREAD) {
+          long newSize = file.length();
           if (newSize != currentSize) {
             currentSize = newSize;
             currentSizeTime = System.currentTimeMillis();
-          } else if (System.currentTimeMillis() - currentSizeTime > 120000) {
+          } else if (System.currentTimeMillis() - currentSizeTime > STABLE_MILLIS) {
             break;
           }
-          if (currentSize - bytesRead < 100000000L) {
+          if (currentSize - bytesRead < MIN_UNREAD) {
             System.out.println("--- waiting for more data, currentSize=" + currentSize + " bytesRead=" + bytesRead);
             Thread.sleep(10000);
           }
         }
-      }
-
-      int headerLength;
-      try {
-        headerLength = dis.readInt();
-        bytesRead += 4;
-      } catch (EOFException e) {
-        break;
-      }
-
-      byte[] headerBuffer = new byte[headerLength];
-      dis.readFully(headerBuffer);
-      bytesRead += headerLength;
-      Fileformat.BlobHeader blobHeader = Fileformat.BlobHeader.parseFrom(headerBuffer);
-
-      byte[] blobData = new byte[blobHeader.getDatasize()];
-      dis.readFully(blobData);
-      bytesRead += blobData.length;
-
-      blobType = blobHeader.getType();
-      rawBlob = blobData;
-
-      processBlob();
-    }
-    dis.close();
-  }
-
-  public void processBlob() throws Exception {
-    if ("OSMHeader".equals(blobType)) {
-      processOsmHeader(readBlobContent());
-    } else if ("OSMData".equals(blobType)) {
-      processOsmPrimitives(readBlobContent());
-    } else {
-      System.out.println("Skipping unrecognised blob type " + blobType);
-    }
-  }
-
-  private byte[] readBlobContent() throws IOException {
-    Fileformat.Blob blob = Fileformat.Blob.parseFrom(rawBlob);
-    byte[] blobData;
-
-    if (blob.hasRaw()) {
-      blobData = blob.getRaw().toByteArray();
-    } else if (blob.hasZlibData()) {
-      Inflater inflater = new Inflater();
-      inflater.setInput(blob.getZlibData().toByteArray());
-      blobData = new byte[blob.getRawSize()];
-      try {
-        inflater.inflate(blobData);
-      } catch (DataFormatException e) {
-        throw new RuntimeException("Unable to decompress PBF blob.", e);
-      }
-      if (!inflater.finished()) {
-        throw new RuntimeException("PBF blob contains incomplete compressed data.");
-      }
-    } else {
-      throw new RuntimeException("PBF blob uses unsupported compression, only raw or zlib may be used.");
-    }
-
-    return blobData;
-  }
-
-  private void processOsmHeader(byte[] data) throws InvalidProtocolBufferException {
-    // look for unsupported features in the file.
-    List<String> supportedFeatures = Arrays.asList("OsmSchema-V0.6", "DenseNodes");
-    List<String> unsupportedFeatures = new ArrayList<>();
-    for (String feature : Osmformat.HeaderBlock.parseFrom(data).getRequiredFeaturesList()) {
-      if (!supportedFeatures.contains(feature)) {
-        unsupportedFeatures.add(feature);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException("interrupted while waiting for data", e);
       }
     }
-    // We can't continue if there are any unsupported features. We wait
-    // until now so that we can display all unsupported features instead of
-    // just the first one we encounter.
-    if (!unsupportedFeatures.isEmpty()) {
-      throw new RuntimeException("PBF file contains unsupported features " + unsupportedFeatures);
-    }
-  }
-
-  private Map<String, String> buildTags(List<Integer> keys, List<Integer> values, BPbfFieldDecoder fieldDecoder) {
-
-    Iterator<Integer> keyIterator = keys.iterator();
-    Iterator<Integer> valueIterator = values.iterator();
-    if (keyIterator.hasNext()) {
-      Map<String, String> tags = new HashMap<>();
-      while (keyIterator.hasNext()) {
-        String key = fieldDecoder.decodeString(keyIterator.next());
-        String value = fieldDecoder.decodeString(valueIterator.next());
-        tags.put(key, value);
+    @Override
+    public int read() throws IOException {
+      if (poll) {
+        waitForData();
       }
-      return tags;
-    }
-    return null;
-  }
-
-  private void processNodes(List<Osmformat.Node> nodes, BPbfFieldDecoder fieldDecoder) throws IOException {
-    for (Osmformat.Node node : nodes) {
-      Map<String, String> tags = buildTags(node.getKeysList(), node.getValsList(), fieldDecoder);
-
-      NodeData n = new NodeData(node.getId(),
-        fieldDecoder.decodeLongitude(node.getLon()), fieldDecoder.decodeLatitude(node.getLat()));
-      n.setTags(tags);
-
-
-      parser.addNode(n);
-    }
-  }
-
-  private void processNodes(Osmformat.DenseNodes nodes, BPbfFieldDecoder fieldDecoder) throws IOException {
-    List<Long> idList = nodes.getIdList();
-    List<Long> latList = nodes.getLatList();
-    List<Long> lonList = nodes.getLonList();
-
-    Iterator<Integer> keysValuesIterator = nodes.getKeysValsList().iterator();
-
-    long nodeId = 0;
-    long latitude = 0;
-    long longitude = 0;
-
-    for (int i = 0; i < idList.size(); i++) {
-      // Delta decode node fields.
-      nodeId += idList.get(i);
-      latitude += latList.get(i);
-      longitude += lonList.get(i);
-
-      // Build the tags. The key and value string indexes are sequential
-      // in the same PBF array. Each set of tags is delimited by an index
-      // with a value of 0.
-      Map<String, String> tags = null;
-      while (keysValuesIterator.hasNext()) {
-        int keyIndex = keysValuesIterator.next();
-        if (keyIndex == 0) {
-          break;
-        }
-        int valueIndex = keysValuesIterator.next();
-
-        if (tags == null) {
-          tags = new HashMap<>();
-        }
-
-        tags.put(fieldDecoder.decodeString(keyIndex), fieldDecoder.decodeString(valueIndex));
+      int b = in.read();
+      if (b >= 0) {
+        bytesRead++;
       }
-
-      NodeData n = new NodeData(nodeId,
-        ((double) longitude) / 10000000, ((double) latitude) / 10000000);
-      n.setTags(tags);
-      parser.addNode(n);
+      return b;
     }
-  }
-
-  private void processWays(List<Osmformat.Way> ways, BPbfFieldDecoder fieldDecoder) throws IOException {
-    for (Osmformat.Way way : ways) {
-      Map<String, String> tags = buildTags(way.getKeysList(), way.getValsList(), fieldDecoder);
-
-      // Build up the list of way nodes for the way. The node ids are
-      // delta encoded meaning that each id is stored as a delta against
-      // the previous one.
-      long nodeId = 0;
-      LongList wayNodes = new LongList(16);
-      for (long nodeIdOffset : way.getRefsList()) {
-        nodeId += nodeIdOffset;
-        wayNodes.add(nodeId);
+    @Override
+    public int read(byte[] b, int off, int len) throws IOException {
+      if (poll) {
+        waitForData();
       }
-      WayData w = new WayData(way.getId(), wayNodes);
-      w.setTags(tags);
-      parser.addWay(w);
-    }
-  }
-
-  private LongList fromWid;
-  private LongList toWid;
-  private LongList viaNid;
-
-  private LongList addLong(LongList ll, long l) {
-    if (ll == null) {
-      ll = new LongList(1);
-    }
-    ll.add(l);
-    return ll;
-  }
-
-  private LongList buildRelationMembers(
-    List<Long> memberIds, List<Integer> memberRoles, List<Osmformat.Relation.MemberType> memberTypes,
-    BPbfFieldDecoder fieldDecoder) {
-    LongList wayIds = new LongList(16);
-
-    fromWid = toWid = viaNid = null;
-
-    Iterator<Long> memberIdIterator = memberIds.iterator();
-    Iterator<Integer> memberRoleIterator = memberRoles.iterator();
-    Iterator<Osmformat.Relation.MemberType> memberTypeIterator = memberTypes.iterator();
-
-    // Build up the list of relation members for the way. The member ids are
-    // delta encoded meaning that each id is stored as a delta against
-    // the previous one.
-    long refId = 0;
-    while (memberIdIterator.hasNext()) {
-      Osmformat.Relation.MemberType memberType = memberTypeIterator.next();
-      refId += memberIdIterator.next();
-
-      String role = fieldDecoder.decodeString(memberRoleIterator.next());
-
-      if (memberType == Osmformat.Relation.MemberType.WAY) { // currently just waymembers
-        wayIds.add(refId);
-        if ("from".equals(role)) fromWid = addLong(fromWid, refId);
-        if ("to".equals(role)) toWid = addLong(toWid, refId);
+      int n = in.read(b, off, len);
+      if (n > 0) {
+        bytesRead += n;
       }
-      if (memberType == Osmformat.Relation.MemberType.NODE) { // currently just waymembers
-        if ("via".equals(role)) viaNid = addLong(viaNid, refId);
-      }
+      return n;
     }
-    return wayIds;
-  }
-
-  private void processRelations(List<Osmformat.Relation> relations, BPbfFieldDecoder fieldDecoder) {
-    for (Osmformat.Relation relation : relations) {
-      Map<String, String> tags = buildTags(relation.getKeysList(), relation.getValsList(), fieldDecoder);
-
-      LongList wayIds = buildRelationMembers(relation.getMemidsList(), relation.getRolesSidList(),
-        relation.getTypesList(), fieldDecoder);
-
-      parser.addRelation(relation.getId(), tags, wayIds, fromWid, toWid, viaNid);
-    }
-  }
-
-  private void processOsmPrimitives(byte[] data) throws Exception {
-    Osmformat.PrimitiveBlock block = Osmformat.PrimitiveBlock.parseFrom(data);
-    BPbfFieldDecoder fieldDecoder = new BPbfFieldDecoder(block);
-
-    for (Osmformat.PrimitiveGroup primitiveGroup : block.getPrimitivegroupList()) {
-      processNodes(primitiveGroup.getDense(), fieldDecoder);
-      processNodes(primitiveGroup.getNodesList(), fieldDecoder);
-      processWays(primitiveGroup.getWaysList(), fieldDecoder);
-      processRelations(primitiveGroup.getRelationsList(), fieldDecoder);
-    }
-  }
-
-  private static class BPbfFieldDecoder {
-    private static final double COORDINATE_SCALING_FACTOR = 0.000000001;
-    private final String[] strings;
-    private final int coordGranularity;
-    private final long coordLatitudeOffset;
-    private final long coordLongitudeOffset;
-
-    /**
-     * @param primitiveBlock The primitive block containing the fields to be decoded.
-     */
-    public BPbfFieldDecoder(Osmformat.PrimitiveBlock primitiveBlock) {
-      this.coordGranularity = primitiveBlock.getGranularity();
-      this.coordLatitudeOffset = primitiveBlock.getLatOffset();
-      this.coordLongitudeOffset = primitiveBlock.getLonOffset();
-
-      Osmformat.StringTable stringTable = primitiveBlock.getStringtable();
-      strings = new String[stringTable.getSCount()];
-      for (int i = 0; i < strings.length; i++) {
-        strings[i] = stringTable.getS(i).toStringUtf8();
-      }
-    }
-
-    /**
-     * Decodes a raw latitude value into degrees.
-     *
-     * @param rawLatitude The PBF encoded value.
-     * @return The latitude in degrees.
-     */
-    public double decodeLatitude(long rawLatitude) {
-      return COORDINATE_SCALING_FACTOR * (coordLatitudeOffset + (coordGranularity * rawLatitude));
-    }
-
-    /**
-     * Decodes a raw longitude value into degrees.
-     *
-     * @param rawLongitude The PBF encoded value.
-     * @return The longitude in degrees.
-     */
-    public double decodeLongitude(long rawLongitude) {
-      return COORDINATE_SCALING_FACTOR * (coordLongitudeOffset + (coordGranularity * rawLongitude));
-    }
-
-    /**
-     * Decodes a raw string into a String.
-     *
-     * @param rawString The PBF encoding string.
-     * @return The string as a String.
-     */
-    public String decodeString(int rawString) {
-      return strings[rawString];
+    @Override
+    public void close() throws IOException {
+      in.close();
     }
   }
 }
