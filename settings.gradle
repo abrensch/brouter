@@ -1,7 +1,2 @@
 rootProject.name='brouter'
-if (file('local.properties').exists()) {
-	include ':brouter-routing-app'
-} else {
-    println "Note: To include Android app add 'local.properties' with 'sdk.dir=...' "
-}
-include ':brouter-statcoding', ':brouter-mapaccess', ':brouter-core', ':brouter-util', ':brouter-expressions', ':brouter-map-creator', ':brouter-server'
+include ':brouter-mapaccess', ':brouter-core', ':brouter-util', ':brouter-expressions', ':brouter-map-creator', ':brouter-server'

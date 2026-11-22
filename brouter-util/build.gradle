@@ -3,6 +3,6 @@ plugins {
 }
 
 dependencies {
-    implementation project(':brouter-statcoding')
+    implementation group: 'io.github.abrensch', name: 'statcoding', version: '0.9.0-RELEASE'
     testImplementation 'junit:junit:4.13.2'
 }
