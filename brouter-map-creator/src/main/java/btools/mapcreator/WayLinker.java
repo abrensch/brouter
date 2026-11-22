@@ -24,7 +24,6 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
   private CompactLongMap<GraphNode> nodesMap;
   private CompactLongSet borderSet;
   private BExpressionContextWay expCtxWay;
-  private ByteArrayUnifier abUnifier;
   private int minLon;
   private int minLat;
   private boolean isSlave;
@@ -130,8 +129,6 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
     meta.readMetaData(lookupFile);
 
     expCtxWay.parseFile(profileFile, "global");
-
-    abUnifier = new ByteArrayUnifier(16384);
   }
 
   @Override
@@ -271,15 +268,16 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
 
   @Override
   public void nextWay(WayData way) {
-    byte[] wayDescription = abUnifier.unify(way.description);
 
     // filter according to profile
-    expCtxWay.evaluate(false, wayDescription);
+    expCtxWay.evaluate(false, way.description);
     boolean ok = expCtxWay.getCostfactor() < 10000.;
-    expCtxWay.evaluate(true, wayDescription);
+    expCtxWay.evaluate(true, way.description);
     ok |= expCtxWay.getCostfactor() < 10000.;
     if (!ok)
       return;
+
+    byte[] wayDescription = expCtxWay.unify(way.description);
 
     byte wayBits = 0;
     expCtxWay.decode(wayDescription);

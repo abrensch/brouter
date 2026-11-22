@@ -310,30 +310,15 @@ public abstract class BExpressionContext {
 
   private CacheNode lastCacheNode = new CacheNode();
 
+  /**
+   * Return the canonical instance of the description array.
+   * Must be called directly after evaluate(inverseDirection, ab) with the same array.
+   */
   public final byte[] unify(byte[] ab) {
-    int len = ab.length;
-    probeCacheNode.ab = null; // crc based cache lookup only
-    probeCacheNode.hash = (int) Crc64.crc(ab, 0, len);
-
-    CacheNode cn = (CacheNode) cache.get(probeCacheNode);
-    if (cn != null) {
-      byte[] cab = cn.ab;
-      if (cab.length == len) {
-        for (int i = 0; i < len; i++) {
-          if (cab[i] != ab[i]) {
-            cn = null;
-            break;
-          }
-        }
-        if (cn != null) {
-          lastCacheNode = cn;
-          return cn.ab;
-        }
-      }
+    if (cache == null || lastCacheNode.ab == null || !Arrays.equals(lastCacheNode.ab, ab)) {
+      return ab;
     }
-    byte[] nab = new byte[len];
-    System.arraycopy(ab, 0, nab, 0, len);
-    return nab;
+    return lastCacheNode.ab;
   }
 
 
@@ -401,6 +386,7 @@ public abstract class BExpressionContext {
       cache.touch(cn);
     }
 
+    lastCacheNode = cn;
     currentVars = cn.vars;
     currentVarOffset = inverseDirection ? nBuildInVars : 0;
   }
