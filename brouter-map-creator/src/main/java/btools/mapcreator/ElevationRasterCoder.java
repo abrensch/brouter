@@ -45,7 +45,6 @@ public class ElevationRasterCoder {
 
     decodeRasterData(raster, bis);
 
-    raster.usingWeights = raster.ncols > 6001;
     return raster;
   }
 
@@ -123,9 +122,6 @@ public class ElevationRasterCoder {
 
         // remap nodata
         int v30 = code == -1 ? Short.MIN_VALUE : (code < 0 ? code + 1 : code);
-        if (raster.usingWeights && v30 > -32766) {
-          v30 *= 2;
-        }
         pixels[row * ncols + col] = (short) (v30);
       }
       if (raster.halfcol) {
