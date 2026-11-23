@@ -310,7 +310,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
     nodesMap = null;
 
     // do Douglas Peuker elimination of too dense transfer nodes
-    DPFilter.doDPFilter(nodesList);
+    DouglasPeuckerFilter.filter(nodesList);
 
     long turnRestrictionsTotal = 0;
     long turnRestrictionsValid = 0;

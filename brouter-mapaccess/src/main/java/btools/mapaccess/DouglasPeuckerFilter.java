@@ -3,17 +3,15 @@
  *
  * @author ab
  */
-package btools.mapcreator;
+package btools.mapaccess;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import btools.mapaccess.GraphLink;
-import btools.mapaccess.GraphNode;
 import btools.util.CheapRuler;
 
-public class DPFilter {
+public class DouglasPeuckerFilter {
   private static double dp_sql_threshold = 0.4 * 0.4;
 
   /**
@@ -68,7 +66,7 @@ public class DPFilter {
    * look for forward transfer node chains and apply
    * Douglas-Peucker filtering to them
    */
-  public static void doDPFilter(List<GraphNode> nodes) {
+  public static void filter(List<GraphNode> nodes) {
 
     // find the transfer-nodes
     for( GraphNode n : nodes ) {
@@ -86,7 +84,7 @@ public class DPFilter {
       while (l != null) {
         if ( !l.isReverse(n)) {
           if ( l.getTarget(n).hasBits(GraphNode.TRANSFERNODE_BIT) ) {
-            doDPFilter( n, l );
+            filter( n, l );
           }
         }
         l = l.getNext(n);
@@ -100,7 +98,7 @@ public class DPFilter {
     }
   }
 
-  private static void doDPFilter(GraphNode node, GraphLink link) {
+  private static void filter(GraphNode node, GraphLink link) {
 
     List<GraphNode> nodeList = new ArrayList<>(8);
     nodeList.add(node);
@@ -122,7 +120,7 @@ public class DPFilter {
       }
     }
     if ( nodeList.size() > 2 ) {
-      doDPFilter( nodeList, 0, nodeList.size()-1 );
+      filter( nodeList, 0, nodeList.size()-1 );
     }
   }
 
@@ -132,7 +130,7 @@ public class DPFilter {
    * @param first the index of the first node
    * @param last the index of the last node
    */
-  private static void doDPFilter(List<GraphNode> nodes, int first, int last) {
+  private static void filter(List<GraphNode> nodes, int first, int last) {
     double maxSqDist = -1.;
     int index = -1;
     GraphNode p1 = nodes.get(first);
@@ -161,13 +159,13 @@ public class DPFilter {
     }
     if (index >= 0) {
       if (index - first > 1) {
-        doDPFilter(nodes, first, index);
+        filter(nodes, first, index);
       }
       if (maxSqDist >= dp_sql_threshold) {
         nodes.get(index).setBits(GraphNode.DP_SURVIVOR_BIT);
       }
       if (last - index > 1) {
-        doDPFilter(nodes, index, last);
+        filter(nodes, index, last);
       }
     }
   }
