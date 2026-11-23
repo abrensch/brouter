@@ -47,10 +47,10 @@ public class GraphNavigationTest {
 
     // write the nodes into a file
     File segmentDir = tmpDir.newFolder("segments");
-    new GraphFile(new File(segmentDir, "E0_N0.rd5"), 180000000, 90000000).createWithNodes(nodes);
+    new GraphFile(new File(segmentDir, "E0_N0.gd5"), 180000000, 90000000).createWithNodes(nodes);
 
     // now recover the ring from the file and navigate again
-    NodesCache nc = new NodesCache(segmentDir, "rd5", null, null);
+    NodesCache nc = new NodesCache(segmentDir, "gd5", null, null);
 
     // .. match a point near the start node
     MatchedWaypoint mwp = new MatchedWaypoint();

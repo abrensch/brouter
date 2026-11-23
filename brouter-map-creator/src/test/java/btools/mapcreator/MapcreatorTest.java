@@ -28,6 +28,6 @@ public class MapcreatorTest {
 
     new NodeEnhancer(tmpDir).process(workingDir);
 
-    new WayLinker(tmpDir).process(lookupFile, profileAll, "rd5");
+    new WayLinker(tmpDir).process(lookupFile, profileAll, "gd5");
   }
 }

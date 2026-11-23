@@ -13,9 +13,9 @@ import btools.statcoding.BitInputStream;
 import btools.util.*;
 
 /**
- * WayLinker finally puts the pieces together to create the rd5 files. For each
+ * WayLinker finally puts the pieces together to create the gd5 files. For each
  * 5*5 tile, the corresponding files for nodes, turn-restictions and ways are read,
- * plus the (global) bordernodes file, and an rd5 datafile is created
+ * plus the (global) bordernodes file, and an gd5 datafile is created
  */
 public class WayLinker extends ItemCutter implements ItemListener, Runnable {
   private File tmpDir;

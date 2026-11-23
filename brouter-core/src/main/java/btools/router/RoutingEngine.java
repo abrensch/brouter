@@ -470,7 +470,7 @@ public class RoutingEngine {
 
   private void resetCache(boolean detailed) {
     routingContext.expCtxWay.setDecodeForbidden(detailed);
-    nodesCache = new NodesCache(segmentDir, "rd5", routingContext.expCtxWay, nodesCache);
+    nodesCache = new NodesCache(segmentDir, "gd5", routingContext.expCtxWay, nodesCache);
     islandNodePairs.clearTempPairs();
   }
 

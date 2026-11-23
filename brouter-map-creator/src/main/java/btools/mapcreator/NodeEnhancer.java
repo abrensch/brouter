@@ -65,7 +65,7 @@ public class NodeEnhancer extends ItemCutter implements ItemListener {
   @Override
   public boolean itemFileStart(File nodefile) throws IOException {
     elevationRaster = null;
-    File demFile = fileFromTemplate( nodefile, srtmDir, "bef" );
+    File demFile = fileFromTemplate( nodefile, srtmDir, "edf" );
     if (demFile.exists()) {
       System.out.println("*** reading: " + demFile);
       try ( BitInputStream bis = new BitInputStream( new BufferedInputStream(new FileInputStream(demFile))) ){
