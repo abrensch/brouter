@@ -41,9 +41,9 @@ public class OsmParser {
   private BExpressionContextNode expCtxNode;
 
   public static void main(String[] args) throws Exception {
-    System.out.println("*** OsmCutter: cut an osm map in node-tiles + way-tiles");
+    System.out.println("*** OsmParser: cut an osm map in node-tiles + way-tiles");
     if (args.length != 6 && args.length != 7) {
-      String common = "java OsmCutter <lookup-file> <tmp-dir> <filter-profile> <report-profile> <check-profile> <map-file> [db-tag-filename]";
+      String common = "java OsmParser <lookup-file> <tmp-dir> <filter-profile> <report-profile> <check-profile> <map-file> [db-tag-filename]";
       System.out.println("usage: " + common);
       return;
     }

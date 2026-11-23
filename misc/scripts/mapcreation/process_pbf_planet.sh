@@ -10,21 +10,17 @@ rm -rf tmp
 
 mkdir tmp
 cd tmp
-mkdir nodetiles
-mkdir waytiles
-mkdir waytiles55
-mkdir nodes55
 
-java -Xmx6144M -Xms6144M -Xmn256M -cp ../brouter.jar btools.mapcreator.OsmFastCutter ../lookups.dat nodetiles waytiles nodes55 waytiles55  bordernids.dat  relations.dat  restrictions.dat  ../all.brf ../trekking.brf ../softaccess.brf ../planet-new.osm.pbf
+java -Xmx6144M -Xms6144M -Xmn256M -cp ../brouter.jar btools.mapcreator.OsmParser ../lookups.dat . ../all.brf ../trekking.brf ../softaccess.brf ../planet-new.osm.pbf
 
 mv ../planet-latest.osm.pbf ../planet-old.osm.pbf
 mv ../planet-new.osm.pbf ../planet-latest.osm.pbf
 
 mkdir unodes55
-java -Xmx6144M -Xms6144M -Xmn256M -cp ../brouter.jar btools.mapcreator.PosUnifier nodes55 unodes55 bordernids.dat bordernodes.dat ../../srtm3_bef
+java -Xmx6144M -Xms6144M -Xmn256M -cp ../brouter.jar btools.mapcreator.NodeEnhancer . ../../srtm3_bef
 
 mkdir segments
-java  -Xmx6144M -Xms6144M -Xmn256M -cp ../brouter.jar btools.util.StackSampler btools.mapcreator.WayLinker unodes55 waytiles55 bordernodes.dat restrictions.dat ../lookups.dat ../all.brf segments rd5
+java  -Xmx6144M -Xms6144M -Xmn256M -cp ../brouter.jar btools.mapcreator.WayLinker . ../lookups.dat ../all.brf rd5
 
 cd ..
 

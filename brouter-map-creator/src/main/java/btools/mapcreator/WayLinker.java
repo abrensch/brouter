@@ -86,7 +86,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
     System.out.println("*** WayLinker: Format a region of an OSM map for routing");
     if (args.length != 4) {
       System.out
-        .println("usage: java WayLinker <tmpDir> <lookup-file> <profile-file> <data-tiles-suffix> ");
+        .println("usage: java WayLinker <tmpDir> <lookup-file> <profile-file> <data-tiles-suffix>");
       return;
     }
 
