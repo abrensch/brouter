@@ -7,7 +7,6 @@ package btools.util;
  */
 public final class SortedHeap<V> {
   private int size;
-  private int peakSize;
   private SortedBin first;
   private SortedBin second;
   private SortedBin firstNonEmpty;
@@ -96,105 +95,13 @@ public final class SortedHeap<V> {
       }
     }
 
-    // unrolled version of above for binsize = 4
-    void add4(long key, Object value) {
-      int p = lp--;
-      if (p == 4 || key < al[p]) {
-        lv = al[p - 1] = key;
-        vla[p - 1] = value;
-        return;
-      }
-      lv = al[p - 1] = al[p];
-      vla[p - 1] = vla[p];
-      p++;
-
-      if (p == 4 || key < al[p]) {
-        al[p - 1] = key;
-        vla[p - 1] = value;
-        return;
-      }
-      al[p - 1] = al[p];
-      vla[p - 1] = vla[p];
-      p++;
-
-      if (p == 4 || key < al[p]) {
-        al[p - 1] = key;
-        vla[p - 1] = value;
-        return;
-      }
-      al[p - 1] = al[p];
-      vla[p - 1] = vla[p];
-
-      al[p] = key;
-      vla[p] = value;
-    }
-
-    // unrolled loop for performance sake
     SortedBin getMinBin() {
       SortedBin minBin = this;
-      SortedBin bin = this;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
-      if ((bin = bin.nextNonEmpty) == null) return minBin;
-      if (bin.lv < minBin.lv) minBin = bin;
+      for (SortedBin bin = nextNonEmpty; bin != null; bin = bin.nextNonEmpty) {
+        if (bin.lv < minBin.lv) {
+          minBin = bin;
+        }
+      }
       return minBin;
     }
   }
@@ -212,14 +119,14 @@ public final class SortedHeap<V> {
       sortUp();
     }
     if (first.lp > 0) {
-      first.add4(key, value);
+      first.add(key, value);
       if (firstNonEmpty != first) {
         first.nextNonEmpty = firstNonEmpty;
         firstNonEmpty = first;
       }
     } else // second bin not full
     {
-      second.add4(key, value);
+      second.add(key, value);
       if (first.nextNonEmpty != second) {
         second.nextNonEmpty = first.nextNonEmpty;
         first.nextNonEmpty = second;
@@ -229,9 +136,6 @@ public final class SortedHeap<V> {
   }
 
   private void sortUp() {
-    if (size > peakSize) {
-      peakSize = size;
-    }
 
     // determine the first array big enough to take them all
     int cnt = 8; // value count of first 2 bins is always 8
@@ -279,30 +183,5 @@ public final class SortedHeap<V> {
 
   public int getSize() {
     return size;
-  }
-
-  public int getPeakSize() {
-    return peakSize;
-  }
-
-  public int getExtract(Object[] targetArray) {
-    int tsize = targetArray.length;
-    int div = size / tsize + 1;
-    int tp = 0;
-
-    int lpi = 0;
-    SortedBin bin = firstNonEmpty;
-    while (bin != null) {
-      lpi += bin.lp;
-      Object[] vlai = bin.vla;
-      int n = bin.binSize;
-      while (lpi < n) {
-        targetArray[tp++] = vlai[lpi];
-        lpi += div;
-      }
-      lpi -= n;
-      bin = bin.nextNonEmpty;
-    }
-    return tp;
   }
 }
