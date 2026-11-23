@@ -11,7 +11,7 @@ import java.util.List;
  * the 32-bit limit of arrays!)
  * <p>
  * Target application are osm-node ids which are in the
- * range 0...3 billion and basically dense (=only few
+ * range 0...14 billion and basically dense (=only few
  * nodes deleted)
  *
  * @author ab
@@ -150,18 +150,17 @@ public class DenseLongMap {
     /* actual stats for the 30x45 raster and 512 blocksize with filtered nodes:
      *
      **** DenseLongMap stats ****
-     putCount=858518399
-     0-bitplanes=783337
-     1-bitplanes=771490
-     2-bitplanes=644578
-     3-bitplanes=210767
-     4-bitplanes=439
+     putCount=11013382003
+     0-bitplanes=3422187
+     1-bitplanes=3294589
+     2-bitplanes=3110607
+     3-bitplanes=2407048
+     4-bitplanes=502776
      5-bitplanes=0
      6-bitplanes=0
      7-bitplanes=0
      *
-     * This is a total of 1,2 GB
-     * (1.234.232.832+7.381.126+15.666.740 for body/header/object-overhead )
+     * This is a total of 6,5 GB ( 12,7 mio blocks * 512 byta/block )
     */
 
     if (key < 0) {
