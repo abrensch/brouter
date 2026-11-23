@@ -17,24 +17,23 @@ final class KinematicPrePath extends OsmPrePath {
     if (description == null) throw new IllegalArgumentException("null description for: " + link);
 
     // extract the 3 positions of the first section
-    int lon0 = origin.originLon;
-    int lat0 = origin.originLat;
+    GraphNode previousNode = origin.sourceNode == null ? null : origin.sourceNode;
+    boolean isStartpoint = previousNode == null;
+    int lon0 = isStartpoint ? -1 : previousNode.iLon;
+    int lat0 = isStartpoint ? -1 : previousNode.iLat;
 
-    GraphNode p1 = sourceNode;
-    int lon1 = p1.iLon;
-    int lat1 = p1.iLat;
+    int lon1 = sourceNode.iLon;
+    int lat1 = sourceNode.iLat;
+
+    int lon2 = targetNode.iLon;
+    int lat2 = targetNode.iLat;
 
     boolean isReverse = link.isReverse(sourceNode);
 
     // evaluate the way tags
     rc.expCtxWay.evaluate(rc.inverseDirection ^ isReverse, description);
 
-    int lon2 = targetNode.iLon;
-    int lat2 = targetNode.iLat;
-
-    int dist = rc.calcDistance(lon1, lat1, lon2, lat2);
-
-    angle = rc.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
+    angle = isStartpoint ? 0. : rc.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
     priorityclassifier = (int) rc.expCtxWay.getPriorityClassifier();
     classifiermask = (int) rc.expCtxWay.getClassifierMask();
   }

@@ -80,8 +80,8 @@ public class ItemIterator {
         }
       }
     }
-    if (delete && Boolean.getBoolean("deletetmpfiles")) {
-      file.delete();
+    if (delete && !file.delete()) {
+      throw new IOException("could not delete file: " + file);
     }
   }
 

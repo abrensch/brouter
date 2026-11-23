@@ -29,11 +29,6 @@ abstract class OsmPath {
   public OsmPathElement myElement;
   public int treeDepth = 0;
 
-  // the position of the waypoint just before
-  // this path position (for angle calculation)
-  public int originLon;
-  public int originLat;
-
   // the classifier of the segment just before this paths position
   protected float lastClassifier;
   protected float lastInitialCost;
@@ -66,9 +61,6 @@ abstract class OsmPath {
     this.link = link;
     targetNode = link.getTarget(null);
     sElev = targetNode.sElev;
-
-    originLon = -1;
-    originLat = -1;
   }
 
   public void init(OsmPath origin, GraphLink link, OsmTrack refTrack, boolean detailMode, RoutingContext rc) {
@@ -96,31 +88,20 @@ abstract class OsmPath {
 
   protected void addAdditionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, GraphLink link, RoutingContext rc) {
     byte[] description = link.wayDescription;
-    if (description == null) { // could be a beeline path
-      message = new MessageData();
-      message.turnangle = 0;
-      message.time = (float) 1;
-      message.energy = (float) 0;
-      message.priorityclassifier = 0;
-      message.classifiermask = 0;
-      message.lon = targetNode.iLon;
-      message.lat = targetNode.iLat;
-      message.ele = Short.MIN_VALUE;
-      message.linkdist = sourceNode.calcDistance(targetNode);
-      message.wayKeyValues = "direct_segment=" + seg;
-      seg++;
-      return;
-    }
 
     rc.nogoCost = 0.;
 
     // extract the 3 positions of the first section
-    int lon0 = origin.originLon;
-    int lat0 = origin.originLat;
+    GraphNode previousNode = origin.sourceNode == null ? null : origin.sourceNode;
+    boolean isStartpoint = previousNode == null;
 
+    int lon0 = isStartpoint ? -1 : previousNode.iLon;
+    int lat0 = isStartpoint ? -1 : previousNode.iLat;
     int lon1 = sourceNode.iLon;
     int lat1 = sourceNode.iLat;
     short ele1 = origin.sElev;
+    int lon2 = targetNode.iLon;
+    int lat2 = targetNode.iLat;
 
     message = detailMode ? new MessageData() : null;
 
@@ -176,15 +157,8 @@ abstract class OsmPath {
     setBit(IS_ON_DESTINATION_BIT, newDestination);
 
     {
-      originLon = lon1;
-      originLat = lat1;
-
-      int lon2 = targetNode.iLon;
-      int lat2 = targetNode.iLat;
       short originEle2 = targetNode.sElev;
       short ele2 = originEle2;
-
-      boolean isStartpoint = lon0 == -1 && lat0 == -1;
 
       // check turn restrictions (in detail mode (=final pass) no TR to not mess up voice hints)
       if (rc.considerTurnRestrictions && !detailMode && !isStartpoint) {
@@ -213,9 +187,7 @@ abstract class OsmPath {
           // we just start here, reset everything
           cost = 0;
           resetState();
-          lon0 = -1; // reset turncost-pipe
-          lat0 = -1;
-          isStartpoint = true;
+          isStartpoint = true; // reset turncost-pipe
 
           if (detailMode) {
             if (rc.wayfraction > 0.) {
@@ -241,12 +213,8 @@ abstract class OsmPath {
       }
 
       // for the start point, fake the origin position (straight ahead)
-      if (isStartpoint) {
-        lon0 = lon1 - (lon2 - lon1);
-        lat0 = lat1 - (lat2 - lat1);
-      }
-      double angle = rc.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
-      double cosangle = rc.anglemeter.getCosAngle();
+      double angle = isStartpoint ? 0. : rc.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
+      double cosangle = isStartpoint ? 1. : rc.anglemeter.getCosAngle();
 
       // *** elevation stuff
       double delta_h = 0.;

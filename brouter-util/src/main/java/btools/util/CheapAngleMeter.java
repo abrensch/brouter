@@ -48,11 +48,9 @@ public final class CheapAngleMeter {
   }
 
   public static double getAngle(int lon1, int lat1, int lon2, int lat2) {
-    double res = 0;
     double xdiff = lat2 - lat1;
     double ydiff = lon2 - lon1;
-    res = Math.toDegrees(Math.atan2(ydiff, xdiff));
-    return res;
+    return Math.toDegrees(Math.atan2(ydiff, xdiff));
   }
 
   public static double getDirection(int lon1, int lat1, int lon2, int lat2) {
