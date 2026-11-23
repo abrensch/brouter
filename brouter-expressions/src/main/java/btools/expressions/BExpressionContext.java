@@ -12,14 +12,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.StringTokenizer;
-import java.util.TreeMap;
 import java.util.Locale;
 
 import btools.statcoding.BitInputStream;
 import btools.statcoding.BitOutputStream;
-import btools.statcoding.Crc64;
 import btools.util.LruMap;
 
 
@@ -340,7 +337,7 @@ public abstract class BExpressionContext {
       cn = lastCacheNode;
     } else {
       probeCacheNode.ab = ab;
-      probeCacheNode.hash = (int)Crc64.crc(ab, 0, ab.length);
+      probeCacheNode.hash = Arrays.hashCode(ab);
       cn = (CacheNode) cache.get(probeCacheNode);
     }
 
