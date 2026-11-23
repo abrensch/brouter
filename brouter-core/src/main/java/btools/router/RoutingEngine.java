@@ -575,7 +575,6 @@ public class RoutingEngine {
     SortedHeap<OsmPath> openSet = new SortedHeap<>();
     addToOpenset(openSet, startPath1);
     addToOpenset(openSet, startPath2);
-    OsmPath pendingTransferPath = null;
 
     for (; ; ) {
       if (terminated) {
@@ -589,8 +588,7 @@ public class RoutingEngine {
         }
       }
 
-
-      OsmPath path = pendingTransferPath == null ? pendingTransferPath : openSet.popLowestKeyValue();
+      OsmPath path = openSet.popLowestKeyValue();
       if (path == null) {
         break;
       }
@@ -725,35 +723,24 @@ public class RoutingEngine {
           }
         }
 
-        OsmPath bestPath = null;
-        {
-          try {
-            if (isFinalLink) {
-              endPos.radius = 1.5; // 1.5 meters is the upper limit that will not change the unit-test result..
-              routingContext.setWaypoint(endPos, true);
-            }
-            OsmPath testPath = routingContext.createPath(path, link, refTrack, guideTrack != null);
-            if (testPath.cost >= 0 &&
-              (testPath.sourceNode.getIdFromPos() != testPath.targetNode.getIdFromPos())) {
-              bestPath = testPath;
-            }
-          } finally {
-            if (isFinalLink) {
-              routingContext.unsetWaypoint();
+        try {
+          if (isFinalLink) {
+            endPos.radius = 1.5; // 1.5 meters is the upper limit that will not change the unit-test result..
+            routingContext.setWaypoint(endPos, true);
+          }
+          OsmPath testPath = routingContext.createPath(path, link, refTrack, guideTrack != null);
+          if (testPath.cost >= 0 &&
+            (testPath.sourceNode.getIdFromPos() != testPath.targetNode.getIdFromPos())) {
+            testPath.airDistance = isFinalLink ? 0 : nextNode.calcDistance(endPos);
+
+            if (isFinalLink || testPath.cost + testPath.airDistance <= maxTotalCost + addDiff) {
+              testPath.treeDepth = path.treeDepth + 1;
+              addToOpenset( openSet, testPath );
             }
           }
-        }
-        if (bestPath != null) {
-          bestPath.airDistance = isFinalLink ? 0 : nextNode.calcDistance(endPos);
-
-          if (isFinalLink || bestPath.cost + bestPath.airDistance <= maxTotalCost + addDiff) {
-            bestPath.treeDepth = path.treeDepth + 1;
-            if ( bestPath.cost >= 0 && bestPath.targetNode.hasBits( GraphNode.TRANSFERNODE_BIT ) ) {
-              pendingTransferPath = bestPath; // bypass openset for trivial nodes
-            } else
-            {
-              addToOpenset( openSet, bestPath );
-            }
+        } finally {
+          if (isFinalLink) {
+            routingContext.unsetWaypoint();
           }
         }
       }
