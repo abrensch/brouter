@@ -573,9 +573,9 @@ public class RoutingEngine {
     OsmPath startPath2 = getStartPath(start2, start1, startWp, endPos, sameSegmentSearch);
 
     SortedHeap<OsmPath> openSet = new SortedHeap<>();
+    SortedHeap<OsmPath> openSetFast = new SortedHeap<>(); // quick bypass for transfer nodes
     addToOpenset(openSet, startPath1);
     addToOpenset(openSet, startPath2);
-    OsmPath pendingTransferPath = null;
 
     for (; ; ) {
       if (terminated) {
@@ -589,8 +589,8 @@ public class RoutingEngine {
         }
       }
 
-
-      OsmPath path = pendingTransferPath == null ? pendingTransferPath : openSet.popLowestKeyValue();
+      OsmPath path = openSetFast.popLowestKeyValue();
+      path = path == null ? openSet.popLowestKeyValue() : path;
       if (path == null) {
         break;
       }
@@ -748,8 +748,8 @@ public class RoutingEngine {
 
           if (isFinalLink || bestPath.cost + bestPath.airDistance <= maxTotalCost + addDiff) {
             bestPath.treeDepth = path.treeDepth + 1;
-            if ( bestPath.cost >= 0 && bestPath.targetNode.hasBits( GraphNode.TRANSFERNODE_BIT ) ) {
-              pendingTransferPath = bestPath; // bypass openset for trivial nodes
+            if ( bestPath.targetNode.hasBits( GraphNode.TRANSFERNODE_BIT ) ) {
+              addToOpenset( openSetFast, bestPath ); // quick bypass
             } else
             {
               addToOpenset( openSet, bestPath );
