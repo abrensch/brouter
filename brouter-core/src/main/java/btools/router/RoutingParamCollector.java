@@ -57,10 +57,10 @@ public class RoutingParamCollector {
     }
 
     for (int i = 0; i < lats.length && i < lons.length; i++) {
-      GraphNodeNamed n = new GraphNodeNamed();
+      GraphNodeNamed n = new GraphNodeNamed(
+        (int) ((lons[i] + 180.) * 1000000. + 0.5),
+        (int) ((lats[i] + 90.) * 1000000. + 0.5));
       n.name = "via" + i;
-      n.iLon = (int) ((lons[i] + 180.) * 1000000. + 0.5);
-      n.iLat = (int) ((lats[i] + 90.) * 1000000. + 0.5);
       wplist.add(n);
     }
 
@@ -80,10 +80,10 @@ public class RoutingParamCollector {
   }
 
   private GraphNodeNamed readPosition(double lon, double lat, String name) {
-    GraphNodeNamed n = new GraphNodeNamed();
+    GraphNodeNamed n = new GraphNodeNamed(
+      (int) ((lon + 180.) * 1000000. + 0.5),
+      (int) ((lat + 90.) * 1000000. + 0.5));
     n.name = name;
-    n.iLon = (int) ((lon + 180.) * 1000000. + 0.5);
-    n.iLat = (int) ((lat + 90.) * 1000000. + 0.5);
     return n;
   }
 
@@ -219,10 +219,10 @@ public class RoutingParamCollector {
   }
 
   private GraphNodeNamed readNogo(double lon, double lat, int radius) {
-    GraphNodeNamed n = new GraphNodeNamed();
+    GraphNodeNamed n = new GraphNodeNamed(
+      (int) ((lon + 180.) * 1000000. + 0.5),
+      (int) ((lat + 90.) * 1000000. + 0.5));
     n.name = "nogo" + radius;
-    n.iLon = (int) ((lon + 180.) * 1000000. + 0.5);
-    n.iLat = (int) ((lat + 90.) * 1000000. + 0.5);
     n.isNogo = true;
     return n;
   }

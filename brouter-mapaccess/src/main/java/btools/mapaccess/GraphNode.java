@@ -12,14 +12,14 @@ import btools.util.CheapRuler;
 
 public class GraphNode extends GraphLink {
   /**
-   * The latitude
+   * The longitude (0...360.000.000 -1 )
    */
-  public int iLat;
+  public final int iLon;
 
   /**
-   * The longitude
+   * The latitude (0...180.000.000 -1 )
    */
-  public int iLon;
+  public final int iLat;
 
   /**
    * The elevation
@@ -69,17 +69,20 @@ public class GraphNode extends GraphLink {
     firstRestriction = tr;
   }
 
-  public GraphNode() {
-  }
 
   public GraphNode(int iLon, int iLat) {
+    if (iLon < 0 || iLon >= 360000000) {
+      throw new IllegalArgumentException("iLon out of range (0...359999999): " + iLon);
+    }
+    if (iLat < 0 || iLat >= 180000000) {
+      throw new IllegalArgumentException("iLat out of range (0...179999999): " + iLat);
+    }
     this.iLon = iLon;
     this.iLat = iLat;
   }
 
   public GraphNode(long id) {
-    iLon = (int) (id >> 32);
-    iLat = (int) (id & 0xffffffff);
+    this((int) (id >> 32), (int) (id & 0xffffffffL));
   }
 
 

@@ -195,9 +195,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
 
   @Override
   public void nextNode(NodeData data) {
-    GraphNode n = new GraphNode();
-    n.iLon = data.iLon;
-    n.iLat = data.iLat;
+    GraphNode n = new GraphNode(data.iLon, data.iLat);
     n.sElev = data.sElev;
     n.nodeDescription = data.description;
 

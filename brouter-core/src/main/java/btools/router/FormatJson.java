@@ -129,7 +129,7 @@ public class FormatJson extends Formatter {
       sb.append("    },\n");
       for (int i = 0; i <= t.pois.size() - 1; i++) {
         GraphNodeNamed poi = t.pois.get(i);
-        addFeature(sb, "poi", poi.name, poi.iLat, poi.iLon);
+        addFeature(sb, "poi", poi.name, poi.iLon, poi.iLat);
         if (i < t.pois.size() - 1) {
           sb.append(",");
         }
@@ -144,7 +144,7 @@ public class FormatJson extends Formatter {
     return sb.toString();
   }
 
-  private void addFeature(StringBuilder sb, String type, String name, int ilat, int ilon) {
+  private void addFeature(StringBuilder sb, String type, String name, int ilon, int ilat) {
     sb.append("    {\n");
     sb.append("      \"type\": \"Feature\",\n");
     sb.append("      \"properties\": {\n");

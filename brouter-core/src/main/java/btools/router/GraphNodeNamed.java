@@ -13,7 +13,8 @@ public class GraphNodeNamed extends GraphNode {
   public double radius; // radius of nogopoint (in meters)
   public boolean isNogo = false;
 
-  public GraphNodeNamed() {
+  public GraphNodeNamed(int iLon, int iLat) {
+    super(iLon, iLat);
   }
 
   public GraphNodeNamed(GraphNode n) {

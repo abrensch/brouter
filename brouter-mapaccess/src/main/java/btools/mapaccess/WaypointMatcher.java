@@ -76,19 +76,15 @@ public final class WaypointMatcher {
         mwp.node2 = new GraphNode( target.getIdFromPos() );
 
         // calculate crosspoint
-        mwp.crossPoint = new GraphNode();
         if (s2 < 0.) {
           double wayfraction = -s2 / (d * d);
           double xm = x2 - wayfraction * dx;
           double ym = y2 - wayfraction * dy;
-          mwp.crossPoint.iLon = (int) (xm / dlon2m + wp.iLon);
-          mwp.crossPoint.iLat = (int) (ym / dlat2m + wp.iLat);
+          mwp.crossPoint = new GraphNode((int) (xm / dlon2m + wp.iLon), (int) (ym / dlat2m + wp.iLat));
         } else if (s1 > s2) {
-          mwp.crossPoint.iLon = lon2;
-          mwp.crossPoint.iLat = lat2;
+          mwp.crossPoint = new GraphNode(lon2, lat2);
         } else {
-          mwp.crossPoint.iLon = lon1;
-          mwp.crossPoint.iLat = lat1;
+          mwp.crossPoint = new GraphNode(lon1, lat1);
         }
       }
     }
