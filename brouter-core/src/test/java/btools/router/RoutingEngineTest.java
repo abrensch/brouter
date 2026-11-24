@@ -64,7 +64,29 @@ public class RoutingEngineTest {
     Assert.assertTrue("result content mismatch", trackFile.exists());
   }
 
+  // The destination lies close to a border of the 1/32 degree cells (lon 8.71875), the way it belongs
+  // to continues in the neighbour cell. The matcher has to see that way's geometry (#952, #1012):
+  // without it the destination snaps to another way 63 m away and the track ends there.
+  @Test
+  public void routeDestinationNearCellBorder() {
+    RoutingEngine re = runRoute(8.699061, 49.994499, 8.708698, 49.999746, "cellBorderTrack", new RoutingContext());
+    Assert.assertNull("routing failed: " + re.getErrorMessage(), re.getErrorMessage());
+    new File(workingDir, "cellBorderTrack0.gpx").deleteOnExit();
+
+    OsmTrack track = re.getFoundTrack();
+    Assert.assertNotNull("no track found", track);
+    OsmPathElement last = track.nodes.get(track.nodes.size() - 1);
+    int ilon = 180000000 + (int) (8.708698 * 1000000 + 0.5);
+    int ilat = 90000000 + (int) (49.999746 * 1000000 + 0.5);
+    double distance = btools.util.CheapRuler.distance(ilon, ilat, last.getILon(), last.getILat());
+    Assert.assertTrue("track ends " + (int) distance + " m away from the destination", distance < 30);
+  }
+
   private String calcRoute(double flon, double flat, double tlon, double tlat, String trackname, RoutingContext rctx) {
+    return runRoute(flon, flat, tlon, tlat, trackname, rctx).getErrorMessage();
+  }
+
+  private RoutingEngine runRoute(double flon, double flat, double tlon, double tlat, String trackname, RoutingContext rctx) {
     String wd = workingDir.getAbsolutePath();
 
     List<OsmNodeNamed> wplist = new ArrayList<>();
@@ -92,7 +114,7 @@ public class RoutingEngineTest {
 
     re.doRun(0);
 
-    return re.getErrorMessage();
+    return re;
   }
 
 }
