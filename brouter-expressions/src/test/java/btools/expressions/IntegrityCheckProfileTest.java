@@ -12,7 +12,7 @@ public class IntegrityCheckProfileTest {
   @Test
   public void integrityTestProfiles() throws IOException {
     File workingDir = new File(".").getCanonicalFile();
-    File profileDir = new File(workingDir, "../misc/profiles2");
+    File profileDir = new File(workingDir, "../misc/profiles");
     File[] files = profileDir.listFiles();
 
     assertNotNull("Missing profiles", files);

@@ -11,11 +11,11 @@ public class EncodeDecodeTest {
   public void encodeDecodeTest() {
     URL testpurl = this.getClass().getResource("/dummy.txt");
     File workingDir = new File(testpurl.getFile()).getParentFile();
-    File profileDir = new File(workingDir, "/../../../../misc/profiles2");
-    //File lookupFile = new File( profileDir, "lookups.dat" );
+    File profileDir = new File(workingDir, "/../../../../misc/profiles");
+    File lookupFile = new File( profileDir, "lookups.dat" );
     // add a test lookup
-    URL testlookup = this.getClass().getResource("/lookups_test.dat");
-    File lookupFile = new File(testlookup.getPath());
+    //URL testlookup = this.getClass().getResource("/lookups_test.dat");
+    //File lookupFile = new File(testlookup.getPath());
 
     // read lookup.dat + trekking.brf
     BExpressionMetaData meta = new BExpressionMetaData();
@@ -27,7 +27,6 @@ public class EncodeDecodeTest {
       "highway=residential",
       "oneway=yes",
       "depth=1'6\"",
-//    "depth=6 feet",
       "maxheight=5.1m",
       "maxdraft=~3 m - 4 m",
       "reversedirection=yes"

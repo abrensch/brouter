@@ -15,7 +15,7 @@ public class MapcreatorTest {
     Assert.assertNotNull("test-osm-map dreieich.pbf not found", mapurl);
     File mapFile = new File(mapurl.getFile());
     File workingDir = mapFile.getParentFile();
-    File profileDir = new File(workingDir, "/../../../../misc/profiles2");
+    File profileDir = new File(workingDir, "/../../../../misc/profiles");
     File tmpDir = new File(workingDir, "tmp");
     tmpDir.mkdir();
 

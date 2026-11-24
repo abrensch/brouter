@@ -30,7 +30,7 @@ public class RouteServerTest {
   public static void setupServer() throws IOException, InterruptedException {
     File workingDir = new File(".").getCanonicalFile();
     File segmentDir = new File(workingDir, "../brouter-map-creator/build/resources/test/tmp/segments");
-    File profileSourceDir = new File(workingDir, "../misc/profiles2");
+    File profileSourceDir = new File(workingDir, "../misc/profiles");
     // Copy required files to temporary dir to keep test inputs isolated
     Files.copy(Paths.get(profileSourceDir.getAbsolutePath(), "lookups.dat"), Paths.get(profileDir.getRoot().getAbsolutePath(), "lookups.dat"));
     Files.copy(Paths.get(profileSourceDir.getAbsolutePath(), "trekking.brf"), Paths.get(profileDir.getRoot().getAbsolutePath(), "trekking.brf"));
