@@ -294,8 +294,16 @@ public final class NodesCache {
     for (MatchedWaypoint mwp : unmatchedWaypoints) {
       int cellsize = 12500;
       preloadPosition(mwp.waypoint, cellsize, 1, false);
-      // get a second chance
-      if (mwp.crosspoint == null || mwp.radius > RETRY_RANGE) {
+      if (mwp.crosspoint != null && mwp.radius <= RETRY_RANGE) {
+        // A way matched near a cell border may continue into the neighbour cell, where its
+        // forward link (with the geometry) is stored. Load those cells so the matcher sees it.
+        // A neighbour in a missing rd5 file must not fail the route, so keep the flags.
+        boolean failed = first_file_access_failed;
+        String name = first_file_access_name;
+        preloadBorderCells(mwp.waypoint, RETRY_RANGE);
+        first_file_access_failed = failed;
+        first_file_access_name = name;
+      } else { // get a second chance
         cellsize = 1000000 / 32;
         preloadPosition(mwp.waypoint, cellsize, maxDistance < 0 ? MAX_DYNAMIC_CATCHES : 2, maxDistance < 0);
       }
@@ -322,6 +330,24 @@ public final class NodesCache {
       }
     }
     return true;
+  }
+
+  private void preloadBorderCells(OsmNode n, double radius) {
+    int cs = 1000000 / 32;
+    double[] lonlat2m = btools.util.CheapRuler.getLonLatToMeterScales(n.ilat);
+    int x = n.ilon % cs;
+    int y = n.ilat % cs;
+    boolean west = x * lonlat2m[0] <= radius;
+    boolean east = (cs - x) * lonlat2m[0] <= radius;
+    boolean south = y * lonlat2m[1] <= radius;
+    boolean north = (cs - y) * lonlat2m[1] <= radius;
+    for (int dLat = -1; dLat <= 1; dLat++) {
+      for (int dLon = -1; dLon <= 1; dLon++) {
+        if (dLon == 0 && dLat == 0) continue;
+        if ((dLon == -1 && !west) || (dLon == 1 && !east) || (dLat == -1 && !south) || (dLat == 1 && !north)) continue;
+        loadSegmentFor(n.ilon + cs * dLon, n.ilat + cs * dLat);
+      }
+    }
   }
 
   private void preloadPosition(OsmNode n, int d, int maxscale, boolean bUseDynamicRange) {
