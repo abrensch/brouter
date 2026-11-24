@@ -46,13 +46,10 @@ public class DouglasPeuckerFilter {
     GraphLink l2 = l1.getNext( n );
     GraphNode n1 = l1.getTarget( n );
     GraphNode n2 = l2.getTarget( n );
-    if ( n1.linkForTarget( n2.iLon, n2.iLat ) != null ) {
-      return; // do not create a new 2-node loop
-    }
     byte[] wayDescription = l1.wayDescription;
     boolean reverse = l2.isReverse(n);
     n.vanish();
-    if ( n1 != n2 ) { // prevent 2-node-loops from dropping transfernode-rings
+    if ( n1 != n2 ) { // a self-link is impossible, so a dropped transfernode-ring just vanishes
       if (reverse) {
         n2.createLink(wayDescription, n1);
       } else {

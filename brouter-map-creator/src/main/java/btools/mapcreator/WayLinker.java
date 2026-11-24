@@ -108,8 +108,8 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
     slave.tc = tc;
     master.tc = tc;
 
-    master._process(tmpDir, lookupFile, profileFile, dataTilesSuffix);
-    slave._process(tmpDir, lookupFile, profileFile, dataTilesSuffix);
+    master._process(lookupFile, profileFile, dataTilesSuffix);
+    slave._process(lookupFile, profileFile, dataTilesSuffix);
 
     Thread m = new Thread(master);
     Thread s = new Thread(slave);
@@ -119,7 +119,7 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
     s.join();
   }
 
-  private void _process(File tmpDir, File lookupFile, File profileFile, String dataTilesSuffix) throws Exception {
+  private void _process(File lookupFile, File profileFile, String dataTilesSuffix) throws Exception {
     this.dataTilesSuffix = dataTilesSuffix;
 
     BExpressionMetaData meta = new BExpressionMetaData();
@@ -333,7 +333,6 @@ public class WayLinker extends ItemCutter implements ItemListener, Runnable {
     System.out.println( "TRs (total/valid): " + turnRestrictionsTotal + "/" + turnRestrictionsValid );
 
 
-    new TwoNodeLoopResolver( nodesList ).resolve();
     nodesList = filterNodes( nodesList ); // filter again
 
     // and write the filtered nodes to a file

@@ -3,7 +3,9 @@ package btools.router;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Arrays;
 
+import btools.mapaccess.GraphLink;
 import btools.mapaccess.GraphNode;
 import btools.util.CheapRuler;
 
@@ -79,12 +81,31 @@ public class OsmPathElement {
 
   public OsmPathElement origin;
 
+  // way description and logical direction of the link used to reach this element
+  // (to tell apart parallel links)
+  public byte[] wayDescription;
+  public boolean linkReverse;
+
+  /**
+   * Check if the given link, when taken from the given source node,
+   * is equivalent to the link used to reach this element
+   * (same way description and same logical direction)
+   */
+  public boolean isSameLink(GraphLink link, GraphNode source) {
+    return true; // doesn't work yet (decoding-details differ!)
+    // a null description only occurs for the start element (no real link), treated as wildcard
+    // return wayDescription == null
+    //  || ( Arrays.equals(wayDescription, link.wayDescription ) && linkReverse == link.isReverse(source ));
+  }
+
   // construct a path element from a path
   public static final OsmPathElement create(OsmPath path) {
     GraphNode n = path.getTargetNode();
     OsmPathElement pe = create(n.iLon, n.iLat, n.sElev, path.originElement);
     pe.cost = path.cost;
     pe.message = path.message;
+    pe.wayDescription = path.link == null ? null : path.link.wayDescription;
+    pe.linkReverse = path.link != null && path.sourceNode != null && path.link.isReverse(path.sourceNode);
     return pe;
   }
 

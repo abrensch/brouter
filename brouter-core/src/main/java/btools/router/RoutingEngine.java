@@ -672,8 +672,8 @@ public class RoutingEngine {
         if (nextNode.firstLink == null) {
           continue; // don't care about dead ends
         }
-        if (nextNode == sourceNode) {
-          continue; // border node?
+        if (link == currentLink) {
+          continue; // no u-turn on the same link (2-node-loops via another link are allowed)
         }
 
         OsmPrePath prePath = routingContext.createPrePath(path, link);
@@ -692,8 +692,8 @@ public class RoutingEngine {
         if (nextNode.firstLink == null) {
           continue; // don't care about dead ends
         }
-        if (nextNode == sourceNode) {
-          continue; // border node?
+        if (link == currentLink) {
+          continue; // no u-turn on the same link (2-node-loops via another link are allowed)
         }
 
         if (guideTrack != null) {
@@ -703,7 +703,9 @@ public class RoutingEngine {
           }
           OsmPathElement guideNode = guideTrack.nodes.get(routingContext.inverseRouting ? guideTrack.nodes.size() - 1 - gidx : gidx);
           long nextId = nextNode.getIdFromPos();
-          if (nextId != guideNode.getIdFromPos()) {
+          // the guide track knows only nodes, so parallel links (2-node-loops) are told apart
+          // by their way description and their logical direction
+          if (nextId != guideNode.getIdFromPos() || !guideNode.isSameLink(link, currentNode) ) {
             // not along the guide-track, discard, but register for voice-hint processing
             if (routingContext.turnInstructionMode > 0) {
               OsmPath detour = routingContext.createPath(path, link, refTrack, true);
@@ -752,6 +754,7 @@ public class RoutingEngine {
 
     return null;
   }
+
 
   private void addToOpenset(SortedHeap<OsmPath> openSet, OsmPath path) {
     if (path.cost >= 0) {

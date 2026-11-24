@@ -10,6 +10,8 @@ package btools.mapaccess;
 
 import btools.util.CheapRuler;
 
+import java.util.Set;
+
 public class GraphNode extends GraphLink {
   /**
    * The longitude (0...360.000.000 -1 )
@@ -22,7 +24,7 @@ public class GraphNode extends GraphLink {
   public final int iLat;
 
   /**
-   * The elevation
+   * The elevation in quarter meters (Short.MIN_VALUE if unknown)
    */
   public short sElev = Short.MIN_VALUE;
 
@@ -42,6 +44,9 @@ public class GraphNode extends GraphLink {
   private short bits;
 
 
+  /**
+   * The turn restrictions with this node as via-node, if any
+   */
   public TurnRestriction firstRestriction;
 
   public final static int NO_BRIDGE_BIT = 1;
@@ -101,7 +106,11 @@ public class GraphNode extends GraphLink {
     return cnt;
   }
 
-  public GraphLink linkForTarget( int targetLon, int targetLat ) {
+  /**
+   * Find any link to the given position.
+   * Return the first link found, or null if none exists.
+   */
+  public GraphLink anyLinkForTarget( int targetLon, int targetLat ) {
     for (GraphLink l = firstLink; l != null; l = l.getNext(this)) {
       GraphNode t = l.getTarget(this);
       if (t.iLon == targetLon && t.iLat == targetLat) {

@@ -133,10 +133,13 @@ public final class GraphTile {
           if (isExternal) {
             int linkLon = sourceNode.iLon + lonDiff;
             int linkLat = sourceNode.iLat + latDiff;
-            link = sourceNode.linkForTarget(linkLon, linkLat);
+            link = sourceNode.anyLinkForTarget( linkLon, linkLat);
             if (link != null) {
-              link.wayDescription = wayDescription; // TODO: 2-node-loops?
               targetNode = link.getTarget(sourceNode);
+              if ( targetNode.isHollow() ) {
+                link = null;
+              }
+
             } else {
               // .. not found, check the hollow nodes
               targetNode = hollowNodes.get(GraphNode.idFromPos(linkLon, linkLat));
