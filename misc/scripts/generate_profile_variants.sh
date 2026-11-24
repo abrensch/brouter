@@ -5,6 +5,8 @@ cd ../profiles2
 # Car variants
 sed -e "s/^assign[[:space:]]\+vmax.*\(#.*\)/assign vmax = 160 \1/" car-vario.brf > car-fast.brf
 sed -e "s/^assign[[:space:]]\+vmax.*\(#.*\)/assign vmax = 90 \1/" car-vario.brf > car-eco.brf
+sed -e "s/^assign[[:space:]]\+vmax.*\(#.*\)/assign vmax = 160 \1/" car-vario-nocost.brf > car-fast-nocost.brf
+sed -e "s/^assign[[:space:]]\+vmax.*\(#.*\)/assign vmax = 90 \1/" car-vario-nocost.brf > car-eco-nocost.brf
 
 # Fastbike variants
 sed -e "s/^assign[[:space:]]\+allow_motorways.*\(#.*\)/assign allow_motorways = true \1/" fastbike.brf > fastbike-asia-pacific.brf

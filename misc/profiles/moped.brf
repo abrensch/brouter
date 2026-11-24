@@ -1,5 +1,5 @@
 #
-# Moped-Routing is experimantal !!!
+# Moped-Routing is experimental !!!
 #
 # DO NOT USE FOR ACTUAL NAVIGATION
 #
@@ -16,7 +16,9 @@ assign uphillcutoff 0
 assign   validForBikes       1
 assign   validForCars        1
 
-assign turnInstructionMode  = 1  # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style]
+assign add_beeline          = false  # %add_beeline% | Enable beeline on distant start/end points | boolean
+
+assign turnInstructionMode  = 1      # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style]
 
 ---context:way   # following code refers to way-tags
 

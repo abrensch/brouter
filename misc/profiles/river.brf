@@ -2,6 +2,8 @@
 
 # the elevation parameters
 
+assign add_beeline         = false  # %add_beeline% | Enable beeline on distant start/end points | boolean
+
 assign downhillcost 0
 assign downhillcutoff 1.5
 assign uphillcost 0
