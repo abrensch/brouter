@@ -1,111 +1,101 @@
-BRouter
-=======
+BRouter / cleanupbranch
+=======================
 
-BRouter is a configurable OSM offline router with elevation awareness, written
-in Java. Designed to be multi-modal with a particular emphasis on bicycle
-and energy-based car routing.
+### A simplified code base for studying flexible routing on compact graphs
 
-For more infos see [http://brouter.de/brouter](http://brouter.de/brouter).
+This is a code cleanup of the BRouter project, targeting people with academic
+interest in the code and the algorithms. It is not targeting end users mainly
+interested in perfect biking or hiking routes.
 
+It is NOT intended to be merged back into the main BRouter repository.
 
-## BRouter on Windows/Linux/Mac OS
+The refactoring is mainly focused on the entropy coding, the
+map-access layer and the expression engine. Refactoring of the actual
+A* Router is not yet done, and will possibly never be done.
+Main intention is to inspire people to build a new router based
+on the map access layer.
 
-### Build and Install
+## Main changes and simplifications
 
-Build BRouter:
+### Entropy coding as a reusable dependency
 
-```
-./gradlew clean build
-```
+The entropy coding, which is the technical foundation of the
+compactness and fast decoding of BRouter's datafiles is now
+provided as an independent library, which can be used in other projects as well.
 
-Build JAR file for server and map creator with all dependent classes:
+see https://github.com/abrensch/statcoding
 
-```
-./gradlew clean build fatJar # places JAR file in brouter-server/build/libs/
-```
+### New file formats for graph and elevation data
 
-Build ZIP file for distribution with readmes, profiles and JAR:
+It uses different file formats for the graph data ( rd5 -> gd5 )
+and the intermediate elevation data (bef -> edf). They serve the same
+purpose but are technically different and not compatible.
+The new formats are neither faster nor more compact, but they
+have a more straight-forward structure and are easier to understand.
 
-```
-./gradlew distZip # places ZIP file in brouter-server/build/distributions/
-```
+The lookup table (lookups.dat) and the routing profiles (*.brf)
+are unchanged and can be used with the new code.
 
+### Demo instance
 
-### Get the required segments (data) files
+The cleanup-branch is compatible with brouter-web, but does not
+support all features brouter-web is offering, e.g. no map-matching,
+no profile upload, no KML format, etc.
 
-Routing data files are organised as 5*5 degree files,
-with the filename containing the south-west corner
-of the square, which means:
+A demo instance is running at https://dr-brenschede.de/brouter-web
 
-- You want to route near West48/North37 -> you need `W50_N35.rd5`
-- You want to route near East7/North47 -> you need `E5_N45.rd5`
+### Unified graph instance model for map-creation and map-access
 
-These data files, called "segments" across BRouter, are generated from
-[OpenStreetMap](https://www.openstreetmap.org/) data and stored in a custom
-binary format (rd5) for improved efficiency of BRouter routing.
+The graph instance model, made of nodes, links, way- and node descriptions
+and turn-restrictions, is now unified for map-creation and map-access.
+Not two different models anymore. That allows using and unit testing
+graph-navigation and -persistence independent of OSM data.
+Consequently the items of that model are named GraphNode, GraphLink,
+not using the Osm prefix anymore.
 
+### Direct weaving only
 
-#### Download them from brouter.de
+Direct weaving means that the graph is created directly from the
+(entropy coded) datafile, without an intermediate uncompressed
+representation in memory. Direct weaving was one of the later additions
+to BRouter, and is now the only way to create a graph instance
+from persistent data. That removes a significant amount of code and complexity.
 
-Segments files from the whole planet are generated weekly at
-[https://brouter.de/brouter/segments4/](http://brouter.de/brouter/segments4/).
+### Dropped special treatment of transfer nodes
 
-You can download one or more segments files, covering the area of the planet
-you want to route, into the `misc/segments4` directory.
+From the beginning of BRouter development, transfer nodes
+(simple intermediate nodes along a way, just defining its geometry)
+were treated specially, in order to speed up processing and
+reduce the memory footprint. That special treatment is now dropped,
+and transfer nodes are treated like any other node.
+This also removes a significant amount of code and complexity,
+and turned out to have only little impact on speed and memory footprint.
 
-#### Generate your own segments files
+### Dropped A* Corrections for exotic cost contributions
 
-You can also generate the segments files you need directly from a planet dump
-of OpenStreetMap data (or a [GeoFabrik extract](https://download.geofabrik.de/)).
+BRouter uses the edges of the graph as the nodes in the A* sense,
+making it correct with respect to turn-costs or initial costs, but not
+really correct against non-local elevation costs. BRouter tries
+to handle that by looking one more step ahead, but that adds additional
+complexity and was never proven to really have an impact.
+That complexity is now dropped.
 
-More documentation of this is available in the
-[`docs/developers/build_segments.md`](docs/developers/build_segments.md) file.
+### Two-Node-Loops now supported
 
+BRouter always had a problem handling two-node-loops in the graph,
+due to some implicit assumptions that a link between two nodes
+is unique. For that reason, the "TwoNodeLoopResolver" was introduced,
+eliminating two-node-loops at map-creation time. However, that never
+worked for all edge-cases, and was a source of bugs.
 
-### (Optional) Generate profile variants
-
-This repository holds examples of BRouter profiles for many different
-transportation modes. Most of these can be easily customized by setting
-variables in the first `global` context of the profiles files.
-
-An helper script is available in `misc/scripts/generate_profile_variants.sh`
-to help you quickly generate variants based on the default profiles, to create
-a default set of profiles covering most of the basic use cases.
-
-Have a look at the
-[`docs/developers/profile_developers_guide.md`](docs/developers/profile_developers_guide.md)
-for an in-depth guide on profiles edition and customization.
-
-
-### Run the BRouter HTTP server
-
-Helpers scripts are provided in `misc/scripts/standalone` to quickly spawn a
-BRouter HTTP server for various platforms.
-
-* Linux/Mac OS: `./misc/scripts/standalone/server.sh`
-* Windows (using Bash): `./misc/scripts/standalone/server.sh`
-* Windows (using CMD): `misc\scripts\standalone\server.cmd`
-
-The API endpoints exposed by this HTTP server are documented in the
-[`brouter-server/src/main/java/btools/server/request/ServerHandler.java`](brouter-server/src/main/java/btools/server/request/ServerHandler.java)
-file.
-
-
-## Documentation
-
-More documentation is available in the [`docs`](docs) folder.
-
+The new code now supports two-node-loops, and the TwoNodeLoopResolver
+is dropped. That is a significant simplification of the code.
 
 ## Related Projects
 
 * [nrenner/BRouter-web](https://github.com/nrenner/brouter-web), a web interface on
-    top of the BRouter HTTP server. An online instance is available at
+    top of the BRouter HTTP server. An online instance of the main branch is available at
     [http://brouter.de/brouter-web/](http://brouter.de/brouter-web/).
-* [poutnikl/Brouter-profiles](https://github.com/poutnikl/Brouter-profiles/wiki),
-    a collection of BRouter profiles.
-* [Phyks/BRouterTesting](https://github.com/Phyks/BrouterTesting), a
-    collection of test cases for helping develop new BRouter profiles.
-
 
 ## License
 
