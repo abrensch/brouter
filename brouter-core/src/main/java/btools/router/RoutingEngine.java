@@ -474,25 +474,14 @@ public class RoutingEngine {
     islandNodePairs.clearTempPairs();
   }
 
-  private OsmPath getStartPath(GraphNode n1, GraphNode n2, MatchedWaypoint mwp, GraphNodeNamed endPos, boolean sameSegmentSearch) {
-    endPos.radius = 1.5;
-    OsmPath p = getStartPath(n1, n2, new GraphNodeNamed(mwp.crossPoint), endPos, sameSegmentSearch);
-
-    // special case: start+end on same segment
-    if (p.cost >= 0 && sameSegmentSearch && endPos.radius < 1.5) {
-      p.treeDepth = 0; // hack: mark for the final-check
-    }
-    return p;
-  }
-
-
-  private OsmPath getStartPath(GraphNode n1, GraphNode n2, GraphNodeNamed wp, GraphNodeNamed endPos, boolean sameSegmentSearch) {
+  // returns one start path for every link n1->n2 (parallel links = 2-node-loops are all valid candidates)
+  private List<OsmPath> getStartPaths(GraphNode n1, GraphNode n2, MatchedWaypoint mwp, GraphNodeNamed endPos, boolean sameSegmentSearch) {
+    GraphNodeNamed wp = new GraphNodeNamed(mwp.crossPoint);
+    List<OsmPath> paths = new ArrayList<>();
     try {
       routingContext.setWaypoint(wp, sameSegmentSearch ? endPos : null, false);
-      OsmPath bestPath = null;
       GraphLink startLink = new GraphLink(null, n1);
       OsmPath startPath = routingContext.createPath(startLink);
-      double minradius = 1e10;
       for (GraphLink link = n1.firstLink; link != null; link = link.getNext(n1)) {
         GraphNode nextNode = link.getTarget(n1);
         if (nextNode.isHollow())
@@ -505,16 +494,17 @@ public class RoutingEngine {
           continue; // just that link
 
         wp.radius = 1.5;
+        endPos.radius = 1.5;
         OsmPath testPath = routingContext.createPath(startPath, link, null, guideTrack != null);
         testPath.airDistance = nextNode.calcDistance(endPos);
-        if (wp.radius < minradius) {
-          bestPath = testPath;
-          minradius = wp.radius;
+        testPath.treeDepth = 1;
+        // special case: start+end on same segment
+        if (testPath.cost >= 0 && sameSegmentSearch && endPos.radius < 1.5) {
+          testPath.treeDepth = 0; // hack: mark for the final-check
         }
+        paths.add(testPath);
       }
-      bestPath.treeDepth = 1;
-
-      return bestPath;
+      return paths;
     } finally {
       routingContext.unsetWaypoint();
     }
@@ -569,12 +559,13 @@ public class RoutingEngine {
 
 
 
-    OsmPath startPath1 = getStartPath(start1, start2, startWp, endPos, sameSegmentSearch);
-    OsmPath startPath2 = getStartPath(start2, start1, startWp, endPos, sameSegmentSearch);
-
     SortedHeap<OsmPath> openSet = new SortedHeap<>();
-    addToOpenset(openSet, startPath1);
-    addToOpenset(openSet, startPath2);
+    for (OsmPath p : getStartPaths(start1, start2, startWp, endPos, sameSegmentSearch)) {
+      addToOpenset(openSet, p);
+    }
+    for (OsmPath p : getStartPaths(start2, start1, startWp, endPos, sameSegmentSearch)) {
+      addToOpenset(openSet, p);
+    }
 
     for (; ; ) {
       if (terminated) {
@@ -705,7 +696,7 @@ public class RoutingEngine {
           long nextId = nextNode.getIdFromPos();
           // the guide track knows only nodes, so parallel links (2-node-loops) are told apart
           // by their way description and their logical direction
-          if (nextId != guideNode.getIdFromPos() || !guideNode.isSameLink(link, currentNode) ) {
+          if (nextId != guideNode.getIdFromPos() ) {
             // not along the guide-track, discard, but register for voice-hint processing
             if (routingContext.turnInstructionMode > 0) {
               OsmPath detour = routingContext.createPath(path, link, refTrack, true);

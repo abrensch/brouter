@@ -86,18 +86,6 @@ public class OsmPathElement {
   public byte[] wayDescription;
   public boolean linkReverse;
 
-  /**
-   * Check if the given link, when taken from the given source node,
-   * is equivalent to the link used to reach this element
-   * (same way description and same logical direction)
-   */
-  public boolean isSameLink(GraphLink link, GraphNode source) {
-    return true; // doesn't work yet (decoding-details differ!)
-    // a null description only occurs for the start element (no real link), treated as wildcard
-    // return wayDescription == null
-    //  || ( Arrays.equals(wayDescription, link.wayDescription ) && linkReverse == link.isReverse(source ));
-  }
-
   // construct a path element from a path
   public static final OsmPathElement create(OsmPath path) {
     GraphNode n = path.getTargetNode();
