@@ -31,7 +31,6 @@ public class ElevationRasterTileConverter {
   private static final int HGT_1ASEC_ROWS = 3601; // 1 arc second resolution (30m)
   private static final int SRTM3_ROW_LENGTH = 1200; // number of elevation values per line
   private static final int SRTM1_ROW_LENGTH = 3600;
-  private static final boolean SRTM_NO_ZERO = true;
 
   private int NROWS;
   private int NCOLS;
@@ -402,15 +401,6 @@ public class ElevationRasterTileConverter {
               }
             }
 
-          }
-        }
-      }
-
-      // post fill zero
-      if (SRTM_NO_ZERO) {
-        for (int row = 0; row < NROWS; row++) {
-          for (int col = 0; col < NCOLS; col++) {
-            if (imagePixels[row * NCOLS + col] == 0) imagePixels[row * NCOLS + col] = NODATA;
           }
         }
       }
