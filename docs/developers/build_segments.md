@@ -66,6 +66,8 @@ Please see OSM wiki for more info on [srtm](https://wiki.openstreetmap.org/wiki/
 
 The converter generates bef tiles from `hgt` files, `zipped hgt` files and `zipped 'ESRI' asc` files.
 
+HGT conversion preserves 0 m elevations and treats `-32768` and `-32767` as NoData.
+
 Converter call with arguments for a single tile generation:
 
 `ElevationRasterTileConverter <srtm-filename | all> <hgt-data-dir> <srtm-output-dir> [arc seconds (1 or 3,default=3)] [hgt-fallback-data-dir]
