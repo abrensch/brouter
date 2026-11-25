@@ -201,6 +201,12 @@ public class GraphNode extends GraphLink {
     return false;
   }
 
+  /**
+   * Remove the given link from the link chain of <b>this</b> node only (one-sided unlink).
+   *
+   * @param link the link to remove, must be in this node's chain
+   * @throws IllegalArgumentException if the link is not part of this node's chain
+   */
   public final void unlinkLink(GraphLink link) {
     GraphLink n = link.clear(this);
 

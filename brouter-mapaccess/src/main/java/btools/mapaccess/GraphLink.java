@@ -44,6 +44,8 @@ public class GraphLink {
 
   /**
    * Reset this link for the given direction
+   *
+   * @return the next-in-chain link for the given source, or null if this was the last link
    */
   protected final GraphLink clear(GraphNode source) {
     GraphLink n;

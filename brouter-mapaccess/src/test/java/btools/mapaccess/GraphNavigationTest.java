@@ -33,21 +33,25 @@ public class GraphNavigationTest {
   public void navigateRing() {
     int nodeCount = 100;
     GraphNode start = createRing(nodeCount);
-    assertEquals(nodeCount, navigateRing(start, false, null).size() );
-    assertEquals(nodeCount, navigateRing(start, true, null ).size() );
+    assertEquals(nodeCount, navigateRing(start, false, false, null).size() );
+    assertEquals(nodeCount, navigateRing(start, true, false, null).size() );
   }
 
   @Test
   public void serializeDeserializeRing() throws IOException
   {
-    int nodeCount = 100;
+    serializeDeserializeRing( 2 ); // test 2-node loop
+    serializeDeserializeRing( 100 );
+  }
+
+  private void serializeDeserializeRing(int nodeCount) throws IOException
+  {
     GraphNode start = createRing(nodeCount);
 
-    List<GraphNode> nodes = navigateRing( start, false, null );
-
     // write the nodes into a file
-    File segmentDir = tmpDir.newFolder("segments");
-    new GraphFile(new File(segmentDir, "E0_N0.gd5"), 180000000, 90000000).createWithNodes(nodes);
+    File segmentDir = tmpDir.newFolder("segments" + nodeCount);
+    new GraphFile(new File(segmentDir, "E0_N0.gd5"), 180000000, 90000000).createWithNodes(
+      navigateRing( start, false, false, null ) );
 
     // now recover the ring from the file and navigate again
     NodesCache nc = new NodesCache(segmentDir, "gd5", null, null);
@@ -67,8 +71,16 @@ public class GraphNavigationTest {
     GraphNode decodedStart = nc.getGraphNode( mwp.node1 );
 
     // result should be a navigable ring again (supported by the nodes cache)
-    assertEquals(nodeCount, navigateRing(decodedStart, false, nc).size() );
-    assertEquals(nodeCount, navigateRing(decodedStart, true, nc).size() );
+    assertEquals(nodeCount, navigateRing(decodedStart, false, false, nc).size() );
+    assertEquals(nodeCount, navigateRing(decodedStart, true, false, nc).size() );
+
+    // navigate again, unlinking the links after reading
+    assertEquals(  2, decodedStart.linkCount());
+    assertEquals(nodeCount, navigateRing(decodedStart, false, true, nc).size() );
+    assertEquals(  1, decodedStart.linkCount());
+    assertEquals(nodeCount, navigateRing(decodedStart, true, true, nc).size() );
+    assertEquals(  0, decodedStart.linkCount());
+
   }
 
 
@@ -96,7 +108,7 @@ public class GraphNavigationTest {
     return first;
   }
 
-    private List<GraphNode> navigateRing ( GraphNode start,boolean reverse, NodesCache nc )
+    private List<GraphNode> navigateRing ( GraphNode start,boolean reverse, boolean burnAfterRead, NodesCache nc )
     {
       List<GraphNode> result = new ArrayList<>();
       GraphNode n = start;
@@ -114,7 +126,13 @@ public class GraphNavigationTest {
           }
         }
         result.add( n );
-        n = searchLink( n, reverse ).getTarget( n );
+        GraphLink l = searchLink( n, reverse );
+        GraphNode nextNode = l.getTarget( n );
+        if ( burnAfterRead )
+        {
+          n.unlinkLink( l );
+        }
+        n = nextNode;
         if ( n == start )
         {
           return result;
