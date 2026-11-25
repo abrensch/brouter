@@ -24,6 +24,10 @@ final public class OsmFile {
   private int[] posIdx;
   private MicroCache[] microCaches;
 
+  // decoded cells kept for the next pass (direct weaving only)
+  private WovenCell[] wovenCells;
+  private long wovenSize;
+
   public int lonDegree;
   public int latDegree;
 
@@ -77,6 +81,13 @@ final public class OsmFile {
     }
   }
 
+  /**
+   * The memory held by the cells kept for re-weaving, in bytes.
+   */
+  long getWovenSize() {
+    return wovenSize;
+  }
+
   public boolean hasData() {
     return microCaches != null;
   }
@@ -90,9 +101,20 @@ final public class OsmFile {
 
   public MicroCache createMicroCache(int ilon, int ilat, DataBuffers dataBuffers, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes)
     throws Exception {
+    return createMicroCache(ilon, ilat, dataBuffers, wayValidator, waypointMatcher, hollowNodes, false);
+  }
+
+  /**
+   * @param keepWoven with direct weaving: keep what is decoded, so that the
+   *                  next pass over this file weaves the cell without
+   *                  decoding it again. The way validator must stay the
+   *                  same for the lifetime of this file.
+   */
+  public MicroCache createMicroCache(int ilon, int ilat, DataBuffers dataBuffers, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes, boolean keepWoven)
+    throws Exception {
     int lonIdx = ilon / cellsize;
     int latIdx = ilat / cellsize;
-    MicroCache segment = createMicroCache(lonIdx, latIdx, dataBuffers, wayValidator, waypointMatcher, true, hollowNodes);
+    MicroCache segment = createMicroCache(lonIdx, latIdx, dataBuffers, wayValidator, waypointMatcher, true, hollowNodes, keepWoven);
     int subIdx = (latIdx - divisor * latDegree) * divisor + (lonIdx - divisor * lonDegree);
     microCaches[subIdx] = segment;
     return segment;
@@ -117,7 +139,20 @@ final public class OsmFile {
 
   public MicroCache createMicroCache(int lonIdx, int latIdx, DataBuffers dataBuffers, TagValueValidator wayValidator,
                                      WaypointMatcher waypointMatcher, boolean reallyDecode, OsmNodesMap hollowNodes) throws IOException {
+    return createMicroCache(lonIdx, latIdx, dataBuffers, wayValidator, waypointMatcher, reallyDecode, hollowNodes, false);
+  }
+
+  private MicroCache createMicroCache(int lonIdx, int latIdx, DataBuffers dataBuffers, TagValueValidator wayValidator,
+                                      WaypointMatcher waypointMatcher, boolean reallyDecode, OsmNodesMap hollowNodes, boolean keepWoven) throws IOException {
     int subIdx = (latIdx - divisor * latDegree) * divisor + (lonIdx - divisor * lonDegree);
+
+    // a cell that was decoded before is woven from its recording. Not while
+    // matching waypoints: the matcher wants every transfer node.
+    boolean weaveOnly = reallyDecode && hollowNodes != null && waypointMatcher == null;
+    if (weaveOnly && wovenCells != null && wovenCells[subIdx] != null) {
+      new DirectWeaver(wovenCells[subIdx], hollowNodes);
+      return MicroCache.emptyNonVirgin;
+    }
 
     byte[] ab = dataBuffers.iobuffer;
     int asize = getDataInputForSubIdx(subIdx, ab);
@@ -139,7 +174,15 @@ final public class OsmFile {
       if (hollowNodes == null) {
         return new MicroCache2(bc, dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher);
       }
-      new DirectWeaver(bc, dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher, hollowNodes);
+      WovenCell woven = keepWoven && weaveOnly ? new WovenCell() : null;
+      new DirectWeaver(bc, dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher, hollowNodes, woven);
+      if (woven != null) {
+        if (wovenCells == null) {
+          wovenCells = new WovenCell[microCaches.length];
+        }
+        wovenCells[subIdx] = woven;
+        wovenSize += woven.getDataSize();
+      }
       return MicroCache.emptyNonVirgin;
     } finally {
       // crc check only if the buffer has not been fully read
