@@ -5,7 +5,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,6 +65,37 @@ public class RoutingEngineTest {
     trackFile.deleteOnExit();
     // checks if a gpx file has been created for the alternative route
     Assert.assertTrue("result content mismatch", trackFile.exists());
+  }
+
+  // a cell decoded in one pass is woven from its recording in the next:
+  // the route and its alternative must not depend on that
+  @Test
+  public void wovenCellsGiveTheSameRoute() throws IOException {
+    String msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "wovenTrack", new RoutingContext());
+    Assert.assertNull("routing failed (cells kept): " + msg, msg);
+    msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "wovenTrack", new RoutingContext());
+    Assert.assertNull("routing failed (cells kept, alternative): " + msg, msg);
+
+    System.setProperty("disableWovenCells", "true");
+    try {
+      msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "decodedTrack", new RoutingContext());
+      Assert.assertNull("routing failed (cells decoded): " + msg, msg);
+      msg = calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "decodedTrack", new RoutingContext());
+      Assert.assertNull("routing failed (cells decoded, alternative): " + msg, msg);
+    } finally {
+      System.clearProperty("disableWovenCells");
+    }
+
+    for (int alternative = 0; alternative <= 1; alternative++) {
+      File woven = new File(workingDir, "wovenTrack" + alternative + ".gpx");
+      File decoded = new File(workingDir, "decodedTrack" + alternative + ".gpx");
+      woven.deleteOnExit();
+      decoded.deleteOnExit();
+      String expected = new String(Files.readAllBytes(decoded.toPath()), StandardCharsets.UTF_8);
+      Assert.assertTrue("no track points in " + decoded, expected.contains("<trkpt"));
+      Assert.assertEquals("alternative " + alternative + " differs",
+        expected, new String(Files.readAllBytes(woven.toPath()), StandardCharsets.UTF_8));
+    }
   }
 
   private String calcRoute(double flon, double flat, double tlon, double tlat, String trackname, RoutingContext rctx) {

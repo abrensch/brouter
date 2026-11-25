@@ -45,6 +45,10 @@ public final class NodesCache {
 
   private long cacheSum = 0;
   private long maxmemtiles;
+
+  // cells kept decoded for the next pass, and their share of the memory
+  private long wovenSum;
+  private long maxmemwoven;
   private boolean detailed; // NOPMD used in constructor
 
   private boolean garbageCollectionEnabled = false;
@@ -56,6 +60,7 @@ public final class NodesCache {
   private long ghostWakeup = 0;
 
   private boolean directWeaving = !Boolean.getBoolean("disableDirectWeaving");
+  private boolean keepWoven = !Boolean.getBoolean("disableWovenCells");
 
   public String formatStatus() {
     return "collecting=" + garbageCollectionEnabled + " noGhosts=" + ghostCleaningDone + " cacheSum=" + cacheSum + " cacheSumClean=" + cacheSumClean + " ghostSum=" + ghostSum + " ghostWakeup=" + ghostWakeup;
@@ -63,6 +68,7 @@ public final class NodesCache {
 
   public NodesCache(File segmentDir, BExpressionContextWay ctxWay, boolean forceSecondaryData, long maxmem, NodesCache oldCache, boolean detailed) {
     this.maxmemtiles = maxmem / 8;
+    this.maxmemwoven = maxmem / 8;
     this.segmentDir = segmentDir;
     this.nodesMap = new OsmNodesMap();
     this.nodesMap.maxmem = (2L * maxmem) / 3L;
@@ -95,6 +101,7 @@ public final class NodesCache {
             continue;
           for (OsmFile osmf : fileRow) {
             cacheSum += osmf.setGhostState();
+            wovenSum += osmf.getWovenSize();
           }
         }
       } else {
@@ -186,7 +193,9 @@ public final class NodesCache {
       // needed for a second chance
       if (segment == null || (waypointMatcher != null && ((WaypointMatcherImpl) waypointMatcher).useDynamicRange)) {
         checkEnableCacheCleaning();
-        segment = osmf.createMicroCache(ilon, ilat, dataBuffers, expCtxWay, waypointMatcher, directWeaving ? nodesMap : null);
+        long wovenBefore = osmf.getWovenSize();
+        segment = osmf.createMicroCache(ilon, ilat, dataBuffers, expCtxWay, waypointMatcher, directWeaving ? nodesMap : null, keepWoven && wovenSum < maxmemwoven);
+        wovenSum += osmf.getWovenSize() - wovenBefore;
 
         cacheSum += segment.getDataSize();
       } else if (segment.ghost) {

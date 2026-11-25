@@ -17,6 +17,14 @@ public final class DirectWeaver extends ByteDataWriter {
   private long id64Base;
 
   public DirectWeaver(StatCoderContext bc, DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes) {
+    this(bc, dataBuffers, lonIdx, latIdx, divisor, wayValidator, waypointMatcher, hollowNodes, null);
+  }
+
+  /**
+   * Decode a micro-cache into the instance-graph and, if a recording is
+   * given, write down what was decoded for a later replay.
+   */
+  DirectWeaver(StatCoderContext bc, DataBuffers dataBuffers, int lonIdx, int latIdx, int divisor, TagValueValidator wayValidator, WaypointMatcher waypointMatcher, OsmNodesMap hollowNodes, WovenCell rec) {
     super(null);
     int cellsize = 1000000 / divisor;
     id64Base = ((long) (lonIdx * cellsize)) << 32 | (latIdx * cellsize);
@@ -35,19 +43,17 @@ public final class DirectWeaver extends ByteDataWriter {
 
     bc.decodeSortedArray(faid, 0, size, 29, 0);
 
+    if (rec != null) rec.add(size);
     OsmNode[] nodes = new OsmNode[size];
     for (int n = 0; n < size; n++) {
       long id = expandId(faid[n]);
       int ilon = (int) (id >> 32);
       int ilat = (int) (id & 0xffffffff);
-      OsmNode node = hollowNodes.get(ilon, ilat);
-      if (node == null) {
-        node = new OsmNode(ilon, ilat);
-      } else {
-        node.visitID = 1;
-        hollowNodes.remove(node);
+      if (rec != null) {
+        rec.add(ilon);
+        rec.add(ilat);
       }
-      nodes[n] = node;
+      nodes[n] = obtainNode(ilon, ilat, hollowNodes);
     }
 
     int netdatasize = bc.decodeNoisyNumber(10); // (not needed for direct weaving)
@@ -79,6 +85,15 @@ public final class DirectWeaver extends ByteDataWriter {
           tr.toLon = ilon + bc.decodeNoisyDiff(10);
           tr.toLat = ilat + bc.decodeNoisyDiff(10);
           node.addTurnRestriction(tr);
+          if (rec != null) {
+            rec.add(1);
+            rec.add(tr.exceptions);
+            rec.add(tr.isPositive ? 1 : 0);
+            rec.add(tr.fromLon);
+            rec.add(tr.fromLat);
+            rec.add(tr.toLon);
+            rec.add(tr.toLat);
+          }
         } else {
           for (int i = 0; i < bitsize; i++) bc.decodeBit(); // unknown feature, just skip
         }
@@ -90,6 +105,12 @@ public final class DirectWeaver extends ByteDataWriter {
       node.nodeDescription = nodeTags == null ? null : nodeTags.data; // TODO: unified?
 
       int links = bc.decodeNoisyNumber(1);
+      if (rec != null) {
+        rec.add(0); // no more turn restrictions
+        rec.add(selev);
+        rec.add(node.nodeDescription);
+        rec.add(links);
+      }
       for (int li = 0; li < links; li++) {
         int nodeIdx = n + nodeIdxDiff.decodeSignedValue();
 
@@ -168,31 +189,108 @@ public final class DirectWeaver extends ByteDataWriter {
           if (matcher != null) matcher.end();
         }
 
+        byte[] geometry = null;
+        if (wayTags != null && aboffset > 0) {
+          geometry = new byte[aboffset];
+          System.arraycopy(ab, 0, geometry, 0, aboffset);
+        }
+        if (rec != null) {
+          rec.add(nodeIdx);
+          rec.add(isReverse ? 1 : 0);
+          rec.add(linklon);
+          rec.add(linklat);
+          rec.add(wayTags);
+          if (wayTags != null) rec.addGeometry(geometry);
+        }
         if (wayTags != null) {
-          byte[] geometry = null;
-          if (aboffset > 0) {
-            geometry = new byte[aboffset];
-            System.arraycopy(ab, 0, geometry, 0, aboffset);
-          }
-
-          if (nodeIdx != n) { // valid internal (forward-) link
-            OsmNode node2 = nodes[nodeIdx];
-            OsmLink link = node.isLinkUnused() ? node : (node2.isLinkUnused() ? node2 : null);
-            if (link == null) {
-              link = new OsmLink();
-            }
-            link.descriptionBitmap = wayTags.data;
-            link.geometry = geometry;
-            node.addLink(link, isReverse, node2);
-          } else { // weave external link
-            node.addLink(linklon, linklat, wayTags.data, geometry, hollowNodes, isReverse);
-            node.visitID = 1;
-          }
+          weaveLink(node, n, nodeIdx, nodes, linklon, linklat, wayTags, geometry, isReverse, hollowNodes);
         }
       } // ... loop over links
     } // ... loop over nodes
 
     hollowNodes.cleanupAndCount(nodes);
+    if (rec != null) rec.freeze();
+  }
+
+  /**
+   * Weave a micro-cache that was decoded before into the instance-graph,
+   * from its recording: the same nodes, links and turn restrictions in the
+   * same order as the decoding constructor creates them.
+   */
+  DirectWeaver(WovenCell cell, OsmNodesMap hollowNodes) {
+    super(null);
+    int[] ints = cell.ints;
+    Object[] objs = cell.objs;
+    int ii = 0;
+    int oi = 0;
+
+    int size = ints[ii++];
+    OsmNode[] nodes = new OsmNode[size];
+    for (int n = 0; n < size; n++) {
+      int ilon = ints[ii++];
+      int ilat = ints[ii++];
+      nodes[n] = obtainNode(ilon, ilat, hollowNodes);
+    }
+
+    for (int n = 0; n < size; n++) { // loop over nodes
+      OsmNode node = nodes[n];
+
+      while (ints[ii++] != 0) {
+        TurnRestriction tr = new TurnRestriction();
+        tr.exceptions = (short) ints[ii++];
+        tr.isPositive = ints[ii++] != 0;
+        tr.fromLon = ints[ii++];
+        tr.fromLat = ints[ii++];
+        tr.toLon = ints[ii++];
+        tr.toLat = ints[ii++];
+        node.addTurnRestriction(tr);
+      }
+
+      node.selev = (short) ints[ii++];
+      node.nodeDescription = (byte[]) objs[oi++];
+
+      int links = ints[ii++];
+      for (int li = 0; li < links; li++) {
+        int nodeIdx = ints[ii++];
+        boolean isReverse = ints[ii++] != 0;
+        int linklon = ints[ii++];
+        int linklat = ints[ii++];
+        TagValueWrapper wayTags = (TagValueWrapper) objs[oi++];
+        if (wayTags != null) {
+          byte[] geometry = (byte[]) objs[oi++];
+          weaveLink(node, n, nodeIdx, nodes, linklon, linklat, wayTags, geometry, isReverse, hollowNodes);
+        }
+      } // ... loop over links
+    } // ... loop over nodes
+
+    hollowNodes.cleanupAndCount(nodes);
+  }
+
+  private static OsmNode obtainNode(int ilon, int ilat, OsmNodesMap hollowNodes) {
+    OsmNode node = hollowNodes.get(ilon, ilat);
+    if (node == null) {
+      node = new OsmNode(ilon, ilat);
+    } else {
+      node.visitID = 1;
+      hollowNodes.remove(node);
+    }
+    return node;
+  }
+
+  private static void weaveLink(OsmNode node, int n, int nodeIdx, OsmNode[] nodes, int linklon, int linklat, TagValueWrapper wayTags, byte[] geometry, boolean isReverse, OsmNodesMap hollowNodes) {
+    if (nodeIdx != n) { // valid internal (forward-) link
+      OsmNode node2 = nodes[nodeIdx];
+      OsmLink link = node.isLinkUnused() ? node : (node2.isLinkUnused() ? node2 : null);
+      if (link == null) {
+        link = new OsmLink();
+      }
+      link.descriptionBitmap = wayTags.data;
+      link.geometry = geometry;
+      node.addLink(link, isReverse, node2);
+    } else { // weave external link
+      node.addLink(linklon, linklat, wayTags.data, geometry, hollowNodes, isReverse);
+      node.visitID = 1;
+    }
   }
 
   private static final long[] id32_00 = new long[1024];
