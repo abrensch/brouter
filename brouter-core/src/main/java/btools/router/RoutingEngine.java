@@ -621,8 +621,8 @@ public class RoutingEngine {
           return t;
         }
 
-        // check for a match with the cost-cutting-track
-        if (costCuttingTrack != null) {
+        // check for a match with the cost-cutting-track (only for network nodes to save cpu time)
+        if (costCuttingTrack != null && !sourceNode.hasBits(GraphNode.TRANSFERNODE_BIT) ) {
           OsmPathElement pe = costCuttingTrack.getLink(sourceNodeId, currentNodeId);
           if (pe != null) {
             int costEstimate = path.cost
