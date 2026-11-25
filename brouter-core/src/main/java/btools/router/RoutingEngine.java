@@ -694,8 +694,6 @@ public class RoutingEngine {
           }
           OsmPathElement guideNode = guideTrack.nodes.get(routingContext.inverseRouting ? guideTrack.nodes.size() - 1 - gidx : gidx);
           long nextId = nextNode.getIdFromPos();
-          // the guide track knows only nodes, so parallel links (2-node-loops) are told apart
-          // by their way description and their logical direction
           if (nextId != guideNode.getIdFromPos() ) {
             // not along the guide-track, discard, but register for voice-hint processing
             if (routingContext.turnInstructionMode > 0) {

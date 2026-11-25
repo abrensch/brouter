@@ -212,7 +212,7 @@ abstract class OsmPath {
         message.linkdist += distance;
       }
 
-      // for the start point, fake the origin position (straight ahead)
+      // for the start point we have no angle
       double angle = isStartpoint ? 0. : rc.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
       double cosangle = isStartpoint ? 1. : rc.anglemeter.getCosAngle();
 
@@ -293,7 +293,7 @@ abstract class OsmPath {
   }
 
 
-  public short interpolateEle(short e1, short e2, double fraction) {
+  private static short interpolateEle(short e1, short e2, double fraction) {
     if (e1 == Short.MIN_VALUE || e2 == Short.MIN_VALUE) {
       return Short.MIN_VALUE;
     }

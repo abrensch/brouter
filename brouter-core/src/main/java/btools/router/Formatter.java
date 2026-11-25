@@ -13,27 +13,8 @@ public abstract class Formatter {
 
   RoutingContext rc;
 
-  Formatter() {
-  }
-
   Formatter(RoutingContext rc) {
     this.rc = rc;
-  }
-
-  /**
-   * writes the track in gpx-format to a file
-   *
-   * @param filename the filename to write to
-   * @param t        the track to write
-   */
-  public void write(String filename, OsmTrack t) throws Exception {
-    BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
-    bw.write(format(t));
-    bw.close();
-  }
-
-  public OsmTrack read(String filename) throws Exception {
-    return null;
   }
 
   /**
