@@ -22,10 +22,9 @@ import btools.statcoding.codecs.AdaptiveDiffEncoder;
 /**
  * File layout:
  * <ol>
- * <li>the header: magic word, then a versioned block (PrefixedBitOutputStream) with geometry
- * (iLonBase, iLatBase, divisor, cellSize), map-snapshot-time, lookup major/minor version and
- * the position/size of the tile index. Fields may be appended in later minor versions.
- * The pointer fields are fixed-width, so the header can be rewritten in place once the index position is known.</li>
+ * <li>the header: magic word, position/size of the tile index, then a versioned block (PrefixedBitOutputStream) with geometry
+ * (iLonBase, iLatBase, divisor, cellSize), map-snapshot-time, lookup major/minor version)
+ * Fields may be appended to the versioned block in later minor versions.
  * <li>the tiles, each followed by a CRC</li>
  * <li>the tile index, followed by a CRC</li>
  * </ol>
