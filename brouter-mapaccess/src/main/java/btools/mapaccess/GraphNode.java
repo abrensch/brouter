@@ -10,8 +10,6 @@ package btools.mapaccess;
 
 import btools.util.CheapRuler;
 
-import java.util.Set;
-
 public class GraphNode extends GraphLink {
   /**
    * The longitude (0...360.000.000 -1 )
@@ -26,7 +24,7 @@ public class GraphNode extends GraphLink {
   /**
    * The elevation in quarter meters (Short.MIN_VALUE if unknown)
    */
-  public short sElev = Short.MIN_VALUE;
+  public short sElev = NO_ELEV;
 
   /**
    * The links to other nodes
@@ -56,6 +54,11 @@ public class GraphNode extends GraphLink {
   public final static int TR_TARGET_BIT = 16;
   public final static int DP_SURVIVOR_BIT = 64;
   public final static int HOLLOW_BIT = 128;
+  public final static int STARTNODE_BIT = 256;
+  public final static int ENDNODE_BIT = 512;
+
+  public final static short NO_ELEV = Short.MIN_VALUE;
+
 
   public boolean hasBits( int mask ) {
     return (bits & mask ) != 0;
@@ -63,6 +66,10 @@ public class GraphNode extends GraphLink {
 
   public void setBits( int mask ) {
     bits |= mask;
+  }
+
+  public int getBits() {
+    return bits;
   }
 
   public void clearBits( int mask ) {
@@ -88,12 +95,6 @@ public class GraphNode extends GraphLink {
 
   public GraphNode(long id) {
     this((int) (id >> 32), (int) (id & 0xffffffffL));
-  }
-
-
-
-  public final double getElev() {
-    return sElev / 4.;
   }
 
   public int linkCount() {

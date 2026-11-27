@@ -45,6 +45,10 @@ public final class NodesCache {
     }
   }
 
+  public NodesCache(NodesCache oldCache) {
+    this( oldCache.segmentDir, oldCache.fileSuffix, oldCache.wayValidator, oldCache);
+  }
+
   public void clean() {
     for (GraphFile osmf : fileCache.values()) {
       if ( osmf != null ) {
