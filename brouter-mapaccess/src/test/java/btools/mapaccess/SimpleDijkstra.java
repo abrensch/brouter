@@ -20,11 +20,13 @@ public class SimpleDijkstra
   private static final class SimplePath
   {
     final GraphNode node;
+    final GraphLink link;
     final int cost;
     final SimplePath origin;
-    SimplePath( GraphNode node, int cost, SimplePath origin )
+    SimplePath( GraphNode node, GraphLink link, int cost, SimplePath origin )
     {
       this.node = node;
+      this.link = link;
       this.cost = cost;
       this.origin = origin;
     }
@@ -46,7 +48,7 @@ public class SimpleDijkstra
     {
       if ( n.hasBits( GraphNode.STARTNODE_BIT ) )
       {
-        heap.add( 0, new SimplePath( n, 0, null ) );
+        heap.add( 0, new SimplePath( n, null, 0, null ) );
       }
     }
 
@@ -56,6 +58,13 @@ public class SimpleDijkstra
       if ( path == null )
       {
         break;
+      }
+      if ( path.link != null ) {
+        if ( !path.node.linkStillValid( path.link ) ) {
+          continue;
+        }
+        // removed links are what "closed set" is in a normal Dijkstra implementation
+        path.origin.node.unlinkLink( path.link );
       }
       GraphNode n = path.node;
       if ( n.hasBits( GraphNode.ENDNODE_BIT ) )
@@ -73,7 +82,7 @@ public class SimpleDijkstra
       {
         GraphNode t = l.getTarget( n );
         int cost = path.cost + n.calcDistance( t );
-        SimplePath np = new SimplePath( t, cost, path );
+        SimplePath np = new SimplePath( t, l, cost, path );
         heap.add( cost, np );
       }
     }

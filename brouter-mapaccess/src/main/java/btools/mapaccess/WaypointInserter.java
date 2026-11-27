@@ -79,6 +79,7 @@ public class WaypointInserter {
     {
       sortedNodes.add( n.calcDistance( sn ), sn );
     }
+    GraphNode t = link.getTarget(n);
     for ( ; ; )
     {
       GraphNode splitNode = sortedNodes.popLowestKeyValue();
@@ -87,7 +88,7 @@ public class WaypointInserter {
         break;
       }
       GraphNode nn = insertNodeIntoLink( n, link, splitNode );
-      if ( nn != n ) {
+      if ( nn != n && nn != t) {
         // the link was split, so we need to insert the remaining nodes into the new link
         for( GraphLink l = nn.firstLink; l != null; l = l.getNext(nn) ) {
           if ( l.getTarget(nn) != n ) {

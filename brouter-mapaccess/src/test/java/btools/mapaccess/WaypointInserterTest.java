@@ -1,5 +1,6 @@
 package btools.mapaccess;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -7,6 +8,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -22,22 +24,25 @@ public class WaypointInserterTest
   @Rule
   public TemporaryFolder tmpDir = new TemporaryFolder();
 
-  private static final byte[] WAY = new byte[] { 1 }; // just any description
+  private static final byte[] WAY = new byte[0]; // just any description
 
   private static GraphNode node(int lon, int lat) {
     return new GraphNode(180000000 + lon, 90000000 + lat);
   }
 
+  private NodesCache nc;
+
   /**
    * Creates a simple graph (4 nodes in a row), writes it into a segment file
-   * and returns the segment directory.
+   * and opens a NodesCache on it.
    */
-  private File createSimpleGraph() throws IOException
+  @Before
+  public void setUp() throws IOException
   {
     GraphNode n1 = node( 1000, 1000 );
     GraphNode n2 = node( 2000, 1000 );
     GraphNode n3 = node( 3000, 1000 );
-    GraphNode n4 = node( 4000, 1000 );
+    GraphNode n4 = node( 3000, 2000 );
 
     n1.createLink( WAY, n2 );
     n2.createLink( WAY, n3 );
@@ -47,32 +52,47 @@ public class WaypointInserterTest
     File segmentDir = tmpDir.newFolder("segments" );
     new GraphFile(new File(segmentDir, "E0_N0.gd5"), 180000000, 90000000).createWithNodes(
       List.of(n1, n2, n3, n4) );
-    return segmentDir;
+    nc = new NodesCache( segmentDir, "gd5", null, null );
   }
 
   @Test
-  public void testInsert() throws IOException
+  public void insertAcrossSegments() throws IOException
   {
-    File segmentDir = createSimpleGraph();
+    assertRoute( "1500,1010 -> 3030,1500", "1500,1000 2000,1000 3000,1000 3000,1500" );
+  }
 
-    // now recover the graph from the file and navigate again
-    NodesCache nc = new NodesCache(segmentDir, "gd5", null, null);
+  @Test
+  public void insertWithinSegment() throws IOException
+  {
+    assertRoute( "1500,1010 -> 1600,990", "1500,1000 1600,1000" );
+  }
 
-    List<GraphNode> route;
+  @Test
+  public void insertWithinSnapPoints() throws IOException
+  {
+    assertRoute( "900,900 -> 3100,970", "1000,1000 2000,1000 3000,1000" );
+  }
 
-    // expected route: start crosspoint, n2, n3, end crosspoint
-    route = getRoute( nc, 1500, 1010, 3500, 1020 );
-    assertEquals( 4, route.size() );
-    assertEquals( node( 1500, 1000 ).getIdFromPos(), route.get( 0 ).getIdFromPos() );
-    assertEquals( node( 2000, 1000 ).getIdFromPos(), route.get( 1 ).getIdFromPos() );
-    assertEquals( node( 3000, 1000 ).getIdFromPos(), route.get( 2 ).getIdFromPos() );
-    assertEquals( node( 3500, 1000 ).getIdFromPos(), route.get( 3 ).getIdFromPos() );
+  /**
+   * @param in  "lon,lat -> lon,lat"
+   * @param out expected route nodes as "lon,lat lon,lat ..."
+   */
+  private void assertRoute( String in, String out ) throws IOException
+  {
+    int[] c = nums( in );
+    List<GraphNode> route = getRoute( nc, c[0], c[1], c[2], c[3] );
+    int[] e = nums( out );
+    assertEquals( e.length / 2, route.size() );
+    for ( int i = 0; i < route.size(); i++ )
+    {
+      assertEquals( node( e[2 * i], e[2 * i + 1] ).getIdFromPos(), route.get( i ).getIdFromPos() );
+    }
+  }
 
-    // same segment, expected route: start crosspoint, end crosspoint
-    route = getRoute( nc, 1500, 1010, 1600, 990 );
-    assertEquals( 2, route.size() );
-    assertEquals( node( 1500, 1000 ).getIdFromPos(), route.get( 0 ).getIdFromPos() );
-    assertEquals( node( 1600, 1000 ).getIdFromPos(), route.get( 1 ).getIdFromPos() );
+  private static int[] nums( String s )
+  {
+    return Arrays.stream( s.split( "[^0-9]+" ) ).filter( x -> !x.isEmpty() )
+      .mapToInt( Integer::parseInt ).toArray();
   }
 
   private List<GraphNode> getRoute( NodesCache nc, int lon1, int lat1, int lon2, int lat2 ) throws IOException
