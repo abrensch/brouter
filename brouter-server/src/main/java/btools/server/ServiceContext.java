@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.io.File;
 
-import btools.router.GraphNodeNamed;
+import btools.mapaccess.GraphNodeNamed;
 
 /**
  * Environment configuration that is initialized at server/service startup

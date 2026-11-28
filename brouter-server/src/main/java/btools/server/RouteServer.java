@@ -24,7 +24,7 @@ import java.util.PriorityQueue;
 import java.util.StringTokenizer;
 import java.util.zip.GZIPOutputStream;
 
-import btools.router.GraphNodeNamed;
+import btools.mapaccess.GraphNodeNamed;
 import btools.router.OsmTrack;
 import btools.router.ProfileCache;
 import btools.router.RoutingContext;

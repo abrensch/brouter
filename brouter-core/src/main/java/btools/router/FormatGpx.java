@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.util.Map;
 
+import btools.mapaccess.GraphNodeNamed;
 import btools.util.StringUtils;
 
 public class FormatGpx extends Formatter {

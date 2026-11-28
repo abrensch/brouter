@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import btools.mapaccess.GraphNode;
+import btools.mapaccess.GraphNodeNamed;
 import btools.util.CompactLongMap;
 import btools.util.FrozenLongMap;
 

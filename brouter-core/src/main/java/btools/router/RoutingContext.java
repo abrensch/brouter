@@ -14,10 +14,9 @@ import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.mapaccess.GraphLink;
 import btools.mapaccess.GraphNode;
-import btools.mapaccess.MatchedWaypoint;
+import btools.mapaccess.GraphNodeNamed;
 import btools.mapaccess.WaypointMatcher;
 import btools.util.CheapAngleMeter;
-import btools.util.CheapRuler;
 
 public final class RoutingContext {
   public void setAlternativeIdx(int idx) {
@@ -202,7 +201,7 @@ public final class RoutingContext {
    */
   public void createNogoMatcher( List<GraphNode> waypoints ) {
 
-    List<MatchedWaypoint> nogoWaypoints = new ArrayList<>();
+    List<GraphNodeNamed> nogoWaypoints = new ArrayList<>();
     if (nogopoints != null) {
       for (GraphNodeNamed nogo : nogopoints) {
         boolean goodGuy = true;
@@ -212,14 +211,11 @@ public final class RoutingContext {
           }
         }
         if (goodGuy) {
-          MatchedWaypoint wp = new MatchedWaypoint();
-          wp.waypoint = nogo;
-          wp.radius = nogo.radius;
-          nogoWaypoints.add(wp);
+          nogoWaypoints.add(nogo);
         }
       }
     }
-    nogoMatcher = new WaypointMatcher( nogoWaypoints, 0., null );
+    nogoMatcher = new WaypointMatcher(nogoWaypoints);
   }
 
 

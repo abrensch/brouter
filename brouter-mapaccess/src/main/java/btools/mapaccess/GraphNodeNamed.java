@@ -3,10 +3,7 @@
  *
  * @author ab
  */
-package btools.router;
-
-import btools.mapaccess.GraphNode;
-import btools.util.CheapRuler;
+package btools.mapaccess;
 
 public class GraphNodeNamed extends GraphNode {
   public String name;
@@ -26,3 +23,4 @@ public class GraphNodeNamed extends GraphNode {
   }
 
 }
+

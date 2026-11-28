@@ -172,7 +172,7 @@ abstract class OsmPath {
         message = new MessageData();
       }
 
-      double d = rc.nogoMatcher.check( sourceNode, targetNode );
+      double d = rc.nogoMatcher.match(sourceNode, targetNode);
       if ( d < 0.) {
         cost = -1; // nogo match, drop this path
         return;

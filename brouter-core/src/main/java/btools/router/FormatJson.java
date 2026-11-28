@@ -7,6 +7,7 @@ import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 
+import btools.mapaccess.GraphNodeNamed;
 import btools.util.StringUtils;
 
 public class FormatJson extends Formatter {

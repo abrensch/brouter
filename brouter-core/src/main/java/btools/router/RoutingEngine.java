@@ -12,6 +12,7 @@ import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.NodesCache;
 import btools.mapaccess.GraphLink;
 import btools.mapaccess.GraphNode;
+import btools.mapaccess.GraphNodeNamed;
 import btools.mapaccess.NodePairSet;
 import btools.mapaccess.WaypointInserter;
 import btools.util.SortedHeap;
