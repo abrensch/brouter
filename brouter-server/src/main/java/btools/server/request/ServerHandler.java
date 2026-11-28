@@ -2,7 +2,6 @@ package btools.server.request;
 
 import java.util.Map;
 
-import btools.router.FormatCsv;
 import btools.router.FormatGpx;
 import btools.router.FormatJson;
 import btools.router.OsmTrack;
@@ -19,7 +18,7 @@ import btools.server.ServiceContext;
  * nogos = lon,lat,radius,weight|... (optional, list of lon, lat, radius in meters, weight (optional) separated by |)
  * profile = profile file name without .brf
  * alternativeidx = [0|1|2|3] (optional, default 0)
- * format = [gpx|geojson|csv] (optional, default gpx)
+ * format = [gpx|geojson] (optional, default gpx)
  * trackname = name used for filename and format specific trackname (optional, default brouter)
  * pois = lon,lat,name|... (optional)
  * timode = turnInstructionMode [0=none, 1=auto-choose, 2=locus-style, 3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style] default 0
@@ -51,8 +50,6 @@ public class ServerHandler extends RequestHandler {
       result = new FormatGpx(rc).format(track);
     } else if ("geojson".equals(format)) {
       result = new FormatJson(rc).format(track);
-    } else if ("csv".equals(format)) {
-      result = new FormatCsv(rc).format(track);
     } else {
       System.out.println("unknown track format '" + format + "', using default");
       result = new FormatGpx(rc).format(track);
