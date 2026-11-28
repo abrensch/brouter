@@ -13,6 +13,7 @@ import btools.mapaccess.NodesCache;
 import btools.mapaccess.GraphLink;
 import btools.mapaccess.GraphNode;
 import btools.mapaccess.NodePairSet;
+import btools.mapaccess.WaypointInserter;
 import btools.util.SortedHeap;
 
 public class RoutingEngine {
@@ -253,8 +254,6 @@ public class RoutingEngine {
       }
       matchWaypointsToNodes(matchedWaypoints);
 
-      routingContext.checkMatchedWaypointAgainstNogos(matchedWaypoints);
-
       // detect target islands: restricted search in inverse direction
       routingContext.inverseDirection = !routingContext.inverseRouting;
       airDistanceCostFactor = 0.;
@@ -422,15 +421,6 @@ public class RoutingEngine {
   }
 
   private OsmTrack searchTrack(MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack refTrack) {
-    // remove nogos with waypoints inside
-    try {
-      return searchRoutedTrack(startWp, endWp, refTrack);
-    } finally {
-      routingContext.restoreNogoList();
-    }
-  }
-
-  private OsmTrack searchRoutedTrack(MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack refTrack) {
     OsmTrack track = null;
     double[] airDistanceCostFactors = new double[]{
       routingContext.pass1coefficient,
@@ -474,55 +464,18 @@ public class RoutingEngine {
     islandNodePairs.clearTempPairs();
   }
 
-  // returns one start path for every link n1->n2 (parallel links = 2-node-loops are all valid candidates)
-  private List<OsmPath> getStartPaths(GraphNode n1, GraphNode n2, MatchedWaypoint mwp, GraphNodeNamed endPos, boolean sameSegmentSearch) {
-    GraphNodeNamed wp = new GraphNodeNamed(mwp.crossPoint);
-    List<OsmPath> paths = new ArrayList<>();
-    try {
-      routingContext.setWaypoint(wp, sameSegmentSearch ? endPos : null, false);
-      GraphLink startLink = new GraphLink(null, n1);
-      OsmPath startPath = routingContext.createPath(startLink);
-      for (GraphLink link = n1.firstLink; link != null; link = link.getNext(n1)) {
-        GraphNode nextNode = link.getTarget(n1);
-        if (nextNode.isHollow())
-          continue; // border node?
-        if (nextNode.firstLink == null)
-          continue; // don't care about dead ends
-        if (nextNode == n1)
-          continue; // ?
-        if (nextNode != n2)
-          continue; // just that link
-
-        wp.radius = 1.5;
-        endPos.radius = 1.5;
-        OsmPath testPath = routingContext.createPath(startPath, link, null, guideTrack != null);
-        testPath.airDistance = nextNode.calcDistance(endPos);
-        testPath.treeDepth = 1;
-        // special case: start+end on same segment
-        if (testPath.cost >= 0 && sameSegmentSearch && endPos.radius < 1.5) {
-          testPath.treeDepth = 0; // hack: mark for the final-check
-        }
-        paths.add(testPath);
-      }
-      return paths;
-    } finally {
-      routingContext.unsetWaypoint();
-    }
-  }
-
   private OsmTrack findTrack(String operationName, MatchedWaypoint startWp, MatchedWaypoint endWp, OsmTrack costCuttingTrack, OsmTrack refTrack) {
     try {
       List<GraphNode> wpts2 = new ArrayList<>();
       wpts2.add(startWp.waypoint);
       wpts2.add(endWp.waypoint);
-      routingContext.cleanNogoList(wpts2);
+      routingContext.createNogoMatcher(wpts2 );
 
       boolean detailed = guideTrack != null;
       resetCache(detailed);
 
       return _findTrack(operationName, startWp, endWp, costCuttingTrack, refTrack);
     } finally {
-      routingContext.restoreNogoList();
       nodesCache.clean();
     }
   }
@@ -536,35 +489,16 @@ public class RoutingEngine {
 
     int nodesVisited = 0;
 
-    long startNodeId1 = startWp.node1.getIdFromPos();
-    long startNodeId2 = startWp.node2.getIdFromPos();
-    long endNodeId1 = endWp.node1.getIdFromPos();
-    long endNodeId2 = endWp.node2.getIdFromPos();
-
-    GraphNode start1 = nodesCache.getGraphNode(startWp.node1);
-    GraphNode start2 = nodesCache.getGraphNode(startWp.node2);
-    GraphNode end1 = nodesCache.getGraphNode(endWp.node1);
-    GraphNode end2 = nodesCache.getGraphNode(endWp.node2);
     GraphNodeNamed endPos = new GraphNodeNamed(endWp.crossPoint);
-    boolean sameSegmentSearch = (start1 == end1 && start2 == end2) || (start1 == end2 && start2 == end1);
 
-    if (!nodesCache.obtainNonHollowNode(start1)) {
-      return null;
-    }
-    nodesCache.expandHollowLinkTargets(start1);
-    if (!nodesCache.obtainNonHollowNode(start2)) {
-      return null;
-    }
-    nodesCache.expandHollowLinkTargets(start2);
-
-
+    // insert the start- and end-crosspoints into the graph
+    WaypointInserter inserter = new WaypointInserter(nodesCache, startWp, endWp);
 
     SortedHeap<OsmPath> openSet = new SortedHeap<>();
-    for (OsmPath p : getStartPaths(start1, start2, startWp, endPos, sameSegmentSearch)) {
-      addToOpenset(openSet, p);
-    }
-    for (OsmPath p : getStartPaths(start2, start1, startWp, endPos, sameSegmentSearch)) {
-      addToOpenset(openSet, p);
+    for (GraphNode n : inserter.getInsertedNodes()) {
+      if (n.hasBits(GraphNode.STARTNODE_BIT)) {
+        addToOpenset(openSet, routingContext.createPath(new GraphLink(null, n)));
+      }
     }
 
     for (; ; ) {
@@ -596,46 +530,36 @@ public class RoutingEngine {
       GraphNode sourceNode = path.getSourceNode();
       GraphNode currentNode = path.getTargetNode();
 
-      if (!sourceNode.linkStillValid(currentLink)) {
+      if (sourceNode != null && !sourceNode.linkStillValid(currentLink)) {
         continue; // probably processed by another path
       }
 
-      long currentNodeId = currentNode.getIdFromPos();
-      long sourceNodeId = sourceNode.getIdFromPos();
-
-      if (!path.didEnterDestinationArea()) {
-        islandNodePairs.addTempPair(sourceNodeId, currentNodeId);
+      if (sourceNode != null && !path.didEnterDestinationArea()) {
+        islandNodePairs.addTempPair(sourceNode.getIdFromPos(), currentNode.getIdFromPos());
       }
 
-      if (path.treeDepth != 1) {
-        if (path.treeDepth == 0) { // hack: sameSegment Paths marked treedepth=0 to pass above check
-          path.treeDepth = 1;
-        }
+      if (currentNode.hasBits(GraphNode.ENDNODE_BIT)) {
+        // track found, compile
+        OsmTrack t = compileTrack(path, verbose);
+        t.showspeed = routingContext.showspeed;
+        t.showSpeedProfile = routingContext.showSpeedProfile;
+        return t;
+      }
 
-        if ((sourceNodeId == endNodeId1 && currentNodeId == endNodeId2)
-          || (sourceNodeId == endNodeId2 && currentNodeId == endNodeId1)) {
-          // track found, compile
-          OsmTrack t = compileTrack(path, verbose);
-          t.showspeed = routingContext.showspeed;
-          t.showSpeedProfile = routingContext.showSpeedProfile;
-          return t;
-        }
-
-        // check for a match with the cost-cutting-track (only for network nodes to save cpu time)
-        if (costCuttingTrack != null && !sourceNode.hasBits(GraphNode.TRANSFERNODE_BIT) ) {
-          OsmPathElement pe = costCuttingTrack.getLink(sourceNodeId, currentNodeId);
-          if (pe != null) {
-            int costEstimate = path.cost
-              + path.elevationCorrection()
-              + (costCuttingTrack.cost - pe.cost);
-            if (costEstimate < maxTotalCost) {
-              maxTotalCost = costEstimate;
-            }
+      // check for a match with the cost-cutting-track (only for network nodes to save cpu time)
+      if (costCuttingTrack != null && sourceNode != null && !sourceNode.hasBits(GraphNode.TRANSFERNODE_BIT)) {
+        OsmPathElement pe = costCuttingTrack.getLink(sourceNode.getIdFromPos(), currentNode.getIdFromPos());
+        if (pe != null) {
+          int costEstimate = path.cost
+            + path.elevationCorrection()
+            + (costCuttingTrack.cost - pe.cost);
+          if (costEstimate < maxTotalCost) {
+            maxTotalCost = costEstimate;
           }
         }
       }
 
-      if (path.treeDepth > 1) {
+      if ( sourceNode != null ) {
         boolean isBidir = currentLink.isBidirectional();
         sourceNode.unlinkLink(currentLink);
 
@@ -698,7 +622,7 @@ public class RoutingEngine {
             // not along the guide-track, discard, but register for voice-hint processing
             if (routingContext.turnInstructionMode > 0) {
               OsmPath detour = routingContext.createPath(path, link, refTrack, true);
-              if (detour.cost >= 0. && nextId != startNodeId1 && nextId != startNodeId2) {
+              if (detour.cost >= 0. && !nextNode.hasBits(GraphNode.STARTNODE_BIT)) {
                 guideTrack.registerDetourForId(currentNode.getIdFromPos(), OsmPathElement.create(detour));
               }
             }
@@ -706,32 +630,14 @@ public class RoutingEngine {
           }
         }
 
-        boolean isFinalLink = false;
-        long targetNodeId = nextNode.getIdFromPos();
-        if (currentNodeId == endNodeId1 || currentNodeId == endNodeId2) {
-          if (targetNodeId == endNodeId1 || targetNodeId == endNodeId2) {
-            isFinalLink = true;
-          }
-        }
+        OsmPath testPath = routingContext.createPath(path, link, refTrack, guideTrack != null);
+        if (testPath.cost >= 0 &&
+          (testPath.sourceNode.getIdFromPos() != testPath.targetNode.getIdFromPos())) {
+          testPath.airDistance = nextNode.hasBits(GraphNode.ENDNODE_BIT) ? 0 : nextNode.calcDistance(endPos);
 
-        try {
-          if (isFinalLink) {
-            endPos.radius = 1.5; // 1.5 meters is the upper limit that will not change the unit-test result..
-            routingContext.setWaypoint(endPos, true);
-          }
-          OsmPath testPath = routingContext.createPath(path, link, refTrack, guideTrack != null);
-          if (testPath.cost >= 0 &&
-            (testPath.sourceNode.getIdFromPos() != testPath.targetNode.getIdFromPos())) {
-            testPath.airDistance = isFinalLink ? 0 : nextNode.calcDistance(endPos);
-
-            if (isFinalLink || testPath.cost + testPath.airDistance <= maxTotalCost + addDiff) {
-              testPath.treeDepth = path.treeDepth + 1;
-              addToOpenset( openSet, testPath );
-            }
-          }
-        } finally {
-          if (isFinalLink) {
-            routingContext.unsetWaypoint();
+          if (nextNode.hasBits(GraphNode.ENDNODE_BIT) || testPath.cost + testPath.airDistance <= maxTotalCost + addDiff) {
+            testPath.treeDepth = path.treeDepth + 1;
+            addToOpenset(openSet, testPath);
           }
         }
       }
@@ -754,10 +660,6 @@ public class RoutingEngine {
   private OsmTrack compileTrack(OsmPath path, boolean verbose) {
     OsmPathElement element = OsmPathElement.create(path);
 
-    // for final track, cut endnode
-    if (guideTrack != null && element.origin != null) {
-      element = element.origin;
-    }
 
     float totalTime = element.getTime();
     float totalEnergy = element.getEnergy();

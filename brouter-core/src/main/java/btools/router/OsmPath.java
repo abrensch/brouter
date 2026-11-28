@@ -82,14 +82,10 @@ abstract class OsmPath {
 
   protected abstract void init(OsmPath orig);
 
-  protected abstract void resetState();
-
   static int seg = 1;
 
   protected void addAdditionalPenalty(OsmTrack refTrack, boolean detailMode, OsmPath origin, GraphLink link, RoutingContext rc) {
     byte[] description = link.wayDescription;
-
-    rc.nogoCost = 0.;
 
     // extract the 3 positions of the first section
     GraphNode previousNode = origin.sourceNode == null ? null : origin.sourceNode;
@@ -176,37 +172,12 @@ abstract class OsmPath {
         message = new MessageData();
       }
 
-      int distance = rc.calcDistance(lon1, lat1, lon2, lat2);
-
-      boolean stopAtEndpoint = false;
-      if (rc.shortestmatch) {
-        if (rc.isEndpoint) {
-          stopAtEndpoint = true;
-          ele2 = interpolateEle(ele1, ele2, rc.wayfraction);
-        } else {
-          // we just start here, reset everything
-          cost = 0;
-          resetState();
-          isStartpoint = true; // reset turncost-pipe
-
-          if (detailMode) {
-            if (rc.wayfraction > 0.) {
-              ele1 = interpolateEle(ele1, ele2, 1. - rc.wayfraction);
-              originElement = OsmPathElement.create(rc.ilonshortest, rc.ilatshortest, ele1, null);
-            } else {
-              originElement = null; // prevent duplicate point
-            }
-          }
-
-          if (rc.checkPendingEndpoint()) {
-            distance = rc.calcDistance(rc.ilonshortest, rc.ilatshortest, lon2, lat2);
-            if (rc.shortestmatch) {
-              stopAtEndpoint = true;
-              ele2 = interpolateEle(ele1, ele2, rc.wayfraction);
-            }
-          }
-        }
+      double d = rc.nogoMatcher.check( sourceNode, targetNode );
+      if ( d < 0.) {
+        cost = -1; // nogo match, drop this path
+        return;
       }
+      int distance = (int) Math.max(1.0, Math.round(d));
 
       if (message != null) {
         message.linkdist += distance;
@@ -252,35 +223,12 @@ abstract class OsmPath {
         message.wayKeyValues = rc.expCtxWay.getKeyValueDescription(isReverse, description);
       }
 
-      if (stopAtEndpoint) {
-        if (detailMode) {
-          originElement = OsmPathElement.create(rc.ilonshortest, rc.ilatshortest, originEle2, originElement);
-          originElement.cost = cost;
-          if (message != null) {
-            originElement.message = message;
-          }
-        }
-        if (rc.nogoCost < 0) {
-          cost = -1;
-        } else {
-          cost += rc.nogoCost;
-        }
-        return;
-      }
 
       // *** penalty for being part of the reference track
       if (refTrack != null && refTrack.containsNode(targetNode) && refTrack.containsNode(sourceNode)) {
         cost += distance;
       }
       sElev = ele2;
-    }
-
-    // check for nogo-matches (after the *actual* start of segment)
-    if (rc.nogoCost < 0) {
-      cost = -1;
-      return;
-    } else {
-      cost += rc.nogoCost;
     }
 
     // add target-node costs
@@ -293,12 +241,6 @@ abstract class OsmPath {
   }
 
 
-  private static short interpolateEle(short e1, short e2, double fraction) {
-    if (e1 == Short.MIN_VALUE || e2 == Short.MIN_VALUE) {
-      return Short.MIN_VALUE;
-    }
-    return (short) (e1 * (1. - fraction) + e2 * fraction);
-  }
 
   protected abstract double processWaySection(RoutingContext rc, double dist, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int lastpriorityclassifier);
 

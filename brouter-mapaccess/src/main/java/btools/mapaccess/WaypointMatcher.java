@@ -24,12 +24,37 @@ public final class WaypointMatcher {
     }
   }
 
+  /**
+   * Checks the segment start→target against all waypoints and, on a better
+   * match, updates the corresponding {@link MatchedWaypoint}.
+   * <p>
+   * If the segment is part of an island, it is ignored.
+   *
+   * @param start  start node of the segment
+   * @param target target node of the segment
+   */
   public void match(GraphNode start, GraphNode target) {
     if (islandPairs.size() > 0) {
       if (islandPairs.hasPair(start.getIdFromPos(), target.getIdFromPos())) {
         return;
       }
     }
+    match( start, target, true);
+  }
+
+  /**
+   * Only checks whether the segment start→target lies within the
+   * radius of at least one waypoint. No waypoints are modified.
+   *
+   * @param start  start node of the segment
+   * @param target target node of the segment
+   * @return the the distance in meter between start and target, negative on a match
+   */
+  public double check(GraphNode start, GraphNode target) {
+    return match( start, target, false );
+  }
+
+  private double match(GraphNode start, GraphNode target, boolean update) {
     int lon1 = start.iLon;
     int lat1 = start.iLat;
     int lon2 = target.iLon;
@@ -44,7 +69,7 @@ public final class WaypointMatcher {
     double d = Math.sqrt(dy * dy + dx * dx);
 
     if (d == 0.)
-      return;
+      return 0.;
 
     for (int i = 0; i < waypoints.size(); i++) {
       MatchedWaypoint mwp = waypoints.get(i);
@@ -70,6 +95,9 @@ public final class WaypointMatcher {
           if (radius > mwp.radius)
             continue;
         }
+        if (!update) {
+          return -d;
+        }
         // new match for that waypoint
         mwp.radius = radius; // shortest distance to way
         mwp.node1 = new GraphNode( start.getIdFromPos() );
@@ -88,6 +116,7 @@ public final class WaypointMatcher {
         }
       }
     }
+    return d;
   }
 
 

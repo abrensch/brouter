@@ -22,14 +22,6 @@ final class KinematicPath extends OsmPath {
     floatingAngleRight = origin.floatingAngleRight;
   }
 
-  @Override
-  protected void resetState() {
-    ekin = 0.;
-    totalTime = 0.;
-    totalEnergy = 0.;
-    floatingAngleLeft = 0.f;
-    floatingAngleRight = 0.f;
-  }
 
   @Override
   protected double processWaySection(RoutingContext rc, double dist, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int lastpriorityclassifier) {

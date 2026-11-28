@@ -32,16 +32,6 @@ final class StdPath extends OsmPath {
     this.elevation_buffer = origin.elevation_buffer;
   }
 
-  @Override
-  protected void resetState() {
-    ehbd = 0;
-    ehbu = 0;
-    totalTime = 0.f;
-    totalEnergy = 0.f;
-    uphillcostdiv = 0;
-    downhillcostdiv = 0;
-    elevation_buffer = 0.f;
-  }
 
   @Override
   protected double processWaySection(RoutingContext rc, double distance, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int lastpriorityclassifier) {

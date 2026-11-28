@@ -12,9 +12,10 @@ import java.util.Map;
 import btools.expressions.BExpressionContext;
 import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
-import btools.mapaccess.MatchedWaypoint;
 import btools.mapaccess.GraphLink;
 import btools.mapaccess.GraphNode;
+import btools.mapaccess.MatchedWaypoint;
+import btools.mapaccess.WaypointMatcher;
 import btools.util.CheapAngleMeter;
 import btools.util.CheapRuler;
 
@@ -151,20 +152,9 @@ public final class RoutingContext {
   }
 
   public List<GraphNodeNamed> nogopoints = null;
-  private List<GraphNodeNamed> nogopoints_all = null; // full list not filtered for wayoints-in-nogos
-  private List<GraphNodeNamed> keepnogopoints = null;
-  private GraphNodeNamed pendingEndpoint = null;
-
+  public WaypointMatcher nogoMatcher;
 
   public CheapAngleMeter anglemeter = new CheapAngleMeter();
-
-  public double nogoCost = 0.;
-  public boolean isEndpoint = false;
-
-  public boolean shortestmatch = false;
-  public double wayfraction;
-  public int ilatshortest;
-  public int ilonshortest;
 
   public boolean inverseDirection;
 
@@ -205,189 +195,33 @@ public final class RoutingContext {
   }
 
   /**
-   * restore the full nogolist previously saved by cleanNogoList
-   */
-  public void restoreNogoList() {
-    nogopoints = nogopoints_all;
-  }
-
-  /**
    * clean the nogolist (previoulsy saved by saveFullNogolist())
    * by removing nogos with waypoints within
    *
    * @return true if all wayoints are all in the same (full-weigth) nogo area (triggering bee-line-mode)
    */
-  public void cleanNogoList(List<GraphNode> waypoints) {
-    nogopoints_all = nogopoints;
-    if (nogopoints == null) return;
-    List<GraphNodeNamed> nogos = new ArrayList<>();
-    for (GraphNodeNamed nogo : nogopoints) {
-      boolean goodGuy = true;
-      for (GraphNode wp : waypoints) {
-        if (wp.calcDistance(nogo) < nogo.radius) {
-          goodGuy = false;
-        }
-      }
-      if (goodGuy) nogos.add(nogo);
-    }
-    nogopoints = nogos.isEmpty() ? null : nogos;
-  }
+  public void createNogoMatcher( List<GraphNode> waypoints ) {
 
-  public void checkMatchedWaypointAgainstNogos(List<MatchedWaypoint> matchedWaypoints) {
-    if (nogopoints == null) return;
-    int theSize = matchedWaypoints.size();
-    if (theSize<2) return;
-    int removed = 0;
-    List<MatchedWaypoint> newMatchedWaypoints = new ArrayList<>();
-    MatchedWaypoint prevMwp = null;
-    boolean prevMwpIsInside = false;
-    for (int i = 0; i < theSize; i++) {
-      MatchedWaypoint mwp = matchedWaypoints.get(i);
-      boolean isInsideNogo = false;
-      GraphNode wp = mwp.crossPoint;
+    List<MatchedWaypoint> nogoWaypoints = new ArrayList<>();
+    if (nogopoints != null) {
       for (GraphNodeNamed nogo : nogopoints) {
-        if (wp.calcDistance(nogo) < nogo.radius) {
-          isInsideNogo = true;
-          break;
-        }
-      }
-      if (isInsideNogo) {
-        boolean useAnyway = false;
-        if (prevMwp == null) useAnyway = true;
-        else if (prevMwpIsInside) useAnyway = true;
-        else if (i == theSize-1) {
-          throw new IllegalArgumentException("last wpt in restricted area ");
-        }
-        if (useAnyway) {
-          prevMwpIsInside = true;
-          newMatchedWaypoints.add(mwp);
-        } else {
-          removed++;
-          prevMwpIsInside = false;
-        }
-
-      } else {
-        prevMwpIsInside = false;
-        newMatchedWaypoints.add(mwp);
-      }
-      prevMwp = mwp;
-    }
-    if (newMatchedWaypoints.size() < 2) {
-      throw new IllegalArgumentException("a wpt in restricted area ");
-    }
-    if (removed > 0) {
-      matchedWaypoints.clear();
-      matchedWaypoints.addAll(newMatchedWaypoints);
-    }
-  }
-
-  public void setWaypoint(GraphNodeNamed wp, boolean endpoint) {
-    setWaypoint(wp, null, endpoint);
-  }
-
-  public void setWaypoint(GraphNodeNamed wp, GraphNodeNamed pendingEndpoint, boolean endpoint) {
-    keepnogopoints = nogopoints;
-    nogopoints = new ArrayList<>();
-    nogopoints.add(wp);
-    if (keepnogopoints != null) nogopoints.addAll(keepnogopoints);
-    isEndpoint = endpoint;
-    this.pendingEndpoint = pendingEndpoint;
-  }
-
-  public boolean checkPendingEndpoint() {
-    if (pendingEndpoint != null) {
-      isEndpoint = true;
-      nogopoints.set(0, pendingEndpoint);
-      pendingEndpoint = null;
-      return true;
-    }
-    return false;
-  }
-
-  public void unsetWaypoint() {
-    nogopoints = keepnogopoints;
-    pendingEndpoint = null;
-    isEndpoint = false;
-  }
-
-  public int calcDistance(int lon1, int lat1, int lon2, int lat2) {
-    double[] lonlat2m = CheapRuler.getLonLatToMeterScales((lat1 + lat2) >> 1);
-    double dlon2m = lonlat2m[0];
-    double dlat2m = lonlat2m[1];
-    double dx = (lon2 - lon1) * dlon2m;
-    double dy = (lat2 - lat1) * dlat2m;
-    double d = Math.sqrt(dy * dy + dx * dx);
-
-    shortestmatch = false;
-
-    if (nogopoints != null && !nogopoints.isEmpty() && d > 0.) {
-      for (int ngidx = 0; ngidx < nogopoints.size(); ngidx++) {
-        GraphNodeNamed nogo = nogopoints.get(ngidx);
-        double x1 = (lon1 - nogo.iLon) * dlon2m;
-        double y1 = (lat1 - nogo.iLat) * dlat2m;
-        double x2 = (lon2 - nogo.iLon) * dlon2m;
-        double y2 = (lat2 - nogo.iLat) * dlat2m;
-        double r12 = x1 * x1 + y1 * y1;
-        double r22 = x2 * x2 + y2 * y2;
-        double radius = Math.abs(r12 < r22 ? y1 * dx - x1 * dy : y2 * dx - x2 * dy) / d;
-
-        if (radius < nogo.radius) { // 20m
-          double s1 = x1 * dx + y1 * dy;
-          double s2 = x2 * dx + y2 * dy;
-
-
-          if (s1 < 0.) {
-            s1 = -s1;
-            s2 = -s2;
+        boolean goodGuy = true;
+        for (GraphNode wp : waypoints) {
+          if (wp.calcDistance(nogo) < nogo.radius) {
+            goodGuy = false;
           }
-          if (s2 > 0.) {
-            radius = Math.sqrt(s1 < s2 ? r12 : r22);
-            if (radius > nogo.radius) continue;
-          }
-          if (nogo.isNogo) {
-            nogoCost = -1;
-          } else {
-            shortestmatch = true;
-            nogo.radius = radius; // shortest distance to way
-            // calculate remaining distance
-            if (s2 < 0.) {
-              wayfraction = -s2 / (d * d);
-              double xm = x2 - wayfraction * dx;
-              double ym = y2 - wayfraction * dy;
-              ilonshortest = (int) (xm / dlon2m + nogo.iLon);
-              ilatshortest = (int) (ym / dlat2m + nogo.iLat);
-            } else if (s1 > s2) {
-              wayfraction = 0.;
-              ilonshortest = lon2;
-              ilatshortest = lat2;
-            } else {
-              wayfraction = 1.;
-              ilonshortest = lon1;
-              ilatshortest = lat1;
-            }
-
-            // here it gets nasty: there can be nogo-points in the list
-            // *after* the shortest distance point. In case of a shortest-match
-            // we use the reduced way segment for nogo-matching, in order not
-            // to cut our escape-way if we placed a nogo just in front of where we are
-            if (isEndpoint) {
-              wayfraction = 1. - wayfraction;
-              lon2 = ilonshortest;
-              lat2 = ilatshortest;
-            } else {
-              nogoCost = 0.;
-              lon1 = ilonshortest;
-              lat1 = ilatshortest;
-            }
-            dx = (lon2 - lon1) * dlon2m;
-            dy = (lat2 - lat1) * dlat2m;
-            d = Math.sqrt(dy * dy + dx * dx);
-          }
+        }
+        if (goodGuy) {
+          MatchedWaypoint wp = new MatchedWaypoint();
+          wp.waypoint = nogo;
+          wp.radius = nogo.radius;
+          nogoWaypoints.add(wp);
         }
       }
     }
-    return (int) Math.max(1.0, Math.round(d));
+    nogoMatcher = new WaypointMatcher( nogoWaypoints, 0., null );
   }
+
 
   public OsmPathModel pm;
 

@@ -11,7 +11,6 @@ import btools.util.CheapRuler;
 public class GraphNodeNamed extends GraphNode {
   public String name;
   public double radius; // radius of nogopoint (in meters)
-  public boolean isNogo = false;
 
   public GraphNodeNamed(int iLon, int iLat) {
     super(iLon, iLat);

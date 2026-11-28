@@ -223,9 +223,7 @@ public class RoutingParamCollector {
       (int) ((lon + 180.) * 1000000. + 0.5),
       (int) ((lat + 90.) * 1000000. + 0.5));
     n.name = "nogo" + radius;
-    n.isNogo = true;
     return n;
   }
-
 
 }
