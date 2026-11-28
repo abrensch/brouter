@@ -177,21 +177,6 @@ public final class RoutingContext {
   public double defaultC_r;
   public double bikerPower;
 
-  public static void prepareNogoPoints(List<GraphNodeNamed> nogos) {
-    for (GraphNodeNamed nogo : nogos) {
-      String s = nogo.name;
-      int idx = s.indexOf(' ');
-      if (idx > 0) s = s.substring(0, idx);
-      int ir = 20; // default radius
-      if (s.length() > 4) {
-        try {
-          ir = Integer.parseInt(s.substring(4));
-        } catch (Exception e) { /* ignore */ }
-      }
-      // Radius of the nogo point in meters
-      nogo.radius = ir;
-    }
-  }
 
   /**
    * clean the nogolist (previoulsy saved by saveFullNogolist())

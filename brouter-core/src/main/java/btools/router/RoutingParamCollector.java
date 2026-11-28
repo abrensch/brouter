@@ -130,30 +130,8 @@ public class RoutingParamCollector {
       if (params.containsKey("profile")) {
         rctx.profileName = params.get("profile" );
       }
-      if (params.containsKey("nogoLats") && params.get("nogoLats").length() > 0) {
-        List<GraphNodeNamed> nogoList = readNogos(params.get("nogoLons"), params.get("nogoLats"), params.get("nogoRadi"));
-        if (nogoList != null) {
-          RoutingContext.prepareNogoPoints(nogoList);
-          if (rctx.nogopoints == null) {
-            rctx.nogopoints = nogoList;
-          } else {
-            rctx.nogopoints.addAll(nogoList);
-          }
-        }
-        params.remove("nogoLats");
-        params.remove("nogoLons");
-        params.remove("nogoRadi");
-      }
       if (params.containsKey("nogos")) {
-        List<GraphNodeNamed> nogoList = readNogoList(params.get("nogos"));
-        if (nogoList != null) {
-          RoutingContext.prepareNogoPoints(nogoList);
-          if (rctx.nogopoints == null) {
-            rctx.nogopoints = nogoList;
-          } else {
-            rctx.nogopoints.addAll(nogoList);
-          }
-        }
+        rctx.nogopoints = readNogoList(params.get("nogos"));
         params.remove("nogos");
       }
 
@@ -202,30 +180,13 @@ public class RoutingParamCollector {
     return nogoList;
   }
 
-  public List<GraphNodeNamed> readNogos(String nogoLons, String nogoLats, String nogoRadi) {
-    if (nogoLons == null || nogoLats == null || nogoRadi == null) return null;
-    List<GraphNodeNamed> nogoList = new ArrayList<>();
-
-    String[] lons = nogoLons.split(",");
-    String[] lats = nogoLats.split(",");
-    String[] radi = nogoRadi.split(",");
-    for (int i = 0; i < lons.length && i < lats.length && i < radi.length; i++) {
-      GraphNodeNamed n = readNogo(lons[i].trim(), lats[i].trim(), radi[i].trim() );
-      nogoList.add(n);
-    }
-    return nogoList;
-  }
-
-
   private GraphNodeNamed readNogo(String lon, String lat, String radius) {
-    return readNogo(Double.parseDouble(lon), Double.parseDouble(lat), (int) Double.parseDouble(radius) );
-  }
-
-  private GraphNodeNamed readNogo(double lon, double lat, int radius) {
+    int r = (int) Double.parseDouble(radius);
     GraphNodeNamed n = new GraphNodeNamed(
-      (int) ((lon + 180.) * 1000000. + 0.5),
-      (int) ((lat + 90.) * 1000000. + 0.5));
-    n.name = "nogo" + radius;
+      (int) ((Double.parseDouble(lon) + 180.) * 1000000. + 0.5),
+      (int) ((Double.parseDouble(lat) + 90.) * 1000000. + 0.5));
+    n.name = "nogo" + r;
+    n.radius = r;
     return n;
   }
 
